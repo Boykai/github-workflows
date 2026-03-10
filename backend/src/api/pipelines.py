@@ -208,64 +208,65 @@ async def launch_pipeline_issue(
     from src.services.workflow_orchestrator import PipelineState, find_next_actionable_status
 
     issue_description = _normalize_issue_description(body.issue_description)
+    ctx: WorkflowContext | None = None
     owner, repo = await resolve_repository(session.access_token, project_id)
     service = _get_service()
     pipeline = await service.get_pipeline(project_id, body.pipeline_id)
     if pipeline is None:
         raise NotFoundError("Selected pipeline config is no longer available")
-    await service.set_assignment(project_id, body.pipeline_id)
-
-    config, _pipeline_name = await _prepare_workflow_config(
-        project_id=project_id,
-        owner=owner,
-        repo=repo,
-        pipeline_id=body.pipeline_id,
-    )
-
-    issue_body = issue_description
-    if config.agent_mappings:
-        issue_body = append_tracking_to_body(
-            issue_body,
-            config.agent_mappings,
-            get_status_order(config),
-        )
-
-    if len(issue_body) > GITHUB_ISSUE_BODY_MAX_LENGTH:
-        raise ValidationError(
-            f"Issue description is too large for GitHub's {GITHUB_ISSUE_BODY_MAX_LENGTH}-character limit"
-        )
-
-    is_blocking = pipeline.blocking
-    assignment = await service.get_assignment(project_id)
-    if assignment.blocking_override is not None:
-        is_blocking = assignment.blocking_override
-
-    issue = await github_projects_service.create_issue(
-        access_token=session.access_token,
-        owner=owner,
-        repo=repo,
-        title=_derive_issue_title(issue_description),
-        body=issue_body,
-        labels=with_blocking_label(["ai-generated"], is_blocking),
-    )
-
-    ctx = WorkflowContext(
-        session_id=str(session.session_id),
-        project_id=project_id,
-        access_token=session.access_token,
-        repository_owner=owner,
-        repository_name=repo,
-        selected_pipeline_id=body.pipeline_id,
-        config=config,
-        user_agent_model=await _load_user_agent_model(session),
-    )
-    ctx.issue_id = issue["node_id"]
-    ctx.issue_number = issue["number"]
-    ctx.issue_url = issue["html_url"]
-
-    orchestrator = get_workflow_orchestrator()
 
     try:
+        config, _pipeline_name = await _prepare_workflow_config(
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            pipeline_id=body.pipeline_id,
+        )
+
+        issue_body = issue_description
+        if config.agent_mappings:
+            issue_body = append_tracking_to_body(
+                issue_body,
+                config.agent_mappings,
+                get_status_order(config),
+            )
+
+        if len(issue_body) > GITHUB_ISSUE_BODY_MAX_LENGTH:
+            raise ValidationError(
+                f"Issue description is too large for GitHub's {GITHUB_ISSUE_BODY_MAX_LENGTH}-character limit"
+            )
+
+        is_blocking = pipeline.blocking
+        assignment = await service.get_assignment(project_id)
+        if assignment.blocking_override is not None:
+            is_blocking = assignment.blocking_override
+
+        issue = await github_projects_service.create_issue(
+            access_token=session.access_token,
+            owner=owner,
+            repo=repo,
+            title=_derive_issue_title(issue_description),
+            body=issue_body,
+            labels=with_blocking_label(["ai-generated"], is_blocking),
+        )
+        await service.set_assignment(project_id, body.pipeline_id)
+
+        ctx = WorkflowContext(
+            session_id=str(session.session_id),
+            project_id=project_id,
+            access_token=session.access_token,
+            repository_owner=owner,
+            repository_name=repo,
+            selected_pipeline_id=body.pipeline_id,
+            config=config,
+            user_agent_model=await _load_user_agent_model(session),
+        )
+        ctx.issue_id = issue["node_id"]
+        ctx.issue_number = issue["number"]
+        ctx.issue_url = issue["html_url"]
+
+        orchestrator = get_workflow_orchestrator()
+
         await orchestrator.add_to_project_with_backlog(ctx)
 
         status_name = config.status_backlog
@@ -333,7 +334,9 @@ async def launch_pipeline_issue(
             caller="pipeline_issue_launch",
         )
 
-        pipeline_state = get_pipeline_state(ctx.issue_number) if ctx.issue_number is not None else None
+        pipeline_state = (
+            get_pipeline_state(ctx.issue_number) if ctx.issue_number is not None else None
+        )
         if pipeline_state and pipeline_state.error:
             return WorkflowResult(
                 success=False,
@@ -366,14 +369,13 @@ async def launch_pipeline_issue(
         logger.exception("Failed to launch pipeline issue for project %s: %s", project_id, e)
         return WorkflowResult(
             success=False,
-            issue_id=ctx.issue_id,
-            issue_number=ctx.issue_number,
-            issue_url=ctx.issue_url,
-            project_item_id=ctx.project_item_id,
+            issue_id=ctx.issue_id if ctx is not None else None,
+            issue_number=ctx.issue_number if ctx is not None else None,
+            issue_url=ctx.issue_url if ctx is not None else None,
+            project_item_id=ctx.project_item_id if ctx is not None else None,
             current_status="error",
             message=(
-                "We couldn't launch the pipeline from this issue description. "
-                "Please try again."
+                "We couldn't launch the pipeline from this issue description. Please try again."
             ),
         )
 

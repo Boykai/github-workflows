@@ -77,7 +77,9 @@ class TestLaunchPipelineIssue:
                 return_value=("owner", "repo"),
             ),
             patch("src.api.pipelines.github_projects_service", mock_github_service),
-            patch("src.api.pipelines.get_workflow_config", new_callable=AsyncMock, return_value=None),
+            patch(
+                "src.api.pipelines.get_workflow_config", new_callable=AsyncMock, return_value=None
+            ),
             patch("src.api.pipelines.set_workflow_config", new_callable=AsyncMock),
             patch("src.api.pipelines.get_workflow_orchestrator", return_value=mock_orchestrator),
             patch(
@@ -137,3 +139,45 @@ class TestLaunchPipelineIssue:
 
         assert resp.status_code == 404
         assert "Selected pipeline config is no longer available" in resp.json()["error"]
+
+    @pytest.mark.anyio
+    async def test_launch_handles_issue_creation_failure_without_assigning_pipeline(
+        self, client, mock_db, mock_github_service
+    ):
+        """Issue creation failures return a scoped error response and keep assignment unchanged."""
+        pipeline_id = await _create_pipeline(mock_db)
+        mock_github_service.create_issue.side_effect = RuntimeError("GitHub issue create failed")
+
+        with (
+            patch(
+                "src.api.pipelines.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
+            patch("src.api.pipelines.github_projects_service", mock_github_service),
+            patch(
+                "src.api.pipelines.get_workflow_config", new_callable=AsyncMock, return_value=None
+            ),
+            patch("src.api.pipelines.set_workflow_config", new_callable=AsyncMock),
+        ):
+            resp = await client.post(
+                "/api/v1/pipelines/PVT_1/launch",
+                json={
+                    "issue_description": "# Import this issue\n\nCarry over the original context.",
+                    "pipeline_id": pipeline_id,
+                },
+            )
+
+        assert resp.status_code == 200
+        assert resp.json() == {
+            "success": False,
+            "issue_id": None,
+            "issue_number": None,
+            "issue_url": None,
+            "project_item_id": None,
+            "current_status": "error",
+            "message": "We couldn't launch the pipeline from this issue description. Please try again.",
+        }
+
+        assignment = await PipelineService(mock_db).get_assignment("PVT_1")
+        assert assignment.pipeline_id == ""
