@@ -111,7 +111,7 @@ describe('PipelineBoard', () => {
     renderPipelineBoard(
       <PipelineBoard
         columnCount={1}
-        stages={[createStage({ agents: [createAgentNode(), createAgentNode({ id: 'agent-2' })] })]}
+        stages={[createStage({ execution_mode: 'parallel', agents: [createAgentNode(), createAgentNode({ id: 'agent-2' })] })]}
         availableAgents={[]}
         availableModels={[]}
         isEditMode={true}

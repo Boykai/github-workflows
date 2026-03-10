@@ -131,6 +131,10 @@ class PipelineState:
     # on the next poll cycle and the pipeline jumps straight to In Review.
     original_status: str | None = None
     target_status: str | None = None
+    # Parallel execution support
+    execution_mode: str = "sequential"
+    parallel_agent_statuses: dict[str, str] = field(default_factory=dict)
+    failed_agents: list[str] = field(default_factory=list)
 
     @property
     def current_agent(self) -> str | None:

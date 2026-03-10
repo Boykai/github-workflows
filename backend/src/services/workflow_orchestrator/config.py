@@ -344,6 +344,7 @@ async def load_pipeline_as_agent_mappings(
             return None
 
         agent_mappings: dict[str, list[AgentAssignment]] = {}
+        stage_execution_modes: dict[str, str] = {}
         for stage in sorted(config.stages, key=lambda s: s.order):
             agent_mappings[stage.name] = [
                 AgentAssignment(
@@ -358,6 +359,9 @@ async def load_pipeline_as_agent_mappings(
                 )
                 for node in stage.agents
             ]
+            stage_execution_modes[stage.name] = getattr(
+                stage, "execution_mode", "sequential"
+            )
 
         return agent_mappings, config.name
     except Exception:
