@@ -209,7 +209,7 @@ export function AgentsPipelinePage() {
         ]}
         actions={
           <>
-            <Button variant="default" size="lg" onClick={() => pipelineConfig.newPipeline()}>
+            <Button variant="default" size="lg" onClick={handleNewPipeline}>
               New pipeline
             </Button>
             <Button variant="outline" size="lg" asChild>
@@ -419,9 +419,11 @@ export function AgentsPipelinePage() {
                           />
                           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-xs font-medium text-foreground truncate">
-                                {p.name}
-                              </p>
+                              <Tooltip content={p.name}>
+                                <p className="truncate text-xs font-medium text-foreground">
+                                  {p.name}
+                                </p>
+                              </Tooltip>
                               <p className="text-[10px] text-muted-foreground">
                                 {p.stage_count} stages · {p.agent_count} agents
                               </p>
