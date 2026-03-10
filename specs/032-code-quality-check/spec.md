@@ -11,7 +11,7 @@
 
 As a developer maintaining the application, I need all exception handling to log meaningful context so that runtime bugs are visible in logs rather than silently swallowed, and I need internal error details hidden from external APIs so that sensitive information is never disclosed to end users.
 
-**Why this priority**: Silent exception swallowing (32 `except → pass` blocks and 94 bare `except Exception:` without context) masks runtime bugs that can degrade the application undetected. Exception detail leaks to external APIs (3 locations in signal_chat.py) and overly permissive CORS configuration are active security risks. These must be fixed first because they affect system reliability and security in production.
+**Why this priority**: Silent exception swallowing (98 bare `except Exception:` without context across 32 files) masks runtime bugs that can degrade the application undetected. Exception detail leaks to external APIs (3 locations in signal_chat.py) and overly permissive CORS configuration are active security risks. These must be fixed first because they affect system reliability and security in production.
 
 **Independent Test**: Can be fully tested by triggering error conditions in backend services and verifying that (a) log output contains error context for every `except` block, (b) no internal exception details appear in responses sent to external APIs, and (c) CORS headers only allow explicitly listed HTTP methods.
 

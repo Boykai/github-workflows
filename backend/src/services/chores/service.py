@@ -533,7 +533,9 @@ class ChoresService:
                         issue_body, effective_mappings, status_order
                     )
         except Exception as e:
-            logger.exception("Failed to append agent tracking table for chore %s: %s", chore.name, e)
+            logger.exception(
+                "Failed to append agent tracking table for chore %s: %s", chore.name, e
+            )
 
         # Resolve effective blocking flag before issue creation so the parent issue
         # carries the same Blocking label that drives queue behavior.
@@ -661,7 +663,9 @@ class ChoresService:
                         )
                         user_agent_model = effective_user_settings.ai.agent_model or ""
                     except Exception as e:
-                        logger.debug("Failed to load user agent model for chore %s: %s", chore.name, e)
+                        logger.debug(
+                            "Failed to load user agent model for chore %s: %s", chore.name, e
+                        )
 
                 ctx = WorkflowContext(
                     session_id=str(uuid.uuid4()),
@@ -1008,7 +1012,9 @@ class ChoresService:
                     await self.update_chore_fields(chore_id, pr_number=pr_number, pr_url=pr_url)
                     chore = await self.get_chore(chore_id)
             except Exception as e:
-                logger.exception("Failed to create PR for inline update of chore %s: %s", chore_id, e)
+                logger.exception(
+                    "Failed to create PR for inline update of chore %s: %s", chore_id, e
+                )
 
         return {"chore": chore, "pr_number": pr_number, "pr_url": pr_url}
 

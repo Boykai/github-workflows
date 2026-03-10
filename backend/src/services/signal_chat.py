@@ -172,7 +172,10 @@ async def process_signal_chat(
             await _reply_with_audit(conn, source_phone, agent_response)
         except Exception as exc:
             logger.error("#agent via Signal failed: %s", exc, exc_info=True)
-            await _reply(source_phone, "⚠️ Something went wrong processing your #agent command. Please try again.")
+            await _reply(
+                source_phone,
+                "⚠️ Something went wrong processing your #agent command. Please try again.",
+            )
         return
 
     await _run_ai_pipeline(conn, message_text, project_id, source_phone)

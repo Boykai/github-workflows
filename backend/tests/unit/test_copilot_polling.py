@@ -7972,3 +7972,156 @@ class TestCheckHumanAgentDoneMarkerFormat:
         )
 
         assert result is True
+
+
+# ── Fix: _get_or_reconstruct_pipeline advances when first incomplete
+#    agent is in a LATER status than the board's current status ───────────
+
+
+class TestGetOrReconstructPipelineLaterStatus:
+    """Tests that _get_or_reconstruct_pipeline correctly handles the case
+    where ALL agents for the board's current status are done, and the first
+    incomplete agent is in a LATER status.
+
+    Bug scenario: Issue #2912 has Backlog agents [speckit.specify, designer]
+    all Done, but the board still shows "Backlog".  The first incomplete
+    agent is "judge" at "In Progress".  The old code would reconstruct
+    for "In Progress" and the pipeline would never trigger status
+    advancement from Backlog → Ready.
+    """
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        _pipeline_states.clear()
+        yield
+        _pipeline_states.clear()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._reconstruct_pipeline_state",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.pipeline._cp.parse_tracking_from_body")
+    @patch("src.services.copilot_polling.pipeline._cp.github_projects_service")
+    async def test_reconstructs_for_requested_status_when_first_incomplete_is_later(
+        self,
+        mock_service,
+        mock_parse_tracking,
+        mock_reconstruct,
+    ):
+        """When the board says 'Backlog' but all Backlog agents are done
+        and the first incomplete is at 'In Progress', reconstruction should
+        be for 'Backlog' (showing pipeline as complete) — NOT 'In Progress'.
+        """
+        from src.services.agent_tracking import AgentStep
+        from src.services.copilot_polling import _get_or_reconstruct_pipeline
+
+        mock_parse_tracking.return_value = [
+            AgentStep(index=1, status="Backlog", agent_name="speckit.specify", state="✅ Done"),
+            AgentStep(index=2, status="Backlog", agent_name="designer", state="✅ Done"),
+            AgentStep(index=3, status="Ready", agent_name="speckit.plan", state="✅ Done"),
+            AgentStep(index=4, status="Ready", agent_name="speckit.tasks", state="✅ Done"),
+            AgentStep(
+                index=5, status="In Progress", agent_name="speckit.implement", state="✅ Done"
+            ),
+            AgentStep(index=6, status="In Progress", agent_name="copilot-review", state="✅ Done"),
+            AgentStep(index=7, status="In Progress", agent_name="judge", state="🔄 Active"),
+            AgentStep(
+                index=8, status="In Progress", agent_name="quality-assurance", state="⏳ Pending"
+            ),
+            AgentStep(index=9, status="In Review", agent_name="human", state="⏳ Pending"),
+        ]
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "...tracking table...", "comments": []}
+        )
+
+        # Reconstruction should return a COMPLETE pipeline for "Backlog"
+        mock_reconstruct.return_value = PipelineState(
+            issue_number=2912,
+            project_id="PVT_123",
+            status="Backlog",
+            agents=["speckit.specify", "designer"],
+            current_agent_index=2,
+            completed_agents=["speckit.specify", "designer"],
+        )
+
+        result = await _get_or_reconstruct_pipeline(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=2912,
+            project_id="PVT_123",
+            status="Backlog",
+            agents=["speckit.specify", "designer"],
+        )
+
+        # Should reconstruct for "Backlog" (the requested status), NOT "In Progress"
+        mock_reconstruct.assert_called_once()
+        call_kwargs = mock_reconstruct.call_args[1]
+        assert call_kwargs["status"] == "Backlog"
+        assert call_kwargs["agents"] == ["speckit.specify", "designer"]
+        assert result.status == "Backlog"
+        assert result.is_complete
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._reconstruct_pipeline_state",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.pipeline._cp.parse_tracking_from_body")
+    @patch("src.services.copilot_polling.pipeline._cp.github_projects_service")
+    async def test_still_reconstructs_for_earlier_status_when_requested_has_incomplete(
+        self,
+        mock_service,
+        mock_parse_tracking,
+        mock_reconstruct,
+    ):
+        """Original behavior preserved: when the board says 'In Review' but
+        In Progress still has pending agents, reconstruction should use
+        'In Progress' agents (the first incomplete is in an earlier status).
+        """
+        from src.services.agent_tracking import AgentStep
+        from src.services.copilot_polling import _get_or_reconstruct_pipeline
+
+        mock_parse_tracking.return_value = [
+            AgentStep(index=1, status="Backlog", agent_name="speckit.specify", state="✅ Done"),
+            AgentStep(index=2, status="Ready", agent_name="speckit.plan", state="✅ Done"),
+            AgentStep(
+                index=3, status="In Progress", agent_name="speckit.implement", state="✅ Done"
+            ),
+            AgentStep(index=4, status="In Progress", agent_name="judge", state="⏳ Pending"),
+            AgentStep(index=5, status="In Review", agent_name="human", state="⏳ Pending"),
+        ]
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": "...tracking table...", "comments": []}
+        )
+
+        mock_reconstruct.return_value = PipelineState(
+            issue_number=1538,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement", "judge"],
+            current_agent_index=1,
+            completed_agents=["speckit.implement"],
+        )
+
+        result = await _get_or_reconstruct_pipeline(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=1538,
+            project_id="PVT_123",
+            status="In Review",
+            agents=["human"],
+        )
+
+        # Should reconstruct for "In Progress" (earlier status with pending agents)
+        mock_reconstruct.assert_called_once()
+        call_kwargs = mock_reconstruct.call_args[1]
+        assert call_kwargs["status"] == "In Progress"
+        assert call_kwargs["agents"] == ["speckit.implement", "judge"]
+        assert result.status == "In Progress"
