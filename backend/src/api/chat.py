@@ -767,7 +767,9 @@ async def confirm_proposal(
                     project_id, proposal.selected_pipeline_id
                 )
                 if selected_pipeline is not None:
-                    selected_mappings, selected_pipeline_name, selected_exec_modes = selected_pipeline
+                    selected_mappings, selected_pipeline_name, selected_exec_modes = (
+                        selected_pipeline
+                    )
                     pipeline_result = PipelineResolutionResult(
                         agent_mappings=selected_mappings,
                         source="pipeline",

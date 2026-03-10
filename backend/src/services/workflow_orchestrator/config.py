@@ -360,9 +360,7 @@ async def load_pipeline_as_agent_mappings(
                 )
                 for node in stage.agents
             ]
-            stage_execution_modes[stage.name] = getattr(
-                stage, "execution_mode", "sequential"
-            )
+            stage_execution_modes[stage.name] = getattr(stage, "execution_mode", "sequential")
 
         return agent_mappings, config.name, stage_execution_modes
     except Exception:
