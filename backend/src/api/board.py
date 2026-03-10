@@ -1,5 +1,7 @@
 """Board API endpoints for the Project Board feature."""
 
+from __future__ import annotations
+
 import asyncio
 import logging
 from datetime import timedelta
@@ -11,6 +13,7 @@ from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
+from src.models.blocking import BlockingQueueEntry
 from src.models.board import (
     BoardDataResponse,
     BoardProject,
@@ -499,7 +502,7 @@ async def delete_blocking_issue(
 async def _dispatch_agents_for_activated(
     access_token: str,
     project_id: str,
-    activated: list,
+    activated: list[BlockingQueueEntry],
 ) -> None:
     """Background task: assign first agent for each newly activated issue.
 
@@ -519,8 +522,8 @@ async def _dispatch_agents_for_activated(
     # Fetch board items once for all activated entries
     try:
         tasks = await github_projects_service.get_project_items(access_token, project_id)
-    except Exception:
-        logger.exception("Skip dispatch: failed to fetch project items")
+    except Exception as e:
+        logger.exception("Skip dispatch: failed to fetch project items: %s", e)
         return
 
     task_by_issue = {t.issue_number: t for t in tasks if t.issue_number}
@@ -578,10 +581,11 @@ async def _dispatch_agents_for_activated(
                     "Skip dispatch: assign_agent_for_status returned False for issue #%d",
                     issue_number,
                 )
-        except Exception:
+        except Exception as e:
             logger.exception(
-                "Skip dispatch: failed to assign agent for issue #%d",
+                "Skip dispatch: failed to assign agent for issue #%d: %s",
                 issue_number,
+                e,
             )
 
     # Ensure polling is running so the pipeline advances after assignment
@@ -595,8 +599,8 @@ async def _dispatch_agents_for_activated(
             repo=first_repo,
             caller="blocking_queue_skip_dispatch",
         )
-    except Exception:
-        logger.debug("Skip dispatch: ensure_polling_started failed", exc_info=True)
+    except Exception as e:
+        logger.debug("Skip dispatch: ensure_polling_started failed: %s", e, exc_info=True)
 
 
 async def _resolve_queue_entry(project_id: str, issue_number: int):
