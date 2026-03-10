@@ -278,4 +278,11 @@ describe('GitHubMcpConfigGenerator', () => {
     expect(screen.getByText('Syntax-highlighted JSON ready to copy into GitHub.com.')).toBeInTheDocument();
     expect(screen.getByText('Always included')).toBeInTheDocument();
   });
+
+  it('applies syntax-highlighting classes to JSON keys and values', () => {
+    render(<GitHubMcpConfigGenerator tools={[]} />);
+
+    expect(screen.getByText('"mcpServers"')).toHaveClass('text-sky-300');
+    expect(screen.getByText('"https://mcp.context7.com/mcp"')).toHaveClass('text-emerald-300');
+  });
 });

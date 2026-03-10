@@ -16,47 +16,95 @@ interface GitHubMcpConfigGeneratorProps {
   tools: McpToolConfig[];
 }
 
-function highlightJsonLine(line: string) {
+function highlightJsonLine(line: string, lineIndex: number) {
   const segments: Array<{ value: string; className?: string }> = [];
-  const tokenPattern =
-    /("(?:\\.|[^"])*")(\s*:)?|\btrue\b|\bfalse\b|\bnull\b|-?\d+(?:\.\d+)?/g;
-  let lastIndex = 0;
+  let index = 0;
 
-  for (const match of line.matchAll(tokenPattern)) {
-    const matchText = match[0];
-    const startIndex = match.index ?? 0;
-
-    if (startIndex > lastIndex) {
-      segments.push({ value: line.slice(lastIndex, startIndex) });
+  const flushPlainText = (endIndex: number) => {
+    if (endIndex > index) {
+      segments.push({ value: line.slice(index, endIndex) });
+      index = endIndex;
     }
+  };
 
-    if (match[1]) {
-      segments.push({
-        value: match[1],
-        className: match[2] ? 'text-sky-300' : 'text-emerald-300',
-      });
-      if (match[2]) {
-        segments.push({ value: match[2] });
+  while (index < line.length) {
+    if (line[index] === '"') {
+      let cursor = index + 1;
+
+      while (cursor < line.length) {
+        if (line[cursor] === '\\') {
+          cursor += 2;
+          continue;
+        }
+
+        if (line[cursor] === '"') {
+          cursor += 1;
+          break;
+        }
+
+        cursor += 1;
       }
-    } else {
+
+      const value = line.slice(index, cursor);
+      let lookahead = cursor;
+      while (lookahead < line.length && /\s/.test(line[lookahead])) {
+        lookahead += 1;
+      }
+
       segments.push({
-        value: matchText,
-        className:
-          matchText === 'true' || matchText === 'false' || matchText === 'null'
-            ? 'text-violet-300'
-            : 'text-amber-300',
+        value,
+        className: line[lookahead] === ':' ? 'text-sky-300' : 'text-emerald-300',
       });
+      index = cursor;
+      continue;
     }
 
-    lastIndex = startIndex + matchText.length;
-  }
+    if (
+      line.startsWith('true', index) ||
+      line.startsWith('false', index) ||
+      line.startsWith('null', index)
+    ) {
+      const value = line.startsWith('false', index)
+        ? 'false'
+        : line.startsWith('true', index)
+          ? 'true'
+          : 'null';
+      segments.push({ value, className: 'text-violet-300' });
+      index += value.length;
+      continue;
+    }
 
-  if (lastIndex < line.length) {
-    segments.push({ value: line.slice(lastIndex) });
+    if (line[index] === '-' || (line[index] >= '0' && line[index] <= '9')) {
+      let cursor = index + 1;
+      while (
+        cursor < line.length &&
+        ((line[cursor] >= '0' && line[cursor] <= '9') || line[cursor] === '.')
+      ) {
+        cursor += 1;
+      }
+
+      segments.push({ value: line.slice(index, cursor), className: 'text-amber-300' });
+      index = cursor;
+      continue;
+    }
+
+    let plainTextEnd = index + 1;
+    while (
+      plainTextEnd < line.length &&
+      line[plainTextEnd] !== '"' &&
+      !line.startsWith('true', plainTextEnd) &&
+      !line.startsWith('false', plainTextEnd) &&
+      !line.startsWith('null', plainTextEnd) &&
+      line[plainTextEnd] !== '-' &&
+      !(line[plainTextEnd] >= '0' && line[plainTextEnd] <= '9')
+    ) {
+      plainTextEnd += 1;
+    }
+    flushPlainText(plainTextEnd);
   }
 
   return segments.map((segment, index) => (
-    <span key={`${segment.value}-${index}`} className={segment.className}>
+    <span key={`${lineIndex}-${index}`} className={segment.className}>
       {segment.value}
     </span>
   ));
@@ -222,12 +270,12 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
           <div className="min-w-max">
             {configLines.map((line, index) => (
               <div
-                key={`${line}-${index}`}
+                key={index}
                 className="grid grid-cols-[auto_1fr] gap-4 border-b border-white/6 px-4 py-1.5 font-mono text-xs leading-6 last:border-b-0"
               >
                 <span className="select-none text-[10px] text-slate-500">{index + 1}</span>
                 <span className="whitespace-pre text-slate-100">
-                  {line.length > 0 ? highlightJsonLine(line) : <Fragment>&nbsp;</Fragment>}
+                  {line.length > 0 ? highlightJsonLine(line, index) : <Fragment>&nbsp;</Fragment>}
                 </span>
               </div>
             ))}
