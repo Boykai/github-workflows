@@ -259,7 +259,10 @@ export function ModelSelector({
                         setIsOpen(false);
                         setSearch('');
                       }}
-                      className={cn('flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10', !selectedModelId ? 'bg-primary/10' : '')}
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10',
+                        !selectedModelId ? 'bg-primary/10' : ''
+                      )}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -337,7 +340,10 @@ function ModelRow({
     <button
       type="button"
       onClick={() => onSelect(model)}
-      className={cn('flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10', isSelected ? 'bg-primary/10' : '')}
+      className={cn(
+        'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10',
+        isSelected ? 'bg-primary/10' : ''
+      )}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">

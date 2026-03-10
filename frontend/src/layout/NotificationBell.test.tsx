@@ -39,13 +39,7 @@ describe('NotificationBell — scroll handler throttling', () => {
   }
 
   it('uses requestAnimationFrame to throttle scroll-driven position updates', () => {
-    render(
-      <NotificationBell
-        notifications={[]}
-        unreadCount={0}
-        onMarkAllRead={vi.fn()}
-      />
-    );
+    render(<NotificationBell notifications={[]} unreadCount={0} onMarkAllRead={vi.fn()} />);
 
     // Open the dropdown
     fireEvent.click(screen.getByRole('button', { name: /Notifications/i }));
@@ -76,13 +70,7 @@ describe('NotificationBell — scroll handler throttling', () => {
   });
 
   it('cancels pending RAF on dropdown close', () => {
-    render(
-      <NotificationBell
-        notifications={[]}
-        unreadCount={0}
-        onMarkAllRead={vi.fn()}
-      />
-    );
+    render(<NotificationBell notifications={[]} unreadCount={0} onMarkAllRead={vi.fn()} />);
 
     const button = screen.getByRole('button', { name: /Notifications/i });
 
