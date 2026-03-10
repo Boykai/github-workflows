@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   invalidateQueries: vi.fn(),
   refetchSavedPipelines: vi.fn(),
   mutate: vi.fn(),
-  syncStatus: 'connected' as string,
+  syncStatus: 'connected' as 'connected' | 'polling' | 'connecting' | 'disconnected',
   savedPipelines: {
     pipelines: [
       {
