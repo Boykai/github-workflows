@@ -1,6 +1,5 @@
 """SQLite database connection, initialization, and migration runner."""
 
-import logging
 import re
 from datetime import UTC, datetime
 from pathlib import Path
@@ -8,8 +7,9 @@ from pathlib import Path
 import aiosqlite
 
 from src.config import get_settings
+from src.logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Module-level connection reference (set during init, used via get_db)
 _connection: aiosqlite.Connection | None = None

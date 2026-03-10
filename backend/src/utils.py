@@ -2,17 +2,18 @@
 
 from __future__ import annotations
 
-import logging
 from collections import OrderedDict
 from collections.abc import Awaitable, Callable, ItemsView, Iterator, KeysView, ValuesView
 from datetime import UTC, datetime
 from typing import TypeVar, overload
 
+from src.logging_utils import get_logger
+
 T = TypeVar("T")
 K = TypeVar("K")
 V = TypeVar("V")
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class BoundedSet[T]:

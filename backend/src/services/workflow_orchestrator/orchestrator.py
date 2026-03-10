@@ -1,10 +1,10 @@
 """WorkflowOrchestrator class — orchestrates the full GitHub issue creation and status workflow."""
 
-import logging
 from typing import TYPE_CHECKING
 
 from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
 from src.exceptions import ValidationError
+from src.logging_utils import get_logger
 from src.models.recommendation import IssueMetadata, IssueRecommendation
 from src.models.workflow import (
     TriggeredBy,
@@ -40,7 +40,7 @@ if TYPE_CHECKING:
     from src.services.ai_agent import AIAgentService
     from src.services.github_projects import GitHubProjectsService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Per-issue cache for parsed tracking table agents.  The tracking table
 # is frozen in the issue body at creation time and never changes, so this

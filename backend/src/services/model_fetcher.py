@@ -7,17 +7,17 @@ awareness, and stale-while-revalidate semantics.
 
 import asyncio
 import hashlib
-import logging
 import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 
 from src.config import get_settings
+from src.logging_utils import get_logger
 from src.models.settings import ModelOption, ModelsResponse
 from src.services.completion_providers import CopilotClientPool, copilot_client_pool
 from src.utils import BoundedDict
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 DEFAULT_CACHE_TTL = 600  # 10 minutes
 RATE_LIMIT_WARNING_THRESHOLD = 500  # Warn when remaining quota is below this value

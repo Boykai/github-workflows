@@ -1,13 +1,13 @@
 """Pipeline state, branch tracking, and sub-issue map management."""
 
-import logging
 from datetime import datetime
 
+from src.logging_utils import get_logger
 from src.utils import BoundedDict, utcnow
 
 from .models import MainBranchInfo, PipelineState
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # In-memory storage for pipeline states (per issue number)
 _pipeline_states: BoundedDict[int, PipelineState] = BoundedDict(maxlen=500)

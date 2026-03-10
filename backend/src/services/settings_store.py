@@ -1,11 +1,11 @@
 """Database-backed settings store for user preferences, global settings, and project settings."""
 
 import json
-import logging
 from typing import Any
 
 import aiosqlite
 
+from src.logging_utils import get_logger
 from src.models.settings import (
     AIPreferences,
     AIProvider,
@@ -23,7 +23,7 @@ from src.models.settings import (
 )
 from src.utils import utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 USER_PREFERENCE_COLUMNS = (

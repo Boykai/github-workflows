@@ -1,12 +1,12 @@
 """Issue body tracking helpers — shared across multiple polling sub-modules."""
 
-import logging
 import re
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Matches sub-issue titles created by the orchestrator: "[agent-name] Parent Title"
 _SUB_ISSUE_TITLE_RE = re.compile(r"^\[\S+\]\s")

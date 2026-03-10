@@ -1,7 +1,6 @@
 """Workflow API endpoints for issue creation and management."""
 
 import hashlib
-import logging
 from datetime import datetime, timedelta
 from typing import Annotated
 
@@ -11,7 +10,7 @@ from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
 from src.dependencies import require_selected_project
 from src.exceptions import AppException, NotFoundError, ValidationError
-from src.logging_utils import handle_service_error
+from src.logging_utils import get_logger, handle_service_error
 from src.middleware.rate_limit import limiter
 from src.models.agent import AgentAssignment, AvailableAgentsResponse
 from src.models.recommendation import RecommendationStatus
@@ -40,7 +39,7 @@ from src.services.workflow_orchestrator import (
 )
 from src.utils import BoundedDict, resolve_repository, utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter(prefix="/workflow", tags=["Workflow"])
 
 # In-memory duplicate detection (T029)

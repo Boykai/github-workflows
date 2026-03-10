@@ -5,7 +5,6 @@ persisted in SQLite with an in-memory L1 cache layer for performance.
 """
 
 import json
-import logging
 from datetime import UTC, datetime
 
 import httpx
@@ -13,10 +12,11 @@ from pydantic import BaseModel, Field
 
 from src.config import get_settings
 from src.constants import LABELS
+from src.logging_utils import get_logger
 from src.services.cache import InMemoryCache
 from src.utils import utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Module-level shared L1 cache so all MetadataService instances share the same
 # in-memory store.  Without this each ``MetadataService()`` created per-request

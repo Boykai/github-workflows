@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -14,7 +13,7 @@ from src.exceptions import (
     NotFoundError,
     ValidationError,
 )
-from src.logging_utils import handle_service_error
+from src.logging_utils import get_logger, handle_service_error
 from src.models.chores import (
     Chore,
     ChoreChatMessage,
@@ -41,7 +40,7 @@ from src.services.database import get_db
 from src.services.github_projects import github_projects_service
 from src.utils import resolve_repository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

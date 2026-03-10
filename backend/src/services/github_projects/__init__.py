@@ -2,15 +2,15 @@
 
 import asyncio
 import hashlib
-import logging
 
 from githubkit import GitHub, TokenAuthStrategy
 from githubkit.retry import RETRY_RATE_LIMIT, RETRY_SERVER_ERROR, RetryChainDecision
 from githubkit.throttling import LocalThrottler
 
+from src.logging_utils import get_logger
 from src.utils import BoundedDict
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class GitHubClientFactory:

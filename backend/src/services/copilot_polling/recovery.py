@@ -1,9 +1,9 @@
 """Self-healing recovery: detect and fix stalled agent pipelines."""
 
-import logging
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.logging_utils import get_logger
 from src.utils import utcnow
 
 from .helpers import _get_sub_issue_number
@@ -15,7 +15,7 @@ from .state import (
     _recovery_last_attempt,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 async def _validate_and_reconcile_tracking_table(

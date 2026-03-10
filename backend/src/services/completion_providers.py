@@ -7,14 +7,14 @@ Provides a unified interface for different AI backends:
 
 import asyncio
 import hashlib
-import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
 from src.config import get_settings
+from src.logging_utils import get_logger
 from src.utils import BoundedDict
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 class CopilotClientPool:

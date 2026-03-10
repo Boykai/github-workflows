@@ -7,11 +7,11 @@ linked to open issues on the associated GitHub Project board.
 
 import asyncio
 import json
-import logging
 import re
 import uuid
 from datetime import UTC, datetime
 
+from src.logging_utils import get_logger
 from src.models.cleanup import (
     BranchInfo,
     CleanupAuditLogRow,
@@ -25,7 +25,7 @@ from src.models.cleanup import (
     PullRequestInfo,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Delay between sequential deletion requests to respect GitHub secondary rate limits
 DELETION_DELAY_SECONDS = 0.2

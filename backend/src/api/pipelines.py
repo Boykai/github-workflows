@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import re
 from typing import Annotated
 
@@ -12,6 +11,7 @@ from src.api.auth import get_session_dep
 from src.config import get_settings
 from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
 from src.exceptions import AppException, AuthorizationError, NotFoundError, ValidationError
+from src.logging_utils import get_logger
 from src.models.pipeline import (
     PipelineConfig,
     PipelineConfigCreate,
@@ -42,7 +42,7 @@ from src.services.workflow_orchestrator import (
 from src.services.workflow_orchestrator.config import load_pipeline_as_agent_mappings
 from src.utils import resolve_repository, utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 MAX_DERIVED_TITLE_LENGTH = 120
 DERIVED_TITLE_TRUNCATE_AT = MAX_DERIVED_TITLE_LENGTH - 3

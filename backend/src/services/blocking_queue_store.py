@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
 
+from src.logging_utils import get_logger
 from src.models.blocking import BlockingQueueEntry
 from src.services.database import get_db
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _row_to_entry(row) -> BlockingQueueEntry:

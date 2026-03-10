@@ -1,10 +1,10 @@
 """Polling lifecycle — start, stop, tick, and status reporting."""
 
 import asyncio
-import logging
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.logging_utils import get_logger
 from src.utils import utcnow
 
 from .state import (
@@ -16,7 +16,7 @@ from .state import (
     _processed_issue_prs,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 # ── Rate-limit helpers ──────────────────────────────────────────

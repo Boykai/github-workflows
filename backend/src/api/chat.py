@@ -1,7 +1,6 @@
 """Chat API endpoints."""
 
 import asyncio
-import logging
 import re
 import tempfile
 from pathlib import Path
@@ -20,6 +19,7 @@ from src.constants import (
 )
 from src.dependencies import get_connection_manager, get_github_service, require_selected_project
 from src.exceptions import NotFoundError, ValidationError
+from src.logging_utils import get_logger
 from src.middleware.rate_limit import limiter
 from src.models.chat import (
     ActionType,
@@ -54,7 +54,7 @@ from src.services.workflow_orchestrator import (
 )
 from src.utils import resolve_repository, utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 # ── File upload validation constants ─────────────────────────────────────

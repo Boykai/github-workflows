@@ -6,13 +6,14 @@ Returns per-component health status following the IETF health check format:
 - polling_loop: asyncio.Task state
 """
 
-import logging
 import time
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-logger = logging.getLogger(__name__)
+from src.logging_utils import get_logger
+
+logger = get_logger(__name__)
 router = APIRouter()
 
 

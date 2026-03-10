@@ -11,12 +11,12 @@ don't go through the full lifespan).
 
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 from fastapi import Depends, Request
 
 from src.exceptions import AppException, AuthorizationError
+from src.logging_utils import get_logger
 
 if TYPE_CHECKING:
     import aiosqlite
@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from src.services.github_projects import GitHubProjectsService
     from src.services.websocket import ConnectionManager
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def get_github_service(request: Request) -> GitHubProjectsService:

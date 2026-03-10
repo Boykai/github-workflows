@@ -1,13 +1,13 @@
 """In-memory cache service with TTL."""
 
-import logging
 from datetime import timedelta
 from typing import Any, TypeVar
 
 from src.config import get_settings
+from src.logging_utils import get_logger
 from src.utils import utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 T = TypeVar("T")
 

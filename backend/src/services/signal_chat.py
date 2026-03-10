@@ -15,10 +15,10 @@ Called as a fire-and-forget task from signal_bridge._process_inbound_ws_message.
 
 from __future__ import annotations
 
-import logging
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from src.constants import DEFAULT_STATUS_COLUMNS, with_blocking_label
+from src.logging_utils import get_logger
 from src.models.chat import ActionType, ChatMessage, SenderType
 from src.models.signal import (
     SignalConnection,
@@ -26,7 +26,7 @@ from src.models.signal import (
     SignalMessageDirection,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # One pending proposal per user — new proposals overwrite old ones.
 _signal_pending: dict[str, dict] = {}

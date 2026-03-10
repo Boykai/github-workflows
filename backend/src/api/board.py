@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from datetime import timedelta
 from typing import Annotated
 
@@ -14,6 +13,7 @@ from src.api.auth import get_session_dep
 from src.constants import BLOCKING_LABEL
 from src.dependencies import verify_project_access
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
+from src.logging_utils import get_logger
 from src.models.blocking import BlockingQueueEntry
 from src.models.board import (
     BoardDataResponse,
@@ -134,7 +134,7 @@ def _retry_after_seconds(exc: Exception) -> int:
     return 60
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 CACHE_PREFIX_BOARD_PROJECTS = "board_projects"

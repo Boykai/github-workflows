@@ -2,7 +2,6 @@
 
 import hashlib
 import hmac
-import logging
 import re
 from typing import Any
 
@@ -10,11 +9,12 @@ from fastapi import APIRouter, Header, Request
 
 from src.config import get_settings
 from src.exceptions import AppException, AuthenticationError
+from src.logging_utils import get_logger
 from src.services.cache import cache, get_repo_agents_cache_key
 from src.services.github_projects import github_projects_service
 from src.utils import BoundedSet
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 # In-memory storage for tracking processed events (deduplication).

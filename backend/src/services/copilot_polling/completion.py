@@ -1,10 +1,10 @@
 """PR completion detection — merge, child PR, main PR, and review logic."""
 
-import logging
 from datetime import datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.logging_utils import get_logger
 
 from .state import (
     _claimed_child_prs,
@@ -12,7 +12,7 @@ from .state import (
     _system_marked_ready_prs,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 async def _merge_child_pr_if_applicable(

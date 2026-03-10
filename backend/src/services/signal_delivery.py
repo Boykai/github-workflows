@@ -22,6 +22,7 @@ from tenacity import (
 )
 
 from src.config import get_settings
+from src.logging_utils import get_logger
 from src.models.chat import ActionType, ChatMessage, SenderType
 from src.models.signal import (
     SignalConnectionStatus,
@@ -36,7 +37,7 @@ from src.services.signal_bridge import (
     update_signal_message_status,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── Retry-eligible transport errors (excludes 4xx HTTPStatusError) ───────
 

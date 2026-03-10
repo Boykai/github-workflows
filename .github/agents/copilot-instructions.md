@@ -157,6 +157,8 @@ npx playwright test             # E2E
 - N/A — placeholder text is static; no database or localStorage changes (031-chat-helper-text)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (032-issue-upload-pipeline-config)
 - SQLite with WAL mode (aiosqlite) — existing `pipeline_configs` table, existing `project_settings` table (`assigned_pipeline_id` column) (032-issue-upload-pipeline-config)
+- Python 3.13 (backend), TypeScript 5.9 (frontend) + FastAPI ≥0.135, httpx ≥0.28, Pydantic ≥2.12, github-copilot-sdk ≥0.1.30, React 19.2, TanStack Query 5.90, Vite 7.3, Tailwind 4.2 (033-code-quality-overhaul)
+- aiosqlite (session/settings), in-memory dict (chat messages → SQLite in Phase 3) (033-code-quality-overhaul)
 
 ## Custom Agents
 
@@ -207,3 +209,6 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - **Always use Context7 MCP for library documentation.** Before writing or modifying code that uses any library, framework, or API, look up the current documentation via Context7. Never rely solely on training data for syntax, options, or best practices.
 - **Always use Code Graph Context MCP when exploring the codebase.** Before making changes, use Code Graph Context to understand call chains, code relationships, and dependency graphs. This prevents unintended side effects and ensures changes are consistent with the existing architecture.
+
+## Recent Changes
+- 033-code-quality-overhaul: Added Python 3.13 (backend), TypeScript 5.9 (frontend) + FastAPI ≥0.135, httpx ≥0.28, Pydantic ≥2.12, github-copilot-sdk ≥0.1.30, React 19.2, TanStack Query 5.90, Vite 7.3, Tailwind 4.2

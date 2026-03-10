@@ -5,15 +5,14 @@ Provides per-user and per-IP rate limiting for sensitive/expensive endpoints.
 
 from __future__ import annotations
 
-import logging
-
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from starlette.requests import Request
 
 from src.constants import SESSION_COOKIE_NAME
+from src.logging_utils import get_logger
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def get_user_key(request: Request) -> str:

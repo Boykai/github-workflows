@@ -1,11 +1,11 @@
 """Workflow configuration load/persist/defaults and transition audit logging."""
 
 import json
-import logging
 from dataclasses import dataclass, field
 
 import aiosqlite
 
+from src.logging_utils import get_logger
 from src.models.agent import AgentAssignment
 from src.models.workflow import (
     WorkflowConfiguration,
@@ -29,7 +29,7 @@ class PipelineResolutionResult:
     pipeline_id: str | None = None
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # In-memory storage for workflow transitions (audit log)
 _transitions: list[WorkflowTransition] = []

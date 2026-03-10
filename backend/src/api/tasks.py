@@ -1,6 +1,5 @@
 """Tasks API endpoints."""
 
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
@@ -10,6 +9,7 @@ from src.api.auth import get_session_dep
 from src.config import get_settings
 from src.dependencies import require_selected_project
 from src.exceptions import ValidationError
+from src.logging_utils import get_logger
 from src.models.task import Task, TaskCreateRequest
 from src.models.user import UserSession
 from src.models.workflow import WorkflowConfiguration
@@ -24,7 +24,7 @@ from src.services.workflow_orchestrator import (
 )
 from src.utils import resolve_repository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

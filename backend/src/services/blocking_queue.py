@@ -10,14 +10,14 @@ Manages the blocking queue state machine. Key responsibilities:
 from __future__ import annotations
 
 import asyncio
-import logging
 import sqlite3
 from datetime import UTC, datetime
 
+from src.logging_utils import get_logger
 from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
 from src.services import blocking_queue_store as store
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Per-repo locks to prevent double-activation race conditions
 _repo_locks: dict[str, asyncio.Lock] = {}

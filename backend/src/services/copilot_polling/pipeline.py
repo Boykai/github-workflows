@@ -1,11 +1,11 @@
 """Pipeline state management, status checking, and advancement logic."""
 
 import asyncio
-import logging
 from datetime import datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.logging_utils import get_logger
 from src.utils import utcnow
 
 from .state import (
@@ -17,7 +17,7 @@ from .state import (
     _system_marked_ready_prs,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 async def _self_heal_tracking_table(

@@ -5,7 +5,6 @@ import base64
 import contextvars
 import hashlib
 import json as json_mod
-import logging
 import re
 from collections.abc import Awaitable, Callable
 from datetime import datetime
@@ -13,6 +12,8 @@ from typing import TYPE_CHECKING, ClassVar, TypeVar, cast
 
 import yaml
 from githubkit.exception import RequestFailed
+
+from src.logging_utils import get_logger
 
 if TYPE_CHECKING:
     from src.services.github_projects import GitHubClientFactory
@@ -57,7 +58,7 @@ from src.services.github_projects.graphql import (
 )
 from src.utils import BoundedDict, utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _T = TypeVar("_T")
 

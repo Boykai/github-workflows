@@ -234,9 +234,9 @@ __all__ = [
 # Convenience helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-import logging as _logging
+from src.logging_utils import get_logger as _get_logger
 
-_logger = _logging.getLogger(__name__)
+_logger = _get_logger(__name__)
 
 
 async def ensure_polling_started(
