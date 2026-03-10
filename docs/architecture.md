@@ -69,7 +69,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | Directory | Contents |
 |-----------|----------|
 | `components/auth/` | `LoginButton` — GitHub OAuth login |
-| `components/board/` | `ProjectBoard`, `BoardColumn`, `IssueCard`, `IssueDetailModal`, agent config UI (`AgentPresetSelector`, `AgentConfigRow`, `AgentTile`, `AgentSaveBar`, `AddAgentPopover`) |
+| `components/board/` | `ProjectBoard`, `BoardColumn`, `IssueCard`, `IssueDetailModal`, `ProjectIssueLaunchPanel`, agent config UI (`AgentPresetSelector`, `AgentConfigRow`, `AgentTile`, `AgentSaveBar`, `AddAgentPopover`) |
 | `components/chat/` | `ChatInterface`, `ChatPopup`, `MessageBubble`, `TaskPreview`, `StatusChangePreview`, `IssueRecommendationPreview`, `CommandAutocomplete`, `SystemMessage` |
 | `components/settings/` | `AIPreferences`, `DisplayPreferences`, `WorkflowDefaults`, `NotificationPreferences`, `ProjectSettings`, `GlobalSettings`, `SignalConnection`, `McpSettings` |
 | `components/common/` | `ErrorBoundary`, `CelestialCatalogHero` (reusable hero with celestial animations), `CelestialLoader` (orbital loading indicator), `ThemedAgentIcon`, `ProjectSelectionEmptyState`, `agentIcons` |
@@ -92,8 +92,8 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 
 | Directory | Purpose |
 |-----------|---------|
-| `api/` | Route handlers: `auth`, `agents`, `board`, `chat`, `chores`, `cleanup`, `health`, `mcp`, `metadata`, `projects`, `settings`, `signal`, `tasks`, `webhooks`, `workflow` |
-| `models/` | Pydantic v2 models: `agent`, `agent_creator`, `agents`, `board`, `chat`, `chores`, `cleanup`, `mcp`, `project`, `recommendation`, `settings`, `signal`, `task`, `user`, `workflow` |
+| `api/` | Route handlers: `auth`, `agents`, `board`, `chat`, `chores`, `cleanup`, `health`, `mcp`, `metadata`, `pipelines`, `projects`, `settings`, `signal`, `tasks`, `webhooks`, `workflow` |
+| `models/` | Pydantic v2 models: `agent`, `agent_creator`, `agents`, `board`, `chat`, `chores`, `cleanup`, `mcp`, `pipeline`, `project`, `recommendation`, `settings`, `signal`, `task`, `user`, `workflow` |
 | `services/` | Business logic (see below) |
 | `services/github_projects/` | `GitHubProjectsService` + `graphql.py` + `GitHubClientFactory` — pooled `githubkit` SDK clients for GitHub API |
 | `services/copilot_polling/` | Background polling loop: `state`, `helpers`, `polling_loop`, `agent_output`, `pipeline`, `recovery`, `completion` |

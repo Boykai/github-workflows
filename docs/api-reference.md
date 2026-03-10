@@ -170,6 +170,7 @@ Manage agent pipeline configurations and column-to-agent assignments per project
 | GET | `/pipelines/{project_id}/{pipeline_id}` | Get a single pipeline configuration |
 | PUT | `/pipelines/{project_id}/{pipeline_id}` | Update a pipeline configuration |
 | DELETE | `/pipelines/{project_id}/{pipeline_id}` | Delete a pipeline configuration |
+| POST | `/pipelines/{project_id}/launch` | Create a GitHub Issue from pasted/uploaded text and launch the assigned agent pipeline |
 
 ## Tools
 
