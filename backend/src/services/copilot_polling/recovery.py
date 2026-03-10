@@ -18,34 +18,85 @@ from .state import (
 logger = logging.getLogger(__name__)
 
 
-async def _resolve_expected_agent_from_completion_signals(
+async def _validate_and_reconcile_tracking_table(
     access_token: str,
     owner: str,
     repo: str,
     issue_number: int,
+    body: str,
     steps: list,
     pipeline: Any,
-) -> Any | None:
-    """Return the first step that is not durably complete.
+) -> tuple[str, list, bool]:
+    """Validate every step in the tracking table against GitHub ground truth.
 
-    The issue-body tracking table can lag behind the true pipeline state when
-    a Done! comment was posted but the body update failed or the process
-    restarted before the table was refreshed. In that case recovery must not
-    trust the first stale ⏳ Pending row, or it can reassign an already-finished
-    earlier agent and create duplicate branches.
+    GitHub is the source of truth — Done! markers in comments, PR reviews,
+    and closed sub-issues are the real signals.  The tracking table in the
+    issue body is a convenience display that can fall behind if a body-update
+    API call fails or the process restarts mid-cycle.
+
+    This function walks *every* step, checks its actual state via GitHub,
+    and corrects the tracking table when it disagrees.
+
+    Returns:
+        (updated_body, updated_steps, table_was_corrected)
     """
+    from src.services.agent_tracking import STATE_DONE
+
+    corrections: list[str] = []
+
     for step in steps:
-        if await _cp._check_agent_done_on_sub_or_parent(
+        is_done_in_github = await _cp._check_agent_done_on_sub_or_parent(
             access_token=access_token,
             owner=owner,
             repo=repo,
             parent_issue_number=issue_number,
             agent_name=step.agent_name,
             pipeline=pipeline,
-        ):
-            continue
-        return step
-    return None
+        )
+
+        if is_done_in_github and STATE_DONE not in step.state:
+            # GitHub says Done but tracking table says Active/Pending
+            corrections.append(f"'{step.agent_name}' was {step.state} in table but Done in GitHub")
+            step.state = STATE_DONE
+
+    if not corrections:
+        return body, steps, False
+
+    logger.warning(
+        "Recovery: issue #%d — tracking table out of sync with GitHub. Corrections: %s",
+        issue_number,
+        "; ".join(corrections),
+    )
+
+    # Rebuild the tracking table with corrected states and push to GitHub
+    from src.services.agent_tracking import _TRACKING_SECTION_RE, render_tracking_markdown
+
+    tracking_md = render_tracking_markdown(steps)
+    body_clean = _TRACKING_SECTION_RE.sub("", body).rstrip()
+    updated_body = body_clean + "\n" + tracking_md
+
+    try:
+        await _cp.github_projects_service.update_issue_body(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            body=updated_body,
+        )
+        logger.info(
+            "Recovery: issue #%d — reconciled tracking table (%d corrections pushed to GitHub)",
+            issue_number,
+            len(corrections),
+        )
+    except Exception as e:
+        logger.warning(
+            "Recovery: issue #%d — failed to push reconciled tracking table: %s "
+            "(continuing with corrected in-memory state)",
+            issue_number,
+            e,
+        )
+
+    return updated_body, steps, True
 
 
 async def recover_stalled_issues(
@@ -56,9 +107,9 @@ async def recover_stalled_issues(
     tasks: list | None = None,
 ) -> list[dict[str, Any]]:
     """
-    Self-healing recovery check for all issues that have not reached "In Review".
+    Self-healing recovery check for all active issues (not yet Done).
 
-    For every issue in Backlog / Ready / In Progress status:
+    For every issue in Backlog / Ready / In Progress / In Review status:
       1. Parse the agent tracking table from the issue body to determine the
          expected current agent and its status (Active / Pending).
       2. Verify that BOTH conditions are true:
@@ -102,9 +153,11 @@ async def recover_stalled_issues(
             )
             await _cp.set_workflow_config(project_id, config)
 
-        # Statuses that are "pre-review" — these are the ones we monitor
+        # Only "Done" is truly terminal — recovery must also check issues in
+        # "In Review" because they can have stalled agents from earlier
+        # statuses (e.g. an In-Progress agent whose assignment was lost
+        # before the board moved forward).
         terminal_statuses = {
-            (config.status_in_review or "In Review").lower(),
             (getattr(config, "status_done", None) or "Done").lower(),
         }
 
@@ -121,7 +174,7 @@ async def recover_stalled_issues(
             return results
 
         logger.debug(
-            "Recovery check: %d issues have not reached 'In Review'",
+            "Recovery check: %d active issues (not yet Done)",
             len(active_tasks),
         )
 
@@ -192,53 +245,68 @@ async def recover_stalled_issues(
 
             steps = _cp.parse_tracking_from_body(body)
             if not steps:
-                # No tracking table — this issue wasn't created through our pipeline
-                continue
+                # No tracking table — attempt to self-heal from sub-issues
+                # (mirrors the self-heal logic in _get_or_reconstruct_pipeline).
+                from .pipeline import _self_heal_tracking_table
 
-            recovery_pipeline = _cp.get_pipeline_state(issue_number)
-
-            # ── Determine expected agent ──────────────────────────────────
-            # The active agent (🔄) is the one that should be working.
-            # If there is no active agent, the next pending agent (⏳) needs
-            # to be assigned.
-            active_step = _cp.get_current_agent_from_tracking(body)
-            pending_step = _cp.get_next_pending_agent(body)
-
-            # If the tracking table says an earlier step is still pending
-            # even though a later step is already done/active, the table is
-            # stale. Recompute the current step from durable completion
-            # signals before attempting any recovery assignment.
-            if active_step is None and pending_step is not None:
-                later_steps = [step for step in steps if step.index > pending_step.index]
-                has_later_progress = any(
-                    ("Done" in step.state or "Active" in step.state) for step in later_steps
+                healed_steps = await _self_heal_tracking_table(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=issue_number,
+                    project_id=project_id,
+                    body=body,
                 )
-                if has_later_progress:
-                    resolved_step = await _resolve_expected_agent_from_completion_signals(
+                if not healed_steps:
+                    # Genuinely no pipeline info — nothing to recover
+                    continue
+                steps = healed_steps
+                # Re-read the body now that the tracking table has been
+                # embedded so downstream helpers see the updated text.
+                try:
+                    refreshed = await _cp.github_projects_service.get_issue_with_comments(
                         access_token=access_token,
                         owner=task_owner,
                         repo=task_repo,
                         issue_number=issue_number,
-                        steps=steps,
-                        pipeline=recovery_pipeline,
                     )
-                    if resolved_step is not None and resolved_step.index != pending_step.index:
-                        logger.warning(
-                            "Recovery: issue #%d tracking table is stale/inconsistent "
-                            "(first pending '%s' but later progress exists) — "
-                            "using durable completion signals to resume at '%s' instead",
-                            issue_number,
-                            pending_step.agent_name,
-                            resolved_step.agent_name,
-                        )
-                        pending_step = resolved_step
-                    elif resolved_step is None:
-                        logger.warning(
-                            "Recovery: issue #%d tracking table is stale/inconsistent "
-                            "and durable completion signals show all agents complete",
-                            issue_number,
-                        )
-                        pending_step = None
+                    body = refreshed.get("body", body)
+                except Exception:
+                    pass  # proceed with stale body — helpers can still use `steps`
+
+            recovery_pipeline = _cp.get_pipeline_state(issue_number)
+
+            # ── Validate tracking table against GitHub (source of truth) ──
+            # The tracking table can be stale/wrong if a body-update API
+            # call failed.  Cross-reference every step with real GitHub
+            # signals (Done! markers, PR reviews, closed sub-issues) and
+            # correct the table before deciding what to do.
+            body, steps, table_was_corrected = await _validate_and_reconcile_tracking_table(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=issue_number,
+                body=body,
+                steps=steps,
+                pipeline=recovery_pipeline,
+            )
+
+            # ── Determine expected agent from reconciled state ────────────
+            # After validation, the steps list reflects reality.  Find the
+            # first step that is not ✅ Done — that's our expected agent.
+            from src.services.agent_tracking import STATE_DONE
+
+            active_step = None
+            pending_step = None
+            for step in steps:
+                if STATE_DONE in step.state:
+                    continue
+                if "Active" in step.state:
+                    active_step = step
+                    break
+                if "Pending" in step.state and pending_step is None:
+                    pending_step = step
+                    break
 
             if active_step is None and pending_step is None:
                 # All agents are ✅ Done for this status.  Check whether the
@@ -250,6 +318,8 @@ async def recover_stalled_issues(
                 to_status = _cp.get_next_status(config, current_status) if config else None
                 if not to_status or to_status.lower() == current_status.lower():
                     # No forward transition configured — genuinely nothing to do.
+                    # Set cooldown to avoid re-checking every cycle.
+                    _recovery_last_attempt[issue_number] = now
                     continue
 
                 logger.warning(
@@ -463,14 +533,46 @@ async def recover_stalled_issues(
 
             # ── Evaluate whether recovery is needed ───────────────────────
             if copilot_assigned and has_wip_pr:
-                # Both conditions met — agent is working normally
-                logger.debug(
-                    "Recovery: issue #%d OK — agent '%s' assigned and WIP PR #%s exists",
+                # Both conditions met — but Copilot may have errored/stopped.
+                # Check the WIP PR for session errors (e.g. "Copilot stopped
+                # work … due to an error") before declaring the agent OK.
+                copilot_errored = False
+                if wip_pr_number:
+                    try:
+                        copilot_errored = (
+                            await _cp.github_projects_service.check_copilot_session_error(
+                                access_token=access_token,
+                                owner=task_owner,
+                                repo=task_repo,
+                                pr_number=wip_pr_number,
+                            )
+                        )
+                    except Exception as err:
+                        logger.debug(
+                            "Recovery: could not check Copilot session error "
+                            "on PR #%s for issue #%d: %s",
+                            wip_pr_number,
+                            issue_number,
+                            err,
+                        )
+
+                if not copilot_errored:
+                    logger.debug(
+                        "Recovery: issue #%d OK — agent '%s' assigned and WIP PR #%s exists",
+                        issue_number,
+                        agent_name,
+                        wip_pr_number,
+                    )
+                    continue
+
+                # Copilot errored/stopped on the WIP PR — treat as stalled
+                logger.warning(
+                    "Recovery: issue #%d — agent '%s' has WIP PR #%s but "
+                    "Copilot stopped/errored. Will re-assign.",
                     issue_number,
                     agent_name,
                     wip_pr_number,
                 )
-                continue
 
             # Something is wrong — log what's missing
             missing = []
@@ -478,6 +580,8 @@ async def recover_stalled_issues(
                 missing.append("Copilot NOT assigned")
             if not has_wip_pr:
                 missing.append("no WIP PR found")
+            if copilot_assigned and has_wip_pr:
+                missing.append(f"Copilot errored/stopped on PR #{wip_pr_number}")
 
             # ── Guard: check if the agent already completed ──────────────
             # After a container restart, volatile state is lost but the

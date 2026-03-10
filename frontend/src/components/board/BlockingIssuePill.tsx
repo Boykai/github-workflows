@@ -20,15 +20,11 @@ interface BlockingIssuePillProps {
 }
 
 /**
- * Find the oldest active blocking issue from the queue entries.
+ * Find the oldest non-completed blocking issue from the queue entries.
  * Entries are already sorted by created_at ASC from the backend.
  */
 function getOldestActiveBlocking(entries: BlockingQueueEntry[]): BlockingQueueEntry | null {
-  return (
-    entries.find(
-      (e) => e.is_blocking && (e.queue_status === 'active' || e.queue_status === 'in_review')
-    ) ?? null
-  );
+  return entries.find((e) => e.is_blocking && e.queue_status !== 'completed') ?? null;
 }
 
 function buildGitHubUrl(repoKey: string, issueNumber: number): string {
@@ -66,7 +62,12 @@ export function BlockingIssuePill({ entries, projectId }: BlockingIssuePillProps
   if (!oldest) return null;
 
   const ghUrl = buildGitHubUrl(oldest.repo_key, oldest.issue_number);
-  const statusLabel = oldest.queue_status === 'in_review' ? 'In Review' : 'Active';
+  const statusLabel =
+    oldest.queue_status === 'in_review'
+      ? 'In Review'
+      : oldest.queue_status === 'pending'
+        ? 'Pending'
+        : 'Active';
   const isBusy = skipMutation.isPending || deleteMutation.isPending;
 
   return (
@@ -74,7 +75,14 @@ export function BlockingIssuePill({ entries, projectId }: BlockingIssuePillProps
       <div className="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/8 px-3 py-1.5 text-xs font-medium shadow-sm">
         {/* Status dot */}
         <span
-          className={cn('h-2 w-2 shrink-0 rounded-full', oldest.queue_status === 'in_review' ? 'bg-blue-500' : 'bg-green-500')}
+          className={cn(
+            'h-2 w-2 shrink-0 rounded-full',
+            oldest.queue_status === 'in_review'
+              ? 'bg-blue-500'
+              : oldest.queue_status === 'pending'
+                ? 'bg-yellow-500'
+                : 'bg-green-500'
+          )}
           title={statusLabel}
         />
 
