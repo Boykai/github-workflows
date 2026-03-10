@@ -1,5 +1,6 @@
 """Board API endpoints for the Project Board feature."""
 
+import asyncio
 import logging
 from datetime import timedelta
 from typing import Annotated
@@ -408,8 +409,12 @@ async def get_blocking_queue(
 async def skip_blocking_issue(
     project_id: str,
     issue_number: int,
+    session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> list[dict]:
     """Skip a blocking queue entry — marks it completed and advances the queue.
+
+    Activates the next pending issue(s) in the blocking queue and dispatches
+    agent assignment in the background so work starts immediately.
 
     Returns the updated (non-completed) queue entries for the project.
     """
@@ -417,7 +422,17 @@ async def skip_blocking_issue(
     from src.services import blocking_queue_store as bq_store
 
     entry = await _resolve_queue_entry(project_id, issue_number)
-    await bq_service.mark_completed(entry.repo_key, issue_number)
+    activated = await bq_service.mark_completed(entry.repo_key, issue_number)
+
+    if activated:
+        asyncio.create_task(
+            _dispatch_agents_for_activated(
+                access_token=session.access_token,
+                project_id=project_id,
+                activated=activated,
+            )
+        )
+
     updated = await bq_store.get_by_project(project_id)
     return [e.model_dump() for e in updated]
 
@@ -466,9 +481,122 @@ async def delete_blocking_issue(
             detail="Failed to close issue on GitHub",
         )
 
-    await bq_service.mark_completed(entry.repo_key, issue_number)
+    activated = await bq_service.mark_completed(entry.repo_key, issue_number)
+
+    if activated:
+        asyncio.create_task(
+            _dispatch_agents_for_activated(
+                access_token=session.access_token,
+                project_id=project_id,
+                activated=activated,
+            )
+        )
+
     updated = await bq_store.get_by_project(project_id)
     return [e.model_dump() for e in updated]
+
+
+async def _dispatch_agents_for_activated(
+    access_token: str,
+    project_id: str,
+    activated: list,
+) -> None:
+    """Background task: assign first agent for each newly activated issue.
+
+    After a blocking issue is skipped or deleted, the blocking queue activates
+    the next pending issue(s) but does not start agent work.  This function
+    bridges that gap by looking up each activated issue on the project board
+    and calling ``assign_agent_for_status`` so the pipeline starts immediately
+    instead of waiting for the next recovery cycle.
+    """
+    from src.services.copilot_polling import ensure_polling_started, get_workflow_config
+    from src.services.workflow_orchestrator import get_workflow_orchestrator
+    from src.services.workflow_orchestrator.models import WorkflowContext, WorkflowState
+
+    if not activated:
+        return
+
+    # Fetch board items once for all activated entries
+    try:
+        tasks = await github_projects_service.get_project_items(access_token, project_id)
+    except Exception:
+        logger.exception("Skip dispatch: failed to fetch project items")
+        return
+
+    task_by_issue = {t.issue_number: t for t in tasks if t.issue_number}
+
+    config = await get_workflow_config(project_id)
+    orchestrator = get_workflow_orchestrator()
+
+    for entry in activated:
+        issue_number = entry.issue_number
+        owner, repo = entry.repo_key.split("/", 1)
+
+        task = task_by_issue.get(issue_number)
+        if not task:
+            logger.warning(
+                "Skip dispatch: issue #%d not found on project board — recovery will handle it",
+                issue_number,
+            )
+            continue
+
+        if not config:
+            # Bootstrap a default config so assignment can proceed
+            from src.services.copilot_polling import WorkflowConfiguration
+
+            config = WorkflowConfiguration(
+                project_id=project_id,
+                repository_owner=owner,
+                repository_name=repo,
+            )
+
+        status_name = task.status or "Backlog"
+
+        ctx = WorkflowContext(
+            session_id="blocking-queue-dispatch",
+            project_id=project_id,
+            access_token=access_token,
+            repository_owner=owner,
+            repository_name=repo,
+            issue_id=task.github_content_id,
+            issue_number=issue_number,
+            project_item_id=task.github_item_id,
+            current_state=WorkflowState.READY,
+        )
+        ctx.config = config
+
+        try:
+            assigned = await orchestrator.assign_agent_for_status(ctx, status_name, agent_index=0)
+            if assigned:
+                logger.info(
+                    "Skip dispatch: assigned first agent for issue #%d (status=%s)",
+                    issue_number,
+                    status_name,
+                )
+            else:
+                logger.warning(
+                    "Skip dispatch: assign_agent_for_status returned False for issue #%d",
+                    issue_number,
+                )
+        except Exception:
+            logger.exception(
+                "Skip dispatch: failed to assign agent for issue #%d",
+                issue_number,
+            )
+
+    # Ensure polling is running so the pipeline advances after assignment
+    try:
+        first = activated[0]
+        first_owner, first_repo = first.repo_key.split("/", 1)
+        await ensure_polling_started(
+            access_token=access_token,
+            project_id=project_id,
+            owner=first_owner,
+            repo=first_repo,
+            caller="blocking_queue_skip_dispatch",
+        )
+    except Exception:
+        logger.debug("Skip dispatch: ensure_polling_started failed", exc_info=True)
 
 
 async def _resolve_queue_entry(project_id: str, issue_number: int):
