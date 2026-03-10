@@ -5,7 +5,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Lock, Plus, Trash2 } from 'lucide-react';
+import { GitBranch, Lock, Plus, Trash2 } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -17,6 +17,7 @@ import {
 import type { DragEndEvent } from '@dnd-kit/core';
 import {
   SortableContext,
+  rectSortingStrategy,
   verticalListSortingStrategy,
   useSortable,
   sortableKeyboardCoordinates,
@@ -28,6 +29,7 @@ import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import { Tooltip } from '@/components/ui/tooltip';
 import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
+import { cn } from '@/lib/utils';
 import { formatAgentName } from '@/utils/formatAgentName';
 
 interface StageCardProps {
@@ -95,6 +97,8 @@ export function StageCard({
   onCloneAgent,
   onReorderAgents,
 }: StageCardProps) {
+  const hasAgents = stage.agents.length > 0;
+  const isParallelStage = stage.agents.length > 1;
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(stage.name);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
@@ -177,37 +181,64 @@ export function StageCard({
   return (
     <div className="celestial-panel celestial-fade-in pipeline-column-surface pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm">
       {/* Header: lock icon + name + remove */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-start gap-2">
         <Tooltip contentKey="pipeline.stage.lockIcon">
-          <span role="img" aria-label="Stage position is locked">
+          <span role="img" aria-label="Stage position is locked" className="pt-0.5">
             <Lock aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground/40" />
           </span>
         </Tooltip>
 
-        {isEditing ? (
-          <input
-            ref={inputRef}
-            type="text"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-            onBlur={handleRenameConfirm}
-            onKeyDown={handleKeyDown}
-            className="flex-1 rounded-md border border-primary/30 bg-background/72 px-2 py-0.5 text-sm font-medium outline-none"
-            maxLength={100}
-          />
-        ) : (
-          <button
-            type="button"
-            onClick={() => {
-              setEditName(stage.name);
-              setIsEditing(true);
-            }}
-            className="flex-1 text-left text-sm font-medium text-foreground hover:text-primary transition-colors truncate"
-            title="Click to rename"
-          >
-            {stage.name}
-          </button>
-        )}
+        <div className="min-w-0 flex-1">
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onBlur={handleRenameConfirm}
+              onKeyDown={handleKeyDown}
+              className="w-full rounded-md border border-primary/30 bg-background/72 px-2 py-0.5 text-sm font-medium outline-none"
+              maxLength={100}
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setEditName(stage.name);
+                setIsEditing(true);
+              }}
+              className="w-full truncate text-left text-sm font-medium text-foreground transition-colors hover:text-primary"
+              title="Click to rename"
+            >
+              {stage.name}
+            </button>
+          )}
+
+          <div className="mt-1 flex flex-wrap items-center gap-1.5">
+            <Tooltip
+              contentKey={
+                isParallelStage ? 'pipeline.stage.parallelGroup' : 'pipeline.stage.sequentialGroup'
+              }
+            >
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]',
+                  isParallelStage
+                    ? 'border-primary/30 bg-primary/10 text-primary'
+                    : 'border-border/60 bg-background/40 text-muted-foreground'
+                )}
+              >
+                {isParallelStage && <GitBranch className="h-3 w-3" />}
+                {isParallelStage ? 'Runs in Parallel' : 'Sequential Stage'}
+              </span>
+            </Tooltip>
+            <span className="text-[10px] text-muted-foreground">
+              {hasAgents
+                ? `${stage.agents.length} agent${stage.agents.length === 1 ? '' : 's'} assigned`
+                : 'Add an agent to begin this stage'}
+            </span>
+          </div>
+        </div>
 
         <Tooltip contentKey="pipeline.stage.deleteButton">
           <button
@@ -229,21 +260,51 @@ export function StageCard({
       >
         <SortableContext
           items={stage.agents.map((a) => a.id)}
-          strategy={verticalListSortingStrategy}
+          strategy={isParallelStage ? rectSortingStrategy : verticalListSortingStrategy}
         >
-          <div className="flex flex-col gap-1.5">
-            {stage.agents.map((agent) => (
-              <SortableAgentNode
-                key={agent.id}
-                agent={agent}
-                onModelSelect={(modelId, modelName) =>
-                  onUpdateAgent(agent.id, { model_id: modelId, model_name: modelName })
-                }
-                onRemove={() => onRemoveAgent(agent.id)}
-                onToolsClick={() => setToolModalAgent(agent.id)}
-                onClone={onCloneAgent ? () => onCloneAgent(agent.id) : undefined}
-              />
-            ))}
+          <div
+            className={cn(
+              'rounded-xl border p-2',
+              isParallelStage
+                ? 'border-primary/25 bg-primary/[0.07] shadow-[0_0_0_1px_hsl(var(--primary)/0.04),0_18px_40px_-28px_hsl(var(--glow)/0.6)]'
+                : 'border-border/50 bg-background/18'
+            )}
+          >
+            {isParallelStage && (
+              <p className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <GitBranch className="h-3.5 w-3.5 text-primary" />
+                All agents in this stage start together, then the pipeline waits for every one
+                to finish before moving on.
+              </p>
+            )}
+
+            {hasAgents ? (
+              <div
+                className={cn(
+                  isParallelStage
+                    ? 'grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-2'
+                    : 'flex flex-col gap-1.5'
+                )}
+              >
+                {stage.agents.map((agent) => (
+                  <SortableAgentNode
+                    key={agent.id}
+                    agent={agent}
+                    onModelSelect={(modelId, modelName) =>
+                      onUpdateAgent(agent.id, { model_id: modelId, model_name: modelName })
+                    }
+                    onRemove={() => onRemoveAgent(agent.id)}
+                    onToolsClick={() => setToolModalAgent(agent.id)}
+                    onClone={onCloneAgent ? () => onCloneAgent(agent.id) : undefined}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-lg border border-dashed border-border/60 bg-background/20 px-3 py-3 text-xs text-muted-foreground">
+                Add your first agent here. Once a stage has multiple agents, they appear side by
+                side so the stage reads as a coordinated group.
+              </p>
+            )}
           </div>
         </SortableContext>
       </DndContext>
@@ -267,15 +328,17 @@ export function StageCard({
 
       {/* Add agent */}
       <div className="relative">
-        <button
-          ref={addButtonRef}
-          type="button"
-          onClick={() => setShowAgentPicker(!showAgentPicker)}
-          className="pipeline-stage-add flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
-        >
-          <Plus className="h-3 w-3" />
-          Add Agent
-        </button>
+        <Tooltip contentKey="pipeline.stage.addAgentButton">
+          <button
+            ref={addButtonRef}
+            type="button"
+            onClick={() => setShowAgentPicker(!showAgentPicker)}
+            className="pipeline-stage-add flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+          >
+            <Plus className="h-3 w-3" />
+            {hasAgents ? 'Add Parallel Agent' : 'Add Agent'}
+          </button>
+        </Tooltip>
 
         {showAgentPicker &&
           pickerPosition &&

@@ -126,9 +126,19 @@ export const tooltipContent: Record<string, TooltipEntry> = {
   'pipeline.stage.lockIcon': {
     summary: "This stage's position in the pipeline is locked and cannot be reordered.",
   },
+  'pipeline.stage.parallelGroup': {
+    title: 'Parallel Stage Group',
+    summary:
+      'Agents shown together inside the same stage run at the same time, and the pipeline waits for the whole group before advancing.',
+  },
+  'pipeline.stage.sequentialGroup': {
+    title: 'Sequential Stage',
+    summary:
+      'A single agent stage runs after the previous stage completes and finishes before the next stage begins.',
+  },
   'pipeline.stage.addAgentButton': {
     summary:
-      'Assign an agent to this pipeline stage. The agent will process work items when they reach this stage.',
+      'Assign an agent to this pipeline stage. Adding another agent to a populated stage groups them together so they can run side by side.',
   },
   'pipeline.board.addStageButton': {
     summary:

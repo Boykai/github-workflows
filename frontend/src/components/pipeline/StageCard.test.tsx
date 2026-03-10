@@ -1,14 +1,31 @@
 import { describe, expect, it, vi } from 'vitest';
+import { QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
-import { render, screen } from '@/test/test-utils';
+import type { ReactElement } from 'react';
+import { createTestQueryClient, render, screen } from '@/test/test-utils';
 import { StageCard } from './StageCard';
-import type { PipelineStage, AvailableAgent } from '@/types';
+import type { PipelineStage, AvailableAgent, PipelineAgentNode } from '@/types';
 
 function createStage(overrides: Partial<PipelineStage> = {}): PipelineStage {
   return {
     id: 'stage-1',
     name: 'Ready',
+    order: 0,
     agents: [],
+    ...overrides,
+  };
+}
+
+function createAgentNode(overrides: Partial<PipelineAgentNode> = {}): PipelineAgentNode {
+  return {
+    id: 'agent-1',
+    agent_slug: 'copilot',
+    agent_display_name: 'GitHub Copilot',
+    model_id: '',
+    model_name: '',
+    tool_ids: [],
+    tool_count: 0,
+    config: {},
     ...overrides,
   };
 }
@@ -28,9 +45,19 @@ function createAvailableAgent(overrides: Partial<AvailableAgent> = {}): Availabl
   };
 }
 
+function renderStageCard(ui: ReactElement) {
+  const queryClient = createTestQueryClient();
+
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  });
+}
+
 describe('StageCard', () => {
   it('shows a loading state while available agents are being fetched', async () => {
-    render(
+    renderStageCard(
       <StageCard
         stage={createStage()}
         availableAgents={[]}
@@ -41,6 +68,7 @@ describe('StageCard', () => {
         onAddAgent={vi.fn()}
         onRemoveAgent={vi.fn()}
         onUpdateAgent={vi.fn()}
+        onReorderAgents={vi.fn()}
       />
     );
 
@@ -51,7 +79,7 @@ describe('StageCard', () => {
   });
 
   it('renders available agents in the picker when discovery succeeds', async () => {
-    render(
+    renderStageCard(
       <StageCard
         stage={createStage()}
         availableAgents={[createAvailableAgent()]}
@@ -61,6 +89,7 @@ describe('StageCard', () => {
         onAddAgent={vi.fn()}
         onRemoveAgent={vi.fn()}
         onUpdateAgent={vi.fn()}
+        onReorderAgents={vi.fn()}
       />
     );
 
@@ -69,5 +98,36 @@ describe('StageCard', () => {
 
     expect(screen.getByText('GitHub Copilot')).toBeInTheDocument();
     expect(screen.getByText('(copilot)')).toBeInTheDocument();
+  });
+
+  it('highlights stages with multiple agents as a parallel group', () => {
+    renderStageCard(
+      <StageCard
+        stage={createStage({
+          agents: [
+            createAgentNode(),
+            createAgentNode({
+              id: 'agent-2',
+              agent_slug: 'reviewer',
+              agent_display_name: 'Reviewer',
+            }),
+          ],
+        })}
+        availableAgents={[]}
+        projectId="project-1"
+        onUpdate={vi.fn()}
+        onRemove={vi.fn()}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onReorderAgents={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Runs in Parallel')).toBeInTheDocument();
+    expect(
+      screen.getByText(/All agents in this stage start together/i)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /add parallel agent/i })).toBeInTheDocument();
   });
 });
