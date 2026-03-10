@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
+from src.dependencies import require_selected_project
 from src.exceptions import AppException, NotFoundError, ValidationError
 from src.logging_utils import handle_service_error
 from src.middleware.rate_limit import limiter
@@ -21,7 +22,6 @@ from src.models.workflow import (
     WorkflowTransition,
 )
 from src.services.agents.service import AgentsService
-from src.services.cache import cache, get_user_projects_cache_key
 from src.services.database import get_db
 from src.services.github_projects import github_projects_service
 from src.services.pipelines.service import PipelineService
@@ -85,33 +85,6 @@ def _check_duplicate(original_input: str, recommendation_id: str) -> bool:
     _recent_requests[input_hash] = (now, recommendation_id)
     return False
 
-
-def _get_repository_info(session: UserSession) -> tuple[str, str]:
-    """
-    Get repository owner and name from session/project context.
-
-    Returns:
-        Tuple of (owner, repo_name)
-    """
-    # Try to get from cached projects
-    cache_key = get_user_projects_cache_key(session.github_user_id)
-    cached_projects = cache.get(cache_key)
-
-    if cached_projects and session.selected_project_id:
-        for p in cached_projects:
-            if p.project_id == session.selected_project_id:
-                # Parse owner from project URL: https://github.com/users/{user}/projects/{num}
-                # or https://github.com/orgs/{org}/projects/{num}
-                url = p.url or ""
-                if "/users/" in url:
-                    parts = url.split("/users/")[1].split("/")
-                    return parts[0], ""  # User project, no specific repo
-                elif "/orgs/" in url:
-                    parts = url.split("/orgs/")[1].split("/")
-                    return parts[0], ""  # Org project, no specific repo
-
-    # Fall back to username
-    return session.github_username or "", ""
 
 
 def _build_pipeline_agent_mappings(
@@ -221,8 +194,7 @@ async def confirm_recommendation(
         )
 
     # Require project selection
-    if not session.selected_project_id:
-        raise ValidationError("Please select a project first")
+    require_selected_project(session)
 
     # Resolve repository info using shared 3-step fallback
     owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
@@ -404,8 +376,7 @@ async def retry_pipeline(
     - The pipeline is stuck after a network failure
     - The user wants to manually kick off the next agent
     """
-    if not session.selected_project_id:
-        raise ValidationError("No project selected")
+    require_selected_project(session)
 
     state = get_pipeline_state(issue_number)
     if not state:
@@ -533,17 +504,23 @@ async def get_config(
     """
     Get workflow configuration for the selected project (T039).
     """
-    if not session.selected_project_id:
-        raise NotFoundError("No project selected")
+    require_selected_project(session)
 
     config = await get_workflow_config(session.selected_project_id)
     if not config:
-        # Return default config
-        owner, repo = _get_repository_info(session)
+        # Resolve repository via canonical 3-step fallback
+        try:
+            owner, repo = await resolve_repository(
+                session.access_token, session.selected_project_id
+            )
+        except Exception as e:
+            logger.debug("Could not resolve repository for config fallback: %s", e)
+            owner = session.github_username or ""
+            repo = ""
         config = WorkflowConfiguration(
             project_id=session.selected_project_id,
-            repository_owner=owner or session.github_username or "",
-            repository_name=repo or "",
+            repository_owner=owner,
+            repository_name=repo,
         )
 
     return config
@@ -557,8 +534,7 @@ async def update_config(
     """
     Update workflow configuration (T040).
     """
-    if not session.selected_project_id:
-        raise NotFoundError("No project selected")
+    require_selected_project(session)
 
     # Ensure project_id matches
     config_update.project_id = session.selected_project_id
@@ -592,8 +568,7 @@ async def list_agents(
     Discovers agents from the repository's `.github/agents/*.agent.md` files
     and combines them with built-in agents (GitHub Copilot, Copilot Review).
     """
-    if not session.selected_project_id:
-        raise NotFoundError("No project selected")
+    require_selected_project(session)
 
     # Resolve owner/repo using the same 3-step fallback as the Agents panel
     resolved_owner = owner
@@ -752,8 +727,7 @@ async def notify_in_review(
 
     This is called by the workflow orchestrator after detecting completion.
     """
-    if not session.selected_project_id:
-        raise NotFoundError("No project selected")
+    require_selected_project(session)
 
     # Broadcast WebSocket notification
     await connection_manager.broadcast_to_project(
@@ -804,8 +778,7 @@ async def check_issue_copilot_completion(
     If a Copilot PR is found ready (not draft), the issue status
     will be updated to "In Review".
     """
-    if not session.selected_project_id:
-        raise ValidationError("No project selected")
+    require_selected_project(session)
 
     # Resolve repository
     owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
@@ -849,8 +822,7 @@ async def start_copilot_polling(
     Args:
         interval_seconds: Polling interval in seconds (default: 15)
     """
-    if not session.selected_project_id:
-        raise ValidationError("No project selected")
+    require_selected_project(session)
 
     from src.services.copilot_polling import (
         get_polling_status,
@@ -915,8 +887,7 @@ async def check_all_in_progress_issues(
 
     This triggers a one-time scan of all in-progress issues.
     """
-    if not session.selected_project_id:
-        raise ValidationError("No project selected")
+    require_selected_project(session)
 
     # Resolve repository
     owner, repo = await resolve_repository(session.access_token, session.selected_project_id)

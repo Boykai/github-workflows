@@ -18,7 +18,7 @@ from src.constants import (
     GITHUB_ISSUE_BODY_MAX_LENGTH,
     with_blocking_label,
 )
-from src.dependencies import get_connection_manager, get_github_service
+from src.dependencies import get_connection_manager, get_github_service, require_selected_project
 from src.exceptions import NotFoundError, ValidationError
 from src.middleware.rate_limit import limiter
 from src.models.chat import (
@@ -93,8 +93,7 @@ _BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 
 async def _resolve_repository(session: UserSession) -> tuple[str, str]:
     """Resolve repository owner and name for issue creation."""
-    if not session.selected_project_id:
-        raise ValidationError("No project selected")
+    require_selected_project(session)
     return await resolve_repository(session.access_token, session.selected_project_id)
 
 
@@ -171,10 +170,7 @@ async def send_message(
 ) -> ChatMessage:
     """Send a chat message and get AI response."""
     # Require project selection
-    if not session.selected_project_id:
-        raise ValidationError("Please select a project first")
-
-    selected_project_id = session.selected_project_id
+    selected_project_id = require_selected_project(session)
 
     # Validate pipeline_id if provided
     if chat_request.pipeline_id:
