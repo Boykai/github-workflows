@@ -14,16 +14,18 @@ from src.exceptions import AppException, AuthorizationError, NotFoundError, Vali
 from src.models.pipeline import (
     PipelineConfig,
     PipelineConfigCreate,
-    PipelineIssueLaunchRequest,
     PipelineConfigListResponse,
     PipelineConfigUpdate,
+    PipelineIssueLaunchRequest,
     ProjectAssignmentBlockingUpdate,
     ProjectPipelineAssignment,
     ProjectPipelineAssignmentUpdate,
 )
 from src.models.user import UserSession
 from src.models.workflow import WorkflowConfiguration, WorkflowResult
+from src.services.database import get_db
 from src.services.github_projects import github_projects_service
+from src.services.pipelines.service import PipelineService
 from src.services.workflow_orchestrator import (
     WorkflowContext,
     get_agent_slugs,
@@ -35,8 +37,6 @@ from src.services.workflow_orchestrator import (
     set_workflow_config,
 )
 from src.services.workflow_orchestrator.config import load_pipeline_as_agent_mappings
-from src.services.database import get_db
-from src.services.pipelines.service import PipelineService
 from src.utils import resolve_repository, utcnow
 
 logger = logging.getLogger(__name__)

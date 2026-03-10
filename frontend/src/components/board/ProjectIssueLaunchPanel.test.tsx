@@ -1,5 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { renderWithProviders, screen, userEvent, waitFor } from '@/test/test-utils';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
+import { render, screen, userEvent, waitFor } from '@/test/test-utils';
 import { ProjectIssueLaunchPanel } from './ProjectIssueLaunchPanel';
 import { pipelinesApi } from '@/services/api';
 import type { PipelineConfigSummary } from '@/types';
@@ -33,6 +35,21 @@ const PIPELINES: PipelineConfigSummary[] = [
   },
 ];
 
+function renderPanel(ui: ReactElement) {
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
+  return render(ui, {
+    wrapper: ({ children }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    ),
+  });
+}
+
 describe('ProjectIssueLaunchPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,7 +64,7 @@ describe('ProjectIssueLaunchPanel', () => {
       message: 'Issue #42 created and launched.',
     });
 
-    renderWithProviders(
+    renderPanel(
       <ProjectIssueLaunchPanel
         projectId="PVT_1"
         projectName="Solune"
@@ -89,7 +106,7 @@ describe('ProjectIssueLaunchPanel', () => {
   });
 
   it('imports supported markdown files into the textarea', async () => {
-    renderWithProviders(
+    renderPanel(
       <ProjectIssueLaunchPanel
         projectId="PVT_1"
         pipelines={PIPELINES}
@@ -111,11 +128,11 @@ describe('ProjectIssueLaunchPanel', () => {
         '# Imported issue\n\nLoaded from disk.'
       );
     });
-    expect(screen.getByText('Imported issue')).toBeInTheDocument();
+    expect(screen.getByText('Imported issue.md')).toBeInTheDocument();
   });
 
   it('rejects unsupported files with a clear inline error', async () => {
-    renderWithProviders(
+    renderPanel(
       <ProjectIssueLaunchPanel
         projectId="PVT_1"
         pipelines={PIPELINES}
@@ -127,8 +144,9 @@ describe('ProjectIssueLaunchPanel', () => {
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['binary'], 'issue.png', { type: 'image/png' });
+    const user = userEvent.setup({ applyAccept: false });
 
-    await userEvent.upload(fileInput, file);
+    await user.upload(fileInput, file);
 
     expect(
       screen.getByText('Only Markdown (.md) and plain-text (.txt) files are supported.')

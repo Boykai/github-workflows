@@ -76,6 +76,7 @@ class TestLaunchPipelineIssue:
                 new_callable=AsyncMock,
                 return_value=("owner", "repo"),
             ),
+            patch("src.api.pipelines.github_projects_service", mock_github_service),
             patch("src.api.pipelines.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch("src.api.pipelines.set_workflow_config", new_callable=AsyncMock),
             patch("src.api.pipelines.get_workflow_orchestrator", return_value=mock_orchestrator),
@@ -115,7 +116,7 @@ class TestLaunchPipelineIssue:
             json={"issue_description": "   \n\t", "pipeline_id": pipeline_id},
         )
 
-        assert resp.status_code == 400
+        assert resp.status_code == 422
         assert "Issue description is required" in resp.json()["error"]
 
     @pytest.mark.anyio
