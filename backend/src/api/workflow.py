@@ -86,7 +86,6 @@ def _check_duplicate(original_input: str, recommendation_id: str) -> bool:
     return False
 
 
-
 def _build_pipeline_agent_mappings(
     config: WorkflowConfiguration, pipeline
 ) -> dict[str, list[AgentAssignment]]:
@@ -194,10 +193,10 @@ async def confirm_recommendation(
         )
 
     # Require project selection
-    require_selected_project(session)
+    project_id = require_selected_project(session)
 
     # Resolve repository info using shared 3-step fallback
-    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
+    owner, repo = await resolve_repository(session.access_token, project_id)
 
     logger.info("Using repository %s/%s for issue creation", owner, repo)
 
@@ -207,16 +206,16 @@ async def confirm_recommendation(
     settings = get_settings()
 
     # Get or create workflow config
-    config = await get_workflow_config(session.selected_project_id)
+    config = await get_workflow_config(project_id)
     if not config:
         config = WorkflowConfiguration(
-            project_id=session.selected_project_id,
+            project_id=project_id,
             repository_owner=owner,
             repository_name=repo,
             copilot_assignee=settings.default_assignee,
         )
         await set_workflow_config(
-            session.selected_project_id,
+            project_id,
             config,
         )
     else:
@@ -229,7 +228,7 @@ async def confirm_recommendation(
 
     config = await _apply_selected_pipeline(
         config,
-        session.selected_project_id,
+        project_id,
         recommendation.selected_pipeline_id,
     )
 
@@ -251,7 +250,7 @@ async def confirm_recommendation(
     # Create workflow context
     ctx = WorkflowContext(
         session_id=str(session.session_id),
-        project_id=session.selected_project_id,
+        project_id=project_id,
         access_token=session.access_token,
         repository_owner=config.repository_owner,
         repository_name=config.repository_name,
@@ -278,7 +277,7 @@ async def confirm_recommendation(
 
             # Broadcast WebSocket notification for issue creation
             await connection_manager.broadcast_to_project(
-                session.selected_project_id,
+                project_id,
                 {
                     "type": "issue_created",
                     "issue_id": result.issue_id,
@@ -293,7 +292,7 @@ async def confirm_recommendation(
             backlog_slugs = get_agent_slugs(config, config.status_backlog)
             if backlog_slugs:
                 await connection_manager.broadcast_to_project(
-                    session.selected_project_id,
+                    project_id,
                     {
                         "type": "agent_assigned",
                         "issue_number": result.issue_number,
@@ -314,7 +313,7 @@ async def confirm_recommendation(
 
             await ensure_polling_started(
                 access_token=session.access_token,
-                project_id=session.selected_project_id,
+                project_id=project_id,
                 owner=owner,
                 repo=repo,
                 caller="confirm_recommendation",
@@ -376,13 +375,13 @@ async def retry_pipeline(
     - The pipeline is stuck after a network failure
     - The user wants to manually kick off the next agent
     """
-    require_selected_project(session)
+    project_id = require_selected_project(session)
 
     state = get_pipeline_state(issue_number)
     if not state:
         raise NotFoundError(f"No pipeline state found for issue #{issue_number}")
 
-    if state.project_id != session.selected_project_id:
+    if state.project_id != project_id:
         raise NotFoundError(f"No pipeline state found for issue #{issue_number}")
 
     if state.is_complete:
@@ -398,7 +397,7 @@ async def retry_pipeline(
         raise ValidationError("No workflow configuration found for this project")
 
     # Resolve repository info
-    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
+    owner, repo = await resolve_repository(session.access_token, project_id)
 
     # Resolve user's effective AI model for the model-precedence chain
     try:
@@ -504,21 +503,19 @@ async def get_config(
     """
     Get workflow configuration for the selected project (T039).
     """
-    require_selected_project(session)
+    project_id = require_selected_project(session)
 
-    config = await get_workflow_config(session.selected_project_id)
+    config = await get_workflow_config(project_id)
     if not config:
         # Resolve repository via canonical 3-step fallback
         try:
-            owner, repo = await resolve_repository(
-                session.access_token, session.selected_project_id
-            )
+            owner, repo = await resolve_repository(session.access_token, project_id)
         except Exception as e:
             logger.debug("Could not resolve repository for config fallback: %s", e)
             owner = session.github_username or ""
             repo = ""
         config = WorkflowConfiguration(
-            project_id=session.selected_project_id,
+            project_id=project_id,
             repository_owner=owner,
             repository_name=repo,
         )
@@ -534,10 +531,10 @@ async def update_config(
     """
     Update workflow configuration (T040).
     """
-    require_selected_project(session)
+    project_id = require_selected_project(session)
 
     # Ensure project_id matches
-    config_update.project_id = session.selected_project_id
+    config_update.project_id = project_id
 
     # Deduplicate case-variant status keys (e.g. "In progress" vs "In Progress")
     # that arise when board column names differ in casing from backend defaults.
@@ -548,10 +545,10 @@ async def update_config(
     )
 
     await set_workflow_config(
-        session.selected_project_id,
+        project_id,
         config_update,
     )
-    logger.info("Updated workflow config for project %s", session.selected_project_id)
+    logger.info("Updated workflow config for project %s", project_id)
 
     return config_update
 
@@ -568,7 +565,7 @@ async def list_agents(
     Discovers agents from the repository's `.github/agents/*.agent.md` files
     and combines them with built-in agents (GitHub Copilot, Copilot Review).
     """
-    require_selected_project(session)
+    project_id = require_selected_project(session)
 
     # Resolve owner/repo using the same 3-step fallback as the Agents panel
     resolved_owner = owner
@@ -577,7 +574,7 @@ async def list_agents(
     if not resolved_owner or not resolved_repo:
         try:
             fallback_owner, fallback_repo = await resolve_repository(
-                session.access_token, session.selected_project_id
+                session.access_token, project_id
             )
             resolved_owner = resolved_owner or fallback_owner
             resolved_repo = resolved_repo or fallback_repo
@@ -597,7 +594,7 @@ async def list_agents(
     if resolved_owner and resolved_repo:
         try:
             discovered_agents = await agents_service.list_agents(
-                project_id=session.selected_project_id,
+                project_id=project_id,
                 owner=resolved_owner,
                 repo=resolved_repo,
                 access_token=session.access_token,
@@ -610,7 +607,7 @@ async def list_agents(
             logger.debug("Could not resolve tool counts for workflow agents: %s", e)
 
     if resolved_owner and resolved_repo:
-        agent_prefs = await agents_service.get_agent_preferences(session.selected_project_id)
+        agent_prefs = await agents_service.get_agent_preferences(project_id)
         agents = [
             available_agent.model_copy(
                 update={
@@ -727,11 +724,11 @@ async def notify_in_review(
 
     This is called by the workflow orchestrator after detecting completion.
     """
-    require_selected_project(session)
+    project_id = require_selected_project(session)
 
     # Broadcast WebSocket notification
     await connection_manager.broadcast_to_project(
-        session.selected_project_id,
+        project_id,
         {
             "type": "status_updated",
             "issue_id": issue_id,
@@ -778,16 +775,16 @@ async def check_issue_copilot_completion(
     If a Copilot PR is found ready (not draft), the issue status
     will be updated to "In Review".
     """
-    require_selected_project(session)
+    project_id = require_selected_project(session)
 
     # Resolve repository
-    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
+    owner, repo = await resolve_repository(session.access_token, project_id)
 
     from src.services.copilot_polling import check_issue_for_copilot_completion
 
     result = await check_issue_for_copilot_completion(
         access_token=session.access_token,
-        project_id=session.selected_project_id,
+        project_id=project_id,
         owner=owner,
         repo=repo,
         issue_number=issue_number,
@@ -796,7 +793,7 @@ async def check_issue_copilot_completion(
     # Broadcast WebSocket notification if status was updated
     if result.get("status") == "success":
         await connection_manager.broadcast_to_project(
-            session.selected_project_id,
+            project_id,
             {
                 "type": "status_updated",
                 "issue_number": issue_number,
@@ -822,7 +819,7 @@ async def start_copilot_polling(
     Args:
         interval_seconds: Polling interval in seconds (default: 15)
     """
-    require_selected_project(session)
+    project_id = require_selected_project(session)
 
     from src.services.copilot_polling import (
         get_polling_status,
@@ -833,13 +830,13 @@ async def start_copilot_polling(
         return {"message": "Polling is already running", "status": status}
 
     # Resolve repository
-    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
+    owner, repo = await resolve_repository(session.access_token, project_id)
 
     from src.services.copilot_polling import ensure_polling_started
 
     await ensure_polling_started(
         access_token=session.access_token,
-        project_id=session.selected_project_id,
+        project_id=project_id,
         owner=owner,
         repo=repo,
         interval_seconds=interval_seconds,
@@ -848,14 +845,14 @@ async def start_copilot_polling(
 
     logger.info(
         "Started Copilot PR polling for project %s (interval: %ds)",
-        session.selected_project_id,
+        project_id,
         interval_seconds,
     )
 
     return {
         "message": "Polling started",
         "interval_seconds": interval_seconds,
-        "project_id": session.selected_project_id,
+        "project_id": project_id,
         "repository": f"{owner}/{repo}",
     }
 
@@ -887,16 +884,16 @@ async def check_all_in_progress_issues(
 
     This triggers a one-time scan of all in-progress issues.
     """
-    require_selected_project(session)
+    project_id = require_selected_project(session)
 
     # Resolve repository
-    owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
+    owner, repo = await resolve_repository(session.access_token, project_id)
 
     from src.services.copilot_polling import check_in_progress_issues
 
     results = await check_in_progress_issues(
         access_token=session.access_token,
-        project_id=session.selected_project_id,
+        project_id=project_id,
         owner=owner,
         repo=repo,
     )
@@ -905,7 +902,7 @@ async def check_all_in_progress_issues(
     for result in results:
         if result.get("status") == "success":
             await connection_manager.broadcast_to_project(
-                session.selected_project_id,
+                project_id,
                 {
                     "type": "status_updated",
                     "issue_number": result.get("issue_number"),

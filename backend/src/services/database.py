@@ -226,7 +226,13 @@ def _discover_migrations() -> list[tuple[int, Path]]:
             version = int(match.group(1))
             migrations.append((version, path))
 
-    # Warn about duplicate version prefixes so operators can plan renumbering
+    # Warn about duplicate version prefixes so operators can plan renumbering.
+    # NOTE: Both files ARE applied because `_run_migrations()` pre-computes the
+    # pending list (`v > current_version`) before iterating and only updates
+    # schema_version once per version.  With duplicates like two `013_*.sql`
+    # files, the first sets schema_version=13 and the second is still in the
+    # pre-computed list so it also executes.  Renumbering is still recommended
+    # to avoid confusion.
     seen: dict[int, list[str]] = {}
     for version, path in migrations:
         seen.setdefault(version, []).append(path.name)

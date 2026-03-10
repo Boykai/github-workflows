@@ -6,9 +6,9 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [x] No low-level implementation details (file paths and function names are acceptable for a technical spec targeting developers)
 - [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
+- [x] Written for a technical audience (developers maintaining the codebase)
 - [x] All mandatory sections completed
 
 ## Requirement Completeness
@@ -27,7 +27,7 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [x] No low-level implementation details leak into specification (technologies referenced are scoped to acceptance criteria)
 
 ## Notes
 

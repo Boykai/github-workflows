@@ -93,8 +93,8 @@ _BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 
 async def _resolve_repository(session: UserSession) -> tuple[str, str]:
     """Resolve repository owner and name for issue creation."""
-    require_selected_project(session)
-    return await resolve_repository(session.access_token, session.selected_project_id)
+    project_id = require_selected_project(session)
+    return await resolve_repository(session.access_token, project_id)
 
 
 def get_session_messages(session_id: UUID) -> list[ChatMessage]:

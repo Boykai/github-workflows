@@ -333,9 +333,10 @@ class TestShutdownPollingLogging:
 
             # The error must have been logged, not silently swallowed
             mock_logger.warning.assert_called()
-            # Verify the warning includes the shutdown context
+            # Verify the warning includes the shutdown context and traceback
             warning_args = mock_logger.warning.call_args
             assert "Error stopping Copilot polling during shutdown" in str(warning_args)
+            assert warning_args.kwargs.get("exc_info") is True
 
 
 # ── _auto_start_copilot_polling webhook token fallback ──────────────────────
