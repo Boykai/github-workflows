@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@/test/test-utils';
+import { render, screen, within } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 
 import { RepoConfigPanel } from './RepoConfigPanel';
@@ -116,7 +116,7 @@ describe('GitHubMcpConfigGenerator', () => {
     expect(screen.getByText('MCP Configuration for GitHub Agents')).toBeInTheDocument();
     expect(screen.getByText('context7')).toBeInTheDocument();
     expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
-    expect(screen.getAllByText('Built-In')).toHaveLength(2);
+    expect(screen.getAllByText('Built-In')).toHaveLength(4);
     expect(screen.getByText('No active project MCPs yet')).toBeInTheDocument();
   });
 
@@ -151,8 +151,7 @@ describe('GitHubMcpConfigGenerator', () => {
     expect(screen.getByText('my-server')).toBeInTheDocument();
     expect(screen.getByText('context7')).toBeInTheDocument();
     expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
-    // Only built-ins get the badge
-    expect(screen.getAllByText('Built-In')).toHaveLength(2);
+    expect(screen.getAllByText('Built-In')).toHaveLength(4);
     // No empty state guidance when user tools are present
     expect(screen.queryByText(/No project MCP tools are active yet/)).not.toBeInTheDocument();
   });
@@ -238,7 +237,7 @@ describe('GitHubMcpConfigGenerator', () => {
 
     expect(screen.getByText('context7')).toBeInTheDocument();
     expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
-    expect(screen.getAllByText('Built-In')).toHaveLength(1);
+    expect(screen.getAllByText('Built-In')).toHaveLength(2);
   });
 
   it('shows copy to clipboard button', async () => {
@@ -286,6 +285,19 @@ describe('GitHubMcpConfigGenerator', () => {
 
     expect(screen.getByText('Syntax-highlighted JSON ready to copy into GitHub.com.')).toBeInTheDocument();
     expect(screen.getByText('Always included')).toBeInTheDocument();
+  });
+
+  it('labels built-in MCPs inside the rendered configuration output', () => {
+    render(<GitHubMcpConfigGenerator tools={[]} />);
+
+    const codeBlock = screen.getByTestId('github-mcp-config-code');
+    expect(within(codeBlock).getAllByText('Built-In')).toHaveLength(2);
+    expect(
+      within(codeBlock).getByLabelText('Context7 Built-In MCP', { selector: 'span' })
+    ).toBeInTheDocument();
+    expect(
+      within(codeBlock).getByLabelText('Code Graph Context Built-In MCP', { selector: 'span' })
+    ).toBeInTheDocument();
   });
 
   it('applies syntax-highlighting classes to JSON keys and values', () => {
