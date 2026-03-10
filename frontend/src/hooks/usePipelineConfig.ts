@@ -485,9 +485,15 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
         };
         return {
           ...prev,
-          stages: prev.stages.map((s) =>
-            s.id === stageId ? { ...s, agents: [...s.agents, newAgent] } : s
-          ),
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const updatedAgents = [...s.agents, newAgent];
+            return {
+              ...s,
+              agents: updatedAgents,
+              execution_mode: updatedAgents.length >= 2 ? 'parallel' : s.execution_mode,
+            };
+          }),
         };
       });
     },

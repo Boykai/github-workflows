@@ -25,6 +25,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { AgentNode } from './AgentNode';
+import { ParallelStageGroup } from './ParallelStageGroup';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -263,30 +264,8 @@ export function StageCard({
           items={stage.agents.map((a) => a.id)}
           strategy={isParallelStage ? rectSortingStrategy : verticalListSortingStrategy}
         >
-          <div
-            className={cn(
-              'rounded-xl border p-2',
-              isParallelStage
-                ? 'border-primary/25 bg-primary/[0.07] shadow-[0_0_0_1px_hsl(var(--primary)/0.04),0_18px_40px_-28px_hsl(var(--glow)/0.6)]'
-                : 'border-border/50 bg-background/18'
-            )}
-          >
-            {isParallelStage && (
-              <p className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                <GitBranch className="h-3.5 w-3.5 text-primary" />
-                All agents in this stage start together, then the pipeline waits for every one
-                to finish before moving on.
-              </p>
-            )}
-
-            {hasAgents ? (
-              <div
-                className={cn(
-                  isParallelStage
-                    ? 'grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-2'
-                    : 'flex flex-col gap-1.5'
-                )}
-              >
+          {isParallelStage ? (
+              <ParallelStageGroup>
                 {stage.agents.map((agent) => (
                   <SortableAgentNode
                     key={agent.id}
@@ -299,14 +278,32 @@ export function StageCard({
                     onClone={onCloneAgent ? () => onCloneAgent(agent.id) : undefined}
                   />
                 ))}
-              </div>
+              </ParallelStageGroup>
             ) : (
-              <p className="rounded-lg border border-dashed border-border/60 bg-background/20 px-3 py-3 text-xs text-muted-foreground">
-                Add your first agent here. Once a stage has multiple agents, they appear side by
-                side so the stage reads as a coordinated group.
-              </p>
+              <div className="rounded-xl border border-border/50 bg-background/18 p-2">
+                {hasAgents ? (
+                  <div className="flex flex-col gap-1.5">
+                    {stage.agents.map((agent) => (
+                      <SortableAgentNode
+                        key={agent.id}
+                        agent={agent}
+                        onModelSelect={(modelId, modelName) =>
+                          onUpdateAgent(agent.id, { model_id: modelId, model_name: modelName })
+                        }
+                        onRemove={() => onRemoveAgent(agent.id)}
+                        onToolsClick={() => setToolModalAgent(agent.id)}
+                        onClone={onCloneAgent ? () => onCloneAgent(agent.id) : undefined}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed border-border/60 bg-background/20 px-3 py-3 text-xs text-muted-foreground">
+                    Add your first agent here. Once a stage has multiple agents, they appear side by
+                    side so the stage reads as a coordinated group.
+                  </p>
+                )}
+              </div>
             )}
-          </div>
         </SortableContext>
       </DndContext>
 
