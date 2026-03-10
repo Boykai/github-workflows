@@ -108,7 +108,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 ## Database Schema
 
-SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `018`). Migrations are tracked by a `schema_version` table.
+SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `020`). Migrations are tracked by a `schema_version` table.
 
 ### Migration Files
 
@@ -135,6 +135,8 @@ SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via nu
 | `016_chores_enhancements.sql` | Chore execution tracking, AI enhance, pipeline assignment |
 | `017_blocking_queue.sql` | Per-repo blocking queue for serial issue activation |
 | `018_pipeline_blocking_override.sql` | Project-level pipeline blocking override |
+| `019_agent_model_setting.sql` | User-level agent model preference |
+| `020_chore_presets.sql` | Built-in chore preset definitions |
 
 ## Workflow Settings
 

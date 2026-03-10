@@ -40,6 +40,8 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 | GET | `/board/projects` | List projects with status field configuration |
 | GET | `/board/projects/{project_id}` | Get board data (columns + items) |
 | GET | `/board/projects/{project_id}/blocking-queue` | Get items blocking the pipeline queue |
+| POST | `/board/projects/{project_id}/blocking-queue/{issue_number}/skip` | Skip a blocking-queue entry (mark completed, advance queue) |
+| DELETE | `/board/projects/{project_id}/blocking-queue/{issue_number}` | Close the GitHub issue and skip it in the blocking queue |
 
 ## Chat
 

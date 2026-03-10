@@ -3,7 +3,7 @@
 ```text
 github-workflows/
 ├── .devcontainer/                # GitHub Codespaces / Dev Container config
-│   ├── devcontainer.json         #   Python 3.12, Node 20, Docker-in-Docker
+│   ├── devcontainer.json         #   Python 3.13, Node 22, Docker-in-Docker
 │   ├── docker-compose.devcontainer.yml
 │   ├── post-create.sh            #   Installs deps, creates venv, Playwright
 │   └── post-start.sh             #   Prints Codespaces callback URL
@@ -55,7 +55,7 @@ github-workflows/
 │   │   │   └── workflow.py       #   Workflow config, pipeline, polling control
 │   │   ├── middleware/
 │   │   │   └── request_id.py     #   RequestIDMiddleware for tracing
-│   │   ├── migrations/           # SQL schema migrations (001–012, auto-run)
+│   │   ├── migrations/           # SQL schema migrations (001–020, auto-run)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── agent_creator.py  #   CreationStep, AgentPreview, AgentCreationState
