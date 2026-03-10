@@ -121,6 +121,41 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
     () => new Map(entries.filter((entry) => entry.builtin).map((entry) => [entry.key, entry])),
     [entries]
   );
+  const builtInEntryByLine = useMemo(() => {
+    const lineAnnotations = new Map<number, (typeof entries)[number]>();
+    let mcpServersChildIndent: number | null = null;
+
+    configLines.forEach((line, lineIndex) => {
+      const trimmedLine = line.trim();
+      const indent = line.length - line.trimStart().length;
+
+      if (trimmedLine === '"mcpServers": {') {
+        mcpServersChildIndent = indent + 2;
+        return;
+      }
+
+      if (mcpServersChildIndent === null) {
+        return;
+      }
+
+      if (indent < mcpServersChildIndent && trimmedLine === '}') {
+        mcpServersChildIndent = null;
+        return;
+      }
+
+      const serverKeyMatch = trimmedLine.match(/^"([^"]+)": \{$/);
+      if (!serverKeyMatch || indent !== mcpServersChildIndent) {
+        return;
+      }
+
+      const builtInEntry = builtInEntriesByKey.get(serverKeyMatch[1]);
+      if (builtInEntry) {
+        lineAnnotations.set(lineIndex, builtInEntry);
+      }
+    });
+
+    return lineAnnotations;
+  }, [builtInEntriesByKey, configLines]);
 
   useEffect(() => {
     return () => {
@@ -283,36 +318,31 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
           data-testid="github-mcp-config-code"
         >
           <div className="min-w-max">
-            {configLines.map((line, index) => (
-              (() => {
-                const builtInKeyMatch = line.match(/^ {4}"([^"]+)": \{$/);
-                const builtInEntry = builtInKeyMatch
-                  ? builtInEntriesByKey.get(builtInKeyMatch[1])
-                  : undefined;
+            {configLines.map((line, index) => {
+              const builtInEntry = builtInEntryByLine.get(index);
 
-                return (
-                  <div
-                    key={index}
-                    className="grid grid-cols-[auto_1fr_auto] items-start gap-4 border-b border-white/6 px-4 py-1.5 font-mono text-xs leading-6 last:border-b-0"
-                  >
-                    <span className="select-none text-[10px] text-slate-500">{index + 1}</span>
-                    <span className="whitespace-pre text-slate-100">
-                      {line.length > 0 ? highlightJsonLine(line, index) : <Fragment>&nbsp;</Fragment>}
+              return (
+                <div
+                  key={index}
+                  className="grid grid-cols-[auto_1fr_auto] items-start gap-4 border-b border-white/6 px-4 py-1.5 font-mono text-xs leading-6 last:border-b-0"
+                >
+                  <span className="select-none text-[10px] text-slate-500">{index + 1}</span>
+                  <span className="whitespace-pre text-slate-100">
+                    {line.length > 0 ? highlightJsonLine(line, index) : <Fragment>&nbsp;</Fragment>}
+                  </span>
+                  {builtInEntry ? (
+                    <span
+                      className="mt-0.5 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-primary"
+                      aria-label={`${builtInEntry.sourceName} Built-In MCP`}
+                    >
+                      Built-In
                     </span>
-                    {builtInEntry ? (
-                      <span
-                        className="mt-0.5 rounded-full border border-primary/35 bg-primary/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-primary"
-                        aria-label={`${builtInEntry.sourceName} Built-In MCP`}
-                      >
-                        Built-In
-                      </span>
-                    ) : (
-                      <span aria-hidden="true" />
-                    )}
-                  </div>
-                );
-              })()
-            ))}
+                  ) : (
+                    <span aria-hidden="true" />
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>
