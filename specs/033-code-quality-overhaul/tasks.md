@@ -39,16 +39,16 @@
 
 ### Structured Logging Setup
 
-- [ ] T008 Wire existing `StructuredJsonFormatter` as root handler in backend/src/main.py lifespan per contracts/structured-logging.md
-- [ ] T009 Update all backend/src/ files using bare `import logging` to use `from src.logging_utils import get_logger` convention. Verify: `grep -rn "^import logging" backend/src/` returns 0 results after completion.
-- [ ] T010 Add structured `extra={}` context to service-layer log calls in backend/src/services/ (operation, duration_ms where available)
+- [X] T008 Wire existing `StructuredJsonFormatter` as root handler in backend/src/main.py lifespan per contracts/structured-logging.md
+- [X] T009 Update all backend/src/ files using bare `import logging` to use `from src.logging_utils import get_logger` convention. Verify: `grep -rn "^import logging" backend/src/` returns 0 results after completion.
+- [X] T010 Add structured `extra={}` context to service-layer log calls in backend/src/services/ (operation, duration_ms where available)
 
 ### DRY Helper Extraction
 
-- [ ] T011 Create `require_selected_project()` dependency in backend/src/dependencies.py — returns project ID or raises HTTPException per FR-005
-- [ ] T012 Create `cached_fetch()` async wrapper in backend/src/utils.py — generic cache check/refresh/set/stale-fallback per FR-006
-- [ ] T013 [P] Adopt (if T006 decided to keep) or delete `handle_service_error()`/`safe_error_response()` in backend/src/logging_utils.py — create `@handle_github_errors` decorator if adopting per FR-007
-- [ ] T014 Run `pytest -x` and `ruff check backend/src/` to verify foundational helpers work; commit Phase 2
+- [X] T011 Create `require_selected_project()` dependency in backend/src/dependencies.py — returns project ID or raises HTTPException per FR-005
+- [X] T012 Create `cached_fetch()` async wrapper in backend/src/utils.py — generic cache check/refresh/set/stale-fallback per FR-006
+- [X] T013 [P] Adopt (if T006 decided to keep) or delete `handle_service_error()`/`safe_error_response()` in backend/src/logging_utils.py — create `@handle_github_errors` decorator if adopting per FR-007
+- [X] T014 Run `pytest -x` and `ruff check backend/src/` to verify foundational helpers work; commit Phase 2
 
 **Checkpoint**: Foundation ready — structured logging active, DRY helpers available. All user story implementation can now begin.
 
