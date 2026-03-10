@@ -12,8 +12,28 @@ class TestToolsPresetsApi:
         assert data["count"] >= 1
         preset_ids = {preset["id"] for preset in data["presets"]}
         assert "github-readonly" in preset_ids
+        assert "context7" in preset_ids
+        assert "codegraphcontext" in preset_ids
         github_preset = next(p for p in data["presets"] if p["id"] == "github-readonly")
         assert "api.githubcopilot.com/mcp/readonly" in github_preset["config_content"]
+
+    async def test_context7_preset_has_correct_config(self, client):
+        resp = await client.get("/api/v1/tools/presets")
+        assert resp.status_code == 200
+        data = resp.json()
+        preset = next(p for p in data["presets"] if p["id"] == "context7")
+        assert preset["name"] == "Context7"
+        assert preset["category"] == "Documentation"
+        assert "mcp.context7.com/mcp" in preset["config_content"]
+
+    async def test_codegraphcontext_preset_has_correct_config(self, client):
+        resp = await client.get("/api/v1/tools/presets")
+        assert resp.status_code == 200
+        data = resp.json()
+        preset = next(p for p in data["presets"] if p["id"] == "codegraphcontext")
+        assert preset["name"] == "Code Graph Context"
+        assert preset["category"] == "Code Analysis"
+        assert "codegraphcontext" in preset["config_content"]
 
 
 class TestRepoMcpConfigApi:
