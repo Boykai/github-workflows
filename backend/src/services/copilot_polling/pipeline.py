@@ -78,31 +78,62 @@ async def _get_or_reconstruct_pipeline(
                     None,
                 )
                 if first_incomplete and first_incomplete.status.lower() != status.lower():
-                    # There are incomplete agents in an earlier status.
-                    # Reconstruct for THAT status so the pipeline resumes
-                    # from the correct point.
-                    earlier_status = first_incomplete.status
-                    earlier_agents = [
-                        s.agent_name for s in steps if s.status.lower() == earlier_status.lower()
-                    ]
-                    if earlier_agents:
+                    # The first incomplete agent is in a different status
+                    # than the board's current status.  Determine whether
+                    # it's EARLIER or LATER by checking whether any step
+                    # for the requested status is still incomplete.
+                    has_incomplete_for_requested = any(
+                        s
+                        for s in steps
+                        if s.status.lower() == status.lower()
+                        and ("Pending" in s.state or "Active" in s.state)
+                    )
+
+                    if has_incomplete_for_requested:
+                        # The tracking table shows incomplete agents in an
+                        # earlier status than the board claims.  The board
+                        # may have jumped ahead.  Reconstruct for THAT
+                        # status so pending agents aren't silently skipped.
+                        earlier_status = first_incomplete.status
+                        earlier_agents = [
+                            s.agent_name
+                            for s in steps
+                            if s.status.lower() == earlier_status.lower()
+                        ]
+                        if earlier_agents:
+                            logger.info(
+                                "Tracking table for issue #%d shows incomplete "
+                                "agents in '%s' (first: %s) — reconstructing "
+                                "pipeline for that status instead of '%s'",
+                                issue_number,
+                                earlier_status,
+                                first_incomplete.agent_name,
+                                status,
+                            )
+                            return await _reconstruct_pipeline_state(
+                                access_token=access_token,
+                                owner=owner,
+                                repo=repo,
+                                issue_number=issue_number,
+                                project_id=project_id,
+                                status=earlier_status,
+                                agents=earlier_agents,
+                            )
+                    else:
+                        # All agents for the REQUESTED status are complete,
+                        # and the first incomplete agent is in a LATER
+                        # status.  Fall through to reconstruct for the
+                        # requested status — which will show the pipeline
+                        # as complete and trigger status advancement.
                         logger.info(
-                            "Tracking table for issue #%d shows incomplete "
-                            "agents in '%s' (first: %s) — reconstructing "
-                            "pipeline for that status instead of '%s'",
-                            issue_number,
-                            earlier_status,
-                            first_incomplete.agent_name,
+                            "All agents for '%s' are complete on issue #%d; "
+                            "first incomplete agent '%s' is in later status '%s' "
+                            "— reconstructing for '%s' to trigger advancement",
                             status,
-                        )
-                        return await _reconstruct_pipeline_state(
-                            access_token=access_token,
-                            owner=owner,
-                            repo=repo,
-                            issue_number=issue_number,
-                            project_id=project_id,
-                            status=earlier_status,
-                            agents=earlier_agents,
+                            issue_number,
+                            first_incomplete.agent_name,
+                            first_incomplete.status,
+                            status,
                         )
 
                 # Always prefer the tracking table's agent list for the
@@ -395,8 +426,6 @@ async def check_backlog_issues(
         logger.debug("Found %d issues in '%s' status", len(backlog_tasks), config.status_backlog)
 
         agents = _cp.get_agent_slugs(config, config.status_backlog)
-        if not agents:
-            return results
 
         for task in backlog_tasks:
             task_owner = task.repository_owner or owner
@@ -414,6 +443,10 @@ async def check_backlog_issues(
                 status=config.status_backlog,
                 agents=agents,
             )
+
+            # Skip if no agents found (neither DB config nor tracking table)
+            if not pipeline.agents:
+                continue
 
             # Process pipeline completion/advancement
             result = await _process_pipeline_completion(
@@ -484,8 +517,6 @@ async def check_ready_issues(
         logger.debug("Found %d issues in '%s' status", len(ready_tasks), config.status_ready)
 
         agents = _cp.get_agent_slugs(config, config.status_ready)
-        if not agents:
-            return results
 
         for task in ready_tasks:
             task_owner = task.repository_owner or owner
@@ -504,6 +535,10 @@ async def check_ready_issues(
                 agents=agents,
                 expected_status=config.status_ready,
             )
+
+            # Skip if no agents found (neither DB config nor tracking table)
+            if not pipeline.agents:
+                continue
 
             # Process pipeline completion/advancement
             result = await _process_pipeline_completion(
@@ -1745,20 +1780,18 @@ async def check_in_progress_issues(
             # and jump straight to "In Review".
             if pipeline is None or pipeline.is_complete:
                 agents = _cp.get_agent_slugs(config, config.status_in_progress) if config else []
-                if agents:
-                    pipeline = await _get_or_reconstruct_pipeline(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=task.issue_number,
-                        project_id=project_id,
-                        status=config.status_in_progress if config else "In Progress",
-                        agents=agents,
-                        expected_status=config.status_in_progress if config else "In Progress",
-                    )
-                else:
-                    # No agents configured for In Progress — cannot reconstruct.
-                    # Clear stale completed pipeline so we fall to legacy path.
+                pipeline = await _get_or_reconstruct_pipeline(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    project_id=project_id,
+                    status=config.status_in_progress if config else "In Progress",
+                    agents=agents,
+                    expected_status=config.status_in_progress if config else "In Progress",
+                )
+                # If still no agents after checking tracking table, fall to legacy path
+                if not pipeline.agents:
                     pipeline = None
 
             # Process pipeline completion/advancement using the consolidated
