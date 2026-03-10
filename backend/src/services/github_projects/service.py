@@ -926,10 +926,9 @@ class GitHubProjectsService:
                 repos_seen.add((config.repository_owner, config.repository_name))
         except Exception as e:
             logger.warning(
-                "Workflow config fetch failed for project %s: %s",
+                "Workflow config fetch failed for project %s",
                 project_id,
-                e,
-                exc_info=True,
+                exc_info=e,
             )
 
         for owner, repo_name in repos_seen:
@@ -5175,10 +5174,9 @@ class GitHubProjectsService:
                             current_oid = fresh_oid
                     except Exception as e:
                         logger.warning(
-                            "Branch OID update failed for %s: %s",
+                            "Branch OID update failed for %s",
                             branch_name,
-                            e,
-                            exc_info=True,
+                            exc_info=e,
                         )
                     continue
                 logger.error("Failed to commit files to %s: %s", branch_name, exc)

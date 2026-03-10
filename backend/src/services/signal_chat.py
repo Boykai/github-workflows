@@ -158,10 +158,9 @@ async def process_signal_chat(
                 )
             except Exception as e:
                 logger.warning(
-                    "Signal: could not resolve repository for project %s: %s",
+                    "Signal: could not resolve repository for project %s",
                     project_id,
-                    e,
-                    exc_info=True,
+                    exc_info=e,
                 )
 
             agent_response = await handle_agent_command(

@@ -114,10 +114,9 @@ class MetadataService:
                 return ctx
         except Exception as e:
             logger.warning(
-                "SQLite metadata read failed for %s, using defaults: %s",
+                "SQLite metadata read failed for %s, using defaults",
                 repo_key,
-                e,
-                exc_info=True,
+                exc_info=e,
             )
 
         # Last resort: hardcoded constants
