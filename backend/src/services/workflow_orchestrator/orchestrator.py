@@ -1591,9 +1591,8 @@ class WorkflowOrchestrator:
 
         # ── Resolve effective model following the precedence hierarchy ──
         # 1. Pipeline config model (encodes chat override + pipeline config)
-        # 2. Agent's own default_model_id (from agent_configs table)
-        # 3. User Settings "agent model" (ctx.user_agent_model)
-        # 4. Hardcoded fallback "claude-opus-4.6"
+        # 2. User Settings "agent model" (ctx.user_agent_model)
+        # 3. Hardcoded fallback "claude-opus-4.6"
         #
         # Look up the *original* AgentAssignment from the live config rather
         # than from `agents` which may have been replaced by plain slug

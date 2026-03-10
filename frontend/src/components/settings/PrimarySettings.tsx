@@ -112,8 +112,8 @@ export function PrimarySettings({ settings, onSave }: PrimarySettingsProps) {
             onRetry={() => refetchModels()}
           />
           <p className="text-xs text-muted-foreground">
-            Fallback model for all GitHub Copilot Agents. Takes lower priority than per-agent and
-            pipeline configuration.
+            Fallback model for all GitHub Copilot Agents. Takes lower priority than pipeline model
+            configuration.
           </p>
         </div>
 

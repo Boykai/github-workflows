@@ -102,10 +102,10 @@ class WorkflowContext:
     config: WorkflowConfiguration | None = None
     # User's effective chat AI model from settings — used for app chat responses.
     user_chat_model: str = ""
-    # User's effective agent AI model from settings — used as Tier 3 fallback in
-    # agent model resolution when neither the pipeline config nor the agent's own
-    # default_model_id provides a non-Auto model.  Empty string means no
-    # user preference has been supplied and the hardcoded default is used.
+    # User's effective agent AI model from settings — used as Tier 2 fallback in
+    # agent model resolution when the pipeline config does not provide a
+    # non-Auto model.  Empty string means no user preference has been supplied
+    # and the hardcoded default is used instead.
     user_agent_model: str = ""
 
 

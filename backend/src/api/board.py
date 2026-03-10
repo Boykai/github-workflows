@@ -444,26 +444,27 @@ async def delete_blocking_issue(
     entry = await _resolve_queue_entry(project_id, issue_number)
     owner, repo = entry.repo_key.split("/", 1)
 
-    try:
-        await github_projects_service.update_issue_state(
-            session.access_token,
-            owner,
-            repo,
-            issue_number,
-            state="closed",
-            state_reason="not_planned",
-        )
-    except Exception as exc:
+    # update_issue_state catches all exceptions internally and returns False on
+    # failure instead of raising — so we must check the return value, not rely
+    # on a try/except to detect the error.
+    closed = await github_projects_service.update_issue_state(
+        session.access_token,
+        owner,
+        repo,
+        issue_number,
+        state="closed",
+        state_reason="not_planned",
+    )
+    if not closed:
         logger.warning(
-            "Failed to close issue #%d on GitHub (%s): %s",
+            "Failed to close issue #%d on GitHub (%s)",
             issue_number,
             entry.repo_key,
-            exc,
         )
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail="Failed to close issue on GitHub",
-        ) from exc
+        )
 
     await bq_service.mark_completed(entry.repo_key, issue_number)
     updated = await bq_store.get_by_project(project_id)

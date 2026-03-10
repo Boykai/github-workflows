@@ -29,11 +29,13 @@ export function ChoresPage() {
   } = useProjects(user?.selected_project_id);
   const projectId = selectedProject?.project_id ?? null;
 
-  // Seed chore presets on mount (idempotent)
-  const seededRef = useRef(false);
+  // Seed chore presets when projectId changes (idempotent per project).
+  // Tracking the last-seeded ID (not a boolean) ensures presets are seeded
+  // for each project even when the user switches without a full remount.
+  const seededRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!projectId || seededRef.current) return;
-    seededRef.current = true;
+    if (!projectId || seededRef.current === projectId) return;
+    seededRef.current = projectId;
     choresApi
       .seedPresets(projectId)
       .then(() => {
