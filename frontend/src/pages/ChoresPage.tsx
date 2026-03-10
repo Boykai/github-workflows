@@ -35,10 +35,10 @@ export function ChoresPage() {
   const seededRef = useRef<string | null>(null);
   useEffect(() => {
     if (!projectId || seededRef.current === projectId) return;
-    seededRef.current = projectId;
     choresApi
       .seedPresets(projectId)
       .then(() => {
+        seededRef.current = projectId;
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       })
       .catch((err) => {

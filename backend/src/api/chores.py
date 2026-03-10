@@ -59,6 +59,8 @@ async def seed_presets(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """Idempotently seed built-in chore presets for a project."""
+    # Verify the authenticated user has access to this project
+    await resolve_repository(session.access_token, project_id)
     service = _get_service()
     created = await service.seed_presets(project_id)
     return {"created": len(created)}
