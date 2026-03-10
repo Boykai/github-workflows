@@ -53,6 +53,10 @@ frontend/vite.config.d.ts
 *.swo
 *~
 
+# MCP (machine-local auto-generated configs)
+/mcp.json
+/.copilot/
+
 # OS
 .DS_Store
 Thumbs.db

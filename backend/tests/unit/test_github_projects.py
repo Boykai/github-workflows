@@ -2493,6 +2493,118 @@ class TestCheckCopilotFinishedEvents:
         assert service.check_copilot_finished_events(events) is False
 
 
+class TestCheckCopilotStoppedEvents:
+    """Tests for check_copilot_stopped_events helper method."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    def test_returns_true_for_copilot_work_stopped_event(self, service):
+        """Should return True when copilot_work_stopped event exists."""
+        events = [
+            {"event": "copilot_work_started"},
+            {"event": "committed"},
+            {"event": "copilot_work_stopped"},
+        ]
+        assert service.check_copilot_stopped_events(events) is True
+
+    def test_returns_false_for_copilot_work_finished(self, service):
+        """Should return False when only copilot_work_finished exists (no error)."""
+        events = [
+            {"event": "copilot_work_started"},
+            {"event": "copilot_work_finished"},
+        ]
+        assert service.check_copilot_stopped_events(events) is False
+
+    def test_returns_false_for_empty_events(self, service):
+        """Should return False for empty events list."""
+        assert service.check_copilot_stopped_events([]) is False
+
+    def test_returns_false_for_unrelated_events(self, service):
+        """Should return False when no stopped events exist."""
+        events = [
+            {"event": "assigned"},
+            {"event": "committed"},
+            {"event": "labeled"},
+        ]
+        assert service.check_copilot_stopped_events(events) is False
+
+
+class TestCheckCopilotSessionError:
+    """Tests for check_copilot_session_error — detects Copilot errors on PRs."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_detects_copilot_work_stopped_timeline_event(self, service):
+        """Should return True when copilot_work_stopped timeline event exists."""
+        service.get_pr_timeline_events = AsyncMock(return_value=[{"event": "copilot_work_stopped"}])
+        service.get_issue_with_comments = AsyncMock(return_value={"comments": []})
+
+        result = await service.check_copilot_session_error(
+            access_token="token", owner="owner", repo="repo", pr_number=50
+        )
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_detects_copilot_stopped_work_comment(self, service):
+        """Should return True when Copilot posts a 'stopped work' error comment."""
+        service.get_pr_timeline_events = AsyncMock(return_value=[])
+        service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {
+                        "author": "copilot-swe-agent[bot]",
+                        "body": "Copilot stopped work on behalf of Boykai due to an error\n\n"
+                        "Before you can use Copilot coding agent, you need to pick a "
+                        "'Usage billed to' option in your Copilot settings.",
+                    }
+                ]
+            }
+        )
+
+        result = await service.check_copilot_session_error(
+            access_token="token", owner="owner", repo="repo", pr_number=50
+        )
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_no_error(self, service):
+        """Should return False when no error signals exist on the PR."""
+        service.get_pr_timeline_events = AsyncMock(
+            return_value=[{"event": "copilot_work_finished"}]
+        )
+        service.get_issue_with_comments = AsyncMock(return_value={"comments": []})
+
+        result = await service.check_copilot_session_error(
+            access_token="token", owner="owner", repo="repo", pr_number=50
+        )
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_ignores_non_copilot_stopped_comments(self, service):
+        """Should ignore 'stopped work' comments from non-Copilot authors."""
+        service.get_pr_timeline_events = AsyncMock(return_value=[])
+        service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "comments": [
+                    {
+                        "author": "some-user",
+                        "body": "Copilot stopped work on this PR",
+                    }
+                ]
+            }
+        )
+
+        result = await service.check_copilot_session_error(
+            access_token="token", owner="owner", repo="repo", pr_number=50
+        )
+        assert result is False
+
+
 class TestCheckCopilotPrCompletion:
     """Tests for checking Copilot PR completion.
 

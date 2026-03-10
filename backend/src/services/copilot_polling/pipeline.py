@@ -20,6 +20,113 @@ from .state import (
 logger = logging.getLogger(__name__)
 
 
+async def _self_heal_tracking_table(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    project_id: str,
+    body: str,
+) -> "list | None":
+    """Build and embed a tracking table from sub-issues when one is missing.
+
+    When an issue has sub-issues but no tracking table in its body, the
+    pipeline cannot reliably reconstruct because per-status agents from the
+    DB config may not cover agents from earlier statuses.  After a container
+    restart the in-memory pipeline state is lost, and without a tracking
+    table the only source of truth is the per-status DB config — which
+    causes agents assigned to other statuses to be silently skipped.
+
+    This function:
+
+    1. Fetches sub-issues for the parent issue
+    2. Extracts agent names from titles (``[agent_name] Title``)
+    3. Maps agents to statuses using the current DB config
+    4. Builds a tracking table and embeds it in the issue body
+
+    Returns:
+        Parsed AgentStep list on success, None if healing was not possible.
+    """
+    import re as _re
+
+    from src.services.agent_tracking import AgentStep, render_tracking_markdown
+
+    config = await _cp.get_workflow_config(project_id)
+    if not config:
+        return None
+
+    sub_issues = await _cp.github_projects_service.get_sub_issues(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+    )
+    if not sub_issues:
+        return None
+
+    # Extract agent names from sub-issue titles: "[agent_name] Parent Title"
+    agent_order: list[str] = []
+    for si in sorted(sub_issues, key=lambda s: s.get("number", 0)):
+        m = _re.match(r"^\[([^\]]+)\]", si.get("title", ""))
+        if m:
+            slug = m.group(1).strip()
+            if slug not in agent_order:
+                agent_order.append(slug)
+
+    if not agent_order:
+        return None
+
+    # Build agent_name → status mapping from DB config
+    status_order = _cp.get_status_order(config)
+    agent_to_status: dict[str, str] = {}
+    for st in status_order:
+        for slug in _cp.get_agent_slugs(config, st):
+            if slug not in agent_to_status:
+                agent_to_status[slug] = st
+
+    # Map sub-issue agents to statuses.  Agents not in config inherit
+    # the previous agent's status (preserves pipeline ordering).
+    fallback_status = status_order[0] if status_order else "Backlog"
+    steps: list[AgentStep] = []
+    for idx, agent_name in enumerate(agent_order, start=1):
+        mapped_status = agent_to_status.get(agent_name, fallback_status)
+        steps.append(
+            AgentStep(
+                index=idx,
+                status=mapped_status,
+                agent_name=agent_name,
+            )
+        )
+        fallback_status = mapped_status
+
+    # Render tracking table markdown and embed in the issue body
+    tracking_md = render_tracking_markdown(steps)
+    new_body = body.rstrip() + "\n" + tracking_md
+
+    try:
+        await _cp.github_projects_service.update_issue_body(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            body=new_body,
+        )
+        logger.info(
+            "Self-healed: embedded tracking table for issue #%d (%d agents from sub-issues)",
+            issue_number,
+            len(steps),
+        )
+    except Exception as e:
+        logger.warning(
+            "Failed to embed self-healed tracking table for issue #%d: %s",
+            issue_number,
+            e,
+        )
+        # Still return the steps so reconstruction can use them this cycle
+
+    return steps
+
+
 async def _get_or_reconstruct_pipeline(
     access_token: str,
     owner: str,
@@ -71,6 +178,22 @@ async def _get_or_reconstruct_pipeline(
         body = issue_data.get("body", "") if issue_data else ""
         if body:
             steps = _cp.parse_tracking_from_body(body)
+
+            # Self-heal: if no tracking table exists but sub-issues do,
+            # build one from sub-issues to prevent pipeline agent skipping.
+            # Without this, a container restart + status change causes the
+            # reconstruction to use only per-status agents from the DB
+            # config, silently skipping agents from other statuses.
+            if not steps:
+                steps = await _self_heal_tracking_table(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                    project_id=project_id,
+                    body=body,
+                )
+
             if steps:
                 # Find the first agent that is ⏳ Pending or 🔄 Active
                 first_incomplete = next(
@@ -286,7 +409,14 @@ async def _process_pipeline_completion(
         # If current agent hasn't completed, check if it was ever assigned.
         # First, consult the tracking table in the issue body — this is the
         # durable source of truth and survives server restarts.
-        if pipeline.completed_agents and not completed:
+        # NOTE: We intentionally do NOT require `pipeline.completed_agents`
+        # here.  After a container restart the very first agent in the
+        # pipeline may never have been assigned (or its assignment was lost).
+        # Gating on `completed_agents` would silently skip it because there
+        # are no prior completions.  The grace-period, tracking-table, and
+        # in-memory pending checks below still prevent premature or duplicate
+        # assignments for freshly-started pipelines.
+        if not completed:
             # ── Grace period: if the pipeline was started or last advanced
             # recently, Copilot likely hasn't created its WIP PR yet.
             # Skip the expensive "agent never assigned" checks to avoid

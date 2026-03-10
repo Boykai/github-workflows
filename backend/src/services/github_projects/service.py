@@ -3854,6 +3854,7 @@ class GitHubProjectsService:
         owner: str,
         repo: str,
         pr_number: int,
+        min_submitted_after: datetime | None = None,
     ) -> bool:
         """
         Check if GitHub Copilot has already reviewed a pull request.
@@ -3863,11 +3864,16 @@ class GitHubProjectsService:
             owner: Repository owner
             repo: Repository name
             pr_number: Pull request number
+            min_submitted_after: If provided, only count reviews submitted
+                after this UTC timestamp.  This filters out GitHub
+                auto-triggered reviews that were submitted before Solune
+                explicitly requested the copilot-review step.
 
         Returns:
-            True if Copilot has submitted a review
+            True if Copilot has submitted a qualifying review
         """
-        cache_key = f"reviewed:{owner}/{repo}/{pr_number}"
+        _ts_suffix = f":{min_submitted_after.isoformat()}" if min_submitted_after else ""
+        cache_key = f"reviewed:{owner}/{repo}/{pr_number}{_ts_suffix}"
         cached = self._cycle_cache.get(cache_key)
         if cached is not None:
             self._cycle_cache_hit_count += 1
@@ -3914,6 +3920,23 @@ class GitHubProjectsService:
                     and submitted_at
                     and body.strip()
                 ):
+                    # Filter out reviews submitted before Solune requested
+                    if min_submitted_after:
+                        from datetime import datetime as _dt
+
+                        try:
+                            review_ts = _dt.fromisoformat(submitted_at)
+                            if review_ts <= min_submitted_after:
+                                logger.debug(
+                                    "Ignoring Copilot review on PR #%d submitted at %s "
+                                    "(before Solune request at %s)",
+                                    pr_number,
+                                    submitted_at,
+                                    min_submitted_after.isoformat(),
+                                )
+                                continue
+                        except (ValueError, TypeError):
+                            pass  # Cannot parse — accept the review
                     logger.info(
                         "Found submitted Copilot review on PR #%d via REST "
                         "(state: %s, submitted_at: %s, body_len: %d)",
@@ -3979,6 +4002,23 @@ class GitHubProjectsService:
                     and submitted_at
                     and body.strip()
                 ):
+                    # Filter out reviews submitted before Solune requested
+                    if min_submitted_after:
+                        from datetime import datetime as _dt
+
+                        try:
+                            review_ts = _dt.fromisoformat(submitted_at)
+                            if review_ts <= min_submitted_after:
+                                logger.debug(
+                                    "Ignoring Copilot review on PR #%d submitted at %s "
+                                    "(before Solune request at %s) via GraphQL",
+                                    pr_number,
+                                    submitted_at,
+                                    min_submitted_after.isoformat(),
+                                )
+                                continue
+                        except (ValueError, TypeError):
+                            pass  # Cannot parse — accept the review
                     logger.info(
                         "Found submitted Copilot review on PR #%d via GraphQL "
                         "(state: %s, submitted_at: %s, body_len: %d)",
@@ -4076,6 +4116,84 @@ class GitHubProjectsService:
                         event.get("requested_reviewer", {}).get("login"),
                     )
                     return True
+
+        return False
+
+    def check_copilot_stopped_events(self, events: list[dict]) -> bool:
+        """
+        Check if the Copilot SWE agent has stopped/errored based on timeline events.
+
+        Copilot is considered errored when a ``copilot_work_stopped`` event
+        exists in the PR timeline.  This happens when Copilot encounters
+        a fatal error (e.g. billing misconfiguration, rate limits) and
+        stops working on the PR.
+
+        Args:
+            events: List of timeline events
+
+        Returns:
+            True if the SWE agent has stopped due to an error
+        """
+        for event in events:
+            event_type = event.get("event", "")
+            if event_type == "copilot_work_stopped":
+                logger.warning("Found 'copilot_work_stopped' timeline event — Copilot errored")
+                return True
+        return False
+
+    async def check_copilot_session_error(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+    ) -> bool:
+        """
+        Check if the Copilot agent has stopped/errored on a PR.
+
+        Detects both timeline events (``copilot_work_stopped``) and
+        error comments posted by the Copilot SWE agent bot (e.g.
+        "Copilot stopped work on behalf of … due to an error").
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            pr_number: Pull request number
+
+        Returns:
+            True if Copilot has errored/stopped on the PR
+        """
+        # Check timeline events first (cheapest signal)
+        timeline_events = await self.get_pr_timeline_events(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=pr_number,
+        )
+        if self.check_copilot_stopped_events(timeline_events):
+            return True
+
+        # Fall back to checking PR comments for error messages
+        try:
+            issue_data = await self.get_issue_with_comments(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=pr_number,
+            )
+            for comment in issue_data.get("comments", []):
+                author = (comment.get("author", "") or "").lower()
+                body = comment.get("body", "") or ""
+                if self.is_copilot_swe_agent(author) and "stopped work" in body.lower():
+                    logger.warning(
+                        "Found Copilot error comment on PR #%d: %.200s",
+                        pr_number,
+                        body,
+                    )
+                    return True
+        except Exception as e:
+            logger.debug("Could not check PR #%d comments for Copilot errors: %s", pr_number, e)
 
         return False
 

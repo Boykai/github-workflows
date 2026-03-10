@@ -130,11 +130,26 @@ async def _check_copilot_review_done(
     main PR.  Completion is detected by checking whether Copilot has
     actually submitted a review on that PR.
 
+    **Auto-trigger protection**: GitHub.com may automatically trigger a
+    Copilot review when a PR is opened.  Such reviews are ignored — only
+    reviews submitted *after* Solune explicitly requests one (via the
+    orchestrator or self-healing) count as completion.  The timestamp of
+    the request is stored in ``_copilot_review_requested_at`` and passed
+    to ``has_copilot_reviewed_pr`` as ``min_submitted_after``.
+
     **Self-healing**: if the PR is still a draft or the review was never
     requested (the initial assignment can fail silently), this function
     retries the un-draft and review-request operations before checking for
     completion.
     """
+    from src.utils import utcnow
+
+    from .state import (
+        COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS,
+        _copilot_review_first_detected,
+        _copilot_review_requested_at,
+    )
+
     # Also check for a Done! marker (posted by a previous detection cycle
     # — belt & suspenders for restarts where we lost in-memory state).
     done_marker = await _cp.github_projects_service.check_agent_completion_comment(
@@ -170,11 +185,7 @@ async def _check_copilot_review_done(
         pr_number=pr_number,
     )
 
-    # ── Self-healing: ensure the PR is ready-for-review and that a
-    # Copilot review has been requested.  The initial assignment in
-    # assign_agent_for_status may have failed to un-draft the PR or
-    # request the review.  Retrying here on every poll cycle ensures the
-    # pipeline recovers automatically instead of waiting forever.
+    # ── Self-healing: ensure the PR is ready-for-review ──
     if pr_details and pr_details.get("is_draft"):
         pr_node_id = pr_details.get("id")
         if pr_node_id:
@@ -206,11 +217,48 @@ async def _check_copilot_review_done(
                 )
                 return False  # Cannot check review on a draft PR
 
+    # ── Auto-trigger gate: has Solune explicitly requested this review? ──
+    # If not, the only action is self-healing: request the review and
+    # record the timestamp.  Any existing review (from a GitHub
+    # auto-trigger) is intentionally ignored until we have our own request
+    # on record.
+    request_ts = _copilot_review_requested_at.get(parent_issue_number)
+    if request_ts is None:
+        if pr_details:
+            pr_node_id = pr_details.get("id")
+            if pr_node_id:
+                logger.info(
+                    "Self-healing: Solune has not yet requested copilot-review for "
+                    "issue #%d (no in-memory record) — requesting on PR #%d now",
+                    parent_issue_number,
+                    pr_number,
+                )
+                req_ok = await _cp.github_projects_service.request_copilot_review(
+                    access_token=access_token,
+                    pr_node_id=str(pr_node_id),
+                    pr_number=pr_number,
+                    owner=owner,
+                    repo=repo,
+                )
+                if req_ok:
+                    _copilot_review_requested_at[parent_issue_number] = utcnow()
+                    logger.info(
+                        "Self-healing: recorded copilot-review request timestamp for "
+                        "issue #%d — will check for completion on next cycle",
+                        parent_issue_number,
+                    )
+        # Clear stale first-detection data (any prior detection was before
+        # our request and should not carry over).
+        _copilot_review_first_detected.pop(parent_issue_number, None)
+        return False
+
+    # ── Check for a qualifying review (submitted after our request) ──
     reviewed = await _cp.github_projects_service.has_copilot_reviewed_pr(
         access_token=access_token,
         owner=owner,
         repo=repo,
         pr_number=pr_number,
+        min_submitted_after=request_ts,
     )
 
     # ── Self-healing: if not reviewed, ensure the review was requested.
@@ -234,8 +282,6 @@ async def _check_copilot_review_done(
         # Clear any stale first-detection timestamp when the review is
         # not present — protects against false positives from transient
         # API states that appear and then vanish.
-        from .state import _copilot_review_first_detected
-
         _copilot_review_first_detected.pop(parent_issue_number, None)
 
     if not reviewed:
@@ -245,13 +291,6 @@ async def _check_copilot_review_done(
     # consecutive poll cycles before advancing.  This eliminates false
     # positives from transient GitHub API race conditions where a review
     # object briefly appears before it is fully committed.
-    from src.utils import utcnow
-
-    from .state import (
-        COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS,
-        _copilot_review_first_detected,
-    )
-
     now = utcnow()
     first_seen = _copilot_review_first_detected.get(parent_issue_number)
     if first_seen is None:

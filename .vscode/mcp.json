@@ -1,5 +1,16 @@
 {
 	"servers": {
+		"CodeGraphContext/CodeGraphContext": {
+			"type": "stdio",
+			"command": "uvx",
+			"args": [
+				"--from",
+				"codegraphcontext",
+				"cgc",
+				"mcp",
+				"start"
+			]
+		},
 		"microsoft.docs.mcp": {
 			"type": "http",
 			"url": "https://learn.microsoft.com/api/mcp"
