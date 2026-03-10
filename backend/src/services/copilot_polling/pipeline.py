@@ -491,8 +491,13 @@ async def _process_pipeline_completion(
             )
             ctx.config = await _cp.get_workflow_config(project_id)
 
+            # Prefer pipeline.original_status for agent lookup.
+            # When external automation moved the issue (e.g. Ready → In
+            # Progress), from_status may reflect the updated board status,
+            # but the pipeline's agents belong to the ORIGINAL status.
+            effective_assign_status = pipeline.original_status or from_status
             assigned = await orchestrator.assign_agent_for_status(
-                ctx, from_status, agent_index=pipeline.current_agent_index
+                ctx, effective_assign_status, agent_index=pipeline.current_agent_index
             )
             if assigned:
                 _pending_agent_assignments[pending_key] = utcnow()
@@ -1262,14 +1267,16 @@ async def _advance_pipeline(
         pipeline.started_at = utcnow()
         _cp.set_pipeline_state(issue_number, pipeline)
 
-        # Use the pipeline's own status for agent lookup, not from_status.
-        # When the board status moves ahead of the pipeline (e.g., GitHub
-        # automation moves issue to "In Review" while "In Progress" agents
-        # are still running), from_status reflects the BOARD status.  Looking
-        # up agents for the board status would return the wrong agent list
-        # (e.g., ["human"] instead of ["judge", "linter"]), causing the
-        # pipeline to silently skip remaining agents.
-        agent_lookup_status = pipeline.status or from_status
+        # Use the pipeline's ORIGINAL status for agent lookup when available.
+        # When external automation (e.g. GitHub project rules) moves an issue
+        # ahead of where the pipeline is (Backlog/Ready → In Progress, or
+        # In Progress → In Review), pipeline.status is updated to match the
+        # board.  But the agents in the pipeline are still for the ORIGINAL
+        # status.  Looking up agents for the updated board status would
+        # return the wrong agent list (e.g. ["speckit.implement"] instead
+        # of ["speckit.plan", "speckit.tasks"]), causing the pipeline to
+        # silently skip remaining agents.
+        agent_lookup_status = pipeline.original_status or pipeline.status or from_status
 
         logger.info(
             "Assigning next agent '%s' to issue #%d (pipeline_status='%s', board_status='%s')",
@@ -1511,6 +1518,12 @@ async def _transition_after_pipeline_complete(
                     repo=repo,
                 )
                 if review_requested:
+                    # Record the request timestamp so _check_copilot_review_done
+                    # can filter out any random/auto-triggered reviews that were
+                    # submitted BEFORE our explicit request.
+                    from .state import _copilot_review_requested_at
+
+                    _copilot_review_requested_at[issue_number] = utcnow()
                     logger.info(
                         "Copilot code review requested for main PR #%d",
                         main_pr_number,

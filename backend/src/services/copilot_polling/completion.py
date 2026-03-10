@@ -1311,6 +1311,13 @@ async def ensure_copilot_review_requested(
         )
 
         if success:
+            # Record the request timestamp so _check_copilot_review_done
+            # can filter out random/auto-triggered reviews submitted before
+            # this explicit request.
+            from src.services.copilot_polling.state import _copilot_review_requested_at
+            from src.utils import utcnow
+
+            _copilot_review_requested_at[issue_number] = utcnow()
             _processed_issue_prs.add(cache_key)
             return {
                 "status": "success",

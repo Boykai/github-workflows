@@ -21,6 +21,7 @@ from src.services.copilot_polling import (
     _pending_agent_assignments,
     _poll_loop,
     _posted_agent_outputs,
+    _process_pipeline_completion,
     _processed_issue_prs,
     _reconstruct_pipeline_state,
     _reconstruct_sub_issue_mappings,
@@ -9483,3 +9484,326 @@ class TestProcessPipelineCompletionFirstAgent:
         )
 
         assert result is None  # Already assigned, wait
+
+
+# ── Fix: _advance_pipeline uses original_status for agent lookup ─────────
+
+
+class TestAdvancePipelineUsesOriginalStatus:
+    """Tests that _advance_pipeline uses pipeline.original_status (not
+    pipeline.status) for agent lookup when the board was moved externally.
+
+    Regression test for the bug where GitHub randomly moved an issue to
+    'In Progress' while 'Ready' agents were running.  The pipeline's status
+    was updated to 'In Progress' to match the board, but _advance_pipeline
+    then looked up 'In Progress' agents instead of 'Ready' agents — causing
+    the second Ready agent (speckit.tasks) to be silently skipped.
+    """
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        _pipeline_states.clear()
+        yield
+        _pipeline_states.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling._merge_child_pr_if_applicable")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_uses_original_status_when_board_moved_ahead(
+        self,
+        mock_set_state,
+        mock_config,
+        mock_get_orchestrator,
+        mock_merge,
+        mock_get_branch,
+        mock_ws,
+        mock_service,
+        mock_update_tracking,
+    ):
+        """When pipeline.original_status='Ready' but pipeline.status='In Progress'
+        (because GitHub moved the issue), agent lookup must use 'Ready' so
+        speckit.tasks is found at the correct index."""
+        pipeline = PipelineState(
+            issue_number=99,
+            project_id="PVT_123",
+            status="In Progress",  # Board-updated status
+            agents=["speckit.plan", "speckit.tasks"],  # Ready agents
+            current_agent_index=0,  # speckit.plan just completed
+            completed_agents=[],
+            original_status="Ready",  # The REAL pipeline origin
+            target_status="In Progress",
+        )
+
+        mock_get_branch.return_value = None
+        mock_merge.return_value = None
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock()
+        mock_update_tracking.return_value = True
+
+        result = await _advance_pipeline(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_99",
+            owner="owner",
+            repo="repo",
+            issue_number=99,
+            issue_node_id="I_99",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "success"
+        assert result["completed_agent"] == "speckit.plan"
+        assert result["agent_name"] == "speckit.tasks"
+
+        # Crucially: assign_agent_for_status must be called with
+        # "Ready" (original_status), NOT "In Progress" (pipeline.status).
+        call_args = mock_orchestrator.assign_agent_for_status.call_args
+        assert call_args is not None
+        status_arg = call_args[0][1]  # second positional arg = status
+        assert status_arg == "Ready", (
+            f"Expected 'Ready' (original_status) but got '{status_arg}' — "
+            "this would cause speckit.tasks to be skipped because 'In Progress' "
+            "agents don't include it"
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling._merge_child_pr_if_applicable")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_falls_back_to_pipeline_status_when_no_original(
+        self,
+        mock_set_state,
+        mock_config,
+        mock_get_orchestrator,
+        mock_merge,
+        mock_get_branch,
+        mock_ws,
+        mock_service,
+        mock_update_tracking,
+    ):
+        """When original_status is not set, pipeline.status should be used
+        for agent lookup (existing behavior preserved)."""
+        pipeline = PipelineState(
+            issue_number=100,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement", "judge"],
+            current_agent_index=0,
+            completed_agents=[],
+            # original_status NOT set — normal pipeline
+        )
+
+        mock_get_branch.return_value = None
+        mock_merge.return_value = None
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock()
+        mock_update_tracking.return_value = True
+
+        result = await _advance_pipeline(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_100",
+            owner="owner",
+            repo="repo",
+            issue_number=100,
+            issue_node_id="I_100",
+            pipeline=pipeline,
+            from_status="In Progress",
+            to_status="In Review",
+            task_title="Normal Issue",
+        )
+
+        assert result["status"] == "success"
+        call_args = mock_orchestrator.assign_agent_for_status.call_args
+        status_arg = call_args[0][1]
+        assert status_arg == "In Progress"
+
+
+# ── Fix: _process_pipeline_completion uses original_status for reassignment ──
+
+
+class TestProcessPipelineCompletionUsesOriginalStatus:
+    """Tests that the 'agent never assigned' path in _process_pipeline_completion
+    uses pipeline.original_status for the assign_agent_for_status call."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.copilot_polling.state import (
+            _pending_agent_assignments,
+            _polling_state,
+        )
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        _pipeline_states.clear()
+        _pending_agent_assignments.clear()
+        old_err = _polling_state.errors_count
+        yield
+        _pipeline_states.clear()
+        _pending_agent_assignments.clear()
+        _polling_state.errors_count = old_err
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch(
+        "src.services.copilot_polling._check_agent_done_on_sub_or_parent", new_callable=AsyncMock
+    )
+    @patch("src.services.copilot_polling._get_tracking_state_from_issue", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.get_current_agent_from_tracking")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_uses_original_status_for_never_assigned_agent(
+        self,
+        mock_service,
+        mock_get_tracking,
+        mock_tracking_state,
+        mock_check_done,
+        mock_get_orchestrator,
+        mock_config,
+    ):
+        """When pipeline.original_status='Ready' and from_status='In Progress'
+        (board moved), the assign call should use 'Ready' so the correct
+        agent list is resolved."""
+        from datetime import timedelta
+
+        from src.utils import utcnow
+
+        pipeline = PipelineState(
+            issue_number=55,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=1,  # speckit.tasks needs assignment
+            completed_agents=["speckit.plan"],
+            started_at=utcnow() - timedelta(seconds=300),  # past grace period
+            original_status="Ready",
+            target_status="In Progress",
+        )
+
+        task = MagicMock()
+        task.issue_number = 55
+        task.github_item_id = "PVTI_55"
+        task.github_content_id = "I_55"
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Test"
+
+        mock_check_done.return_value = False
+        # Tracking shows ⏳ Pending — agent was never assigned
+        mock_tracking_state.return_value = ("body", [])
+        mock_get_tracking.return_value = None  # Not active in tracking
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock()
+
+        result = await _process_pipeline_completion(
+            access_token="token",
+            project_id="PVT_123",
+            task=task,
+            owner="owner",
+            repo="repo",
+            pipeline=pipeline,
+            from_status="In Progress",  # Board status
+            to_status="In Review",
+        )
+
+        assert result is not None
+        assert result["action"] == "agent_assigned_after_reconstruction"
+
+        # The assign call must use "Ready" (original_status), not "In Progress"
+        call_args = mock_orchestrator.assign_agent_for_status.call_args
+        status_arg = call_args[0][1]
+        assert status_arg == "Ready", f"Expected 'Ready' (original_status) but got '{status_arg}'"
+
+
+# ── Fix: copilot-review request timestamps recorded ─────────────────────
+
+
+class TestCopilotReviewRequestTimestamp:
+    """Tests that copilot-review request timestamps are recorded in
+    _copilot_review_requested_at so _check_copilot_review_done can
+    filter out random/auto-triggered GitHub reviews."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.copilot_polling.state import _copilot_review_requested_at
+
+        _copilot_review_requested_at.clear()
+        _processed_issue_prs.clear()
+        yield
+        _copilot_review_requested_at.clear()
+        _processed_issue_prs.clear()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_ensure_copilot_review_records_timestamp(self, mock_service, mock_discover):
+        """ensure_copilot_review_requested should record a timestamp in
+        _copilot_review_requested_at when it successfully requests a review."""
+        from src.services.copilot_polling.state import _copilot_review_requested_at
+
+        mock_discover.return_value = {
+            "pr_number": 10,
+            "pr_id": "PR_N",
+            "is_draft": False,
+            "head_ref": "b",
+        }
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
+        assert result is not None
+        assert result["action"] == "copilot_review_requested"
+
+        # Timestamp must be recorded
+        assert 42 in _copilot_review_requested_at
+        assert _copilot_review_requested_at[42] is not None
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_ensure_copilot_review_no_timestamp_on_failure(self, mock_service, mock_discover):
+        """When the review request fails, no timestamp should be recorded."""
+        from src.services.copilot_polling.state import _copilot_review_requested_at
+
+        mock_discover.return_value = {
+            "pr_number": 10,
+            "pr_id": "PR_N",
+            "is_draft": False,
+            "head_ref": "b",
+        }
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=False)
+
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
+        assert result["status"] == "error"
+        assert 42 not in _copilot_review_requested_at
