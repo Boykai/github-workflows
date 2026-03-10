@@ -84,56 +84,68 @@ export function ChatPopup({
   const [size, setSize] = useState(loadSize);
   const isResizing = useRef(false);
   const startPos = useRef({ x: 0, y: 0, w: 0, h: 0 });
+  const cleanupResize = useRef<(() => void) | null>(null);
 
+  // Registers window-level mousemove/mouseup listeners only while a resize
+  // is in progress, then removes them on mouseup. This avoids firing handlers
+  // on every mouse event for the lifetime of the component.
   const onResizeStart = useCallback(
     (e: React.MouseEvent) => {
       e.preventDefault();
       isResizing.current = true;
       startPos.current = { x: e.clientX, y: e.clientY, w: size.width, h: size.height };
-    },
-    [size]
-  );
 
-  useEffect(() => {
-    let rafId = 0;
-    const onMouseMove = (e: MouseEvent) => {
-      if (!isResizing.current) return;
-      // Gate position updates to once per animation frame to prevent
-      // per-pixel event handler execution during drag.
-      if (rafId) return;
-      rafId = requestAnimationFrame(() => {
-        rafId = 0;
-        // Because the panel is anchored bottom-right, dragging left (negative dx) increases width,
-        // and dragging up (negative dy) increases height.
-        const dx = startPos.current.x - e.clientX;
-        const dy = startPos.current.y - e.clientY;
-        const newWidth = Math.min(Math.max(startPos.current.w + dx, MIN_WIDTH), MAX_WIDTH);
-        const newHeight = Math.min(Math.max(startPos.current.h + dy, MIN_HEIGHT), MAX_HEIGHT);
-        setSize({ width: newWidth, height: newHeight });
-      });
-    };
+      let rafId = 0;
+      const onMouseMove = (ev: MouseEvent) => {
+        if (!isResizing.current) return;
+        // Gate position updates to once per animation frame to prevent
+        // per-pixel event handler execution during drag.
+        if (rafId) return;
+        rafId = requestAnimationFrame(() => {
+          rafId = 0;
+          // Because the panel is anchored bottom-right, dragging left (negative dx) increases width,
+          // and dragging up (negative dy) increases height.
+          const dx = startPos.current.x - ev.clientX;
+          const dy = startPos.current.y - ev.clientY;
+          const newWidth = Math.min(Math.max(startPos.current.w + dx, MIN_WIDTH), MAX_WIDTH);
+          const newHeight = Math.min(Math.max(startPos.current.h + dy, MIN_HEIGHT), MAX_HEIGHT);
+          setSize({ width: newWidth, height: newHeight });
+        });
+      };
 
-    const onMouseUp = () => {
-      if (isResizing.current) {
-        isResizing.current = false;
+      const cleanup = () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
         if (rafId) {
           cancelAnimationFrame(rafId);
           rafId = 0;
         }
-        // Persist final size
-        setSize((prev) => {
-          saveSize(prev.width, prev.height);
-          return prev;
-        });
-      }
-    };
+        cleanupResize.current = null;
+      };
 
-    window.addEventListener('mousemove', onMouseMove);
-    window.addEventListener('mouseup', onMouseUp);
+      const onMouseUp = () => {
+        if (isResizing.current) {
+          isResizing.current = false;
+          // Persist final size
+          setSize((prev) => {
+            saveSize(prev.width, prev.height);
+            return prev;
+          });
+        }
+        cleanup();
+      };
+
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
+      cleanupResize.current = cleanup;
+    },
+    [size]
+  );
+
+  // Clean up any in-progress resize listeners on unmount.
+  useEffect(() => {
     return () => {
-      window.removeEventListener('mousemove', onMouseMove);
-      window.removeEventListener('mouseup', onMouseUp);
-      if (rafId) cancelAnimationFrame(rafId);
+      cleanupResize.current?.();
     };
   }, []);
 
@@ -164,7 +176,12 @@ export function ChatPopup({
 
       <div
         style={{ width: size.width, height: size.height }}
-        className={cn('fixed bottom-24 right-6 bg-background border border-border rounded-xl shadow-2xl z-[1000] flex flex-col overflow-hidden transition-[transform,opacity] duration-200 max-md:!w-[calc(100vw-48px)] max-sm:!w-screen max-sm:!h-[70vh] max-sm:right-0 max-sm:bottom-20 max-sm:rounded-t-xl max-sm:rounded-b-none', isOpen ? 'scale-100 translate-y-0 opacity-100 pointer-events-auto' : 'scale-95 translate-y-2 opacity-0 pointer-events-none')}
+        className={cn(
+          'fixed bottom-24 right-6 bg-background border border-border rounded-xl shadow-2xl z-[1000] flex flex-col overflow-hidden transition-[transform,opacity] duration-200 max-md:!w-[calc(100vw-48px)] max-sm:!w-screen max-sm:!h-[70vh] max-sm:right-0 max-sm:bottom-20 max-sm:rounded-t-xl max-sm:rounded-b-none',
+          isOpen
+            ? 'scale-100 translate-y-0 opacity-100 pointer-events-auto'
+            : 'scale-95 translate-y-2 opacity-0 pointer-events-none'
+        )}
       >
         {/* Resize handle — top-left corner (mouse-only drag interaction) */}
         <div

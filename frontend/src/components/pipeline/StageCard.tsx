@@ -147,12 +147,25 @@ export function StageCard({
     };
 
     updatePickerPosition();
-    window.addEventListener('resize', updatePickerPosition);
-    window.addEventListener('scroll', updatePickerPosition, { capture: true, passive: true });
+
+    // Throttle scroll/resize recalculations to once per animation frame to
+    // prevent layout thrashing from repeated getBoundingClientRect calls.
+    let rafId = 0;
+    const scheduleUpdate = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        updatePickerPosition();
+      });
+    };
+
+    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener('scroll', scheduleUpdate, { capture: true, passive: true });
 
     return () => {
-      window.removeEventListener('resize', updatePickerPosition);
-      window.removeEventListener('scroll', updatePickerPosition, { capture: true });
+      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('scroll', scheduleUpdate, { capture: true });
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [showAgentPicker]);
 
