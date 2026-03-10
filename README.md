@@ -18,6 +18,7 @@
 - **Real-time board** → Kanban view with drag-and-drop agent configuration
 - **Signal messaging** → Receive notifications and reply from your phone
 - **Custom agent creation** → Type `#agent <description> #<status>` in chat to create agents
+- **Import parent issues** → Paste or upload a GitHub Issue description on the Projects page and launch an agent pipeline directly
 
 ## Quick Start
 

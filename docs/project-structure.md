@@ -45,6 +45,7 @@ github-workflows/
 │   │   │   ├── cleanup.py        #   Stale resource cleanup
 │   │   │   ├── health.py         #   Health check endpoint
 │   │   │   ├── mcp.py            #   MCP configuration endpoints
+│   │   │   ├── pipelines.py      #   Pipeline CRUD + launch from imported issue
 │   │   │   ├── projects.py       #   Project selection, tasks, WebSocket, SSE
 │   │   │   ├── settings.py       #   User, global, project settings
 │   │   │   ├── signal.py         #   Signal connection, preferences, banners
@@ -64,6 +65,7 @@ github-workflows/
 │   │   │   ├── chores.py         #   Chore models
 │   │   │   ├── cleanup.py        #   Cleanup models
 │   │   │   ├── mcp.py            #   MCP configuration models
+│   │   │   ├── pipeline.py       #   PipelineConfig, PipelineIssueLaunchRequest, assignments
 │   │   │   ├── project.py        #   GitHubProject, StatusColumn
 │   │   │   ├── agents.py         #   AgentConfig list/CRUD models
 │   │   │   ├── recommendation.py #   AITaskProposal, IssueRecommendation, labels
@@ -145,7 +147,8 @@ github-workflows/
 │   │   │   ├── ThemeProvider.tsx  # Dark/light/system theme + cosmic transition overlay
 │   │   │   ├── auth/             # LoginButton
 │   │   │   ├── board/            # ProjectBoard, BoardColumn, IssueCard,
-│   │   │   │                     # IssueDetailModal, agent config UI, cleanup UI
+│   │   │   │                     # IssueDetailModal, ProjectIssueLaunchPanel,
+│   │   │   │                     # agent config UI, cleanup UI
 │   │   │   ├── chat/             # ChatInterface, ChatPopup, MessageBubble,
 │   │   │   │                     # TaskPreview, StatusChangePreview,
 │   │   │   │                     # IssueRecommendationPreview, CommandAutocomplete
