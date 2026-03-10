@@ -106,7 +106,7 @@ from .polling_loop import (  # noqa: F401
     stop_polling,
 )
 from .recovery import (
-    _validate_and_reconcile_tracking_table,
+    _validate_and_reconcile_tracking_table,  # noqa: F401
     recover_stalled_issues,
 )
 

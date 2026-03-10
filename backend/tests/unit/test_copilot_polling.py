@@ -3953,7 +3953,7 @@ class TestValidateAndReconcileTrackingTable:
         mock_service.update_issue_body = AsyncMock()
 
         steps = parse_tracking_from_body(self.BODY_ACTIVE_PENDING)
-        updated_body, updated_steps, corrected = await _validate_and_reconcile_tracking_table(
+        _updated_body, updated_steps, corrected = await _validate_and_reconcile_tracking_table(
             access_token="token",
             owner="owner",
             repo="repo",
@@ -3988,7 +3988,7 @@ class TestValidateAndReconcileTrackingTable:
         mock_service.update_issue_body = AsyncMock()
 
         steps = parse_tracking_from_body(self.BODY_ACTIVE_PENDING)
-        updated_body, updated_steps, corrected = await _validate_and_reconcile_tracking_table(
+        _updated_body, updated_steps, corrected = await _validate_and_reconcile_tracking_table(
             access_token="token",
             owner="owner",
             repo="repo",
@@ -4047,7 +4047,7 @@ class TestValidateAndReconcileTrackingTable:
         mock_service.update_issue_body = AsyncMock(side_effect=RuntimeError("API error"))
 
         steps = parse_tracking_from_body(self.BODY_ACTIVE_PENDING)
-        updated_body, updated_steps, corrected = await _validate_and_reconcile_tracking_table(
+        _updated_body, updated_steps, corrected = await _validate_and_reconcile_tracking_table(
             access_token="token",
             owner="owner",
             repo="repo",
@@ -4081,7 +4081,7 @@ class TestValidateAndReconcileTrackingTable:
             "| 2 | Ready | `speckit.plan` | gpt-4o | ✅ Done |\n"
         )
         steps = parse_tracking_from_body(body)
-        updated_body, updated_steps, corrected = await _validate_and_reconcile_tracking_table(
+        updated_body, _updated_steps, corrected = await _validate_and_reconcile_tracking_table(
             access_token="token",
             owner="owner",
             repo="repo",
@@ -8994,7 +8994,7 @@ class TestGetOrReconstructPipelineSelfHeal:
             completed_agents=[],
         )
 
-        result = await _get_or_reconstruct_pipeline(
+        await _get_or_reconstruct_pipeline(
             access_token="token",
             owner="owner",
             repo="repo",
@@ -9044,7 +9044,7 @@ class TestGetOrReconstructPipelineSelfHeal:
             completed_agents=[],
         )
 
-        result = await _get_or_reconstruct_pipeline(
+        await _get_or_reconstruct_pipeline(
             access_token="token",
             owner="owner",
             repo="repo",
@@ -9119,7 +9119,7 @@ class TestRecoveryIncludesInReview:
         mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
         mock_get_branch.return_value = None
 
-        results = await recover_stalled_issues(
+        await recover_stalled_issues(
             access_token="token",
             project_id="PVT_1",
             owner="owner",
