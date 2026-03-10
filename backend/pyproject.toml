@@ -49,6 +49,7 @@ packages = ["src"]
 [tool.ruff]
 target-version = "py313"
 line-length = 100
+exclude = ["htmlcov"]
 
 [tool.ruff.lint]
 select = [
@@ -91,6 +92,6 @@ markers = [
 pythonVersion = "3.13"
 typeCheckingMode = "basic"
 include = ["src"]
-exclude = ["**/__pycache__", "tests"]
+exclude = ["**/__pycache__", "tests", "htmlcov"]
 reportMissingTypeStubs = false
 reportMissingImports = "warning"

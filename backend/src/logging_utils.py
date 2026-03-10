@@ -14,8 +14,6 @@ This module provides:
   log record.
 - **get_logger(name)**: The standard way for modules to obtain a pre-configured
   logger instance.
-- **safe_error_response(exc, operation)**: Logs detailed error information
-  server-side and returns a generic, user-safe message string.
 - **handle_service_error(exc, operation, error_cls)**: Shared helper that logs
   the exception and raises the appropriate :class:`AppException` subclass with
   a safe message and no leaked internals.
@@ -210,32 +208,6 @@ def get_logger(name: str) -> logging.Logger:
 # ---------------------------------------------------------------------------
 # Error-handling helpers
 # ---------------------------------------------------------------------------
-
-
-def safe_error_response(exc: Exception, operation: str) -> str:
-    """Log detailed error information server-side and return a safe message.
-
-    The full exception (including traceback) is logged at ERROR level so
-    that developers can debug the issue.  The returned string is a
-    generic, user-safe description suitable for inclusion in API error
-    responses.
-
-    Args:
-        exc: The caught exception.
-        operation: A short human-readable description of what was being
-            attempted (e.g. ``"fetch board projects"``).
-
-    Returns:
-        A generic error message string that never contains internal details.
-    """
-    logger = logging.getLogger("error_handler")
-    logger.error(
-        "Operation '%s' failed: %s",
-        operation,
-        exc,
-        exc_info=True,
-    )
-    return f"An error occurred while performing: {operation}"
 
 
 def handle_service_error(

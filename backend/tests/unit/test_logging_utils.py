@@ -13,7 +13,6 @@ from src.logging_utils import (
     get_logger,
     handle_service_error,
     redact,
-    safe_error_response,
 )
 
 # ---------------------------------------------------------------------------
@@ -271,28 +270,6 @@ class TestGetLogger:
     def test_returns_standard_logger_instance(self) -> None:
         logger = get_logger("test")
         assert isinstance(logger, logging.Logger)
-
-
-# ---------------------------------------------------------------------------
-# safe_error_response
-# ---------------------------------------------------------------------------
-
-
-class TestSafeErrorResponse:
-    """Tests for the safe_error_response helper."""
-
-    def test_returns_generic_message(self) -> None:
-        exc = RuntimeError("secret database connection string")
-        result = safe_error_response(exc, "fetch data")
-        assert "secret" not in result
-        assert "database" not in result
-        assert "fetch data" in result
-
-    def test_logs_exception_details(self, caplog: pytest.LogCaptureFixture) -> None:
-        exc = ValueError("some internal detail")
-        with caplog.at_level(logging.ERROR, logger="error_handler"):
-            safe_error_response(exc, "test operation")
-        assert "some internal detail" in caplog.text
 
 
 # ---------------------------------------------------------------------------
