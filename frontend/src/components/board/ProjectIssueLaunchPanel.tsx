@@ -41,9 +41,9 @@ interface FormErrors {
 }
 
 function deriveIssueTitlePreview(issueDescription: string): string {
-  const headingMatch = issueDescription.match(/^\s{0,3}#{1,6}\s+(.+?)\s*$/m);
+  const headingMatch = issueDescription.match(/^\s{0,3}#{1,6}\s+(.+)$/m);
   const firstLine =
-    headingMatch?.[1] ??
+    headingMatch?.[1]?.trim() ??
     issueDescription
       .split('\n')
       .map((line) => line.trim())
@@ -114,13 +114,14 @@ export function ProjectIssueLaunchPanel({
   const handleIssueDescriptionChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
     const nextValue = event.target.value;
     setIssueDescription(nextValue);
+    setUploadedFileName('');
     setSubmissionResult(null);
     setSubmissionError(null);
     setFormErrors((current) => ({
       ...current,
       issueDescription:
         nextValue.trim().length === 0
-          ? current.issueDescription
+          ? undefined
           : nextValue.length > MAX_ISSUE_DESCRIPTION_LENGTH
             ? `Keep the issue description under ${MAX_ISSUE_DESCRIPTION_LENGTH.toLocaleString()} characters.`
             : undefined,

@@ -82,10 +82,9 @@ POST /api/v1/pipelines/{project_id}/launch
 
 | Status | Error | Condition |
 |--------|-------|-----------|
-| `400 Bad Request` | `ValidationError` | Empty `issue_description`, empty `pipeline_id`, or body exceeds max length |
 | `401 Unauthorized` | `AuthorizationError` | Missing or invalid session |
 | `404 Not Found` | `NotFoundError` | `pipeline_id` does not match any existing pipeline config |
-| `422 Unprocessable Entity` | `ValidationError` | Missing project selection in session |
+| `422 Unprocessable Entity` | `ValidationError` | Empty `issue_description`, empty `pipeline_id`, body exceeds max length, or missing project selection in session |
 | `500 Internal Server Error` | `AppException` | GitHub API failure, database error, or orchestration failure |
 
 ---

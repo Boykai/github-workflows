@@ -64,9 +64,9 @@ def _normalize_issue_description(issue_description: str) -> str:
 
 def _derive_issue_title(issue_description: str) -> str:
     """Derive a concise issue title from the first heading or opening line."""
-    markdown_heading = re.search(r"^\s{0,3}#{1,6}\s+(.+?)\s*$", issue_description, flags=re.MULTILINE)
+    markdown_heading = re.search(r"^\s{0,3}#{1,6}\s+(.+)$", issue_description, flags=re.MULTILINE)
     if markdown_heading:
-        candidate = markdown_heading.group(1)
+        candidate = markdown_heading.group(1).strip()
     else:
         candidate = next(
             (line.strip() for line in issue_description.splitlines() if line.strip()),
@@ -75,6 +75,8 @@ def _derive_issue_title(issue_description: str) -> str:
 
     candidate = MARKDOWN_TITLE_PREFIX_RE.sub("", candidate).strip()
     candidate = re.sub(r"\s+", " ", candidate)
+    if not candidate:
+        candidate = "Imported Parent Issue"
     return (
         candidate[:DERIVED_TITLE_TRUNCATE_AT].rstrip() + "..."
         if len(candidate) > MAX_DERIVED_TITLE_LENGTH
