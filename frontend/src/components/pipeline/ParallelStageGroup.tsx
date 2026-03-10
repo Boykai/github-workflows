@@ -1,7 +1,7 @@
 /**
- * ParallelStageGroup — visual container for agents executing in parallel
+ * ParallelStageGroup — visual container for agents grouped together
  * within a single pipeline stage. Renders a distinct border, label, and
- * descriptive text to differentiate parallel stages from sequential ones.
+ * descriptive text to differentiate grouped stages from sequential ones.
  */
 
 import { GitBranch } from 'lucide-react';
@@ -22,8 +22,7 @@ export function ParallelStageGroup({ children, className }: ParallelStageGroupPr
     >
       <p className="mb-2 flex items-center gap-1.5 text-[11px] text-muted-foreground">
         <GitBranch className="h-3.5 w-3.5 text-primary" />
-        All agents in this stage start together, then the pipeline waits for every one to finish
-        before moving on.
+        Agents in this stage are grouped. The pipeline completes this stage before moving on.
       </p>
       <div className="grid grid-cols-[repeat(auto-fit,minmax(14rem,1fr))] gap-2">{children}</div>
     </div>

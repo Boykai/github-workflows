@@ -234,7 +234,7 @@ export function StageCard({
                 )}
               >
                 {isParallelStage && <GitBranch className="h-3 w-3" />}
-                {isParallelStage ? 'Runs in Parallel' : 'Sequential Stage'}
+                {isParallelStage ? 'Grouped Stage' : 'Sequential Stage'}
               </span>
             </Tooltip>
             <span className="text-[10px] text-muted-foreground">
@@ -338,7 +338,7 @@ export function StageCard({
             className="pipeline-stage-add flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
           >
             <Plus className="h-3 w-3" />
-            {hasAgents ? 'Add Parallel Agent' : 'Add Agent'}
+            {hasAgents ? 'Add Agent to Group' : 'Add Agent'}
           </button>
         </Tooltip>
 
