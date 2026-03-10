@@ -89,6 +89,9 @@ describe('ProjectIssueLaunchPanel', () => {
       screen.getByLabelText('GitHub Parent Issue Description'),
       '# Import existing issue\n\nPreserve this parent issue context.'
     );
+    expect(screen.getByLabelText('GitHub Parent Issue Description')).toHaveValue(
+      '# Import existing issue\n\nPreserve this parent issue context.'
+    );
     await userEvent.selectOptions(screen.getByLabelText('Agent Pipeline Config'), 'pipe-1');
     await userEvent.click(screen.getByRole('button', { name: 'Launch pipeline' }));
 
@@ -103,6 +106,41 @@ describe('ProjectIssueLaunchPanel', () => {
     expect(launched).toHaveBeenCalledWith(
       expect.objectContaining({ success: true, issue_number: 42 })
     );
+  });
+
+  it('preserves the entered description and selected pipeline across validation errors', async () => {
+    const user = userEvent.setup();
+
+    renderPanel(
+      <ProjectIssueLaunchPanel
+        projectId="PVT_1"
+        pipelines={PIPELINES}
+        isLoadingPipelines={false}
+        pipelinesError={null}
+        onRetryPipelines={vi.fn()}
+      />
+    );
+
+    const descriptionField = screen.getByLabelText('GitHub Parent Issue Description');
+    const pipelineSelect = screen.getByLabelText('Agent Pipeline Config');
+
+    await user.type(descriptionField, 'Keep this parent issue context.');
+    await user.click(screen.getByRole('button', { name: 'Launch pipeline' }));
+
+    expect(
+      screen.getByText('Select an Agent Pipeline Config before launching.')
+    ).toBeInTheDocument();
+    expect(descriptionField).toHaveValue('Keep this parent issue context.');
+
+    await user.selectOptions(pipelineSelect, 'pipe-1');
+    await user.clear(descriptionField);
+    await user.click(screen.getByRole('button', { name: 'Launch pipeline' }));
+
+    expect(
+      screen.getByText('Paste or upload the parent issue description first.')
+    ).toBeInTheDocument();
+    expect(pipelineSelect).toHaveValue('pipe-1');
+    expect(mockLaunch).not.toHaveBeenCalled();
   });
 
   it('imports supported markdown files into the textarea', async () => {
@@ -152,5 +190,62 @@ describe('ProjectIssueLaunchPanel', () => {
       screen.getByText('Only Markdown (.md) and plain-text (.txt) files are supported.')
     ).toBeInTheDocument();
     expect(mockLaunch).not.toHaveBeenCalled();
+  });
+
+  it('shows launch failures without clearing the form so the user can retry', async () => {
+    const launched = vi.fn();
+    const user = userEvent.setup();
+    mockLaunch.mockResolvedValue({
+      success: false,
+      issue_number: 84,
+      issue_url: 'https://github.com/owner/repo/issues/84',
+      message: 'The selected pipeline could not be started.',
+    });
+
+    renderPanel(
+      <ProjectIssueLaunchPanel
+        projectId="PVT_1"
+        pipelines={PIPELINES}
+        isLoadingPipelines={false}
+        pipelinesError={null}
+        onRetryPipelines={vi.fn()}
+        onLaunched={launched}
+      />
+    );
+
+    await user.type(screen.getByLabelText('GitHub Parent Issue Description'), '# Retry me');
+    await user.selectOptions(screen.getByLabelText('Agent Pipeline Config'), 'pipe-1');
+    await user.click(screen.getByRole('button', { name: 'Launch pipeline' }));
+
+    expect(await screen.findByText('Launch failed')).toBeInTheDocument();
+    expect(screen.getByText('The selected pipeline could not be started.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open the created issue' })).toHaveAttribute(
+      'href',
+      'https://github.com/owner/repo/issues/84'
+    );
+    expect(screen.getByLabelText('GitHub Parent Issue Description')).toHaveValue('# Retry me');
+    expect(screen.getByLabelText('Agent Pipeline Config')).toHaveValue('pipe-1');
+    expect(launched).not.toHaveBeenCalled();
+  });
+
+  it('renders the pipeline loading error state and retries on request', async () => {
+    const onRetryPipelines = vi.fn();
+    const user = userEvent.setup();
+
+    renderPanel(
+      <ProjectIssueLaunchPanel
+        projectId="PVT_1"
+        pipelines={PIPELINES}
+        isLoadingPipelines={false}
+        pipelinesError="Could not load pipeline configs."
+        onRetryPipelines={onRetryPipelines}
+      />
+    );
+
+    expect(screen.getByText('Could not load pipeline configs.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry loading configs' }));
+
+    expect(onRetryPipelines).toHaveBeenCalledTimes(1);
   });
 });
