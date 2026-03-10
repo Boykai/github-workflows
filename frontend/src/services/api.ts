@@ -58,6 +58,7 @@ import type {
   PipelineConfigCreate,
   PipelineConfigUpdate,
   PipelineConfigListResponse,
+  PipelineIssueLaunchRequest,
   AIModel,
   PresetSeedResult,
   ProjectPipelineAssignment,
@@ -1016,6 +1017,13 @@ export const pipelinesApi = {
     return request<ProjectPipelineAssignment>(`/pipelines/${projectId}/assignment`, {
       method: 'PATCH',
       body: JSON.stringify({ blocking_override: blockingOverride }),
+    });
+  },
+
+  launch(projectId: string, data: PipelineIssueLaunchRequest): Promise<WorkflowResult> {
+    return request<WorkflowResult>(`/pipelines/${projectId}/launch`, {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   },
 };
