@@ -26,7 +26,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from src.api.workflow import _check_duplicate, _get_repository_info, _recent_requests
+from src.api.workflow import _check_duplicate, _recent_requests
 from src.models.agent import AgentSource, AvailableAgent
 from src.models.chat import (
     IssueRecommendation,
@@ -36,7 +36,6 @@ from src.models.chat import (
     WorkflowTransition,
 )
 from src.models.pipeline import PipelineAgentNode, PipelineConfig, PipelineStage
-from src.models.user import UserSession
 from src.utils import utcnow
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -141,7 +140,7 @@ class TestGetConfig:
         mock_session.selected_project_id = TEST_PROJECT_ID
         with (
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
-            patch(f"{WF}._get_repository_info", return_value=("me", "")),
+            patch(f"{WF}.resolve_repository", new_callable=AsyncMock, return_value=("me", "")),
         ):
             resp = await client.get("/api/v1/workflow/config")
         assert resp.status_code == 200
@@ -150,7 +149,7 @@ class TestGetConfig:
     async def test_no_project_selected(self, client, mock_session):
         mock_session.selected_project_id = None
         resp = await client.get("/api/v1/workflow/config")
-        assert resp.status_code == 404
+        assert resp.status_code == 422
 
 
 class TestUpdateConfig:
@@ -166,7 +165,7 @@ class TestUpdateConfig:
         mock_session.selected_project_id = None
         body = _workflow_config().model_dump(mode="json")
         resp = await client.put("/api/v1/workflow/config", json=body)
-        assert resp.status_code == 404
+        assert resp.status_code == 422
 
 
 # ── List Agents ─────────────────────────────────────────────────────────────
@@ -213,7 +212,7 @@ class TestListAgents:
     async def test_no_project(self, client, mock_session):
         mock_session.selected_project_id = None
         resp = await client.get("/api/v1/workflow/agents")
-        assert resp.status_code == 404
+        assert resp.status_code == 422
 
 
 # ── Transitions ─────────────────────────────────────────────────────────────
@@ -305,7 +304,7 @@ class TestNotifyInReview:
                 "reviewer": "alice",
             },
         )
-        assert resp.status_code == 404
+        assert resp.status_code == 422
 
 
 # ── Polling Status/Stop ────────────────────────────────────────────────────
@@ -653,61 +652,6 @@ class TestCheckDuplicate:
 
     def teardown_method(self):
         _recent_requests.clear()
-
-
-# ── _get_repository_info Helper ───────────────────────────────────────────
-
-
-class TestGetRepositoryInfo:
-    def test_no_cached_projects(self):
-        session = MagicMock(spec=UserSession)
-        session.github_user_id = "u1"
-        session.selected_project_id = "proj-1"
-        session.github_username = "myuser"
-        with patch(f"{WF}.cache") as mock_cache:
-            mock_cache.get.return_value = None
-            owner, repo = _get_repository_info(session)
-        assert owner == "myuser"
-        assert repo == ""
-
-    def test_user_project_url(self):
-        session = MagicMock(spec=UserSession)
-        session.github_user_id = "u1"
-        session.selected_project_id = "proj-1"
-        session.github_username = "fallback"
-        mock_project = MagicMock(
-            project_id="proj-1", url="https://github.com/users/alice/projects/2"
-        )
-        with patch(f"{WF}.cache") as mock_cache:
-            mock_cache.get.return_value = [mock_project]
-            owner, repo = _get_repository_info(session)
-        assert owner == "alice"
-        assert repo == ""
-
-    def test_org_project_url(self):
-        session = MagicMock(spec=UserSession)
-        session.github_user_id = "u1"
-        session.selected_project_id = "proj-1"
-        session.github_username = "fallback"
-        mock_project = MagicMock(
-            project_id="proj-1", url="https://github.com/orgs/myorg/projects/5"
-        )
-        with patch(f"{WF}.cache") as mock_cache:
-            mock_cache.get.return_value = [mock_project]
-            owner, repo = _get_repository_info(session)
-        assert owner == "myorg"
-        assert repo == ""
-
-    def test_no_matching_project(self):
-        session = MagicMock(spec=UserSession)
-        session.github_user_id = "u1"
-        session.selected_project_id = "proj-1"
-        session.github_username = "me"
-        mock_project = MagicMock(project_id="proj-other", url="")
-        with patch(f"{WF}.cache") as mock_cache:
-            mock_cache.get.return_value = [mock_project]
-            owner, _repo = _get_repository_info(session)
-        assert owner == "me"
 
 
 # ── Polling Check Issue ───────────────────────────────────────────────────

@@ -151,13 +151,34 @@ async def verify_project_access(
         projects = await svc.list_user_projects(session.access_token, session.github_username)
         if any(p.project_id == project_id for p in projects):
             return
-    except Exception:
+    except Exception as e:
         logger.warning(
-            "Failed to verify project access for user=%s project=%s",
+            "Failed to verify project access for user=%s project=%s: %s",
             session.github_username,
             project_id,
+            e,
             exc_info=True,
         )
         raise AuthorizationError("Unable to verify project access") from None
 
     raise AuthorizationError("You do not have access to this project")
+
+
+def require_selected_project(session: UserSession) -> str:
+    """Return the selected project ID or raise :class:`ValidationError`.
+
+    Use this in any endpoint that requires a project to be selected,
+    instead of repeating inline ``if not session.selected_project_id``
+    guards with inconsistent error messages.
+
+    Returns:
+        The non-empty ``selected_project_id`` string.
+
+    Raises:
+        src.exceptions.ValidationError: If no project is selected.
+    """
+    from src.exceptions import ValidationError
+
+    if not session.selected_project_id:
+        raise ValidationError("No project selected. Please select a project first.")
+    return session.selected_project_id

@@ -496,8 +496,8 @@ class ToolsService:
                 access_token,
                 protected_server_names=protected_server_names,
             )
-        except Exception:
-            logger.exception("Failed to remove old GitHub config for tool %s", tool_id)
+        except Exception as e:
+            logger.exception("Failed to remove old GitHub config for tool %s: %s", tool_id, e)
 
         now = utcnow().isoformat()
         endpoint_url = self._extract_endpoint_url(next_config_content)
@@ -583,8 +583,8 @@ class ToolsService:
                 access_token,
                 protected_server_names=protected_server_names,
             )
-        except Exception:
-            logger.exception("Failed to remove tool %s from GitHub", tool_id)
+        except Exception as e:
+            logger.exception("Failed to remove tool %s from GitHub: %s", tool_id, e)
 
         # Delete associations
         await self.db.execute("DELETE FROM agent_tool_associations WHERE tool_id = ?", (tool_id,))

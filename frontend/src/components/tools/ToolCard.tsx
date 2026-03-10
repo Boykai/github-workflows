@@ -7,6 +7,7 @@ import type { McpToolConfig } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface ToolCardProps {
   tool: McpToolConfig;
@@ -26,7 +27,7 @@ function SyncStatusBadge({ status, error }: { status: string; error?: string }) 
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] shadow-sm ${styles[status] ?? styles.pending}`}
+      className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] shadow-sm', styles[status] ?? styles.pending)}
       title={status === 'error' ? error : undefined}
     >
       {status === 'pending' && (
@@ -97,7 +98,7 @@ export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting
                 disabled={isSyncing}
                 aria-label="Re-sync to GitHub"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
+                <RefreshCw className={cn('h-3.5 w-3.5', isSyncing ? 'animate-spin' : '')} />
               </Button>
             </Tooltip>
             <Tooltip contentKey="tools.card.deleteButton">

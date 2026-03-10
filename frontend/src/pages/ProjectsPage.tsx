@@ -277,7 +277,7 @@ export function ProjectsPage() {
               </span>
             </span>
             <ChevronDown
-              className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${projectSelectorOpen ? 'rotate-180' : ''}`}
+              className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', projectSelectorOpen ? 'rotate-180' : '')}
             />
           </button>
 
@@ -298,15 +298,13 @@ export function ProjectsPage() {
           {selectedProjectId && (
             <span className="flex items-center gap-2">
               <span
-                className={`w-2 h-2 rounded-full ${
-                  syncStatus === 'connected'
+                className={cn('w-2 h-2 rounded-full', syncStatus === 'connected'
                     ? 'bg-green-500'
                     : syncStatus === 'polling'
                       ? 'bg-yellow-500'
                       : syncStatus === 'connecting'
                         ? 'bg-blue-500'
-                        : 'bg-red-500'
-                }`}
+                        : 'bg-red-500')}
               />
               {syncStatus === 'connected' && 'Live'}
               {syncStatus === 'polling' && 'Polling'}
@@ -570,18 +568,14 @@ export function ProjectsPage() {
                                 ? 'Blocking is currently on from the assigned pipeline — click to force this project off'
                                 : 'Blocking is currently off from the assigned pipeline — click to force this project on'
                           }
-                          className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50 ${
-                            effectiveBlocking ? 'bg-amber-500' : 'bg-muted'
-                          }`}
+                          className={cn('relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50', effectiveBlocking ? 'bg-amber-500' : 'bg-muted')}
                         >
                           <span
-                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform ${
-                              effectiveBlocking ? 'translate-x-4' : 'translate-x-0'
-                            }`}
+                            className={cn('pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform', effectiveBlocking ? 'translate-x-4' : 'translate-x-0')}
                           />
                         </button>
                         <span
-                          className={`flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.16em] ${effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground'}`}
+                          className={cn('flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.16em]', effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground')}
                         >
                           <Lock className="h-3 w-3" />
                           {effectiveBlocking ? 'BLOCKING(ON)' : 'BLOCKING(OFF)'}

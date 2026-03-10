@@ -8,6 +8,7 @@ import { useRef } from 'react';
 import { Sparkles, Paperclip } from 'lucide-react';
 import { VoiceInputButton } from './VoiceInputButton';
 import { Tooltip } from '@/components/ui/tooltip';
+import { cn } from '@/lib/utils';
 
 interface ChatToolbarProps {
   aiEnhance: boolean;
@@ -51,22 +52,18 @@ export function ChatToolbar({
         <button
           type="button"
           onClick={() => onAiEnhanceChange(!aiEnhance)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-colors border ${
-            aiEnhance
+          className={cn('flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-colors border', aiEnhance
               ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
-              : 'bg-background/72 text-muted-foreground border-border/50 hover:bg-primary/10 hover:border-primary/20 hover:text-foreground'
-          }`}
+              : 'bg-background/72 text-muted-foreground border-border/50 hover:bg-primary/10 hover:border-primary/20 hover:text-foreground')}
           aria-pressed={aiEnhance}
           aria-label={`AI Enhance ${aiEnhance ? 'on' : 'off'}`}
         >
           <Sparkles className="w-4 h-4" />
           <span>AI Enhance</span>
           <span
-            className={`text-xs px-1.5 py-0.5 rounded-full font-semibold ${
-              aiEnhance
+            className={cn('text-xs px-1.5 py-0.5 rounded-full font-semibold', aiEnhance
                 ? 'bg-primary text-primary-foreground'
-                : 'bg-muted-foreground/20 text-muted-foreground'
-            }`}
+                : 'bg-muted-foreground/20 text-muted-foreground')}
           >
             {aiEnhance ? 'ON' : 'OFF'}
           </span>

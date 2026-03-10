@@ -1,6 +1,6 @@
 # GitHub Workflows Chat — Development Guidelines
 
-Last updated: 2026-03-08
+Last updated: 2026-03-10
 
 > **Important:** Always use search tools (e.g., Context7 MCP, Microsoft Docs MCP, or web search) to look up the most up-to-date documentation when working with any and all libraries, frameworks, and APIs. Never rely solely on training data — verify current syntax, options, and best practices from official sources before writing or modifying code.
 
@@ -51,7 +51,7 @@ Last updated: 2026-03-08
 
 - **Auth:** GitHub OAuth with secure HTTP-only session cookies. No JWT / `python-jose` layer.
 - **Real-time:** Native WebSocket (`ConnectionManager` in `services/websocket.py`), with SSE fallback in the projects API. Do not reintroduce `socket.io-client`.
-- **Storage:** SQLite via `aiosqlite` in WAL mode. Migrations (`001`–`017`) run automatically on startup from `backend/src/migrations/`. Key tables: `user_sessions`, `project_settings`, `agent_configs`, `pipeline_configs`, `mcp_configurations`, `agent_tool_associations`, `chat_messages`, `chat_proposals`, `chat_recommendations`, `chores`, `blocking_queue`.
+- **Storage:** SQLite via `aiosqlite` in WAL mode. Migrations (`001`–`020`) run automatically on startup from `backend/src/migrations/`. Key tables: `user_sessions`, `project_settings`, `agent_configs`, `pipeline_configs`, `mcp_configurations`, `agent_tool_associations`, `chat_messages`, `chat_proposals`, `chat_recommendations`, `chores`, `blocking_queue`.
 - **Tailwind v4:** CSS-first config lives entirely in `frontend/src/index.css`. `tailwind.config.js` and `postcss.config.js` are intentionally absent — do not recreate them.
 - **Repository resolution:** Use the shared `resolve_repository()` helper (`src/utils.py`) everywhere. Do not introduce ad-hoc owner/repo fallback logic.
 - **AI providers:** `completion_providers.py` abstracts GitHub Copilot SDK (default, user OAuth token) and Azure OpenAI (static keys, optional). Selected via `AI_PROVIDER` env var.
@@ -59,7 +59,9 @@ Last updated: 2026-03-08
 - **Blocking queue:** `services/blocking_queue.py` implements serial issue activation with per-repo `asyncio.Lock` to prevent double-activation race conditions.
 - **Chores:** `services/chores/` manages scheduled recurring tasks (scheduler, counter, chat, template builder).
 - **Signal messaging:** `signal_bridge.py` / `signal_chat.py` / `signal_delivery.py` integrate with the Signal sidecar for inbound/outbound AI chat over Signal.
-- **MCP tools:** `services/mcp_store.py` + `api/mcp.py` manage MCP server configurations and agent tool associations.
+- **MCP tools:** `services/mcp_store.py` + `api/mcp.py` manage MCP server configurations and agent tool associations. `services/tools/presets.py` provides a static catalog of built-in MCP presets (GitHub, Azure, Sentry, Cloudflare, Azure DevOps, Context7, Code Graph Context) served via `GET /api/v1/tools/presets`. `services/tools/service.py` handles per-project tool CRUD and repo MCP config sync.
+- **MCP presets flow:** User selects preset on Tools page → draft form → saves as user tool in DB → agent dispatch calls `_resolve_agent_tool_selection()` → `generate_config_files()` writes `mcp-servers:` into `.github/agents/{slug}.agent.md` YAML frontmatter → GitHub reads agent file on assignment.
+- **Remote MCP config:** `.github/agents/mcp.json` defines MCP servers available to remote GitHub Custom Agents (e.g., Context7 HTTP endpoint). This file is co-located with agent definitions and read by GitHub.com during coding agent sessions.
 - **Encryption:** Fernet (`cryptography` package) used for token-at-rest encryption when `ENCRYPTION_KEY` is set.
 - **`AsyncGenerator` typing:** Always include both type parameters for Python 3.12 compatibility: `AsyncGenerator[str, None]`.
 
@@ -73,17 +75,17 @@ backend/
                        mcp, metadata, pipelines, projects, settings, signal,
                        tasks, tools, webhooks, workflow)
     middleware/       Request middleware (request_id context var)
-    migrations/       SQL schema migrations (001–017, run on startup)
+    migrations/       SQL schema migrations (001–020, run on startup)
     models/           Pydantic request/response models
     prompts/          AI prompt templates (issue_generation, task_generation)
     services/         Business logic
       agents/         Agent config CRUD
       chores/         Scheduled chores (scheduler, counter, chat, template)
       copilot_polling/ Copilot PR polling loop and agent output parsing
+      tools/          MCP tool service (presets catalog, per-project CRUD, repo sync)
       github_projects/ GitHub Projects v2 GraphQL + REST
       housekeeping/   Session/DB cleanup
       pipelines/      Pipeline config service
-      tools/          MCP tool service
       workflow_orchestrator/ Issue workflow state machine
   tests/
     unit/
@@ -136,6 +138,7 @@ npx playwright test             # E2E
 - Prefer focused, minimal fixes over broad refactors unless the task explicitly calls for architectural work.
 - Do **not** recreate deleted compatibility files: `frontend/vite.config.js`, `frontend/tailwind.config.js`, `frontend/postcss.config.js`.
 - Agent `.agent.md` files live in `.github/agents/`; corresponding `.prompt.md` shortcuts live in `.github/prompts/`.
+- `.github/agents/mcp.json` declares MCP servers for remote GitHub Custom Agents (currently Context7). Do not confuse with `.vscode/mcp.json` (local IDE MCP servers).
 
 ## Validation Expectations
 
@@ -155,5 +158,47 @@ npx playwright test             # E2E
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (032-issue-upload-pipeline-config)
 - SQLite with WAL mode (aiosqlite) — existing `pipeline_configs` table, existing `project_settings` table (`assigned_pipeline_id` column) (032-issue-upload-pipeline-config)
 
-## Recent Changes
-- 031-chat-helper-text: Added TypeScript ~5.9 (frontend-only feature) + React 19.2, Tailwind CSS v4.2, class-variance-authority 0.7, lucide-react 0.577
+## Custom Agents
+
+All agents live in `.github/agents/`. The repository includes both **Spec Kit pipeline agents** and **utility agents**:
+
+### Spec Kit Pipeline Agents
+| Agent | Purpose |
+|-------|---------|
+| `speckit.specify` | Feature specification from issue description |
+| `speckit.plan` | Implementation plan with research and data model |
+| `speckit.tasks` | Actionable task list from spec + plan |
+| `speckit.implement` | Code implementation from tasks |
+| `speckit.clarify` | Identify underspecified areas in a spec |
+| `speckit.analyze` | Cross-artifact consistency analysis |
+| `speckit.checklist` | Custom checklist generation |
+| `speckit.constitution` | Project constitution management |
+| `speckit.taskstoissues` | Convert tasks to GitHub issues |
+
+### Utility Agents
+| Agent | Purpose |
+|-------|---------|
+| `archivist` | Updates documentation and README to match code changes |
+| `designer` | Creates or refines design assets scoped to changes |
+| `judge` | Triages PR review comments and applies justified changes |
+| `linter` | Runs linting, tests, CI steps, and resolves errors |
+| `quality-assurance` | Scoped quality improvements and defect fixes |
+| `tester` | Adds tests for changed behavior and improves testability |
+
+### MCP Configuration
+- `.github/agents/mcp.json` — Declares MCP servers available to remote GitHub Custom Agents (currently Context7 for documentation lookup).
+
+## MCP Presets
+
+The Tools page exposes a **Preset Library** of built-in MCP server configurations. Presets are defined statically in `backend/src/services/tools/presets.py` and served via `GET /api/v1/tools/presets`.
+
+| Preset | Type | Category | Description |
+|--------|------|----------|-------------|
+| GitHub MCP Server | HTTP | GitHub | Read-only GitHub MCP server |
+| GitHub MCP Server (Full Access) | HTTP | GitHub | Full-access GitHub MCP server |
+| Azure MCP | Local | Cloud | Azure-aware coding workflows |
+| Sentry MCP | Local | Monitoring | Issue details and summaries |
+| Cloudflare MCP | SSE | Cloud | Cloudflare docs and platform access |
+| Azure DevOps MCP | Local | Cloud | Azure DevOps work items |
+| Context7 | HTTP | Documentation | Up-to-date library docs and code examples |
+| Code Graph Context | Local | Code Analysis | Code indexing, call chains, dead code detection |

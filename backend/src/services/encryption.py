@@ -32,8 +32,8 @@ class EncryptionService:
             try:
                 self._fernet = Fernet(key.encode() if isinstance(key, str) else key)
                 logger.info("EncryptionService initialised with provided key")
-            except Exception:
-                logger.exception("Invalid ENCRYPTION_KEY — falling back to passthrough mode")
+            except Exception as e:
+                logger.exception("Invalid ENCRYPTION_KEY — falling back to passthrough mode: %s", e)
         else:
             logger.warning(
                 "ENCRYPTION_KEY not set — tokens will be stored in plaintext. "

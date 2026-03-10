@@ -7,6 +7,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Bot, X } from 'lucide-react';
 import { useAgentChat } from '@/hooks/useAgents';
 import { CHAT_PLACEHOLDERS } from '@/constants/chat-placeholders';
+import { cn } from '@/lib/utils';
 
 interface AgentChatFlowProps {
   projectId: string;
@@ -123,11 +124,9 @@ export function AgentChatFlow({
         {messages.map((msg, i) => (
           <div
             key={i}
-            className={`text-sm p-2 rounded-md ${
-              msg.role === 'user'
+            className={cn('text-sm p-2 rounded-md', msg.role === 'user'
                 ? 'bg-primary/10 text-foreground ml-8'
-                : 'bg-muted text-foreground mr-8'
-            }`}
+                : 'bg-muted text-foreground mr-8')}
           >
             <span className="text-[10px] font-medium text-muted-foreground block mb-0.5">
               {msg.role === 'user' ? 'You' : 'AI'}

@@ -7,6 +7,7 @@
 
 import { useState, type ReactNode } from 'react';
 import { TOAST_SUCCESS_MS, TOAST_ERROR_MS } from '@/constants';
+import { cn } from '@/lib/utils';
 
 interface SettingsSectionProps {
   title: string;
@@ -59,7 +60,7 @@ export function SettingsSection({
         type="button"
       >
         <span
-          className={`text-xs text-muted-foreground mt-1.5 transition-transform duration-200 ${collapsed ? '-rotate-90' : ''}`}
+          className={cn('text-xs text-muted-foreground mt-1.5 transition-transform duration-200', collapsed ? '-rotate-90' : '')}
         >
           ▼
         </span>

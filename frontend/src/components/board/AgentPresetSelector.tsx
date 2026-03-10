@@ -10,6 +10,7 @@ import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfi
 import { generateId } from '@/utils/generateId';
 import { formatAgentName } from '@/utils/formatAgentName';
 import { pipelinesApi } from '@/services/api';
+import { cn } from '@/lib/utils';
 
 function makeAssignment(slug: string, displayName: string): AgentAssignment {
   return { id: generateId(), slug, display_name: displayName };
@@ -365,7 +366,7 @@ export function AgentPresetSelector({
             return (
               <button
                 key={preset.id}
-                className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${isActive ? 'solar-chip-soft' : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'}`}
+                className={cn('rounded-md px-3 py-1 text-xs font-semibold transition-colors', isActive ? 'solar-chip-soft' : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground')}
                 onClick={() => handlePresetClick(preset)}
                 title={preset.description}
                 type="button"
@@ -379,11 +380,9 @@ export function AgentPresetSelector({
         {hasSavedPipelines && (
           <div className="relative">
             <button
-              className={`rounded-md px-3 py-1 text-xs font-semibold transition-colors ${
-                activePipelineName
+              className={cn('rounded-md px-3 py-1 text-xs font-semibold transition-colors', activePipelineName
                   ? 'solar-chip-soft'
-                  : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground'
-              }`}
+                  : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground')}
               onClick={() => setShowDropdown(!showDropdown)}
               title={
                 activePipelineName

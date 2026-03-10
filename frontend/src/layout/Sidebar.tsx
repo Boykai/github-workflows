@@ -10,6 +10,7 @@ import { ProjectSelector } from './ProjectSelector';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import type { RecentInteraction } from '@/types';
 import type { Project } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -38,9 +39,7 @@ export function Sidebar({
   const navigate = useNavigate();
   return (
     <aside
-      className={`celestial-panel relative flex h-full shrink-0 flex-col border-r border-border/70 transition-all duration-300 ${
-        isCollapsed ? 'w-16' : 'w-60'
-      }`}
+      className={cn('celestial-panel relative flex h-full shrink-0 flex-col border-r border-border/70 transition-all duration-300', isCollapsed ? 'w-16' : 'w-60')}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.22),transparent_70%)]" />
       <div className="pointer-events-none absolute left-4 top-6 h-10 w-10 rounded-full bg-primary/10 blur-xl celestial-pulse-glow" />
@@ -52,9 +51,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onToggleTheme}
-            className={`celestial-sigil golden-ring flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_30px_hsl(var(--glow)/0.16)] transition-all hover:scale-[1.03] hover:border-primary/45 hover:bg-primary/14 ${
-              isDarkMode ? 'text-primary' : 'text-gold'
-            }`}
+            className={cn('celestial-sigil golden-ring flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_30px_hsl(var(--glow)/0.16)] transition-all hover:scale-[1.03] hover:border-primary/45 hover:bg-primary/14', isDarkMode ? 'text-primary' : 'text-gold')}
             aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
           >
@@ -141,9 +138,7 @@ export function Sidebar({
         )}
         <button
           onClick={() => setSelectorOpen(!selectorOpen)}
-          className={`flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/14 ${
-            isCollapsed ? 'justify-center' : ''
-          }`}
+          className={cn('flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/14', isCollapsed ? 'justify-center' : '')}
           title={
             selectedProject
               ? `${selectedProject.owner_login}/${selectedProject.name}`
