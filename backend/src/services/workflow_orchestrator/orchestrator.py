@@ -13,7 +13,6 @@ from src.models.workflow import (
     WorkflowTransition,
 )
 from src.services.agent_tracking import append_tracking_to_body, parse_tracking_from_body
-from src.services.database import get_db
 from src.utils import BoundedDict, utcnow
 
 from .config import _transitions, get_workflow_config
@@ -173,22 +172,29 @@ class WorkflowOrchestrator:
         ctx: WorkflowContext,
         agent_name: str,
         new_state: str,
+        model: str | None = None,
     ) -> bool:
         """
         Update the agent tracking table in the GitHub Issue body.
 
-        Fetches the current issue body, updates the agent's state in the
-        tracking table, and pushes the updated body back to GitHub.
+        Fetches the current issue body, updates the agent's state (and
+        optionally the model column) in the tracking table, and pushes the
+        updated body back to GitHub.
 
         Args:
             ctx: Workflow context with issue info
             agent_name: Agent name (e.g. "speckit.specify")
             new_state: "active" or "done"
+            model: Optional effective model string to record in the Model column
 
         Returns:
             True if the issue body was updated successfully
         """
-        from src.services.agent_tracking import mark_agent_active, mark_agent_done
+        from src.services.agent_tracking import (
+            STATE_ACTIVE,
+            mark_agent_done,
+            update_agent_state,
+        )
 
         if not ctx.issue_number:
             return False
@@ -205,7 +211,7 @@ class WorkflowOrchestrator:
                 return False
 
             if new_state == "active":
-                updated_body = mark_agent_active(body, agent_name)
+                updated_body = update_agent_state(body, agent_name, STATE_ACTIVE, model=model)
             elif new_state == "done":
                 updated_body = mark_agent_done(body, agent_name)
             else:
@@ -739,19 +745,15 @@ class WorkflowOrchestrator:
         agent_assignment: object,
         agent_slug: str,
         project_id: str,
-        user_chat_model: str,
+        user_agent_model: str,
     ) -> str:
         """
         Resolve the effective model for a Copilot agent assignment.
 
         Precedence (highest → lowest):
         1. Pipeline config model (``AgentAssignment.config["model_id"]``)
-           This already encodes the chat override (@Easy/@Hard) because
-           ``_apply_selected_pipeline()`` overwrites agent_mappings with the
-           chosen pipeline's nodes, whose model_id is stored in config.
-        2. Agent's own ``default_model_id`` (from ``agent_configs`` table).
-        3. User Settings "chat model" (``ctx.user_chat_model``).
-        4. Hardcoded fallback ``"claude-opus-4.6"``.
+        2. User Settings "agent model" (``ctx.user_agent_model``).
+        3. Hardcoded fallback ``"claude-opus-4.6"``.
 
         A model value of ``"auto"`` (case-insensitive) or an empty string is
         treated as *not set* and falls through to the next tier.
@@ -773,36 +775,16 @@ class WorkflowOrchestrator:
                 )
                 return model_id
 
-        # Tier 2: Agent's own saved default_model_id
-        try:
-            from src.services.agents.service import AgentsService  # lazy — avoids circular import
-
-            prefs = await AgentsService(get_db()).get_agent_preferences(project_id)
-            agent_model = (prefs.get(agent_slug, {}).get("default_model_id") or "").strip()
-            if _is_set(agent_model):
-                logger.debug(
-                    "Model for agent '%s': agent preference '%s'",
-                    agent_slug,
-                    agent_model,
-                )
-                return agent_model
-        except Exception as exc:
-            logger.warning(
-                "Could not fetch agent preferences for slug '%s', skipping tier 2: %s",
-                agent_slug,
-                exc,
-            )
-
-        # Tier 3: User Settings "chat model"
-        if _is_set(user_chat_model):
+        # Tier 2: User Settings "agent model"
+        if _is_set(user_agent_model):
             logger.debug(
                 "Model for agent '%s': user settings '%s'",
                 agent_slug,
-                user_chat_model,
+                user_agent_model,
             )
-            return user_chat_model.strip()
+            return user_agent_model.strip()
 
-        # Tier 4: Hardcoded fallback
+        # Tier 3: Hardcoded fallback
         logger.debug(
             "Model for agent '%s': hardcoded fallback '%s'",
             agent_slug,
@@ -876,11 +858,19 @@ class WorkflowOrchestrator:
                     _tracking_table_cache[ctx.issue_number] = steps or []
 
                 if steps:
+                    tracked_statuses = {s.status.lower() for s in steps}
                     tracking_agents = [
                         s.agent_name for s in steps if s.status.lower() == status.lower()
                     ]
                     config_slugs = [a.slug if hasattr(a, "slug") else str(a) for a in agents]
-                    if tracking_agents and tracking_agents != config_slugs:
+                    if status.lower() not in tracked_statuses:
+                        logger.info(
+                            "Tracking table omits status '%s' for issue #%d; treating it as having no agents",
+                            status,
+                            ctx.issue_number,
+                        )
+                        agents = []
+                    elif tracking_agents != config_slugs:
                         logger.info(
                             "Overriding config agents %s with tracking "
                             "table agents %s for status '%s' on issue #%d",
@@ -1601,9 +1591,8 @@ class WorkflowOrchestrator:
 
         # ── Resolve effective model following the precedence hierarchy ──
         # 1. Pipeline config model (encodes chat override + pipeline config)
-        # 2. Agent's own default_model_id (from agent_configs table)
-        # 3. User Settings "chat model" (ctx.user_chat_model)
-        # 4. Hardcoded fallback "claude-opus-4.6"
+        # 2. User Settings "agent model" (ctx.user_agent_model)
+        # 3. Hardcoded fallback "claude-opus-4.6"
         #
         # Look up the *original* AgentAssignment from the live config rather
         # than from `agents` which may have been replaced by plain slug
@@ -1621,7 +1610,7 @@ class WorkflowOrchestrator:
             agent_assignment=original_assignment,
             agent_slug=agent_name,
             project_id=ctx.project_id,
-            user_chat_model=ctx.user_chat_model,
+            user_agent_model=ctx.user_agent_model,
         )
 
         max_retries = 3
@@ -1672,8 +1661,12 @@ class WorkflowOrchestrator:
                     base_ref,
                 )
 
-                # Mark agent as 🔄 Active in the issue body tracking table
-                await self._update_agent_tracking_state(ctx, agent_name, "active")
+                # Mark agent as 🔄 Active in the issue body tracking table,
+                # recording the effective model so the Model column shows the
+                # actual model used rather than keeping the initial "TBD".
+                await self._update_agent_tracking_state(
+                    ctx, agent_name, "active", model=effective_model
+                )
 
                 # Mark the sub-issue as "in progress" (add label, ensure open)
                 if sub_issue_info and sub_issue_number != ctx.issue_number:
@@ -2156,7 +2149,47 @@ class WorkflowOrchestrator:
             # Step 2: Add to project with metadata
             await self.add_to_project_with_backlog(ctx, recommendation)
 
-            # Step 2.5: Enqueue in blocking queue and check activation
+            # Step 2.5: Create all sub-issues upfront immediately after the parent issue
+            # is added to the project — before the blocking queue check so that sub-issues
+            # exist even when the parent issue is queued behind a blocking issue.
+            config = ctx.config or await get_workflow_config(ctx.project_id)
+            status_name = config.status_backlog if config else "Backlog"
+
+            # Pre-register the recovery cooldown BEFORE calling create_all_sub_issues.
+            # This prevents the polling/recovery loop from racing during sub-issue
+            # creation. NOTE: We only set _recovery_last_attempt (NOT
+            # _pending_agent_assignments) because the latter would cause the dedup
+            # guard inside assign_agent_for_status to skip the actual assignment.
+            if ctx.issue_number:
+                _, recovery_3, _ = _polling_state_objects()
+                recovery_3[ctx.issue_number] = utcnow()
+                logger.debug(
+                    "Set recovery cooldown for issue #%d before sub-issue creation",
+                    ctx.issue_number,
+                )
+
+            agent_sub_issues = await self.create_all_sub_issues(ctx)
+            if agent_sub_issues and ctx.issue_number is not None:
+                # Populate agents for the initial status so the polling loop
+                # doesn't see an empty list and immediately consider the
+                # pipeline "complete" (is_complete = 0 >= len([]) = True).
+                initial_agents = get_agent_slugs(config, status_name) if config else []
+                pipeline_state = PipelineState(
+                    issue_number=ctx.issue_number,
+                    project_id=ctx.project_id,
+                    status=status_name,
+                    agents=initial_agents,
+                    agent_sub_issues=agent_sub_issues,
+                    started_at=utcnow(),
+                )
+                set_pipeline_state(ctx.issue_number, pipeline_state)
+                logger.info(
+                    "Pre-created %d sub-issues for issue #%d",
+                    len(agent_sub_issues),
+                    ctx.issue_number,
+                )
+
+            # Step 2.6: Enqueue in blocking queue and check activation
             issue_activated = True  # Default: activate immediately
             if ctx.issue_number:
                 try:
@@ -2188,9 +2221,6 @@ class WorkflowOrchestrator:
 
             # Step 3: Assign the first agent for Backlog status
             # If Backlog has no agents, use pass-through to find next actionable status (T028)
-            config = ctx.config or await get_workflow_config(ctx.project_id)
-            status_name = config.status_backlog if config else "Backlog"
-
             if config and not get_agent_slugs(config, status_name):
                 # Pass-through: advance to next status with agents
                 next_status = find_next_actionable_status(config, status_name)
@@ -2209,41 +2239,6 @@ class WorkflowOrchestrator:
                             status_name=next_status,
                         )
                     status_name = next_status
-
-            # Pre-register the recovery cooldown BEFORE calling assign_agent_for_status.
-            # This prevents the polling/recovery loop from racing during sub-issue
-            # creation. NOTE: We only set _recovery_last_attempt (NOT
-            # _pending_agent_assignments) because the latter would cause the dedup
-            # guard inside assign_agent_for_status to skip the actual assignment.
-            if ctx.issue_number:
-                _, recovery_3, _ = _polling_state_objects()
-                recovery_3[ctx.issue_number] = utcnow()
-                logger.debug(
-                    "Set recovery cooldown for issue #%d before sub-issue creation",
-                    ctx.issue_number,
-                )
-
-            # Create all sub-issues upfront so the user can see the full pipeline
-            agent_sub_issues = await self.create_all_sub_issues(ctx)
-            if agent_sub_issues and ctx.issue_number is not None:
-                # Populate agents for the initial status so the polling loop
-                # doesn't see an empty list and immediately consider the
-                # pipeline "complete" (is_complete = 0 >= len([]) = True).
-                initial_agents = get_agent_slugs(config, status_name) if config else []
-                pipeline_state = PipelineState(
-                    issue_number=ctx.issue_number,
-                    project_id=ctx.project_id,
-                    status=status_name,
-                    agents=initial_agents,
-                    agent_sub_issues=agent_sub_issues,
-                    started_at=utcnow(),
-                )
-                set_pipeline_state(ctx.issue_number, pipeline_state)
-                logger.info(
-                    "Pre-created %d sub-issues for issue #%d",
-                    len(agent_sub_issues),
-                    ctx.issue_number,
-                )
 
             await self.assign_agent_for_status(ctx, status_name, agent_index=0)
 

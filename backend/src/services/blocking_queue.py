@@ -392,6 +392,60 @@ async def recover_all_repos() -> None:
             logger.exception("Recovery failed for repo %s", repo_key)
 
 
+async def sweep_stale_entries(
+    access_token: str,
+    owner: str,
+    repo: str,
+) -> list[int]:
+    """Detect and complete queue entries whose GitHub issues were closed or deleted.
+
+    Iterates over all active/in_review entries for the repo and calls
+    ``check_issue_closed`` for each.  If the issue is closed (or returns
+    404/410 for deletion), the entry is marked completed so the queue
+    can advance.
+
+    Returns list of issue numbers that were swept (marked completed).
+    """
+    from src.services.github_projects import github_projects_service
+
+    repo_key = f"{owner}/{repo}"
+    entries = await store.get_active_or_in_review(repo_key)
+    if not entries:
+        return []
+
+    swept: list[int] = []
+    for entry in entries:
+        try:
+            is_closed = await github_projects_service.check_issue_closed(
+                access_token, owner, repo, entry.issue_number
+            )
+            if is_closed:
+                logger.info(
+                    "Blocking queue sweep: issue #%d is closed/deleted — marking completed for %s",
+                    entry.issue_number,
+                    repo_key,
+                )
+                await mark_completed(repo_key, entry.issue_number)
+                swept.append(entry.issue_number)
+        except Exception:
+            logger.warning(
+                "Blocking queue sweep: failed to check issue #%d for %s",
+                entry.issue_number,
+                repo_key,
+                exc_info=True,
+            )
+
+    if swept:
+        logger.info(
+            "Blocking queue sweep completed for %s: %d stale entries cleared %s",
+            repo_key,
+            len(swept),
+            swept,
+        )
+
+    return swept
+
+
 async def _broadcast_queue_update(
     project_id: str,
     repo_key: str,

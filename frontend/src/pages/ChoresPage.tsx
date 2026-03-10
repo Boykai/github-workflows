@@ -3,23 +3,24 @@
  * Composes ChoresPanel (list + add + cleanup), useProjectBoard for repo info.
  */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
-import { useChoresList, useEvaluateChoresTriggers } from '@/hooks/useChores';
+import { useChoresList, useEvaluateChoresTriggers, choreKeys } from '@/hooks/useChores';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { ChoresPanel } from '@/components/chores/ChoresPanel';
 import { FeaturedRitualsPanel } from '@/components/chores/FeaturedRitualsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
-import { workflowApi } from '@/services/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { workflowApi, choresApi } from '@/services/api';
 import { countParentIssues } from '@/utils/parentIssueCount';
 
 export function ChoresPage() {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const {
     selectedProject,
     projects,
@@ -27,6 +28,23 @@ export function ChoresPage() {
     selectProject,
   } = useProjects(user?.selected_project_id);
   const projectId = selectedProject?.project_id ?? null;
+
+  // Seed chore presets when projectId changes (idempotent per project).
+  // Tracking the last-seeded ID (not a boolean) ensures presets are seeded
+  // for each project even when the user switches without a full remount.
+  const seededRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!projectId || seededRef.current === projectId) return;
+    seededRef.current = projectId;
+    choresApi
+      .seedPresets(projectId)
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
+      })
+      .catch((err) => {
+        console.warn('Failed to seed preset chores:', err);
+      });
+  }, [projectId, queryClient]);
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
   const { data: chores } = useChoresList(projectId);

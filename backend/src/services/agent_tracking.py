@@ -110,7 +110,12 @@ def build_agent_pipeline_steps(
         for agent in matched_agents:
             agent_slug = agent.slug if hasattr(agent, "slug") else str(agent)
             config = getattr(agent, "config", None)
-            model = config.get("model_name", "") if isinstance(config, dict) else ""
+            if isinstance(config, dict):
+                # Prefer human-readable model_name; fall back to model_id so
+                # the tracking table never shows "TBD" when a model is in fact configured.
+                model = config.get("model_name", "") or config.get("model_id", "") or ""
+            else:
+                model = ""
             steps.append(
                 AgentStep(
                     index=idx,
@@ -244,10 +249,11 @@ def update_agent_state(
     body: str,
     agent_name: str,
     new_state: str,
+    model: str | None = None,
 ) -> str:
     """
-    Update a specific agent's state in the tracking table and return the
-    new full issue body.
+    Update a specific agent's state (and optionally model) in the tracking table
+    and return the new full issue body.
 
     If the agent is not found or there's no tracking section, the body
     is returned unchanged.
@@ -260,6 +266,8 @@ def update_agent_state(
     for step in steps:
         if step.agent_name == agent_name:
             step.state = new_state
+            if model:
+                step.model = model
             found = True
             break
 

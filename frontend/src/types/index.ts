@@ -433,6 +433,7 @@ export interface AIPreferences {
   provider: AIProviderType;
   model: string;
   temperature: number;
+  agent_model: string;
 }
 
 export interface DisplayPreferences {
@@ -500,6 +501,7 @@ export interface AIPreferencesUpdate {
   provider?: AIProviderType | null;
   model?: string | null;
   temperature?: number | null;
+  agent_model?: string | null;
 }
 
 export interface DisplayPreferencesUpdate {
@@ -872,6 +874,8 @@ export interface Chore {
   ai_enhance_enabled: boolean;
   agent_pipeline_id: string;
   blocking: boolean;
+  is_preset: boolean;
+  preset_id: string;
   created_at: string;
   updated_at: string;
 }

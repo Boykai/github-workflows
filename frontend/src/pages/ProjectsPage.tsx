@@ -18,6 +18,7 @@ import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { BlockingChainPanel } from '@/components/board/BlockingChainPanel';
+import { BlockingIssuePill } from '@/components/board/BlockingIssuePill';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
@@ -340,8 +341,11 @@ export function ProjectsPage() {
             hasActiveGroup={boardControls.hasActiveGroup}
             hasActiveControls={boardControls.hasActiveControls}
           />
-          {blockingQueueEntries && blockingQueueEntries.length > 0 && (
-            <BlockingChainPanel entries={blockingQueueEntries} />
+          {blockingQueueEntries && blockingQueueEntries.length > 0 && selectedProjectId && (
+            <>
+              <BlockingIssuePill entries={blockingQueueEntries} projectId={selectedProjectId} />
+              <BlockingChainPanel entries={blockingQueueEntries} />
+            </>
           )}
         </div>
       )}

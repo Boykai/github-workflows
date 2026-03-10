@@ -19,6 +19,22 @@ const PRESET_STYLES: Record<string, { label: string; classes: string }> = {
     label: 'GitHub Copilot',
     classes: 'solar-chip-success',
   },
+  'easy': {
+    label: 'Easy',
+    classes: 'solar-chip-success',
+  },
+  'medium': {
+    label: 'Medium',
+    classes: 'solar-chip-soft',
+  },
+  'hard': {
+    label: 'Hard',
+    classes: 'solar-chip-violet',
+  },
+  'expert': {
+    label: 'Expert',
+    classes: 'solar-chip-neutral',
+  },
 };
 
 export function PresetBadge({ presetId, className = '' }: PresetBadgeProps) {

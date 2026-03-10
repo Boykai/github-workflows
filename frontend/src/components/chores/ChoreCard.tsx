@@ -289,6 +289,11 @@ export function ChoreCard({
                   {chore.execution_count} run{chore.execution_count !== 1 ? 's' : ''}
                 </span>
               )}
+              {chore.is_preset && (
+                <span className="inline-flex items-center gap-1 rounded-full solar-chip-soft px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
+                  Built-in
+                </span>
+              )}
             </div>
 
             <h4

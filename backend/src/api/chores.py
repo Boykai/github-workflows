@@ -50,6 +50,20 @@ def _get_service() -> ChoresService:
     return ChoresService(get_db())
 
 
+# ── Seed Presets ──
+
+
+@router.post("/{project_id}/seed-presets")
+async def seed_presets(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Idempotently seed built-in chore presets for a project."""
+    service = _get_service()
+    created = await service.seed_presets(project_id)
+    return {"created": len(created)}
+
+
 # ── Evaluate Triggers (Cron) ──
 
 

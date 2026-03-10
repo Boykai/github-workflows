@@ -2211,10 +2211,15 @@ class GitHubProjectsService:
         normalized_custom_agent = "" if custom_agent == "copilot" else custom_agent
 
         logger.info(
-            "Assigning Copilot to issue #%s (node=%s) with custom_agent='%s'",
+            "Assigning Copilot to issue #%s (node=%s) for %s/%s with custom_agent='%s', base_ref='%s', model='%s', instructions_len=%d",
             issue_number,
             issue_node_id,
+            owner,
+            repo,
             normalized_custom_agent,
+            base_ref,
+            model,
+            len(custom_instructions or ""),
         )
 
         # If this is a custom agent assignment, unassign Copilot first — but
@@ -2237,6 +2242,11 @@ class GitHubProjectsService:
                 )
 
         # Prefer GraphQL — it explicitly supports customAgent in the schema
+        logger.info(
+            "Attempting GraphQL Copilot assignment for issue #%s with custom_agent='%s'",
+            issue_number,
+            normalized_custom_agent,
+        )
         graphql_success = await self._assign_copilot_graphql(
             access_token,
             owner,
@@ -2249,6 +2259,11 @@ class GitHubProjectsService:
         )
 
         if graphql_success:
+            logger.info(
+                "GraphQL Copilot assignment succeeded for issue #%s with custom_agent='%s'",
+                issue_number,
+                normalized_custom_agent,
+            )
             if issue_number:
                 self._invalidate_cycle_cache(f"assigned:{owner}/{repo}/{issue_number}")
             return True
@@ -2258,6 +2273,13 @@ class GitHubProjectsService:
             logger.warning("GraphQL assignment failed and no issue_number for REST fallback")
             return False
 
+        logger.warning(
+            "GraphQL Copilot assignment failed for issue #%s; falling back to REST with custom_agent='%s', base_ref='%s', model='%s'",
+            issue_number,
+            normalized_custom_agent,
+            base_ref,
+            model,
+        )
         return await self._assign_copilot_rest(
             access_token,
             owner,
@@ -2309,9 +2331,14 @@ class GitHubProjectsService:
             }
 
             logger.info(
-                "REST fallback: Assigning Copilot to issue #%d with custom_agent='%s'",
+                "REST fallback: Assigning Copilot to issue #%d for %s/%s with custom_agent='%s', base_ref='%s', model='%s', instructions_len=%d",
                 issue_number,
+                owner,
+                repo,
                 custom_agent,
+                base_ref,
+                model,
+                len(custom_instructions or ""),
             )
 
             response = await self._rest_response(
@@ -2325,24 +2352,39 @@ class GitHubProjectsService:
                 result = response.json()
                 assignees = [a.get("login", "") for a in result.get("assignees", [])]
                 logger.info(
-                    "REST: Assigned Copilot to issue #%d with custom agent '%s', assignees: %s",
+                    "REST: Assigned Copilot to issue #%d with custom agent '%s', assignees: %s, status=%d",
                     issue_number,
                     custom_agent,
                     assignees,
+                    response.status_code,
                 )
                 self._invalidate_cycle_cache(f"assigned:{owner}/{repo}/{issue_number}")
                 return True
             else:
                 logger.error(
-                    "REST API failed to assign Copilot to issue #%d - Status: %s, Response: %s",
+                    "REST API failed to assign Copilot to issue #%d for %s/%s with custom_agent='%s', base_ref='%s', model='%s' - Status: %s, Response: %s",
                     issue_number,
+                    owner,
+                    repo,
+                    custom_agent,
+                    base_ref,
+                    model,
                     response.status_code,
                     response.text[:500] if response.text else "empty",
                 )
                 return False
 
         except Exception as e:
-            logger.error("REST fallback failed for issue #%d: %s", issue_number, e)
+            logger.error(
+                "REST fallback failed for issue #%d for %s/%s with custom_agent='%s', base_ref='%s', model='%s': %s",
+                issue_number,
+                owner,
+                repo,
+                custom_agent,
+                base_ref,
+                model,
+                e,
+            )
             return False
 
     async def _assign_copilot_graphql(
@@ -2385,6 +2427,16 @@ class GitHubProjectsService:
             return False
 
         try:
+            logger.info(
+                "GraphQL: Preparing Copilot assignment for %s/%s issue_node=%s with custom_agent='%s', base_ref='%s', model='%s', instructions_len=%d",
+                owner,
+                repo,
+                issue_node_id,
+                custom_agent,
+                base_ref,
+                model,
+                len(custom_instructions or ""),
+            )
             # Use GraphQL mutation with special headers for Copilot assignment
             data = await self._graphql(
                 access_token,
@@ -2414,17 +2466,35 @@ class GitHubProjectsService:
 
             if custom_agent:
                 logger.info(
-                    "GraphQL: Assigned Copilot with custom agent '%s', assignees: %s",
+                    "GraphQL: Assigned Copilot with custom agent '%s' for %s/%s issue_node=%s, assignees: %s",
                     custom_agent,
+                    owner,
+                    repo,
+                    issue_node_id,
                     assigned_logins,
                 )
             else:
-                logger.info("GraphQL: Assigned Copilot to issue, assignees: %s", assigned_logins)
+                logger.info(
+                    "GraphQL: Assigned Copilot to %s/%s issue_node=%s, assignees: %s",
+                    owner,
+                    repo,
+                    issue_node_id,
+                    assigned_logins,
+                )
 
             return True
 
         except Exception as e:
-            logger.error("GraphQL failed to assign Copilot to issue: %s", e)
+            logger.error(
+                "GraphQL failed to assign Copilot for %s/%s issue_node=%s with custom_agent='%s', base_ref='%s', model='%s': %s",
+                owner,
+                repo,
+                issue_node_id,
+                custom_agent,
+                base_ref,
+                model,
+                e,
+            )
             return False
 
     async def validate_assignee(

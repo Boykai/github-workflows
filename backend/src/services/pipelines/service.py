@@ -27,8 +27,25 @@ _CANONICAL_PROJECT_SETTINGS_USER = "__workflow__"
 _PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at", "blocking"})
 
 
+# ---------------------------------------------------------------------------
+# Helper to build a standard agent dict with model_id/model_name set to Auto
+# ---------------------------------------------------------------------------
+def _agent(aid: str, slug: str, display: str) -> dict:
+    return {
+        "id": aid,
+        "agent_slug": slug,
+        "agent_display_name": display,
+        "model_id": "",
+        "model_name": "",
+        "tool_ids": [],
+        "tool_count": 0,
+        "config": {},
+    }
+
+
 # Preset pipeline definitions
 _PRESET_DEFINITIONS = [
+    # ── Spec Kit ──────────────────────────────────────────────────────
     {
         "preset_id": "spec-kit",
         "name": "Spec Kit",
@@ -38,89 +55,35 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-sk-stage-1",
                 "name": "Specify",
                 "order": 0,
-                "agents": [
-                    {
-                        "id": "preset-sk-agent-1",
-                        "agent_slug": "speckit-specify",
-                        "agent_display_name": "Spec Writer",
-                        "model_id": "",
-                        "model_name": "",
-                        "tool_ids": [],
-                        "tool_count": 0,
-                        "config": {},
-                    }
-                ],
+                "agents": [_agent("preset-sk-agent-1", "speckit-specify", "Spec Writer")],
             },
             {
                 "id": "preset-sk-stage-2",
                 "name": "Plan",
                 "order": 1,
-                "agents": [
-                    {
-                        "id": "preset-sk-agent-2",
-                        "agent_slug": "speckit-plan",
-                        "agent_display_name": "Planner",
-                        "model_id": "",
-                        "model_name": "",
-                        "tool_ids": [],
-                        "tool_count": 0,
-                        "config": {},
-                    }
-                ],
+                "agents": [_agent("preset-sk-agent-2", "speckit-plan", "Planner")],
             },
             {
                 "id": "preset-sk-stage-3",
                 "name": "Tasks",
                 "order": 2,
-                "agents": [
-                    {
-                        "id": "preset-sk-agent-3",
-                        "agent_slug": "speckit-tasks",
-                        "agent_display_name": "Task Generator",
-                        "model_id": "",
-                        "model_name": "",
-                        "tool_ids": [],
-                        "tool_count": 0,
-                        "config": {},
-                    }
-                ],
+                "agents": [_agent("preset-sk-agent-3", "speckit-tasks", "Task Generator")],
             },
             {
                 "id": "preset-sk-stage-4",
                 "name": "Implement",
                 "order": 3,
-                "agents": [
-                    {
-                        "id": "preset-sk-agent-4",
-                        "agent_slug": "speckit-implement",
-                        "agent_display_name": "Implementer",
-                        "model_id": "",
-                        "model_name": "",
-                        "tool_ids": [],
-                        "tool_count": 0,
-                        "config": {},
-                    }
-                ],
+                "agents": [_agent("preset-sk-agent-4", "speckit-implement", "Implementer")],
             },
             {
                 "id": "preset-sk-stage-5",
                 "name": "Analyze",
                 "order": 4,
-                "agents": [
-                    {
-                        "id": "preset-sk-agent-5",
-                        "agent_slug": "speckit-analyze",
-                        "agent_display_name": "Analyzer",
-                        "model_id": "",
-                        "model_name": "",
-                        "tool_ids": [],
-                        "tool_count": 0,
-                        "config": {},
-                    }
-                ],
+                "agents": [_agent("preset-sk-agent-5", "speckit-analyze", "Analyzer")],
             },
         ],
     },
+    # ── GitHub Copilot ────────────────────────────────────────────────
     {
         "preset_id": "github-copilot",
         "name": "GitHub Copilot",
@@ -130,19 +93,179 @@ _PRESET_DEFINITIONS = [
                 "id": "preset-gc-stage-1",
                 "name": "Execute",
                 "order": 0,
+                "agents": [_agent("preset-gc-agent-1", "copilot", "GitHub Copilot")],
+            },
+        ],
+    },
+    # ── Easy ──────────────────────────────────────────────────────────
+    {
+        "preset_id": "easy",
+        "name": "Easy",
+        "description": "Lightweight pipeline: Copilot implements, review agents check quality",
+        "stages": [
+            {"id": "preset-easy-stage-0", "name": "Backlog", "order": 0, "agents": []},
+            {"id": "preset-easy-stage-1", "name": "Ready", "order": 1, "agents": []},
+            {
+                "id": "preset-easy-stage-2",
+                "name": "In progress",
+                "order": 2,
                 "agents": [
-                    {
-                        "id": "preset-gc-agent-1",
-                        "agent_slug": "copilot",
-                        "agent_display_name": "GitHub Copilot",
-                        "model_id": "gpt-4o",
-                        "model_name": "GPT-4o",
-                        "tool_ids": [],
-                        "tool_count": 0,
-                        "config": {},
-                    }
+                    _agent("preset-easy-agent-1", "copilot", "GitHub Copilot"),
+                    _agent("preset-easy-agent-2", "copilot-review", "Copilot Review"),
+                    _agent("preset-easy-agent-3", "judge", "judge"),
+                    _agent("preset-easy-agent-4", "linter", "linter"),
                 ],
             },
+            {
+                "id": "preset-easy-stage-3",
+                "name": "In review",
+                "order": 3,
+                "agents": [
+                    _agent("preset-easy-agent-5", "human", "Human"),
+                ],
+            },
+            {"id": "preset-easy-stage-4", "name": "Done", "order": 4, "agents": []},
+        ],
+    },
+    # ── Medium ────────────────────────────────────────────────────────
+    {
+        "preset_id": "medium",
+        "name": "Medium",
+        "description": "Balanced pipeline: Spec Kit plans, Copilot implements, review agents verify",
+        "stages": [
+            {
+                "id": "preset-med-stage-0",
+                "name": "Backlog",
+                "order": 0,
+                "agents": [
+                    _agent("preset-med-agent-1", "speckit.specify", "Spec Kit - Specify"),
+                ],
+            },
+            {
+                "id": "preset-med-stage-1",
+                "name": "Ready",
+                "order": 1,
+                "agents": [
+                    _agent("preset-med-agent-2", "speckit.plan", "Spec Kit - Plan"),
+                    _agent("preset-med-agent-3", "speckit.tasks", "Spec Kit - Tasks"),
+                ],
+            },
+            {
+                "id": "preset-med-stage-2",
+                "name": "In progress",
+                "order": 2,
+                "agents": [
+                    _agent("preset-med-agent-4", "speckit.implement", "Spec Kit - Implement"),
+                    _agent("preset-med-agent-5", "copilot-review", "Copilot Review"),
+                    _agent("preset-med-agent-6", "judge", "judge"),
+                    _agent("preset-med-agent-7", "linter", "linter"),
+                ],
+            },
+            {
+                "id": "preset-med-stage-3",
+                "name": "In review",
+                "order": 3,
+                "agents": [
+                    _agent("preset-med-agent-8", "human", "Human"),
+                ],
+            },
+            {"id": "preset-med-stage-4", "name": "Done", "order": 4, "agents": []},
+        ],
+    },
+    # ── Hard ──────────────────────────────────────────────────────────
+    {
+        "preset_id": "hard",
+        "name": "Hard",
+        "description": "Thorough pipeline: Spec Kit specifies & plans, full implementation and review",
+        "stages": [
+            {
+                "id": "preset-hard-stage-0",
+                "name": "Backlog",
+                "order": 0,
+                "agents": [
+                    _agent("preset-hard-agent-1", "speckit.specify", "Spec Kit - Specify"),
+                ],
+            },
+            {
+                "id": "preset-hard-stage-1",
+                "name": "Ready",
+                "order": 1,
+                "agents": [
+                    _agent("preset-hard-agent-2", "speckit.plan", "Spec Kit - Plan"),
+                    _agent("preset-hard-agent-3", "speckit.tasks", "Spec Kit - Tasks"),
+                ],
+            },
+            {
+                "id": "preset-hard-stage-2",
+                "name": "In progress",
+                "order": 2,
+                "agents": [
+                    _agent("preset-hard-agent-4", "speckit.implement", "Spec Kit - Implement"),
+                    _agent("preset-hard-agent-5", "copilot-review", "Copilot Review"),
+                    _agent("preset-hard-agent-6", "judge", "judge"),
+                    _agent("preset-hard-agent-7", "linter", "linter"),
+                ],
+            },
+            {
+                "id": "preset-hard-stage-3",
+                "name": "In review",
+                "order": 3,
+                "agents": [
+                    _agent("preset-hard-agent-8", "human", "Human"),
+                ],
+            },
+            {"id": "preset-hard-stage-4", "name": "Done", "order": 4, "agents": []},
+        ],
+    },
+    # ── Expert ────────────────────────────────────────────────────────
+    {
+        "preset_id": "expert",
+        "name": "Expert",
+        "description": "Comprehensive pipeline: full Spec Kit, Designer, QA, Tester, Archivist, dual review",
+        "stages": [
+            {
+                "id": "preset-exp-stage-0",
+                "name": "Backlog",
+                "order": 0,
+                "agents": [
+                    _agent("preset-exp-agent-1", "speckit.specify", "Spec Kit - Specify"),
+                    _agent("preset-exp-agent-2", "designer", "designer"),
+                ],
+            },
+            {
+                "id": "preset-exp-stage-1",
+                "name": "Ready",
+                "order": 1,
+                "agents": [
+                    _agent("preset-exp-agent-3", "speckit.plan", "Spec Kit - Plan"),
+                    _agent("preset-exp-agent-4", "speckit.tasks", "Spec Kit - Tasks"),
+                ],
+            },
+            {
+                "id": "preset-exp-stage-2",
+                "name": "In progress",
+                "order": 2,
+                "agents": [
+                    _agent("preset-exp-agent-5", "speckit.implement", "Spec Kit - Implement"),
+                    _agent("preset-exp-agent-6", "copilot-review", "Copilot Review"),
+                    _agent("preset-exp-agent-7", "judge", "judge"),
+                    _agent("preset-exp-agent-8", "quality-assurance", "quality-assurance"),
+                    _agent("preset-exp-agent-9", "tester", "tester"),
+                    _agent("preset-exp-agent-10", "copilot-review", "Copilot Review"),
+                    _agent("preset-exp-agent-11", "judge", "judge"),
+                    _agent("preset-exp-agent-12", "archivist", "archivist"),
+                    _agent("preset-exp-agent-13", "linter", "linter"),
+                ],
+            },
+            {
+                "id": "preset-exp-stage-3",
+                "name": "In review",
+                "order": 3,
+                "agents": [
+                    _agent("preset-exp-agent-14", "human", "Human"),
+                ],
+            },
+            {"id": "preset-exp-stage-4", "name": "Done", "order": 4, "agents": []},
         ],
     },
 ]
