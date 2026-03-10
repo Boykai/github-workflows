@@ -370,6 +370,11 @@ export interface WorkflowResult {
   message: string;
 }
 
+export interface PipelineIssueLaunchRequest {
+  issue_description: string;
+  pipeline_id: string;
+}
+
 export interface WorkflowConfiguration {
   project_id: string;
   repository_owner: string;

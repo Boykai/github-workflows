@@ -114,3 +114,10 @@ class ProjectAssignmentBlockingUpdate(BaseModel):
 
     blocking_override: bool | None = None
     """None = inherit from pipeline default; True/False = explicit override."""
+
+
+class PipelineIssueLaunchRequest(BaseModel):
+    """Request body for launching a pipeline from pasted or uploaded issue text."""
+
+    issue_description: str = Field(..., min_length=1, max_length=65_536)
+    pipeline_id: str = Field(..., min_length=1)

@@ -19,6 +19,7 @@ import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { BlockingChainPanel } from '@/components/board/BlockingChainPanel';
 import { BlockingIssuePill } from '@/components/board/BlockingIssuePill';
+import { ProjectIssueLaunchPanel } from '@/components/board/ProjectIssueLaunchPanel';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
@@ -93,7 +94,12 @@ export function ProjectsPage() {
     [blockingQueueEntries]
   );
 
-  const { data: savedPipelines } = useQuery({
+  const {
+    data: savedPipelines,
+    isLoading: savedPipelinesLoading,
+    error: savedPipelinesError,
+    refetch: refetchSavedPipelines,
+  } = useQuery({
     queryKey: ['pipelines', selectedProjectId],
     queryFn: () => pipelinesApi.list(selectedProjectId!),
     enabled: !!selectedProjectId,
@@ -437,6 +443,21 @@ export function ProjectsPage() {
 
       {selectedProjectId && !boardLoading && transformedBoardData && (
         <div className="flex flex-col gap-6 overflow-visible">
+          <ProjectIssueLaunchPanel
+            projectId={selectedProjectId}
+            projectName={selectedProject?.name}
+            pipelines={savedPipelines?.pipelines ?? []}
+            isLoadingPipelines={savedPipelinesLoading}
+            pipelinesError={savedPipelinesError instanceof Error ? savedPipelinesError.message : null}
+            onRetryPipelines={() => {
+              void refetchSavedPipelines();
+            }}
+            onLaunched={() => {
+              refresh();
+              void queryClient.invalidateQueries({ queryKey: ['pipelines', 'assignment', selectedProjectId] });
+            }}
+          />
+
           <section id="pipeline-stages" className="space-y-4 scroll-mt-24">
             <div>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
