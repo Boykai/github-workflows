@@ -135,8 +135,8 @@ SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via nu
 | `016_chores_enhancements.sql` | Chore execution tracking, AI enhance, pipeline assignment |
 | `017_blocking_queue.sql` | Per-repo blocking queue for serial issue activation |
 | `018_pipeline_blocking_override.sql` | Project-level pipeline blocking override |
-| `019_agent_model_setting.sql` | User-level agent model preference |
-| `020_chore_presets.sql` | Built-in chore preset definitions |
+| `019_agent_model_setting.sql` | Agent model preference (user_preferences + global_settings fallback) |
+| `020_chore_presets.sql` | Chore preset identification columns and unique index for seeding |
 
 ## Workflow Settings
 
