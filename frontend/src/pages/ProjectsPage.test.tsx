@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   invalidateQueries: vi.fn(),
   refetchSavedPipelines: vi.fn(),
   mutate: vi.fn(),
+  syncStatus: 'connected' as 'connected' | 'polling' | 'connecting' | 'disconnected',
   savedPipelines: {
     pipelines: [
       {
@@ -161,7 +162,7 @@ vi.mock('@/hooks/useBoardRefresh', () => ({
 
 vi.mock('@/hooks/useRealTimeSync', () => ({
   useRealTimeSync: () => ({
-    status: 'connected',
+    status: mocks.syncStatus,
     lastUpdate: new Date('2026-03-10T21:19:34.006Z'),
   }),
 }));
@@ -248,6 +249,7 @@ describe('ProjectsPage', () => {
     mocks.projectBoard.boardError = null;
     mocks.projectBoard.selectProject = mocks.selectBoardProject;
     mocks.pipelineAssignment.blocking_override = true;
+    mocks.syncStatus = 'connected';
   });
 
   it('renders polished status and empty-state controls for filtered views', async () => {
@@ -273,5 +275,44 @@ describe('ProjectsPage', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Retry loading board data' }));
 
     expect(mocks.selectBoardProject).toHaveBeenCalledWith('PVT_1');
+  });
+
+  it('marks the sync status chip with aria-live for screen reader updates', () => {
+    render(<ProjectsPage />);
+
+    const chip = screen.getByText('Live sync').closest('[aria-live]');
+    expect(chip).toHaveAttribute('aria-live', 'polite');
+  });
+
+  it('renders the board error banner with role="alert"', () => {
+    mocks.projectBoard.boardError = new Error('Network timeout');
+
+    render(<ProjectsPage />);
+
+    const alert = screen.getByRole('alert');
+    expect(alert).toHaveTextContent('Failed to load board data');
+    expect(alert).toHaveTextContent('Network timeout');
+  });
+
+  it('renders the correct label for each sync status', () => {
+    mocks.syncStatus = 'polling';
+
+    const { unmount } = render(<ProjectsPage />);
+    expect(screen.getByText('Polling')).toBeInTheDocument();
+    unmount();
+
+    mocks.syncStatus = 'disconnected';
+    render(<ProjectsPage />);
+    expect(screen.getByText('Offline')).toBeInTheDocument();
+  });
+
+  it('labels the pipeline stages grid with the heading for accessibility', () => {
+    render(<ProjectsPage />);
+
+    const heading = screen.getByText('Pipeline Stages');
+    expect(heading).toHaveAttribute('id', 'pipeline-stages-heading');
+
+    const region = screen.getByRole('region', { name: 'Pipeline Stages' });
+    expect(region).toBeInTheDocument();
   });
 });
