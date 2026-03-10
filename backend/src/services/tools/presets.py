@@ -137,6 +137,43 @@ _PRESETS: tuple[McpPresetResponse, ...] = (
             }
         ),
     ),
+    McpPresetResponse(
+        id="context7",
+        name="Context7",
+        description="Up-to-date library documentation and code examples for AI-assisted development.",
+        category="Documentation",
+        icon="book-open",
+        config_content=_dump_config(
+            {
+                "mcpServers": {
+                    "context7": {
+                        "type": "http",
+                        "url": "https://mcp.context7.com/mcp",
+                        "tools": ["resolve-library-id", "get-library-docs"],
+                    }
+                }
+            }
+        ),
+    ),
+    McpPresetResponse(
+        id="codegraphcontext",
+        name="Code Graph Context",
+        description="Code indexing and graph analysis for call chains, dead code detection, and complexity metrics.",
+        category="Code Analysis",
+        icon="git-branch",
+        config_content=_dump_config(
+            {
+                "mcpServers": {
+                    "CodeGraphContext": {
+                        "type": "local",
+                        "command": "uvx",
+                        "args": ["--from", "codegraphcontext", "cgc", "mcp", "start"],
+                        "tools": ["*"],
+                    }
+                }
+            }
+        ),
+    ),
 )
 
 
