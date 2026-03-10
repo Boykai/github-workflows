@@ -166,8 +166,13 @@ async def recover_stalled_issues(
                         issue_number,
                     )
                     continue
-            except Exception:
-                pass  # blocking queue unavailable — proceed with recovery
+            except Exception as exc:
+                logger.debug(
+                    "Recovery: blocking queue check failed for issue #%d: %s",
+                    issue_number,
+                    exc,
+                    exc_info=True,
+                )
 
             # ── Read the issue body tracking table ────────────────────────
             try:
