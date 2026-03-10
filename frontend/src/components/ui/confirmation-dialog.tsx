@@ -9,6 +9,7 @@ import { useEffect, useRef } from 'react';
 import { AlertTriangle, Info, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export type ConfirmationVariant = 'danger' | 'warning' | 'info';
 
@@ -146,8 +147,8 @@ export function ConfirmationDialog({
       >
         {/* Header */}
         <div className="flex items-start gap-3">
-          <div className={`shrink-0 rounded-full p-2 ${iconBgClass}`}>
-            <Icon className={`h-5 w-5 ${iconClass}`} />
+          <div className={cn('shrink-0 rounded-full p-2', iconBgClass)}>
+            <Icon className={cn('h-5 w-5', iconClass)} />
           </div>
           <h3
             id="confirmation-dialog-title"
@@ -188,7 +189,7 @@ export function ConfirmationDialog({
           <Button
             type="button"
             size="sm"
-            className={`gap-2 rounded-lg ${confirmBtnClass}`}
+            className={cn('gap-2 rounded-lg', confirmBtnClass)}
             onClick={onConfirm}
             disabled={isLoading}
           >

@@ -8,6 +8,7 @@
 import { useState } from 'react';
 import { GitBranch, Lock, X } from 'lucide-react';
 import type { BlockingQueueEntry } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface BlockingChainPanelProps {
   entries: BlockingQueueEntry[];
@@ -49,11 +50,9 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
       {/* Toggle button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className={`flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors ${
-          isExpanded
+        className={cn('flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors', isExpanded
             ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400'
-            : 'border-border/70 bg-background/50 hover:bg-accent/45'
-        }`}
+            : 'border-border/70 bg-background/50 hover:bg-accent/45')}
         type="button"
         title="View blocking queue status"
       >
@@ -105,17 +104,15 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
               return (
                 <div
                   key={entry.id}
-                  className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs ${
-                    isNext
+                  className={cn('flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs', isNext
                       ? 'border-amber-500/30 bg-amber-500/5'
-                      : 'border-border/50 bg-background/30'
-                  }`}
+                      : 'border-border/50 bg-background/30')}
                 >
                   <span className="text-muted-foreground w-4 text-center text-[10px]">
                     {idx + 1}
                   </span>
                   <span
-                    className={`w-2 h-2 rounded-full shrink-0 ${statusInfo.dot}`}
+                    className={cn('w-2 h-2 rounded-full shrink-0', statusInfo.dot)}
                     title={statusInfo.label}
                   />
                   <span className="font-medium">#{entry.issue_number}</span>

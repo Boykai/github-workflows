@@ -7,6 +7,7 @@ import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import type { CleanupHistoryResponse } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { cn } from '@/lib/utils';
 
 interface CleanUpAuditHistoryProps {
   data: CleanupHistoryResponse | null;
@@ -76,13 +77,11 @@ export function CleanUpAuditHistory({ data, onClose }: CleanUpAuditHistoryProps)
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-medium">{formatDate(op.started_at)}</span>
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full ${
-                      op.status === 'completed'
+                    className={cn('text-xs px-2 py-0.5 rounded-full', op.status === 'completed'
                         ? 'bg-green-100/80 text-green-800 dark:bg-green-900/30 dark:text-green-400'
                         : op.status === 'failed'
                           ? 'bg-destructive/20 text-destructive'
-                          : 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground'
-                    }`}
+                          : 'bg-accent/10 text-accent-foreground dark:bg-accent/20 dark:text-accent-foreground')}
                   >
                     {op.status}
                   </span>

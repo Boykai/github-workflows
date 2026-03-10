@@ -4,6 +4,7 @@
  */
 
 import { Lock } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface PresetBadgeProps {
   presetId: string;
@@ -45,7 +46,7 @@ export function PresetBadge({ presetId, className = '' }: PresetBadgeProps) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] ${style.classes} ${className}`}
+      className={cn('inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]', style.classes, className)}
     >
       <Lock className="h-2.5 w-2.5" />
       {style.label}

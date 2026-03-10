@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Check, Search, Wrench } from 'lucide-react';
 import { useToolsList } from '@/hooks/useTools';
+import { cn } from '@/lib/utils';
 
 interface ToolSelectorModalProps {
   isOpen: boolean;
@@ -140,11 +141,9 @@ export function ToolSelectorModal({
                     key={tool.id}
                     type="button"
                     onClick={() => toggleTool(tool.id)}
-                    className={`relative flex items-start gap-3 rounded-lg border p-3 text-left transition-colors ${
-                      isSelected
+                    className={cn('relative flex items-start gap-3 rounded-lg border p-3 text-left transition-colors', isSelected
                         ? 'border-primary bg-primary/8'
-                        : 'border-border hover:border-primary/20 hover:bg-background/34'
-                    }`}
+                        : 'border-border hover:border-primary/20 hover:bg-background/34')}
                   >
                     <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                       <Wrench className="h-4 w-4 text-primary" />

@@ -12,6 +12,7 @@ import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-
 import { CSS } from '@dnd-kit/utilities';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { AgentTile } from './AgentTile';
+import { cn } from '@/lib/utils';
 
 interface AgentColumnCellProps {
   status: string;
@@ -117,7 +118,7 @@ export function AgentColumnCell({
       ref={setNodeRef}
       role="group"
       aria-label={`${status} column, ${agentCount} agents`}
-      className={`flex h-full min-w-0 flex-col transition-colors duration-150 ${isCompact ? 'pipeline-column-surface pipeline-stage-card gap-1.5 rounded-[1rem] border p-1.5' : 'gap-2 rounded-[1.2rem] border p-2'} ${isModified ? 'border-primary/50 bg-primary/5' : 'border-border/60'} ${dropHighlight}`}
+      className={cn('flex h-full min-w-0 flex-col transition-colors duration-150', isCompact ? 'pipeline-column-surface pipeline-stage-card gap-1.5 rounded-[1rem] border p-1.5' : 'gap-2 rounded-[1.2rem] border p-2', isModified ? 'border-primary/50 bg-primary/5' : 'border-border/60', dropHighlight)}
     >
       {isCompact && (
         <div className="flex items-center justify-between px-1 pb-0.5">
@@ -134,7 +135,7 @@ export function AgentColumnCell({
         </div>
       )}
       <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-        <div className={`flex min-h-[2px] flex-col ${isCompact ? 'gap-1.5' : 'gap-2'}`}>
+        <div className={cn('flex min-h-[2px] flex-col', isCompact ? 'gap-1.5' : 'gap-2')}>
           {agents.map((agent, index) => (
             <SortableAgentTile
               key={agent.id}

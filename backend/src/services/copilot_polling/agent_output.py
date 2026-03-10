@@ -409,8 +409,8 @@ async def post_agent_outputs_from_pr(
                                     pr_number=pr_num,
                                     issue_number=task.issue_number,
                                 )
-                            except Exception:
-                                pass
+                            except Exception as e:
+                                logger.debug("Suppressed error: %s", e)
 
                         # If this is a subsequent agent (main branch exists)
                         # and the PR is NOT the main PR itself, it must be a

@@ -9,6 +9,7 @@
 
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { formatTimeUntil } from '@/utils/formatTime';
+import { cn } from '@/lib/utils';
 
 function getRateLimitUsagePercent(limit?: number, remaining?: number): number {
   if (!limit || limit <= 0 || remaining === undefined) return 0;
@@ -54,12 +55,12 @@ export function RateLimitBar() {
       </span>
       <div className="h-1.5 w-20 overflow-hidden rounded-full bg-muted/70">
         <div
-          className={`h-full rounded-full transition-all duration-300 ${getRateLimitFillClass(usagePercent)}`}
+          className={cn('h-full rounded-full transition-all duration-300', getRateLimitFillClass(usagePercent))}
           style={{ width: `${usagePercent}%` }}
         />
       </div>
       <span
-        className={`text-[11px] ${hasError ? 'font-medium text-destructive' : 'text-muted-foreground'}`}
+        className={cn('text-[11px]', hasError ? 'font-medium text-destructive' : 'text-muted-foreground')}
       >
         {label}
       </span>

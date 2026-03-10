@@ -12,6 +12,7 @@ import { WorkflowDefaults } from './WorkflowDefaults';
 import { NotificationPreferences } from './NotificationPreferences';
 import { ProjectSettings } from './ProjectSettings';
 import { GlobalSettings } from './GlobalSettings';
+import { cn } from '@/lib/utils';
 import type {
   EffectiveUserSettings,
   GlobalSettings as GlobalSettingsType,
@@ -50,7 +51,7 @@ export function AdvancedSettings({
         aria-controls="advanced-settings-content"
       >
         <span
-          className={`text-xs text-muted-foreground transition-transform duration-200 ${expanded ? '' : '-rotate-90'}`}
+          className={cn('text-xs text-muted-foreground transition-transform duration-200', expanded ? '' : '-rotate-90')}
         >
           ▼
         </span>

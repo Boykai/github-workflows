@@ -6,6 +6,7 @@
 import { ChevronDown, Sparkles } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import type { AIModel, PipelineModelOverride } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface PipelineModelDropdownProps {
   models: AIModel[];
@@ -63,7 +64,7 @@ export function PipelineModelDropdown({
           {displayLabel}
         </span>
         <ChevronDown
-          className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={cn('h-3.5 w-3.5 text-muted-foreground transition-transform', isOpen ? 'rotate-180' : '')}
         />
       </button>
 
@@ -77,9 +78,7 @@ export function PipelineModelDropdown({
                 onModelChange({ mode: 'auto', modelId: '', modelName: '' });
                 setIsOpen(false);
               }}
-              className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-primary/10 ${
-                currentOverride.mode === 'auto' ? 'bg-primary/10 text-primary' : ''
-              }`}
+              className={cn('flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-primary/10', currentOverride.mode === 'auto' ? 'bg-primary/10 text-primary' : '')}
             >
               <Sparkles className="h-3.5 w-3.5" />
               Auto
@@ -101,11 +100,9 @@ export function PipelineModelDropdown({
                       onModelChange({ mode: 'specific', modelId: model.id, modelName: model.name });
                       setIsOpen(false);
                     }}
-                    className={`flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-primary/10 ${
-                      currentOverride.mode === 'specific' && currentOverride.modelId === model.id
+                    className={cn('flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm transition-colors hover:bg-primary/10', currentOverride.mode === 'specific' && currentOverride.modelId === model.id
                         ? 'bg-primary/10 text-primary'
-                        : ''
-                    }`}
+                        : '')}
                   >
                     {model.name}
                   </button>

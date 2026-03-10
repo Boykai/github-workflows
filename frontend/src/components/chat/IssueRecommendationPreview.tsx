@@ -9,6 +9,7 @@
 import { useState } from 'react';
 import { CheckCircle2, CircleAlert, FilePenLine, BarChart3, XCircle } from 'lucide-react';
 import type { IssueCreateActionData, WorkflowResult } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface IssueRecommendationPreviewProps {
   recommendation: IssueCreateActionData;
@@ -197,7 +198,7 @@ export function IssueRecommendationPreview({
                 Priority
               </span>
               <span
-                className={`text-sm font-medium ${recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-600 dark:text-orange-400 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground'}`}
+                className={cn('text-sm font-medium', recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-600 dark:text-orange-400 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}
               >
                 {recommendation.metadata.priority || 'P2'}
               </span>
