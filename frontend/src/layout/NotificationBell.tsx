@@ -6,6 +6,7 @@ import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
 import type { Notification } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface NotificationBellProps {
   notifications: Notification[];
@@ -103,12 +104,10 @@ export function NotificationBell({
                 notifications.map((n) => (
                   <div
                     key={n.id}
-                    className={`flex items-start gap-3 border-b border-border/60 px-4 py-3 text-sm transition-colors last:border-0 hover:bg-background/20 ${
-                      n.read ? 'opacity-60' : ''
-                    }`}
+                    className={cn('flex items-start gap-3 border-b border-border/60 px-4 py-3 text-sm transition-colors last:border-0 hover:bg-background/20', n.read ? 'opacity-60' : '')}
                   >
                     <span
-                      className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-transparent' : 'bg-primary'}`}
+                      className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', n.read ? 'bg-transparent' : 'bg-primary')}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground truncate">{n.title}</p>

@@ -21,6 +21,7 @@ import {
   useDismissBanner,
 } from '@/hooks/useSettings';
 import type { SignalNotificationMode } from '@/types';
+import { cn } from '@/lib/utils';
 
 // ── Sub-components ──
 
@@ -65,9 +66,9 @@ function ConnectionStatusBadge({ status }: { status: string | null }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] shadow-sm ${c.bg} ${c.text} ${c.border ?? 'border-transparent'}`}
+      className={cn('inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.12em] shadow-sm', c.bg, c.text, c.border ?? 'border-transparent')}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
+      <span className={cn('w-1.5 h-1.5 rounded-full', c.dot)} />
       {c.label}
     </span>
   );
@@ -162,13 +163,9 @@ function NotificationPreferenceSelector() {
           <label
             key={opt.value}
             htmlFor={`signal-notification-${opt.value}`}
-            className={`flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors
-              ${
-                preferences.notification_mode === opt.value
+            className={cn('flex items-start gap-3 rounded-md border p-3 cursor-pointer transition-colors', preferences.notification_mode === opt.value
                   ? 'border-primary/45 bg-primary/10 shadow-sm'
-                  : 'border-border bg-background/54 hover:border-primary/40 hover:bg-primary/8'
-              }
-              ${isPending ? 'opacity-60 pointer-events-none' : ''}`}
+                  : 'border-border bg-background/54 hover:border-primary/40 hover:bg-primary/8', isPending ? 'opacity-60 pointer-events-none' : '')}
           >
             <input
               id={`signal-notification-${opt.value}`}

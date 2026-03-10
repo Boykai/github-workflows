@@ -86,11 +86,9 @@ export function ProjectSelector({
                 onSelectProject(project.project_id);
                 onClose();
               }}
-              className={`flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10 ${
-                project.project_id === selectedProjectId
+              className={cn('flex w-full items-center gap-3 px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10', project.project_id === selectedProjectId
                   ? 'bg-primary/10 text-primary'
-                  : 'text-foreground'
-              }`}
+                  : 'text-foreground')}
             >
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary/15 text-xs font-bold text-primary">
                 {project.name.charAt(0).toUpperCase()}

@@ -18,7 +18,7 @@ from src.constants import (
     GITHUB_ISSUE_BODY_MAX_LENGTH,
     with_blocking_label,
 )
-from src.dependencies import get_connection_manager, get_github_service
+from src.dependencies import get_connection_manager, get_github_service, require_selected_project
 from src.exceptions import NotFoundError, ValidationError
 from src.middleware.rate_limit import limiter
 from src.models.chat import (
@@ -93,9 +93,8 @@ _BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 
 async def _resolve_repository(session: UserSession) -> tuple[str, str]:
     """Resolve repository owner and name for issue creation."""
-    if not session.selected_project_id:
-        raise ValidationError("No project selected")
-    return await resolve_repository(session.access_token, session.selected_project_id)
+    project_id = require_selected_project(session)
+    return await resolve_repository(session.access_token, project_id)
 
 
 def get_session_messages(session_id: UUID) -> list[ChatMessage]:
@@ -171,10 +170,7 @@ async def send_message(
 ) -> ChatMessage:
     """Send a chat message and get AI response."""
     # Require project selection
-    if not session.selected_project_id:
-        raise ValidationError("Please select a project first")
-
-    selected_project_id = session.selected_project_id
+    selected_project_id = require_selected_project(session)
 
     # Validate pipeline_id if provided
     if chat_request.pipeline_id:
@@ -306,8 +302,8 @@ async def send_message(
                 if _pipeline_cfg and _pipeline_cfg.blocking:
                     is_blocking = True
                     logger.debug("is_blocking resolved from pipeline default: True")
-        except Exception:
-            logger.debug("Pipeline blocking resolution failed for chat request")
+        except Exception as e:
+            logger.debug("Pipeline blocking resolution failed for chat request: %s", e)
 
     # ──────────────────────────────────────────────────────────────────
     # PRIORITY 1: Check if this is a feature request (T013, T014)
@@ -898,8 +894,8 @@ async def confirm_proposal(
                         issue_number,
                     )
                     return proposal
-            except Exception:
-                logger.debug("Blocking queue enqueue skipped in confirm_proposal")
+            except Exception as e:
+                logger.debug("Blocking queue enqueue skipped in confirm_proposal: %s", e)
 
             await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 

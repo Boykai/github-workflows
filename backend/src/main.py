@@ -65,10 +65,11 @@ async def _auto_start_copilot_polling() -> bool:
                     owner, repo = await resolve_repository(
                         session.access_token, session.selected_project_id
                     )
-                except Exception:
+                except Exception as e:
                     logger.warning(
-                        "Could not resolve repo for project %s — trying webhook token fallback",
+                        "Could not resolve repo for project %s — trying webhook token fallback: %s",
                         session.selected_project_id,
+                        e,
                     )
                 else:
                     started = await ensure_polling_started(
@@ -199,17 +200,18 @@ async def _polling_watchdog_loop() -> None:
                     if restarted:
                         logger.info("Polling watchdog: polling loop restarted successfully")
                     consecutive_failures = 0
-                except Exception:
+                except Exception as e:
                     consecutive_failures += 1
                     logger.exception(
-                        "Polling watchdog: restart attempt #%d failed",
+                        "Polling watchdog: restart attempt #%d failed: %s",
                         consecutive_failures,
+                        e,
                     )
         except asyncio.CancelledError:
             logger.debug("Polling watchdog task cancelled")
             break
-        except Exception:
-            logger.exception("Unexpected error in polling watchdog")
+        except Exception as e:
+            logger.exception("Unexpected error in polling watchdog: %s", e)
         finally:
             request_id_var.reset(token)
 
@@ -250,11 +252,12 @@ async def _session_cleanup_loop() -> None:
         except asyncio.CancelledError:
             logger.debug("Session cleanup task cancelled")
             break
-        except Exception:
+        except Exception as e:
             consecutive_failures += 1
             logger.exception(
-                "Error in session cleanup task (consecutive_failures=%d)",
+                "Error in session cleanup task (consecutive_failures=%d): %s",
                 consecutive_failures,
+                e,
             )
         finally:
             request_id_var.reset(token)
@@ -329,8 +332,8 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         # Auto-resume Copilot polling so agent pipelines survive restarts
         try:
             await _auto_start_copilot_polling()
-        except Exception:
-            logger.exception("Failed to auto-start Copilot polling (non-fatal)")
+        except Exception as e:
+            logger.exception("Failed to auto-start Copilot polling (non-fatal): %s", e)
 
         # Start polling watchdog — restarts polling if it stops unexpectedly.
         # This is the primary guarantee that the agent pipeline "always recovers".
@@ -363,8 +366,8 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 
             if get_polling_status()["is_running"]:
                 stop_polling()
-        except Exception:
-            logger.warning("Error stopping Copilot polling during shutdown", exc_info=True)
+        except Exception as e:
+            logger.warning("Error stopping Copilot polling during shutdown: %s", e, exc_info=True)
 
         if db is not None:
             await close_database()
@@ -384,19 +387,12 @@ def create_app() -> FastAPI:
         redoc_url="/api/redoc" if settings.enable_docs else None,
     )
 
-    # CORS middleware
-    # TODO(bug-bash): allow_methods=["*"] and allow_headers=["*"] are more
-    # permissive than necessary. Restricting to the actual methods/headers
-    # used by the frontend (GET, POST, PUT, PATCH, DELETE + specific headers)
-    # would reduce attack surface. Options: (1) enumerate explicit methods
-    # and headers, (2) keep wildcards since origins are already validated.
-    # Human decision needed: tightening may break existing integrations or
-    # preflight requests for custom headers.
+    # CORS middleware — explicit methods reduce attack surface.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 

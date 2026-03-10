@@ -67,8 +67,8 @@ async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
             admin_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
         return admin_id is not None and str(admin_id) == str(github_user_id)
-    except Exception:
-        logger.warning("Admin check failed — denying access", exc_info=True)
+    except Exception as e:
+        logger.warning("Admin check failed — denying access: %s", e, exc_info=True)
         return False
 
 
@@ -724,8 +724,8 @@ async def _execute_creation_pipeline(
                     (issue_number, agent_config_id),
                 )
                 await db.commit()
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed error: %s", e)
     except Exception as exc:
         logger.error("Step 4 (create issue) failed: %s", exc)
         results.append(
@@ -765,8 +765,8 @@ async def _execute_creation_pipeline(
                         (branch_name, agent_config_id),
                     )
                     await db.commit()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed error: %s", e)
         else:
             results.append(
                 PipelineStepResult(
@@ -874,8 +874,8 @@ async def _execute_creation_pipeline(
                             (pr_number, agent_config_id),
                         )
                         await db.commit()
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Suppressed error: %s", e)
             else:
                 results.append(
                     PipelineStepResult(
@@ -1092,8 +1092,8 @@ async def _handle_project_selection(
                 owner, repo = await _resolve_owner_repo(access_token, project["id"])
                 state.owner = owner
                 state.repo = repo
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed error: %s", e)
 
             return await _resolve_status_step(
                 state=state,

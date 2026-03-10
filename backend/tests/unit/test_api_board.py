@@ -213,3 +213,291 @@ class TestBoardErrorSanitization:
         assert resp.status_code == 404
         body = resp.json()
         assert "ATTACKER_CONTROLLED_ID" not in str(body)
+
+
+# ── POST /board/projects/{project_id}/blocking-queue/{issue_number}/skip ───
+
+
+class TestSkipBlockingIssue:
+    """Tests for the skip endpoint — must dispatch agents for activated issues."""
+
+    async def test_skip_dispatches_agents_for_activated_issues(self, client, mock_github_service):
+        """When mark_completed activates pending issues, the skip endpoint
+        must fire a background task to assign agents for each activated issue."""
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+
+        skipped_entry = BlockingQueueEntry(
+            id=1,
+            repo_key="owner/repo",
+            issue_number=100,
+            project_id="PVT_abc",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.ACTIVE,
+            created_at="2026-01-01T00:00:00Z",
+        )
+        activated_entry = BlockingQueueEntry(
+            id=2,
+            repo_key="owner/repo",
+            issue_number=200,
+            project_id="PVT_abc",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.ACTIVE,
+            created_at="2026-01-01T00:01:00Z",
+            activated_at="2026-01-01T00:02:00Z",
+        )
+        updated_entries = [activated_entry]
+
+        with (
+            patch(
+                "src.api.board._resolve_queue_entry",
+                return_value=skipped_entry,
+            ),
+            patch(
+                "src.services.blocking_queue.mark_completed",
+                return_value=[activated_entry],
+            ) as mock_mark,
+            patch(
+                "src.services.blocking_queue_store.get_by_project",
+                return_value=updated_entries,
+            ),
+            patch("src.api.board._dispatch_agents_for_activated") as mock_dispatch,
+        ):
+            resp = await client.post("/api/v1/board/projects/PVT_abc/blocking-queue/100/skip")
+
+            assert resp.status_code == 200
+            mock_mark.assert_awaited_once_with("owner/repo", 100)
+            # _dispatch_agents_for_activated should have been called via create_task
+            # Since we patched _dispatch_agents_for_activated, verify the args
+            # passed to asyncio.create_task by checking the mock was scheduled.
+            # The patched version is a regular function, so create_task wraps
+            # its return value.  We verify the dispatch was invoked.
+            mock_dispatch.assert_called_once()
+
+    async def test_skip_no_activation_does_not_dispatch(self, client, mock_github_service):
+        """When mark_completed returns no activated issues, no dispatch occurs."""
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+
+        skipped_entry = BlockingQueueEntry(
+            id=1,
+            repo_key="owner/repo",
+            issue_number=100,
+            project_id="PVT_abc",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.ACTIVE,
+            created_at="2026-01-01T00:00:00Z",
+        )
+
+        with (
+            patch("src.api.board._resolve_queue_entry", return_value=skipped_entry),
+            patch("src.services.blocking_queue.mark_completed", return_value=[]),
+            patch("src.services.blocking_queue_store.get_by_project", return_value=[]),
+            patch("src.api.board._dispatch_agents_for_activated") as mock_dispatch,
+        ):
+            resp = await client.post("/api/v1/board/projects/PVT_abc/blocking-queue/100/skip")
+
+            assert resp.status_code == 200
+            mock_dispatch.assert_not_called()
+
+    async def test_skip_entry_not_found_returns_404(self, client, mock_github_service):
+        """Skip returns 404 when the issue is not in the blocking queue."""
+        with patch(
+            "src.services.blocking_queue_store.get_by_project",
+            return_value=[],
+        ):
+            resp = await client.post("/api/v1/board/projects/PVT_abc/blocking-queue/999/skip")
+            assert resp.status_code == 404
+
+
+# ── DELETE /board/projects/{project_id}/blocking-queue/{issue_number} ──────
+
+
+class TestDeleteBlockingIssue:
+    """Tests for the delete endpoint — must dispatch agents for activated issues."""
+
+    async def test_delete_dispatches_agents_for_activated_issues(self, client, mock_github_service):
+        """When delete closes the issue and mark_completed activates pending
+        issues, the delete endpoint must dispatch agents."""
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+
+        entry = BlockingQueueEntry(
+            id=1,
+            repo_key="owner/repo",
+            issue_number=100,
+            project_id="PVT_abc",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.ACTIVE,
+            created_at="2026-01-01T00:00:00Z",
+        )
+        activated_entry = BlockingQueueEntry(
+            id=2,
+            repo_key="owner/repo",
+            issue_number=200,
+            project_id="PVT_abc",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.ACTIVE,
+            created_at="2026-01-01T00:01:00Z",
+            activated_at="2026-01-01T00:02:00Z",
+        )
+
+        mock_github_service.update_issue_state.return_value = True
+
+        with (
+            patch("src.api.board._resolve_queue_entry", return_value=entry),
+            patch(
+                "src.services.blocking_queue.mark_completed",
+                return_value=[activated_entry],
+            ),
+            patch("src.services.blocking_queue_store.get_by_project", return_value=[]),
+            patch("src.api.board._dispatch_agents_for_activated") as mock_dispatch,
+        ):
+            resp = await client.delete("/api/v1/board/projects/PVT_abc/blocking-queue/100")
+
+            assert resp.status_code == 200
+            mock_dispatch.assert_called_once()
+
+    async def test_delete_github_close_failure_returns_502(self, client, mock_github_service):
+        """If the GitHub issue can't be closed, return 502 without touching the queue."""
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+
+        entry = BlockingQueueEntry(
+            id=1,
+            repo_key="owner/repo",
+            issue_number=100,
+            project_id="PVT_abc",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.ACTIVE,
+            created_at="2026-01-01T00:00:00Z",
+        )
+
+        mock_github_service.update_issue_state.return_value = False
+
+        with (
+            patch("src.api.board._resolve_queue_entry", return_value=entry),
+            patch("src.services.blocking_queue.mark_completed") as mock_mark,
+        ):
+            resp = await client.delete("/api/v1/board/projects/PVT_abc/blocking-queue/100")
+
+            assert resp.status_code == 502
+            mock_mark.assert_not_awaited()
+
+
+# ── _dispatch_agents_for_activated ─────────────────────────────────────────
+
+
+class TestDispatchAgentsForActivated:
+    """Unit tests for the background dispatch helper."""
+
+    async def test_assigns_first_agent_for_each_activated_issue(self):
+        """Dispatch should call assign_agent_for_status for each activated
+        issue found on the project board."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        from src.api.board import _dispatch_agents_for_activated
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+
+        activated = [
+            BlockingQueueEntry(
+                id=2,
+                repo_key="owner/repo",
+                issue_number=200,
+                project_id="PVT_abc",
+                is_blocking=True,
+                queue_status=BlockingQueueStatus.ACTIVE,
+                created_at="2026-01-01T00:00:00Z",
+            ),
+        ]
+
+        mock_task = MagicMock()
+        mock_task.issue_number = 200
+        mock_task.github_content_id = "I_node200"
+        mock_task.github_item_id = "PVTI_200"
+        mock_task.status = "Backlog"
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+
+        with (
+            patch(
+                "src.api.board.github_projects_service.get_project_items",
+                new_callable=AsyncMock,
+                return_value=[mock_task],
+            ),
+            patch(
+                "src.services.copilot_polling.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=MagicMock(),
+            ),
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_orchestrator",
+                return_value=mock_orchestrator,
+            ),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+            ) as mock_polling,
+        ):
+            await _dispatch_agents_for_activated(
+                access_token="test-token",
+                project_id="PVT_abc",
+                activated=activated,
+            )
+
+            mock_orchestrator.assign_agent_for_status.assert_awaited_once()
+            call_args = mock_orchestrator.assign_agent_for_status.call_args
+            ctx = call_args[0][0]
+            assert ctx.issue_number == 200
+            assert ctx.issue_id == "I_node200"
+            assert ctx.project_item_id == "PVTI_200"
+            assert call_args[0][1] == "Backlog"  # status_name
+            assert call_args[1]["agent_index"] == 0
+            mock_polling.assert_awaited_once()
+
+    async def test_skips_issues_not_on_board(self):
+        """Issues not found on the board are skipped — recovery handles them."""
+        from unittest.mock import AsyncMock, MagicMock
+
+        from src.api.board import _dispatch_agents_for_activated
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+
+        activated = [
+            BlockingQueueEntry(
+                id=2,
+                repo_key="owner/repo",
+                issue_number=999,
+                project_id="PVT_abc",
+                is_blocking=True,
+                queue_status=BlockingQueueStatus.ACTIVE,
+                created_at="2026-01-01T00:00:00Z",
+            ),
+        ]
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+
+        with (
+            patch(
+                "src.api.board.github_projects_service.get_project_items",
+                new_callable=AsyncMock,
+                return_value=[],  # No tasks on board
+            ),
+            patch(
+                "src.services.copilot_polling.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=MagicMock(),
+            ),
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_orchestrator",
+                return_value=mock_orchestrator,
+            ),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+            ),
+        ):
+            await _dispatch_agents_for_activated(
+                access_token="test-token",
+                project_id="PVT_abc",
+                activated=activated,
+            )
+
+            mock_orchestrator.assign_agent_for_status.assert_not_awaited()

@@ -25,6 +25,7 @@ import { AgentColumnCell } from './AgentColumnCell';
 import { AgentDragOverlay } from './AgentDragOverlay';
 import { AgentSaveBar } from './AgentSaveBar';
 import { useAgentConfig } from '@/hooks/useAgentConfig';
+import { cn } from '@/lib/utils';
 
 function AgentPipelineSigil() {
   return (
@@ -303,35 +304,33 @@ export function AgentConfigRow({
   if (!isLoaded) {
     return (
       <div
-        className={`celestial-panel flex flex-col border border-border/60 ${isCompact ? 'rounded-[1rem]' : 'rounded-[1.2rem]'}`}
+        className={cn('celestial-panel flex flex-col border border-border/60', isCompact ? 'rounded-[1rem]' : 'rounded-[1.2rem]')}
       >
         <div
-          className={`flex items-center gap-2 border-b border-border/40 bg-background/38 ${isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2'}`}
+          className={cn('flex items-center gap-2 border-b border-border/40 bg-background/38', isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2')}
         >
           <span
-            className={`flex items-center gap-2 font-semibold text-foreground ${isCompact ? 'text-xs uppercase tracking-[0.18em]' : 'text-sm'}`}
+            className={cn('flex items-center gap-2 font-semibold text-foreground', isCompact ? 'text-xs uppercase tracking-[0.18em]' : 'text-sm')}
           >
             <AgentPipelineSigil />
             {title}
           </span>
           {workflowEnabled !== null && (
             <span
-              className={`ml-2 rounded-full px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm ${
-                workflowEnabled
+              className={cn('ml-2 rounded-full px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm', workflowEnabled
                   ? 'solar-chip-success'
-                  : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
-              }`}
+                  : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300')}
             >
               {workflowEnabled ? 'Workflow enabled' : 'Workflow disabled'}
             </span>
           )}
         </div>
         <div className={isCompact ? 'p-1.5' : 'p-2'}>
-          <div className={`flex overflow-x-auto ${isCompact ? 'gap-2 pb-1' : 'gap-4 pb-2'}`}>
+          <div className={cn('flex overflow-x-auto', isCompact ? 'gap-2 pb-1' : 'gap-4 pb-2')}>
             {columns.map((col) => (
               <div
                 key={col.status.option_id}
-                className={`flex flex-1 flex-col border border-border/60 animate-pulse ${isCompact ? 'min-w-[220px] max-w-[280px] gap-1.5 rounded-[1rem] p-1.5' : 'min-w-[300px] max-w-[350px] gap-2 rounded-[1.2rem] p-2'}`}
+                className={cn('flex flex-1 flex-col border border-border/60 animate-pulse', isCompact ? 'min-w-[220px] max-w-[280px] gap-1.5 rounded-[1rem] p-1.5' : 'min-w-[300px] max-w-[350px] gap-2 rounded-[1.2rem] p-2')}
               >
                 <div className="h-10 bg-muted rounded-md w-full" />
               </div>
@@ -344,14 +343,14 @@ export function AgentConfigRow({
 
   return (
     <div
-      className={`celestial-panel relative flex flex-col border border-border/60 ${isCompact ? 'rounded-[1rem] bg-[radial-gradient(circle_at_50%_-10%,hsl(var(--glow)/0.12),transparent_26%),linear-gradient(180deg,hsl(var(--background)/0.58),hsl(var(--background)/0.78))]' : 'rounded-[1.2rem]'}`}
+      className={cn('celestial-panel relative flex flex-col border border-border/60', isCompact ? 'rounded-[1rem] bg-[radial-gradient(circle_at_50%_-10%,hsl(var(--glow)/0.12),transparent_26%),linear-gradient(180deg,hsl(var(--background)/0.58),hsl(var(--background)/0.78))]' : 'rounded-[1.2rem]')}
     >
       {/* Header with toggle and presets */}
       <div
-        className={`flex items-center gap-2 border-b border-border/40 bg-background/38 ${isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2'}`}
+        className={cn('flex items-center gap-2 border-b border-border/40 bg-background/38', isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2')}
       >
         <button
-          className={`solar-action flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground ${isCompact ? 'h-5 w-5 text-xs' : 'h-6 w-6'}`}
+          className={cn('solar-action flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground', isCompact ? 'h-5 w-5 text-xs' : 'h-6 w-6')}
           onClick={() => setIsExpanded(!isExpanded)}
           title={isExpanded ? 'Collapse agent row' : 'Expand agent row'}
           type="button"
@@ -359,18 +358,16 @@ export function AgentConfigRow({
           {isExpanded ? '▾' : '▸'}
         </button>
         <span
-          className={`flex items-center gap-2 font-semibold text-foreground ${isCompact ? 'text-[11px] uppercase tracking-[0.18em]' : 'text-sm'}`}
+          className={cn('flex items-center gap-2 font-semibold text-foreground', isCompact ? 'text-[11px] uppercase tracking-[0.18em]' : 'text-sm')}
         >
           <AgentPipelineSigil />
           {title}
         </span>
         {workflowEnabled !== null && (
           <span
-            className={`ml-2 rounded-full px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm ${
-              workflowEnabled
+            className={cn('ml-2 rounded-full px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm', workflowEnabled
                 ? 'solar-chip-success'
-                : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300'
-            }`}
+                : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300')}
           >
             {workflowEnabled ? 'Workflow enabled' : 'Workflow disabled'}
           </span>
@@ -391,7 +388,7 @@ export function AgentConfigRow({
           >
             <div className="overflow-x-auto">
               <div
-                className={`relative grid min-w-full items-start ${isCompact ? 'gap-2 px-2 pb-1' : 'gap-3 px-2 pb-2'}`}
+                className={cn('relative grid min-w-full items-start', isCompact ? 'gap-2 px-2 pb-1' : 'gap-3 px-2 pb-2')}
                 style={{
                   gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(${isCompact ? '12rem' : '14rem'}, 1fr))`,
                 }}

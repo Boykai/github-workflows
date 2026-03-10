@@ -14,6 +14,7 @@ import { ChoreChatFlow } from './ChoreChatFlow';
 import { ConfirmChoreModal } from './ConfirmChoreModal';
 import { PipelineSelector } from './PipelineSelector';
 import type { ChoreTemplate } from '@/types';
+import { cn } from '@/lib/utils';
 
 interface AddChoreModalProps {
   projectId: string;
@@ -91,7 +92,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
 
   if (!isOpen) return null;
 
-  const createChore = async (choreName: string, content: string) => {
+  const createChore = async (_choreName: string, content: string) => {
     // Show double-confirmation modal
     setPendingContent(content);
     setShowConfirm(true);
@@ -311,16 +312,12 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
             <button
               type="button"
               onClick={() => setAiEnhance(!aiEnhance)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                aiEnhance ? 'bg-primary' : 'bg-muted-foreground/30'
-              }`}
+              className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', aiEnhance ? 'bg-primary' : 'bg-muted-foreground/30')}
               role="switch"
               aria-checked={aiEnhance}
             >
               <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  aiEnhance ? 'translate-x-6' : 'translate-x-1'
-                }`}
+                className={cn('inline-block h-4 w-4 transform rounded-full bg-white transition-transform', aiEnhance ? 'translate-x-6' : 'translate-x-1')}
               />
             </button>
           </div>

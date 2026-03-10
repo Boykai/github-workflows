@@ -211,8 +211,8 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
                 try:
                     await _persist_workflow_config_to_db(project_id, config)
                     logger.info("Backfilled workflow_config column for project %s", project_id)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed error: %s", e)
                 return config
 
             # Fallback: if no __workflow__ row exists, check for any user's
@@ -246,8 +246,8 @@ async def _load_workflow_config_from_db(project_id: str) -> WorkflowConfiguratio
                         "Backfilled workflow_config from user row for project %s",
                         project_id,
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Suppressed error: %s", e)
                 return config
 
             return None
