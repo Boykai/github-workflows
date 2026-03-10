@@ -140,6 +140,12 @@ export const tooltipContent: Record<string, TooltipEntry> = {
     summary:
       'Assign an agent to this pipeline stage. Adding another agent to a populated stage groups them together so they can run side by side.',
   },
+  'pipeline.agent.parallelHint': {
+    summary: 'These agents run at the same time.',
+  },
+  'pipeline.agent.sequentialHint': {
+    summary: 'This agent runs after the previous completes.',
+  },
   'pipeline.board.addStageButton': {
     summary:
       'Add a new stage to the pipeline. Stages define the sequential workflow that items move through.',

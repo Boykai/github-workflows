@@ -26,9 +26,9 @@
 
 **Purpose**: Establish the shared stage-execution contract and seed data every later story depends on.
 
-- [ ] T001 Add the `execution_mode` field and validation for `PipelineStage` in `backend/src/models/pipeline.py`
-- [ ] T002 [P] Mirror `PipelineStage.execution_mode` in `frontend/src/types/index.ts`
-- [ ] T003 [P] Add explicit sequential `execution_mode` values for built-in pipeline stage definitions in `backend/src/services/pipelines/service.py` and `frontend/src/data/preset-pipelines.ts`
+- [x] T001 Add the `execution_mode` field and validation for `PipelineStage` in `backend/src/models/pipeline.py`
+- [x] T002 [P] Mirror `PipelineStage.execution_mode` in `frontend/src/types/index.ts`
+- [x] T003 [P] Add explicit sequential `execution_mode` values for built-in pipeline stage definitions in `backend/src/services/pipelines/service.py` and `frontend/src/data/preset-pipelines.ts`
 
 **Checkpoint**: Backend and frontend agree on the stage shape used by saved pipelines, preset pipelines, and future runtime updates.
 
@@ -40,10 +40,10 @@
 
 **⚠️ CRITICAL**: No user story work should begin until create/edit flows, runtime state, and stage-mode normalization all understand sequential vs. parallel stages.
 
-- [ ] T004 Normalize missing, invalid, or single-agent `execution_mode` values during pipeline load/save in `backend/src/services/pipelines/service.py`
-- [ ] T005 [P] Extend stage-to-status mapping and runtime pipeline state for parallel metadata in `backend/src/services/workflow_orchestrator/config.py` and `backend/src/services/workflow_orchestrator/models.py`
-- [ ] T006 [P] Add stage-mode setters, add/remove-agent normalization, and save-ready transforms in `frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T007 [P] Thread stage-level execution-mode state through `frontend/src/pages/AgentsPipelinePage.tsx` and `frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T004 Normalize missing, invalid, or single-agent `execution_mode` values during pipeline load/save in `backend/src/services/pipelines/service.py`
+- [x] T005 [P] Extend stage-to-status mapping and runtime pipeline state for parallel metadata in `backend/src/services/workflow_orchestrator/config.py` and `backend/src/services/workflow_orchestrator/models.py`
+- [x] T006 [P] Add stage-mode setters, add/remove-agent normalization, and save-ready transforms in `frontend/src/hooks/usePipelineConfig.ts`
+- [x] T007 [P] Thread stage-level execution-mode state through `frontend/src/pages/AgentsPipelinePage.tsx` and `frontend/src/components/pipeline/PipelineBoard.tsx`
 
 **Checkpoint**: The application can store, normalize, and propagate stage execution mode without changing user-visible behavior yet.
 
@@ -57,9 +57,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Add an "Add Parallel Agent" affordance and same-stage grouping interactions in `frontend/src/components/pipeline/StageCard.tsx`
-- [ ] T009 [P] [US1] Create `frontend/src/components/pipeline/ParallelStageGroup.tsx` to render multiple agents inside one shared stage container
-- [ ] T010 [US1] Persist grouped-stage create/edit saves and reloads in `frontend/src/pages/AgentsPipelinePage.tsx` and `frontend/src/hooks/usePipelineConfig.ts`
+- [x] T008 [US1] Add an "Add Parallel Agent" affordance and same-stage grouping interactions in `frontend/src/components/pipeline/StageCard.tsx`
+- [x] T009 [P] [US1] Create `frontend/src/components/pipeline/ParallelStageGroup.tsx` to render multiple agents inside one shared stage container
+- [x] T010 [US1] Persist grouped-stage create/edit saves and reloads in `frontend/src/pages/AgentsPipelinePage.tsx` and `frontend/src/hooks/usePipelineConfig.ts`
 
 **Checkpoint**: Users can configure and save a parallel stage from the pipeline editor. This is the editing MVP.
 
@@ -73,9 +73,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Dispatch agents in `execution_mode == "parallel"` stages concurrently with a barrier join in `backend/src/services/copilot_polling/pipeline.py`
-- [ ] T012 [US2] Preserve existing sequential execution for default and single-agent stages while mapping multi-agent stages correctly in `backend/src/services/copilot_polling/pipeline.py` and `backend/src/services/workflow_orchestrator/config.py`
-- [ ] T013 [US2] Ensure parallel stage definitions round-trip through pipeline launch and CRUD surfaces in `backend/src/services/pipelines/service.py` and `backend/src/api/pipelines.py`
+- [x] T011 [US2] Dispatch agents in `execution_mode == "parallel"` stages concurrently with a barrier join in `backend/src/services/copilot_polling/pipeline.py`
+- [x] T012 [US2] Preserve existing sequential execution for default and single-agent stages while mapping multi-agent stages correctly in `backend/src/services/copilot_polling/pipeline.py` and `backend/src/services/workflow_orchestrator/config.py`
+- [x] T013 [US2] Ensure parallel stage definitions round-trip through pipeline launch and CRUD surfaces in `backend/src/services/pipelines/service.py` and `backend/src/api/pipelines.py`
 
 **Checkpoint**: Parallel stages now have real runtime meaning and remain backward-compatible with sequential pipelines.
 
@@ -89,9 +89,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Add shared parallel-stage styling, label, and icon treatment in `frontend/src/components/pipeline/ParallelStageGroup.tsx` and `frontend/src/components/pipeline/StageCard.tsx`
-- [ ] T015 [P] [US3] Render connector lines only between stage groups in `frontend/src/components/pipeline/PipelineBoard.tsx`
-- [ ] T016 [P] [US3] Add sequential-vs-parallel hover copy and tooltip wiring in `frontend/src/components/pipeline/AgentNode.tsx` and `frontend/src/components/pipeline/StageCard.tsx`
+- [x] T014 [US3] Add shared parallel-stage styling, label, and icon treatment in `frontend/src/components/pipeline/ParallelStageGroup.tsx` and `frontend/src/components/pipeline/StageCard.tsx`
+- [x] T015 [P] [US3] Render connector lines only between stage groups in `frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T016 [P] [US3] Add sequential-vs-parallel hover copy and tooltip wiring in `frontend/src/components/pipeline/AgentNode.tsx` and `frontend/src/components/pipeline/StageCard.tsx`
 
 **Checkpoint**: Builders can visually distinguish parallel and sequential execution without opening additional controls.
 
@@ -105,9 +105,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T017 [US4] Track per-agent running/completed/failed outcomes and failed agent IDs for parallel stages in `backend/src/services/copilot_polling/pipeline.py` and `backend/src/services/workflow_orchestrator/models.py`
-- [ ] T018 [US4] Stop pipeline advancement and mark the stage failed whenever any parallel agent fails in `backend/src/services/copilot_polling/pipeline.py`
-- [ ] T019 [US4] Surface failed parallel stages and highlight failed sibling agents in `frontend/src/components/pipeline/AgentNode.tsx` and `frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T017 [US4] Track per-agent running/completed/failed outcomes and failed agent IDs for parallel stages in `backend/src/services/copilot_polling/pipeline.py` and `backend/src/services/workflow_orchestrator/models.py`
+- [x] T018 [US4] Stop pipeline advancement and mark the stage failed whenever any parallel agent fails in `backend/src/services/copilot_polling/pipeline.py`
+- [x] T019 [US4] Surface failed parallel stages and highlight failed sibling agents in `frontend/src/components/pipeline/AgentNode.tsx` and `frontend/src/components/pipeline/PipelineBoard.tsx`
 
 **Checkpoint**: Parallel failures are deterministic, visible, and do not allow later stages to start.
 
@@ -121,8 +121,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T020 [US5] Auto-revert parallel stages to sequential when removals leave fewer than two agents in `frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T021 [US5] Add remove and move-out controls for parallel siblings, including empty-stage cleanup, in `frontend/src/components/pipeline/StageCard.tsx` and `frontend/src/components/pipeline/ParallelStageGroup.tsx`
+- [x] T020 [US5] Auto-revert parallel stages to sequential when removals leave fewer than two agents in `frontend/src/hooks/usePipelineConfig.ts`
+- [x] T021 [US5] Add remove and move-out controls for parallel siblings, including empty-stage cleanup, in `frontend/src/components/pipeline/StageCard.tsx` and `frontend/src/components/pipeline/ParallelStageGroup.tsx`
 
 **Checkpoint**: Users can safely undo parallel grouping from the editor without rebuilding the whole pipeline.
 
@@ -136,9 +136,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T022 [US6] Enable left-to-right sorting for parallel siblings with `rectSortingStrategy` in `frontend/src/components/pipeline/StageCard.tsx`
-- [ ] T023 [US6] Update stage drag-and-drop to move sequential stages and whole parallel groups as units in `frontend/src/components/pipeline/PipelineBoard.tsx`
-- [ ] T024 [US6] Persist reordered stage order and parallel sibling order in `frontend/src/hooks/usePipelineConfig.ts` and `frontend/src/pages/AgentsPipelinePage.tsx`
+- [x] T022 [US6] Enable left-to-right sorting for parallel siblings with `rectSortingStrategy` in `frontend/src/components/pipeline/StageCard.tsx`
+- [x] T023 [US6] Update stage drag-and-drop to move sequential stages and whole parallel groups as units in `frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T024 [US6] Persist reordered stage order and parallel sibling order in `frontend/src/hooks/usePipelineConfig.ts` and `frontend/src/pages/AgentsPipelinePage.tsx`
 
 **Checkpoint**: Builders can restructure mixed pipelines without losing stage grouping semantics.
 
@@ -152,9 +152,9 @@
 
 ### Implementation for User Story 7
 
-- [ ] T025 [US7] Emit per-agent parallel status updates from the runtime pipeline flow in `backend/src/services/copilot_polling/pipeline.py` and `backend/src/services/workflow_orchestrator/models.py`
-- [ ] T026 [P] [US7] Thread parallel agent status payloads through `frontend/src/types/index.ts` and `frontend/src/components/pipeline/PipelineBoard.tsx`
-- [ ] T027 [US7] Render running, completed, and failed indicators for parallel agents in `frontend/src/components/pipeline/AgentNode.tsx`
+- [x] T025 [US7] Emit per-agent parallel status updates from the runtime pipeline flow in `backend/src/services/copilot_polling/pipeline.py` and `backend/src/services/workflow_orchestrator/models.py`
+- [x] T026 [P] [US7] Thread parallel agent status payloads through `frontend/src/types/index.ts` and `frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T027 [US7] Render running, completed, and failed indicators for parallel agents in `frontend/src/components/pipeline/AgentNode.tsx`
 
 **Checkpoint**: Monitoring users can see which agents in a parallel stage are still running and which have already completed or failed.
 
@@ -164,8 +164,8 @@
 
 **Purpose**: Validate the full mixed-execution experience, preserve backward compatibility, and run existing quality gates.
 
-- [ ] T028 [P] Validate the create/edit, runtime, failure, removal, reorder, and status scenarios from `specs/033-parallel-agent-layout/quickstart.md` against `frontend/src/pages/AgentsPipelinePage.tsx` and the backend pipeline services
-- [ ] T029 [P] Run `uv run --extra dev ruff check src/` and `uv run --extra dev pytest tests/unit/ -x` in `backend/`, plus `npm run lint`, `npm run type-check`, `npm run test`, and `npm run build` in `frontend/` after the pipeline changes
+- [x] T028 [P] Validate the create/edit, runtime, failure, removal, reorder, and status scenarios from `specs/033-parallel-agent-layout/quickstart.md` against `frontend/src/pages/AgentsPipelinePage.tsx` and the backend pipeline services
+- [x] T029 [P] Run `uv run --extra dev ruff check src/` and `uv run --extra dev pytest tests/unit/ -x` in `backend/`, plus `npm run lint`, `npm run type-check`, `npm run test`, and `npm run build` in `frontend/` after the pipeline changes
 
 ---
 

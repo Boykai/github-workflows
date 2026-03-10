@@ -56,12 +56,14 @@ function SortableAgentNode({
   onRemove,
   onToolsClick,
   onClone,
+  isParallel,
 }: {
   agent: PipelineAgentNode;
   onModelSelect: (modelId: string, modelName: string) => void;
   onRemove: () => void;
   onToolsClick?: () => void;
   onClone?: () => void;
+  isParallel?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: agent.id,
@@ -74,6 +76,7 @@ function SortableAgentNode({
       onRemove={onRemove}
       onToolsClick={onToolsClick}
       onClone={onClone}
+      isParallel={isParallel}
       setNodeRef={setNodeRef}
       dragHandleListeners={listeners}
       dragHandleAttributes={attributes}
@@ -270,6 +273,7 @@ export function StageCard({
                   <SortableAgentNode
                     key={agent.id}
                     agent={agent}
+                    isParallel
                     onModelSelect={(modelId, modelName) =>
                       onUpdateAgent(agent.id, { model_id: modelId, model_name: modelName })
                     }
