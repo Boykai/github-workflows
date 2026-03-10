@@ -631,8 +631,8 @@ async def list_agents(
                 discovered_agent.slug: len(discovered_agent.tools)
                 for discovered_agent in discovered_agents
             }
-        except Exception:
-            logger.debug("Could not resolve tool counts for workflow agents")
+        except Exception as e:
+            logger.debug("Could not resolve tool counts for workflow agents: %s", e)
 
     if resolved_owner and resolved_repo:
         agent_prefs = await agents_service.get_agent_preferences(session.selected_project_id)

@@ -28,7 +28,7 @@ Usage::
 
     try:
         ...
-    except Exception as e:
+    except Exception:
         handle_service_error(e, "fetch board projects", GitHubAPIError)
 """
 

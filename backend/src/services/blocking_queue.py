@@ -38,8 +38,8 @@ def _get_issue_branch(entry: BlockingQueueEntry) -> str | None:
         main_branch = get_issue_main_branch(entry.issue_number)
         if main_branch and main_branch.get("branch"):
             return str(main_branch["branch"])
-    except Exception:
-        logger.debug("Failed to resolve cached main branch for issue #%d", entry.issue_number)
+    except Exception as e:
+        logger.debug("Failed to resolve cached main branch for issue #%d: %s", entry.issue_number, e)
 
     return entry.parent_branch
 
@@ -393,8 +393,8 @@ async def recover_all_repos() -> None:
                     repo_key,
                     [e.issue_number for e in activated],
                 )
-        except Exception:
-            logger.exception("Recovery failed for repo %s", repo_key)
+        except Exception as e:
+            logger.exception("Recovery failed for repo %s: %s", repo_key, e)
 
 
 async def sweep_stale_entries(
@@ -472,5 +472,5 @@ async def _broadcast_queue_update(
                 "current_base_branch": current_base,
             },
         )
-    except Exception:
-        logger.debug("Failed to broadcast blocking_queue_updated event")
+    except Exception as e:
+        logger.debug("Failed to broadcast blocking_queue_updated event: %s", e)

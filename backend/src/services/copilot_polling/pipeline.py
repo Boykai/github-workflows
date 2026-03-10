@@ -1242,8 +1242,8 @@ async def _transition_after_pipeline_complete(
                             "Failed to activate queued issue #%d",
                             activated_entry.issue_number,
                         )
-        except Exception:
-            logger.debug("Blocking queue mark_completed skipped (not available)")
+        except Exception as e:
+            logger.debug("Blocking queue mark_completed skipped (not available): %s", e)
 
     # When transitioning to "In Review", convert main PR from draft→ready
     # and request Copilot code review on the main PR.
@@ -1279,8 +1279,8 @@ async def _transition_after_pipeline_complete(
                             "Failed to activate queued issue #%d",
                             activated_entry.issue_number,
                         )
-        except Exception:
-            logger.debug("Blocking queue mark_in_review skipped (not available)")
+        except Exception as e:
+            logger.debug("Blocking queue mark_in_review skipped (not available): %s", e)
 
         from .helpers import _discover_main_pr_for_review
 
@@ -1418,8 +1418,8 @@ async def _transition_after_pipeline_complete(
                 )
                 if pr_details and pr_details.get("last_commit", {}).get("sha"):
                     _cp.update_issue_main_branch_sha(issue_number, pr_details["last_commit"]["sha"])
-            except Exception:
-                pass
+            except Exception as e:
+                logger.debug("Suppressed error: %s", e)
         else:
             # Try to find and capture the main branch from existing PRs
             logger.info(
@@ -2100,5 +2100,5 @@ async def _activate_queued_issue(
         await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 
         logger.info("Successfully activated queued issue #%d", issue_number)
-    except Exception:
-        logger.exception("Failed to activate queued issue #%d", issue_number)
+    except Exception as e:
+        logger.exception("Failed to activate queued issue #%d: %s", issue_number, e)

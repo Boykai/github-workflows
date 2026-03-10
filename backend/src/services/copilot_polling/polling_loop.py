@@ -121,8 +121,8 @@ async def poll_for_copilot_completion(
         from src.services import blocking_queue as bq_service
 
         await bq_service.recover_all_repos()
-    except Exception:
-        logger.debug("Blocking queue startup recovery skipped (not available)")
+    except Exception as e:
+        logger.debug("Blocking queue startup recovery skipped (not available): %s", e)
 
     try:
         await _poll_loop(access_token, project_id, owner, repo, interval_seconds)
@@ -354,8 +354,8 @@ async def _poll_loop(
                         len(swept),
                         swept,
                     )
-            except Exception:
-                logger.debug("Blocking queue sweep skipped (not available)")
+            except Exception as e:
+                logger.debug("Blocking queue sweep skipped (not available): %s", e)
 
             # Step 5: Self-healing recovery — detect and fix stalled pipelines
             # Skip if budget is low — recovery is least critical.

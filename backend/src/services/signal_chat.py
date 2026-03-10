@@ -631,8 +631,8 @@ async def _run_ai_pipeline(
             is_feature = await ai_service.detect_feature_request_intent(
                 message_text, github_token=token
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed error: %s", e)
 
         if is_feature:
             rec = await ai_service.generate_issue_recommendation(

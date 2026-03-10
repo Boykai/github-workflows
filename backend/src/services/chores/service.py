@@ -532,8 +532,8 @@ class ChoresService:
                     issue_body = append_tracking_to_body(
                         issue_body, effective_mappings, status_order
                     )
-        except Exception:
-            logger.exception("Failed to append agent tracking table for chore %s", chore.name)
+        except Exception as e:
+            logger.exception("Failed to append agent tracking table for chore %s: %s", chore.name, e)
 
         # Resolve effective blocking flag before issue creation so the parent issue
         # carries the same Blocking label that drives queue behavior.
@@ -552,8 +552,8 @@ class ChoresService:
                     )
                     if pipeline_cfg and pipeline_cfg.blocking:
                         is_blocking = True
-            except Exception:
-                logger.debug("Pipeline blocking check failed for chore %s", chore.id)
+            except Exception as e:
+                logger.debug("Pipeline blocking check failed for chore %s: %s", chore.id, e)
 
         issue = await github_service.create_issue(
             access_token,
@@ -660,8 +660,8 @@ class ChoresService:
                             self._db, github_user_id
                         )
                         user_agent_model = effective_user_settings.ai.agent_model or ""
-                    except Exception:
-                        logger.debug("Failed to load user agent model for chore %s", chore.name)
+                    except Exception as e:
+                        logger.debug("Failed to load user agent model for chore %s: %s", chore.name, e)
 
                 ctx = WorkflowContext(
                     session_id=str(uuid.uuid4()),
@@ -725,8 +725,8 @@ class ChoresService:
                         raise _BlockedIssueSkip()
                 except _BlockedIssueSkip:
                     raise
-                except Exception:
-                    logger.debug("Blocking queue enqueue skipped in chore trigger")
+                except Exception as e:
+                    logger.debug("Blocking queue enqueue skipped in chore trigger: %s", e)
 
                 # Assign first Backlog agent
                 await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
@@ -1007,8 +1007,8 @@ class ChoresService:
                 if pr_number:
                     await self.update_chore_fields(chore_id, pr_number=pr_number, pr_url=pr_url)
                     chore = await self.get_chore(chore_id)
-            except Exception:
-                logger.exception("Failed to create PR for inline update of chore %s", chore_id)
+            except Exception as e:
+                logger.exception("Failed to create PR for inline update of chore %s: %s", chore_id, e)
 
         return {"chore": chore, "pr_number": pr_number, "pr_url": pr_url}
 

@@ -306,8 +306,8 @@ async def send_message(
                 if _pipeline_cfg and _pipeline_cfg.blocking:
                     is_blocking = True
                     logger.debug("is_blocking resolved from pipeline default: True")
-        except Exception:
-            logger.debug("Pipeline blocking resolution failed for chat request")
+        except Exception as e:
+            logger.debug("Pipeline blocking resolution failed for chat request: %s", e)
 
     # ──────────────────────────────────────────────────────────────────
     # PRIORITY 1: Check if this is a feature request (T013, T014)
@@ -898,8 +898,8 @@ async def confirm_proposal(
                         issue_number,
                     )
                     return proposal
-            except Exception:
-                logger.debug("Blocking queue enqueue skipped in confirm_proposal")
+            except Exception as e:
+                logger.debug("Blocking queue enqueue skipped in confirm_proposal: %s", e)
 
             await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 

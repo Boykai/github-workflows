@@ -514,17 +514,17 @@ async def _ws_listen_loop(phone: str) -> None:
                         await _process_inbound_ws_message(data)
                     except json.JSONDecodeError:
                         logger.warning("Received non-JSON message on Signal WS")
-                    except Exception:
-                        logger.exception("Error processing inbound Signal message")
+                    except Exception as e:
+                        logger.exception("Error processing inbound Signal message: %s", e)
         except asyncio.CancelledError:
             logger.info("Signal WebSocket listener cancelled")
             return
         except (websockets.ConnectionClosed, ConnectionError) as e:
             logger.warning("Signal WebSocket disconnected: %s. Reconnecting in 5s...", e)
             await asyncio.sleep(5)
-        except Exception:
+        except Exception as e:
             logger.exception(
-                "Unexpected error in Signal WebSocket listener. Reconnecting in 10s..."
+                "Unexpected error in Signal WebSocket listener. Reconnecting in 10s...: %s", e
             )
             await asyncio.sleep(10)
 
@@ -661,8 +661,8 @@ async def _process_inbound_ws_message(data: dict) -> None:
             from src.services.signal_chat import process_signal_chat
 
             await process_signal_chat(conn, message_text, project_id, source)
-        except Exception:
-            logger.exception("Signal AI processing failed")
+        except Exception as e:
+            logger.exception("Signal AI processing failed: %s", e)
 
     asyncio.create_task(_safe_process())
 
@@ -687,7 +687,8 @@ async def _resolve_project_by_name(github_user_id: str, name: str) -> str | None
             if p_name.lower().replace(" ", "-") == name.lower() or p_name.lower() == name.lower():
                 return p_id
         return None
-    except Exception:
+    except Exception as e:
+        logger.debug("Project ID lookup failed for '%s': %s", name, e)
         return None
 
 
@@ -723,6 +724,6 @@ async def _list_user_projects(github_user_id: str) -> list[tuple[str, str]]:
             cache.set(get_user_projects_cache_key(github_user_id), fetched)
             return [(p.name, p.project_id) for p in fetched]
         return []
-    except Exception:
-        logger.debug("Failed to list projects for user %s", github_user_id, exc_info=True)
+    except Exception as e:
+        logger.debug("Failed to list projects for user %s: %s", github_user_id, e, exc_info=True)
         return []

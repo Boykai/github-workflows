@@ -388,8 +388,8 @@ async def get_blocking_queue(
             owner, repo = repo_key.split("/", 1)
             try:
                 await bq_service.sweep_stale_entries(session.access_token, owner, repo)
-            except Exception:
-                logger.debug("Blocking queue sweep skipped for %s", repo_key)
+            except Exception as e:
+                logger.debug("Blocking queue sweep skipped for %s: %s", repo_key, e)
 
         entries = await bq_store.get_by_project(project_id)
         return [entry.model_dump() for entry in entries]

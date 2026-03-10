@@ -223,8 +223,8 @@ class AgentsService:
                     icon_name=agent.icon_name,
                 )
                 updated_agents.append(agent.slug)
-            except Exception:
-                logger.exception("Failed to update model for agent %s", agent.slug)
+            except Exception as e:
+                logger.exception("Failed to update model for agent %s: %s", agent.slug, e)
                 failed_agents.append(agent.slug)
 
         return BulkModelUpdateResult(
@@ -418,8 +418,8 @@ class AgentsService:
                 repo=repo,
                 path=".github/agents",
             )
-        except Exception:
-            logger.debug("Could not read .github/agents/ from %s/%s", owner, repo)
+        except Exception as e:
+            logger.debug("Could not read .github/agents/ from %s/%s: %s", owner, repo, e)
             return [], False
 
         agents: list[Agent] = []

@@ -947,8 +947,8 @@ class WorkflowOrchestrator:
                         ctx.issue_number,
                         base_ref,
                     )
-            except Exception:
-                logger.debug("Blocking queue base_ref lookup skipped (not available)")
+            except Exception as e:
+                logger.debug("Blocking queue base_ref lookup skipped (not available): %s", e)
 
             # Check if we already have a "main branch" stored for this issue
             main_branch_info = get_issue_main_branch(ctx.issue_number)
@@ -2216,8 +2216,8 @@ class WorkflowOrchestrator:
                                 f"It is queued behind blocking issues and will activate automatically."
                             ),
                         )
-                except Exception:
-                    logger.debug("Blocking queue enqueue skipped (not available)")
+                except Exception as e:
+                    logger.debug("Blocking queue enqueue skipped (not available): %s", e)
 
             # Step 3: Assign the first agent for Backlog status
             # If Backlog has no agents, use pass-through to find next actionable status (T028)

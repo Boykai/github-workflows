@@ -924,8 +924,8 @@ class GitHubProjectsService:
             config = await get_workflow_config(project_id)
             if config and config.repository_owner and config.repository_name:
                 repos_seen.add((config.repository_owner, config.repository_name))
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug("Suppressed error: %s", e)
 
         for owner, repo_name in repos_seen:
             try:
@@ -5050,8 +5050,8 @@ class GitHubProjectsService:
                         )
                         if fresh_oid:
                             current_oid = fresh_oid
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug("Suppressed error: %s", e)
                     continue
                 logger.error("Failed to commit files to %s: %s", branch_name, exc)
                 return None

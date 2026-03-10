@@ -962,8 +962,8 @@ async def execute_cleanup(
                 )
                 results.append(item)
                 errors.append(item)
-        except Exception:
-            logger.exception("Exception closing issue %s during cleanup", issue_number)
+        except Exception as e:
+            logger.exception("Exception closing issue %s during cleanup: %s", issue_number, e)
             item = CleanupItemResult(
                 item_type="issue",
                 identifier=str(issue_number),
