@@ -288,6 +288,20 @@ class PipelineService:
         return stages
 
     @staticmethod
+    def _normalize_execution_modes(stages: list[PipelineStage]) -> list[PipelineStage]:
+        """Ensure execution_mode is consistent with the agent count.
+
+        A parallel stage with fewer than 2 agents reverts to sequential.
+        Missing or invalid values are corrected to "sequential".
+        """
+        for stage in stages:
+            if stage.execution_mode not in ("sequential", "parallel"):
+                stage.execution_mode = "sequential"
+            if stage.execution_mode == "parallel" and len(stage.agents) < 2:
+                stage.execution_mode = "sequential"
+        return stages
+
+    @staticmethod
     def _row_to_config(row_dict: dict) -> PipelineConfig:
         """Convert a database row dict to a PipelineConfig model."""
         stages_raw = json.loads(row_dict.get("stages", "[]"))
@@ -382,6 +396,7 @@ class PipelineService:
         pipeline_id = str(uuid.uuid4())
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
         normalized_stages = self._normalize_tool_counts(list(body.stages))
+        self._normalize_execution_modes(normalized_stages)
         stages_json = json.dumps([s.model_dump() for s in normalized_stages])
 
         try:
@@ -449,6 +464,7 @@ class PipelineService:
                 for s in raw_stages
             ]
             self._normalize_tool_counts(parsed)
+            self._normalize_execution_modes(parsed)
             updates["stages"] = json.dumps([s.model_dump() for s in parsed])
 
         if "blocking" in updates and updates["blocking"] is not None:

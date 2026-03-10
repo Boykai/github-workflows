@@ -104,6 +104,7 @@ describe('StageCard', () => {
     renderStageCard(
       <StageCard
         stage={createStage({
+          execution_mode: 'parallel',
           agents: [
             createAgentNode(),
             createAgentNode({

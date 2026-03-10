@@ -19,6 +19,21 @@ def _ci_get(mappings: dict, key: str, default=None):
     return default if default is not None else []
 
 
+def get_stage_execution_mode(config: WorkflowConfiguration, status: str) -> str:
+    """Return the execution mode for a given status. Defaults to 'sequential'."""
+    modes = getattr(config, "stage_execution_modes", {})
+    if not modes:
+        return "sequential"
+    # Case-insensitive lookup
+    if status in modes:
+        return modes[status]
+    status_lower = status.lower()
+    for k, v in modes.items():
+        if k.lower() == status_lower:
+            return v
+    return "sequential"
+
+
 def get_agent_slugs(config: WorkflowConfiguration, status: str) -> list[str]:
     """Extract ordered slug strings for a given status. Case-insensitive lookup."""
     return [
@@ -131,6 +146,10 @@ class PipelineState:
     # on the next poll cycle and the pipeline jumps straight to In Review.
     original_status: str | None = None
     target_status: str | None = None
+    # Parallel execution support
+    execution_mode: str = "sequential"
+    parallel_agent_statuses: dict[str, str] = field(default_factory=dict)
+    failed_agents: list[str] = field(default_factory=list)
 
     @property
     def current_agent(self) -> str | None:
@@ -142,7 +161,17 @@ class PipelineState:
     @property
     def is_complete(self) -> bool:
         """Check if all agents in the pipeline have completed."""
+        if self.execution_mode == "parallel" and self.parallel_agent_statuses:
+            return all(
+                s in ("completed", "failed")
+                for s in self.parallel_agent_statuses.values()
+            )
         return self.current_agent_index >= len(self.agents)
+
+    @property
+    def is_parallel_stage_failed(self) -> bool:
+        """Check if any agent in a parallel stage has failed."""
+        return len(self.failed_agents) > 0
 
     @property
     def next_agent(self) -> str | None:

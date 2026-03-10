@@ -27,6 +27,7 @@ class PipelineResolutionResult:
     source: str = "default"  # "pipeline" | "user" | "default"
     pipeline_name: str | None = None
     pipeline_id: str | None = None
+    stage_execution_modes: dict[str, str] = field(default_factory=dict)
 
 
 logger = logging.getLogger(__name__)
@@ -327,11 +328,11 @@ async def _persist_workflow_config_to_db(
 async def load_pipeline_as_agent_mappings(
     project_id: str,
     pipeline_id: str,
-) -> tuple[dict[str, list[AgentAssignment]], str] | None:
+) -> tuple[dict[str, list[AgentAssignment]], str, dict[str, str]] | None:
     """Load a pipeline config and convert its stages to agent_mappings.
 
-    Returns ``(agent_mappings, pipeline_name)`` or ``None`` if the
-    pipeline does not exist (e.g. was deleted).
+    Returns ``(agent_mappings, pipeline_name, stage_execution_modes)`` or
+    ``None`` if the pipeline does not exist (e.g. was deleted).
     """
     try:
         from src.services.database import get_db
@@ -344,6 +345,7 @@ async def load_pipeline_as_agent_mappings(
             return None
 
         agent_mappings: dict[str, list[AgentAssignment]] = {}
+        stage_execution_modes: dict[str, str] = {}
         for stage in sorted(config.stages, key=lambda s: s.order):
             agent_mappings[stage.name] = [
                 AgentAssignment(
@@ -358,8 +360,11 @@ async def load_pipeline_as_agent_mappings(
                 )
                 for node in stage.agents
             ]
+            stage_execution_modes[stage.name] = getattr(
+                stage, "execution_mode", "sequential"
+            )
 
-        return agent_mappings, config.name
+        return agent_mappings, config.name, stage_execution_modes
     except Exception:
         logger.warning(
             "Failed to load pipeline %s for project %s",
@@ -404,7 +409,7 @@ async def resolve_project_pipeline_mappings(
         if assigned_id:
             result = await load_pipeline_as_agent_mappings(project_id, assigned_id)
             if result is not None:
-                mappings, pipeline_name = result
+                mappings, pipeline_name, exec_modes = result
                 logger.info(
                     "Resolved pipeline '%s' (%s) for project %s",
                     pipeline_name,
@@ -416,6 +421,7 @@ async def resolve_project_pipeline_mappings(
                     source="pipeline",
                     pipeline_name=pipeline_name,
                     pipeline_id=assigned_id,
+                    stage_execution_modes=exec_modes,
                 )
             # Pipeline was deleted — auto-cleanup stale reference (T012/R5)
             logger.warning(

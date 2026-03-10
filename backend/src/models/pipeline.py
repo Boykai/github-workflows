@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class PipelineAgentNode(BaseModel):
@@ -25,6 +25,14 @@ class PipelineStage(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     order: int
     agents: list[PipelineAgentNode] = Field(default_factory=list)
+    execution_mode: str = Field(default="sequential")
+
+    @field_validator("execution_mode")
+    @classmethod
+    def validate_execution_mode(cls, v: str) -> str:
+        if v not in ("sequential", "parallel"):
+            raise ValueError("execution_mode must be 'sequential' or 'parallel'")
+        return v
 
 
 class PipelineConfig(BaseModel):

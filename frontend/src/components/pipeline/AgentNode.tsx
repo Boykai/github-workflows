@@ -3,9 +3,13 @@
  * Shows agent name, model selection, tool count badge, and remove button.
  */
 
-import { X, Wrench, Copy } from 'lucide-react';
+import { X, Wrench, Copy, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+
+export type AgentRunStatus = 'pending' | 'running' | 'completed' | 'failed';
+
 import { ModelSelector } from './ModelSelector';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
+import { Tooltip } from '@/components/ui/tooltip';
 import type { PipelineAgentNode } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
 import type { SyntheticListenerMap } from '@dnd-kit/core/dist/hooks/utilities';
@@ -18,6 +22,9 @@ interface AgentNodeProps {
   onRemove: () => void;
   onToolsClick?: () => void;
   onClone?: () => void;
+  isParallel?: boolean;
+  /** Runtime status for live pipeline monitoring. */
+  agentStatus?: AgentRunStatus;
   // Drag-and-drop sortable props (optional — only provided when used inside a SortableContext)
   dragHandleListeners?: SyntheticListenerMap;
   dragHandleAttributes?: DraggableAttributes;
@@ -32,6 +39,8 @@ export function AgentNode({
   onRemove,
   onToolsClick,
   onClone,
+  isParallel,
+  agentStatus,
   dragHandleListeners,
   dragHandleAttributes,
   setNodeRef,
@@ -45,16 +54,32 @@ export function AgentNode({
   };
 
   return (
-    <div
-      ref={setNodeRef}
-      style={dragStyle}
-      {...(dragHandleAttributes ?? {})}
-      {...(dragHandleListeners ?? {})}
-      className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border border-border/50 px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
+    <Tooltip
+      contentKey={
+        isParallel ? 'pipeline.agent.parallelHint' : 'pipeline.agent.sequentialHint'
+      }
+    >
+      <div
+        ref={setNodeRef}
+        style={dragStyle}
+        {...(dragHandleAttributes ?? {})}
+        {...(dragHandleListeners ?? {})}
+        className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]', agentStatus === 'failed' ? 'border-destructive/50 bg-destructive/5' : agentStatus === 'completed' ? 'border-green-500/30' : 'border-border/50', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
     >
       {/* Drag handle removed — entire card is the drag target */}
 
       <ThemedAgentIcon slug={agentNode.agent_slug} name={displayName} size="md" />
+
+      {/* Runtime status indicator */}
+      {agentStatus === 'running' && (
+        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
+      )}
+      {agentStatus === 'completed' && (
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500" />
+      )}
+      {agentStatus === 'failed' && (
+        <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />
+      )}
 
       {/* Agent info */}
       <div className="flex-1 min-w-0">
@@ -119,5 +144,6 @@ export function AgentNode({
         <X className="h-3.5 w-3.5" />
       </button>
     </div>
+    </Tooltip>
   );
 }

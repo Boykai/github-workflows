@@ -517,7 +517,7 @@ class ChoresService:
                         project_id, chore.agent_pipeline_id
                     )
                     if chore_pipeline is not None:
-                        effective_mappings, _ = chore_pipeline
+                        effective_mappings, _, _ = chore_pipeline
                 elif github_user_id:
                     from src.services.workflow_orchestrator.config import (
                         load_user_agent_mappings,
@@ -615,7 +615,7 @@ class ChoresService:
                             project_id, chore.agent_pipeline_id
                         )
                         if _chore_pipeline is not None:
-                            config.agent_mappings, _ = _chore_pipeline
+                            config.agent_mappings, _, _ = _chore_pipeline
                     else:
                         from src.services.workflow_orchestrator.config import (
                             resolve_project_pipeline_mappings,
