@@ -16,7 +16,7 @@ import { EditRepoMcpModal } from './EditRepoMcpModal';
 import { UploadMcpModal } from './UploadMcpModal';
 import { RepoConfigPanel } from './RepoConfigPanel';
 import { McpPresetsGallery } from './McpPresetsGallery';
-import { GitHubToolsetSelector } from './GitHubToolsetSelector';
+import { GitHubMcpConfigGenerator } from './GitHubMcpConfigGenerator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import type { McpPreset, McpToolConfig, McpToolConfigCreate, RepoMcpServerConfig } from '@/types';
@@ -214,7 +214,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
           error={presetsError}
           onSelectPreset={handlePresetSelect}
         />
-        <GitHubToolsetSelector onCreate={uploadTool} isSubmitting={isUploading || isUpdating} />
+        <GitHubMcpConfigGenerator tools={tools} />
       </div>
 
       <div className="ritual-stage flex flex-col gap-4 rounded-[1.55rem] p-4 sm:rounded-[1.8rem] sm:p-6 lg:flex-row lg:items-end lg:justify-between">

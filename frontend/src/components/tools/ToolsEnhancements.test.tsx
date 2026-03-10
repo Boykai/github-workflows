@@ -1,10 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor } from '@/test/test-utils';
+import { render, screen } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 
 import { RepoConfigPanel } from './RepoConfigPanel';
 import { McpPresetsGallery } from './McpPresetsGallery';
-import { GitHubToolsetSelector } from './GitHubToolsetSelector';
+import { GitHubMcpConfigGenerator } from './GitHubMcpConfigGenerator';
 
 describe('RepoConfigPanel', () => {
   it('renders repository MCP servers and source paths', () => {
@@ -109,42 +109,81 @@ describe('McpPresetsGallery', () => {
   });
 });
 
-describe('GitHubToolsetSelector', () => {
-  it('creates a GitHub MCP config with selected toolsets', async () => {
-    const user = userEvent.setup();
-    const onCreate = vi.fn().mockResolvedValue(undefined);
-    render(<GitHubToolsetSelector onCreate={onCreate} isSubmitting={false} />);
+describe('GitHubMcpConfigGenerator', () => {
+  it('renders built-in MCPs with Built-In badges when no tools are active', () => {
+    render(<GitHubMcpConfigGenerator tools={[]} />);
 
-    await user.click(screen.getByRole('button', { name: 'users' }));
-    await user.click(screen.getByRole('button', { name: 'Create GitHub MCP tool' }));
-
-    expect(onCreate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'GitHub MCP Server',
-        config_content: expect.stringContaining('X-MCP-Toolsets'),
-      })
-    );
-    expect(onCreate.mock.calls[0][0].config_content).toContain('users');
+    expect(screen.getByText('MCP Configuration for GitHub Agents')).toBeInTheDocument();
+    expect(screen.getByText('context7')).toBeInTheDocument();
+    expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
+    expect(screen.getAllByText('Built-In')).toHaveLength(2);
+    expect(screen.getByText(/No project MCP tools are active yet/)).toBeInTheDocument();
   });
 
-  it('marks toolset buttons with pressed state', () => {
-    render(
-      <GitHubToolsetSelector onCreate={vi.fn().mockResolvedValue(undefined)} isSubmitting={false} />
-    );
+  it('includes user tools alongside built-in MCPs in generated config', () => {
+    const tools = [
+      {
+        id: 'tool-1',
+        name: 'Custom MCP',
+        description: 'A custom MCP server',
+        endpoint_url: '',
+        config_content: JSON.stringify({
+          mcpServers: {
+            'my-server': {
+              type: 'http',
+              url: 'https://example.com/mcp',
+              tools: ['*'],
+            },
+          },
+        }),
+        sync_status: 'synced' as const,
+        sync_error: '',
+        synced_at: '2026-01-01T00:00:00Z',
+        github_repo_target: 'owner/repo',
+        is_active: true,
+        created_at: '2026-01-01T00:00:00Z',
+        updated_at: '2026-01-01T00:00:00Z',
+      },
+    ];
 
-    expect(screen.getByRole('button', { name: 'repos' })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByRole('button', { name: 'users' })).toHaveAttribute('aria-pressed', 'false');
+    render(<GitHubMcpConfigGenerator tools={tools} />);
+
+    expect(screen.getByText('my-server')).toBeInTheDocument();
+    expect(screen.getByText('context7')).toBeInTheDocument();
+    expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
+    // Only built-ins get the badge
+    expect(screen.getAllByText('Built-In')).toHaveLength(2);
+    // No empty state guidance when user tools are present
+    expect(screen.queryByText(/No project MCP tools are active yet/)).not.toBeInTheDocument();
   });
 
-  it('shows a local error when create fails', async () => {
+  it('shows copy to clipboard button', async () => {
     const user = userEvent.setup();
-    const onCreate = vi.fn().mockRejectedValue(new Error('Create failed'));
-    render(<GitHubToolsetSelector onCreate={onCreate} isSubmitting={false} />);
-
-    await user.click(screen.getByRole('button', { name: 'Create GitHub MCP tool' }));
-
-    await waitFor(() => {
-      expect(screen.getByText('Create failed')).toBeInTheDocument();
+    // Mock clipboard API using defineProperty to work with happy-dom
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      writable: true,
+      configurable: true,
     });
+
+    render(<GitHubMcpConfigGenerator tools={[]} />);
+
+    const copyButton = screen.getByRole('button', { name: /Copy to Clipboard/ });
+    expect(copyButton).toBeInTheDocument();
+
+    await user.click(copyButton);
+
+    expect(writeText).toHaveBeenCalledWith(expect.stringContaining('mcpServers'));
+    expect(screen.getByText('Copied!')).toBeInTheDocument();
+  });
+
+  it('displays the generated JSON config with mcpServers', () => {
+    render(<GitHubMcpConfigGenerator tools={[]} />);
+
+    const pre = screen.getByText(/mcpServers/);
+    expect(pre).toBeInTheDocument();
+    expect(pre.textContent).toContain('context7');
+    expect(pre.textContent).toContain('CodeGraphContext');
   });
 });
