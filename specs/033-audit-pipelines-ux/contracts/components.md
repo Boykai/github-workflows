@@ -109,7 +109,7 @@ This document defines the interface contracts for component modifications requir
 )}
 ```
 
-### Required Changes
+### Required Changes (Skeleton)
 
 1. **Upgrade skeleton cards** to use structured placeholders matching the workflow card layout
 2. **Apply `celestial-panel`-aligned styling** (border radius, border opacity, background)
@@ -142,7 +142,7 @@ This document defines the interface contracts for component modifications requir
 )}
 ```
 
-### Verification Criteria
+### Verification Criteria (Skeleton)
 
 - [ ] Skeleton cards have the same border radius as loaded workflow cards (`rounded-[1.3rem]`)
 - [ ] Skeleton cards show placeholder shapes that preview the card structure
@@ -169,7 +169,7 @@ This document defines the interface contracts for component modifications requir
 ))}
 ```
 
-### Required Changes
+### Required Changes (Overflow)
 
 1. **Add conditional overflow text** below the 3 recent pipelines when total count exceeds 3
 2. **Include anchor link** to `#saved-pipelines` for navigation to full list
@@ -190,7 +190,7 @@ This document defines the interface contracts for component modifications requir
 )}
 ```
 
-### Verification Criteria
+### Verification Criteria (Overflow)
 
 - [ ] Text appears only when total pipeline count exceeds 3
 - [ ] Text shows correct total count
