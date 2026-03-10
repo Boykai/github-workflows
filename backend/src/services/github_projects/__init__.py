@@ -47,7 +47,7 @@ class GitHubClientFactory:
             try:
                 await client.__aexit__(None, None, None)
             except Exception as e:
-                logger.debug("Suppressed error: %s", e)
+                logger.debug("Client cleanup failed: %s", e, exc_info=True)
         self._pool.clear()
 
 

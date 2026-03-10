@@ -3775,6 +3775,38 @@ class TestCommitFilesRetry:
         assert result == "new-oid"
         mock_branch_head.assert_awaited_once_with("tok", "o", "r", "chore/add-template-foo")
 
+    @pytest.mark.asyncio
+    async def test_logs_warning_when_branch_head_refresh_fails(self, service, caplog):
+        """Refresh failures should be logged instead of silently swallowed."""
+        with patch.object(
+            service,
+            "_graphql",
+            new_callable=AsyncMock,
+            side_effect=[
+                ValueError("Expected head oid did not match"),
+                ValueError("permission denied"),
+            ],
+        ):
+            with patch.object(
+                service,
+                "get_branch_head_oid",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("branch lookup failed"),
+            ):
+                with caplog.at_level("WARNING"):
+                    result = await service.commit_files(
+                        "tok",
+                        "o",
+                        "r",
+                        "feature/x",
+                        "stale-oid",
+                        [{"path": "f.txt", "content": "hello"}],
+                        "msg",
+                    )
+
+        assert result is None
+        assert "Branch OID update failed for feature/x" in caplog.text
+
 
 class TestUpdatePrBase:
     """Tests for update_pr_base."""

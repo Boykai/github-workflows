@@ -22,6 +22,7 @@ from src.models.agent_creator import (
 from src.services.agent_creator import (
     _format_pipeline_report,
     _format_preview,
+    _handle_project_selection,
     clear_session,
     fuzzy_match_status,
     generate_config_files,
@@ -511,6 +512,46 @@ class TestSessionManagement:
     def test_clear_nonexistent_is_noop(self):
         """clear_session on a missing key should not raise."""
         clear_session("nonexistent-key")  # should not raise
+
+
+class TestHandleProjectSelection:
+    """Tests for Signal project selection follow-up."""
+
+    async def test_logs_resolution_failure_and_continues(
+        self, mock_db: aiosqlite.Connection, caplog: pytest.LogCaptureFixture
+    ):
+        state = AgentCreationState(
+            session_id="signal-session",
+            available_projects=[{"id": "PVT_123", "title": "Demo"}],
+        )
+
+        with (
+            patch(
+                "src.services.agent_creator._resolve_owner_repo",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("resolution failed"),
+            ),
+            patch(
+                "src.services.agent_creator._resolve_status_step",
+                new_callable=AsyncMock,
+                return_value="next-step",
+            ) as mock_next_step,
+            caplog.at_level("WARNING"),
+        ):
+            result = await _handle_project_selection(
+                state=state,
+                message="1",
+                session_key="signal-session",
+                access_token="token",
+                db=mock_db,
+            )
+
+        assert result == "next-step"
+        assert state.project_id == "PVT_123"
+        assert state.owner is None
+        assert state.repo is None
+        assert "Owner/repo resolution failed for project PVT_123" in caplog.text
+        mock_next_step.assert_awaited_once()
 
 
 # ═══════════════════════════════════════════════════════════════════════
