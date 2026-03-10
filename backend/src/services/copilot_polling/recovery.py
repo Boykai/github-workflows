@@ -69,11 +69,9 @@ async def _validate_and_reconcile_tracking_table(
     )
 
     # Rebuild the tracking table with corrected states and push to GitHub
-    from src.services.agent_tracking import _TRACKING_SECTION_RE, render_tracking_markdown
+    from src.services.agent_tracking import replace_tracking_section
 
-    tracking_md = render_tracking_markdown(steps)
-    body_clean = _TRACKING_SECTION_RE.sub("", body).rstrip()
-    updated_body = body_clean + "\n" + tracking_md
+    updated_body = replace_tracking_section(body, steps)
 
     try:
         await _cp.github_projects_service.update_issue_body(
@@ -271,8 +269,14 @@ async def recover_stalled_issues(
                         issue_number=issue_number,
                     )
                     body = refreshed.get("body", body)
-                except Exception:
-                    pass  # proceed with stale body — helpers can still use `steps`
+                except Exception as e:
+                    logger.debug(
+                        "Recovery: issue #%d — failed to re-fetch issue body after self-heal: %s "
+                        "(continuing with stale body)",
+                        issue_number,
+                        e,
+                        exc_info=True,
+                    )
 
             recovery_pipeline = _cp.get_pipeline_state(issue_number)
 
@@ -281,7 +285,7 @@ async def recover_stalled_issues(
             # call failed.  Cross-reference every step with real GitHub
             # signals (Done! markers, PR reviews, closed sub-issues) and
             # correct the table before deciding what to do.
-            body, steps, table_was_corrected = await _validate_and_reconcile_tracking_table(
+            body, steps, _table_was_corrected = await _validate_and_reconcile_tracking_table(
                 access_token=access_token,
                 owner=task_owner,
                 repo=task_repo,
@@ -294,17 +298,17 @@ async def recover_stalled_issues(
             # ── Determine expected agent from reconciled state ────────────
             # After validation, the steps list reflects reality.  Find the
             # first step that is not ✅ Done — that's our expected agent.
-            from src.services.agent_tracking import STATE_DONE
+            from src.services.agent_tracking import STATE_ACTIVE, STATE_DONE, STATE_PENDING
 
             active_step = None
             pending_step = None
             for step in steps:
                 if STATE_DONE in step.state:
                     continue
-                if "Active" in step.state:
+                if STATE_ACTIVE in step.state:
                     active_step = step
                     break
-                if "Pending" in step.state and pending_step is None:
+                if STATE_PENDING in step.state and pending_step is None:
                     pending_step = step
                     break
 

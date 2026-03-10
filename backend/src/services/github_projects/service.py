@@ -3872,7 +3872,8 @@ class GitHubProjectsService:
         Returns:
             True if Copilot has submitted a qualifying review
         """
-        cache_key = f"reviewed:{owner}/{repo}/{pr_number}"
+        _ts_suffix = f":{min_submitted_after.isoformat()}" if min_submitted_after else ""
+        cache_key = f"reviewed:{owner}/{repo}/{pr_number}{_ts_suffix}"
         cached = self._cycle_cache.get(cache_key)
         if cached is not None:
             self._cycle_cache_hit_count += 1
@@ -3924,7 +3925,7 @@ class GitHubProjectsService:
                         from datetime import datetime as _dt
 
                         try:
-                            review_ts = _dt.fromisoformat(submitted_at.replace("Z", "+00:00"))
+                            review_ts = _dt.fromisoformat(submitted_at)
                             if review_ts <= min_submitted_after:
                                 logger.debug(
                                     "Ignoring Copilot review on PR #%d submitted at %s "
@@ -4006,7 +4007,7 @@ class GitHubProjectsService:
                         from datetime import datetime as _dt
 
                         try:
-                            review_ts = _dt.fromisoformat(submitted_at.replace("Z", "+00:00"))
+                            review_ts = _dt.fromisoformat(submitted_at)
                             if review_ts <= min_submitted_after:
                                 logger.debug(
                                     "Ignoring Copilot review on PR #%d submitted at %s "
