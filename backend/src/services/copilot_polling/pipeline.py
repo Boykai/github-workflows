@@ -821,7 +821,13 @@ async def _reconstruct_pipeline_state(
         issue_number=issue_number,
     )
 
-    _cp.set_pipeline_state(issue_number, pipeline)
+    # Only cache pipeline states that have agents.  Empty-agent states
+    # (neither DB config nor tracking table supplied agents) would block
+    # recovery on subsequent poll cycles — the cached empty state matches
+    # expected_status and is returned immediately, preventing re-reconstruction
+    # even if agents are later added to the config.
+    if pipeline.agents:
+        _cp.set_pipeline_state(issue_number, pipeline)
 
     logger.info(
         "Reconstructed pipeline state for issue #%d: %d/%d agents completed",
