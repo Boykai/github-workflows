@@ -7,13 +7,53 @@ import re
 import uuid
 from base64 import b64decode
 from datetime import UTC, datetime
+from pathlib import Path
 
 import aiosqlite
 
 from src.constants import with_blocking_label
-from src.models.chores import Chore, ChoreCreate, ChoreTriggerResult, ChoreUpdate
+from src.models.chores import Chore, ChoreCreate, ChoreStatus, ChoreTriggerResult, ChoreUpdate
 
 logger = logging.getLogger(__name__)
+
+_PRESETS_DIR = Path(__file__).resolve().parent / "presets"
+
+# Chore preset definitions — template content is loaded from files in presets/
+_CHORE_PRESET_DEFINITIONS = [
+    {
+        "preset_id": "security-review",
+        "name": "Security Review",
+        "template_path": ".github/ISSUE_TEMPLATE/chore-security-review.md",
+        "template_file": "security-review.md",
+        "schedule_type": "count",
+        "schedule_value": 10,
+        "ai_enhance_enabled": True,
+        "agent_pipeline_id": "",
+        "blocking": False,
+    },
+    {
+        "preset_id": "performance-review",
+        "name": "Performance Review",
+        "template_path": ".github/ISSUE_TEMPLATE/chore-performance-review.md",
+        "template_file": "performance-review.md",
+        "schedule_type": "count",
+        "schedule_value": 10,
+        "ai_enhance_enabled": True,
+        "agent_pipeline_id": "",
+        "blocking": False,
+    },
+    {
+        "preset_id": "bug-basher",
+        "name": "Bug Basher",
+        "template_path": ".github/ISSUE_TEMPLATE/chore-bug-basher.md",
+        "template_file": "bug-basher.md",
+        "schedule_type": "count",
+        "schedule_value": 10,
+        "ai_enhance_enabled": True,
+        "agent_pipeline_id": "",
+        "blocking": True,
+    },
+]
 
 # Columns that may appear in dynamic UPDATE SET clauses.
 # Any column not in this set will be rejected to prevent SQL injection.
@@ -70,6 +110,87 @@ class ChoresService:
 
     def __init__(self, db: aiosqlite.Connection) -> None:
         self._db = db
+
+    # ── Preset Seeding ────────────────────────────────────────────────
+
+    async def seed_presets(self, project_id: str) -> list[Chore]:
+        """Seed built-in chore presets for a project (idempotent).
+
+        Only inserts presets whose ``preset_id`` does not yet exist for the
+        given project.  Returns the list of newly created presets.
+        """
+        created: list[Chore] = []
+
+        for defn in _CHORE_PRESET_DEFINITIONS:
+            preset_id = defn["preset_id"]
+
+            # Check if already seeded
+            cursor = await self._db.execute(
+                "SELECT id FROM chores WHERE preset_id = ? AND project_id = ?",
+                (preset_id, project_id),
+            )
+            if await cursor.fetchone():
+                continue
+
+            # Load template content from file
+            template_file = _PRESETS_DIR / defn["template_file"]
+            template_content = template_file.read_text(encoding="utf-8")
+
+            chore_id = str(uuid.uuid4())
+            now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+            await self._db.execute(
+                """
+                INSERT INTO chores (
+                    id, project_id, name, template_path, template_content,
+                    schedule_type, schedule_value,
+                    ai_enhance_enabled, agent_pipeline_id, blocking,
+                    is_preset, preset_id,
+                    status, last_triggered_count, execution_count,
+                    created_at, updated_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'active', 0, 0, ?, ?)
+                """,
+                (
+                    chore_id,
+                    project_id,
+                    defn["name"],
+                    defn["template_path"],
+                    template_content,
+                    defn["schedule_type"],
+                    defn["schedule_value"],
+                    1 if defn["ai_enhance_enabled"] else 0,
+                    defn["agent_pipeline_id"],
+                    1 if defn["blocking"] else 0,
+                    preset_id,
+                    now,
+                    now,
+                ),
+            )
+
+            chore = Chore(
+                id=chore_id,
+                project_id=project_id,
+                name=defn["name"],
+                template_path=defn["template_path"],
+                template_content=template_content,
+                schedule_type=defn["schedule_type"],
+                schedule_value=defn["schedule_value"],
+                ai_enhance_enabled=defn["ai_enhance_enabled"],
+                agent_pipeline_id=defn["agent_pipeline_id"],
+                blocking=defn["blocking"],
+                is_preset=True,
+                preset_id=preset_id,
+                status=ChoreStatus.ACTIVE,
+                created_at=now,
+                updated_at=now,
+            )
+            created.append(chore)
+            logger.info("Seeded chore preset '%s' for project %s", defn["name"], project_id)
+
+        if created:
+            await self._db.commit()
+
+        return created
 
     async def create_chore(
         self,

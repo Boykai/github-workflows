@@ -874,6 +874,8 @@ export interface Chore {
   ai_enhance_enabled: boolean;
   agent_pipeline_id: string;
   blocking: boolean;
+  is_preset: boolean;
+  preset_id: string;
   created_at: string;
   updated_at: string;
 }

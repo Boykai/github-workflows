@@ -72,7 +72,7 @@ export function ModelSelector({
   trigger,
   disabled = false,
   allowAuto = false,
-  autoLabel = 'Agent default',
+  autoLabel = 'Auto',
   triggerClassName,
 }: ModelSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);

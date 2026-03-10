@@ -13,7 +13,6 @@ from src.models.workflow import (
     WorkflowTransition,
 )
 from src.services.agent_tracking import append_tracking_to_body, parse_tracking_from_body
-from src.services.database import get_db
 from src.utils import BoundedDict, utcnow
 
 from .config import _transitions, get_workflow_config
@@ -753,12 +752,8 @@ class WorkflowOrchestrator:
 
         Precedence (highest → lowest):
         1. Pipeline config model (``AgentAssignment.config["model_id"]``)
-           This already encodes the chat override (@Easy/@Hard) because
-           ``_apply_selected_pipeline()`` overwrites agent_mappings with the
-           chosen pipeline's nodes, whose model_id is stored in config.
-        2. Agent's own ``default_model_id`` (from ``agent_configs`` table).
-        3. User Settings "agent model" (``ctx.user_agent_model``).
-        4. Hardcoded fallback ``"claude-opus-4.6"``.
+        2. User Settings "agent model" (``ctx.user_agent_model``).
+        3. Hardcoded fallback ``"claude-opus-4.6"``.
 
         A model value of ``"auto"`` (case-insensitive) or an empty string is
         treated as *not set* and falls through to the next tier.
@@ -780,27 +775,7 @@ class WorkflowOrchestrator:
                 )
                 return model_id
 
-        # Tier 2: Agent's own saved default_model_id
-        try:
-            from src.services.agents.service import AgentsService  # lazy — avoids circular import
-
-            prefs = await AgentsService(get_db()).get_agent_preferences(project_id)
-            agent_model = (prefs.get(agent_slug, {}).get("default_model_id") or "").strip()
-            if _is_set(agent_model):
-                logger.debug(
-                    "Model for agent '%s': agent preference '%s'",
-                    agent_slug,
-                    agent_model,
-                )
-                return agent_model
-        except Exception as exc:
-            logger.warning(
-                "Could not fetch agent preferences for slug '%s', skipping tier 2: %s",
-                agent_slug,
-                exc,
-            )
-
-        # Tier 3: User Settings "agent model"
+        # Tier 2: User Settings "agent model"
         if _is_set(user_agent_model):
             logger.debug(
                 "Model for agent '%s': user settings '%s'",
@@ -809,7 +784,7 @@ class WorkflowOrchestrator:
             )
             return user_agent_model.strip()
 
-        # Tier 4: Hardcoded fallback
+        # Tier 3: Hardcoded fallback
         logger.debug(
             "Model for agent '%s': hardcoded fallback '%s'",
             agent_slug,

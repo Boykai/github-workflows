@@ -670,6 +670,15 @@ export const cleanupApi = {
 
 export const choresApi = {
   /**
+   * Idempotently seed built-in chore presets for a project.
+   */
+  seedPresets(projectId: string): Promise<{ created: number }> {
+    return request<{ created: number }>(`/chores/${projectId}/seed-presets`, {
+      method: 'POST',
+    });
+  },
+
+  /**
    * List all chores for a project.
    */
   list(projectId: string): Promise<Chore[]> {

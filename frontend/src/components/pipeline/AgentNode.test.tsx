@@ -53,7 +53,7 @@ describe('AgentNode', () => {
     render(<AgentNode agentNode={createAgentNode()} onModelSelect={vi.fn()} onRemove={vi.fn()} />);
 
     expect(screen.getByText('Model')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /agent default/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /auto/i })).toBeInTheDocument();
   });
 
   it('lets the user change the model from the pipeline agent card', async () => {
@@ -63,7 +63,7 @@ describe('AgentNode', () => {
     );
 
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: /agent default/i }));
+    await user.click(screen.getByRole('button', { name: /auto/i }));
     await user.click(screen.getByRole('button', { name: /^gpt-5\.4$/i }));
 
     expect(onModelSelect).toHaveBeenCalledWith('gpt-5.4', 'GPT-5.4');
@@ -81,7 +81,7 @@ describe('AgentNode', () => {
       />
     );
 
-    fireEvent.pointerDown(screen.getByRole('button', { name: /agent default/i }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: /auto/i }));
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove agent' }));
 
     expect(onPointerDown).not.toHaveBeenCalled();

@@ -36,7 +36,7 @@ export function PipelineModelDropdown({
 
   const displayLabel =
     currentOverride.mode === 'auto'
-      ? 'Auto (Agent Defaults)'
+      ? 'Auto'
       : currentOverride.mode === 'mixed'
         ? 'Mixed'
         : currentOverride.modelName || currentOverride.modelId;
@@ -82,7 +82,7 @@ export function PipelineModelDropdown({
               }`}
             >
               <Sparkles className="h-3.5 w-3.5" />
-              Auto (Agent Defaults)
+              Auto
             </button>
 
             <div className="my-1 border-t border-border/40" />

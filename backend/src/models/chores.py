@@ -48,6 +48,8 @@ class Chore(BaseModel):
     ai_enhance_enabled: bool = True
     agent_pipeline_id: str = ""
     blocking: bool = False
+    is_preset: bool = False
+    preset_id: str = ""
     created_at: str
     updated_at: str
 

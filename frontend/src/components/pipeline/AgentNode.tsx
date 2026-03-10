@@ -71,7 +71,7 @@ export function AgentNode({
               selectedModelName={agentNode.model_name || null}
               onSelect={onModelSelect}
               allowAuto={true}
-              autoLabel="Agent default"
+              autoLabel="Auto"
               triggerClassName="min-w-0 flex-1 justify-between"
             />
           </div>
