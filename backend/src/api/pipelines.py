@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
-from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
+from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, build_pipeline_label, with_blocking_label
 from src.exceptions import AppException, AuthorizationError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
 from src.models.pipeline import (
@@ -242,13 +242,17 @@ async def launch_pipeline_issue(
         if assignment.blocking_override is not None:
             is_blocking = assignment.blocking_override
 
+        issue_labels = with_blocking_label(["ai-generated"], is_blocking)
+        if _pipeline_name:
+            issue_labels.append(build_pipeline_label(_pipeline_name))
+
         issue = await github_projects_service.create_issue(
             access_token=session.access_token,
             owner=owner,
             repo=repo,
             title=_derive_issue_title(issue_description),
             body=issue_body,
-            labels=with_blocking_label(["ai-generated"], is_blocking),
+            labels=issue_labels,
         )
         await service.set_assignment(project_id, body.pipeline_id)
 

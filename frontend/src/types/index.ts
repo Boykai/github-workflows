@@ -67,6 +67,7 @@ export interface Task {
   status: string;
   status_option_id: string;
   assignees?: string[];
+  labels?: Array<{ name: string; color: string }>;
   created_at: string;
   updated_at: string;
 }

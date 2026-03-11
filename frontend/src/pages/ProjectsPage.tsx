@@ -359,6 +359,7 @@ export function ProjectsPage() {
             availableLabels={boardControls.availableLabels}
             availableAssignees={boardControls.availableAssignees}
             availableMilestones={boardControls.availableMilestones}
+            availablePipelineConfigs={boardControls.availablePipelineConfigs}
             hasActiveFilters={boardControls.hasActiveFilters}
             hasActiveSort={boardControls.hasActiveSort}
             hasActiveGroup={boardControls.hasActiveGroup}

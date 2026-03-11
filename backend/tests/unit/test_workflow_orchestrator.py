@@ -2802,8 +2802,11 @@ class TestAssignAgentInnerPaths:
 
         result = await orch.assign_agent_for_status(ctx, "Backlog", agent_index=0)
         assert result is True
-        orch.github.update_issue_state.assert_awaited_once()
-        assert orch.github.update_issue_state.call_args.kwargs["labels_add"] == ["in-progress"]
+        # The original "in-progress" label write still happens alongside the
+        # new pipeline label operations (agent swap + active label moves).
+        calls = orch.github.update_issue_state.call_args_list
+        in_progress_calls = [c for c in calls if c.kwargs.get("labels_add") == ["in-progress"]]
+        assert len(in_progress_calls) >= 1
 
 
 # ────────────────────────────────────────────────────────────────────

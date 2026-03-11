@@ -90,6 +90,13 @@ query($projectId: ID!, $first: Int!, $after: String) {
               number
               title
               body
+              labels(first: 20) {
+                nodes {
+                  id
+                  name
+                  color
+                }
+              }
               repository {
                 owner {
                   login
