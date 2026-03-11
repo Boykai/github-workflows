@@ -24,7 +24,7 @@ description: "Executable task list for code quality & technical debt overhaul"
 - **Frontend**: `frontend/src/`
 - **Infrastructure**: `docker-compose.yml`, `backend/pyproject.toml`, `frontend/Dockerfile`, `frontend/package.json`
 
-## Phase 1: Setup
+## Phase 1: Setup (Dead Code & Build Artifact Cleanup)
 
 **Purpose**: Clean the baseline so later refactors start from accurate analysis, valid tests, and current shared helpers.
 
@@ -39,7 +39,7 @@ description: "Executable task list for code quality & technical debt overhaul"
 
 ---
 
-## Phase 2: Foundational
+## Phase 2: Foundational (DRY Helpers & Structured Logging Infrastructure)
 
 **Purpose**: Establish shared logging, helper, and error-handling infrastructure that all later stories rely on.
 
