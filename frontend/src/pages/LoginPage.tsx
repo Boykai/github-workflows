@@ -4,6 +4,7 @@
  */
 
 import { LoginButton } from '@/components/auth/LoginButton';
+import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { useTheme } from '@/components/ThemeProvider';
 import { MoonStar, SunMedium } from 'lucide-react';
 
@@ -19,18 +20,7 @@ export function LoginPage() {
 
   return (
     <div className="starfield celestial-fade-in relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-6 py-12">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.34),transparent_20%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.16),transparent_24%),linear-gradient(180deg,hsl(var(--background)/0.14),transparent)] dark:bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.14),transparent_18%),radial-gradient(circle_at_70%_20%,hsl(var(--accent)/0.18),transparent_22%),linear-gradient(180deg,hsl(var(--night)/0.4),hsl(var(--night)/0.06))]" />
-      <div className="pointer-events-none absolute inset-0 opacity-80">
-        <div className="celestial-orbit celestial-orbit-spin left-[54%] top-[14%] hidden h-[32rem] w-[32rem] lg:block" />
-        <div className="celestial-orbit celestial-orbit-spin-reverse left-[58%] top-[18%] hidden h-[24rem] w-[24rem] border-primary/25 lg:block" />
-        <div className="absolute left-[6%] top-[8%] h-32 w-32 rounded-full bg-primary/10 blur-3xl celestial-pulse-glow" />
-        <div className="absolute left-[12%] top-[12%] hidden items-center gap-12 text-[11px] uppercase tracking-[0.3em] text-muted-foreground/70 lg:flex">
-          <span>Meditation</span>
-          <span>Tarot</span>
-          <span>Mission</span>
-          <span>Initiatives</span>
-        </div>
-      </div>
+      <AnimatedBackground />
       <div className="relative grid w-full max-w-6xl gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
         <section className="flex min-h-[560px] max-w-2xl flex-col justify-between py-6">
           <div className="mb-6 inline-flex items-center gap-3 rounded-full border border-primary/20 bg-primary/10 px-4 py-2 text-xs uppercase tracking-[0.3em] text-primary">

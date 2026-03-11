@@ -10,6 +10,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { createPortal } from 'react-dom';
 import { Sparkles, Pencil, X, Save, Lock, Check, ChevronDown, Workflow } from 'lucide-react';
 import type { Chore, ChoreEditState, ChoreInlineUpdate } from '@/types';
+import { formatMsRemaining, computeCountRemaining, computeTimeProgress } from '@/lib/time-utils';
 import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { ChoreScheduleConfig } from './ChoreScheduleConfig';
@@ -47,22 +48,12 @@ function getNextTriggerInfo(chore: Chore, parentIssueCount?: number): string | n
 
   if (chore.schedule_type === 'time') {
     const baseDate = chore.last_triggered_at ?? chore.created_at;
-    const base = new Date(baseDate).getTime();
-    const nextTrigger = base + chore.schedule_value * 24 * 60 * 60 * 1000;
-    const remaining = nextTrigger - Date.now();
-
-    if (remaining <= 0) return 'Due now';
-
-    const days = Math.floor(remaining / (24 * 60 * 60 * 1000));
-    const hours = Math.floor((remaining % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
-
-    if (days > 0) return `${days}d ${hours}h remaining`;
-    return `${hours}h remaining`;
+    const { remainingMs } = computeTimeProgress(baseDate, chore.schedule_value);
+    return formatMsRemaining(remainingMs);
   }
 
   if (chore.schedule_type === 'count' && parentIssueCount !== undefined) {
-    const issuesSince = parentIssueCount - chore.last_triggered_count;
-    const remaining = Math.max(0, chore.schedule_value - issuesSince);
+    const remaining = computeCountRemaining(chore.schedule_value, parentIssueCount, chore.last_triggered_count);
     if (remaining === 0) return 'Ready to trigger';
     return `${remaining} issue${remaining !== 1 ? 's' : ''} remaining`;
   }
@@ -84,8 +75,7 @@ function getTopRightTriggerLabel(chore: Chore, parentIssueCount?: number): strin
   }
 
   if (chore.schedule_type === 'count' && parentIssueCount !== undefined) {
-    const issuesSince = parentIssueCount - chore.last_triggered_count;
-    const remaining = Math.max(0, chore.schedule_value - issuesSince);
+    const remaining = computeCountRemaining(chore.schedule_value, parentIssueCount, chore.last_triggered_count);
     return `${remaining}/${chore.schedule_value}`;
   }
 

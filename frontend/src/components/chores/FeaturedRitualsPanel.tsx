@@ -7,6 +7,7 @@
 import { useMemo } from 'react';
 import { Clock, PlayCircle, Trophy, type LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { formatMsRemaining, formatMsAgo, computeCountRemaining, computeTimeProgress, computeCountProgress } from '@/lib/time-utils';
 import type { Chore } from '@/types';
 
 interface FeaturedRitualsPanelProps {
@@ -26,8 +27,7 @@ interface RitualCard {
 
 function computeRemaining(chore: Chore, parentIssueCount: number): number {
   if (chore.schedule_type !== 'count' || !chore.schedule_value) return Infinity;
-  const issuesSince = parentIssueCount - chore.last_triggered_count;
-  return Math.max(0, chore.schedule_value - issuesSince);
+  return computeCountRemaining(chore.schedule_value, parentIssueCount, chore.last_triggered_count);
 }
 
 function computeNextRunCandidate(chore: Chore, parentIssueCount: number) {
@@ -37,8 +37,7 @@ function computeNextRunCandidate(chore: Chore, parentIssueCount: number) {
 
   if (chore.schedule_type === 'count') {
     const remaining = computeRemaining(chore, parentIssueCount);
-    const threshold = chore.schedule_value;
-    const progress = threshold > 0 ? (threshold - remaining) / threshold : 0;
+    const progress = computeCountProgress(chore.schedule_value, remaining);
     return {
       stat:
         remaining === 0
@@ -49,21 +48,11 @@ function computeNextRunCandidate(chore: Chore, parentIssueCount: number) {
     };
   }
 
-  const thresholdMs = chore.schedule_value * 24 * 60 * 60 * 1000;
   const baseDate = chore.last_triggered_at ?? chore.created_at;
-  const elapsedMs = Math.max(0, Date.now() - new Date(baseDate).getTime());
-  const remainingMs = Math.max(0, thresholdMs - elapsedMs);
-  const progress = thresholdMs > 0 ? Math.min(1, elapsedMs / thresholdMs) : 0;
-  const days = Math.floor(remainingMs / (24 * 60 * 60 * 1000));
-  const hours = Math.floor((remainingMs % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+  const { remainingMs, progress } = computeTimeProgress(baseDate, chore.schedule_value);
 
   return {
-    stat:
-      remainingMs === 0
-        ? 'Due now'
-        : days > 0
-          ? `${days}d ${hours}h remaining`
-          : `${hours}h remaining`,
+    stat: formatMsRemaining(remainingMs),
     isDue: remainingMs === 0,
     progress,
   };
@@ -116,15 +105,7 @@ export function FeaturedRitualsPanel({
       const ts = new Date(chore.last_triggered_at).getTime();
       if (ts > latestTimestamp) {
         latestTimestamp = ts;
-        const ago = Date.now() - ts;
-        const hoursAgo = Math.floor(ago / (60 * 60 * 1000));
-        const daysAgo = Math.floor(hoursAgo / 24);
-        const stat =
-          daysAgo > 0
-            ? `Run ${daysAgo}d ago`
-            : hoursAgo > 0
-              ? `Run ${hoursAgo}h ago`
-              : 'Run just now';
+        const stat = formatMsAgo(Date.now() - ts);
         mostRecentlyRun = {
           choreId: chore.id,
           choreName: chore.name,
