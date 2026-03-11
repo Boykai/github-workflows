@@ -3199,6 +3199,18 @@ class TestRecoverStalledIssues:
         _recovery_last_attempt.clear()
         _pending_agent_assignments.clear()
 
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None.
+
+        The fail-closed exception handler in ``_should_skip_recovery`` would
+        otherwise block all recoveries in tests that don't explicitly mock
+        the blocking queue.  Tests that *do* mock it (e.g. PENDING entry)
+        override this via their own ``@patch`` decorator.
+        """
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
+
     @pytest.fixture
     def mock_backlog_task(self):
         task = MagicMock()
@@ -3920,6 +3932,12 @@ class TestRecoverStalledIssues:
 
 class TestValidateAndReconcileTrackingTable:
     """Tests for tracking table validation against GitHub ground truth."""
+
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None."""
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
 
     BODY_ACTIVE_PENDING = (
         "## Issue Body\n\n"
@@ -7093,6 +7111,12 @@ class TestRecoveryForcedTransition:
         _recovery_last_attempt.clear()
         _pending_agent_assignments.clear()
 
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None."""
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
+
     @pytest.fixture
     def mock_in_progress_task(self):
         task = MagicMock()
@@ -9120,6 +9144,12 @@ class TestRecoveryIncludesInReview:
         _recovery_last_attempt.clear()
         _pending_agent_assignments.clear()
 
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None."""
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
+
     @pytest.fixture
     def mock_in_review_task(self):
         task = MagicMock()
@@ -9225,6 +9255,12 @@ class TestRecoverySelfHealTracking:
         yield
         _recovery_last_attempt.clear()
         _pending_agent_assignments.clear()
+
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None."""
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
 
     @pytest.fixture
     def mock_backlog_task(self):
@@ -9840,3 +9876,106 @@ class TestCopilotReviewRequestTimestamp:
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
         assert result["status"] == "error"
         assert 42 not in _copilot_review_requested_at
+
+
+# ────────────────────────────────────────────────────────────────────
+# _is_pending_in_blocking_queue guard
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestIsPendingInBlockingQueue:
+    """Tests for the shared _is_pending_in_blocking_queue guard."""
+
+    @pytest.mark.asyncio
+    async def test_returns_true_for_pending_entry(self):
+        """Should return True when the issue is PENDING in the blocking queue."""
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+        from src.services.copilot_polling.pipeline import _is_pending_in_blocking_queue
+
+        pending = BlockingQueueEntry(
+            id=1,
+            repo_key="owner/repo",
+            issue_number=42,
+            project_id="PVT_1",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.PENDING,
+            created_at="2026-01-01T00:00:00Z",
+        )
+        with patch("src.services.blocking_queue.get_entry", new_callable=AsyncMock, return_value=pending):
+            result = await _is_pending_in_blocking_queue("owner/repo", 42)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_returns_false_for_active_entry(self):
+        """Should return False when the issue is ACTIVE (not blocking)."""
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+        from src.services.copilot_polling.pipeline import _is_pending_in_blocking_queue
+
+        active = BlockingQueueEntry(
+            id=1,
+            repo_key="owner/repo",
+            issue_number=42,
+            project_id="PVT_1",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.ACTIVE,
+            created_at="2026-01-01T00:00:00Z",
+        )
+        with patch("src.services.blocking_queue.get_entry", new_callable=AsyncMock, return_value=active):
+            result = await _is_pending_in_blocking_queue("owner/repo", 42)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_returns_false_when_not_in_queue(self):
+        """Should return False when the issue has no queue entry."""
+        from src.services.copilot_polling.pipeline import _is_pending_in_blocking_queue
+
+        with patch("src.services.blocking_queue.get_entry", new_callable=AsyncMock, return_value=None):
+            result = await _is_pending_in_blocking_queue("owner/repo", 42)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_fails_open_on_exception(self):
+        """Should return False (fail open) when the blocking queue service errors."""
+        from src.services.copilot_polling.pipeline import _is_pending_in_blocking_queue
+
+        with patch("src.services.blocking_queue.get_entry", new_callable=AsyncMock, side_effect=Exception("DB down")):
+            result = await _is_pending_in_blocking_queue("owner/repo", 42)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_returns_false_for_completed_entry(self):
+        """Should return False for COMPLETED entries."""
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+        from src.services.copilot_polling.pipeline import _is_pending_in_blocking_queue
+
+        completed = BlockingQueueEntry(
+            id=1,
+            repo_key="owner/repo",
+            issue_number=42,
+            project_id="PVT_1",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.COMPLETED,
+            created_at="2026-01-01T00:00:00Z",
+        )
+        with patch("src.services.blocking_queue.get_entry", new_callable=AsyncMock, return_value=completed):
+            result = await _is_pending_in_blocking_queue("owner/repo", 42)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_returns_false_for_in_review_entry(self):
+        """Should return False for IN_REVIEW entries."""
+        from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
+        from src.services.copilot_polling.pipeline import _is_pending_in_blocking_queue
+
+        in_review = BlockingQueueEntry(
+            id=1,
+            repo_key="owner/repo",
+            issue_number=42,
+            project_id="PVT_1",
+            is_blocking=True,
+            queue_status=BlockingQueueStatus.IN_REVIEW,
+            created_at="2026-01-01T00:00:00Z",
+        )
+        with patch("src.services.blocking_queue.get_entry", new_callable=AsyncMock, return_value=in_review):
+            result = await _is_pending_in_blocking_queue("owner/repo", 42)
+        assert result is False

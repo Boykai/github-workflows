@@ -904,11 +904,13 @@ class WorkflowOrchestrator:
             from src.services import blocking_queue as bq_service
 
             repo_key = f"{ctx.repository_owner}/{ctx.repository_name}"
-            blocking_base = await bq_service.get_base_ref_for_issue(repo_key, ctx.issue_number)
+            # Prefer the entry-specific blocking_source_issue branch, then fall
+            # back to the global oldest-blocker resolution.
+            blocking_base = await bq_service.get_base_ref_for_entry(repo_key, ctx.issue_number)
             if blocking_base != "main":
                 base_ref = blocking_base
                 logger.info(
-                    "Blocking queue: issue #%d will use base_ref '%s' (from blocking queue)",
+                    "Blocking queue: issue #%d will use base_ref '%s' (from blocking queue entry)",
                     ctx.issue_number,
                     base_ref,
                 )

@@ -20,6 +20,35 @@ from .state import (
 logger = get_logger(__name__)
 
 
+async def _is_pending_in_blocking_queue(repo_key: str, issue_number: int) -> bool:
+    """Check whether *issue_number* is PENDING in the blocking queue.
+
+    Returns ``True`` when the issue must **not** start a pipeline yet.
+    Fails **open** (returns ``False``) on any exception so that
+    non-blocking-queue workflows are never disrupted.
+    """
+    try:
+        from src.models.blocking import BlockingQueueStatus
+        from src.services import blocking_queue as bq_service
+
+        entry = await bq_service.get_entry(repo_key, issue_number)
+        if entry and entry.queue_status == BlockingQueueStatus.PENDING:
+            logger.debug(
+                "Blocking queue guard: issue #%d is PENDING in %s — skipping pipeline start",
+                issue_number,
+                repo_key,
+            )
+            return True
+    except Exception as exc:
+        logger.debug(
+            "Blocking queue guard: check failed for issue #%d in %s (failing open): %s",
+            issue_number,
+            repo_key,
+            exc,
+        )
+    return False
+
+
 async def _self_heal_tracking_table(
     access_token: str,
     owner: str,
@@ -568,6 +597,12 @@ async def check_backlog_issues(
             if not task_owner or not task_repo:
                 continue
 
+            # Blocking queue guard: skip issues waiting for their turn
+            if await _is_pending_in_blocking_queue(
+                f"{task_owner}/{task_repo}", task.issue_number
+            ):
+                continue
+
             # Get or reconstruct pipeline state
             pipeline = await _get_or_reconstruct_pipeline(
                 access_token=access_token,
@@ -657,6 +692,12 @@ async def check_ready_issues(
             task_owner = task.repository_owner or owner
             task_repo = task.repository_name or repo
             if not task_owner or not task_repo:
+                continue
+
+            # Blocking queue guard: skip issues waiting for their turn
+            if await _is_pending_in_blocking_queue(
+                f"{task_owner}/{task_repo}", task.issue_number
+            ):
                 continue
 
             # Get or reconstruct pipeline state
@@ -1874,6 +1915,12 @@ async def check_in_progress_issues(
                     "Skipping issue #%d - no repository info available",
                     task.issue_number,
                 )
+                continue
+
+            # Blocking queue guard: skip issues waiting for their turn
+            if await _is_pending_in_blocking_queue(
+                f"{task_owner}/{task_repo}", task.issue_number
+            ):
                 continue
 
             # Default transition targets for a genuine In Progress pipeline
