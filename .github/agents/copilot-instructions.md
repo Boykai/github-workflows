@@ -212,6 +212,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - aiosqlite (pipeline configs, agent tracking); GitHub Issues API (labels as state markers) (034-label-pipeline-state)
 - Python 3.13 (backend), TypeScript / ES2022 (frontend) + FastAPI 0.135+, Pydantic 2.12+, aiosqlite, githubkit, React 19, TanStack Query v5, Vite 7.3, Tailwind v4, Zod v4 (035-best-practices-overhaul)
 - SQLite via aiosqlite (async), with write-through in-memory `BoundedDict` cache (035-best-practices-overhaul)
+- TypeScript / ES2022 (frontend only) + React 19.2, Lucide React 0.577, Tailwind CSS 4.2, Web Speech API (browser-native) (036-fix-voice-input)
+- N/A (no persistence needed — voice transcription is ephemeral) (036-fix-voice-input)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16
