@@ -2295,6 +2295,38 @@ class TestCheckBacklogIssues:
         )
         assert results == []
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.pipeline._is_pending_in_blocking_queue", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_skips_pending_blocking_queue_issue(
+        self,
+        mock_get_pipeline,
+        mock_config,
+        mock_service,
+        mock_guard,
+        mock_backlog_task,
+    ):
+        """Should skip issues that are PENDING in the blocking queue."""
+        mock_guard.return_value = True
+        mock_config.return_value = MagicMock(
+            status_backlog="Backlog",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_project_items = AsyncMock(return_value=[mock_backlog_task])
+
+        results = await check_backlog_issues(
+            access_token="token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+        )
+
+        mock_guard.assert_called_once_with("owner/repo", 42)
+        mock_get_pipeline.assert_not_called()
+        assert results == []
+
 
 class TestCheckReadyIssues:
     """Tests for check_ready_issues function."""
