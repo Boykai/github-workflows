@@ -315,6 +315,11 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         await seed_global_settings(db)
         _app.state.db = db
 
+        # Load persisted pipeline state from SQLite into L1 caches
+        from src.services.pipeline_state_store import init_pipeline_state_store
+
+        await init_pipeline_state_store(db)
+
         # Register singleton services on app.state for DI (see dependencies.py)
         from src.services.github_projects import github_projects_service
         from src.services.websocket import connection_manager
