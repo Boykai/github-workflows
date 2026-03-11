@@ -53,9 +53,10 @@ async def list_agents(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     return await service.list_agents(
         project_id=project_id,
@@ -75,9 +76,10 @@ async def list_pending_agents(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     return await service.list_pending_agents(
         project_id=project_id,
@@ -97,9 +99,10 @@ async def purge_pending_agents(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     logger.info(
         "Purging stale pending agents for project %s (%s/%s)",
@@ -128,9 +131,10 @@ async def bulk_update_models(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     return await service.bulk_update_models(
         project_id=project_id,
@@ -161,9 +165,10 @@ async def create_agent(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     try:
         return await service.create_agent(
@@ -199,9 +204,10 @@ async def update_agent(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     try:
         return await service.update_agent(
@@ -237,9 +243,10 @@ async def delete_agent(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     try:
         return await service.delete_agent(

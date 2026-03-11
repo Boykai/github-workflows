@@ -315,6 +315,11 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         await seed_global_settings(db)
         _app.state.db = db
 
+        # Load persisted pipeline state from SQLite into L1 caches
+        from src.services.pipeline_state_store import init_pipeline_state_store
+
+        await init_pipeline_state_store(db)
+
         # Register singleton services on app.state for DI (see dependencies.py)
         from src.services.github_projects import github_projects_service
         from src.services.websocket import connection_manager
@@ -387,19 +392,30 @@ def create_app() -> FastAPI:
         redoc_url="/api/redoc" if settings.enable_docs else None,
     )
 
-    # CORS middleware — explicit methods reduce attack surface.
+    # CORS middleware — explicit methods and headers reduce attack surface.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["*"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "X-Request-ID",
+            "X-Requested-With",
+        ],
     )
 
     # Request-ID middleware (must be added after CORS — Starlette LIFO order)
     from src.middleware.request_id import RequestIDMiddleware
 
     app.add_middleware(RequestIDMiddleware)
+
+    # Content Security Policy middleware
+    from src.middleware.csp import CSPMiddleware
+
+    app.add_middleware(CSPMiddleware)
 
     # Rate limiting — slowapi state + exception handler
     from slowapi import _rate_limit_exceeded_handler
