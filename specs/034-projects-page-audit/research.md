@@ -9,7 +9,7 @@
 
 **Decision**: All Projects page components must exclusively use CSS custom properties defined in `frontend/src/index.css` via the Tailwind v4 `@theme` block and custom utility classes. No hardcoded hex/rgb/hsl values should appear in component code.
 
-**Rationale**: The Celestial design system defines a comprehensive token set covering colors (`--color-background`, `--color-primary`, `--color-muted-foreground`, etc.), spacing (Tailwind's default scale), typography (`--font-display`, `--font-sans`), shadows (`--shadow-sm` through `--shadow-lg`), radii (`--radius-sm`, `--radius-md`, `--radius-lg`), and motion (`--transition-cosmic-*`). Both light and dark themes are supported via `@media (prefers-color-scheme: dark)` with HSL-based token overrides. Using these tokens ensures visual consistency across pages and automatic theme switching support.
+**Rationale**: The Celestial design system defines a comprehensive token set covering colors (`--color-background`, `--color-primary`, `--color-muted-foreground`, etc.), spacing (Tailwind's default scale), typography (`--font-display`, `--font-sans`), shadows (`--shadow-sm` through `--shadow-lg`), radii (`--radius-sm`, `--radius-md`, `--radius-lg`), and motion (`--transition-cosmic-*`). Both light and dark themes are supported by applying `.light` / `.dark` classes to the `<html>` element via the ThemeProvider, with HSL-based token overrides defined under `.dark` in `frontend/src/index.css`. Using these tokens ensures visual consistency across pages and automatic theme switching support.
 
 **Alternatives Considered**:
 

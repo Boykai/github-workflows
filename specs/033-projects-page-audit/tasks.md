@@ -1,7 +1,9 @@
 # Tasks: Audit & Polish the Projects Page
 
-**Feature Branch**: `033-projects-page-audit`
+**Feature Branch**: `034-projects-page-audit`
 **Date**: 2026-03-10
+
+> Note: This tasks summary was originally authored under the `033-projects-page-audit` directory and lives here for historical continuity. It is now tracked as part of the `034-projects-page-audit` spec set.
 
 ## Phase 1 — Accessibility Fixes (P1/P2)
 
