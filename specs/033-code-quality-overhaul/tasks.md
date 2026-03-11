@@ -5,7 +5,7 @@ description: "Executable task list for code quality & technical debt overhaul"
 
 # Tasks: Code Quality & Technical Debt Overhaul
 
-**Input**: Design documents from `/specs/033-code-quality-overhaul/`
+**Input**: Design documents from `specs/033-code-quality-overhaul/`
 **Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`
 
 **Tests**: Tests are required by this feature. Each user story includes test or verification tasks before implementation tasks, plus story-level verification at the end.
