@@ -1,4 +1,5 @@
 ---
+title: "Tasks: Code Quality & Technical Debt Overhaul"
 description: "Executable task list for Code Quality & Technical Debt Overhaul"
 ---
 
@@ -11,7 +12,7 @@ description: "Executable task list for Code Quality & Technical Debt Overhaul"
 
 **Organization**: Tasks are grouped by setup, shared foundations, and then by user story so each increment can be implemented and verified independently.
 
-## Format: `[ID] [P?] [Story?] Description`
+## Format: `[ID] [P?] [Story for US tasks only] Description`
 
 - **[P]**: Can run in parallel with other tasks in the same phase because the work targets different files.
 - **[Story]**: Required on every user-story task only (`[US1]` ... `[US6]`); omit it for setup, foundational, and polish tasks.
