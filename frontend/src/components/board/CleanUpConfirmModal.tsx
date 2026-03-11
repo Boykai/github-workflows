@@ -3,7 +3,7 @@
  * scheduled for deletion and preservation, with confirm/cancel actions.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { GitBranch, GitPullRequest, Shield, Trash2, X } from 'lucide-react';
 import type { CleanupPreflightResponse } from '@/types';
@@ -16,9 +16,34 @@ interface CleanUpConfirmModalProps {
 }
 
 export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfirmModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(
+    document.activeElement instanceof HTMLElement ? document.activeElement : null
+  );
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onCancel();
+      if (e.key === 'Escape') {
+        onCancel();
+        return;
+      }
+
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href], input, select, textarea'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     },
     [onCancel]
   );
@@ -31,6 +56,16 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [handleKeyDown]);
+
+  // Focus restoration on unmount
+  useEffect(() => {
+    const prev = previousFocusRef.current;
+    return () => {
+      if (prev?.isConnected) {
+        prev.focus();
+      }
+    };
+  }, []);
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) onCancel();
@@ -48,14 +83,16 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
       onClick={handleBackdropClick}
     >
       <div
+        ref={dialogRef}
         className="celestial-fade-in celestial-panel relative m-4 w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 text-card-foreground shadow-lg"
         role="dialog"
         aria-modal="true"
-        aria-label="Confirm Repository Cleanup"
+        aria-labelledby="cleanup-modal-title"
+        aria-describedby="cleanup-modal-description"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Confirm Repository Cleanup</h2>
+          <h2 id="cleanup-modal-title" className="text-lg font-semibold">Confirm Repository Cleanup</h2>
           <button
             onClick={onCancel}
             className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
@@ -65,7 +102,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
           </button>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-4">
+        <p id="cleanup-modal-description" className="text-sm text-muted-foreground mb-4">
           Review the Solune-generated items below before confirming. Assets created outside the app
           will be preserved. This operation cannot be undone.
         </p>

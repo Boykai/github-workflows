@@ -43,7 +43,6 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     syncingId,
     deleteTool,
     deletingId,
-    deleteResult,
   } = useToolsList(projectId);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -51,7 +50,6 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
   const [editingRepoServer, setEditingRepoServer] = useState<RepoMcpServerConfig | null>(null);
   const [draftTool, setDraftTool] = useState<Partial<McpToolConfigCreate> | null>(null);
   const [search, setSearch] = useState('');
-  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const deferredSearch = useDeferredValue(search);
   const {
     repoConfig,
@@ -132,17 +130,29 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
   });
 
   const handleDelete = async (toolId: string) => {
-    // First check for affected agents; backend deletes immediately when none are affected.
+    const tool = tools.find((t) => t.id === toolId);
+    const confirmed = await confirm({
+      title: 'Delete Tool',
+      description: `Remove tool "${tool?.name}"? This cannot be undone.`,
+      variant: 'danger',
+      confirmLabel: 'Yes, Delete',
+    });
+    if (!confirmed) return;
+
+    // First attempt without force — backend auto-deletes when no agents are affected.
     const result = await deleteTool({ toolId, confirm: false });
     if (!result.success && result.affected_agents.length > 0) {
-      setDeleteConfirmId(toolId);
+      const agentList = result.affected_agents.map((a) => `• ${a.name}`).join('\n');
+      await confirm({
+        title: 'Tool In Use',
+        description: `This tool is assigned to the following agents:\n\n${agentList}\n\nDeleting it will remove it from these agents. Are you sure?`,
+        variant: 'danger',
+        confirmLabel: 'Delete Anyway',
+        onConfirm: async () => {
+          await deleteTool({ toolId, confirm: true });
+        },
+      });
     }
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!deleteConfirmId) return;
-    await deleteTool({ toolId: deleteConfirmId, confirm: true });
-    setDeleteConfirmId(null);
   };
 
   const handleEditRepoServer = (server: RepoMcpServerConfig) => {
@@ -317,53 +327,6 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
           )}
         </section>
       )}
-
-      {/* Delete confirmation with affected agents */}
-      {deleteConfirmId &&
-        deleteResult &&
-        !deleteResult.success &&
-        deleteResult.affected_agents.length > 0 && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-            role="presentation"
-            onClick={() => setDeleteConfirmId(null)}
-          >
-            <div
-              className="bg-card rounded-lg border border-border shadow-lg p-6 w-full max-w-md"
-              role="presentation"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <h3 className="text-lg font-semibold mb-2">Tool in use</h3>
-              <p className="text-sm text-muted-foreground mb-3">
-                This tool is assigned to the following agents:
-              </p>
-              <ul className="mb-4 space-y-1">
-                {deleteResult.affected_agents.map((agent) => (
-                  <li key={agent.id} className="text-sm font-medium">
-                    • {agent.name}
-                  </li>
-                ))}
-              </ul>
-              <p className="text-sm text-muted-foreground mb-4">
-                Deleting it will remove it from these agents. Are you sure?
-              </p>
-              <div className="flex justify-end gap-2">
-                <button
-                  className="solar-action rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-                  onClick={() => setDeleteConfirmId(null)}
-                >
-                  Cancel
-                </button>
-                <button
-                  className="px-4 py-2 text-sm font-medium rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                  onClick={handleConfirmDelete}
-                >
-                  Delete anyway
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
       {/* Upload Modal */}
       <UploadMcpModal

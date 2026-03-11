@@ -167,11 +167,13 @@ export function ConfirmationDialog({
         </div>
 
         {/* Error */}
-        {error && (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
-            {error}
-          </div>
-        )}
+        <div aria-live="assertive" aria-atomic="true">
+          {error && (
+            <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
+              {error}
+            </div>
+          )}
+        </div>
 
         {/* Buttons */}
         <div className="mt-5 flex justify-end gap-2">
@@ -183,6 +185,7 @@ export function ConfirmationDialog({
             className="rounded-lg text-foreground"
             onClick={onCancel}
             disabled={isLoading}
+            aria-disabled={isLoading ? true : undefined}
           >
             {cancelLabel}
           </Button>
@@ -192,9 +195,10 @@ export function ConfirmationDialog({
             className={cn('gap-2 rounded-lg', confirmBtnClass)}
             onClick={onConfirm}
             disabled={isLoading}
+            aria-disabled={isLoading ? true : undefined}
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-            {isLoading ? 'Processing…' : confirmLabel}
+            <span aria-live="polite">{isLoading ? 'Processing…' : confirmLabel}</span>
           </Button>
         </div>
       </div>

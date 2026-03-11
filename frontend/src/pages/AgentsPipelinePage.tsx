@@ -147,11 +147,12 @@ export function AgentsPipelinePage() {
 
   // Handle delete with confirmation
   const handleDelete = useCallback(async () => {
+    const name = pipelineConfig.pipeline?.name ?? 'this pipeline';
     const confirmed = await confirm({
       title: 'Delete Pipeline',
-      description: 'Are you sure you want to delete this pipeline? This action cannot be undone.',
+      description: `This will permanently remove the pipeline configuration "${name}". This cannot be undone.`,
       variant: 'danger',
-      confirmLabel: 'Delete Pipeline',
+      confirmLabel: 'Yes, Delete',
     });
     if (confirmed) {
       pipelineConfig.deletePipeline();
