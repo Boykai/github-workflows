@@ -33,22 +33,28 @@ pytest tests/ -k "test_pipeline_advancement" -v
 backend/tests/
 ├── conftest.py              # Shared fixtures (db, sessions, mocks)
 ├── helpers/                 # Test helper utilities
-├── unit/                    # 47 unit test files
+├── unit/                    # 59 unit test files
 │   ├── test_admin_authorization.py
 │   ├── test_agent_creator.py
+│   ├── test_agent_output.py
 │   ├── test_agent_tracking.py
+│   ├── test_agents_service.py
 │   ├── test_ai_agent.py
 │   ├── test_api_auth.py
 │   ├── test_api_board.py
 │   ├── test_api_chat.py
 │   ├── test_api_mcp.py
+│   ├── test_api_pipelines.py
 │   ├── test_api_projects.py
 │   ├── test_api_settings.py
 │   ├── test_api_tasks.py
+│   ├── test_api_tools.py
 │   ├── test_api_workflow.py
 │   ├── test_auth_security.py
+│   ├── test_blocking_queue.py
 │   ├── test_board.py
 │   ├── test_cache.py
+│   ├── test_chat_block.py
 │   ├── test_chores_api.py
 │   ├── test_chores_counter.py
 │   ├── test_chores_scheduler.py
@@ -72,15 +78,21 @@ backend/tests/
 │   ├── test_models.py
 │   ├── test_module_boundaries.py
 │   ├── test_oauth_state.py
+│   ├── test_orchestrator.py
+│   ├── test_polling_loop.py
 │   ├── test_prompts.py
 │   ├── test_recommendation_models.py
+│   ├── test_recovery.py
 │   ├── test_session_store.py
 │   ├── test_settings_store.py
+│   ├── test_signal_chat.py
 │   ├── test_token_encryption.py
+│   ├── test_tools_service.py
 │   ├── test_utils.py
 │   ├── test_webhooks.py
 │   ├── test_websocket.py
-│   └── test_workflow_orchestrator.py
+│   ├── test_workflow_orchestrator.py
+│   └── test_workflow_orchestrator_config.py
 ├── integration/             # Integration tests
 └── test_api_e2e.py          # API end-to-end tests
 ```

@@ -9,19 +9,28 @@ github-workflows/
 │   └── post-start.sh             #   Prints Codespaces callback URL
 ├── .env.example                  # Environment template (documented)
 ├── .github/
-│   ├── agents/                   # Spec Kit custom Copilot agent definitions
-│   │   ├── speckit.specify.agent.md
-│   │   ├── speckit.plan.agent.md
-│   │   ├── speckit.tasks.agent.md
-│   │   ├── speckit.implement.agent.md
-│   │   ├── speckit.clarify.agent.md
+│   ├── ISSUE_TEMPLATE/           # GitHub Issue templates (chore presets)
+│   ├── agents/                   # Custom Copilot agent definitions
+│   │   ├── copilot-instructions.md
+│   │   ├── mcp.json              #   MCP server configuration for agents
+│   │   ├── archivist.agent.md
+│   │   ├── designer.agent.md
+│   │   ├── judge.agent.md
+│   │   ├── linter.agent.md
+│   │   ├── quality-assurance.agent.md
+│   │   ├── tester.agent.md
 │   │   ├── speckit.analyze.agent.md
 │   │   ├── speckit.checklist.agent.md
+│   │   ├── speckit.clarify.agent.md
 │   │   ├── speckit.constitution.agent.md
-│   │   ├── speckit.taskstoissues.agent.md
-│   │   └── copilot-instructions.md
+│   │   ├── speckit.implement.agent.md
+│   │   ├── speckit.plan.agent.md
+│   │   ├── speckit.specify.agent.md
+│   │   ├── speckit.tasks.agent.md
+│   │   └── speckit.taskstoissues.agent.md
 │   ├── prompts/                  # GitHub Copilot prompt files
-│   └── workflows/                # GitHub Actions workflows
+│   ├── pull_request_template.md  # PR template with doc-update checklist
+│   └── workflows/                # GitHub Actions CI/CD workflows
 ├── .pre-commit-config.yaml       # Pre-commit framework config
 ├── docker-compose.yml            # 3 services: backend, frontend, signal-api
 ├── README.md
@@ -52,14 +61,17 @@ github-workflows/
 │   │   │   ├── tasks.py          #   Task CRUD
 │   │   │   ├── agents.py         #   Agent CRUD and configuration
 │   │   │   ├── metadata.py       #   Repository metadata (labels, branches, milestones)
+│   │   │   ├── tools.py          #   MCP tool configuration CRUD and sync
 │   │   │   ├── webhooks.py       #   GitHub webhook handler
 │   │   │   └── workflow.py       #   Workflow config, pipeline, polling control
 │   │   ├── middleware/
 │   │   │   └── request_id.py     #   RequestIDMiddleware for tracing
-│   │   ├── migrations/           # SQL schema migrations (001–020, auto-run)
+│   │   ├── migrations/           # SQL schema migrations (001–020, 23 files, auto-run)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── agent_creator.py  #   CreationStep, AgentPreview, AgentCreationState
+│   │   │   ├── agents.py         #   AgentConfig list/CRUD models
+│   │   │   ├── blocking.py       #   Blocking queue models (serial issue activation)
 │   │   │   ├── board.py          #   Board columns, items, custom fields
 │   │   │   ├── chat.py           #   ChatMessage, SenderType, ActionType
 │   │   │   ├── chores.py         #   Chore models
@@ -67,11 +79,11 @@ github-workflows/
 │   │   │   ├── mcp.py            #   MCP configuration models
 │   │   │   ├── pipeline.py       #   PipelineConfig, PipelineIssueLaunchRequest, assignments
 │   │   │   ├── project.py        #   GitHubProject, StatusColumn
-│   │   │   ├── agents.py         #   AgentConfig list/CRUD models
 │   │   │   ├── recommendation.py #   AITaskProposal, IssueRecommendation, labels
 │   │   │   ├── settings.py       #   User preferences, global/project settings
 │   │   │   ├── signal.py         #   Signal connection, message, banner models
 │   │   │   ├── task.py           #   Task / project item
+│   │   │   ├── tools.py          #   MCP tool configuration models
 │   │   │   ├── user.py           #   UserSession
 │   │   │   └── workflow.py       #   WorkflowConfiguration, WorkflowTransition
 │   │   ├── prompts/              # AI prompt templates
@@ -103,9 +115,16 @@ github-workflows/
 │   │       │   └── template_builder.py  # Template generation
 │   │       ├── agents/
 │   │       │   └── service.py    #   Agent configuration service
+│   │       ├── pipelines/
+│   │       │   └── service.py    #   Pipeline CRUD operations
+│   │       ├── tools/
+│   │       │   ├── presets.py    #   Built-in tool server presets
+│   │       │   └── service.py    #   MCP tool config CRUD, validation, GitHub sync
 │   │       ├── agent_creator.py  #   #agent command: guided agent creation flow
 │   │       ├── agent_tracking.py #   Agent pipeline tracking (issue body markdown)
 │   │       ├── ai_agent.py       #   AI issue generation (via CompletionProvider)
+│   │       ├── blocking_queue.py #   Serial issue activation & branch ancestry control
+│   │       ├── blocking_queue_store.py  # SQLite persistence for blocking queue
 │   │       ├── cache.py          #   In-memory TTL cache
 │   │       ├── cleanup_service.py  # Stale resource cleanup service
 │   │       ├── completion_providers.py  # Pluggable LLM: Copilot SDK / Azure OpenAI
@@ -125,7 +144,7 @@ github-workflows/
 │   └── tests/
 │       ├── conftest.py           # Shared test fixtures
 │       ├── helpers/              # Test helper utilities
-│       ├── unit/                 # 47 unit test files
+│       ├── unit/                 # 59 unit test files
 │       ├── integration/          # Integration tests
 │       └── test_api_e2e.py       # API end-to-end tests
 │
