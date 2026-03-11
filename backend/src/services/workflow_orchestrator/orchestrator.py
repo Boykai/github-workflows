@@ -1061,15 +1061,11 @@ class WorkflowOrchestrator:
                     repo=ctx.repository_name,
                     pr_number=main_pr_number,
                 )
+        except Exception as e:
+            logger.debug("Blocking queue base_ref lookup skipped (not available): %s", e)
 
-                if pr_details and pr_details.get("last_commit", {}).get("sha"):
-                    current_head_sha = pr_details["last_commit"]["sha"]
-                    logger.info(
-                        "Captured HEAD SHA '%s' for agent '%s' on issue #%d",
-                        current_head_sha[:8],
-                        agent_name,
-                        ctx.issue_number,
-                    )
+        # Check if we already have a "main branch" stored for this issue
+        main_branch_info = get_issue_main_branch(ctx.issue_number)
 
                 existing_pr = {
                     "number": main_pr_number,

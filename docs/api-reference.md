@@ -82,6 +82,7 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 | POST | `/chores/{project_id}/chat` | Interactive chat for sparse-input template refinement |
 | PUT | `/chores/{project_id}/{chore_id}/inline-update` | Inline-edit a chore field |
 | POST | `/chores/{project_id}/create-with-merge` | Create a chore by merging template and overrides |
+| POST | `/chores/{project_id}/seed-presets` | Idempotently seed built-in chore presets for a project |
 | POST | `/chores/evaluate-triggers` | Evaluate all active chores for trigger conditions |
 
 ## Cleanup
