@@ -6,7 +6,7 @@
 ## Prerequisites
 
 - Node.js 20+ and npm
-- Python 3.11+ and `uv` (for backend, if running locally)
+- Python 3.12+ and `uv` (for backend, if running locally)
 - A GitHub token configured in `.env` for API access
 
 ## Setup
@@ -134,15 +134,15 @@ npm run test:a11y
 
 | Priority | File | Lines | Description |
 |----------|------|-------|-------------|
-| HIGH | `src/pages/ProjectsPage.tsx` | ~723 | Main page — all states, banners, inline components |
-| HIGH | `src/components/board/IssueCard.tsx` | ~300 | Most rendered component — visual consistency critical |
-| HIGH | `src/components/board/BoardColumn.tsx` | ~116 | Column layout and header |
-| HIGH | `src/components/board/IssueDetailModal.tsx` | ~300 | Modal — focus trap, accessibility, responsive |
-| MEDIUM | `src/components/board/BoardToolbar.tsx` | ~250 | Controls — accessibility, state feedback |
-| MEDIUM | `src/components/board/ProjectIssueLaunchPanel.tsx` | ~300 | Launch panel — form accessibility |
-| MEDIUM | `src/components/board/BlockingIssuePill.tsx` | ~100 | Pill — action accessibility |
-| MEDIUM | `src/components/board/BlockingChainPanel.tsx` | ~150 | Panel — collapsible accessibility |
-| MEDIUM | `src/components/board/ProjectBoard.tsx` | ~48 | Grid container — responsive layout |
+| HIGH | `src/pages/ProjectsPage.tsx` | ~733 | Main page — all states, banners, inline components |
+| HIGH | `src/components/board/IssueCard.tsx` | ~306 | Most rendered component — visual consistency critical |
+| HIGH | `src/components/board/BoardColumn.tsx` | ~115 | Column layout and header |
+| HIGH | `src/components/board/IssueDetailModal.tsx` | ~310 | Modal — focus trap, accessibility, responsive |
+| MEDIUM | `src/components/board/BoardToolbar.tsx` | ~326 | Controls — accessibility, state feedback |
+| MEDIUM | `src/components/board/ProjectIssueLaunchPanel.tsx` | ~491 | Launch panel — form accessibility |
+| MEDIUM | `src/components/board/BlockingIssuePill.tsx` | ~152 | Pill — action accessibility |
+| MEDIUM | `src/components/board/BlockingChainPanel.tsx` | ~147 | Panel — collapsible accessibility |
+| MEDIUM | `src/components/board/ProjectBoard.tsx` | ~47 | Grid container — responsive layout |
 | LOW | `src/components/board/RefreshButton.tsx` | ~35 | Simple button — verify focus state |
 | LOW | `src/components/board/colorUtils.ts` | ~44 | Color mapping — verify token usage |
 
