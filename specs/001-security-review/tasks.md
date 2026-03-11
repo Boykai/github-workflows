@@ -25,7 +25,7 @@
 **Purpose**: Establish the remediation matrix, shared fixtures, and reusable test helpers before touching story code.
 
 - [ ] T001 Update the remediation matrix, staging prerequisites, and 10-check verification tracker in specs/001-security-review/quickstart.md
-- [ ] T002 Add shared backend security fixtures for production settings, sessions, and webhook secrets in backend/tests/conftest.py
+- [x] T002 Add shared backend security fixtures for production settings, sessions, and webhook secrets in backend/tests/conftest.py
 - [ ] T003 [P] Add frontend security test helpers for cookie-auth redirects and localStorage cleanup in frontend/src/test/setup.ts
 
 ---
@@ -36,9 +36,9 @@
 
 **⚠️ CRITICAL**: No user story work should start until this phase is complete.
 
-- [ ] T004 Extend shared security settings parsing and aggregated validation helpers in backend/src/config.py
-- [ ] T005 [P] Add FastAPI request.state-backed project-access cache helpers in backend/src/dependencies.py
-- [ ] T006 [P] Configure the shared slowapi limiter, rate-limit exception handling, and docs-toggle plumbing in backend/src/main.py
+- [x] T004 Extend shared security settings parsing and aggregated validation helpers in backend/src/config.py
+- [x] T005 [P] Add FastAPI request.state-backed project-access cache helpers in backend/src/dependencies.py
+- [x] T006 [P] Configure the shared slowapi limiter, rate-limit exception handling, and docs-toggle plumbing in backend/src/main.py
 - [ ] T007 [P] Add reusable security assertions for HTTP errors, cookies, and headers in backend/tests/helpers/assertions.py
 
 **Checkpoint**: Shared validation, authorization, rate-limit, and test infrastructure is ready for story work.
@@ -56,14 +56,14 @@
 > **NOTE: Write these tests first, ensure they fail before implementation.**
 
 - [ ] T008 [P] [US1] Extend OAuth callback and dev-login regressions in backend/tests/unit/test_api_auth.py
-- [ ] T009 [P] [US1] Add startup guardrail regression coverage for missing secrets, weak session secrets, and cookie policy failures in backend/tests/unit/test_config_validation.py
+- [x] T009 [P] [US1] Add startup guardrail regression coverage for missing secrets, weak session secrets, and cookie policy failures in backend/tests/unit/test_config_validation.py
 - [ ] T010 [P] [US1] Extend cookie-only authentication flow coverage in frontend/src/hooks/useAuth.test.tsx
 
 ### Implementation for User Story 1
 
-- [ ] T011 [P] [US1] Set HttpOnly redirect cookies and reject query-parameter dev credentials in backend/src/api/auth.py
-- [ ] T012 [P] [US1] Remove URL credential parsing and rely on cookie-backed session refresh in frontend/src/hooks/useAuth.ts
-- [ ] T013 [US1] Enforce non-debug secret, session-secret-length, and cookie-secure startup checks in backend/src/config.py
+- [x] T011 [P] [US1] Set HttpOnly redirect cookies and reject query-parameter dev credentials in backend/src/api/auth.py
+- [x] T012 [P] [US1] Remove URL credential parsing and rely on cookie-backed session refresh in frontend/src/hooks/useAuth.ts
+- [x] T013 [US1] Enforce non-debug secret, session-secret-length, and cookie-secure startup checks in backend/src/config.py
 - [ ] T014 [US1] Update operator-facing authentication and startup remediation steps in specs/001-security-review/quickstart.md
 
 **Checkpoint**: Authentication is cookie-only, credentials no longer leak via URLs, and production startup blocks weak or missing security settings.
@@ -78,19 +78,19 @@
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T015 [P] [US2] Add owned-versus-unowned project access coverage in backend/tests/unit/test_project_authorization.py
+- [x] T015 [P] [US2] Add owned-versus-unowned project access coverage in backend/tests/unit/test_project_authorization.py
 - [ ] T016 [P] [US2] Extend real-time project subscription denial coverage in backend/tests/unit/test_websocket.py
-- [ ] T017 [P] [US2] Add Signal and GitHub webhook signature regressions in backend/tests/unit/test_webhook_security.py
+- [x] T017 [P] [US2] Add Signal and GitHub webhook signature regressions in backend/tests/unit/test_webhook_security.py
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Harden verify_project_access with consistent 401 and 403 behavior in backend/src/dependencies.py
-- [ ] T019 [P] [US2] Apply verified project access to task routes in backend/src/api/tasks.py
-- [ ] T020 [P] [US2] Apply verified project access and subscription rejection to project routes in backend/src/api/projects.py
-- [ ] T021 [P] [US2] Apply verified project access to project settings routes in backend/src/api/settings.py
-- [ ] T022 [P] [US2] Apply verified project access to workflow routes in backend/src/api/workflow.py
-- [ ] T023 [P] [US2] Enforce timing-safe Signal secret validation in backend/src/api/signal.py
-- [ ] T024 [P] [US2] Remove the debug-mode webhook signature bypass in backend/src/api/webhooks.py
+- [x] T018 [US2] Harden verify_project_access with consistent 401 and 403 behavior in backend/src/dependencies.py
+- [x] T019 [P] [US2] Apply verified project access to task routes in backend/src/api/tasks.py
+- [x] T020 [P] [US2] Apply verified project access and subscription rejection to project routes in backend/src/api/projects.py
+- [x] T021 [P] [US2] Apply verified project access to project settings routes in backend/src/api/settings.py
+- [x] T022 [P] [US2] Apply verified project access to workflow routes in backend/src/api/workflow.py
+- [x] T023 [P] [US2] Enforce timing-safe Signal secret validation in backend/src/api/signal.py
+- [x] T024 [P] [US2] Remove the debug-mode webhook signature bypass in backend/src/api/webhooks.py
 
 **Checkpoint**: Unowned project requests and subscriptions are denied consistently, and all protected webhook endpoints require trusted signatures.
 
@@ -105,16 +105,16 @@
 ### Tests for User Story 3 ⚠️
 
 - [ ] T025 [P] [US3] Add API-docs toggle regression coverage in backend/tests/unit/test_main.py
-- [ ] T026 [US3] Extend malformed-origin startup validation coverage in backend/tests/unit/test_config_validation.py
+- [x] T026 [US3] Extend malformed-origin startup validation coverage in backend/tests/unit/test_config_validation.py
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Gate Swagger and ReDoc on explicit ENABLE_DOCS settings in backend/src/main.py
-- [ ] T028 [US3] Validate production CORS origins with clear operator errors in backend/src/config.py
-- [ ] T029 [P] [US3] Preserve dedicated non-root backend runtime directives in backend/Dockerfile
-- [ ] T030 [P] [US3] Preserve dedicated non-root frontend runtime directives in frontend/Dockerfile
-- [ ] T031 [P] [US3] Maintain required security headers and hide server version in frontend/nginx.conf
-- [ ] T032 [P] [US3] Preserve loopback-only bindings and external data volume placement in docker-compose.yml
+- [x] T027 [US3] Gate Swagger and ReDoc on explicit ENABLE_DOCS settings in backend/src/main.py
+- [x] T028 [US3] Validate production CORS origins with clear operator errors in backend/src/config.py
+- [x] T029 [P] [US3] Preserve dedicated non-root backend runtime directives in backend/Dockerfile
+- [x] T030 [P] [US3] Preserve dedicated non-root frontend runtime directives in frontend/Dockerfile
+- [x] T031 [P] [US3] Maintain required security headers and hide server version in frontend/nginx.conf
+- [x] T032 [P] [US3] Preserve loopback-only bindings and external data volume placement in docker-compose.yml
 
 **Checkpoint**: Runtime and browser-facing surfaces expose only approved docs, origins, headers, ports, users, and storage locations.
 
@@ -136,12 +136,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T038 [US4] Remove production plaintext fallback and support remediation state handling in backend/src/services/encryption.py
-- [ ] T039 [US4] Add plaintext-credential remediation metadata in backend/src/migrations/021_encrypt_existing.sql
-- [ ] T040 [US4] Enforce owner-only database directory and file permissions in backend/src/services/database.py
-- [ ] T041 [US4] Persist only TTL-bound chat references and clear chat storage on logout in frontend/src/hooks/useChatHistory.ts
-- [ ] T042 [US4] Sanitize GitHub GraphQL failures while retaining internal logs in backend/src/services/github_projects/service.py
-- [ ] T043 [US4] Validate GitHub avatar hosts and safe placeholder fallback in frontend/src/components/board/IssueCard.tsx
+- [x] T038 [US4] Remove production plaintext fallback and support remediation state handling in backend/src/services/encryption.py
+- [x] T039 [US4] Add plaintext-credential remediation metadata in backend/src/migrations/021_encrypt_existing.sql
+- [x] T040 [US4] Enforce owner-only database directory and file permissions in backend/src/services/database.py
+- [x] T041 [US4] Persist only TTL-bound chat references and clear chat storage on logout in frontend/src/hooks/useChatHistory.ts
+- [x] T042 [US4] Sanitize GitHub GraphQL failures while retaining internal logs in backend/src/services/github_projects/service.py
+- [x] T043 [US4] Validate GitHub avatar hosts and safe placeholder fallback in frontend/src/components/board/IssueCard.tsx
 
 **Checkpoint**: Sensitive data is protected at rest and in the browser, user-facing failures are sanitized, and unsafe avatar sources never render.
 
@@ -161,12 +161,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T047 [US5] Apply per-IP throttles to OAuth callback flows in backend/src/api/auth.py
-- [ ] T048 [P] [US5] Apply per-user throttles to chat endpoints in backend/src/api/chat.py
-- [ ] T049 [P] [US5] Apply per-user throttles to agent invocation endpoints in backend/src/api/agents.py
-- [ ] T050 [P] [US5] Apply per-user throttles to workflow trigger endpoints in backend/src/api/workflow.py
-- [ ] T051 [US5] Reduce GitHub OAuth scopes and surface reauthorization guidance in backend/src/services/github_auth.py
-- [ ] T052 [US5] Minimize GitHub Actions permissions and add justification comments in .github/workflows/branch-issue-link.yml
+- [x] T047 [US5] Apply per-IP throttles to OAuth callback flows in backend/src/api/auth.py
+- [x] T048 [P] [US5] Apply per-user throttles to chat endpoints in backend/src/api/chat.py
+- [x] T049 [P] [US5] Apply per-user throttles to agent invocation endpoints in backend/src/api/agents.py
+- [x] T050 [P] [US5] Apply per-user throttles to workflow trigger endpoints in backend/src/api/workflow.py
+- [x] T051 [US5] Reduce GitHub OAuth scopes and surface reauthorization guidance in backend/src/services/github_auth.py
+- [x] T052 [US5] Minimize GitHub Actions permissions and add justification comments in .github/workflows/branch-issue-link.yml
 
 **Checkpoint**: Expensive endpoints throttle correctly, OAuth scopes are least-privilege, staged write actions remain intact, and automation permissions are minimized.
 
