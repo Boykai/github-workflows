@@ -388,10 +388,10 @@ describe('ProjectsPage', () => {
 
   it('renders the board grid with memoized column layout', () => {
     render(<ProjectsPage />);
-    // The grid should be rendered — verifies pipelineGridStyle is computed correctly
-    // When there are columns in boardData, the grid should use repeat() layout
+    // Verify the board grid is rendered at all — the exact style value depends
+    // on the number of columns returned by the mocked board data. The memoized
+    // pipelineGridStyle is applied to the grid container's style attribute.
     const boardGrid = document.querySelector('[style*="grid-template-columns"]');
-    // Grid layout should be present (either from board or empty state)
     expect(boardGrid || screen.queryByText('No items')).toBeTruthy();
   });
 });

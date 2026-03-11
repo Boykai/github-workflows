@@ -226,10 +226,7 @@ class TestWarmVsColdCacheBehavior:
         cache = InMemoryCache()
         cache.set("board_data:proj1", {"stale": True}, ttl_seconds=0)
         time.sleep(0.01)
-        # Regular get returns None (expired)
-        assert cache.get("board_data:proj1") is None
-        # get_stale still returns the value (degraded mode)
-        # Re-set because the regular get deleted it
-        cache.set("board_data:proj1", {"stale": True}, ttl_seconds=0)
-        time.sleep(0.01)
+        # get_stale returns expired entries (used for rate-limit degraded mode)
         assert cache.get_stale("board_data:proj1") == {"stale": True}
+        # Regular get returns None and removes the expired entry
+        assert cache.get("board_data:proj1") is None

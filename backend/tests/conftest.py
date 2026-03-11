@@ -258,7 +258,6 @@ def _clear_repo_resolution_cache():
 
     _repo_resolution_cache.clear()
     yield
-    _repo_resolution_cache.clear()
 
 
 # =============================================================================

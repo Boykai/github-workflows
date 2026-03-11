@@ -146,6 +146,11 @@ def utcnow() -> datetime:
     return datetime.now(UTC)
 
 
+# Bounded cache for repository resolution results (Spec 034 T021).
+# Avoids repeated GraphQL lookups for the same project across refresh flows.
+_repo_resolution_cache: BoundedDict[str, tuple[str, str]] = BoundedDict(maxlen=128)
+
+
 async def resolve_repository(access_token: str, project_id: str) -> tuple[str, str]:
     """Resolve repository owner and name for a project using 3-step fallback.
 
@@ -204,11 +209,6 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
         "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
         "or ensure the project has at least one linked issue."
     )
-
-
-# Bounded cache for repository resolution results (Spec 034 T021).
-# Avoids repeated GraphQL lookups for the same project across refresh flows.
-_repo_resolution_cache: BoundedDict[str, tuple[str, str]] = BoundedDict(maxlen=128)
 
 
 async def cached_fetch[R](

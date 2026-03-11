@@ -179,7 +179,8 @@ describe('useProjectBoard', () => {
     it('boardProjectsKey returns stable key', async () => {
       const { boardProjectsKey } = await import('./useProjectBoard');
       expect(boardProjectsKey()).toEqual(['board', 'projects']);
-      // Should return a new array each time (no accidental mutation)
+      // Verify referential inequality — each call returns a new tuple to avoid
+      // accidental mutation of a shared reference in TanStack Query internals.
       expect(boardProjectsKey()).not.toBe(boardProjectsKey());
     });
 
