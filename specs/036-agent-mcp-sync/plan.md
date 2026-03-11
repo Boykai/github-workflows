@@ -5,11 +5,11 @@
 
 ## Summary
 
-Implement a centralized agent file sync utility that keeps every `.github/agents/*.agent.md` file's `mcp` field in sync with the current set of activated and built-in MCPs, while unconditionally enforcing `tools: ["*"]` on all agent definitions. The sync runs on three triggers: (1) MCP activation/deactivation via the Tools page, (2) agent file creation/update, and (3) application startup. The backend service reads the current activation state from the `mcp_configurations` database table and the `BUILTIN_MCPS` registry, merges them into each agent's YAML frontmatter `mcp` field (deduplicating by server key), sets `tools: ["*"]`, and commits the updated files to the repository. The frontend triggers this sync after tool toggle mutations and surfaces warnings when restrictive `tools` values are overridden.
+Implement a centralized agent file sync utility that keeps every `.github/agents/*.agent.md` file's `mcp-servers` field in sync with the current set of activated and built-in MCPs, while unconditionally enforcing `tools: ["*"]` on all agent definitions. The sync runs on three triggers: (1) MCP activation/deactivation via the Tools page, (2) agent file creation/update, and (3) application startup. The backend service reads the current activation state from the `mcp_configurations` database table and the `BUILTIN_MCPS` registry, merges them into each agent's YAML frontmatter `mcp-servers` field (deduplicating by server key), sets `tools: ["*"]`, and commits the updated files to the repository. The frontend triggers this sync after tool toggle mutations and surfaces warnings when restrictive `tools` values are overridden.
 
 ## Technical Context
 
-**Language/Version**: Python 3.11 (backend), TypeScript 5.9 (frontend)
+**Language/Version**: Python 3.13 (backend, floor ≥3.12), TypeScript 5.9 (frontend)
 **Primary Dependencies**: FastAPI, aiosqlite, httpx, PyYAML (backend); React 19.2, TanStack React Query 5.90 (frontend)
 **Storage**: aiosqlite (`mcp_configurations` table) + GitHub repository files (agent `.agent.md` files, `mcp.json`)
 **Testing**: pytest (backend), Vitest 4.0 (frontend)

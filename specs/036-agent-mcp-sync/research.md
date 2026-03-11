@@ -4,9 +4,9 @@
 
 ## R1: GitHub Custom Agent Configuration Schema — `mcp` and `tools` Fields
 
-**Decision**: Use the `mcp` YAML frontmatter key (not `mcp-servers`) for per-agent MCP server definitions, matching the schema at [docs.github.com/en/copilot/reference/custom-agents-configuration](https://docs.github.com/en/copilot/reference/custom-agents-configuration). Use `tools: ["*"]` to grant unrestricted tool access.
+**Decision**: Use the `mcp-servers` YAML frontmatter key for per-agent MCP server definitions, matching the existing codebase convention in `agent_creator.py`. Use `tools: ["*"]` to grant unrestricted tool access.
 
-**Rationale**: The existing codebase uses `mcp-servers` as the YAML key in `agent_creator.py` (line 1019). However, the official GitHub schema documents the field as `mcp` — an array of MCP server objects. We should align with the repo's existing convention (`mcp-servers`) for backward compatibility unless the official schema requires `mcp`. After investigation, the repo currently uses `mcp-servers` as a YAML dict keyed by server name. The repository also has a separate `.github/agents/mcp.json` file that serves as the central MCP configuration. The sync feature should populate the `mcp-servers` field in each agent's YAML frontmatter to match the existing pattern, while also updating the central `mcp.json`.
+**Rationale**: The existing codebase uses `mcp-servers` as the YAML key in `agent_creator.py` (line 1019) for inline MCP server definitions within agent frontmatter. The repository also has a separate `.github/agents/mcp.json` file that serves as the central MCP configuration. The sync feature should populate the `mcp-servers` field in each agent's YAML frontmatter to match the existing pattern, while also updating the central `mcp.json`.
 
 **Alternatives considered**:
 - Using only the central `mcp.json` (rejected: per-agent configuration allows agent-specific MCP sets in the future)
