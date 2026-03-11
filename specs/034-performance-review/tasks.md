@@ -27,7 +27,7 @@
 | User Story 4 - Responsive Board Rendering on Interaction | P2 | 7 | Drag, scroll, and popover interactions avoid whole-board rerenders and repeated derived computations |
 | User Story 5 - Verification and Regression Coverage | P3 | 5 | Backend/frontend regression suites and manual profile verification confirm the improvements |
 | Polish & Cross-Cutting | — | 5 | Contracts, quickstart guidance, and deferred second-wave follow-up notes are aligned |
-| **Total** | — | **44** | **24 tasks marked `[P]`; recommended MVP cut = US1 baseline lock + US2 backend idle API reduction** |
+| **Total** | — | **44** | **25 tasks marked `[P]`; recommended MVP cut = US1 baseline lock + US2 backend idle API reduction** |
 
 ---
 
@@ -217,7 +217,7 @@ US4 ------------------------------┘
 
 ### Parallel Opportunities
 
-- **24 tasks** are explicitly marked `[P]` and can be split across teammates; validate this count whenever task markers change.
+- **25 tasks** are explicitly marked `[P]` and can be split across teammates; validate this count whenever task markers change.
 - Setup parallelism: backend helper work (`T002`) and frontend helper work (`T003`) can run together after `T001` is scoped.
 - Foundational parallelism: `T005`, `T006`, and `T007` touch different files and can proceed simultaneously after `T004`.
 - Story parallelism: once US1 is complete, backend work (US2) and frontend refresh work (US3) can proceed in parallel; US4 should follow once US3 stabilizes.
