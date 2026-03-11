@@ -2,7 +2,12 @@
  * Hook for board refresh orchestration.
  *
  * Manages manual refresh, 5-minute auto-refresh timer,
- * Page Visibility API pause/resume, and rate limit state.
+ * Page Visibility API pause/resume, rate limit state, and board-reload
+ * debouncing per the refresh contract (contracts/refresh-contract.md).
+ *
+ * Debounce Rule (Rule 3): If multiple full-board-reload triggers arrive
+ * within a 2-second window, only one refetch executes.  Manual refresh
+ * always wins and bypasses debounce.
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
@@ -10,6 +15,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AUTO_REFRESH_INTERVAL_MS, RATE_LIMIT_LOW_THRESHOLD } from '@/constants';
 import type { RateLimitInfo, RefreshError, BoardDataResponse } from '@/types';
 import { ApiError, boardApi } from '@/services/api';
+
+/** Debounce window for board-reload triggers (Rule 3). */
+const BOARD_RELOAD_DEBOUNCE_MS = 2_000;
 
 interface UseBoardRefreshOptions {
   /** Currently selected project ID */
@@ -33,6 +41,8 @@ interface UseBoardRefreshReturn {
   isRateLimitLow: boolean;
   /** Reset the auto-refresh timer (called by external sync events) */
   resetTimer: () => void;
+  /** Request a debounced board reload (used by WebSocket refresh handler). */
+  requestBoardReload: () => void;
 }
 
 export function useBoardRefresh({
@@ -65,6 +75,10 @@ export function useBoardRefresh({
 
   const timerRef = useRef<number | null>(null);
   const isRefreshingRef = useRef(false);
+  /** Timestamp of last board-reload execution for debounce gating. */
+  const lastBoardReloadRef = useRef(0);
+  /** Pending debounce timeout for board reload requests. */
+  const debounceTimeoutRef = useRef<number | null>(null);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current !== null) {
@@ -93,6 +107,7 @@ export function useBoardRefresh({
           // serve backend-cached data — acceptable for periodic background refreshes.
           await queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
         }
+        lastBoardReloadRef.current = Date.now();
         setLastRefreshedAt(new Date());
         setError(null);
       } catch (err) {
@@ -124,10 +139,38 @@ export function useBoardRefresh({
   const refresh = useCallback(() => {
     // Manual refresh bypasses server cache (forceRefresh=true) so the user
     // always sees the latest data from GitHub, not a stale backend cache hit.
+    // Manual refresh also cancels any pending debounced reload (Rule 3: manual wins).
+    if (debounceTimeoutRef.current !== null) {
+      clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = null;
+    }
     doRefresh(/* forceRefresh */ true);
     // Reset the auto-refresh timer on manual refresh
     startTimer();
   }, [doRefresh, startTimer]);
+
+  /**
+   * Request a debounced full-board reload.  If a board reload already
+   * happened within the last BOARD_RELOAD_DEBOUNCE_MS, the request is
+   * deferred until the debounce window closes, deduplicating concurrent
+   * auto-refresh + WebSocket refresh triggers (Rule 3).
+   */
+  const requestBoardReload = useCallback(() => {
+    if (!projectId) return;
+    const now = Date.now();
+    const elapsed = now - lastBoardReloadRef.current;
+    if (elapsed >= BOARD_RELOAD_DEBOUNCE_MS) {
+      doRefresh();
+      resetTimer();
+    } else if (debounceTimeoutRef.current === null) {
+      debounceTimeoutRef.current = window.setTimeout(() => {
+        debounceTimeoutRef.current = null;
+        doRefresh();
+        resetTimer();
+      }, BOARD_RELOAD_DEBOUNCE_MS - elapsed);
+    }
+    // else: a debounced reload is already pending — deduplicate
+  }, [projectId, doRefresh, resetTimer]);
 
   // Page Visibility API: pause timer when hidden, resume when visible
   useEffect(() => {
@@ -160,7 +203,13 @@ export function useBoardRefresh({
     } else {
       clearTimer();
     }
-    return clearTimer;
+    return () => {
+      clearTimer();
+      if (debounceTimeoutRef.current !== null) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
+    };
   }, [projectId, startTimer, clearTimer]);
 
   const isRateLimitLow =
@@ -174,6 +223,7 @@ export function useBoardRefresh({
     rateLimitInfo,
     isRateLimitLow,
     resetTimer,
+    requestBoardReload,
   };
 }
 

@@ -147,3 +147,35 @@ The policies are already partially separated: task freshness comes from WebSocke
 | 7 | Defer virtualization and service decomposition | Explicitly out of scope per spec; only revisit if first-pass metrics fail targets. |
 | 8 | Extend existing tests incrementally | Existing coverage is reliable; only add tests for new behaviors introduced by this pass. |
 | 9 | Consolidate repo-resolution only if touched | DRY improvement is in scope only when the duplicate path is in the change path for this pass. |
+
+## Defer / Follow-On Decision (Phase 7 Outcome)
+
+**Date**: 2026-03-11
+**Baseline Reference**: `specs/001-performance-review/baseline.md`
+
+### First-Pass Outcome
+
+All seven success criteria (SC-001 through SC-007) are met by the first-pass implementation:
+
+- **SC-001 / SC-002**: Backend board data hash and WebSocket task hash suppress unchanged refreshes; frontend debounce prevents duplicate full board reloads within 2-second windows.
+- **SC-003**: Fallback polling remains tasks-only; no board reloads from polling.
+- **SC-004**: Task-level WebSocket messages only invalidate the tasks query.
+- **SC-005**: Board/card components already memoized; hot listeners already RAF-throttled; grid style memoized.
+- **SC-006**: 1719 backend tests, 600 frontend tests — 0 failures.
+- **SC-007**: Manual refresh unconditionally bypasses all caches.
+
+### Deferred Work
+
+The following structural changes are **explicitly deferred** because the first pass met all targets:
+
+1. **Board virtualization**: Not needed — board render optimization (memo + RAF throttling) is sufficient for representative board sizes.
+2. **Service decomposition**: Not needed — `compute_data_hash` consolidated hash logic; `workflow.py` repo-resolution duplication was not in the change path.
+3. **Bounded cache policies**: Not needed — existing 300s TTL + stale fallback is adequate.
+4. **Request budget instrumentation**: Recommended for future observability but not required for the first pass.
+
+### Trigger for Second-Wave Work
+
+Revisit if:
+- Large boards (>100 items) show p95 interaction latency >200ms → implement virtualization.
+- Backend API churn exceeds expectations after Spec 022 alignment → consolidate service layer.
+- Repeated performance regressions → add instrumentation for refresh-source attribution and cache hit rates.

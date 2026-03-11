@@ -70,10 +70,12 @@ export function ProjectsPage() {
     rateLimitInfo,
     isRateLimitLow,
     resetTimer,
+    requestBoardReload,
   } = useBoardRefresh({ projectId: selectedProjectId, boardData });
 
   const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId, {
     onRefreshTriggered: resetTimer,
+    onBoardReloadRequested: requestBoardReload,
   });
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
@@ -134,9 +136,10 @@ export function ProjectsPage() {
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
   const pipelineColumnCount = Math.max(transformedBoardData?.columns.length ?? 0, 1);
-  const pipelineGridStyle = {
-    gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))`,
-  };
+  const pipelineGridStyle = useMemo(
+    () => ({ gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))` }),
+    [pipelineColumnCount]
+  );
   const assignedPipeline = useMemo(
     () =>
       savedPipelines?.pipelines.find(
