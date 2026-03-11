@@ -44,7 +44,7 @@ async def validate_pipeline_labels(
 ### Simplified Recovery Functions
 
 ```python
-# In agent_tracking.py — _self_heal_tracking_table()
+# In copilot_polling/pipeline.py — _self_heal_tracking_table()
 # When pipeline:<config> label is present:
 #   → Get agent list from config directly (skip get_sub_issues() API call)
 #   → Saves 1–2 API calls per self-heal

@@ -64,9 +64,10 @@ class Task(BaseModel):
 ### Polling Loop Integration (polling_loop.py)
 
 ```python
-# Labels propagated from get_project_items() through to polling steps
+# Labels propagated from get_project_items() (GET_PROJECT_ITEMS_QUERY extended with labels) through to polling steps.
+# NOTE: GET_PROJECT_ITEMS_QUERY must include labels(first: 20) { nodes { id name color } } in the Issue content type.
 parent_tasks = [t for t in all_tasks if not is_sub_issue(t)]
-# Each task.labels is now populated from GraphQL board query
+# Each task.labels is now populated from the GraphQL response
 ```
 
 ## Invariants

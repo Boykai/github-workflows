@@ -18,7 +18,7 @@ if is_blocking:
 #### After: Pipeline labels via constants and builders
 
 ```python
-from constants import (
+from src.constants import (
     build_pipeline_label,
     build_agent_label,
     find_pipeline_label,
@@ -81,18 +81,19 @@ await self.github.update_issue_body(...)
 #### After: Agent assignment with label swap + active label move
 
 ```python
-# In orchestrator.py — assign_agent_for_status()
+# In orchestrator.py — assign_agent_for_status(self, ctx, status, agent_index=0) -> bool
+# ctx.issue_number provides the parent issue number; agent_index selects which agent to assign.
 # 1. Update tracking table (existing)
 await self.github.update_issue_body(...)
 
-# 2. Swap agent label on parent issue
+# 2. Swap agent label on parent issue (derive slugs from pipeline state)
 old_agent_label = build_agent_label(old_agent_slug) if old_agent_slug else None
 new_agent_label = build_agent_label(new_agent_slug)
 await self.github.update_issue_state(
     access_token=ctx.access_token,
     owner=ctx.repository_owner,
     repo=ctx.repository_name,
-    issue_number=issue_number,
+    issue_number=ctx.issue_number,
     labels_add=[new_agent_label],
     labels_remove=[lbl for lbl in [old_agent_label, STALLED_LABEL] if lbl],
 )
@@ -141,7 +142,11 @@ if labels:
     config_name = find_pipeline_label(labels)
     agent_slug = find_agent_label(labels)
     if config_name and agent_slug:
-        pipeline_config = await _cp.get_pipeline_config_by_name(project_id, config_name)
+        workflow_config = await _cp.get_workflow_config(project_id)
+        pipeline_config = next(
+            (pc for pc in (workflow_config.pipeline_configs or [])
+             if pc.name == config_name), None
+        ) if workflow_config else None
         if pipeline_config:
             state = _build_pipeline_from_labels(
                 issue_number, project_id, status,
@@ -179,6 +184,8 @@ all_tasks.append(
 
 ```python
 # In projects.py — get_project_items()
+# NOTE: Requires GET_PROJECT_ITEMS_QUERY to include labels(first: 20) { nodes { id name color } }
+# in the Issue content type (same selection as BOARD_GET_PROJECT_ITEMS_QUERY already has).
 content_labels = [
     {"name": ln.get("name", ""), "color": ln.get("color", "")}
     for ln in content.get("labels", {}).get("nodes", [])
@@ -235,7 +242,7 @@ for task in active_tasks:
 #### Before: Board cards without pipeline indicators
 
 ```tsx
-// In BoardCard.tsx — no pipeline-specific rendering
+// In IssueCard.tsx — no pipeline-specific rendering
 <Card>
   <CardTitle>{task.title}</CardTitle>
   <CardStatus>{task.status}</CardStatus>
@@ -245,7 +252,7 @@ for task in active_tasks:
 #### After: Board cards with agent badge, pipeline tag, stalled indicator
 
 ```tsx
-// In BoardCard.tsx — parse pipeline labels from task.labels
+// In IssueCard.tsx — parse pipeline labels from task.labels
 const agentSlug = task.labels?.find(l => l.name.startsWith("agent:"))?.name.slice(6);
 const pipelineConfig = task.labels?.find(l => l.name.startsWith("pipeline:"))?.name.slice(9);
 const isStalled = task.labels?.some(l => l.name === "stalled");

@@ -142,7 +142,7 @@
 ### Implementation for User Story 5
 
 - [x] T029 [US5] Create `validate_pipeline_labels()` function in new file `backend/src/services/copilot_polling/state_validation.py` — compare label-derived agent state vs tracking-table-derived agent state; when they disagree, check GitHub ground truth (sub-issue state, assignment) and fix the stale source; return `(corrections_made: bool, correction_descriptions: list[str])`; log corrections at WARNING level
-- [x] T030 [US5] Simplify `_self_heal_tracking_table()` using `pipeline:<config>` label for direct config lookup in `backend/src/services/agent_tracking.py` — when pipeline config name is available from labels, read agent list from config directly instead of calling the sub-issues API (saves 1–2 API calls per self-heal)
+- [x] T030 [US5] Simplify `_self_heal_tracking_table()` using `pipeline:<config>` label for direct config lookup in `backend/src/services/copilot_polling/pipeline.py` — when pipeline config name is available from labels, read agent list from config directly instead of calling the sub-issues API (saves 1–2 API calls per self-heal)
 - [x] T031 [US5] Optimize `_validate_and_reconcile_tracking_table()` start index using `agent:<slug>` label in `backend/src/services/copilot_polling/recovery.py` — when agent slug is available, find its index in the pipeline config and only validate agents from that index onward (skip already-completed agents)
 - [x] T032 [US5] Integrate `validate_pipeline_labels()` into the polling cycle in `backend/src/services/copilot_polling/polling_loop.py` — call validation at most once per polling cycle per issue, after fast-path reconstruction but before recovery; ensure validation is non-blocking
 
