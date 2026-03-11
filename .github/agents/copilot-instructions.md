@@ -157,6 +157,8 @@ npx playwright test             # E2E
 - N/A — placeholder text is static; no database or localStorage changes (031-chat-helper-text)
 - TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4, lucide-react 0.577 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend) (032-issue-upload-pipeline-config)
 - SQLite with WAL mode (aiosqlite) — existing `pipeline_configs` table, existing `project_settings` table (`assigned_pipeline_id` column) (032-issue-upload-pipeline-config)
+- Python 3.11 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic, aiosqlite (backend); React 18, TanStack React Query, @dnd-kit/core + @dnd-kit/sortable (frontend); Tailwind CSS, shadcn/ui (styling) (033-parallel-agent-layout)
+- SQLite via aiosqlite — `pipeline_configs.stages` stored as JSON text column (033-parallel-agent-layout)
 
 ## Custom Agents
 
@@ -202,3 +204,6 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 | Azure DevOps MCP | Local | Cloud | Azure DevOps work items |
 | Context7 | HTTP | Documentation | Up-to-date library docs and code examples |
 | Code Graph Context | Local | Code Analysis | Code indexing, call chains, dead code detection |
+
+## Recent Changes
+- 033-parallel-agent-layout: Added Python 3.11 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic, aiosqlite (backend); React 18, TanStack React Query, @dnd-kit/core + @dnd-kit/sortable (frontend); Tailwind CSS, shadcn/ui (styling)
