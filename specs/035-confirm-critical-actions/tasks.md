@@ -24,8 +24,8 @@
 
 **Purpose**: Verify existing confirmation infrastructure and project build
 
-- [ ] T001 Verify frontend project builds cleanly and existing confirmation tests pass by running `npm run type-check && npm run test` in `frontend/`
-- [ ] T002 Audit all current `useConfirmation` call sites across `frontend/src/` to document which critical actions already have confirmation prompts and which do not
+- [x] T001 Verify frontend project builds cleanly and existing confirmation tests pass by running `npm run type-check && npm run test` in `frontend/`
+- [x] T002 Audit all current `useConfirmation` call sites across `frontend/src/` to document which critical actions already have confirmation prompts and which do not
 
 ---
 
@@ -35,11 +35,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add `aria-live="assertive"` region wrapping the error display area in `frontend/src/components/ui/confirmation-dialog.tsx` so screen readers announce errors immediately
-- [ ] T004 [P] Add `aria-live="polite"` region wrapping the loading indicator text ("Processing…") in `frontend/src/components/ui/confirmation-dialog.tsx`
-- [ ] T005 [P] Add `aria-disabled="true"` attribute to confirm and cancel buttons during loading state in `frontend/src/components/ui/confirmation-dialog.tsx`
-- [ ] T006 Verify `useConfirmation` queuing robustness in `frontend/src/hooks/useConfirmation.tsx` — ensure queue items preserve their `resolve` reference across React re-renders and that unmounting resolves pending promises with `false`
-- [ ] T007 Verify that Escape key and backdrop click are blocked while `isLoading` is `true` in `frontend/src/hooks/useConfirmation.tsx`
+- [x] T003 Add `aria-live="assertive"` region wrapping the error display area in `frontend/src/components/ui/confirmation-dialog.tsx` so screen readers announce errors immediately
+- [x] T004 [P] Add `aria-live="polite"` region wrapping the loading indicator text ("Processing…") in `frontend/src/components/ui/confirmation-dialog.tsx`
+- [x] T005 [P] Add `aria-disabled="true"` attribute to confirm and cancel buttons during loading state in `frontend/src/components/ui/confirmation-dialog.tsx`
+- [x] T006 Verify `useConfirmation` queuing robustness in `frontend/src/hooks/useConfirmation.tsx` — ensure queue items preserve their `resolve` reference across React re-renders and that unmounting resolves pending promises with `false`
+- [x] T007 Verify that Escape key and backdrop click are blocked while `isLoading` is `true` in `frontend/src/hooks/useConfirmation.tsx`
 
 **Checkpoint**: Core confirmation infrastructure is accessibility-hardened and queuing-robust — user story implementation can now begin
 
@@ -53,11 +53,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Add `useConfirmation` import and wrap the `handleDelete` function in `frontend/src/pages/AgentsPipelinePage.tsx` with a confirmation prompt (title: "Delete Pipeline", variant: `danger`, confirmLabel: "Yes, Delete") before calling `pipelineConfig.deletePipeline()`
-- [ ] T009 [US1] Refactor tool deletion in `frontend/src/components/tools/ToolsPanel.tsx` — remove the ad-hoc custom modal JSX (fixed overlay `<div>` with inline "Cancel" / "Delete anyway" buttons), remove `deleteConfirmId` state variable, and remove `handleConfirmDelete` function
-- [ ] T010 [US1] Add `useConfirmation` hook to `frontend/src/components/tools/ToolsPanel.tsx` and implement the initial tool deletion confirmation (title: "Delete Tool", variant: `danger`, confirmLabel: "Yes, Delete") before calling `deleteTool({ confirm: false })`
-- [ ] T011 [US1] Implement the second-step confirmation in `frontend/src/components/tools/ToolsPanel.tsx` for tools with affected agents — show the agent list in the description, use title "Tool In Use", variant `danger`, confirmLabel "Delete Anyway", and `onConfirm` callback calling `deleteTool({ confirm: true })`
-- [ ] T012 [US1] Verify that canceling any confirmation prompt (agent, chore, pipeline, tool, repo MCP) leaves the application state completely unchanged — no mutations fired, no UI side effects
+- [x] T008 [US1] Add `useConfirmation` import and wrap the `handleDelete` function in `frontend/src/pages/AgentsPipelinePage.tsx` with a confirmation prompt (title: "Delete Pipeline", variant: `danger`, confirmLabel: "Yes, Delete") before calling `pipelineConfig.deletePipeline()`
+- [x] T009 [US1] Refactor tool deletion in `frontend/src/components/tools/ToolsPanel.tsx` — remove the ad-hoc custom modal JSX (fixed overlay `<div>` with inline "Cancel" / "Delete anyway" buttons), remove `deleteConfirmId` state variable, and remove `handleConfirmDelete` function
+- [x] T010 [US1] Add `useConfirmation` hook to `frontend/src/components/tools/ToolsPanel.tsx` and implement the initial tool deletion confirmation (title: "Delete Tool", variant: `danger`, confirmLabel: "Yes, Delete") before calling `deleteTool({ confirm: false })`
+- [x] T011 [US1] Implement the second-step confirmation in `frontend/src/components/tools/ToolsPanel.tsx` for tools with affected agents — show the agent list in the description, use title "Tool In Use", variant `danger`, confirmLabel "Delete Anyway", and `onConfirm` callback calling `deleteTool({ confirm: true })`
+- [x] T012 [US1] Verify that canceling any confirmation prompt (agent, chore, pipeline, tool, repo MCP) leaves the application state completely unchanged — no mutations fired, no UI side effects
 
 **Checkpoint**: All destructive deletion actions now require explicit confirmation. User Story 1 is fully functional and independently testable.
 
@@ -71,10 +71,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [US2] Audit and update the agent deletion confirmation message in `frontend/src/components/agents/AgentCard.tsx` to match the standardized pattern: title "Delete Agent", description including PR creation context and "cannot be undone", confirm label "Delete"
-- [ ] T014 [P] [US2] Audit and update the chore deletion confirmation message in `frontend/src/components/chores/ChoreCard.tsx` to match the standardized pattern: title "Delete Chore", description "Remove chore '{name}'? This cannot be undone.", confirm label "Delete"
-- [ ] T015 [P] [US2] Audit and update the repo MCP server deletion confirmation message in `frontend/src/components/tools/ToolsPanel.tsx` to match the standardized pattern: title "Delete Repository MCP", description "Remove MCP server '{name}' from the repository config files?", confirm label "Delete"
-- [ ] T016 [US2] Verify that the pipeline deletion confirmation (T008), tool deletion confirmations (T010, T011), and all other prompts use the exact messaging from the standardized catalog
+- [x] T013 [US2] Audit and update the agent deletion confirmation message in `frontend/src/components/agents/AgentCard.tsx` to match the standardized pattern: title "Delete Agent", description including PR creation context and "cannot be undone", confirm label "Delete"
+- [x] T014 [P] [US2] Audit and update the chore deletion confirmation message in `frontend/src/components/chores/ChoreCard.tsx` to match the standardized pattern: title "Delete Chore", description "Remove chore '{name}'? This cannot be undone.", confirm label "Delete"
+- [x] T015 [P] [US2] Audit and update the repo MCP server deletion confirmation message in `frontend/src/components/tools/ToolsPanel.tsx` to match the standardized pattern: title "Delete Repository MCP", description "Remove MCP server '{name}' from the repository config files?", confirm label "Delete"
+- [x] T016 [US2] Verify that the pipeline deletion confirmation (T008), tool deletion confirmations (T010, T011), and all other prompts use the exact messaging from the standardized catalog
 
 **Checkpoint**: All confirmation prompts use clear, contextual, standardized messaging. User Story 2 is independently verifiable.
 
@@ -88,12 +88,12 @@
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Audit `frontend/src/components/board/CleanUpConfirmModal.tsx` — verify `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, and `aria-describedby` attributes are present on the modal container; add any missing attributes
-- [ ] T018 [US3] Verify focus trapping in `frontend/src/components/board/CleanUpConfirmModal.tsx` — ensure Tab/Shift+Tab cycles within the modal and does not escape to background content; add focus trap logic if missing
-- [ ] T019 [US3] Add focus restoration to `frontend/src/components/board/CleanUpConfirmModal.tsx` — on close, focus should return to the "Clean Up" button that triggered the modal
-- [ ] T020 [P] [US3] Audit `frontend/src/components/pipeline/UnsavedChangesDialog.tsx` — verify `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby` attributes are present; add any missing attributes
-- [ ] T021 [P] [US3] Verify focus trapping in `frontend/src/components/pipeline/UnsavedChangesDialog.tsx` — ensure Tab cycles between the three buttons (Save, Discard, Cancel) and does not escape
-- [ ] T022 [US3] Verify that the `ConfirmationDialog` accessibility enhancements from Phase 2 (T003–T005) work correctly with screen readers — error announcements, loading announcements, and button disabled states
+- [x] T017 [US3] Audit `frontend/src/components/board/CleanUpConfirmModal.tsx` — verify `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, and `aria-describedby` attributes are present on the modal container; add any missing attributes
+- [x] T018 [US3] Verify focus trapping in `frontend/src/components/board/CleanUpConfirmModal.tsx` — ensure Tab/Shift+Tab cycles within the modal and does not escape to background content; add focus trap logic if missing
+- [x] T019 [US3] Add focus restoration to `frontend/src/components/board/CleanUpConfirmModal.tsx` — on close, focus should return to the "Clean Up" button that triggered the modal
+- [x] T020 [P] [US3] Audit `frontend/src/components/pipeline/UnsavedChangesDialog.tsx` — verify `role="dialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby` attributes are present; add any missing attributes
+- [x] T021 [P] [US3] Verify focus trapping in `frontend/src/components/pipeline/UnsavedChangesDialog.tsx` — ensure Tab cycles between the three buttons (Save, Discard, Cancel) and does not escape
+- [x] T022 [US3] Verify that the `ConfirmationDialog` accessibility enhancements from Phase 2 (T003–T005) work correctly with screen readers — error announcements, loading announcements, and button disabled states
 
 **Checkpoint**: All dialogs (ConfirmationDialog, CleanUpConfirmModal, UnsavedChangesDialog) meet WCAG 2.1 AA accessibility requirements. User Story 3 is independently testable.
 
@@ -107,10 +107,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Verify that the `isLoading` state in `frontend/src/hooks/useConfirmation.tsx` correctly disables the confirm button and shows a loading spinner when `onConfirm` is an async operation
-- [ ] T024 [US4] Verify that cancel and Escape are blocked while `isLoading` is `true` in `frontend/src/hooks/useConfirmation.tsx` — the user must wait for the in-progress action to complete or fail before dismissing
-- [ ] T025 [P] [US4] Verify that boolean-result consumers (AgentCard, ChoreCard) have `isPending` mutation guards on their trigger buttons in `frontend/src/components/agents/AgentCard.tsx` and `frontend/src/components/chores/ChoreCard.tsx` to prevent double-click during the mutation window
-- [ ] T026 [US4] Verify that the tool deletion `onConfirm` callback (T011) properly shows loading state during the `deleteTool({ confirm: true })` API call in `frontend/src/components/tools/ToolsPanel.tsx`
+- [x] T023 [US4] Verify that the `isLoading` state in `frontend/src/hooks/useConfirmation.tsx` correctly disables the confirm button and shows a loading spinner when `onConfirm` is an async operation
+- [x] T024 [US4] Verify that cancel and Escape are blocked while `isLoading` is `true` in `frontend/src/hooks/useConfirmation.tsx` — the user must wait for the in-progress action to complete or fail before dismissing
+- [x] T025 [P] [US4] Verify that boolean-result consumers (AgentCard, ChoreCard) have `isPending` mutation guards on their trigger buttons in `frontend/src/components/agents/AgentCard.tsx` and `frontend/src/components/chores/ChoreCard.tsx` to prevent double-click during the mutation window
+- [x] T026 [US4] Verify that the tool deletion `onConfirm` callback (T011) properly shows loading state during the `deleteTool({ confirm: true })` API call in `frontend/src/components/tools/ToolsPanel.tsx`
 
 **Checkpoint**: All confirmation flows prevent duplicate submissions and show appropriate loading states. User Story 4 is independently testable.
 
@@ -124,9 +124,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T027 [US5] Verify that `useUnsavedChanges` hook in `frontend/src/hooks/useUnsavedChanges.ts` correctly triggers `beforeunload` for browser close/refresh and `useBlocker` for SPA navigation when `isDirty` is `true`
-- [ ] T028 [US5] Verify that `UnsavedChangesDialog` in `frontend/src/components/pipeline/UnsavedChangesDialog.tsx` offers three options (Save, Discard, Cancel) and each option behaves correctly: Save → saves and navigates, Discard → discards and navigates, Cancel → stays on page
-- [ ] T029 [US5] Verify that the accessibility enhancements from T020–T021 apply to the unsaved changes flow — dialog is accessible, focus-trapped, and keyboard-navigable
+- [x] T027 [US5] Verify that `useUnsavedChanges` hook in `frontend/src/hooks/useUnsavedChanges.ts` correctly triggers `beforeunload` for browser close/refresh and `useBlocker` for SPA navigation when `isDirty` is `true`
+- [x] T028 [US5] Verify that `UnsavedChangesDialog` in `frontend/src/components/pipeline/UnsavedChangesDialog.tsx` offers three options (Save, Discard, Cancel) and each option behaves correctly: Save → saves and navigates, Discard → discards and navigates, Cancel → stays on page
+- [x] T029 [US5] Verify that the accessibility enhancements from T020–T021 apply to the unsaved changes flow — dialog is accessible, focus-trapped, and keyboard-navigable
 
 **Checkpoint**: Unsaved changes warning is functional and accessible. User Story 5 is independently testable.
 
@@ -140,9 +140,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T030 [US6] Verify that `CleanUpConfirmModal` in `frontend/src/components/board/CleanUpConfirmModal.tsx` correctly displays categorized impact data (branches to delete, PRs to close, orphaned issues) from the preflight response
-- [ ] T031 [US6] Verify that canceling the cleanup confirmation in `frontend/src/components/board/CleanUpConfirmModal.tsx` leaves the repository unchanged — no cleanup actions are performed
-- [ ] T032 [US6] Verify that the accessibility enhancements from T017–T019 apply to the cleanup flow — modal is accessible, focus-trapped, and focus returns to trigger on close
+- [x] T030 [US6] Verify that `CleanUpConfirmModal` in `frontend/src/components/board/CleanUpConfirmModal.tsx` correctly displays categorized impact data (branches to delete, PRs to close, orphaned issues) from the preflight response
+- [x] T031 [US6] Verify that canceling the cleanup confirmation in `frontend/src/components/board/CleanUpConfirmModal.tsx` leaves the repository unchanged — no cleanup actions are performed
+- [x] T032 [US6] Verify that the accessibility enhancements from T017–T019 apply to the cleanup flow — modal is accessible, focus-trapped, and focus returns to trigger on close
 
 **Checkpoint**: Repository cleanup confirmation with impact summary is functional and accessible. User Story 6 is independently testable.
 
@@ -152,11 +152,11 @@
 
 **Purpose**: Final verification and consistency checks across all user stories
 
-- [ ] T033 Run `npm run type-check` in `frontend/` to verify all TypeScript changes compile without errors
-- [ ] T034 [P] Run `npm run lint` in `frontend/` to verify all changes pass ESLint rules
-- [ ] T035 [P] Run `npm run test` in `frontend/` to verify all existing tests still pass with the changes
-- [ ] T036 Perform a cross-cutting visual consistency audit — verify all confirmation dialogs use the same layout, typography, button placement, and interaction patterns across the application
-- [ ] T037 Run the quickstart.md manual verification checklist from `specs/035-confirm-critical-actions/quickstart.md` to validate all critical actions end-to-end
+- [x] T033 Run `npm run type-check` in `frontend/` to verify all TypeScript changes compile without errors
+- [x] T034 [P] Run `npm run lint` in `frontend/` to verify all changes pass ESLint rules
+- [x] T035 [P] Run `npm run test` in `frontend/` to verify all existing tests still pass with the changes
+- [x] T036 Perform a cross-cutting visual consistency audit — verify all confirmation dialogs use the same layout, typography, button placement, and interaction patterns across the application
+- [x] T037 Run the quickstart.md manual verification checklist from `specs/035-confirm-critical-actions/quickstart.md` to validate all critical actions end-to-end
 
 ---
 

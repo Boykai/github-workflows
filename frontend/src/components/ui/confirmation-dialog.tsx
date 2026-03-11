@@ -185,7 +185,7 @@ export function ConfirmationDialog({
             className="rounded-lg text-foreground"
             onClick={onCancel}
             disabled={isLoading}
-            aria-disabled={isLoading || undefined}
+            aria-disabled={isLoading ? true : undefined}
           >
             {cancelLabel}
           </Button>
@@ -195,7 +195,7 @@ export function ConfirmationDialog({
             className={cn('gap-2 rounded-lg', confirmBtnClass)}
             onClick={onConfirm}
             disabled={isLoading}
-            aria-disabled={isLoading || undefined}
+            aria-disabled={isLoading ? true : undefined}
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
             <span aria-live="polite">{isLoading ? 'Processing…' : confirmLabel}</span>
