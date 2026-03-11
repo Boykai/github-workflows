@@ -85,6 +85,7 @@ interface UsePipelineConfigReturn {
   updateAgentTools: (stageId: string, agentNodeId: string, toolIds: string[]) => void;
   cloneAgentInStage: (stageId: string, agentNodeId: string) => void;
   reorderAgentsInStage: (stageId: string, newOrder: PipelineAgentNode[]) => void;
+  setStageExecutionMode: (stageId: string, mode: 'sequential' | 'parallel') => void;
 }
 
 // ── Hook ──
@@ -129,6 +130,7 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       name,
       order,
       agents: [],
+      execution_mode: 'sequential',
     }),
     []
   );
@@ -483,9 +485,15 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
         };
         return {
           ...prev,
-          stages: prev.stages.map((s) =>
-            s.id === stageId ? { ...s, agents: [...s.agents, newAgent] } : s
-          ),
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const updatedAgents = [...s.agents, newAgent];
+            return {
+              ...s,
+              agents: updatedAgents,
+              execution_mode: updatedAgents.length >= 2 ? 'parallel' : s.execution_mode,
+            };
+          }),
         };
       });
     },
@@ -497,9 +505,15 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
       if (!prev) return null;
       return {
         ...prev,
-        stages: prev.stages.map((s) =>
-          s.id === stageId ? { ...s, agents: s.agents.filter((a) => a.id !== agentNodeId) } : s
-        ),
+        stages: prev.stages.map((s) => {
+          if (s.id !== stageId) return s;
+          const remaining = s.agents.filter((a) => a.id !== agentNodeId);
+          return {
+            ...s,
+            agents: remaining,
+            execution_mode: remaining.length < 2 ? 'sequential' : s.execution_mode,
+          };
+        }),
       };
     });
   }, []);
@@ -577,6 +591,24 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     });
   }, []);
 
+  const setStageExecutionMode = useCallback(
+    (stageId: string, mode: 'sequential' | 'parallel') => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            // Only allow parallel if there are 2+ agents
+            const effectiveMode = mode === 'parallel' && s.agents.length < 2 ? 'sequential' : mode;
+            return { ...s, execution_mode: effectiveMode };
+          }),
+        };
+      });
+    },
+    []
+  );
+
   return {
     boardState,
     pipeline,
@@ -612,5 +644,6 @@ export function usePipelineConfig(projectId: string | null): UsePipelineConfigRe
     updateAgentTools,
     cloneAgentInStage,
     reorderAgentsInStage,
+    setStageExecutionMode,
   };
 }

@@ -26,6 +26,8 @@ dependencies = [
     "websockets>=16.0",
     # Rate limiting middleware (FastAPI-compatible)
     "slowapi>=0.1.9",
+    # Code graph analysis (MCP server + CLI)
+    "codegraphcontext>=0.2.9",
 ]
 
 [project.optional-dependencies]

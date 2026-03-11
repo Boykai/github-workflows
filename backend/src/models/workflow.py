@@ -49,6 +49,10 @@ class WorkflowConfiguration(BaseModel):
     status_in_progress: str = Field(default="In Progress", description="In Progress column name")
     status_in_review: str = Field(default="In Review", description="In Review column name")
     enabled: bool = Field(default=True, description="Whether workflow automation is active")
+    stage_execution_modes: dict[str, str] = Field(
+        default_factory=dict,
+        description="Status name → execution mode ('sequential' | 'parallel')",
+    )
 
 
 class WorkflowTransition(BaseModel):

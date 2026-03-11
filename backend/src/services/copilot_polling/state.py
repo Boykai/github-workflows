@@ -72,6 +72,17 @@ COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS: float = (
     30.0  # min seconds between first detection and confirmation
 )
 
+# Track when Solune explicitly requested a Copilot code review for each
+# parent issue.  Records the UTC timestamp of the request so that only
+# reviews submitted *after* the request are counted — any review that
+# GitHub.com auto-triggered before Solune's request is ignored.
+# The orchestrator records the timestamp when it assigns copilot-review,
+# and the self-healing path in _check_copilot_review_done re-records it
+# after a server restart.
+_copilot_review_requested_at: BoundedDict[int, datetime] = BoundedDict(
+    maxlen=200
+)  # parent_issue_number -> UTC timestamp of review request
+
 # Recovery cooldown: tracks when we last attempted recovery for each issue.
 # Prevents re-assigning an agent every poll cycle — gives Copilot time to start.
 _recovery_last_attempt: BoundedDict[int, datetime] = BoundedDict(

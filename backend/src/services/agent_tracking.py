@@ -280,6 +280,13 @@ def update_agent_state(
     return body_clean + "\n" + tracking
 
 
+def replace_tracking_section(body: str, steps: list[AgentStep]) -> str:
+    """Replace (or append) the tracking section with the given steps."""
+    tracking = render_tracking_markdown(steps)
+    body_clean = _TRACKING_SECTION_RE.sub("", body).rstrip()
+    return body_clean + "\n" + tracking
+
+
 def mark_agent_active(body: str, agent_name: str) -> str:
     """Set agent to 🔄 Active in the tracking table."""
     return update_agent_state(body, agent_name, STATE_ACTIVE)

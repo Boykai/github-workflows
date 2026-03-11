@@ -5,7 +5,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
-import { Layers, Lock, PencilLine } from 'lucide-react';
+import { GitBranch, Layers, Lock, PencilLine } from 'lucide-react';
 import { StageCard } from './StageCard';
 import { PipelineModelDropdown } from './PipelineModelDropdown';
 import { cn } from '@/lib/utils';
@@ -79,9 +79,13 @@ export function PipelineBoard({
   const [editNameValue, setEditNameValue] = useState(pipelineName);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const showInlineNameInput = isEditMode || isEditingName;
+  const hasParallelStage = stages.some(
+    (stage) => stage.execution_mode === 'parallel' && stage.agents.length > 1
+  );
+  const minStageWidthRem = hasParallelStage ? 20 : 14;
 
   const gridStyle: CSSProperties = {
-    gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(14rem, 1fr))`,
+    gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(${minStageWidthRem}rem, 1fr))`,
   };
 
   useEffect(() => {
@@ -283,9 +287,22 @@ export function PipelineBoard({
         </span>
       </div>
 
+      {hasParallelStage && (
+        <div className="flex flex-wrap items-center gap-2 rounded-[1rem] border border-primary/20 bg-primary/8 px-3 py-2 text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
+            <GitBranch className="h-3.5 w-3.5" />
+            Grouped stage
+          </span>
+          <span>
+            Agents placed in the same stage are grouped, and the pipeline advances only after
+            the full group finishes.
+          </span>
+        </div>
+      )}
+
       {/* Stage cards */}
       <div className="overflow-x-auto pb-2">
-        <div className="grid min-w-full items-start gap-3" style={gridStyle}>
+        <div data-testid="pipeline-stage-grid" className="grid min-w-full items-start gap-3" style={gridStyle}>
           {stages.map((stage) => (
             <StageCard
               key={stage.id}

@@ -1413,6 +1413,14 @@ class WorkflowOrchestrator:
                     repo=ctx.repository_name,
                 )
                 if review_requested:
+                    # Record the request timestamp so _check_copilot_review_done
+                    # only counts reviews submitted after this point (filters
+                    # out GitHub auto-triggered reviews).
+                    from ..copilot_polling.state import (
+                        _copilot_review_requested_at,
+                    )
+
+                    _copilot_review_requested_at[ctx.issue_number] = utcnow()
                     logger.info(
                         "Copilot code review requested on PR #%d for issue #%d",
                         review_pr_number,

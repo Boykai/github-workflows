@@ -89,6 +89,7 @@ from .pipeline import (
     _get_or_reconstruct_pipeline,
     _process_pipeline_completion,
     _reconstruct_pipeline_state,
+    _self_heal_tracking_table,
     _transition_after_pipeline_complete,
     check_backlog_issues,
     check_in_progress_issues,
@@ -105,6 +106,7 @@ from .polling_loop import (  # noqa: F401
     stop_polling,
 )
 from .recovery import (
+    _validate_and_reconcile_tracking_table,  # noqa: F401
     recover_stalled_issues,
 )
 
@@ -175,6 +177,7 @@ __all__ = [
     "_reconstruct_pipeline_state",
     "_reconstruct_sub_issue_mappings",
     "_recovery_last_attempt",
+    "_self_heal_tracking_table",
     "_system_marked_ready_prs",
     "_transition_after_pipeline_complete",
     "_update_issue_tracking",

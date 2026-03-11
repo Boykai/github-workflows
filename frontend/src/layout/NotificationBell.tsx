@@ -44,11 +44,24 @@ export function NotificationBell({
     };
 
     updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, { capture: true, passive: true });
+
+    // Throttle scroll/resize recalculations to once per animation frame to
+    // prevent layout thrashing from repeated getBoundingClientRect calls.
+    let rafId = 0;
+    const scheduleUpdate = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        updatePosition();
+      });
+    };
+
+    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener('scroll', scheduleUpdate, { capture: true, passive: true });
     return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, { capture: true });
+      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('scroll', scheduleUpdate, { capture: true });
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [isOpen]);
 
@@ -104,10 +117,16 @@ export function NotificationBell({
                 notifications.map((n) => (
                   <div
                     key={n.id}
-                    className={cn('flex items-start gap-3 border-b border-border/60 px-4 py-3 text-sm transition-colors last:border-0 hover:bg-background/20', n.read ? 'opacity-60' : '')}
+                    className={cn(
+                      'flex items-start gap-3 border-b border-border/60 px-4 py-3 text-sm transition-colors last:border-0 hover:bg-background/20',
+                      n.read ? 'opacity-60' : ''
+                    )}
                   >
                     <span
-                      className={cn('w-2 h-2 rounded-full mt-1.5 shrink-0', n.read ? 'bg-transparent' : 'bg-primary')}
+                      className={cn(
+                        'w-2 h-2 rounded-full mt-1.5 shrink-0',
+                        n.read ? 'bg-transparent' : 'bg-primary'
+                      )}
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground truncate">{n.title}</p>

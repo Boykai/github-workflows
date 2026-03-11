@@ -1056,6 +1056,7 @@ export interface PipelineStage {
   name: string;
   order: number;
   agents: PipelineAgentNode[];
+  execution_mode?: 'sequential' | 'parallel';
 }
 
 export interface PipelineConfig {
