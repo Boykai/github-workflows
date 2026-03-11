@@ -1,104 +1,120 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Audit & Polish the Agents Page for Quality and Consistency
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `035-audit-agents-page` | **Date**: 2026-03-11 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/035-audit-agents-page/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Conduct a comprehensive audit of the Agents page (`frontend/src/pages/AgentsPage.tsx`) and all its child components — the Agent Catalog (hero, cards, inline editor, modals, search, bulk update) and the Orbital Map / Column Assignments panel (drag-and-drop tiles, preset selector, save bar, add-agent popover) — within Project Solune. The primary goal is to ensure visual consistency with the Celestial design system, eliminate rendering bugs and broken states, enforce WCAG AA accessibility compliance, validate responsive behavior across desktop/tablet/mobile breakpoints, verify all interactive elements function correctly with proper feedback, and ensure code quality follows established project conventions. No backend API changes are required — this is a frontend-only audit-and-refactor effort affecting approximately 20 components totaling ~5,400 lines.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript 5.9 with React 19.2
+**Primary Dependencies**: React 19, TanStack React Query 5.90, Tailwind CSS v4.2 (via `@tailwindcss/vite`), Radix UI (Slot 1.2, Tooltip 1.2), Lucide React 0.577, class-variance-authority 0.7, tailwind-merge 3.5, react-router-dom 7.13, @dnd-kit/core 6.3 + @dnd-kit/sortable 10.0
+**Storage**: N/A (frontend-only; backend uses SQLite with FastAPI)
+**Testing**: Vitest 4.0 (unit, happy-dom), Testing Library React 16.3, jest-axe 10.0 (accessibility)
+**Target Platform**: Modern browsers (desktop, tablet, mobile web)
+**Project Type**: Web application (frontend + backend)
+**Performance Goals**: Page interactive within 3 seconds; user actions reflected in under 1 second perceived response time; smooth scrolling and sub-100ms interaction response with 50+ agents in catalog
+**Constraints**: WCAG AA minimum (4.5:1 contrast normal text, 3:1 large text/UI); 44×44px minimum touch targets on mobile; no hardcoded colors — all must reference design tokens
+**Scale/Scope**: Single page audit affecting ~20 frontend components, ~10 custom hooks, 1 page component; no new features, purely audit and refinement
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Phase 0 Evaluation
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | `spec.md` exists with 6 prioritized user stories (P1–P3), Given-When-Then acceptance scenarios, and clear scope boundaries |
+| **II. Template-Driven** | ✅ PASS | All artifacts follow canonical templates from `.specify/templates/` |
+| **III. Agent-Orchestrated** | ✅ PASS | This plan is produced by the `speckit.plan` agent with clear inputs/outputs |
+| **IV. Test Optionality** | ✅ PASS | Tests are not mandated by spec; existing tests (AgentSaveBar, AgentTile, ThemedAgentIcon) will be verified to pass but no new test creation is required unless accessibility scanning reveals gaps |
+| **V. Simplicity and DRY** | ✅ PASS | Audit refactors toward simplicity; no new abstractions introduced. All changes simplify or consolidate existing code |
+
+### Post-Phase 1 Re-Evaluation
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | Data model and contracts align with spec requirements; all 6 user stories covered |
+| **II. Template-Driven** | ✅ PASS | All generated artifacts (research.md, data-model.md, contracts/, quickstart.md) follow prescribed templates |
+| **III. Agent-Orchestrated** | ✅ PASS | Clear handoff to `speckit.tasks` after this phase |
+| **IV. Test Optionality** | ✅ PASS | No new test infrastructure added; existing test coverage (AgentSaveBar, AgentTile, ThemedAgentIcon) maintained |
+| **V. Simplicity and DRY** | ✅ PASS | No new abstractions; refactors consolidate duplicate patterns (e.g., hardcoded colors → design tokens, inconsistent focus styles → celestial-focus) |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
+specs/035-audit-agents-page/
 ├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
+├── research.md          # Phase 0 output — design system analysis, accessibility patterns, responsive, performance
+├── data-model.md        # Phase 1 output — entity model for Agents page components
+├── quickstart.md        # Phase 1 output — developer guide for running the audit
+├── contracts/           # Phase 1 output — component interface contracts
+│   └── component-contracts.yaml
 └── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
 frontend/
 ├── src/
-│   ├── components/
 │   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   └── AgentsPage.tsx                     # Main page component (~251 lines) — PRIMARY AUDIT TARGET
+│   ├── components/
+│   │   ├── agents/                            # Agent Catalog components
+│   │   │   ├── AgentsPanel.tsx                # Catalog container with search, sort, featured, grid (~561 lines)
+│   │   │   ├── AgentCard.tsx                  # Individual agent card with badges, actions (~259 lines)
+│   │   │   ├── AgentAvatar.tsx                # Agent avatar with themed icon fallback (~210 lines)
+│   │   │   ├── AgentInlineEditor.tsx          # Expandable editor for agent config (~261 lines)
+│   │   │   ├── AddAgentModal.tsx              # Agent creation/edit modal (~520 lines)
+│   │   │   ├── AgentIconPickerModal.tsx       # Icon selection modal with catalog (~101 lines)
+│   │   │   ├── AgentIconCatalog.tsx           # Reusable icon grid for selection (~70 lines)
+│   │   │   ├── AgentChatFlow.tsx              # Chat flow component (~199 lines)
+│   │   │   ├── BulkModelUpdateDialog.tsx      # Two-step bulk model update dialog (~165 lines)
+│   │   │   └── ToolsEditor.tsx                # Ordered tool list with CRUD (~125 lines)
+│   │   ├── board/                             # Orbital Map / Column Assignments
+│   │   │   ├── AgentConfigRow.tsx             # DnD orchestrator with presets, compact constellation (~478 lines)
+│   │   │   ├── AgentPresetSelector.tsx        # Preset buttons + saved pipelines dropdown (~536 lines)
+│   │   │   ├── AgentTile.tsx                  # Sortable agent tile in column (~295 lines)
+│   │   │   ├── AgentColumnCell.tsx            # Droppable column container (~168 lines)
+│   │   │   ├── AddAgentPopover.tsx            # Dropdown for adding agents to columns (~295 lines)
+│   │   │   ├── AgentDragOverlay.tsx           # Floating drag preview (~69 lines)
+│   │   │   └── AgentSaveBar.tsx               # Floating save/discard bar (~49 lines)
+│   │   ├── common/
+│   │   │   ├── ThemedAgentIcon.tsx            # Celestial-themed agent icon component (~95 lines)
+│   │   │   ├── agentIcons.tsx                 # Icon name/slug mapping registry (~547 lines)
+│   │   │   ├── CelestialCatalogHero.tsx       # Shared hero section
+│   │   │   ├── CelestialLoader.tsx            # Loading spinner
+│   │   │   └── ProjectSelectionEmptyState.tsx # Empty state when no project selected
+│   │   └── ui/
+│   │       ├── button.tsx                     # Shared button (CVA variants, celestial-focus)
+│   │       ├── tooltip.tsx                    # Radix tooltip wrapper
+│   │       └── confirmation-dialog.tsx        # Shared confirmation modal
+│   ├── hooks/
+│   │   ├── useAgents.ts                       # Agent CRUD hooks (list, create, update, delete, bulk update)
+│   │   ├── useAgentConfig.ts                  # Agent-to-column mapping state + dirty tracking
+│   │   ├── useModels.ts                       # Available AI models
+│   │   ├── useProjects.ts                     # Project listing + selection
+│   │   ├── useProjectBoard.ts                 # Board columns data fetching
+│   │   ├── useConfirmation.ts                 # Shared confirmation dialog hook
+│   │   └── useUnsavedChanges.ts               # Route-blocker on unsaved changes
+│   ├── services/
+│   │   └── api.ts                             # API client (agentsApi, agentToolsApi, workflowApi)
+│   ├── types/
+│   │   └── index.ts                           # AgentConfig, AgentAssignment, AvailableAgent, etc.
+│   ├── lib/
+│   │   └── utils.ts                           # cn() — clsx + tailwind-merge
+│   └── index.css                              # Celestial design system tokens + custom classes
+└── package.json                               # React 19, Vitest, Tailwind v4
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application (Option 2). This audit is frontend-only. All changes target `frontend/src/` — primarily `pages/AgentsPage.tsx`, `components/agents/`, and `components/board/Agent*`. No backend modifications are needed. The existing project structure is well-established and no structural reorganization is planned.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No violations identified. All changes follow simplicity principles — refactoring toward design-token consistency, removing hardcoded values, standardizing focus indicators, and consolidating existing patterns. No new abstractions, libraries, or architectural changes are introduced.
