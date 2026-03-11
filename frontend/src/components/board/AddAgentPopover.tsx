@@ -240,9 +240,9 @@ export function AddAgentPopover({
                             className={cn(
                               'text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0',
                               agent.source === 'builtin'
-                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
+                                ? 'bg-status-active/10 text-status-active'
                                 : agent.source === 'repository'
-                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
+                                  ? 'bg-status-success/10 text-status-success'
                                   : 'bg-muted text-muted-foreground'
                             )}
                           >

@@ -170,7 +170,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
         {/* Items to preserve */}
         {data.branches_to_preserve.length > 0 && (
           <div className="mb-4">
-            <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
+            <h3 className="text-sm font-medium text-status-success mb-2">
               <span className="inline-flex items-center gap-2">
                 <Shield className="h-4 w-4" />
                 Branches to Preserve ({data.branches_to_preserve.length})
@@ -180,7 +180,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
               {data.branches_to_preserve.map((branch) => (
                 <li
                   key={branch.name}
-                  className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30"
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-status-success/10"
                 >
                   <span className="font-mono text-xs">{branch.name}</span>
                   {branch.preservation_reason && (
@@ -196,7 +196,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
 
         {data.prs_to_preserve.length > 0 && (
           <div className="mb-4">
-            <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
+            <h3 className="text-sm font-medium text-status-success mb-2">
               <span className="inline-flex items-center gap-2">
                 <Shield className="h-4 w-4" />
                 Pull Requests to Preserve ({data.prs_to_preserve.length})
@@ -206,7 +206,7 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
               {data.prs_to_preserve.map((pr) => (
                 <li
                   key={pr.number}
-                  className="flex items-center gap-2 px-2 py-1 rounded bg-green-100/80 dark:bg-green-900/30"
+                  className="flex items-center gap-2 px-2 py-1 rounded bg-status-success/10"
                 >
                   <span className="font-medium">#{pr.number}</span>
                   <span className="text-muted-foreground truncate">{pr.title}</span>

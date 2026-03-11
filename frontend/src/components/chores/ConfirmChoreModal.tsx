@@ -43,8 +43,8 @@ export function ConfirmChoreModal({
       <div className="celestial-panel celestial-fade-in relative z-10 w-full max-w-md mx-4 rounded-lg border border-border bg-background shadow-xl">
         {step === 1 ? (
           <div className="p-6 flex flex-col items-center gap-4 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-yellow-100 dark:bg-yellow-900/30">
-              <AlertTriangle className="h-6 w-6 text-yellow-600 dark:text-yellow-400" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gold/10">
+              <AlertTriangle className="h-6 w-6 text-primary" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">Add Chore to Repository</h3>
             <p className="text-sm text-muted-foreground">
@@ -61,8 +61,8 @@ export function ConfirmChoreModal({
           </div>
         ) : (
           <div className="p-6 flex flex-col items-center gap-4 text-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-              <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-400" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-status-success/10">
+              <CheckCircle className="h-6 w-6 text-status-success" />
             </div>
             <h3 className="text-lg font-semibold text-foreground">Confirm Chore Creation</h3>
             <p className="text-sm text-muted-foreground">

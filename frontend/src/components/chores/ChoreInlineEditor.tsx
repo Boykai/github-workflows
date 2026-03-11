@@ -125,7 +125,7 @@ export function ChoreInlineEditor({
           className={cn(
             'flex w-fit cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50',
             blocking
-              ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 hover:border-amber-500/50 hover:bg-amber-500/18 dark:text-amber-400'
+              ? 'border-gold/30 bg-gold/10 text-primary hover:border-gold/50 hover:bg-gold/18'
               : 'border-border/60 bg-muted/40 text-muted-foreground hover:border-border/80 hover:bg-muted/60 hover:text-foreground'
           )}
           aria-label={blocking ? 'Blocking' : 'Non-blocking'}

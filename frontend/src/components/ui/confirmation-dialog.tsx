@@ -37,24 +37,24 @@ const VARIANT_CONFIG: Record<
 > = {
   danger: {
     Icon: AlertTriangle,
-    iconClass: 'text-red-500',
-    iconBgClass: 'bg-red-100/80 dark:bg-red-950/50',
+    iconClass: 'text-destructive',
+    iconBgClass: 'bg-destructive/10',
     confirmBtnClass:
-      'bg-red-600 hover:bg-red-700 text-white disabled:opacity-50 disabled:cursor-not-allowed',
+      'bg-destructive hover:bg-destructive/90 text-white disabled:opacity-50 disabled:cursor-not-allowed',
   },
   warning: {
     Icon: AlertTriangle,
-    iconClass: 'text-amber-500',
-    iconBgClass: 'bg-amber-100/80 dark:bg-amber-950/50',
+    iconClass: 'text-primary',
+    iconBgClass: 'bg-gold/10',
     confirmBtnClass:
-      'bg-amber-600 hover:bg-amber-700 text-white disabled:opacity-50 disabled:cursor-not-allowed',
+      'bg-primary hover:bg-primary/90 text-white disabled:opacity-50 disabled:cursor-not-allowed',
   },
   info: {
     Icon: Info,
-    iconClass: 'text-blue-500',
-    iconBgClass: 'bg-blue-100/80 dark:bg-blue-950/50',
+    iconClass: 'text-status-active',
+    iconBgClass: 'bg-status-active/10',
     confirmBtnClass:
-      'bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed',
+      'bg-status-active hover:bg-status-active/90 text-white disabled:opacity-50 disabled:cursor-not-allowed',
   },
 };
 
@@ -168,7 +168,7 @@ export function ConfirmationDialog({
 
         {/* Error */}
         {error && (
-          <div className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900/50 dark:bg-red-950/30 dark:text-red-400">
+          <div className="mt-3 rounded-lg border border-destructive/30 bg-destructive/8 px-3 py-2 text-sm text-destructive">
             {error}
           </div>
         )}

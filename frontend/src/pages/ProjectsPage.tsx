@@ -23,7 +23,6 @@ import { ProjectIssueLaunchPanel } from '@/components/board/ProjectIssueLaunchPa
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
-import { ProjectSelector } from '@/layout/ProjectSelector';
 import { useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useBoardControls } from '@/hooks/useBoardControls';
 import { useBlockingQueue } from '@/hooks/useBlockingQueue';
@@ -78,7 +77,6 @@ export function ProjectsPage() {
   });
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
-  const [projectSelectorOpen, setProjectSelectorOpen] = useState(false);
   const [pipelineSelectorOpen, setPipelineSelectorOpen] = useState(false);
   const pipelineSelectorRef = useRef<HTMLDivElement>(null);
 
@@ -252,12 +250,12 @@ export function ProjectsPage() {
           : 'Offline';
   const syncStatusToneClass =
     syncStatus === 'connected'
-      ? 'bg-emerald-400'
+      ? 'bg-status-success'
       : syncStatus === 'polling'
-        ? 'bg-amber-400'
+        ? 'bg-gold'
         : syncStatus === 'connecting'
-          ? 'bg-sky-400'
-          : 'bg-rose-400';
+          ? 'bg-status-active'
+          : 'bg-status-error';
 
   return (
     <div className="projects-page-shell celestial-fade-in flex min-h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-4 backdrop-blur-sm sm:p-6">
@@ -296,49 +294,6 @@ export function ProjectsPage() {
       />
       {/* Page Header */}
       <div className="flex shrink-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        {selectedProjectId && (
-        <div className="relative">
-          <button
-            type="button"
-            onClick={() => setProjectSelectorOpen((current) => !current)}
-            className="moonwell flex w-full min-w-[12rem] max-w-full items-center gap-3 rounded-[1.05rem] border border-border/70 px-4 py-3 text-left shadow-sm transition-colors hover:border-primary/35 hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto"
-            aria-haspopup="listbox"
-            aria-expanded={projectSelectorOpen}
-            aria-label="Select project"
-          >
-            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/12 text-sm font-semibold text-primary shadow-[inset_0_1px_0_hsl(var(--glow)/0.18)]">
-              {selectedProject?.name?.charAt(0).toUpperCase() ?? '?'}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-foreground">
-                {selectedProject?.name ?? 'Select project'}
-              </span>
-              <span className="block truncate text-[10px] uppercase tracking-[0.22em] text-muted-foreground/80">
-                {selectedProject?.owner_login ?? 'GitHub Projects'}
-              </span>
-            </span>
-            <ChevronDown
-              className={cn(
-                'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
-                projectSelectorOpen ? 'rotate-180' : ''
-              )}
-            />
-          </button>
-
-          <ProjectSelector
-            isOpen={projectSelectorOpen}
-            onClose={() => setProjectSelectorOpen(false)}
-            projects={projects}
-            selectedProjectId={selectedProjectId}
-            isLoading={projectsListLoading}
-            onSelectProject={(projectId) => {
-              void selectProject(projectId);
-            }}
-            className="top-full bottom-auto left-0 right-auto mt-2 mb-0 min-w-[20rem]"
-          />
-        </div>
-        )}
-
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground lg:justify-end">
           {selectedProjectId && (
             <span
@@ -637,7 +592,7 @@ export function ProjectsPage() {
                           }
                           className={cn(
                             'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50',
-                            effectiveBlocking ? 'bg-amber-500' : 'bg-muted'
+                            effectiveBlocking ? 'bg-primary' : 'bg-muted'
                           )}
                         >
                           <span
@@ -651,7 +606,7 @@ export function ProjectsPage() {
                           <span
                             className={cn(
                               'flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em]',
-                              effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground'
+                              effectiveBlocking ? 'text-primary' : 'text-muted-foreground'
                             )}
                           >
                             <Lock className="h-3 w-3" />

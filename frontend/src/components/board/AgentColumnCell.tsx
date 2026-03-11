@@ -156,7 +156,7 @@ export function AgentColumnCell({
 
       {/* Soft limit warning (T021) */}
       {agentCount > 10 && !isCompact && (
-        <div className="mt-1 rounded-md border border-amber-400/40 bg-amber-500/12 px-2 py-1 text-center text-xs font-medium text-amber-800 dark:text-amber-300">
+        <div className="mt-1 rounded-md border border-gold/40 bg-gold/12 px-2 py-1 text-center text-xs font-medium text-primary">
           <span className="inline-flex items-center gap-1">
             <TriangleAlert className="h-3.5 w-3.5" />
             {agentCount} agents assigned — consider reducing

@@ -38,7 +38,7 @@ function StatusIcon({ status }: { status: FileAttachment['status'] }) {
     case 'uploading':
       return <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />;
     case 'uploaded':
-      return <Check className="w-3 h-3 text-green-500" />;
+      return <Check className="w-3 h-3 text-status-success" />;
     case 'error':
       return <AlertTriangle className="w-3 h-3 text-destructive" />;
     default:

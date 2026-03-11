@@ -319,7 +319,7 @@ export function AgentConfigRow({
             <span
               className={cn('ml-2 rounded-full px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm', workflowEnabled
                   ? 'solar-chip-success'
-                  : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300')}
+                  : 'solar-chip-soft border-gold/60 text-primary')}
             >
               {workflowEnabled ? 'Workflow enabled' : 'Workflow disabled'}
             </span>
@@ -367,7 +367,7 @@ export function AgentConfigRow({
           <span
             className={cn('ml-2 rounded-full px-3 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] shadow-sm', workflowEnabled
                 ? 'solar-chip-success'
-                : 'solar-chip-soft border-amber-300/60 text-amber-800 dark:text-amber-300')}
+                : 'solar-chip-soft border-gold/60 text-primary')}
           >
             {workflowEnabled ? 'Workflow enabled' : 'Workflow disabled'}
           </span>

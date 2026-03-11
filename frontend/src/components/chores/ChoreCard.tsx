@@ -358,7 +358,7 @@ export function ChoreCard({
             className={cn(
               'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50',
               currentBlocking
-                ? 'border-amber-500/35 bg-amber-500/12 text-amber-700 hover:border-amber-500/60 hover:bg-amber-500/20 dark:text-amber-300'
+                ? 'border-gold/35 bg-gold/12 text-primary hover:border-gold/60 hover:bg-gold/20'
                 : 'border-border/60 bg-muted/40 text-muted-foreground hover:border-border/80 hover:bg-muted/60 hover:text-foreground'
             )}
             title={
@@ -371,7 +371,7 @@ export function ChoreCard({
               className={cn(
                 'flex h-4 w-4 items-center justify-center rounded-full border transition-colors',
                 currentBlocking
-                  ? 'border-amber-500/40 bg-amber-500/18 text-amber-700 dark:text-amber-300'
+                  ? 'border-gold/40 bg-gold/18 text-primary'
                   : 'border-border/60 bg-background/70 text-muted-foreground'
               )}
               aria-hidden="true"
@@ -479,7 +479,7 @@ export function ChoreCard({
                       );
                     })}
                     {currentPipelineId && !selectedPipeline && (
-                      <div className="rounded-[0.85rem] px-3 py-2.5 text-sm text-yellow-700 dark:text-yellow-300">
+                      <div className="rounded-[0.85rem] px-3 py-2.5 text-sm text-primary">
                         Saved pipeline unavailable. Select another pipeline or return to Auto.
                       </div>
                     )}
@@ -592,7 +592,7 @@ export function ChoreCard({
         )}
 
         {!chore.schedule_type && chore.status === 'active' && (
-          <p className="text-xs text-yellow-600 dark:text-yellow-400">
+          <p className="text-xs text-primary">
             No schedule configured — this chore will not auto-trigger yet.
           </p>
         )}

@@ -75,7 +75,7 @@ export function PipelineSelector({
           : 'This chore will use the selected saved agent pipeline configuration.'}
       </p>
       {!selectedExists && value && (
-        <p className="inline-flex items-center gap-1 text-[10px] text-yellow-600 dark:text-yellow-400">
+        <p className="inline-flex items-center gap-1 text-[10px] text-primary">
           <TriangleAlert className="h-3 w-3" />
           Selected pipeline no longer available — will use Auto
         </p>

@@ -34,24 +34,24 @@ function ConnectionStatusBadge({ status }: { status: string | null }) {
   > = {
     connected: {
       label: 'Connected',
-      dot: 'bg-green-500',
-      bg: 'bg-green-500/12',
-      text: 'text-green-600 dark:text-green-400',
-      border: 'border-green-500/30',
+      dot: 'bg-status-success',
+      bg: 'bg-status-success/12',
+      text: 'text-status-success',
+      border: 'border-status-success/30',
     },
     pending: {
       label: 'Linking…',
-      dot: 'bg-yellow-500 animate-pulse',
-      bg: 'bg-yellow-500/12',
-      text: 'text-yellow-600 dark:text-yellow-400',
-      border: 'border-yellow-500/30',
+      dot: 'bg-status-warning animate-pulse',
+      bg: 'bg-status-warning/12',
+      text: 'text-status-warning',
+      border: 'border-status-warning/30',
     },
     error: {
       label: 'Error',
-      dot: 'bg-red-500',
-      bg: 'bg-red-500/12',
-      text: 'text-red-600 dark:text-red-400',
-      border: 'border-red-500/30',
+      dot: 'bg-status-error',
+      bg: 'bg-status-error/12',
+      text: 'text-status-error',
+      border: 'border-status-error/30',
     },
     disconnected: {
       label: 'Not Connected',
@@ -110,14 +110,14 @@ function ConflictBanners() {
       {banners.map((banner) => (
         <div
           key={banner.id}
-          className="flex items-start gap-3 rounded-md border border-yellow-500/30 bg-yellow-500/10 p-3"
+          className="flex items-start gap-3 rounded-md border border-gold/30 bg-gold/10 p-3"
         >
-          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-yellow-700 dark:text-yellow-300" />
-          <span className="flex-1 text-sm text-yellow-700 dark:text-yellow-300">
+          <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+          <span className="flex-1 text-sm text-primary">
             {banner.message}
           </span>
           <button
-            className="shrink-0 text-xs font-medium text-yellow-700 dark:text-yellow-300 underline underline-offset-2 hover:text-yellow-900 dark:hover:text-yellow-100 transition-colors disabled:opacity-50"
+            className="shrink-0 text-xs font-medium text-primary underline underline-offset-2 hover:text-primary/80 transition-colors disabled:opacity-50"
             onClick={() => dismissBanner(banner.id)}
             disabled={isPending}
             type="button"

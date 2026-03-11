@@ -565,7 +565,7 @@ export function ChatInterface({
             onKeyDown={handleKeyDown}
           />
           {/\b#block\b/i.test(input) && (
-            <div className="absolute top-1 right-1 flex items-center gap-1 rounded-full border border-amber-500/40 bg-amber-500/15 px-2 py-0.5 text-[10px] font-semibold text-amber-600 dark:text-amber-400 pointer-events-none">
+            <div className="absolute top-1 right-1 flex items-center gap-1 rounded-full border border-gold/40 bg-gold/15 px-2 py-0.5 text-[10px] font-semibold text-primary pointer-events-none">
               <Lock className="h-3 w-3" />
               Blocking
             </div>

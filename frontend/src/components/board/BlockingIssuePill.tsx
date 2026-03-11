@@ -72,16 +72,16 @@ export function BlockingIssuePill({ entries, projectId }: BlockingIssuePillProps
 
   return (
     <>
-      <div className="flex items-center gap-1.5 rounded-full border border-amber-500/40 bg-amber-500/8 px-3 py-1.5 text-xs font-medium shadow-sm">
+      <div className="flex items-center gap-1.5 rounded-full border border-gold/40 bg-gold/8 px-3 py-1.5 text-xs font-medium shadow-sm">
         {/* Status dot */}
         <span
           className={cn(
             'h-2 w-2 shrink-0 rounded-full',
             oldest.queue_status === 'in_review'
-              ? 'bg-blue-500'
+              ? 'bg-status-active'
               : oldest.queue_status === 'pending'
-                ? 'bg-yellow-500'
-                : 'bg-green-500'
+                ? 'bg-status-warning'
+                : 'bg-status-success'
           )}
           title={statusLabel}
         />
@@ -91,7 +91,7 @@ export function BlockingIssuePill({ entries, projectId }: BlockingIssuePillProps
           href={ghUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center gap-1 text-amber-700 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 transition-colors"
+          className="flex items-center gap-1 text-primary hover:text-primary/80 transition-colors"
           title={`Open issue #${oldest.issue_number} on GitHub`}
         >
           <span className="font-semibold">#{oldest.issue_number}</span>
@@ -106,7 +106,7 @@ export function BlockingIssuePill({ entries, projectId }: BlockingIssuePillProps
           type="button"
           onClick={() => skipMutation.mutate()}
           disabled={isBusy}
-          className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-muted-foreground hover:bg-amber-500/15 hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-muted-foreground hover:bg-gold/15 hover:text-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Skip to next blocking issue"
         >
           <SkipForward className="h-3 w-3" />
@@ -121,7 +121,7 @@ export function BlockingIssuePill({ entries, projectId }: BlockingIssuePillProps
             setShowDeleteConfirm(true);
           }}
           disabled={isBusy}
-          className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-muted-foreground hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-muted-foreground hover:bg-destructive/15 hover:text-destructive transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           title="Close issue on GitHub and skip"
         >
           <Trash2 className="h-3 w-3" />

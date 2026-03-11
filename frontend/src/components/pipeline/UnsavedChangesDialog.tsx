@@ -40,8 +40,8 @@ export function UnsavedChangesDialog({
       {/* Dialog */}
       <div className="celestial-fade-in relative z-10 mx-4 w-full max-w-md rounded-2xl border border-border/80 bg-card p-6 shadow-xl">
         <div className="flex items-start gap-3">
-          <div className="rounded-full bg-amber-100/80 p-2 dark:bg-amber-950/50">
-            <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          <div className="rounded-full bg-gold/10 p-2">
+            <AlertTriangle className="h-5 w-5 text-primary" />
           </div>
           <div className="flex-1">
             <h3 className="text-base font-semibold text-foreground">Unsaved Changes</h3>

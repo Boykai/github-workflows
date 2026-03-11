@@ -52,13 +52,13 @@ function SubIssueStateIcon({ state }: { state: string }) {
   if (state === 'closed') {
     return (
       <span title="Closed">
-        <CircleCheckBig className="h-3.5 w-3.5 text-purple-500" />
+        <CircleCheckBig className="h-3.5 w-3.5 text-status-merged" />
       </span>
     );
   }
   return (
     <span title="Open">
-      <Circle className="h-3.5 w-3.5 text-green-500" />
+      <Circle className="h-3.5 w-3.5 text-status-success" />
     </span>
   );
 }
@@ -129,11 +129,11 @@ function PipelineHealthBar({ pipelineState }: { pipelineState: PipelineStateInfo
       {agents.map((agent, idx) => {
         let color: string;
         if (completed_agents.includes(agent)) {
-          color = 'bg-emerald-500';
+          color = 'bg-status-success';
         } else if (idx === current_agent_index && !error) {
-          color = 'bg-blue-500 animate-pulse';
+          color = 'bg-status-active animate-pulse';
         } else if (error && idx === current_agent_index) {
-          color = 'bg-red-500';
+          color = 'bg-status-error';
         } else {
           color = 'bg-muted-foreground/20';
         }
@@ -197,7 +197,7 @@ export const IssueCard = memo(function IssueCard({
     <div
       className={cn(
         "project-board-card celestial-panel flex cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/90 p-3 shadow-sm backdrop-blur-sm transition-[min-height] duration-200 ease-in-out hover:-translate-y-0.5 hover:border-primary/35 hover:bg-card/96 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
-        isSubIssuesExpanded ? "min-h-[13.2rem]" : "min-h-[11rem]",
+        "min-h-[11rem]",
       )}
       onClick={() => onClick(item)}
       role="button"
@@ -280,7 +280,7 @@ export const IssueCard = memo(function IssueCard({
           )}
           {activeAgentLabel && (
             <span
-              className="solar-chip rounded-sm px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-600 dark:text-blue-400"
+              className="solar-chip rounded-sm px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-status-active"
               title={activeAgentMeta?.default_model_name ? `Model: ${activeAgentMeta.default_model_name}` : activeAgentSlug ?? ''}
             >
               {activeAgentLabel}
@@ -288,7 +288,7 @@ export const IssueCard = memo(function IssueCard({
           )}
           {pipelineState?.error && (
             <span
-              className="inline-flex items-center gap-0.5 text-red-500"
+              className="inline-flex items-center gap-0.5 text-destructive"
               title={pipelineState.error}
             >
               <AlertTriangle className="h-3.5 w-3.5" />
@@ -328,7 +328,7 @@ export const IssueCard = memo(function IssueCard({
             </span>
           )}
           {isBlocking && (
-            <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400 shrink-0">
+            <span className="inline-flex items-center gap-0.5 rounded-full border border-gold/30 bg-gold/10 px-2 py-0.5 text-[10px] font-medium text-primary shrink-0">
               <Lock className="h-3 w-3" />
               Blocking
             </span>
@@ -358,7 +358,7 @@ export const IssueCard = memo(function IssueCard({
             </span>
           </button>
           {isSubIssuesExpanded && (
-            <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+            <div className="flex flex-col gap-1">
               {subIssues.map((si) => (
                 <SubIssueRow key={si.id} subIssue={si} availableAgents={availableAgents} />
               ))}

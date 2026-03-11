@@ -296,9 +296,9 @@ export function UploadMcpModal({
               className="w-full rounded-md border border-border bg-background/72 px-3 py-2 text-sm"
               maxLength={100}
             />
-            {duplicateWarning && <p className="mt-1 text-xs text-amber-600">{duplicateWarning}</p>}
+            {duplicateWarning && <p className="mt-1 text-xs text-primary">{duplicateWarning}</p>}
             {multiServerWarning && (
-              <p className="mt-1 text-xs text-amber-600">{multiServerWarning}</p>
+              <p className="mt-1 text-xs text-primary">{multiServerWarning}</p>
             )}
           </div>
 

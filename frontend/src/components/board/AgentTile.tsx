@@ -105,7 +105,7 @@ export function AgentTile({
     return (
       <div
         ref={sortableProps?.setNodeRef}
-        className={cn('group relative flex items-center gap-2 overflow-hidden rounded-[0.95rem] border px-2 py-1.5 shadow-sm transition-all', isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border/55 bg-[radial-gradient(circle_at_18%_24%,hsl(var(--glow)/0.18),transparent_32%),linear-gradient(180deg,hsl(var(--background)/0.82),hsl(var(--background)/0.92))]', sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : 'hover:border-primary/35 hover:bg-primary/8', sortableProps ? ' cursor-grab active:cursor-grabbing touch-none' : '')}
+        className={cn('group relative flex items-center gap-2 overflow-hidden rounded-[0.95rem] border px-2 py-1.5 shadow-sm transition-all', isWarning ? 'border-gold/45 bg-gold/8' : 'border-border/55 bg-[radial-gradient(circle_at_18%_24%,hsl(var(--glow)/0.18),transparent_32%),linear-gradient(180deg,hsl(var(--background)/0.82),hsl(var(--background)/0.92))]', sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : 'hover:border-primary/35 hover:bg-primary/8', sortableProps ? ' cursor-grab active:cursor-grabbing touch-none' : '')}
         style={tileStyle}
         {...(sortableProps?.attributes ?? {})}
         {...(sortableProps?.listeners ?? {})}
@@ -151,7 +151,7 @@ export function AgentTile({
 
         {isWarning && (
           <span
-            className="rounded-full border border-amber-400/45 bg-amber-500/12 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300"
+            className="rounded-full border border-gold/45 bg-gold/12 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] text-primary"
             title="Agent not found in available agents"
           >
             !
@@ -188,7 +188,7 @@ export function AgentTile({
   return (
     <div
       ref={sortableProps?.setNodeRef}
-      className={cn('celestial-panel flex flex-col rounded-md border bg-card shadow-sm', isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border', sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : '', sortableProps ? ' cursor-grab active:cursor-grabbing touch-none' : '')}
+      className={cn('celestial-panel flex flex-col rounded-md border bg-card shadow-sm', isWarning ? 'border-gold/45 bg-gold/8' : 'border-border', sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : '', sortableProps ? ' cursor-grab active:cursor-grabbing touch-none' : '')}
       style={tileStyle}
       {...(sortableProps?.attributes ?? {})}
       {...(sortableProps?.listeners ?? {})}
@@ -219,7 +219,7 @@ export function AgentTile({
         {/* Warning badge (T032) */}
         {isWarning && (
           <span
-            className="rounded-md border border-amber-400/45 bg-amber-500/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300"
+            className="rounded-md border border-gold/45 bg-gold/12 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.12em] text-primary"
             title="Agent not found in available agents"
           >
             <TriangleAlert className="h-3.5 w-3.5" />

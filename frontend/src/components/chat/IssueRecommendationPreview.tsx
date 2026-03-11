@@ -63,7 +63,7 @@ export function IssueRecommendationPreview({
   // Show success result
   if (result?.success) {
     return (
-      <div className="mt-3 max-w-[600px] rounded-lg border border-green-200 bg-green-100/80 p-4 text-green-800 dark:border-green-800 dark:bg-green-900/30 dark:text-green-400">
+      <div className="mt-3 max-w-[600px] rounded-lg border border-status-success/30 bg-status-success/10 p-4 text-status-success">
         <div className="flex items-center gap-2 mb-3">
           <CheckCircle2 className="h-5 w-5" />
           <h4 className="m-0 font-semibold">Issue Created Successfully</h4>
@@ -93,7 +93,7 @@ export function IssueRecommendationPreview({
     return (
       <div className="mt-3 max-w-[600px] rounded-lg border border-primary/25 bg-primary/10 p-4 text-foreground">
         <div className="flex items-center gap-2 mb-3">
-          <CircleAlert className="h-5 w-5 text-amber-500" />
+          <CircleAlert className="h-5 w-5 text-primary" />
           <h4 className="m-0 font-semibold">Issue Created with Warnings</h4>
         </div>
         <div className="text-sm">
@@ -198,7 +198,7 @@ export function IssueRecommendationPreview({
                 Priority
               </span>
               <span
-                className={cn('text-sm font-medium', recommendation.metadata.priority === 'P0' ? 'text-destructive font-bold' : recommendation.metadata.priority === 'P1' ? 'text-orange-600 dark:text-orange-400 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-blue-600 dark:text-blue-400' : 'text-muted-foreground')}
+                className={cn('text-sm font-medium', recommendation.metadata.priority === 'P0' ? 'text-priority-p0 font-bold' : recommendation.metadata.priority === 'P1' ? 'text-priority-p1 font-semibold' : recommendation.metadata.priority === 'P2' ? 'text-priority-p2' : 'text-muted-foreground')}
               >
                 {recommendation.metadata.priority || 'P2'}
               </span>
@@ -240,7 +240,7 @@ export function IssueRecommendationPreview({
                   {recommendation.metadata.labels.map((label, idx) => (
                     <span
                       key={idx}
-                      className="inline-block px-2 py-0.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-full text-[11px] font-medium"
+                      className="inline-block px-2 py-0.5 bg-status-active/10 text-status-active rounded-full text-[11px] font-medium"
                     >
                       {label}
                     </span>
@@ -257,7 +257,7 @@ export function IssueRecommendationPreview({
                   {recommendation.metadata.assignees.map((assignee, idx) => (
                     <span
                       key={idx}
-                      className="inline-block px-2 py-0.5 bg-purple-500/10 text-purple-600 dark:text-purple-400 rounded-full text-[11px] font-medium"
+                      className="inline-block px-2 py-0.5 bg-status-merged/10 text-status-merged rounded-full text-[11px] font-medium"
                     >
                       @{assignee}
                     </span>
@@ -280,7 +280,7 @@ export function IssueRecommendationPreview({
                 <span className="text-[11px] uppercase text-muted-foreground font-medium">
                   Branch
                 </span>
-                <span className="inline-block px-2 py-0.5 bg-green-500/10 text-green-600 dark:text-green-400 rounded text-[11px] font-mono w-fit">
+                <span className="inline-block px-2 py-0.5 bg-status-success/10 text-status-success rounded text-[11px] font-mono w-fit">
                   {recommendation.metadata.branch}
                 </span>
               </div>

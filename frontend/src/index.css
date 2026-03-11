@@ -36,6 +36,20 @@
   --color-gold: hsl(var(--gold));
   --color-night: hsl(var(--night));
 
+  /* Semantic status indicator colours */
+  --color-status-success: hsl(var(--status-success));
+  --color-status-active: hsl(var(--status-active));
+  --color-status-error: hsl(var(--status-error));
+  --color-status-warning: hsl(var(--status-warning));
+  --color-status-neutral: hsl(var(--status-neutral));
+  --color-status-merged: hsl(var(--status-merged));
+
+  /* Priority colours */
+  --color-priority-p0: hsl(var(--priority-p0));
+  --color-priority-p1: hsl(var(--priority-p1));
+  --color-priority-p2: hsl(var(--priority-p2));
+  --color-priority-p3: hsl(var(--priority-p3));
+
   /* Existing accordion animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
@@ -216,6 +230,13 @@
     --priority-p1: 25 95% 53%;
     --priority-p2: 217 91% 60%;
     --priority-p3: 142 71% 45%;
+
+    --status-success: 160 84% 39%;
+    --status-active: 217 91% 60%;
+    --status-error: 0 84% 60%;
+    --status-warning: 45 93% 47%;
+    --status-neutral: 220 9% 46%;
+    --status-merged: 271 91% 65%;
   }
 
   .dark {
@@ -259,6 +280,13 @@
     --priority-p1: 25 95% 53%;
     --priority-p2: 217 91% 60%;
     --priority-p3: 142 71% 45%;
+
+    --status-success: 158 64% 52%;
+    --status-active: 213 94% 68%;
+    --status-error: 0 91% 71%;
+    --status-warning: 45 93% 58%;
+    --status-neutral: 218 11% 65%;
+    --status-merged: 271 81% 73%;
   }
 }
 
@@ -1394,23 +1422,54 @@
   }
 
   .dark .solar-chip-success {
+    border-color: rgb(16 185 129 / 0.3);
+    background: linear-gradient(180deg, rgb(16 185 129 / 0.16) 0%, rgb(16 185 129 / 0.08) 100%);
     color: rgb(110 231 183);
+    box-shadow:
+      inset 0 1px 0 rgb(16 185 129 / 0.12),
+      0 10px 20px hsl(var(--night) / 0.2);
   }
 
   .dark .solar-chip-warning {
+    border-color: rgb(245 158 11 / 0.3);
+    background: linear-gradient(180deg, rgb(245 158 11 / 0.14) 0%, rgb(245 158 11 / 0.07) 100%);
     color: rgb(253 224 71);
+    box-shadow:
+      inset 0 1px 0 rgb(245 158 11 / 0.1),
+      0 10px 20px hsl(var(--night) / 0.2);
   }
 
   .dark .solar-chip-danger {
+    border-color: rgb(239 68 68 / 0.3);
+    background: linear-gradient(180deg, rgb(239 68 68 / 0.14) 0%, rgb(239 68 68 / 0.07) 100%);
     color: rgb(252 165 165);
+    box-shadow:
+      inset 0 1px 0 rgb(239 68 68 / 0.1),
+      0 10px 20px hsl(var(--night) / 0.2);
   }
 
   .dark .solar-chip-violet {
+    border-color: rgb(139 92 246 / 0.3);
+    background: linear-gradient(180deg, rgb(139 92 246 / 0.16) 0%, rgb(139 92 246 / 0.08) 100%);
     color: rgb(196 181 253);
+    box-shadow:
+      inset 0 1px 0 rgb(139 92 246 / 0.1),
+      0 10px 20px hsl(var(--night) / 0.2);
   }
 
   .dark .solar-action-danger {
+    border-color: rgb(239 68 68 / 0.28);
+    background: linear-gradient(180deg, rgb(239 68 68 / 0.14) 0%, rgb(239 68 68 / 0.08) 100%);
     color: rgb(252 165 165);
+    box-shadow:
+      inset 0 1px 0 rgb(239 68 68 / 0.08),
+      0 8px 18px hsl(var(--night) / 0.16);
+  }
+
+  .dark .solar-action-danger:hover {
+    border-color: rgb(239 68 68 / 0.42);
+    background: linear-gradient(180deg, rgb(239 68 68 / 0.18) 0%, rgb(239 68 68 / 0.12) 100%);
+    color: rgb(254 202 202);
   }
 
   /* ══════════════════════════════════════════════════════════════

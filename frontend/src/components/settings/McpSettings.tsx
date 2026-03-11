@@ -29,8 +29,8 @@ function isValidUrl(url: string): boolean {
 
 function ActiveStatusBadge({ isActive }: { isActive: boolean }) {
   return isActive ? (
-    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-500/10 text-green-600 dark:text-green-400">
-      <span className="w-1.5 h-1.5 rounded-full bg-green-500" />
+    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-status-success/10 text-status-success">
+      <span className="w-1.5 h-1.5 rounded-full bg-status-success" />
       Active
     </span>
   ) : (
@@ -344,7 +344,7 @@ export function McpSettings() {
         hideSave
       >
         <div className="flex flex-col gap-3 rounded-[1rem] border border-primary/20 bg-primary/10 p-4">
-          <p className="text-sm text-yellow-700 dark:text-yellow-300">
+          <p className="text-sm text-primary">
             Your session has expired. Please sign in again.
           </p>
           <button
@@ -403,8 +403,8 @@ export function McpSettings() {
     >
       {/* Success Message */}
       {successMessage && (
-        <div className="rounded-[1rem] border border-green-500/30 bg-green-500/10 p-3">
-          <p className="text-sm text-green-700 dark:text-green-400">{successMessage}</p>
+        <div className="rounded-[1rem] border border-status-success/30 bg-status-success/10 p-3">
+          <p className="text-sm text-status-success">{successMessage}</p>
         </div>
       )}
 

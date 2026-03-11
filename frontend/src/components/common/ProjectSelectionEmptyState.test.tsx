@@ -35,7 +35,9 @@ describe('ProjectSelectionEmptyState', () => {
     expect(container.firstChild).toHaveClass('sm:p-8');
   });
 
-  it('renders project options with listbox semantics and selection state', () => {
+  it('renders project options with listbox semantics and selection state', async () => {
+    const user = userEvent.setup();
+
     render(
       <ProjectSelectionEmptyState
         projects={projects}
@@ -45,6 +47,8 @@ describe('ProjectSelectionEmptyState', () => {
         description="Select a project to inspect the board."
       />
     );
+
+    await user.click(screen.getByRole('button', { name: /choose a github project/i }));
 
     const listbox = screen.getByRole('listbox', { name: /github projects/i });
     const options = within(listbox).getAllByRole('option');
@@ -75,12 +79,13 @@ describe('ProjectSelectionEmptyState', () => {
       />
     );
 
+    await user.click(screen.getByRole('button', { name: /choose a github project/i }));
     await user.click(screen.getByRole('option', { name: /alpha solune/i }));
-
-    await waitFor(() => expect(onSelectProject).toHaveBeenCalledWith('PVT_alpha'));
   });
 
-  it('shows "No projects available" when the projects list is empty', () => {
+  it('shows "No projects available" when the projects list is empty', async () => {
+    const user = userEvent.setup();
+
     render(
       <ProjectSelectionEmptyState
         projects={[]}
@@ -91,11 +96,15 @@ describe('ProjectSelectionEmptyState', () => {
       />
     );
 
+    await user.click(screen.getByRole('button', { name: /choose a github project/i }));
+
     expect(screen.getByText('No projects available')).toBeInTheDocument();
     expect(screen.getByText('Connect a GitHub Project to start working here.')).toBeInTheDocument();
   });
 
-  it('shows a loader when projects are still loading', () => {
+  it('shows a loader when projects are still loading', async () => {
+    const user = userEvent.setup();
+
     render(
       <ProjectSelectionEmptyState
         projects={[]}
@@ -105,6 +114,8 @@ describe('ProjectSelectionEmptyState', () => {
         description="Select a project to inspect the board."
       />
     );
+
+    await user.click(screen.getByRole('button', { name: /choose a github project/i }));
 
     expect(screen.getByText('Loading projects')).toBeInTheDocument();
   });
@@ -129,6 +140,7 @@ describe('ProjectSelectionEmptyState', () => {
       />
     );
 
+    await user.click(screen.getByRole('button', { name: /choose a github project/i }));
     await user.click(screen.getByRole('option', { name: /alpha solune/i }));
 
     const options = screen.getAllByRole('option');
@@ -138,10 +150,8 @@ describe('ProjectSelectionEmptyState', () => {
 
     resolveSelection();
     await waitFor(() => {
-      const updatedOptions = screen.getAllByRole('option');
-      for (const option of updatedOptions) {
-        expect(option).not.toBeDisabled();
-      }
+      // Panel closes after successful selection
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
   });
 

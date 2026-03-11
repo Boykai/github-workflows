@@ -370,7 +370,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
         <div className="overflow-y-auto px-6 py-5">
           {isDirty && (
-            <div className="mb-4 rounded-[1rem] border border-amber-300/60 bg-amber-50/80 p-3 text-sm text-amber-900 dark:border-amber-600/50 dark:bg-amber-950/30 dark:text-amber-200">
+            <div className="mb-4 rounded-[1rem] border border-gold/60 bg-gold/8 p-3 text-sm text-primary">
               You have unsaved changes.
             </div>
           )}

@@ -293,7 +293,7 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
             className={cn(
               'inline-flex items-center gap-1.5 self-start rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
               copied
-                ? 'border-green-500/40 bg-green-500/10 text-green-600'
+                ? 'border-status-success/40 bg-status-success/10 text-status-success'
                 : 'border-border/70 text-muted-foreground hover:border-primary/50 hover:bg-primary/10 hover:text-foreground'
             )}
           >

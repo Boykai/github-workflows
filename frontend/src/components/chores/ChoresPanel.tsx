@@ -199,8 +199,8 @@ export function ChoresPanel({
 
       {/* Unsaved changes banner */}
       {isAnyDirty && (
-        <div className="flex items-center justify-between gap-4 rounded-[1.2rem] border border-yellow-500/30 bg-yellow-50 px-4 py-3 dark:bg-yellow-900/20">
-          <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+        <div className="flex items-center justify-between gap-4 rounded-[1.2rem] border border-gold/30 bg-gold/8 px-4 py-3">
+          <p className="text-sm font-medium text-primary">
             You have unsaved changes
           </p>
           <div className="flex gap-2">

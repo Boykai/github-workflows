@@ -465,7 +465,7 @@ export function ProjectIssueLaunchPanel({
         ) : null}
 
         {submissionResult?.success ? (
-          <div className="flex flex-wrap items-start gap-3 rounded-[1.15rem] border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+          <div className="flex flex-wrap items-start gap-3 rounded-[1.15rem] border border-status-success/30 bg-status-success/10 p-4 text-sm text-status-success">
             <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
             <div className="min-w-0 flex-1 space-y-1">
               <p className="font-medium">Pipeline launched successfully</p>

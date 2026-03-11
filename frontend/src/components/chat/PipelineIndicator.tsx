@@ -22,7 +22,7 @@ export function PipelineIndicator({
   // Warning: only invalid mentions, no valid pipeline
   if (!activePipelineName && hasInvalidMentions) {
     return (
-      <div className="flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200">
+      <div className="flex items-center gap-1 px-2 py-1 text-xs rounded-md bg-destructive/10 text-destructive">
         <AlertTriangle className="h-3 w-3 shrink-0" />
         Pipeline not found
       </div>
@@ -33,7 +33,7 @@ export function PipelineIndicator({
     <div
       className={cn(
         'flex items-center gap-1 px-2 py-1 text-xs rounded-md',
-        'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+        'bg-status-active/10 text-status-active'
       )}
       title={hasMultipleMentions ? 'Multiple pipelines mentioned — using last' : undefined}
     >

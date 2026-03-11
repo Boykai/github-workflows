@@ -64,7 +64,7 @@ export function AgentNode({
         style={dragStyle}
         {...(dragHandleAttributes ?? {})}
         {...(dragHandleListeners ?? {})}
-        className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]', agentStatus === 'failed' ? 'border-destructive/50 bg-destructive/5' : agentStatus === 'completed' ? 'border-green-500/30' : 'border-border/50', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
+        className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]', agentStatus === 'failed' ? 'border-destructive/50 bg-destructive/5' : agentStatus === 'completed' ? 'border-status-success/30' : 'border-border/50', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
     >
       {/* Drag handle removed — entire card is the drag target */}
 
@@ -75,7 +75,7 @@ export function AgentNode({
         <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-primary" />
       )}
       {agentStatus === 'completed' && (
-        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-green-500" />
+        <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-status-success" />
       )}
       {agentStatus === 'failed' && (
         <XCircle className="h-3.5 w-3.5 shrink-0 text-destructive" />

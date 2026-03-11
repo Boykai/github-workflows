@@ -15,10 +15,10 @@ interface BlockingChainPanelProps {
 }
 
 const STATUS_LABELS: Record<string, { label: string; dot: string }> = {
-  active: { label: 'Active', dot: 'bg-green-500' },
-  in_review: { label: 'In Review', dot: 'bg-blue-500' },
-  pending: { label: 'Pending', dot: 'bg-gray-400' },
-  completed: { label: 'Completed', dot: 'bg-purple-500' },
+  active: { label: 'Active', dot: 'bg-status-success' },
+  in_review: { label: 'In Review', dot: 'bg-status-active' },
+  pending: { label: 'Pending', dot: 'bg-status-neutral' },
+  completed: { label: 'Completed', dot: 'bg-status-merged' },
 };
 
 function getBaseBranch(entries: BlockingQueueEntry[]): string {
@@ -51,7 +51,7 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
       <button
         onClick={() => setIsExpanded(!isExpanded)}
         className={cn('flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors', isExpanded
-            ? 'border-amber-500/50 bg-amber-500/10 text-amber-600 dark:text-amber-400'
+            ? 'border-gold/50 bg-gold/10 text-primary'
             : 'border-border/70 bg-background/50 hover:bg-accent/45')}
         type="button"
         title="View blocking queue status"
@@ -80,11 +80,11 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
           {/* Summary */}
           <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
             <span className="inline-flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-green-500" />
+              <span className="w-2 h-2 rounded-full bg-status-success" />
               {activeCount} active
             </span>
             <span className="inline-flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-gray-400" />
+              <span className="w-2 h-2 rounded-full bg-status-neutral" />
               {pendingCount} pending
             </span>
             <span
@@ -105,7 +105,7 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
                 <div
                   key={entry.id}
                   className={cn('flex items-center gap-2 rounded-md border px-2.5 py-1.5 text-xs', isNext
-                      ? 'border-amber-500/30 bg-amber-500/5'
+                      ? 'border-gold/30 bg-gold/5'
                       : 'border-border/50 bg-background/30')}
                 >
                   <span className="text-muted-foreground w-4 text-center text-[10px]">
@@ -117,13 +117,13 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
                   />
                   <span className="font-medium">#{entry.issue_number}</span>
                   {entry.is_blocking && (
-                    <Lock className="h-3 w-3 text-amber-600 dark:text-amber-400" />
+                    <Lock className="h-3 w-3 text-primary" />
                   )}
                   <span className="text-muted-foreground ml-auto text-[10px]">
                     {statusInfo.label}
                   </span>
                   {isNext && (
-                    <span className="text-amber-600 dark:text-amber-400 text-[10px] font-medium">
+                    <span className="text-primary text-[10px] font-medium">
                       Next
                     </span>
                   )}

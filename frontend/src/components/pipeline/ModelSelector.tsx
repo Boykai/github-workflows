@@ -49,7 +49,7 @@ function CostTierBadge({ tier }: { tier: string }) {
       );
     case 'premium':
       return (
-        <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/25 bg-amber-500/12 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-amber-700 dark:text-amber-300">
+        <span className="inline-flex items-center gap-0.5 rounded-full border border-gold/25 bg-gold/12 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary">
           <Crown className="h-2.5 w-2.5" />
           Premium
         </span>

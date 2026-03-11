@@ -221,7 +221,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
                   className={cn('flex items-center gap-3 rounded-md border p-3 transition-colors no-underline', si.state === 'closed' ? 'bg-background/40 border-border/50 text-muted-foreground' : 'bg-background/72 border-border hover:border-primary/50 hover:bg-background/82')}
                 >
                   <span
-                    className={cn('flex items-center justify-center w-5 h-5 rounded-full text-xs', si.state === 'closed' ? 'bg-purple-500/10 text-purple-500' : 'bg-green-500/10 text-green-500')}
+                    className={cn('flex items-center justify-center w-5 h-5 rounded-full text-xs', si.state === 'closed' ? 'bg-status-merged/10 text-status-merged' : 'bg-status-success/10 text-status-success')}
                   >
                     {si.state === 'closed' ? (
                       <CircleCheckBig className="h-3.5 w-3.5" />
@@ -277,7 +277,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
                   className="flex items-center gap-3 rounded-md border border-border bg-background/72 p-3 transition-colors no-underline hover:border-primary/50 hover:bg-background/82"
                 >
                   <span
-                    className={cn('px-2 py-0.5 text-xs font-medium rounded-full', pr.state === 'merged' ? 'bg-purple-500/10 text-purple-500' : pr.state === 'closed' ? 'bg-red-500/10 text-red-500' : 'bg-green-500/10 text-green-500')}
+                    className={cn('px-2 py-0.5 text-xs font-medium rounded-full', pr.state === 'merged' ? 'bg-status-merged/10 text-status-merged' : pr.state === 'closed' ? 'bg-destructive/10 text-destructive' : 'bg-status-success/10 text-status-success')}
                   >
                     {prStateLabel(pr.state)}
                   </span>
