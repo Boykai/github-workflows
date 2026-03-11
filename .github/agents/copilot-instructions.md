@@ -204,3 +204,10 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - **Always use Context7 MCP for library documentation.** Before writing or modifying code that uses any library, framework, or API, look up the current documentation via Context7. Never rely solely on training data for syntax, options, or best practices.
 - **Always use Code Graph Context MCP when exploring the codebase.** Before making changes, use Code Graph Context to understand call chains, code relationships, and dependency graphs. This prevents unintended side effects and ensures changes are consistent with the existing architecture.
+
+## Active Technologies
+- Python 3.13 (backend), TypeScript 5.9 (frontend) + FastAPI ≥0.135, Pydantic ≥2.12, cryptography ≥44.0 (Fernet), slowapi ≥0.1.9, aiosqlite ≥0.22, React 19.2, TanStack Query 5.90, Vite 7.3, Zod 4.3 (001-security-review)
+- SQLite via aiosqlite (WAL mode, encrypted sessions, migrations 001–020) (001-security-review)
+
+## Recent Changes
+- 001-security-review: Added Python 3.13 (backend), TypeScript 5.9 (frontend) + FastAPI ≥0.135, Pydantic ≥2.12, cryptography ≥44.0 (Fernet), slowapi ≥0.1.9, aiosqlite ≥0.22, React 19.2, TanStack Query 5.90, Vite 7.3, Zod 4.3
