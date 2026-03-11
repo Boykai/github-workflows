@@ -74,12 +74,13 @@ frontend/
 │   │   ├── tools/
 │   │   │   └── ToolsPanel.tsx                # MODIFIED — migrate ad-hoc modal to ConfirmationDialog
 │   │   ├── pipeline/
-│   │   │   └── PipelineToolbar.tsx           # MODIFIED — add confirmation before pipeline deletion
+│   │   │   └── UnsavedChangesDialog.tsx      # MODIFIED — add focus restoration on close
 │   │   └── board/
 │   │       └── CleanUpConfirmModal.tsx        # MODIFIED — accessibility alignment
 │   ├── hooks/
 │   │   └── useConfirmation.tsx               # MODIFIED — queuing robustness, prevent dismiss during loading
-│   └── pages/                                # No changes expected
+│   └── pages/
+│       └── AgentsPipelinePage.tsx            # MODIFIED — add confirmation before pipeline deletion
 └── tests/                                    # Tests updated as needed for modified components
 ```
 
