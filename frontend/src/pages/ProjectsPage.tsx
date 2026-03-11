@@ -135,7 +135,7 @@ export function ProjectsPage() {
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
   const pipelineColumnCount = Math.max(transformedBoardData?.columns.length ?? 0, 1);
   const pipelineGridStyle = useMemo(
-    () => ({ gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))` }),
+    () => ({ gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(min(14rem, 85vw), 1fr))` }),
     [pipelineColumnCount]
   );
   const assignedPipeline = useMemo(
@@ -229,12 +229,12 @@ export function ProjectsPage() {
           : 'Offline';
   const syncStatusToneClass =
     syncStatus === 'connected'
-      ? 'bg-emerald-400'
+      ? 'bg-[hsl(var(--sync-connected))]'
       : syncStatus === 'polling'
-        ? 'bg-amber-400'
+        ? 'bg-[hsl(var(--sync-polling))]'
         : syncStatus === 'connecting'
-          ? 'bg-sky-400'
-          : 'bg-rose-400';
+          ? 'bg-[hsl(var(--sync-connecting))]'
+          : 'bg-[hsl(var(--sync-disconnected))]';
 
   return (
     <div className="projects-page-shell celestial-fade-in flex min-h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-4 backdrop-blur-sm sm:p-6">
@@ -310,7 +310,7 @@ export function ProjectsPage() {
             onSelectProject={(projectId) => {
               void selectProject(projectId);
             }}
-            className="top-full bottom-auto left-0 right-auto mt-2 mb-0 min-w-[20rem]"
+            className="top-full bottom-auto left-0 right-auto mt-2 mb-0 min-w-[min(20rem,calc(100vw-3rem))]"
           />
         </div>
 
@@ -612,7 +612,7 @@ export function ProjectsPage() {
                           }
                           className={cn(
                             'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50',
-                            effectiveBlocking ? 'bg-amber-500' : 'bg-muted'
+                            effectiveBlocking ? 'bg-gold' : 'bg-muted'
                           )}
                         >
                           <span
@@ -626,7 +626,7 @@ export function ProjectsPage() {
                           <span
                             className={cn(
                               'flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em]',
-                              effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground'
+                              effectiveBlocking ? 'text-gold' : 'text-muted-foreground'
                             )}
                           >
                             <Lock className="h-3 w-3" />

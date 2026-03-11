@@ -60,7 +60,10 @@ describe('IssueDetailModal', () => {
 
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAttribute('aria-label', 'Test Issue Title');
+    expect(dialog).toHaveAttribute('aria-labelledby', 'issue-detail-modal-title');
+
+    const heading = screen.getByRole('heading', { name: 'Test Issue Title' });
+    expect(heading).toHaveAttribute('id', 'issue-detail-modal-title');
   });
 
   it('renders repository info', () => {

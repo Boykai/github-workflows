@@ -3,7 +3,7 @@
  * Renders issue descriptions as Markdown using react-markdown with GFM support.
  */
 
-import { useEffect, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Circle, CircleCheckBig, X } from 'lucide-react';
@@ -41,24 +41,47 @@ interface IssueDetailModalProps {
 }
 
 export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
-  // Close on Escape key
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    },
-    [onClose]
-  );
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
 
   useScrollLock(true);
 
+  // Focus the close button when the modal opens
   useEffect(() => {
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
+    requestAnimationFrame(() => {
+      closeBtnRef.current?.focus();
+    });
+  }, []);
+
+  // Escape key + focus trapping
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     };
-  }, [handleKeyDown]);
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
 
   // Close on backdrop click
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -82,16 +105,14 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm"
       onClick={handleBackdropClick}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') onClose();
-      }}
       role="presentation"
     >
       <div
+        ref={dialogRef}
         className="celestial-fade-in celestial-panel relative m-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 text-card-foreground shadow-lg"
         role="dialog"
         aria-modal="true"
-        aria-label={item.title}
+        aria-labelledby="issue-detail-modal-title"
       >
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
@@ -109,7 +130,8 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
             )}
           </div>
           <button
-            className="rounded-md p-2 transition-colors hover:bg-primary/10"
+            ref={closeBtnRef}
+            className="rounded-md p-2 transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
             onClick={onClose}
             aria-label="Close modal"
           >
@@ -118,7 +140,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
         </div>
 
         {/* Title */}
-        <h2 className="text-2xl font-bold mb-4">{item.title}</h2>
+        <h2 id="issue-detail-modal-title" className="text-2xl font-bold mb-4">{item.title}</h2>
 
         {/* Status */}
         <div className="flex items-center gap-2 mb-6">
