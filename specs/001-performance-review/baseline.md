@@ -82,7 +82,7 @@
 ### Frontend Test Results
 
 - Full frontend suite: 600 passed (0 failures)
-- `useRealTimeSync.test.tsx`: 37 passed (was 34 — 3 new tests for onBoardReloadRequested)
+- `useRealTimeSync.test.tsx`: 34 passed
 - `useBoardRefresh.test.tsx`: 21 passed (was 17 — 4 new tests for requestBoardReload debouncing)
 - Type-check: passes
 - Build: succeeds
@@ -94,7 +94,7 @@
 2. **Backend `board.py`**: Board data cached with `data_hash` for change detection (FR-004).
 3. **Backend `projects.py`**: WebSocket hash computation uses shared `compute_data_hash` helper.
 4. **Frontend `useBoardRefresh.ts`**: Added 2-second board-reload debouncing (`requestBoardReload`), manual refresh cancels pending debounce.
-5. **Frontend `useRealTimeSync.ts`**: Added `onBoardReloadRequested` callback; `refresh` messages trigger debounced board reload.
+5. **Frontend `useRealTimeSync.ts`**: `refresh` messages invalidate tasks query only; board data continues to refresh on its own 5-minute schedule.
 6. **Frontend `ProjectsPage.tsx`**: Wired `requestBoardReload` from `useBoardRefresh` into `useRealTimeSync`; memoized `pipelineGridStyle`.
 7. **Frontend components**: ChatPopup and AddAgentPopover already have RAF throttling (no changes needed).
 

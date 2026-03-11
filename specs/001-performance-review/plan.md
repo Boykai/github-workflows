@@ -83,11 +83,10 @@ frontend/
 │   ├── components/
 │   │   ├── board/
 │   │   │   ├── BoardColumn.tsx     # memo'd column renderer
-│   │   │   └── IssueCard.tsx       # memo'd card renderer
-│   │   ├── chat/
-│   │   │   └── ChatPopup.tsx       # Drag listener (throttle candidate)
-│   │   └── board/
-│   │       └── AddAgentPopover.tsx  # Positioning listener (throttle candidate)
+│   │   │   ├── IssueCard.tsx       # memo'd card renderer
+│   │   │   └── AddAgentPopover.tsx  # Positioning listener (throttle candidate)
+│   │   └── chat/
+│   │       └── ChatPopup.tsx       # Drag listener (throttle candidate)
 │   └── pages/
 │       └── ProjectsPage.tsx        # Derived state (useMemo patterns already present)
 └── tests/

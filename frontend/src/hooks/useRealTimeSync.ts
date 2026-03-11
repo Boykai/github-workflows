@@ -18,8 +18,6 @@ type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'polling';
 interface UseRealTimeSyncOptions {
   /** Callback when a WebSocket-triggered refresh occurs (resets auto-refresh timer). */
   onRefreshTriggered?: () => void;
-  /** Request a debounced full-board reload (from useBoardRefresh). */
-  onBoardReloadRequested?: () => void;
 }
 
 interface UseRealTimeSyncReturn {
@@ -39,13 +37,11 @@ export function useRealTimeSync(
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttempts = useRef(0);
   const onRefreshTriggeredRef = useRef(options?.onRefreshTriggered);
-  const onBoardReloadRequestedRef = useRef(options?.onBoardReloadRequested);
   /** Timestamp of the last reconnection invalidation for debounce. */
   const lastReconnectInvalidationRef = useRef(0);
 
-  // Keep the callback refs up to date
+  // Keep the callback ref up to date
   onRefreshTriggeredRef.current = options?.onRefreshTriggered;
-  onBoardReloadRequestedRef.current = options?.onBoardReloadRequested;
 
   const handleMessage = useCallback(
     (event: MessageEvent) => {

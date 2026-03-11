@@ -40,16 +40,6 @@ class TestCacheEntry:
         time.sleep(0.01)
         assert entry.is_expired is True
 
-    def test_entry_stores_data_hash(self):
-        """Should store data_hash when provided."""
-        entry = CacheEntry("test_value", ttl_seconds=60, data_hash="abc123")
-        assert entry.data_hash == "abc123"
-
-    def test_entry_data_hash_defaults_to_none(self):
-        """Should default data_hash to None when not provided."""
-        entry = CacheEntry("test_value", ttl_seconds=60)
-        assert entry.data_hash is None
-
 
 class TestInMemoryCache:
     """Tests for InMemoryCache class."""
@@ -147,31 +137,6 @@ class TestInMemoryCache:
         cache.set("test_key", "updated")
 
         assert cache.get("test_key") == "updated"
-
-    @patch("src.services.cache.get_settings")
-    def test_set_stores_data_hash(self, mock_settings):
-        """Should store data_hash when provided via set()."""
-        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
-
-        cache = InMemoryCache()
-        cache.set("test_key", "value", data_hash="hash123")
-
-        entry = cache.get_entry("test_key")
-        assert entry is not None
-        assert entry.data_hash == "hash123"
-
-    @patch("src.services.cache.get_settings")
-    def test_data_hash_detects_changes(self, mock_settings):
-        """Overwriting with different data_hash reflects the new hash."""
-        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
-
-        cache = InMemoryCache()
-        cache.set("board", {"columns": [1]}, data_hash="hash_v1")
-        cache.set("board", {"columns": [1, 2]}, data_hash="hash_v2")
-
-        entry = cache.get_entry("board")
-        assert entry is not None
-        assert entry.data_hash == "hash_v2"
 
 
 class TestComputeDataHash:

@@ -13,7 +13,7 @@ This document defines the single coherent refresh policy governing all paths tha
 | Source | Trigger | Default Scope | Condition for Full Board Reload |
 |--------|---------|---------------|-------------------------------|
 | WebSocket `task_update` / `task_created` / `status_changed` | Server pushes task-level change | **Task only** | Never — task changes do not trigger board reload |
-| WebSocket `refresh` | Server pushes board-level event | **Task only** (default) | Promoted to **Full board** only when server-side `data_hash` comparison confirms board data changed |
+| WebSocket `refresh` | Server pushes periodic task-level event | **Task only** | Never — board data refreshes on its own 5-minute auto-refresh schedule |
 | WebSocket `blocking_queue_updated` | Server pushes blocking queue change | **Blocking queue only** | Never — blocking queue changes do not trigger board reload |
 | Fallback polling | 30-second interval when WebSocket unavailable | **Task only** | Never — fallback polling never triggers board reload |
 | Auto-refresh | 5-minute interval via `useBoardRefresh` | **Full board** | Always — this is the scheduled board freshness mechanism |
@@ -33,7 +33,6 @@ A full board data refetch occurs only when one of these conditions is met:
 
 1. The auto-refresh timer fires (5-minute interval, gated by page visibility).
 2. The user explicitly triggers a manual refresh.
-3. A WebSocket `refresh` message arrives AND the server-side board `data_hash` has changed.
 
 All other refresh paths produce lightweight updates only.
 
@@ -41,12 +40,12 @@ All other refresh paths produce lightweight updates only.
 
 ### Rule 3: Deduplication
 
-If multiple full-board-reload triggers arrive within a 2-second debounce window, only one refetch executes. Priority order:
+If multiple full-board-reload triggers arrive within a short window, only one refetch executes. Priority order:
 
 1. Manual refresh (always wins, bypasses cache).
-2. Auto-refresh or WebSocket `refresh` (whichever arrived first; subsequent duplicates within the window are suppressed).
+2. Auto-refresh (subsequent duplicates within the window are suppressed).
 
-**Rationale**: Prevents concurrent auto-refresh + WebSocket `refresh` from producing two full board reloads in rapid succession.
+**Rationale**: Prevents concurrent triggers from producing two full board reloads in rapid succession.
 
 ### Rule 4: Fallback Coordination
 
@@ -86,25 +85,25 @@ Server ──[task_update]──▶ useRealTimeSync
                     (unchanged columns/cards skip via React.memo)
 ```
 
-### Board-Level WebSocket Refresh (Changed)
+### WebSocket Refresh (Task-Level)
 
 ```text
-Server ──[refresh + data_hash changed]──▶ useRealTimeSync
+Server ──[refresh (task hash changed)]──▶ useRealTimeSync
                                                │
                                                ▼
-                                     debounce(2s) with auto-refresh
+                                     invalidate(['projects', projectId, 'tasks'])
                                                │
                                                ▼
-                                     refetchBoardData()
+                                     TanStack Query refetches tasks only
                                                │
                                                ▼
-                                     Full board re-render
+                                     Board auto-refresh timer reset
 ```
 
-### Board-Level WebSocket Refresh (Unchanged)
+### WebSocket Refresh (Unchanged)
 
 ```text
-Server ──[refresh + data_hash unchanged]──▶ (suppressed server-side, no message sent)
+Server ──[task hash unchanged]──▶ (suppressed server-side, no message sent)
 ```
 
 ### Manual Refresh
@@ -124,7 +123,7 @@ User ──[click refresh]──▶ useBoardRefresh
 
 | Query Key Pattern | Refresh Sources | Stale Time |
 |-------------------|----------------|------------|
-| `['projects', projectId, 'board']` | Auto-refresh, manual refresh, WebSocket `refresh` (changed only) | 60 seconds |
+| `['board', 'data', projectId]` | Auto-refresh, manual refresh | 5 minutes (aligned with auto-refresh) |
 | `['projects', projectId, 'tasks']` | WebSocket `task_*`, fallback polling | 60 seconds |
 | `['blocking-queue', projectId]` | WebSocket `blocking_queue_updated` | 60 seconds |
 | `['projects']` (list) | None (stale-while-revalidate) | 15 minutes |

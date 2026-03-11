@@ -21,13 +21,11 @@ class CacheEntry[T]:
         ttl_seconds: int,
         etag: str | None = None,
         last_modified: str | None = None,
-        data_hash: str | None = None,
     ):
         self.value = value
         self.expires_at = utcnow() + timedelta(seconds=ttl_seconds)
         self.etag = etag
         self.last_modified = last_modified
-        self.data_hash = data_hash
 
     @property
     def is_expired(self) -> bool:
@@ -89,7 +87,6 @@ class InMemoryCache:
         ttl_seconds: int | None = None,
         etag: str | None = None,
         last_modified: str | None = None,
-        data_hash: str | None = None,
     ) -> None:
         """
         Set value in cache.
@@ -100,12 +97,9 @@ class InMemoryCache:
             ttl_seconds: TTL in seconds (defaults to config value)
             etag: Optional ETag from API response
             last_modified: Optional Last-Modified header from API response
-            data_hash: Optional content hash for change detection
         """
         ttl = ttl_seconds or self._settings.cache_ttl_seconds
-        self._cache[key] = CacheEntry(
-            value, ttl, etag=etag, last_modified=last_modified, data_hash=data_hash
-        )
+        self._cache[key] = CacheEntry(value, ttl, etag=etag, last_modified=last_modified)
         logger.debug("Cache set: %s (TTL: %ds)", key, ttl)
 
     def get_entry(self, key: str) -> CacheEntry[Any] | None:
