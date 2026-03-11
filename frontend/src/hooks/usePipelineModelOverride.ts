@@ -36,6 +36,7 @@ function deriveModelOverride(config: PipelineConfig | null): PipelineModelOverri
 export interface UsePipelineModelOverrideReturn {
   modelOverride: PipelineModelOverride;
   setModelOverride: (override: PipelineModelOverride) => void;
+  resetPending: () => void;
 }
 
 export function usePipelineModelOverride(
@@ -80,5 +81,5 @@ export function usePipelineModelOverride(
     setPendingModelOverride(null);
   }, []);
 
-  return { modelOverride, setModelOverride, _resetPending: resetPendingOverride } as UsePipelineModelOverrideReturn & { _resetPending: () => void };
+  return { modelOverride, setModelOverride, resetPending: resetPendingOverride };
 }

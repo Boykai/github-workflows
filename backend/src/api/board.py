@@ -440,8 +440,13 @@ async def skip_blocking_issue(
             state="open",
             labels_remove=[BLOCKING_LABEL],
         )
-    except Exception:
-        logger.warning("Failed to remove blocking label from #%d", issue_number)
+    except Exception as exc:
+        logger.warning(
+            "Failed to remove blocking label from #%d: %s",
+            issue_number,
+            exc,
+            exc_info=True,
+        )
 
     activated = await bq_service.skip_to_non_blocking(entry.repo_key, issue_number)
 

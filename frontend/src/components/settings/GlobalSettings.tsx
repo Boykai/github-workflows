@@ -48,9 +48,9 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
     );
   }
 
-  const handleSave = async () => {
-    await onSave(toUpdate(form.getValues()));
-  };
+  const handleSave = form.handleSubmit(async (values) => {
+    await onSave(toUpdate(values));
+  });
 
   return (
     <div className="celestial-fade-in">

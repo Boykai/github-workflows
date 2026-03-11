@@ -38,10 +38,10 @@ export function usePipelineConfig(projectId: string | null) {
 
   const { validationErrors, validatePipeline, clearValidationError } =
     usePipelineValidation(state.pipeline);
-  const { modelOverride, setModelOverride, _resetPending } = usePipelineModelOverride(
+  const { modelOverride, setModelOverride, resetPending } = usePipelineModelOverride(
     state.pipeline,
     setPipeline,
-  ) as ReturnType<typeof usePipelineModelOverride> & { _resetPending: () => void };
+  );
   const boardMutations = usePipelineBoardMutations(
     setPipeline, modelOverride, clearValidationError,
   );
@@ -83,19 +83,19 @@ export function usePipelineConfig(projectId: string | null) {
       is_preset: false, preset_id: '', blocking: false, created_at: now, updated_at: now,
     };
     dispatch({ type: 'NEW_PIPELINE', config });
-    _resetPending();
-  }, [projectId, _resetPending]);
+    resetPending();
+  }, [projectId, resetPending]);
 
   const loadPipeline = useCallback(async (pipelineId: string) => {
     if (!projectId) return;
     try {
       const config = await pipelinesApi.get(projectId, pipelineId);
       dispatch({ type: 'LOAD_SUCCESS', config, id: pipelineId });
-      _resetPending();
+      resetPending();
     } catch (err) {
       dispatch({ type: 'SET_ERROR', error: errMsg(err, 'Failed to load pipeline') });
     }
-  }, [projectId, _resetPending]);
+  }, [projectId, resetPending]);
 
   const savePipeline = useCallback(async () => {
     if (!state.pipeline || !projectId) return false;
@@ -136,21 +136,21 @@ export function usePipelineConfig(projectId: string | null) {
     try {
       await pipelinesApi.delete(projectId, state.editingPipelineId);
       dispatch({ type: 'DELETE_SUCCESS' });
-      _resetPending();
+      resetPending();
       queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
     } catch (err) {
       dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to delete pipeline') });
     }
-  }, [state.editingPipelineId, projectId, queryClient, _resetPending]);
+  }, [state.editingPipelineId, projectId, queryClient, resetPending]);
 
   const discardChanges = useCallback(() => {
     if (state.editingPipelineId && state.savedSnapshot) {
       dispatch({ type: 'DISCARD_EDITING' });
     } else {
       dispatch({ type: 'DISCARD_NEW' });
-      _resetPending();
+      resetPending();
     }
-  }, [state.editingPipelineId, state.savedSnapshot, _resetPending]);
+  }, [state.editingPipelineId, state.savedSnapshot, resetPending]);
 
   const setStageExecutionMode = useCallback(
     (stageId: string, mode: 'sequential' | 'parallel') => {
