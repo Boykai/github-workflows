@@ -9,11 +9,11 @@ from __future__ import annotations
 
 import base64
 import json
-import logging
 import uuid
 
 import aiosqlite
 
+from src.logging_utils import get_logger
 from src.models.tools import (
     AgentToolInfo,
     AgentToolsResponse,
@@ -29,7 +29,7 @@ from src.models.tools import (
 )
 from src.utils import utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 MAX_TOOLS_PER_PROJECT = 25
 MAX_CONFIG_SIZE = 262144  # 256 KB

@@ -7,13 +7,13 @@ exception handler in ``src.main``.  This keeps the format consistent
 with the rest of the API and with the frontend ``ApiError`` parser.
 """
 
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 
 from src.api.auth import get_session_dep
 from src.exceptions import NotFoundError
+from src.logging_utils import get_logger
 from src.models.mcp import (
     McpConfigurationCreate,
     McpConfigurationListResponse,
@@ -23,7 +23,7 @@ from src.models.user import UserSession
 from src.services.database import get_db
 from src.services.mcp_store import create_mcp, delete_mcp, list_mcps
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

@@ -11,6 +11,7 @@ import type { AgentAssignment, WorkflowConfiguration, AvailableAgent } from '@/t
 import { useWorkflow } from './useWorkflow';
 import { generateId } from '@/utils/generateId';
 import { workflowApi } from '@/services/api';
+import { caseInsensitiveKey } from '@/lib/case-utils';
 
 interface UseAgentConfigReturn {
   /** Local agent mappings state (editable) */
@@ -148,8 +149,7 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
     setLocalMappings((prev) => {
       // Find existing key with case-insensitive match to avoid creating
       // duplicate entries like "In Progress" and "In progress".
-      const lowerStatus = status.toLowerCase();
-      const matchedKey = Object.keys(prev).find((k) => k.toLowerCase() === lowerStatus) ?? status;
+      const matchedKey = caseInsensitiveKey(prev, status);
       const current = prev[matchedKey] ?? [];
       const newAssignment: AgentAssignment = {
         id: generateId(),
@@ -176,8 +176,7 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
   const removeAgent = useCallback((status: string, agentInstanceId: string) => {
     setLocalMappings((prev) => {
       // Case-insensitive key lookup
-      const lowerStatus = status.toLowerCase();
-      const matchedKey = Object.keys(prev).find((k) => k.toLowerCase() === lowerStatus) ?? status;
+      const matchedKey = caseInsensitiveKey(prev, status);
       const current = prev[matchedKey] ?? [];
       return { ...prev, [matchedKey]: current.filter((a) => a.id !== agentInstanceId) };
     });
@@ -185,8 +184,7 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
 
   const cloneAgent = useCallback((status: string, agentInstanceId: string) => {
     setLocalMappings((prev) => {
-      const lowerStatus = status.toLowerCase();
-      const matchedKey = Object.keys(prev).find((k) => k.toLowerCase() === lowerStatus) ?? status;
+      const matchedKey = caseInsensitiveKey(prev, status);
       const current = prev[matchedKey] ?? [];
       const sourceIndex = current.findIndex((agent) => agent.id === agentInstanceId);
       if (sourceIndex === -1) {
@@ -208,8 +206,7 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
   const reorderAgents = useCallback((status: string, newOrder: AgentAssignment[]) => {
     setLocalMappings((prev) => {
       // Case-insensitive key lookup
-      const lowerStatus = status.toLowerCase();
-      const matchedKey = Object.keys(prev).find((k) => k.toLowerCase() === lowerStatus) ?? status;
+      const matchedKey = caseInsensitiveKey(prev, status);
       const updated = { ...prev, [status]: newOrder };
       if (matchedKey !== status) {
         delete updated[matchedKey];
@@ -222,9 +219,7 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
     (sourceStatus: string, targetStatus: string, agentId: string, targetIndex?: number) => {
       setLocalMappings((prev) => {
         // Case-insensitive key lookup for source
-        const lowerSource = sourceStatus.toLowerCase();
-        const sourceKey =
-          Object.keys(prev).find((k) => k.toLowerCase() === lowerSource) ?? sourceStatus;
+        const sourceKey = caseInsensitiveKey(prev, sourceStatus);
         const sourceAgents = prev[sourceKey] ?? [];
 
         const agentIndex = sourceAgents.findIndex((a) => a.id === agentId);
@@ -232,10 +227,7 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
 
         const agent = sourceAgents[agentIndex];
 
-        // Case-insensitive key lookup for target
-        const lowerTarget = targetStatus.toLowerCase();
-        const targetKey =
-          Object.keys(prev).find((k) => k.toLowerCase() === lowerTarget) ?? targetStatus;
+        const targetKey = caseInsensitiveKey(prev, targetStatus);
 
         // Guard against same-column moves to avoid duplicating the agent
         if (sourceKey === targetKey) {

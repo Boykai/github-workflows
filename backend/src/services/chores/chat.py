@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 import uuid
 from datetime import UTC, datetime
 
-logger = logging.getLogger(__name__)
+from src.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 # In-memory conversation store: conversation_id → conversation data
 _conversations: dict[str, dict] = {}

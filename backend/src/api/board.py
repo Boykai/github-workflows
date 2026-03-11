@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 from datetime import timedelta
 from typing import Annotated
 
@@ -11,8 +10,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_session_dep
+from src.constants import BLOCKING_LABEL
 from src.dependencies import verify_project_access
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
+from src.logging_utils import get_logger
 from src.models.blocking import BlockingQueueEntry
 from src.models.board import (
     BoardDataResponse,
@@ -133,7 +134,7 @@ def _retry_after_seconds(exc: Exception) -> int:
     return 60
 
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 CACHE_PREFIX_BOARD_PROJECTS = "board_projects"
@@ -414,10 +415,12 @@ async def skip_blocking_issue(
     issue_number: int,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> list[dict]:
-    """Skip a blocking queue entry — marks it completed and advances the queue.
+    """Skip a blocking queue entry — marks it non-blocking and advances the queue.
 
-    Activates the next pending issue(s) in the blocking queue and dispatches
-    agent assignment in the background so work starts immediately.
+    The skipped issue's pipeline continues running but it no longer gates
+    subsequent issues.  Removes the 'blocking' label from GitHub (best-effort)
+    and activates the next pending issue(s), dispatching agent assignment in
+    the background so work starts immediately.
 
     Returns the updated (non-completed) queue entries for the project.
     """
@@ -425,7 +428,26 @@ async def skip_blocking_issue(
     from src.services import blocking_queue_store as bq_store
 
     entry = await _resolve_queue_entry(project_id, issue_number)
-    activated = await bq_service.mark_completed(entry.repo_key, issue_number)
+
+    # Best-effort: remove the "blocking" label from GitHub
+    owner, repo = entry.repo_key.split("/", 1)
+    try:
+        await github_projects_service.update_issue_state(
+            session.access_token,
+            owner,
+            repo,
+            issue_number,
+            labels_remove=[BLOCKING_LABEL],
+        )
+    except Exception as exc:
+        logger.warning(
+            "Failed to remove blocking label from #%d: %s",
+            issue_number,
+            exc,
+            exc_info=True,
+        )
+
+    activated = await bq_service.skip_to_non_blocking(entry.repo_key, issue_number)
 
     if activated:
         asyncio.create_task(

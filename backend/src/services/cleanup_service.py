@@ -7,11 +7,12 @@ linked to open issues on the associated GitHub Project board.
 
 import asyncio
 import json
-import logging
 import re
 import uuid
+from dataclasses import dataclass
 from datetime import UTC, datetime
 
+from src.logging_utils import get_logger
 from src.models.cleanup import (
     BranchInfo,
     CleanupAuditLogRow,
@@ -25,7 +26,18 @@ from src.models.cleanup import (
     PullRequestInfo,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class ItemClassification:
+    """Result of classifying a branch/PR for cleanup linking."""
+
+    item_type: str  # "branch" | "pr" | "orphan"
+    linked_issue_number: int | None = None
+    link_method: str | None = None  # "branch_name" | "pr_body" | "ownership"
+    confidence: float = 0.0
+
 
 # Delay between sequential deletion requests to respect GitHub secondary rate limits
 DELETION_DELAY_SECONDS = 0.2
@@ -458,6 +470,193 @@ async def fetch_parent_issue_states(
     return results
 
 
+def _categorize_branch(
+    branch_data: dict,
+    open_issue_numbers: set[int],
+    issue_titles: dict[int, str],
+    app_issue_numbers: set[int],
+    app_sub_issue_closed_parent: dict[int, dict],
+    prs_data: list[dict],
+) -> BranchInfo:
+    """Categorize a single branch as eligible for deletion or preservation."""
+    name = branch_data.get("name", "")
+
+    if name == "main":
+        return BranchInfo(
+            name=name, eligible_for_deletion=False, preservation_reason="Default protected branch"
+        )
+
+    # Strategy 1: link by branch naming convention
+    referenced_issues = _extract_issue_numbers_from_branch(name)
+    linked_issue = None
+    linking_method = None
+    for issue_num in referenced_issues:
+        if issue_num in open_issue_numbers:
+            linked_issue = issue_num
+            linking_method = "naming_convention"
+            break
+
+    if linked_issue is not None:
+        closed_parent = app_sub_issue_closed_parent.get(linked_issue)
+        if closed_parent:
+            return BranchInfo(
+                name=name,
+                eligible_for_deletion=True,
+                linked_issue_number=linked_issue,
+                linked_issue_title=issue_titles.get(linked_issue),
+                linking_method=linking_method,
+                deletion_reason=f"Sub-issue #{linked_issue} — parent issue #{closed_parent.get('number', '?')} has been closed",
+            )
+        return BranchInfo(
+            name=name,
+            eligible_for_deletion=False,
+            linked_issue_number=linked_issue,
+            linked_issue_title=issue_titles.get(linked_issue),
+            linking_method=linking_method,
+            preservation_reason=f"Linked to open issue #{linked_issue} on project board",
+        )
+
+    # Strategy 2: link by PR body reference
+    for pr in prs_data:
+        if pr.get("head", {}).get("ref") == name:
+            pr_body = pr.get("body") or ""
+            pr_issue_refs = _extract_issue_numbers_from_text(pr_body)
+            for ref_num in pr_issue_refs:
+                if ref_num in open_issue_numbers:
+                    linked_issue = ref_num
+                    linking_method = "pr_reference"
+                    break
+            if linked_issue:
+                break
+
+    if linked_issue is not None:
+        closed_parent = app_sub_issue_closed_parent.get(linked_issue)
+        if closed_parent:
+            return BranchInfo(
+                name=name,
+                eligible_for_deletion=True,
+                linked_issue_number=linked_issue,
+                linked_issue_title=issue_titles.get(linked_issue),
+                linking_method="pr_reference",
+                deletion_reason=f"Sub-issue #{linked_issue} — parent issue #{closed_parent.get('number', '?')} has been closed",
+            )
+        return BranchInfo(
+            name=name,
+            eligible_for_deletion=False,
+            linked_issue_number=linked_issue,
+            linked_issue_title=issue_titles.get(linked_issue),
+            linking_method=linking_method,
+            preservation_reason=f"Linked to open issue #{linked_issue} via PR reference",
+        )
+
+    # Strategy 3: link by ownership
+    if _is_solune_owned_branch(name, prs_data, app_issue_numbers):
+        deletion_reason: str | None = None
+        for ref_num in _extract_issue_numbers_from_branch(name):
+            closed_parent = app_sub_issue_closed_parent.get(ref_num)
+            if closed_parent:
+                deletion_reason = f"Sub-issue #{ref_num} — parent issue #{closed_parent.get('number', '?')} has been closed"
+                break
+        return BranchInfo(name=name, eligible_for_deletion=True, deletion_reason=deletion_reason)
+
+    return BranchInfo(
+        name=name,
+        eligible_for_deletion=False,
+        preservation_reason="Not recognized as a Solune-generated asset",
+    )
+
+
+def _categorize_pr(
+    pr: dict,
+    open_issue_numbers: set[int],
+    app_issue_numbers: set[int],
+    app_sub_issue_closed_parent: dict[int, dict],
+    preserved_branch_names: set[str],
+    branches_to_delete: list[BranchInfo],
+) -> PullRequestInfo:
+    """Categorize a single PR as eligible for closing or preservation."""
+    pr_number = pr.get("number", 0)
+    pr_title = pr.get("title", "")
+    head_branch = pr.get("head", {}).get("ref", "")
+    pr_body = pr.get("body") or ""
+    referenced = _extract_issue_numbers_from_text(pr_body)
+    pr_is_solune_owned = _is_solune_owned_pr(pr, app_issue_numbers)
+
+    # Check if any referenced issue is on the board
+    linked_issue = None
+    for ref_num in referenced:
+        if ref_num in open_issue_numbers:
+            linked_issue = ref_num
+            break
+
+    if linked_issue is not None:
+        closed_parent = app_sub_issue_closed_parent.get(linked_issue)
+        if closed_parent and pr_is_solune_owned:
+            return PullRequestInfo(
+                number=pr_number,
+                title=pr_title,
+                head_branch=head_branch,
+                referenced_issues=referenced,
+                eligible_for_deletion=True,
+                deletion_reason=f"Sub-issue #{linked_issue} — parent issue #{closed_parent.get('number', '?')} has been closed",
+            )
+        return PullRequestInfo(
+            number=pr_number,
+            title=pr_title,
+            head_branch=head_branch,
+            referenced_issues=referenced,
+            eligible_for_deletion=False,
+            preservation_reason=f"References open issue #{linked_issue} on project board",
+        )
+
+    branch_preserved = head_branch in preserved_branch_names
+    if branch_preserved:
+        branch_in_delete = any(b.name == head_branch for b in branches_to_delete)
+        if branch_in_delete and pr_is_solune_owned:
+            matched = next((b for b in branches_to_delete if b.name == head_branch), None)
+            return PullRequestInfo(
+                number=pr_number,
+                title=pr_title,
+                head_branch=head_branch,
+                referenced_issues=referenced,
+                eligible_for_deletion=True,
+                deletion_reason=matched.deletion_reason if matched else None,
+            )
+        return PullRequestInfo(
+            number=pr_number,
+            title=pr_title,
+            head_branch=head_branch,
+            referenced_issues=referenced,
+            eligible_for_deletion=False,
+            preservation_reason=f"Head branch '{head_branch}' is linked to an open issue",
+        )
+
+    if not pr_is_solune_owned:
+        return PullRequestInfo(
+            number=pr_number,
+            title=pr_title,
+            head_branch=head_branch,
+            referenced_issues=referenced,
+            eligible_for_deletion=False,
+            preservation_reason="Not recognized as a Solune-generated asset",
+        )
+
+    pr_deletion_reason: str | None = None
+    for ref_num in referenced:
+        closed_parent = app_sub_issue_closed_parent.get(ref_num)
+        if closed_parent:
+            pr_deletion_reason = f"Sub-issue #{ref_num} — parent issue #{closed_parent.get('number', '?')} has been closed"
+            break
+    return PullRequestInfo(
+        number=pr_number,
+        title=pr_title,
+        head_branch=head_branch,
+        referenced_issues=referenced,
+        eligible_for_deletion=True,
+        deletion_reason=pr_deletion_reason,
+    )
+
+
 async def preflight(
     github_service,
     access_token: str,
@@ -532,132 +731,18 @@ async def preflight(
     branches_to_preserve: list[BranchInfo] = []
 
     for branch_data in branches_data:
-        name = branch_data.get("name", "")
-
-        # Main branch is always preserved
-        if name == "main":
-            branches_to_preserve.append(
-                BranchInfo(
-                    name=name,
-                    eligible_for_deletion=False,
-                    preservation_reason="Default protected branch",
-                )
-            )
-            continue
-
-        # Check naming convention linkage
-        referenced_issues = _extract_issue_numbers_from_branch(name)
-        linked_issue = None
-        linking_method = None
-
-        for issue_num in referenced_issues:
-            if issue_num in open_issue_numbers:
-                linked_issue = issue_num
-                linking_method = "naming_convention"
-                break
-
-        if linked_issue is not None:
-            # Override: if the linked board issue is a Solune sub-issue whose
-            # parent has been closed, the branch is a deletion candidate.
-            closed_parent = app_sub_issue_closed_parent.get(linked_issue)
-            if closed_parent:
-                parent_num = closed_parent.get("number", "?")
-                branches_to_delete.append(
-                    BranchInfo(
-                        name=name,
-                        eligible_for_deletion=True,
-                        linked_issue_number=linked_issue,
-                        linked_issue_title=issue_titles.get(linked_issue),
-                        linking_method=linking_method,
-                        deletion_reason=(
-                            f"Sub-issue #{linked_issue} — "
-                            f"parent issue #{parent_num} has been closed"
-                        ),
-                    )
-                )
-            else:
-                branches_to_preserve.append(
-                    BranchInfo(
-                        name=name,
-                        eligible_for_deletion=False,
-                        linked_issue_number=linked_issue,
-                        linked_issue_title=issue_titles.get(linked_issue),
-                        linking_method=linking_method,
-                        preservation_reason=f"Linked to open issue #{linked_issue} on project board",
-                    )
-                )
+        info = _categorize_branch(
+            branch_data,
+            open_issue_numbers,
+            issue_titles,
+            app_issue_numbers,
+            app_sub_issue_closed_parent,
+            prs_data,
+        )
+        if info.eligible_for_deletion:
+            branches_to_delete.append(info)
         else:
-            # Check if any open PR references an open issue for this branch
-            pr_linked = False
-            for pr in prs_data:
-                if pr.get("head", {}).get("ref") == name:
-                    pr_body = pr.get("body") or ""
-                    pr_issue_refs = _extract_issue_numbers_from_text(pr_body)
-                    for ref_num in pr_issue_refs:
-                        if ref_num in open_issue_numbers:
-                            linked_issue = ref_num
-                            linking_method = "pr_reference"
-                            pr_linked = True
-                            break
-                    if pr_linked:
-                        break
-
-            if pr_linked and linked_issue is not None:
-                # Override: closed parent on the PR-referenced issue
-                closed_parent = app_sub_issue_closed_parent.get(linked_issue)
-                if closed_parent:
-                    parent_num = closed_parent.get("number", "?")
-                    branches_to_delete.append(
-                        BranchInfo(
-                            name=name,
-                            eligible_for_deletion=True,
-                            linked_issue_number=linked_issue,
-                            linked_issue_title=issue_titles.get(linked_issue),
-                            linking_method="pr_reference",
-                            deletion_reason=(
-                                f"Sub-issue #{linked_issue} — "
-                                f"parent issue #{parent_num} has been closed"
-                            ),
-                        )
-                    )
-                else:
-                    branches_to_preserve.append(
-                        BranchInfo(
-                            name=name,
-                            eligible_for_deletion=False,
-                            linked_issue_number=linked_issue,
-                            linked_issue_title=issue_titles.get(linked_issue),
-                            linking_method=linking_method,
-                            preservation_reason=f"Linked to open issue #{linked_issue} via PR reference",
-                        )
-                    )
-            elif _is_solune_owned_branch(name, prs_data, app_issue_numbers):
-                # Enrich with a deletion reason when a closed-parent sub-issue
-                # can be found via branch naming conventions.
-                deletion_reason: str | None = None
-                for ref_num in _extract_issue_numbers_from_branch(name):
-                    closed_parent = app_sub_issue_closed_parent.get(ref_num)
-                    if closed_parent:
-                        parent_num = closed_parent.get("number", "?")
-                        deletion_reason = (
-                            f"Sub-issue #{ref_num} — parent issue #{parent_num} has been closed"
-                        )
-                        break
-                branches_to_delete.append(
-                    BranchInfo(
-                        name=name,
-                        eligible_for_deletion=True,
-                        deletion_reason=deletion_reason,
-                    )
-                )
-            else:
-                branches_to_preserve.append(
-                    BranchInfo(
-                        name=name,
-                        eligible_for_deletion=False,
-                        preservation_reason="Not recognized as a Solune-generated asset",
-                    )
-                )
+            branches_to_preserve.append(info)
 
     # 5. Categorize PRs
     prs_to_close: list[PullRequestInfo] = []
@@ -666,118 +751,18 @@ async def preflight(
     preserved_branch_names = {b.name for b in branches_to_preserve}
 
     for pr in prs_data:
-        pr_number = pr.get("number", 0)
-        pr_title = pr.get("title", "")
-        head_branch = pr.get("head", {}).get("ref", "")
-        pr_body = pr.get("body") or ""
-
-        # Extract issue references from PR body
-        referenced = _extract_issue_numbers_from_text(pr_body)
-
-        # Check if any referenced issue is on the board
-        linked_to_board = False
-        linked_issue = None
-        for ref_num in referenced:
-            if ref_num in open_issue_numbers:
-                linked_to_board = True
-                linked_issue = ref_num
-                break
-
-        # Also check if the head branch is being preserved
-        branch_preserved = head_branch in preserved_branch_names
-        pr_is_solune_owned = _is_solune_owned_pr(pr, app_issue_numbers)
-
-        if linked_to_board and linked_issue is not None:
-            # Override: if linked issue is a Solune sub-issue with a closed parent,
-            # and the PR itself is Solune-owned, close it.
-            closed_parent = app_sub_issue_closed_parent.get(linked_issue)
-            if closed_parent and pr_is_solune_owned:
-                parent_num = closed_parent.get("number", "?")
-                prs_to_close.append(
-                    PullRequestInfo(
-                        number=pr_number,
-                        title=pr_title,
-                        head_branch=head_branch,
-                        referenced_issues=referenced,
-                        eligible_for_deletion=True,
-                        deletion_reason=(
-                            f"Sub-issue #{linked_issue} — "
-                            f"parent issue #{parent_num} has been closed"
-                        ),
-                    )
-                )
-            else:
-                prs_to_preserve.append(
-                    PullRequestInfo(
-                        number=pr_number,
-                        title=pr_title,
-                        head_branch=head_branch,
-                        referenced_issues=referenced,
-                        eligible_for_deletion=False,
-                        preservation_reason=f"References open issue #{linked_issue} on project board",
-                    )
-                )
-        elif branch_preserved:
-            # Check if the preserved branch is being deleted due to closed parent.
-            # If so, match that and close the PR too (if Solune-owned).
-            branch_in_delete = any(b.name == head_branch for b in branches_to_delete)
-            if branch_in_delete and pr_is_solune_owned:
-                # Inherit the deletion reason from the branch
-                matched = next((b for b in branches_to_delete if b.name == head_branch), None)
-                prs_to_close.append(
-                    PullRequestInfo(
-                        number=pr_number,
-                        title=pr_title,
-                        head_branch=head_branch,
-                        referenced_issues=referenced,
-                        eligible_for_deletion=True,
-                        deletion_reason=matched.deletion_reason if matched else None,
-                    )
-                )
-            else:
-                prs_to_preserve.append(
-                    PullRequestInfo(
-                        number=pr_number,
-                        title=pr_title,
-                        head_branch=head_branch,
-                        referenced_issues=referenced,
-                        eligible_for_deletion=False,
-                        preservation_reason=f"Head branch '{head_branch}' is linked to an open issue",
-                    )
-                )
-        elif not pr_is_solune_owned:
-            prs_to_preserve.append(
-                PullRequestInfo(
-                    number=pr_number,
-                    title=pr_title,
-                    head_branch=head_branch,
-                    referenced_issues=referenced,
-                    eligible_for_deletion=False,
-                    preservation_reason="Not recognized as a Solune-generated asset",
-                )
-            )
+        info = _categorize_pr(
+            pr,
+            open_issue_numbers,
+            app_issue_numbers,
+            app_sub_issue_closed_parent,
+            preserved_branch_names,
+            branches_to_delete,
+        )
+        if info.eligible_for_deletion:
+            prs_to_close.append(info)
         else:
-            # Solune-owned, not linked to an open board issue — enrich with
-            # deletion reason when a closed-parent sub-issue can be matched.
-            pr_deletion_reason: str | None = None
-            for ref_num in referenced:
-                closed_parent = app_sub_issue_closed_parent.get(ref_num)
-                if closed_parent:
-                    parent_num = closed_parent.get("number", "?")
-                    pr_deletion_reason = (
-                        f"Sub-issue #{ref_num} — parent issue #{parent_num} has been closed"
-                    )
-                    break
-            prs_to_close.append(
-                PullRequestInfo(
-                    number=pr_number,
-                    title=pr_title,
-                    head_branch=head_branch,
-                    referenced_issues=referenced,
-                    eligible_for_deletion=True,
-                    deletion_reason=pr_deletion_reason,
-                )
-            )
+            prs_to_preserve.append(info)
 
     # 6. Identify orphaned app-created issues (open, labelled by app, not on board)
     orphaned_issues: list[OrphanedIssueInfo] = []

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-import logging
 import re
 import time
 
-logger = logging.getLogger(__name__)
+from src.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 def build_template(name: str, content: str) -> str:

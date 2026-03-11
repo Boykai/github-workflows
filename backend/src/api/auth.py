@@ -1,6 +1,5 @@
 """Authentication API endpoints - OAuth flow."""
 
-import logging
 from datetime import UTC, datetime, timedelta
 from typing import Annotated
 
@@ -11,11 +10,12 @@ from slowapi.util import get_remote_address
 
 from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import AppException, AuthenticationError, NotFoundError, ValidationError
+from src.logging_utils import get_logger
 from src.middleware.rate_limit import limiter
 from src.models.user import UserResponse, UserSession
 from src.services.github_auth import github_auth_service
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

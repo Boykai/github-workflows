@@ -10,14 +10,14 @@ Manages the blocking queue state machine. Key responsibilities:
 from __future__ import annotations
 
 import asyncio
-import logging
 import sqlite3
 from datetime import UTC, datetime
 
+from src.logging_utils import get_logger
 from src.models.blocking import BlockingQueueEntry, BlockingQueueStatus
 from src.services import blocking_queue_store as store
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Per-repo locks to prevent double-activation race conditions
 _repo_locks: dict[str, asyncio.Lock] = {}
@@ -119,13 +119,15 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
     3. Check if any open blocking issues exist (active or in_review).
     4. Determine mode:
        a. Blocking mode (open blocking exists OR next pending is blocking):
-          - If any entry is currently 'active', wait — serial activation.
+          - If any *blocking* entry is currently 'active', wait — serial activation.
           - Next pending is blocking → activate alone
-          - Next pending is non-blocking → batch consecutive non-blocking up to next blocking
+          - Next pending is non-blocking → batch up to and including next blocking
        b. Concurrent mode (no blocking issues at all):
-          - Activate all consecutive non-blocking up to next blocking entry
-          - Active non-blocking entries don't block new non-blocking activation
+          - Activate pending entries up to and including next blocking entry
+          - Active non-blocking entries don't block new activation
     5. For each activated entry: determine base branch, call mark_active.
+
+    A blocking issue gates what comes after it, but never blocks itself.
     """
     pending = await store.get_pending(repo_key)
     if not pending:
@@ -135,35 +137,35 @@ async def _try_activate_next_unlocked(repo_key: str) -> list[BlockingQueueEntry]
     has_open_blocking = len(open_blocking) > 0
 
     active_or_review = await store.get_active_or_in_review(repo_key)
-    has_active = any(e.queue_status == BlockingQueueStatus.ACTIVE for e in active_or_review)
+    has_active_blocking = any(
+        e.queue_status == BlockingQueueStatus.ACTIVE and e.is_blocking for e in active_or_review
+    )
 
     # Determine which pending entries to activate
     to_activate: list[BlockingQueueEntry] = []
 
     if has_open_blocking or pending[0].is_blocking:
-        # Blocking mode — serial activation: only one active batch at a time
-        if has_active:
-            logger.debug(
-                "Repo %s has active entries in blocking mode — skipping activation", repo_key
-            )
+        # Blocking mode — serial activation: only one active blocking at a time
+        if has_active_blocking:
+            logger.debug("Repo %s has active blocking entry — skipping activation", repo_key)
             return []
 
         first = pending[0]
         if first.is_blocking:
             to_activate = [first]
         else:
-            # Batch consecutive non-blocking entries up to next blocking
+            # Batch consecutive non-blocking entries up to and including next blocking
             for entry in pending:
+                to_activate.append(entry)
                 if entry.is_blocking:
                     break
-                to_activate.append(entry)
     else:
         # Concurrent mode — no blocking issues exist
-        # Non-blocking issues can run concurrently; activate all pending non-blocking
+        # Non-blocking issues can run concurrently; activate pending up to and including next blocking
         for entry in pending:
+            to_activate.append(entry)
             if entry.is_blocking:
                 break
-            to_activate.append(entry)
 
     if not to_activate:
         return []
@@ -397,6 +399,46 @@ async def recover_all_repos() -> None:
                 )
         except Exception as e:
             logger.exception("Recovery failed for repo %s: %s", repo_key, e)
+
+
+async def skip_to_non_blocking(repo_key: str, issue_number: int) -> list[BlockingQueueEntry]:
+    """Mark a blocking entry as non-blocking and activate pending issues.
+
+    Used by the "Skip" action: the issue's pipeline continues running but it
+    no longer gates subsequent issues.  Returns newly activated entries.
+    """
+    lock = _get_lock(repo_key)
+    async with lock:
+        entry = await store.get_by_issue(repo_key, issue_number)
+        if not entry:
+            logger.debug(
+                "Issue #%d not in blocking queue for %s — ignoring skip_to_non_blocking",
+                issue_number,
+                repo_key,
+            )
+            return []
+
+        if not entry.is_blocking:
+            logger.debug(
+                "Issue #%d already non-blocking for %s — idempotent skip",
+                issue_number,
+                repo_key,
+            )
+            return []
+
+        await store.update_is_blocking(repo_key, issue_number, is_blocking=False)
+        logger.info("Issue #%d marked non-blocking for %s", issue_number, repo_key)
+
+        activated = await _try_activate_next_unlocked(repo_key)
+
+        await _broadcast_queue_update(
+            entry.project_id,
+            repo_key,
+            activated_issues=[e.issue_number for e in activated],
+            completed_issues=[],
+        )
+
+        return activated
 
 
 async def sweep_stale_entries(

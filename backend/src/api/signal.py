@@ -7,7 +7,6 @@ Endpoints are mounted at /api/v1/signal/ per contracts/signal-api.yaml.
 """
 
 import hmac
-import logging
 from datetime import UTC
 from typing import Annotated
 
@@ -21,6 +20,7 @@ from src.exceptions import (
     NotFoundError,
     ValidationError,
 )
+from src.logging_utils import get_logger
 from src.models.signal import (
     SignalBanner,
     SignalBannersResponse,
@@ -49,7 +49,7 @@ from src.services.signal_bridge import (
     store_inbound_message,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

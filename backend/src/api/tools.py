@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
 from src.exceptions import AppException, GitHubAPIError, NotFoundError, ValidationError
+from src.logging_utils import get_logger
 from src.models.tools import (
     McpPresetListResponse,
     McpToolConfigCreate,
@@ -32,7 +32,7 @@ from src.services.tools.service import (
 )
 from src.utils import resolve_repository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

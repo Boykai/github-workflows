@@ -8,7 +8,6 @@ unmerged PRs and deletion bookkeeping.
 from __future__ import annotations
 
 import json
-import logging
 import re
 import time
 import uuid
@@ -16,6 +15,7 @@ import uuid
 import aiosqlite
 import yaml
 
+from src.logging_utils import get_logger
 from src.models.agent_creator import AgentPreview
 from src.models.agents import (
     Agent,
@@ -37,7 +37,7 @@ from src.services.github_commit_workflow import commit_files_workflow
 from src.services.github_projects import github_projects_service
 from src.utils import utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── YAML frontmatter regex ──────────────────────────────────────────────
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)", re.DOTALL)

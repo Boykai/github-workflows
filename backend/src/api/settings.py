@@ -1,13 +1,13 @@
 """Settings API endpoints — user preferences, global settings, project settings."""
 
 import json
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.dependencies import require_admin, verify_project_access
+from src.logging_utils import get_logger
 from src.models.settings import (
     AIProvider,
     EffectiveProjectSettings,
@@ -32,7 +32,7 @@ from src.services.settings_store import (
     upsert_user_preferences,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

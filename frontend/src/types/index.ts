@@ -87,13 +87,22 @@ export interface TaskCreateActionData {
   proposal_id: string;
   task_id?: string;
   status: ProposalStatus;
+  proposed_title?: string;
+  proposed_description?: string;
 }
 
 export interface StatusUpdateActionData {
   task_id: string;
-  old_status: string;
-  new_status: string;
-  confirmed: boolean;
+  old_status?: string;
+  new_status?: string;
+  confirmed?: boolean;
+  proposal_id?: string;
+  task_title?: string;
+  current_status?: string;
+  target_status?: string;
+  status_option_id?: string;
+  status_field_id?: string;
+  status?: string;
 }
 
 export interface ProjectSelectActionData {

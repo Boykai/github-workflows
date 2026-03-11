@@ -1,6 +1,5 @@
 """Cleanup API endpoints for deleting stale branches and closing stale PRs."""
 
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -8,7 +7,7 @@ from fastapi import APIRouter, Depends, Query
 from src.api.auth import get_session_dep
 from src.dependencies import get_database, get_github_service
 from src.exceptions import AppException, GitHubAPIError
-from src.logging_utils import handle_service_error
+from src.logging_utils import get_logger, handle_service_error
 from src.models.cleanup import (
     CleanupExecuteRequest,
     CleanupExecuteResponse,
@@ -19,7 +18,7 @@ from src.models.cleanup import (
 from src.models.user import UserSession
 from src.services import cleanup_service
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

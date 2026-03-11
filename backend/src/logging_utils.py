@@ -14,8 +14,6 @@ This module provides:
   log record.
 - **get_logger(name)**: The standard way for modules to obtain a pre-configured
   logger instance.
-- **safe_error_response(exc, operation)**: Logs detailed error information
-  server-side and returns a generic, user-safe message string.
 - **handle_service_error(exc, operation, error_cls)**: Shared helper that logs
   the exception and raises the appropriate :class:`AppException` subclass with
   a safe message and no leaked internals.
@@ -34,14 +32,18 @@ Usage::
 
 from __future__ import annotations
 
+import functools
 import json
 import logging
 import re
+from collections.abc import Awaitable, Callable
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any, NoReturn
+from typing import TYPE_CHECKING, Any, NoReturn, TypeVar
 
 if TYPE_CHECKING:
     from src.exceptions import AppException
+
+_F = TypeVar("_F", bound=Callable[..., Awaitable[Any]])
 
 # ---------------------------------------------------------------------------
 # Sensitive-data redaction patterns
@@ -155,7 +157,14 @@ class StructuredJsonFormatter(logging.Formatter):
                 "message": message,
                 "logger": record.name,
                 "request_id": getattr(record, "request_id", ""),
+                "module": record.module,
             }
+
+            # Include structured extra fields from extra={} kwargs
+            for key in ("operation", "duration_ms", "error_type", "status_code"):
+                val = getattr(record, key, None)
+                if val is not None:
+                    entry[key] = val
 
             # Include exception info if present
             if record.exc_info and record.exc_info[1] is not None:
@@ -212,32 +221,6 @@ def get_logger(name: str) -> logging.Logger:
 # ---------------------------------------------------------------------------
 
 
-def safe_error_response(exc: Exception, operation: str) -> str:
-    """Log detailed error information server-side and return a safe message.
-
-    The full exception (including traceback) is logged at ERROR level so
-    that developers can debug the issue.  The returned string is a
-    generic, user-safe description suitable for inclusion in API error
-    responses.
-
-    Args:
-        exc: The caught exception.
-        operation: A short human-readable description of what was being
-            attempted (e.g. ``"fetch board projects"``).
-
-    Returns:
-        A generic error message string that never contains internal details.
-    """
-    logger = logging.getLogger("error_handler")
-    logger.error(
-        "Operation '%s' failed: %s",
-        operation,
-        exc,
-        exc_info=True,
-    )
-    return f"An error occurred while performing: {operation}"
-
-
 def handle_service_error(
     exc: Exception,
     operation: str,
@@ -276,3 +259,45 @@ def handle_service_error(
     raise error_cls(
         message=f"Failed to {operation}",
     ) from exc
+
+
+def handle_github_errors(
+    operation: str,
+    error_cls: type[AppException] | None = None,
+) -> Callable[[_F], _F]:
+    """Decorator that catches exceptions and raises a structured :class:`AppException`.
+
+    Wraps an ``async`` endpoint or service function so that unhandled
+    exceptions are logged with full context and re-raised as a safe
+    :class:`AppException` subclass — preventing internal details from
+    leaking to callers.
+
+    Args:
+        operation: Human-readable description of the operation (used in
+            log messages and the raised exception message).
+        error_cls: The :class:`AppException` subclass to raise.  Defaults
+            to :class:`src.exceptions.GitHubAPIError`.
+
+    Usage::
+
+        @handle_github_errors("fetch board data")
+        async def get_board(request: Request, ...):
+            ...
+    """
+
+    def decorator(fn: _F) -> _F:
+        @functools.wraps(fn)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                return await fn(*args, **kwargs)
+            except Exception as exc:
+                from src.exceptions import AppException as _AppException
+
+                # Don't double-wrap application exceptions
+                if isinstance(exc, _AppException):
+                    raise
+                handle_service_error(exc, operation, error_cls)
+
+        return wrapper  # type: ignore[return-value]
+
+    return decorator

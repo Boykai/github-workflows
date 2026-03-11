@@ -2,17 +2,17 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
 import aiosqlite
 
 from src.config import get_settings
+from src.logging_utils import get_logger
 from src.models.user import UserSession
 from src.services.encryption import EncryptionService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # Lazy singleton — initialised on first use from Settings.encryption_key
 _encryption_service: EncryptionService | None = None

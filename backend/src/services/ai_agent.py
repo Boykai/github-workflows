@@ -9,13 +9,13 @@ for advanced orchestration patterns.
 """
 
 import json
-import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from src.logging_utils import get_logger
 from src.models.recommendation import (
     IssueMetadata,
     IssuePriority,
@@ -37,7 +37,7 @@ from src.services.completion_providers import (
 )
 from src.utils import utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass

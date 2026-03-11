@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlencode
@@ -12,6 +11,7 @@ from githubkit import GitHub, TokenAuthStrategy
 from githubkit.retry import RETRY_RATE_LIMIT, RETRY_SERVER_ERROR, RetryChainDecision
 
 from src.config import get_settings
+from src.logging_utils import get_logger
 from src.models.user import UserSession
 from src.services.database import get_db
 from src.services.session_store import (
@@ -25,7 +25,7 @@ from src.services.session_store import (
 )
 from src.utils import BoundedDict
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # OAuth state storage — intentionally in-memory for single-instance MVP.
 # Bounded to 1000 entries with TTL-based pruning to prevent unbounded growth.

@@ -1,10 +1,11 @@
 """PR completion detection — merge, child PR, main PR, and review logic."""
 
-import logging
 from datetime import datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.logging_utils import get_logger
+from src.services.github_projects.identities import is_copilot_author
 
 from .state import (
     _claimed_child_prs,
@@ -12,7 +13,7 @@ from .state import (
     _system_marked_ready_prs,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 async def _merge_child_pr_if_applicable(
@@ -80,7 +81,7 @@ async def _merge_child_pr_if_applicable(
                 continue
 
             # Skip non-Copilot PRs
-            if not _cp.github_projects_service.is_copilot_author(pr_author):
+            if not is_copilot_author(pr_author):
                 continue
 
             # Only consider OPEN PRs
@@ -343,7 +344,7 @@ async def _find_completed_child_pr(
                 continue
 
             # Skip non-Copilot PRs
-            if not _cp.github_projects_service.is_copilot_author(pr_author):
+            if not is_copilot_author(pr_author):
                 continue
 
             # Consider OPEN or MERGED PRs - child PRs get merged after completion
@@ -619,7 +620,7 @@ async def _check_child_pr_completion(
                 continue
 
             # Skip non-Copilot PRs
-            if not _cp.github_projects_service.is_copilot_author(pr_author):
+            if not is_copilot_author(pr_author):
                 continue
 
             # Only consider OPEN PRs
@@ -1311,6 +1312,13 @@ async def ensure_copilot_review_requested(
         )
 
         if success:
+            # Record the request timestamp so _check_copilot_review_done
+            # can filter out random/auto-triggered reviews submitted before
+            # this explicit request.
+            from src.services.copilot_polling.state import _copilot_review_requested_at
+            from src.utils import utcnow
+
+            _copilot_review_requested_at[issue_number] = utcnow()
             _processed_issue_prs.add(cache_key)
             return {
                 "status": "success",

@@ -55,10 +55,42 @@ class AvailableAgentsResponse(BaseModel):
     agents: list[AvailableAgent]
 
 
+class AgentStepState(StrEnum):
+    """Typed state values from tracking table markdown cells.
+
+    Replaces emoji-based string matching (e.g., "✅ Done", "🔄 Active")
+    with exhaustive enum matching.
+    """
+
+    DONE = "done"
+    ACTIVE = "active"
+    QUEUED = "queued"
+    ERROR = "error"
+    SKIPPED = "skipped"
+    UNKNOWN = "unknown"
+
+    @classmethod
+    def from_markdown(cls, cell_text: str) -> "AgentStepState":
+        """Parse tracking table cell text into typed state."""
+        text = cell_text.strip()
+        if text.startswith("✅"):
+            return cls.DONE
+        if text.startswith("🔄"):
+            return cls.ACTIVE
+        if text.startswith("⏳"):
+            return cls.QUEUED
+        if text.startswith("❌"):
+            return cls.ERROR
+        if text.startswith("⏭"):
+            return cls.SKIPPED
+        return cls.UNKNOWN
+
+
 __all__ = [
     "AgentAssignment",
     "AgentAssignmentInput",
     "AgentSource",
+    "AgentStepState",
     "AvailableAgent",
     "AvailableAgentsResponse",
 ]

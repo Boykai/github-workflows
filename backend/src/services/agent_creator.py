@@ -12,13 +12,13 @@ Entry points:
 from __future__ import annotations
 
 import json
-import logging
 import re
 import uuid
 
 import aiosqlite
 import yaml
 
+from src.logging_utils import get_logger
 from src.models.agent_creator import (
     AgentCreationState,
     AgentPreview,
@@ -29,7 +29,7 @@ from src.services.ai_agent import get_ai_agent_service
 from src.services.github_projects import github_projects_service
 from src.utils import BoundedDict, utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:

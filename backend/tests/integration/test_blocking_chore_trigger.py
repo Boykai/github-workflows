@@ -113,16 +113,12 @@ class TestChoreTriggerBlocking:
         await bq.enqueue_issue(REPO_KEY, 20, PROJECT, is_blocking=False)
         await bq.enqueue_issue(REPO_KEY, 30, PROJECT, is_blocking=True)
 
-        # #10 → in_review: #20 activates (non-blocking, stops at #30)
+        # #10 → in_review: #20 and #30 activate (batch up to and including next blocking)
         activated = await bq.mark_in_review(REPO_KEY, 10)
-        assert len(activated) == 1
-        assert activated[0].issue_number == 20
+        assert len(activated) == 2
+        assert [e.issue_number for e in activated] == [20, 30]
         assert activated[0].parent_branch == "copilot/issue-10"
-
-        # #20 → in_review: #30 activates (blocking, alone)
-        activated2 = await bq.mark_in_review(REPO_KEY, 20)
-        assert len(activated2) == 1
-        assert activated2[0].issue_number == 30
+        assert activated[1].parent_branch == "copilot/issue-10"
 
     @pytest.mark.asyncio
     async def test_pipeline_blocking_inheritance(self, db):

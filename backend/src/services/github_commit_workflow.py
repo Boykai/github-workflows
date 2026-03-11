@@ -6,12 +6,12 @@ Extracts the common pattern used by both the ``#agent`` chat command
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 
+from src.logging_utils import get_logger
 from src.services.github_projects import github_projects_service
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 @dataclass
@@ -68,7 +68,11 @@ async def commit_files_workflow(
             repo,
         )
     except Exception as exc:
-        logger.error("Workflow: get_repository_info failed: %s", exc)
+        logger.error(
+            "Workflow: get_repository_info failed: %s",
+            exc,
+            extra={"operation": "get_repository_info"},
+        )
         result.errors.append(f"Get repository info failed: {exc}")
         return result
 
@@ -93,7 +97,9 @@ async def commit_files_workflow(
             result.issue_number = issue_number
             result.issue_node_id = issue_node_id
         except Exception as exc:
-            logger.error("Workflow: create_issue failed: %s", exc)
+            logger.error(
+                "Workflow: create_issue failed: %s", exc, extra={"operation": "create_issue"}
+            )
             result.errors.append(f"Create issue failed: {exc}")
             # Non-fatal — continue with branch/commit/PR
 
@@ -109,7 +115,9 @@ async def commit_files_workflow(
             result.errors.append("create_branch returned None")
             return result
     except Exception as exc:
-        logger.error("Workflow: create_branch failed: %s", exc)
+        logger.error(
+            "Workflow: create_branch failed: %s", exc, extra={"operation": "create_branch"}
+        )
         result.errors.append(f"Create branch failed: {exc}")
         return result
 
@@ -130,7 +138,7 @@ async def commit_files_workflow(
             return result
         result.commit_oid = commit_oid
     except Exception as exc:
-        logger.error("Workflow: commit_files failed: %s", exc)
+        logger.error("Workflow: commit_files failed: %s", exc, extra={"operation": "commit_files"})
         result.errors.append(f"Commit files failed: {exc}")
         return result
 
@@ -157,7 +165,11 @@ async def commit_files_workflow(
             result.errors.append("create_pull_request returned None")
             return result
     except Exception as exc:
-        logger.error("Workflow: create_pull_request failed: %s", exc)
+        logger.error(
+            "Workflow: create_pull_request failed: %s",
+            exc,
+            extra={"operation": "create_pull_request"},
+        )
         result.errors.append(f"Create PR failed: {exc}")
         return result
 

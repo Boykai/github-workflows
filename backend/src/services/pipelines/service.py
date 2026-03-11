@@ -3,12 +3,12 @@
 from __future__ import annotations
 
 import json
-import logging
 import uuid
 from datetime import UTC, datetime
 
 import aiosqlite
 
+from src.logging_utils import get_logger
 from src.models.pipeline import (
     PipelineConfig,
     PipelineConfigCreate,
@@ -19,7 +19,7 @@ from src.models.pipeline import (
     ProjectPipelineAssignment,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 _CANONICAL_PROJECT_SETTINGS_USER = "__workflow__"
 

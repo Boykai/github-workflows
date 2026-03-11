@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-import logging
 from datetime import UTC, datetime
 
+from src.logging_utils import get_logger
 from src.models.blocking import BlockingQueueEntry
 from src.services.database import get_db
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 def _row_to_entry(row) -> BlockingQueueEntry:
@@ -172,6 +172,21 @@ async def get_by_project(
         )
     rows = await cursor.fetchall()
     return [_row_to_entry(r) for r in rows]
+
+
+async def update_is_blocking(
+    repo_key: str,
+    issue_number: int,
+    is_blocking: bool,
+) -> BlockingQueueEntry | None:
+    """Update the is_blocking flag for a queue entry."""
+    db = get_db()
+    await db.execute(
+        "UPDATE blocking_queue SET is_blocking = ? WHERE repo_key = ? AND issue_number = ?",
+        (int(is_blocking), repo_key, issue_number),
+    )
+    await db.commit()
+    return await get_by_issue(repo_key, issue_number)
 
 
 async def _now_iso() -> str:

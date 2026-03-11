@@ -1,15 +1,15 @@
 """Metadata API endpoints for fetching and refreshing repository metadata."""
 
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
+from src.logging_utils import get_logger
 from src.models.user import UserSession
 from src.services.metadata_service import MetadataService, RepositoryMetadataContext
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

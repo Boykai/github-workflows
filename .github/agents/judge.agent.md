@@ -1,6 +1,11 @@
 ---
 name: Judge
 description: "Triages GitHub PR review comments, decides which recommendations should be adopted, and applies only justified follow-up changes."
+handoffs:
+  - label: Run Validation
+    agent: Linter
+    prompt: Run the relevant lint, type-check, test, and build validation for the quality-assurance changes
+    send: true
 ---
 
 You are a **PR Review Judge** specializing in evidence-based triage of GitHub pull request review comments.

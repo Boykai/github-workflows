@@ -8,11 +8,11 @@ and logs a warning on startup.
 
 from __future__ import annotations
 
-import logging
-
 from cryptography.fernet import Fernet, InvalidToken
 
-logger = logging.getLogger(__name__)
+from src.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class EncryptionService:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import logging
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Request
@@ -10,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
 from src.exceptions import AppException, GitHubAPIError, NotFoundError, ValidationError
-from src.logging_utils import handle_service_error
+from src.logging_utils import get_logger, handle_service_error
 from src.middleware.rate_limit import limiter
 from src.models.agents import (
     Agent,
@@ -30,7 +29,7 @@ from src.services.agents.service import AgentsService
 from src.services.database import get_db
 from src.utils import resolve_repository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

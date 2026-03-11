@@ -1,10 +1,12 @@
 """Polling lifecycle — start, stop, tick, and status reporting."""
 
 import asyncio
-import logging
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.logging_utils import get_logger
 from src.utils import utcnow
 
 from .state import (
@@ -16,7 +18,16 @@ from .state import (
     _processed_issue_prs,
 )
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class PollStep:
+    """Definition of a single polling loop step."""
+
+    name: str
+    execute: Callable[..., Awaitable[list]]
+    is_expensive: bool = False
 
 
 # ── Rate-limit helpers ──────────────────────────────────────────
@@ -92,6 +103,196 @@ async def _pause_if_rate_limited(step_name: str) -> bool:
     return False
 
 
+# ── Poll step implementations ──────────────────────────────────
+
+
+async def _step_post_outputs(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list,
+) -> list:
+    """Step 0: Post agent .md outputs from completed PRs as issue comments."""
+    return (
+        await _cp.post_agent_outputs_from_pr(
+            access_token=access_token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            tasks=tasks,
+        )
+        or []
+    )
+
+
+async def _step_check_backlog(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list,
+) -> list:
+    """Step 1: Check Backlog issues for agent completion."""
+    return (
+        await _cp.check_backlog_issues(
+            access_token=access_token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            tasks=tasks,
+        )
+        or []
+    )
+
+
+async def _step_check_ready(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list,
+) -> list:
+    """Step 2: Check Ready issues for agent pipeline completion."""
+    return (
+        await _cp.check_ready_issues(
+            access_token=access_token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            tasks=tasks,
+        )
+        or []
+    )
+
+
+async def _step_check_in_progress(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list,
+) -> list:
+    """Step 3: Check In Progress issues for completed Copilot PRs."""
+    return (
+        await _cp.check_in_progress_issues(
+            access_token=access_token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            tasks=tasks,
+        )
+        or []
+    )
+
+
+async def _step_request_reviews(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list,
+) -> list:
+    """Step 4: Request Copilot review for In Review PRs."""
+    return (
+        await _cp.check_in_review_issues_for_copilot_review(
+            access_token=access_token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            tasks=tasks,
+        )
+        or []
+    )
+
+
+async def _step_review_completion(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list,
+) -> list:
+    """Step 4b: Advance issues after Copilot review; recover stalled if idle."""
+    results = await _cp.check_in_review_issues(
+        access_token=access_token,
+        project_id=project_id,
+        owner=owner,
+        repo=repo,
+        tasks=tasks,
+    )
+    if results:
+        return results
+    # No reviews completed — try recovery if rate-limit budget allows
+    remaining, _ = await _check_rate_limit_budget()
+    if remaining is not None and remaining <= RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD:
+        return []
+    return (
+        await _cp.recover_stalled_issues(
+            access_token=access_token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            tasks=tasks,
+        )
+        or []
+    )
+
+
+async def _step_sweep_blocking_queue(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list,
+) -> list:
+    """Step 4c: Sweep stale entries from the blocking queue."""
+    try:
+        from src.services import blocking_queue as bq_service
+
+        swept = await bq_service.sweep_stale_entries(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+        )
+        return list(swept) if swept else []
+    except Exception as e:
+        logger.debug("Blocking queue sweep skipped (not available): %s", e)
+        return []
+
+
+async def _step_recover_stalled(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    tasks: list,
+) -> list:
+    """Step 5: Self-healing recovery for stalled pipelines."""
+    return (
+        await _cp.recover_stalled_issues(
+            access_token=access_token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+            tasks=tasks,
+        )
+        or []
+    )
+
+
+POLL_STEPS: list[PollStep] = [
+    PollStep(name="Step 0: agent outputs", execute=_step_post_outputs, is_expensive=True),
+    PollStep(name="Step 1: backlog", execute=_step_check_backlog),
+    PollStep(name="Step 2: ready", execute=_step_check_ready),
+    PollStep(name="Step 3: in-progress", execute=_step_check_in_progress),
+    PollStep(name="Step 4: copilot review requests", execute=_step_request_reviews),
+    PollStep(name="Step 4b: review completion", execute=_step_review_completion),
+    PollStep(name="Step 4c: blocking queue", execute=_step_sweep_blocking_queue),
+    PollStep(name="Step 5: stalled recovery", execute=_step_recover_stalled, is_expensive=True),
+]
+
+
 async def poll_for_copilot_completion(
     access_token: str,
     project_id: str,
@@ -142,16 +343,7 @@ async def _poll_loop(
     """Inner polling loop, separated so CancelledError is handled in the caller."""
 
     while _polling_state.is_running:
-        # Initialize result variables so the activity check after the
-        # try/except always has valid references (even after continue).
-        output_results: list = []
-        backlog_results: list = []
-        ready_results: list = []
-        results: list = []
-        review_results: list = []
-        in_review_results: list = []
-        recovery_results: list = []
-        skip_expensive = False
+        step_results: dict[str, list] = {}
         try:
             _polling_state.last_poll_time = utcnow()
             _polling_state.poll_count += 1
@@ -190,195 +382,46 @@ async def _poll_loop(
                     len(all_tasks),
                 )
 
-            # Step 0: Post agent .md outputs from completed PRs as issue comments
-            # This runs first so Done! markers are available for steps 1-3
-            # This is the MOST expensive step — skip it when budget is low.
+            # ── Execute polling steps (data-driven via POLL_STEPS) ──
             remaining_pre, _ = await _check_rate_limit_budget()
             skip_expensive = (
                 remaining_pre is not None and remaining_pre <= RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD
             )
 
-            if skip_expensive:
-                logger.warning(
-                    "Poll #%d: Skipping Step 0 (agent outputs) — "
-                    "rate limit budget low (remaining=%d)",
-                    _polling_state.poll_count,
-                    remaining_pre,
-                )
-                output_results = []
-            else:
-                output_results = await _cp.post_agent_outputs_from_pr(
-                    access_token=access_token,
-                    project_id=project_id,
-                    owner=owner,
-                    repo=repo,
-                    tasks=parent_tasks,
-                )
-
-            if output_results:
-                logger.info(
-                    "Poll #%d: Posted agent outputs for %d issues",
-                    _polling_state.poll_count,
-                    len(output_results),
-                )
-
-            if await _pause_if_rate_limited("Step 0"):
-                continue
-
-            # Step 1: Check "Backlog" issues for agent completion
-            backlog_results = await _cp.check_backlog_issues(
-                access_token=access_token,
-                project_id=project_id,
-                owner=owner,
-                repo=repo,
-                tasks=parent_tasks,
-            )
-
-            if backlog_results:
-                logger.info(
-                    "Poll #%d: Processed %d backlog issues",
-                    _polling_state.poll_count,
-                    len(backlog_results),
-                )
-
-            if await _pause_if_rate_limited("Step 1"):
-                continue
-
-            # Step 2: Check "Ready" issues for agent pipeline completion
-            ready_results = await _cp.check_ready_issues(
-                access_token=access_token,
-                project_id=project_id,
-                owner=owner,
-                repo=repo,
-                tasks=parent_tasks,
-            )
-
-            if ready_results:
-                logger.info(
-                    "Poll #%d: Processed %d ready issues",
-                    _polling_state.poll_count,
-                    len(ready_results),
-                )
-
-            if await _pause_if_rate_limited("Step 2"):
-                continue
-
-            # Step 3: Check "In Progress" issues for completed Copilot PRs
-            results = await _cp.check_in_progress_issues(
-                access_token=access_token,
-                project_id=project_id,
-                owner=owner,
-                repo=repo,
-                tasks=parent_tasks,
-            )
-
-            if results:
-                logger.info(
-                    "Poll #%d: Processed %d in-progress issues",
-                    _polling_state.poll_count,
-                    len(results),
-                )
-
-            if await _pause_if_rate_limited("Step 3"):
-                continue
-
-            # Step 4: Check "In Review" issues to ensure Copilot has reviewed their PRs
-            review_results = await _cp.check_in_review_issues_for_copilot_review(
-                access_token=access_token,
-                project_id=project_id,
-                owner=owner,
-                repo=repo,
-                tasks=parent_tasks,
-            )
-
-            if review_results:
-                logger.info(
-                    "Poll #%d: Requested Copilot review for %d PRs",
-                    _polling_state.poll_count,
-                    len(review_results),
-                )
-
-            if await _pause_if_rate_limited("Step 4"):
-                continue
-
-            # Step 4b: Check "In Review" issues for completed Copilot reviews
-            # and advance the pipeline to "Done"
-            in_review_results = await _cp.check_in_review_issues(
-                access_token=access_token,
-                project_id=project_id,
-                owner=owner,
-                repo=repo,
-                tasks=parent_tasks,
-            )
-
-            if in_review_results:
-                logger.info(
-                    "Poll #%d: Advanced %d issues after Copilot review completion",
-                    _polling_state.poll_count,
-                    len(in_review_results),
-                )
-            elif not skip_expensive:
-                recovery_results = await _cp.recover_stalled_issues(
-                    access_token=access_token,
-                    project_id=project_id,
-                    owner=owner,
-                    repo=repo,
-                    tasks=parent_tasks,
-                )
-
-                if recovery_results:
-                    logger.info(
-                        "Poll #%d: Recovered %d stalled issues",
+            cycle_aborted = False
+            for step in POLL_STEPS:
+                if step.is_expensive and skip_expensive:
+                    logger.warning(
+                        "Poll #%d: Skipping %s — rate limit budget low (remaining=%d)",
                         _polling_state.poll_count,
-                        len(recovery_results),
+                        step.name,
+                        remaining_pre,
+                    )
+                    step_results[step.name] = []
+                    continue
+
+                step_results[step.name] = await step.execute(
+                    access_token,
+                    project_id,
+                    owner,
+                    repo,
+                    parent_tasks,
+                )
+
+                if step_results[step.name]:
+                    logger.info(
+                        "Poll #%d: %s — processed %d items",
+                        _polling_state.poll_count,
+                        step.name,
+                        len(step_results[step.name]),
                     )
 
-            if await _pause_if_rate_limited("Step 4b"):
+                if await _pause_if_rate_limited(step.name):
+                    cycle_aborted = True
+                    break
+
+            if cycle_aborted:
                 continue
-
-            # Step 4c: Blocking queue sweep — detect closed/deleted blocking
-            # issues and unblock the queue.  Lightweight: one REST call per
-            # active/in_review entry (typically 0-2).
-            try:
-                from src.services import blocking_queue as bq_service
-
-                swept = await bq_service.sweep_stale_entries(
-                    access_token=access_token,
-                    owner=owner,
-                    repo=repo,
-                )
-                if swept:
-                    logger.info(
-                        "Poll #%d: Blocking queue sweep cleared %d stale entries: %s",
-                        _polling_state.poll_count,
-                        len(swept),
-                        swept,
-                    )
-            except Exception as e:
-                logger.debug("Blocking queue sweep skipped (not available): %s", e)
-
-            # Step 5: Self-healing recovery — detect and fix stalled pipelines
-            # Skip if budget is low — recovery is least critical.
-            if skip_expensive:
-                logger.debug(
-                    "Poll #%d: Skipping Step 5 (recovery) — rate limit budget low",
-                    _polling_state.poll_count,
-                )
-            else:
-                recovery_results = await _cp.recover_stalled_issues(
-                    access_token=access_token,
-                    project_id=project_id,
-                    owner=owner,
-                    repo=repo,
-                    tasks=parent_tasks,
-                )
-
-                if recovery_results:
-                    logger.info(
-                        "Poll #%d: Recovered %d stalled issues",
-                        _polling_state.poll_count,
-                        len(recovery_results),
-                    )
 
         except Exception as e:
             logger.error("Error in polling loop: %s", e)
@@ -420,15 +463,7 @@ async def _poll_loop(
         # as "active" and reset the idle counter back to baseline.
         import src.services.copilot_polling.state as _poll_state
 
-        had_activity = bool(
-            output_results
-            or backlog_results
-            or ready_results
-            or results
-            or review_results
-            or in_review_results
-            or (not skip_expensive and recovery_results)
-        )
+        had_activity = any(step_results.values())
 
         if had_activity:
             if _poll_state._consecutive_idle_polls:

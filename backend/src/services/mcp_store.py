@@ -1,13 +1,13 @@
 """MCP configuration CRUD operations and SSRF URL validation."""
 
 import ipaddress
-import logging
 import uuid
 from urllib.parse import urlparse
 
 import aiosqlite
 
 from src.exceptions import McpLimitExceededError, McpValidationError
+from src.logging_utils import get_logger
 from src.models.mcp import (
     McpConfigurationCreate,
     McpConfigurationListResponse,
@@ -15,7 +15,7 @@ from src.models.mcp import (
 )
 from src.utils import utcnow
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 MAX_MCPS_PER_USER = 25
 

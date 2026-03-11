@@ -3,7 +3,6 @@
 import asyncio
 import hashlib
 import json
-import logging
 from collections.abc import AsyncGenerator
 from datetime import timedelta
 from typing import Annotated
@@ -16,6 +15,7 @@ from src.api.auth import get_current_session, get_session_dep
 from src.constants import SESSION_COOKIE_NAME
 from src.dependencies import verify_project_access
 from src.exceptions import GitHubAPIError, NotFoundError, RateLimitError
+from src.logging_utils import get_logger
 from src.models.project import GitHubProject, ProjectListResponse
 from src.models.task import TaskListResponse
 from src.models.user import UserResponse, UserSession
@@ -29,7 +29,7 @@ from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.utils import resolve_repository
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 router = APIRouter()
 
 

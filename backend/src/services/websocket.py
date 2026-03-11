@@ -1,10 +1,10 @@
 """WebSocket connection manager for real-time updates."""
 
-import logging
-
 from fastapi import WebSocket
 
-logger = logging.getLogger(__name__)
+from src.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 
 class ConnectionManager:

@@ -1,7 +1,6 @@
 """FastAPI application entry point."""
 
 import asyncio
-import logging
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -12,9 +11,10 @@ from fastapi.responses import JSONResponse
 
 from src.config import get_settings, setup_logging
 from src.exceptions import AppException, RateLimitError
+from src.logging_utils import get_logger
 from src.middleware.request_id import request_id_var
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 
 async def _auto_start_copilot_polling() -> bool:

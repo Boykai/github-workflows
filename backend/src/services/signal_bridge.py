@@ -13,7 +13,6 @@ import asyncio
 import base64
 import hashlib
 import json
-import logging
 import re
 from datetime import UTC, datetime
 
@@ -21,6 +20,7 @@ import httpx
 import websockets
 
 from src.config import get_settings
+from src.logging_utils import get_logger
 from src.models.signal import (
     SignalConflictBanner,
     SignalConnection,
@@ -32,7 +32,7 @@ from src.models.signal import (
 from src.services.database import get_db
 from src.services.encryption import EncryptionService
 
-logger = logging.getLogger(__name__)
+logger = get_logger(__name__)
 
 # ── Encryption helper (reuses existing EncryptionService) ────────────────
 
