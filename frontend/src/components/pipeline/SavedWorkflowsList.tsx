@@ -8,6 +8,7 @@ import { PipelineFlowGraph } from './PipelineFlowGraph';
 import { PresetBadge } from './PresetBadge';
 import type { PipelineConfigSummary } from '@/types';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface SavedWorkflowsListProps {
   pipelines: PipelineConfigSummary[];
@@ -46,8 +47,12 @@ export function SavedWorkflowsList({
   onAssign,
 }: SavedWorkflowsListProps) {
   return (
-    <div className="celestial-fade-in">
-      <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+    <section
+      id="saved-pipelines"
+      className="celestial-fade-in scroll-mt-6"
+      aria-labelledby="saved-pipelines-title"
+    >
+      <h3 id="saved-pipelines-title" className="mb-3 flex items-center gap-2 text-lg font-semibold">
         <Workflow className="h-5 w-5 text-primary/70" />
         Saved Pipelines
       </h3>
@@ -58,8 +63,17 @@ export function SavedWorkflowsList({
           {[1, 2, 3].map((i) => (
             <div
               key={i}
-              className="h-32 rounded-xl border border-border/50 bg-muted/20 animate-pulse"
-            />
+              className="flex flex-col gap-3 rounded-[1.3rem] border border-border/50 bg-card/80 p-4 animate-pulse"
+            >
+              <div className="h-4 w-2/3 rounded bg-muted/40" />
+              <div className="h-3 w-full rounded bg-muted/30" />
+              <div className="h-3 w-4/5 rounded bg-muted/30" />
+              <div className="mt-auto flex gap-3">
+                <div className="h-3 w-12 rounded bg-muted/20" />
+                <div className="h-3 w-12 rounded bg-muted/20" />
+                <div className="h-3 w-16 rounded bg-muted/20" />
+              </div>
+            </div>
           ))}
         </div>
       )}
@@ -92,17 +106,22 @@ export function SavedWorkflowsList({
                     onSelect(pipeline.id);
                   }
                 }}
-                className={cn('flex flex-col gap-2 rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md', isActive
+                className={cn(
+                  'flex flex-col gap-2 rounded-xl border p-4 text-left transition-all hover:-translate-y-0.5 hover:shadow-md',
+                  isActive
                     ? 'border-primary/50 bg-primary/8 ring-1 ring-primary/20 shadow-sm'
                     : pipeline.is_preset
                       ? 'border-border/60 bg-card/88 hover:border-primary/30'
-                      : 'border-border/60 bg-card/82 hover:border-primary/30')}
+                      : 'border-border/60 bg-card/82 hover:border-primary/30'
+                )}
               >
                 {/* Header: name + badges */}
                 <div className="flex items-start justify-between gap-2">
-                  <h4 className="text-sm font-semibold text-foreground truncate">
-                    {pipeline.name}
-                  </h4>
+                  <Tooltip content={pipeline.name}>
+                    <h4 className="truncate text-sm font-semibold text-foreground">
+                      {pipeline.name}
+                    </h4>
+                  </Tooltip>
                   <div className="flex items-center gap-1 shrink-0">
                     {isAssigned && (
                       <span className="solar-chip-success inline-flex items-center gap-0.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">
@@ -204,6 +223,6 @@ export function SavedWorkflowsList({
           })}
         </div>
       )}
-    </div>
+    </section>
   );
 }

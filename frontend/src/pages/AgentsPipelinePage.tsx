@@ -209,7 +209,7 @@ export function AgentsPipelinePage() {
         ]}
         actions={
           <>
-            <Button variant="default" size="lg" onClick={() => pipelineConfig.newPipeline()}>
+            <Button variant="default" size="lg" onClick={handleNewPipeline}>
               New pipeline
             </Button>
             <Button variant="outline" size="lg" asChild>
@@ -419,9 +419,11 @@ export function AgentsPipelinePage() {
                           />
                           <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-xs font-medium text-foreground truncate">
-                                {p.name}
-                              </p>
+                              <Tooltip content={p.name}>
+                                <p className="truncate text-xs font-medium text-foreground">
+                                  {p.name}
+                                </p>
+                              </Tooltip>
                               <p className="text-[10px] text-muted-foreground">
                                 {p.stage_count} stages · {p.agent_count} agents
                               </p>
@@ -433,6 +435,14 @@ export function AgentsPipelinePage() {
                         </div>
                       </div>
                     ))}
+                    {(pipelineConfig.pipelines?.pipelines ?? []).length > 3 && (
+                      <p className="mt-2 text-center text-xs text-muted-foreground">
+                        Showing 3 of {(pipelineConfig.pipelines?.pipelines ?? []).length} —{" "}
+                        <a href="#saved-pipelines" className="text-primary/70 hover:text-primary underline-offset-2 hover:underline">
+                          see all in Saved Pipelines
+                        </a>
+                      </p>
+                    )}
                   </div>
                 </div>
               ) : (

@@ -129,6 +129,8 @@ export function PipelineBoard({
               ref={nameInputRef}
               type="text"
               aria-label="Pipeline name"
+              aria-invalid={validationErrors.name ? "true" : undefined}
+              aria-describedby={validationErrors.name ? "pipeline-name-error" : undefined}
               value={editNameValue}
               onChange={(e) => {
                 setEditNameValue(e.target.value);
@@ -162,7 +164,7 @@ export function PipelineBoard({
             </button>
           )}
           {validationErrors.name && (
-            <p className="mt-1 text-xs text-red-500">{validationErrors.name}</p>
+            <p id="pipeline-name-error" className="mt-1 text-xs text-red-500">{validationErrors.name}</p>
           )}
         </div>
 
@@ -223,6 +225,8 @@ export function PipelineBoard({
             ref={nameInputRef}
             type="text"
             aria-label="Pipeline name"
+            aria-invalid={validationErrors.name ? "true" : undefined}
+            aria-describedby={validationErrors.name ? "pipeline-name-error" : undefined}
             value={editNameValue}
             onChange={(e) => {
               setEditNameValue(e.target.value);
@@ -256,7 +260,7 @@ export function PipelineBoard({
           </button>
         )}
         {validationErrors.name && (
-          <p className="mt-1 text-xs text-red-500">{validationErrors.name}</p>
+          <p id="pipeline-name-error" className="mt-1 text-xs text-red-500">{validationErrors.name}</p>
         )}
       </div>
 
