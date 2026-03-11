@@ -5,6 +5,7 @@ from typing import Any
 import src.services.copilot_polling as _cp
 from src.logging_utils import get_logger
 from src.models.agent import AgentStepState
+from src.services.github_projects.identities import is_copilot_author
 from src.utils import utcnow
 
 from .helpers import _get_sub_issue_number
@@ -581,9 +582,7 @@ async def recover_stalled_issues(
                     pr_state = (pr.get("state") or "").upper()
                     pr_author = (pr.get("author") or "").lower()
 
-                    if pr_state != "OPEN" or not _cp.github_projects_service.is_copilot_author(
-                        pr_author
-                    ):
+                    if pr_state != "OPEN" or not is_copilot_author(pr_author):
                         continue
 
                     if not isinstance(pr_number, int):

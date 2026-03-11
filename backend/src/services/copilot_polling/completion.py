@@ -5,6 +5,7 @@ from typing import Any
 
 import src.services.copilot_polling as _cp
 from src.logging_utils import get_logger
+from src.services.github_projects.identities import is_copilot_author
 
 from .state import (
     _claimed_child_prs,
@@ -80,7 +81,7 @@ async def _merge_child_pr_if_applicable(
                 continue
 
             # Skip non-Copilot PRs
-            if not _cp.github_projects_service.is_copilot_author(pr_author):
+            if not is_copilot_author(pr_author):
                 continue
 
             # Only consider OPEN PRs
@@ -343,7 +344,7 @@ async def _find_completed_child_pr(
                 continue
 
             # Skip non-Copilot PRs
-            if not _cp.github_projects_service.is_copilot_author(pr_author):
+            if not is_copilot_author(pr_author):
                 continue
 
             # Consider OPEN or MERGED PRs - child PRs get merged after completion
@@ -619,7 +620,7 @@ async def _check_child_pr_completion(
                 continue
 
             # Skip non-Copilot PRs
-            if not _cp.github_projects_service.is_copilot_author(pr_author):
+            if not is_copilot_author(pr_author):
                 continue
 
             # Only consider OPEN PRs

@@ -153,35 +153,35 @@
 
 **Independent Test**: `wc -l service.py` < 1,500. Each extracted service < 800 lines. `pytest -x` passes. SC-003 met.
 
-- [ ] T059 Identify and remove/update stale tests that mock `GitHubProjectsService` methods being extracted in backend/tests/
+- [x] T059 Identify and remove/update stale tests that mock `GitHubProjectsService` methods being extracted in backend/tests/
 
 ### 5.1: Static Utilities (Warmup)
 
-- [ ] T060 [US3] Extract bot detection functions to backend/src/services/github_projects/identities.py — move `is_copilot_author`, `is_copilot_swe_agent`, `is_copilot_reviewer_bot` per FR-016
-- [ ] T061 [US3] Update all callers of bot detection methods to import from identities.py (search all files importing from service.py)
+- [x] T060 [US3] Extract bot detection functions to backend/src/services/github_projects/identities.py — move `is_copilot_author`, `is_copilot_swe_agent`, `is_copilot_reviewer_bot` per FR-016
+- [x] T061 [US3] Update all callers of bot detection methods to import from identities.py (search all files importing from service.py)
 
 ### 5.2: Rate Limit Manager
 
-- [ ] T062 [US3] Extract `RateLimitManager` class to backend/src/services/github_projects/rate_limit.py per data-model.md and FR-015
-- [ ] T063 [US3] Update service.py to use `RateLimitManager` instead of inline contextvars + instance attributes in backend/src/services/github_projects/service.py
+- [x] T062 [US3] Extract `RateLimitManager` class to backend/src/services/github_projects/rate_limit.py per data-model.md and FR-015
+- [x] T063 [US3] Update service.py to use `RateLimitManager` instead of inline contextvars + instance attributes in backend/src/services/github_projects/service.py
 
 ### 5.3: Base Client
 
-- [ ] T064 [US3] Extract `GitHubBaseClient` to backend/src/services/github_projects/base_client.py — move `_graphql()`, `_rest()`, `_request_with_retry()`, ETag cache, request coalescing per contracts/github-base-client.md
-- [ ] T065 [US3] Have `GitHubProjectsService` inherit from `GitHubBaseClient` in backend/src/services/github_projects/service.py
+- [x] T064 [US3] Extract `GitHubBaseClient` to backend/src/services/github_projects/base_client.py — move `_graphql()`, `_rest()`, `_request_with_retry()`, ETag cache, request coalescing per contracts/github-base-client.md
+- [x] T065 [US3] Have `GitHubProjectsService` inherit from `GitHubBaseClient` in backend/src/services/github_projects/service.py
 
 ### 5.4: Domain Service Extraction (sequential — each updates all callers)
 
-- [ ] T066 [US3] Extract `GitHubBranchService` to backend/src/services/github_projects/branches.py — move branch/commit/PR-creation methods + update all callers per contracts/domain-services.md
-- [ ] T067 [US3] Extract `GitHubPullRequestService` to backend/src/services/github_projects/pull_requests.py — move PR methods + update all callers per contracts/domain-services.md
-- [ ] T068 [US3] Extract `GitHubIssuesService` to backend/src/services/github_projects/issues.py — move issue methods + update all callers per contracts/domain-services.md
-- [ ] T069 [US3] Extract `GitHubProjectBoardService` to backend/src/services/github_projects/projects.py — move board/project methods + update all callers per contracts/domain-services.md
+- [x] T066 [US3] Extract `GitHubBranchService` to backend/src/services/github_projects/branches.py — move branch/commit/PR-creation methods + update all callers per contracts/domain-services.md
+- [x] T067 [US3] Extract `GitHubPullRequestService` to backend/src/services/github_projects/pull_requests.py — move PR methods + update all callers per contracts/domain-services.md
+- [x] T068 [US3] Extract `GitHubIssuesService` to backend/src/services/github_projects/issues.py — move issue methods + update all callers per contracts/domain-services.md
+- [x] T069 [US3] Extract `GitHubProjectBoardService` to backend/src/services/github_projects/projects.py — move board/project methods + update all callers per contracts/domain-services.md
 
 ### 5.5: Dependency Injection & Typed Returns
 
-- [ ] T070 [US3] Add domain service dependency getters to backend/src/dependencies.py — `get_github_issues_service`, `get_github_pr_service`, `get_github_branch_service`, `get_github_board_service`
-- [ ] T071 [US3] Add Pydantic response models for the following domain service methods: `create_issue`, `get_issue_with_comments`, `get_linked_pull_requests`, `merge_pull_request`, `create_branch`, `create_pull_request`, `get_project_items`, `update_item_status`, `get_board_data`, `get_status_columns` per FR-017
-- [ ] T072 [US3] Run `pytest -x`, `pyright backend/src/`, verify `wc -l service.py` < 1,500, each domain service < 800 lines (SC-003); commit Phase 5
+- [x] T070 [US3] Add domain service dependency getters to backend/src/dependencies.py — `get_github_issues_service`, `get_github_pr_service`, `get_github_branch_service`, `get_github_board_service`
+- [x] T071 [US3] Add Pydantic response models for the following domain service methods: `create_issue`, `get_issue_with_comments`, `get_linked_pull_requests`, `merge_pull_request`, `create_branch`, `create_pull_request`, `get_project_items`, `update_item_status`, `get_board_data`, `get_status_columns` per FR-017
+- [x] T072 [US3] Run `pytest -x`, `pyright backend/src/`, verify `wc -l service.py` < 1,500, each domain service < 800 lines (SC-003); commit Phase 5
 
 **Checkpoint**: God class decomposed. 7 new focused files. All callers updated. DI providers added. All tests pass.
 
