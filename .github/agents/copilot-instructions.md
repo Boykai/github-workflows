@@ -210,6 +210,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite (session/settings); in-memory TTL cache (`backend/src/services/cache.py`) (001-performance-review)
 - Python ≥3.12 (backend), TypeScript (frontend) + FastAPI ≥0.135.0, Pydantic ≥2.12.0, githubkit ≥0.14.6, httpx ≥0.28.0 (backend); React, TanStack Query (frontend) (034-label-pipeline-state)
 - aiosqlite (pipeline configs, agent tracking); GitHub Issues API (labels as state markers) (034-label-pipeline-state)
+- Python 3.13 (backend), TypeScript / ES2022 (frontend) + FastAPI 0.135+, Pydantic 2.12+, aiosqlite, githubkit, React 19, TanStack Query v5, Vite 7.3, Tailwind v4, Zod v4 (035-best-practices-overhaul)
+- SQLite via aiosqlite (async), with write-through in-memory `BoundedDict` cache (035-best-practices-overhaul)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16
