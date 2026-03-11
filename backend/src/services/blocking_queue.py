@@ -364,6 +364,31 @@ async def get_base_ref_for_issue(repo_key: str, issue_number: int) -> str:
     return base_branch
 
 
+async def get_base_ref_for_entry(repo_key: str, issue_number: int) -> str:
+    """Return the base branch using the issue's own ``blocking_source_issue``.
+
+    Looks up the issue's queue entry, reads its ``blocking_source_issue``
+    field, and resolves that specific issue's branch.  Falls back to the
+    global ``get_base_ref_for_issue()`` if no entry or no source issue.
+    """
+    entry = await store.get_by_issue(repo_key, issue_number)
+    if entry and entry.blocking_source_issue:
+        source_entry = await store.get_by_issue(repo_key, entry.blocking_source_issue)
+        if source_entry:
+            branch = _get_issue_branch(source_entry)
+            if branch:
+                logger.debug(
+                    "get_base_ref_for_entry: issue #%d using branch '%s' "
+                    "from blocking_source_issue #%d",
+                    issue_number,
+                    branch,
+                    entry.blocking_source_issue,
+                )
+                return branch
+    # Fallback to global resolution
+    return await get_base_ref_for_issue(repo_key, issue_number)
+
+
 async def get_current_base_branch(repo_key: str) -> str:
     """Return the current base branch for the repo's blocking queue."""
     open_blocking = await store.get_open_blocking(repo_key)
@@ -381,6 +406,8 @@ async def recover_all_repos() -> None:
     """Startup recovery: call try_activate_next for all repos with non-completed entries.
 
     This catches any pending issues that should have been activated during downtime.
+    Agent dispatch is deferred to the polling loop since recovery lacks an
+    ``access_token``.  Phase 1 polling guards prevent double-assignment.
     """
     repos = await store.get_repos_with_non_completed()
     if not repos:
@@ -392,7 +419,8 @@ async def recover_all_repos() -> None:
             activated = await try_activate_next(repo_key)
             if activated:
                 logger.info(
-                    "Recovery activated %d issue(s) for %s: %s",
+                    "Recovery activated %d issue(s) for %s: %s "
+                    "— agent dispatch deferred to polling loop (no access_token in recovery)",
                     len(activated),
                     repo_key,
                     [e.issue_number for e in activated],
@@ -445,7 +473,7 @@ async def sweep_stale_entries(
     access_token: str,
     owner: str,
     repo: str,
-) -> list[int]:
+) -> tuple[list[int], list[BlockingQueueEntry]]:
     """Detect and complete queue entries whose GitHub issues were closed or deleted.
 
     Iterates over all active/in_review entries for the repo and calls
@@ -453,16 +481,17 @@ async def sweep_stale_entries(
     404/410 for deletion), the entry is marked completed so the queue
     can advance.
 
-    Returns list of issue numbers that were swept (marked completed).
+    Returns a tuple of (swept issue numbers, activated entries).
     """
     from src.services.github_projects import github_projects_service
 
     repo_key = f"{owner}/{repo}"
     entries = await store.get_active_or_in_review(repo_key)
     if not entries:
-        return []
+        return [], []
 
     swept: list[int] = []
+    all_activated: list[BlockingQueueEntry] = []
     for entry in entries:
         try:
             is_closed = await github_projects_service.check_issue_closed(
@@ -474,8 +503,9 @@ async def sweep_stale_entries(
                     entry.issue_number,
                     repo_key,
                 )
-                await mark_completed(repo_key, entry.issue_number)
+                activated = await mark_completed(repo_key, entry.issue_number)
                 swept.append(entry.issue_number)
+                all_activated.extend(activated)
         except Exception:
             logger.warning(
                 "Blocking queue sweep: failed to check issue #%d for %s",
@@ -492,7 +522,7 @@ async def sweep_stale_entries(
             swept,
         )
 
-    return swept
+    return swept, all_activated
 
 
 async def _broadcast_queue_update(

@@ -135,11 +135,12 @@ async def _should_skip_recovery(
             return True
     except Exception as exc:
         logger.debug(
-            "Recovery: blocking queue check failed for issue #%d: %s",
+            "Recovery: blocking queue check failed for issue #%d: %s — failing closed (skip)",
             issue_number,
             exc,
             exc_info=True,
         )
+        return True
 
     return False
 

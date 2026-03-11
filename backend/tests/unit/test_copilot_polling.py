@@ -3199,6 +3199,18 @@ class TestRecoverStalledIssues:
         _recovery_last_attempt.clear()
         _pending_agent_assignments.clear()
 
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None.
+
+        The fail-closed exception handler in ``_should_skip_recovery`` would
+        otherwise block all recoveries in tests that don't explicitly mock
+        the blocking queue.  Tests that *do* mock it (e.g. PENDING entry)
+        override this via their own ``@patch`` decorator.
+        """
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
+
     @pytest.fixture
     def mock_backlog_task(self):
         task = MagicMock()
@@ -3920,6 +3932,12 @@ class TestRecoverStalledIssues:
 
 class TestValidateAndReconcileTrackingTable:
     """Tests for tracking table validation against GitHub ground truth."""
+
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None."""
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
 
     BODY_ACTIVE_PENDING = (
         "## Issue Body\n\n"
@@ -7093,6 +7111,12 @@ class TestRecoveryForcedTransition:
         _recovery_last_attempt.clear()
         _pending_agent_assignments.clear()
 
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None."""
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
+
     @pytest.fixture
     def mock_in_progress_task(self):
         task = MagicMock()
@@ -9120,6 +9144,12 @@ class TestRecoveryIncludesInReview:
         _recovery_last_attempt.clear()
         _pending_agent_assignments.clear()
 
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None."""
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
+
     @pytest.fixture
     def mock_in_review_task(self):
         task = MagicMock()
@@ -9225,6 +9255,12 @@ class TestRecoverySelfHealTracking:
         yield
         _recovery_last_attempt.clear()
         _pending_agent_assignments.clear()
+
+    @pytest.fixture(autouse=True)
+    def _mock_blocking_queue_for_recovery(self):
+        """Allow recovery to proceed by making blocking queue store return None."""
+        with patch("src.services.blocking_queue_store.get_by_issue", new_callable=AsyncMock, return_value=None):
+            yield
 
     @pytest.fixture
     def mock_backlog_task(self):

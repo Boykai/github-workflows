@@ -246,15 +246,35 @@ async def _step_sweep_blocking_queue(
     repo: str,
     tasks: list,
 ) -> list:
-    """Step 4c: Sweep stale entries from the blocking queue."""
+    """Step 4c: Sweep stale entries from the blocking queue and dispatch activated agents."""
     try:
         from src.services import blocking_queue as bq_service
 
-        swept = await bq_service.sweep_stale_entries(
+        swept, activated = await bq_service.sweep_stale_entries(
             access_token=access_token,
             owner=owner,
             repo=repo,
         )
+
+        # Dispatch agents for newly activated entries (mirrors pipeline.py activation pattern)
+        if activated:
+            from .pipeline import _activate_queued_issue
+
+            for activated_entry in activated:
+                try:
+                    await _activate_queued_issue(
+                        access_token=access_token,
+                        project_id=activated_entry.project_id,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=activated_entry.issue_number,
+                    )
+                except Exception:
+                    logger.exception(
+                        "Failed to activate queued issue #%d after sweep",
+                        activated_entry.issue_number,
+                    )
+
         return list(swept) if swept else []
     except Exception as e:
         logger.debug("Blocking queue sweep skipped (not available): %s", e)

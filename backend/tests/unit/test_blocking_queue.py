@@ -460,9 +460,11 @@ class TestSweepStaleEntries:
         mock_svc = AsyncMock()
         mock_svc.check_issue_closed = AsyncMock(return_value=True)
         with patch("src.services.github_projects.github_projects_service", mock_svc):
-            swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+            swept, activated = await bq.sweep_stale_entries("tok", "owner", "repo")
 
         assert swept == [1]
+        assert len(activated) == 1
+        assert activated[0].issue_number == 2
         assert await _status(1) == BlockingQueueStatus.COMPLETED
         # Queue should have advanced: #2 is now active
         assert await _status(2) == BlockingQueueStatus.ACTIVE
@@ -476,16 +478,18 @@ class TestSweepStaleEntries:
         mock_svc = AsyncMock()
         mock_svc.check_issue_closed = AsyncMock(return_value=False)
         with patch("src.services.github_projects.github_projects_service", mock_svc):
-            swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+            swept, activated = await bq.sweep_stale_entries("tok", "owner", "repo")
 
         assert swept == []
+        assert activated == []
         assert await _status(1) == BlockingQueueStatus.ACTIVE
 
     @pytest.mark.asyncio
     async def test_sweep_no_active_entries(self, db):
         """No-op when there are no active/in_review entries."""
-        swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+        swept, activated = await bq.sweep_stale_entries("tok", "owner", "repo")
         assert swept == []
+        assert activated == []
 
     @pytest.mark.asyncio
     async def test_sweep_handles_api_error(self, db):
@@ -495,9 +499,10 @@ class TestSweepStaleEntries:
         mock_svc = AsyncMock()
         mock_svc.check_issue_closed = AsyncMock(side_effect=Exception("API error"))
         with patch("src.services.github_projects.github_projects_service", mock_svc):
-            swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+            swept, activated = await bq.sweep_stale_entries("tok", "owner", "repo")
 
         assert swept == []
+        assert activated == []
         # Entry should still be active (not corrupted)
         assert await _status(1) == BlockingQueueStatus.ACTIVE
 
@@ -511,7 +516,7 @@ class TestSweepStaleEntries:
         mock_svc = AsyncMock()
         mock_svc.check_issue_closed = AsyncMock(return_value=True)
         with patch("src.services.github_projects.github_projects_service", mock_svc):
-            swept = await bq.sweep_stale_entries("tok", "owner", "repo")
+            swept, activated = await bq.sweep_stale_entries("tok", "owner", "repo")
 
         assert swept == [1]
         assert await _status(1) == BlockingQueueStatus.COMPLETED
