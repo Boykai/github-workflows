@@ -64,18 +64,18 @@ specs/033-projects-page-audit/
 frontend/
 ├── src/
 │   ├── pages/
-│   │   └── ProjectsPage.tsx                  # Main page component (723 lines) — PRIMARY AUDIT TARGET
+│   │   └── ProjectsPage.tsx                  # Main page component (~733 lines) — PRIMARY AUDIT TARGET
 │   ├── components/
 │   │   ├── board/
 │   │   │   ├── ProjectBoard.tsx              # Grid container for columns
 │   │   │   ├── BoardColumn.tsx               # Status column with header + items
-│   │   │   ├── IssueCard.tsx                 # Individual issue card (300+ lines)
-│   │   │   ├── IssueDetailModal.tsx          # Full issue detail overlay (300+ lines)
-│   │   │   ├── BoardToolbar.tsx              # Filter/sort/group controls (250+ lines)
+│   │   │   ├── IssueCard.tsx                 # Individual issue card (~306 lines)
+│   │   │   ├── IssueDetailModal.tsx          # Full issue detail overlay (~310 lines)
+│   │   │   ├── BoardToolbar.tsx              # Filter/sort/group controls (~326 lines)
 │   │   │   ├── RefreshButton.tsx             # Manual refresh with spinner
 │   │   │   ├── BlockingIssuePill.tsx         # Oldest blocking issue display
 │   │   │   ├── BlockingChainPanel.tsx        # Collapsible blocking queue
-│   │   │   ├── ProjectIssueLaunchPanel.tsx   # Issue creation + pipeline launch (300+ lines)
+│   │   │   ├── ProjectIssueLaunchPanel.tsx   # Issue creation + pipeline launch (~491 lines)
 │   │   │   └── colorUtils.ts                # Status color mapping
 │   │   ├── common/
 │   │   │   ├── CelestialLoader.tsx           # Loading spinner
