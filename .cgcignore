@@ -1,0 +1,26 @@
+# Dependency directories
+node_modules/
+venv/
+.venv/
+__pycache__/
+
+# Build artifacts
+dist/
+build/
+target/
+*.egg-info/
+
+# Tests (Optional - if you only want source code)
+tests/
+spec/
+**/*_test.py
+**/*.test.js
+
+# Sensitive files
+.env
+config.js
+secrets.json
+
+# Documentation
+docs/
+*.md
