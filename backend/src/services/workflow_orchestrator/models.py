@@ -162,10 +162,7 @@ class PipelineState:
     def is_complete(self) -> bool:
         """Check if all agents in the pipeline have completed."""
         if self.execution_mode == "parallel" and self.parallel_agent_statuses:
-            return all(
-                s in ("completed", "failed")
-                for s in self.parallel_agent_statuses.values()
-            )
+            return all(s in ("completed", "failed") for s in self.parallel_agent_statuses.values())
         return self.current_agent_index >= len(self.agents)
 
     @property
