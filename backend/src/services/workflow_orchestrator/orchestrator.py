@@ -1,5 +1,6 @@
 """WorkflowOrchestrator class — orchestrates the full GitHub issue creation and status workflow."""
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
@@ -41,6 +42,17 @@ if TYPE_CHECKING:
     from src.services.github_projects import GitHubProjectsService
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class AgentResolution:
+    """Resolved agent assignment from tracking table or config."""
+
+    agents: list[str]
+    source: str  # "tracking_table" | "config" | "fallback"
+    base_ref: str
+    model: str
+
 
 # Per-issue cache for parsed tracking table agents.  The tracking table
 # is frozen in the issue body at creation time and never changes, so this
@@ -793,296 +805,243 @@ class WorkflowOrchestrator:
         return _FALLBACK
 
     # ──────────────────────────────────────────────────────────────────
-    # HELPER: Assign Agent for Status
+    # HELPER: Agent resolution from tracking table (T032)
     # ──────────────────────────────────────────────────────────────────
-    async def assign_agent_for_status(
+    async def _resolve_agents_from_tracking_table(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+        config_agents: list,
+        status: str,
+    ) -> list:
+        """
+        Override config agents with tracking-table agents if available.
+
+        The tracking table is frozen in the issue body when the issue is
+        created and records the full agent pipeline the user was promised.
+        If the DB config was later modified, the tracking table preserves
+        the original contract.
+
+        Returns the (potentially overridden) agents list.
+        """
+        try:
+            if issue_number in _tracking_table_cache:
+                steps = _tracking_table_cache[issue_number]
+            else:
+                issue_data = await self.github.get_issue_with_comments(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
+                body = issue_data.get("body", "") if issue_data else ""
+                steps = parse_tracking_from_body(body) if body else []
+                _tracking_table_cache[issue_number] = steps or []
+
+            if steps:
+                tracked_statuses = {s.status.lower() for s in steps}
+                tracking_agents = [
+                    s.agent_name for s in steps if s.status.lower() == status.lower()
+                ]
+                config_slugs = [a.slug if hasattr(a, "slug") else str(a) for a in config_agents]
+                if status.lower() not in tracked_statuses:
+                    logger.info(
+                        "Tracking table omits status '%s' for issue #%d; "
+                        "treating it as having no agents",
+                        status,
+                        issue_number,
+                    )
+                    return []
+                elif tracking_agents != config_slugs:
+                    logger.info(
+                        "Overriding config agents %s with tracking "
+                        "table agents %s for status '%s' on issue #%d",
+                        config_slugs,
+                        tracking_agents,
+                        status,
+                        issue_number,
+                    )
+                    return tracking_agents
+        except Exception as e:
+            logger.warning(
+                "Failed to fetch tracking table for issue #%d, falling back to config agents: %s",
+                issue_number,
+                e,
+            )
+
+        return config_agents
+
+    # ──────────────────────────────────────────────────────────────────
+    # HELPER: Determine base ref for agent branching (T034)
+    # ──────────────────────────────────────────────────────────────────
+    async def _determine_base_ref(
         self,
         ctx: WorkflowContext,
-        status: str,
-        agent_index: int = 0,
-    ) -> bool:
+        agent_name: str,
+        agent_index: int,
+    ) -> tuple[str, str, dict | None]:
         """
-        Look up agent_mappings for the given status and assign the agent
-        at the specified index to the issue.
+        Determine the base branch, HEAD SHA, and existing PR for an agent.
 
-        Creates or updates a PipelineState to track progress.
-
-        Args:
-            ctx: Workflow context with issue info
-            status: Workflow status name (e.g., "Backlog", "Ready")
-            agent_index: Index into the agent list for this status (default: 0 = first agent)
+        Branching strategy:
+          - First agent: base_ref="main" (or blocking queue override)
+          - Subsequent agents: base_ref=main_branch (from first agent's PR)
 
         Returns:
-            True if agent assignment succeeded
+            (base_ref, current_head_sha, existing_pr)
         """
-        config = ctx.config or await get_workflow_config(ctx.project_id)
-        if not config:
-            logger.warning("No workflow config for project %s", ctx.project_id)
-            return False
-
-        if ctx.issue_id is None:
-            raise ValueError("issue_id required for agent assignment")
-        if ctx.issue_number is None:
-            raise ValueError("issue_number required for agent assignment")
-
-        agents = _ci_get(config.agent_mappings, status, [])
-        if not agents:
-            logger.info("No agents configured for status '%s'", status)
-            return True  # No agents to assign is not an error
-
-        # ── Override with tracking table agents if available ─────────
-        # The tracking table is frozen in the issue body when the issue
-        # is created and records the full agent pipeline the user was
-        # promised.  If the DB config was later modified (agents removed
-        # or reordered), the tracking table preserves the original
-        # contract.  Use tracking table agents for this status when they
-        # contain agents the current config no longer includes.
-        #
-        # The parsed tracking table is cached per issue_number because
-        # the issue body (and thus the tracking table) is immutable
-        # after creation.  This avoids an extra GitHub API call on
-        # every agent assignment within the same issue.
-        if ctx.issue_number:
-            try:
-                if ctx.issue_number in _tracking_table_cache:
-                    steps = _tracking_table_cache[ctx.issue_number]
-                else:
-                    issue_data = await self.github.get_issue_with_comments(
-                        access_token=ctx.access_token,
-                        owner=ctx.repository_owner,
-                        repo=ctx.repository_name,
-                        issue_number=ctx.issue_number,
-                    )
-                    body = issue_data.get("body", "") if issue_data else ""
-                    steps = parse_tracking_from_body(body) if body else []
-                    _tracking_table_cache[ctx.issue_number] = steps or []
-
-                if steps:
-                    tracked_statuses = {s.status.lower() for s in steps}
-                    tracking_agents = [
-                        s.agent_name for s in steps if s.status.lower() == status.lower()
-                    ]
-                    config_slugs = [a.slug if hasattr(a, "slug") else str(a) for a in agents]
-                    if status.lower() not in tracked_statuses:
-                        logger.info(
-                            "Tracking table omits status '%s' for issue #%d; treating it as having no agents",
-                            status,
-                            ctx.issue_number,
-                        )
-                        agents = []
-                    elif tracking_agents != config_slugs:
-                        logger.info(
-                            "Overriding config agents %s with tracking "
-                            "table agents %s for status '%s' on issue #%d",
-                            config_slugs,
-                            tracking_agents,
-                            status,
-                            ctx.issue_number,
-                        )
-                        agents = tracking_agents
-            except Exception as e:
-                logger.warning(
-                    "Failed to fetch tracking table for issue #%d, "
-                    "falling back to config agents: %s",
-                    ctx.issue_number,
-                    e,
-                )
-
-        if agent_index >= len(agents):
-            logger.info(
-                "Agent index %d out of range for status '%s' (has %d agents)",
-                agent_index,
-                status,
-                len(agents),
-            )
-            return True  # All agents already processed
-
-        # Normalise to plain slug strings.  `agents` may be a mix of
-        # AgentAssignment objects (from config) or bare strings (from
-        # the tracking-table override above).
-        agent_slugs: list[str] = [getattr(a, "slug", None) or str(a) for a in agents]
-
-        agent_name = agent_slugs[agent_index]
-        logger.info(
-            "Assigning agent '%s' (index %d/%d) for status '%s' on issue #%s",
-            agent_name,
-            agent_index + 1,
-            len(agents),
-            status,
-            ctx.issue_number,
-        )
-
-        # Determine the base branch for this agent
-        #
-        # Branching strategy (hierarchical PR model):
-        #   - The FIRST agent uses base_ref="main":
-        #       Creates branch "copilot/xxx" → PR targets "main"
-        #       This PR's branch becomes the "main branch" for the issue.
-        #   - ALL subsequent agents use the HEAD commit SHA of the main branch:
-        #       base_ref=<commit_sha> → Copilot creates a CHILD branch from that commit
-        #       The child PR targets the main branch (not "main")
-        #       After the agent completes, the child PR is squash-merged into the
-        #       main branch and the child branch is deleted.
-        #
-        # We pass the main PR's **branch name** (not a commit SHA) as baseRef
-        # because GitHub's Copilot assignment API requires a valid ref name.
-        # Copilot will create a new child branch from the HEAD of that branch
-        # and open a PR targeting it.
         existing_pr = None
         base_ref = "main"
-        current_head_sha = ""  # Track HEAD SHA at assignment time
+        current_head_sha = ""
 
-        if ctx.issue_number:
-            # Blocking queue: resolve base branch for first agent assignment.
-            # If a blocking issue is open, branch from its branch instead of "main".
+        if not ctx.issue_number:
+            return base_ref, current_head_sha, existing_pr
+
+        # Blocking queue: resolve base branch for first agent assignment.
+        try:
+            from src.services import blocking_queue as bq_service
+
+            repo_key = f"{ctx.repository_owner}/{ctx.repository_name}"
+            blocking_base = await bq_service.get_base_ref_for_issue(repo_key, ctx.issue_number)
+            if blocking_base != "main":
+                base_ref = blocking_base
+                logger.info(
+                    "Blocking queue: issue #%d will use base_ref '%s' (from blocking queue)",
+                    ctx.issue_number,
+                    base_ref,
+                )
+        except Exception as e:
+            logger.debug("Blocking queue base_ref lookup skipped (not available): %s", e)
+
+        # Check if we already have a "main branch" stored for this issue
+        main_branch_info = get_issue_main_branch(ctx.issue_number)
+
+        if main_branch_info:
+            # Subsequent agent — create a child branch from the main branch.
+            main_branch = str(main_branch_info["branch"])
+            main_pr_number = main_branch_info["pr_number"]
+
+            pr_details = await self.github.get_pull_request(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                pr_number=main_pr_number,
+            )
+
+            if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                current_head_sha = pr_details["last_commit"]["sha"]
+                logger.info(
+                    "Captured HEAD SHA '%s' for agent '%s' on issue #%d",
+                    current_head_sha[:8],
+                    agent_name,
+                    ctx.issue_number,
+                )
+
+            base_ref = main_branch
+
+            logger.info(
+                "Agent '%s' will create child branch from '%s' (main branch '%s', PR #%d) "
+                "for issue #%d",
+                agent_name,
+                base_ref[:12] if len(base_ref) > 12 else base_ref,
+                main_branch,
+                main_pr_number,
+                ctx.issue_number,
+            )
+
+            existing_pr = {
+                "number": main_pr_number,
+                "head_ref": main_branch,
+            }
+        else:
+            # First agent — check for existing PR to establish main branch
             try:
-                from src.services import blocking_queue as bq_service
-
-                repo_key = f"{ctx.repository_owner}/{ctx.repository_name}"
-                blocking_base = await bq_service.get_base_ref_for_issue(repo_key, ctx.issue_number)
-                if blocking_base != "main":
-                    base_ref = blocking_base
-                    logger.info(
-                        "Blocking queue: issue #%d will use base_ref '%s' (from blocking queue)",
-                        ctx.issue_number,
-                        base_ref,
-                    )
-            except Exception as e:
-                logger.debug("Blocking queue base_ref lookup skipped (not available): %s", e)
-
-            # Check if we already have a "main branch" stored for this issue
-            main_branch_info = get_issue_main_branch(ctx.issue_number)
-
-            if main_branch_info:
-                # Subsequent agent — create a child branch from the main branch.
-                main_branch = str(main_branch_info["branch"])
-                main_pr_number = main_branch_info["pr_number"]
-
-                # Fetch current PR details to capture the latest HEAD SHA
-                # (used for tracking/audit purposes, NOT as baseRef)
-                pr_details = await self.github.get_pull_request(
+                existing_pr = await self.github.find_existing_pr_for_issue(
                     access_token=ctx.access_token,
                     owner=ctx.repository_owner,
                     repo=ctx.repository_name,
-                    pr_number=main_pr_number,
+                    issue_number=ctx.issue_number,
                 )
-
-                if pr_details and pr_details.get("last_commit", {}).get("sha"):
-                    current_head_sha = pr_details["last_commit"]["sha"]
-                    logger.info(
-                        "Captured HEAD SHA '%s' for agent '%s' on issue #%d",
-                        current_head_sha[:8],
-                        agent_name,
-                        ctx.issue_number,
-                    )
-
-                # Use the main PR's branch name as base_ref so Copilot creates
-                # a child branch from it. The child PR will target this branch.
-                base_ref = main_branch
-
-                logger.info(
-                    "Agent '%s' will create child branch from '%s' (main branch '%s', PR #%d) "
-                    "for issue #%d",
-                    agent_name,
-                    base_ref[:12] if len(base_ref) > 12 else base_ref,
-                    main_branch,
-                    main_pr_number,
-                    ctx.issue_number,
-                )
-
-                # Pass existing_pr as informational context only — subsequent
-                # agents create their own child PRs but benefit from knowing
-                # about the main PR for context.
-                existing_pr = {
-                    "number": main_pr_number,
-                    "head_ref": main_branch,
-                }
-            else:
-                # First agent — check for existing PR to establish main branch
-                try:
-                    existing_pr = await self.github.find_existing_pr_for_issue(
+                if existing_pr:
+                    pr_details = await self.github.get_pull_request(
                         access_token=ctx.access_token,
                         owner=ctx.repository_owner,
                         repo=ctx.repository_name,
-                        issue_number=ctx.issue_number,
+                        pr_number=existing_pr["number"],
                     )
-                    if existing_pr:
-                        # Fetch full PR details to get commit SHA
-                        pr_details = await self.github.get_pull_request(
+                    head_sha = ""
+                    if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                        head_sha = pr_details["last_commit"]["sha"]
+
+                    set_issue_main_branch(
+                        ctx.issue_number,
+                        existing_pr["head_ref"],
+                        existing_pr["number"],
+                        head_sha,
+                    )
+                    logger.info(
+                        "Established main branch for issue #%s: '%s' (PR #%d, SHA: %s)",
+                        ctx.issue_number,
+                        existing_pr["head_ref"],
+                        existing_pr["number"],
+                        head_sha[:8] if head_sha else "none",
+                    )
+
+                    base_ref = str(existing_pr["head_ref"])
+                    current_head_sha = head_sha
+                    logger.info(
+                        "Using discovered branch '%s' as base_ref "
+                        "for agent '%s' (index %d) on issue #%s "
+                        "(existing PR #%d)",
+                        base_ref,
+                        agent_name,
+                        agent_index,
+                        ctx.issue_number,
+                        existing_pr["number"],
+                    )
+
+                    try:
+                        await self.github.link_pull_request_to_issue(
                             access_token=ctx.access_token,
                             owner=ctx.repository_owner,
                             repo=ctx.repository_name,
                             pr_number=existing_pr["number"],
+                            issue_number=ctx.issue_number,
                         )
-                        head_sha = ""
-                        if pr_details and pr_details.get("last_commit", {}).get("sha"):
-                            head_sha = pr_details["last_commit"]["sha"]
-
-                        # Store this as the main branch for the issue
-                        set_issue_main_branch(
-                            ctx.issue_number,
-                            existing_pr["head_ref"],
+                    except Exception as e:
+                        logger.warning(
+                            "Failed to link PR #%d to issue #%d: %s",
                             existing_pr["number"],
-                            head_sha,
-                        )
-                        logger.info(
-                            "Established main branch for issue #%s: '%s' (PR #%d, SHA: %s)",
                             ctx.issue_number,
-                            existing_pr["head_ref"],
-                            existing_pr["number"],
-                            head_sha[:8] if head_sha else "none",
+                            e,
                         )
+            except Exception as e:
+                logger.warning("Failed to check for existing PR: %s", e)
 
-                        # An existing PR means a previous agent already
-                        # created the issue's "working branch".  ALL
-                        # subsequent agents — regardless of agent_index
-                        # within the current status — must branch FROM
-                        # this working branch, not from "main".
-                        #
-                        # agent_index is relative to the current status
-                        # (e.g. 0 for speckit.plan in Ready) but the
-                        # pipeline may be well past the first overall
-                        # agent.  Using the discovered branch ensures
-                        # every agent builds on previous work.
-                        base_ref = str(existing_pr["head_ref"])
-                        current_head_sha = head_sha
-                        logger.info(
-                            "Using discovered branch '%s' as base_ref "
-                            "for agent '%s' (index %d) on issue #%s "
-                            "(existing PR #%d)",
-                            base_ref,
-                            agent_name,
-                            agent_index,
-                            ctx.issue_number,
-                            existing_pr["number"],
-                        )
+        return base_ref, current_head_sha, existing_pr
 
-                        # Link the first PR to the GitHub Issue
-                        try:
-                            await self.github.link_pull_request_to_issue(
-                                access_token=ctx.access_token,
-                                owner=ctx.repository_owner,
-                                repo=ctx.repository_name,
-                                pr_number=existing_pr["number"],
-                                issue_number=ctx.issue_number,
-                            )
-                        except Exception as e:
-                            logger.warning(
-                                "Failed to link PR #%d to issue #%d: %s",
-                                existing_pr["number"],
-                                ctx.issue_number,
-                                e,
-                            )
-                except Exception as e:
-                    logger.warning("Failed to check for existing PR: %s", e)
+    # ──────────────────────────────────────────────────────────────────
+    # HELPER: Resolve sub-issue for agent (T036)
+    # ──────────────────────────────────────────────────────────────────
+    async def _resolve_sub_issue(
+        self,
+        ctx: WorkflowContext,
+        agent_name: str,
+        config: WorkflowConfiguration,
+    ) -> tuple[str, int, dict | None]:
+        """
+        Look up or create the sub-issue for an agent assignment.
 
-        # ── Look up pre-created Sub-Issue for this agent ─────────────
-        # Sub-issues are created upfront in create_all_sub_issues() so
-        # the user can see the full scope immediately.  Here we look up
-        # the existing sub-issue from the pipeline state, falling back to
-        # the global sub-issue store which survives pipeline state resets.
-        sub_issue_node_id = ctx.issue_id  # fallback: parent issue
-        sub_issue_number = ctx.issue_number  # fallback: parent issue number
+        Returns:
+            (sub_issue_node_id, sub_issue_number, sub_issue_info)
+        """
+        assert ctx.issue_id is not None  # guaranteed by assign_agent_for_status guard
+        assert ctx.issue_number is not None
+
+        sub_issue_node_id: str = ctx.issue_id
+        sub_issue_number: int = ctx.issue_number
         sub_issue_info: dict | None = None
 
         existing_pipeline = get_pipeline_state(ctx.issue_number)
@@ -1115,11 +1074,7 @@ class WorkflowOrchestrator:
                 )
 
         if sub_issue_info is None:
-            # ── On-the-fly sub-issue creation ────────────────────────
-            # The pre-creation step failed (e.g. transient 502) for this
-            # agent.  Attempt to create the sub-issue now so the agent
-            # still gets its own issue rather than falling back to the
-            # parent (which would confuse Copilot's scope).
+            # On-the-fly sub-issue creation
             logger.warning(
                 "No pre-created sub-issue for agent '%s' on issue #%d — "
                 "attempting on-the-fly creation",
@@ -1161,12 +1116,12 @@ class WorkflowOrchestrator:
                 sub_issue_node_id = sub_issue_info["node_id"] or ctx.issue_id
                 sub_issue_number = sub_issue_info["number"] or ctx.issue_number
 
-                # Persist in global store so subsequent lookups find it
+                # Persist in global store
                 global_subs = get_issue_sub_issues(ctx.issue_number)
                 global_subs[agent_name] = sub_issue_info
                 set_issue_sub_issues(ctx.issue_number, global_subs)
 
-                # Add the sub-issue to the same GitHub Project as parent
+                # Add to project
                 sub_node = sub_issue_info.get("node_id", "")
                 if sub_node and ctx.project_id:
                     try:
@@ -1197,62 +1152,72 @@ class WorkflowOrchestrator:
                     create_err,
                 )
 
-        # ── Human agent: skip Copilot assignment ─────────────────────
-        # Human agents don't use Copilot — the sub-issue is already
-        # assigned to the issue creator during create_all_sub_issues().
-        # Just mark the step as active and create the pipeline state.
-        if agent_name == "human":
-            logger.info(
-                "Human agent on issue #%d — skipping Copilot assignment, marking as active",
-                ctx.issue_number,
-            )
+        return sub_issue_node_id, sub_issue_number, sub_issue_info
 
-            # Mark agent as 🔄 Active in the issue body tracking table
-            await self._update_agent_tracking_state(ctx, agent_name, "active")
+    # ──────────────────────────────────────────────────────────────────
+    # HELPER: Handle human agent assignment (T036)
+    # ──────────────────────────────────────────────────────────────────
+    async def _handle_human_agent(
+        self,
+        ctx: WorkflowContext,
+        status: str,
+        agent_slugs: list[str],
+        agent_index: int,
+        sub_issue_info: dict | None,
+        sub_issue_number: int,
+        config: WorkflowConfiguration,
+    ) -> bool:
+        """Handle human agent: mark active, update sub-issue, create pipeline."""
+        assert ctx.issue_number is not None  # guaranteed by assign_agent_for_status guard
+        logger.info(
+            "Human agent on issue #%d — skipping Copilot assignment, marking as active",
+            ctx.issue_number,
+        )
 
-            # Mark the sub-issue as "in progress"
-            if sub_issue_info and sub_issue_number != ctx.issue_number:
-                try:
-                    await self.github.update_issue_state(
+        await self._update_agent_tracking_state(ctx, "human", "active")
+
+        if sub_issue_info and sub_issue_number != ctx.issue_number:
+            try:
+                await self.github.update_issue_state(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=sub_issue_number,
+                    state="open",
+                    labels_add=["in-progress"],
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to mark Human sub-issue #%d as in-progress: %s",
+                    sub_issue_number,
+                    e,
+                )
+
+            try:
+                sub_node_id = sub_issue_info.get("node_id", "")
+                if sub_node_id:
+                    await self.github.update_sub_issue_project_status(
                         access_token=ctx.access_token,
-                        owner=ctx.repository_owner,
-                        repo=ctx.repository_name,
-                        issue_number=sub_issue_number,
-                        state="open",
-                        labels_add=["in-progress"],
+                        project_id=ctx.project_id,
+                        sub_issue_node_id=sub_node_id,
+                        status_name=(config.status_in_progress if config else "In Progress"),
                     )
-                except Exception as e:
-                    logger.warning(
-                        "Failed to mark Human sub-issue #%d as in-progress: %s",
-                        sub_issue_number,
-                        e,
-                    )
+            except Exception as e:
+                logger.warning(
+                    "Failed to update Human sub-issue #%d project board status: %s",
+                    sub_issue_number,
+                    e,
+                )
 
-                # Update the sub-issue's project board Status to "In Progress"
-                try:
-                    sub_node_id = sub_issue_info.get("node_id", "")
-                    if sub_node_id:
-                        await self.github.update_sub_issue_project_status(
-                            access_token=ctx.access_token,
-                            project_id=ctx.project_id,
-                            sub_issue_node_id=sub_node_id,
-                            status_name=(config.status_in_progress if config else "In Progress"),
-                        )
-                except Exception as e:
-                    logger.warning(
-                        "Failed to update Human sub-issue #%d project board status: %s",
-                        sub_issue_number,
-                        e,
-                    )
+        existing_pipeline = get_pipeline_state(ctx.issue_number)
+        existing_sub_issues = existing_pipeline.agent_sub_issues if existing_pipeline else {}
+        agent_sub_issues = dict(existing_sub_issues)
+        if sub_issue_info:
+            agent_sub_issues["human"] = sub_issue_info
 
-            # Create / update pipeline state (same as normal agents)
-            existing_pipeline = get_pipeline_state(ctx.issue_number)
-            existing_sub_issues = existing_pipeline.agent_sub_issues if existing_pipeline else {}
-            agent_sub_issues = dict(existing_sub_issues)
-            if sub_issue_info:
-                agent_sub_issues[agent_name] = sub_issue_info
-
-            pipeline_state = PipelineState(
+        set_pipeline_state(
+            ctx.issue_number,
+            PipelineState(
                 issue_number=ctx.issue_number,
                 project_id=ctx.project_id,
                 status=status,
@@ -1263,259 +1228,264 @@ class WorkflowOrchestrator:
                 error=None,
                 agent_assigned_sha="",
                 agent_sub_issues=agent_sub_issues,
-            )
-            set_pipeline_state(ctx.issue_number, pipeline_state)
+            ),
+        )
 
-            # Log the actual human assignee so transition audit entries
-            # are useful.  Prefer the sub-issue assignee (set during
-            # create_all_sub_issues to the parent issue creator); fall back
-            # to a generic "human" label if unavailable.
-            human_assignee = sub_issue_info.get("assignee", "") if sub_issue_info else ""
-            assigned_label = f"human:{human_assignee}" if human_assignee else "human"
+        human_assignee = sub_issue_info.get("assignee", "") if sub_issue_info else ""
+        assigned_label = f"human:{human_assignee}" if human_assignee else "human"
 
-            self.log_transition(
-                ctx=ctx,
-                from_status=status,
-                to_status=status,
-                triggered_by=TriggeredBy.AUTOMATIC,
-                success=True,
-                assigned_user=assigned_label,
-            )
+        self.log_transition(
+            ctx=ctx,
+            from_status=status,
+            to_status=status,
+            triggered_by=TriggeredBy.AUTOMATIC,
+            success=True,
+            assigned_user=assigned_label,
+        )
 
-            return True
+        return True
 
-        # ── copilot-review: request Copilot code review on the main PR ──
-        # copilot-review is NOT a traditional coding agent.  There is no
-        # copilot-review.agent.md, so assigning Copilot to the sub-issue
-        # as a coding agent would fail.  Instead we directly request a
-        # Copilot code review on the existing main PR for this issue via
-        # the GitHub GraphQL API.  The sub-issue tracks review status.
-        if agent_name == "copilot-review":
-            logger.info(
-                "copilot-review step for issue #%d — requesting Copilot code review on main PR",
-                ctx.issue_number,
-            )
+    # ──────────────────────────────────────────────────────────────────
+    # HELPER: Handle copilot-review agent assignment (T036)
+    # ──────────────────────────────────────────────────────────────────
+    async def _handle_copilot_review(
+        self,
+        ctx: WorkflowContext,
+        status: str,
+        agent_slugs: list[str],
+        agent_index: int,
+        sub_issue_info: dict | None,
+        sub_issue_number: int,
+        config: WorkflowConfiguration,
+    ) -> bool:
+        """Handle copilot-review agent: request Copilot code review on main PR."""
+        assert ctx.issue_number is not None  # guaranteed by assign_agent_for_status guard
+        logger.info(
+            "copilot-review step for issue #%d — requesting Copilot code review on main PR",
+            ctx.issue_number,
+        )
 
-            # ── Defensive: un-assign Copilot SWE from the sub-issue ──
-            # If Copilot SWE was assigned to the copilot-review sub-issue
-            # through an external mechanism (GitHub platform auto-trigger,
-            # manual action), it would error because no copilot-review.agent.md
-            # exists.  Un-assign it so the error state is cleaned up and the
-            # sub-issue reflects the correct status.
-            if sub_issue_info and sub_issue_number != ctx.issue_number:
-                try:
-                    swe_assigned = await self.github.is_copilot_assigned_to_issue(
+        # Defensive: un-assign Copilot SWE from the sub-issue if present
+        if sub_issue_info and sub_issue_number != ctx.issue_number:
+            try:
+                swe_assigned = await self.github.is_copilot_assigned_to_issue(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=sub_issue_number,
+                )
+                if swe_assigned:
+                    logger.warning(
+                        "copilot-review sub-issue #%d has Copilot SWE assigned "
+                        "(incorrect) — un-assigning to prevent coding agent errors",
+                        sub_issue_number,
+                    )
+                    await self.github.unassign_copilot_from_issue(
                         access_token=ctx.access_token,
                         owner=ctx.repository_owner,
                         repo=ctx.repository_name,
                         issue_number=sub_issue_number,
                     )
-                    if swe_assigned:
-                        logger.warning(
-                            "copilot-review sub-issue #%d has Copilot SWE assigned "
-                            "(incorrect) — un-assigning to prevent coding agent errors",
-                            sub_issue_number,
-                        )
-                        await self.github.unassign_copilot_from_issue(
-                            access_token=ctx.access_token,
-                            owner=ctx.repository_owner,
-                            repo=ctx.repository_name,
-                            issue_number=sub_issue_number,
-                        )
-                except Exception as e:
-                    logger.debug(
-                        "Could not check/un-assign Copilot SWE from sub-issue #%d: %s",
-                        sub_issue_number,
-                        e,
-                    )
+            except Exception as e:
+                logger.debug(
+                    "Could not check/un-assign Copilot SWE from sub-issue #%d: %s",
+                    sub_issue_number,
+                    e,
+                )
 
-            # Resolve the main PR using comprehensive multi-strategy discovery:
-            # 1. In-memory cache, 2. Parent issue timeline/REST search,
-            # 3. Sub-issue PR discovery (reconstructs sub-issue mappings),
-            # 4. REST branch search for Copilot-authored PRs,
-            # 5. Create PR from branch if branch exists but no open PR.
-            # This replaces the previous 2-strategy inline lookup that missed
-            # PRs linked only to sub-issues (not the parent issue).
-            from ..copilot_polling.helpers import _discover_main_pr_for_review
+        # Discover the main PR using comprehensive multi-strategy discovery
+        from ..copilot_polling.helpers import _discover_main_pr_for_review
 
-            discovered = await _discover_main_pr_for_review(
-                access_token=ctx.access_token,
-                owner=ctx.repository_owner,
-                repo=ctx.repository_name,
-                parent_issue_number=ctx.issue_number,
+        discovered = await _discover_main_pr_for_review(
+            access_token=ctx.access_token,
+            owner=ctx.repository_owner,
+            repo=ctx.repository_name,
+            parent_issue_number=ctx.issue_number,
+        )
+
+        review_pr_number: int | None = None
+        review_pr_id: str | None = None
+
+        if discovered:
+            review_pr_number = int(discovered["pr_number"]) if discovered["pr_number"] else None
+            review_pr_id = discovered.get("pr_id", "")
+            is_draft = discovered.get("is_draft", False)
+            logger.info(
+                "Discovered main PR #%s (branch '%s', draft=%s) for "
+                "copilot-review on issue #%d via comprehensive discovery",
+                review_pr_number,
+                discovered.get("head_ref", ""),
+                is_draft,
+                ctx.issue_number,
             )
 
-            review_pr_number: int | None = None
-            review_pr_id: str | None = None
-
-            if discovered:
-                review_pr_number = int(discovered["pr_number"]) if discovered["pr_number"] else None
-                review_pr_id = discovered.get("pr_id", "")
-                is_draft = discovered.get("is_draft", False)
-                logger.info(
-                    "Discovered main PR #%s (branch '%s', draft=%s) for "
-                    "copilot-review on issue #%d via comprehensive discovery",
-                    review_pr_number,
-                    discovered.get("head_ref", ""),
-                    is_draft,
-                    ctx.issue_number,
-                )
-
-                # If the GraphQL node ID is missing, fetch full PR details
-                if not review_pr_id and review_pr_number:
-                    pr_details = await self.github.get_pull_request(
-                        access_token=ctx.access_token,
-                        owner=ctx.repository_owner,
-                        repo=ctx.repository_name,
-                        pr_number=review_pr_number,
-                    )
-                    if pr_details:
-                        review_pr_id = pr_details.get("id")
-                        is_draft = pr_details.get("is_draft", False)
-
-                # Convert draft → ready BEFORE requesting review.
-                # GitHub does not allow requesting reviews on draft PRs.
-                if is_draft and review_pr_id and review_pr_number:
-                    logger.info(
-                        "Main PR #%d is still draft — converting to ready for review "
-                        "before requesting Copilot code review",
-                        review_pr_number,
-                    )
-                    mark_ready_ok = await self.github.mark_pr_ready_for_review(
-                        access_token=ctx.access_token,
-                        pr_node_id=str(review_pr_id),
-                    )
-                    if mark_ready_ok:
-                        from ..copilot_polling.pipeline import (
-                            _system_marked_ready_prs,
-                        )
-
-                        _system_marked_ready_prs.add(review_pr_number)
-                        logger.info(
-                            "Successfully converted main PR #%d from draft to ready",
-                            review_pr_number,
-                        )
-                    else:
-                        logger.warning(
-                            "Failed to convert main PR #%d from draft to ready — "
-                            "Copilot review request will likely fail",
-                            review_pr_number,
-                        )
-
-            # Request the Copilot code review on the main PR
-            review_requested = False
-            if review_pr_id and review_pr_number:
-                review_requested = await self.github.request_copilot_review(
+            if not review_pr_id and review_pr_number:
+                pr_details = await self.github.get_pull_request(
                     access_token=ctx.access_token,
-                    pr_node_id=str(review_pr_id),
-                    pr_number=review_pr_number,
                     owner=ctx.repository_owner,
                     repo=ctx.repository_name,
+                    pr_number=review_pr_number,
                 )
-                if review_requested:
-                    # Record the request timestamp so _check_copilot_review_done
-                    # only counts reviews submitted after this point (filters
-                    # out GitHub auto-triggered reviews).
-                    from ..copilot_polling.state import (
-                        _copilot_review_requested_at,
-                    )
+                if pr_details:
+                    review_pr_id = pr_details.get("id")
+                    is_draft = pr_details.get("is_draft", False)
 
-                    _copilot_review_requested_at[ctx.issue_number] = utcnow()
+            # Convert draft → ready before requesting review
+            if is_draft and review_pr_id and review_pr_number:
+                logger.info(
+                    "Main PR #%d is still draft — converting to ready for review",
+                    review_pr_number,
+                )
+                mark_ready_ok = await self.github.mark_pr_ready_for_review(
+                    access_token=ctx.access_token,
+                    pr_node_id=str(review_pr_id),
+                )
+                if mark_ready_ok:
+                    from ..copilot_polling.pipeline import _system_marked_ready_prs
+
+                    _system_marked_ready_prs.add(review_pr_number)
                     logger.info(
-                        "Copilot code review requested on PR #%d for issue #%d",
+                        "Successfully converted main PR #%d from draft to ready",
                         review_pr_number,
-                        ctx.issue_number,
                     )
                 else:
                     logger.warning(
-                        "Failed to request Copilot code review on PR #%d for issue #%d",
+                        "Failed to convert main PR #%d from draft to ready — "
+                        "Copilot review request will likely fail",
                         review_pr_number,
-                        ctx.issue_number,
                     )
-            else:
-                logger.warning(
-                    "No main PR found for copilot-review on issue #%d — "
-                    "comprehensive discovery exhausted all strategies",
+
+        # Request the Copilot code review
+        review_requested = False
+        if review_pr_id and review_pr_number:
+            review_requested = await self.github.request_copilot_review(
+                access_token=ctx.access_token,
+                pr_node_id=str(review_pr_id),
+                pr_number=review_pr_number,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+            )
+            if review_requested:
+                from ..copilot_polling.state import _copilot_review_requested_at
+
+                _copilot_review_requested_at[ctx.issue_number] = utcnow()
+                logger.info(
+                    "Copilot code review requested on PR #%d for issue #%d",
+                    review_pr_number,
                     ctx.issue_number,
                 )
-
-            # Mark agent as 🔄 Active in the issue body tracking table
-            await self._update_agent_tracking_state(ctx, agent_name, "active")
-
-            # Mark the sub-issue as "in progress"
-            if sub_issue_info and sub_issue_number != ctx.issue_number:
-                try:
-                    await self.github.update_issue_state(
-                        access_token=ctx.access_token,
-                        owner=ctx.repository_owner,
-                        repo=ctx.repository_name,
-                        issue_number=sub_issue_number,
-                        state="open",
-                        labels_add=["in-progress"],
-                    )
-                except Exception as e:
-                    logger.warning(
-                        "Failed to mark copilot-review sub-issue #%d as in-progress: %s",
-                        sub_issue_number,
-                        e,
-                    )
-
-                # Update the sub-issue's project board status to "In Progress"
-                try:
-                    sub_node_id = sub_issue_info.get("node_id", "")
-                    if sub_node_id:
-                        await self.github.update_sub_issue_project_status(
-                            access_token=ctx.access_token,
-                            project_id=ctx.project_id,
-                            sub_issue_node_id=sub_node_id,
-                            status_name=(config.status_in_progress if config else "In Progress"),
-                        )
-                except Exception as e:
-                    logger.warning(
-                        "Failed to update copilot-review sub-issue #%d project status: %s",
-                        sub_issue_number,
-                        e,
-                    )
-
-            # Create / update pipeline state
-            _existing_pipeline_cr = get_pipeline_state(ctx.issue_number)
-            _existing_sub_issues_cr = (
-                _existing_pipeline_cr.agent_sub_issues if _existing_pipeline_cr else {}
-            )
-            _agent_sub_issues_cr = dict(_existing_sub_issues_cr)
-            if sub_issue_info:
-                _agent_sub_issues_cr[agent_name] = sub_issue_info
-
-            set_pipeline_state(
+            else:
+                logger.warning(
+                    "Failed to request Copilot code review on PR #%d for issue #%d",
+                    review_pr_number,
+                    ctx.issue_number,
+                )
+        else:
+            logger.warning(
+                "No main PR found for copilot-review on issue #%d — "
+                "comprehensive discovery exhausted all strategies",
                 ctx.issue_number,
-                PipelineState(
-                    issue_number=ctx.issue_number,
-                    project_id=ctx.project_id,
-                    status=status,
-                    agents=agent_slugs,
-                    current_agent_index=agent_index,
-                    completed_agents=agent_slugs[:agent_index],
-                    started_at=utcnow(),
-                    error=None,
-                    agent_assigned_sha="",
-                    agent_sub_issues=_agent_sub_issues_cr,
-                ),
             )
 
-            self.log_transition(
-                ctx=ctx,
-                from_status=status,
-                to_status=status,
-                triggered_by=TriggeredBy.AUTOMATIC,
-                success=review_requested,
-                assigned_user="copilot-review",
-            )
+        # Mark as active and update sub-issue
+        await self._update_agent_tracking_state(ctx, "copilot-review", "active")
 
-            return True
+        if sub_issue_info and sub_issue_number != ctx.issue_number:
+            try:
+                await self.github.update_issue_state(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=sub_issue_number,
+                    state="open",
+                    labels_add=["in-progress"],
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to mark copilot-review sub-issue #%d as in-progress: %s",
+                    sub_issue_number,
+                    e,
+                )
 
-        # Fetch issue context for the agent's custom instructions.
-        # Use the SUB-ISSUE data (not parent) so Copilot focuses only on
-        # the sub-issue and doesn't create duplicate PRs for the parent.
+            try:
+                sub_node_id = sub_issue_info.get("node_id", "")
+                if sub_node_id:
+                    await self.github.update_sub_issue_project_status(
+                        access_token=ctx.access_token,
+                        project_id=ctx.project_id,
+                        sub_issue_node_id=sub_node_id,
+                        status_name=(config.status_in_progress if config else "In Progress"),
+                    )
+            except Exception as e:
+                logger.warning(
+                    "Failed to update copilot-review sub-issue #%d project status: %s",
+                    sub_issue_number,
+                    e,
+                )
+
+        # Create pipeline state
+        _existing_pipeline_cr = get_pipeline_state(ctx.issue_number)
+        _existing_sub_issues_cr = (
+            _existing_pipeline_cr.agent_sub_issues if _existing_pipeline_cr else {}
+        )
+        _agent_sub_issues_cr = dict(_existing_sub_issues_cr)
+        if sub_issue_info:
+            _agent_sub_issues_cr["copilot-review"] = sub_issue_info
+
+        set_pipeline_state(
+            ctx.issue_number,
+            PipelineState(
+                issue_number=ctx.issue_number,
+                project_id=ctx.project_id,
+                status=status,
+                agents=agent_slugs,
+                current_agent_index=agent_index,
+                completed_agents=agent_slugs[:agent_index],
+                started_at=utcnow(),
+                error=None,
+                agent_assigned_sha="",
+                agent_sub_issues=_agent_sub_issues_cr,
+            ),
+        )
+
+        self.log_transition(
+            ctx=ctx,
+            from_status=status,
+            to_status=status,
+            triggered_by=TriggeredBy.AUTOMATIC,
+            success=review_requested,
+            assigned_user="copilot-review",
+        )
+
+        return True
+
+    # ──────────────────────────────────────────────────────────────────
+    # HELPER: Execute Copilot agent assignment with retries (T036)
+    # ──────────────────────────────────────────────────────────────────
+    async def _execute_copilot_assignment(
+        self,
+        ctx: WorkflowContext,
+        agent_name: str,
+        status: str,
+        agent_slugs: list[str],
+        agent_index: int,
+        base_ref: str,
+        current_head_sha: str,
+        existing_pr: dict | None,
+        sub_issue_node_id: str,
+        sub_issue_number: int,
+        sub_issue_info: dict | None,
+        config: WorkflowConfiguration,
+    ) -> bool:
+        """
+        Execute a Copilot agent assignment: fetch instructions, dedup guard,
+        model resolution, retry loop, and post-assignment bookkeeping.
+        """
+        import asyncio
+
+        assert ctx.issue_number is not None  # guaranteed by assign_agent_for_status guard
+
+        # Fetch issue context for the agent's custom instructions
         custom_instructions = ""
         instruction_issue_number = sub_issue_number if sub_issue_info else ctx.issue_number
         if instruction_issue_number:
@@ -1532,7 +1502,8 @@ class WorkflowOrchestrator:
                     existing_pr=existing_pr,
                 )
                 logger.info(
-                    "Prepared custom instructions for agent '%s' from issue #%d (length: %d chars, existing_pr: %s)",
+                    "Prepared custom instructions for agent '%s' from issue #%d "
+                    "(length: %d chars, existing_pr: %s)",
                     agent_name,
                     instruction_issue_number,
                     len(custom_instructions),
@@ -1541,16 +1512,7 @@ class WorkflowOrchestrator:
             except Exception as e:
                 logger.warning("Failed to fetch issue context for agent '%s': %s", agent_name, e)
 
-        # Assign the agent with retry-with-backoff
-        # GitHub's Copilot API can return transient errors, especially right after
-        # a child PR merge. We retry up to 3 times with exponential backoff.
-        import asyncio
-
-        # ── Dedup guard ──────────────────────────────────────────────
-        # If this exact agent+issue was already assigned recently (within
-        # the grace period), skip the duplicate assignment.  This closes
-        # race windows where multiple code-paths (polling steps, recovery,
-        # status-transition) all converge on the same assignment.
+        # Dedup guard
         pending_key = f"{ctx.issue_number}:{agent_name}"
         pending, recovery, grace_period = _polling_state_objects()
 
@@ -1583,28 +1545,13 @@ class WorkflowOrchestrator:
                     grace_period,
                 )
                 release_agent_trigger(ctx.issue_number, status, agent_name)
-                return True  # Treat as success — the original assignment is in flight
+                return True
 
-        # Pre-set recovery cooldown and pending flag BEFORE the assignment
-        # API call. This prevents a race where the polling/recovery loop sees
-        # the issue between the unassign and re-assign steps and fires a
-        # duplicate assignment.
+        # Pre-set recovery cooldown before assignment API call
         recovery[ctx.issue_number] = utcnow()
         pending[pending_key] = utcnow()
-        logger.debug(
-            "Pre-set recovery cooldown and pending flag for agent '%s' on issue #%d",
-            agent_name,
-            ctx.issue_number,
-        )
 
-        # ── Resolve effective model following the precedence hierarchy ──
-        # 1. Pipeline config model (encodes chat override + pipeline config)
-        # 2. User Settings "agent model" (ctx.user_agent_model)
-        # 3. Hardcoded fallback "claude-opus-4.6"
-        #
-        # Look up the *original* AgentAssignment from the live config rather
-        # than from `agents` which may have been replaced by plain slug
-        # strings during the tracking-table override above.
+        # Resolve effective model
         original_config_agents = _ci_get(config.agent_mappings, status, [])
         original_assignment = next(
             (
@@ -1622,13 +1569,14 @@ class WorkflowOrchestrator:
         )
 
         max_retries = 3
-        base_delay = 3  # seconds
+        base_delay = 3
         success = False
 
         try:
             for attempt in range(max_retries):
                 logger.info(
-                    "Assigning agent '%s' to sub-issue #%s (parent #%s) with base_ref='%s' (attempt %d/%d)",
+                    "Assigning agent '%s' to sub-issue #%s (parent #%s) "
+                    "with base_ref='%s' (attempt %d/%d)",
                     agent_name,
                     sub_issue_number,
                     ctx.issue_number,
@@ -1652,7 +1600,7 @@ class WorkflowOrchestrator:
                     break
 
                 if attempt < max_retries - 1:
-                    delay = base_delay * (2**attempt)  # 3s, 6s, 12s
+                    delay = base_delay * (2**attempt)
                     logger.warning(
                         "Agent assignment failed for '%s' on issue #%s, retrying in %ds...",
                         agent_name,
@@ -1669,14 +1617,10 @@ class WorkflowOrchestrator:
                     base_ref,
                 )
 
-                # Mark agent as 🔄 Active in the issue body tracking table,
-                # recording the effective model so the Model column shows the
-                # actual model used rather than keeping the initial "TBD".
                 await self._update_agent_tracking_state(
                     ctx, agent_name, "active", model=effective_model
                 )
 
-                # Mark the sub-issue as "in progress" (add label, ensure open)
                 if sub_issue_info and sub_issue_number != ctx.issue_number:
                     try:
                         await self.github.update_issue_state(
@@ -1699,7 +1643,6 @@ class WorkflowOrchestrator:
                             e,
                         )
 
-                    # Update the sub-issue's project board Status to "In Progress"
                     try:
                         sub_node_id = sub_issue_info.get("node_id", "")
                         if sub_node_id:
@@ -1718,7 +1661,7 @@ class WorkflowOrchestrator:
                             e,
                         )
 
-                # Refresh recovery cooldown timestamp now that assignment succeeded
+                # Refresh recovery cooldown
                 _, recovery_2, _ = _polling_state_objects()
                 recovery_2[ctx.issue_number] = utcnow()
             else:
@@ -1727,42 +1670,38 @@ class WorkflowOrchestrator:
                     agent_name,
                     ctx.issue_number,
                 )
-                # Clear pending flag so recovery can retry later
                 pending_2, _, _ = _polling_state_objects()
                 pending_2.pop(pending_key, None)
 
             # Create / update pipeline state
-            # Capture the HEAD SHA at assignment time for commit-based completion detection
             assigned_sha = current_head_sha or ""
             if not assigned_sha and ctx.issue_number:
                 main_branch_info = get_issue_main_branch(ctx.issue_number)
                 if main_branch_info and main_branch_info.get("head_sha"):
                     assigned_sha = main_branch_info.get("head_sha", "")
 
-            # Preserve existing sub-issue mappings from previous agents
             existing_pipeline = get_pipeline_state(ctx.issue_number)
             existing_sub_issues = existing_pipeline.agent_sub_issues if existing_pipeline else {}
-
-            # Add the new agent's sub-issue info
             agent_sub_issues = dict(existing_sub_issues)
             if sub_issue_info:
                 agent_sub_issues[agent_name] = sub_issue_info
 
-            pipeline_state = PipelineState(
-                issue_number=ctx.issue_number,
-                project_id=ctx.project_id,
-                status=status,
-                agents=agent_slugs,
-                current_agent_index=agent_index,
-                completed_agents=agent_slugs[:agent_index],
-                started_at=utcnow(),
-                error=None if success else f"Failed to assign agent '{agent_name}'",
-                agent_assigned_sha=assigned_sha,
-                agent_sub_issues=agent_sub_issues,
+            set_pipeline_state(
+                ctx.issue_number,
+                PipelineState(
+                    issue_number=ctx.issue_number,
+                    project_id=ctx.project_id,
+                    status=status,
+                    agents=agent_slugs,
+                    current_agent_index=agent_index,
+                    completed_agents=agent_slugs[:agent_index],
+                    started_at=utcnow(),
+                    error=None if success else f"Failed to assign agent '{agent_name}'",
+                    agent_assigned_sha=assigned_sha,
+                    agent_sub_issues=agent_sub_issues,
+                ),
             )
-            set_pipeline_state(ctx.issue_number, pipeline_state)
 
-            # Log the transition
             self.log_transition(
                 ctx=ctx,
                 from_status=status,
@@ -1776,6 +1715,123 @@ class WorkflowOrchestrator:
         finally:
             release_agent_trigger(ctx.issue_number, status, agent_name)
         return success
+
+    # ──────────────────────────────────────────────────────────────────
+    # HELPER: Assign Agent for Status
+    # ──────────────────────────────────────────────────────────────────
+    async def assign_agent_for_status(
+        self,
+        ctx: WorkflowContext,
+        status: str,
+        agent_index: int = 0,
+    ) -> bool:
+        """
+        Look up agent_mappings for the given status and assign the agent
+        at the specified index to the issue.
+
+        Creates or updates a PipelineState to track progress.
+
+        Returns:
+            True if agent assignment succeeded
+        """
+        config = ctx.config or await get_workflow_config(ctx.project_id)
+        if not config:
+            logger.warning("No workflow config for project %s", ctx.project_id)
+            return False
+
+        if ctx.issue_id is None:
+            raise ValueError("issue_id required for agent assignment")
+        if ctx.issue_number is None:
+            raise ValueError("issue_number required for agent assignment")
+
+        # Resolve agents: config lookup + tracking table override (T032-T033)
+        agents = _ci_get(config.agent_mappings, status, [])
+        if not agents:
+            logger.info("No agents configured for status '%s'", status)
+            return True
+
+        if ctx.issue_number:
+            agents = await self._resolve_agents_from_tracking_table(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                issue_number=ctx.issue_number,
+                config_agents=agents,
+                status=status,
+            )
+
+        if agent_index >= len(agents):
+            logger.info(
+                "Agent index %d out of range for status '%s' (has %d agents)",
+                agent_index,
+                status,
+                len(agents),
+            )
+            return True
+
+        agent_slugs: list[str] = [getattr(a, "slug", None) or str(a) for a in agents]
+        agent_name = agent_slugs[agent_index]
+        logger.info(
+            "Assigning agent '%s' (index %d/%d) for status '%s' on issue #%s",
+            agent_name,
+            agent_index + 1,
+            len(agents),
+            status,
+            ctx.issue_number,
+        )
+
+        # Determine base branch (T034)
+        base_ref, current_head_sha, existing_pr = await self._determine_base_ref(
+            ctx=ctx,
+            agent_name=agent_name,
+            agent_index=agent_index,
+        )
+
+        # Resolve sub-issue
+        sub_issue_node_id, sub_issue_number, sub_issue_info = await self._resolve_sub_issue(
+            ctx=ctx,
+            agent_name=agent_name,
+            config=config,
+        )
+
+        # Special agent handlers (early return)
+        if agent_name == "human":
+            return await self._handle_human_agent(
+                ctx=ctx,
+                status=status,
+                agent_slugs=agent_slugs,
+                agent_index=agent_index,
+                sub_issue_info=sub_issue_info,
+                sub_issue_number=sub_issue_number,
+                config=config,
+            )
+
+        if agent_name == "copilot-review":
+            return await self._handle_copilot_review(
+                ctx=ctx,
+                status=status,
+                agent_slugs=agent_slugs,
+                agent_index=agent_index,
+                sub_issue_info=sub_issue_info,
+                sub_issue_number=sub_issue_number,
+                config=config,
+            )
+
+        # Standard Copilot agent assignment
+        return await self._execute_copilot_assignment(
+            ctx=ctx,
+            agent_name=agent_name,
+            status=status,
+            agent_slugs=agent_slugs,
+            agent_index=agent_index,
+            base_ref=base_ref,
+            current_head_sha=current_head_sha,
+            existing_pr=existing_pr,
+            sub_issue_node_id=sub_issue_node_id,
+            sub_issue_number=sub_issue_number,
+            sub_issue_info=sub_issue_info,
+            config=config,
+        )
 
     # ──────────────────────────────────────────────────────────────────
     # STEP 4: Handle Ready Status (T038, T042)

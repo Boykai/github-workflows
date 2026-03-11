@@ -697,6 +697,100 @@ async def check_ready_issues(
     return results
 
 
+async def _claim_merged_child_prs_for_pipeline(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    agents: list[str],
+) -> None:
+    """Claim all merged child PRs for every agent to prevent misattribution.
+
+    Only PRs merged AFTER reconstruction will be unclaimed and detectable
+    as new completions.
+    """
+    main_branch_info = _cp.get_issue_main_branch(issue_number)
+    if not main_branch_info:
+        return
+    main_branch = main_branch_info.get("branch")
+    main_pr_number = main_branch_info.get("pr_number")
+    if not main_branch or not main_pr_number:
+        return
+
+    linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+    )
+    for pr in linked_prs or []:
+        pr_number = pr.get("number")
+        pr_state = pr.get("state", "").upper()
+        if not pr_number or pr_state != "MERGED" or pr_number == main_pr_number:
+            continue
+        pr_details = await _cp.github_projects_service.get_pull_request(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            pr_number=pr_number,
+        )
+        if pr_details and pr_details.get("base_ref") == main_branch:
+            for agent_name in agents:
+                claimed_key = f"{issue_number}:{pr_number}:{agent_name}"
+                if claimed_key not in _claimed_child_prs:
+                    _claimed_child_prs.add(claimed_key)
+                    logger.debug(
+                        "Claimed merged child PR #%d for agent '%s' "
+                        "during pipeline reconstruction (issue #%d)",
+                        pr_number,
+                        agent_name,
+                        issue_number,
+                    )
+
+
+def _derive_pipeline_started_at(
+    last_done_timestamp: str | None,
+    issue_data: dict | None,
+) -> datetime:
+    """Derive the best started_at timestamp for a reconstructed pipeline.
+
+    Priority: last Done! marker timestamp > most recent Done! marker from
+    any agent > issue creation time > utcnow().
+    """
+    if last_done_timestamp:
+        try:
+            return datetime.fromisoformat(last_done_timestamp)
+        except (ValueError, TypeError):
+            pass
+
+    # No Done! markers for current-status agents — look for the most
+    # recent Done! marker from ANY agent (e.g. a prior status).
+    comments = (issue_data or {}).get("comments", [])
+    latest_any_done_ts: str | None = None
+    for c in comments:
+        body = c.get("body", "")
+        for line in body.split("\n"):
+            if line.strip().endswith(": Done!"):
+                ts = c.get("created_at", "")
+                if ts and (latest_any_done_ts is None or ts > latest_any_done_ts):
+                    latest_any_done_ts = ts
+    if latest_any_done_ts:
+        try:
+            return datetime.fromisoformat(latest_any_done_ts)
+        except (ValueError, TypeError):
+            pass
+
+    # Fall back to issue creation time
+    issue_created_at = (issue_data or {}).get("created_at", "")
+    if issue_created_at:
+        try:
+            return datetime.fromisoformat(issue_created_at)
+        except (ValueError, TypeError):
+            pass
+
+    return utcnow()
+
+
 async def _reconstruct_pipeline_state(
     access_token: str,
     owner: str,
@@ -761,45 +855,13 @@ async def _reconstruct_pipeline_state(
                 break
 
         # Claim all MERGED child PRs for EVERY agent in the pipeline.
-        # This prevents stale merged PRs from a previous (failed) run from
-        # being misattributed to the current agent.  Only PRs merged AFTER
-        # the reconstruction (i.e. the current agent's actual work) will be
-        # unclaimed and detectable as new completions.
-        main_branch_info = _cp.get_issue_main_branch(issue_number)
-        if main_branch_info:
-            main_branch = main_branch_info.get("branch")
-            main_pr_number = main_branch_info.get("pr_number")
-            if main_branch and main_pr_number:
-                linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
-                    access_token=access_token,
-                    owner=owner,
-                    repo=repo,
-                    issue_number=issue_number,
-                )
-                for pr in linked_prs or []:
-                    pr_number = pr.get("number")
-                    pr_state = pr.get("state", "").upper()
-                    if pr_number and pr_state == "MERGED" and pr_number != main_pr_number:
-                        # Get PR details to check if it targets the main branch
-                        pr_details = await _cp.github_projects_service.get_pull_request(
-                            access_token=access_token,
-                            owner=owner,
-                            repo=repo,
-                            pr_number=pr_number,
-                        )
-                        if pr_details and pr_details.get("base_ref") == main_branch:
-                            # Claim for every agent so no agent can pick it up
-                            for agent_name in agents:
-                                claimed_key = f"{issue_number}:{pr_number}:{agent_name}"
-                                if claimed_key not in _claimed_child_prs:
-                                    _claimed_child_prs.add(claimed_key)
-                                    logger.debug(
-                                        "Claimed merged child PR #%d for agent '%s' "
-                                        "during pipeline reconstruction (issue #%d)",
-                                        pr_number,
-                                        agent_name,
-                                        issue_number,
-                                    )
+        await _claim_merged_child_prs_for_pipeline(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            agents=agents,
+        )
 
     except Exception as e:
         logger.warning("Could not reconstruct pipeline state for issue #%d: %s", issue_number, e)
@@ -883,59 +945,7 @@ async def _reconstruct_pipeline_state(
         except Exception as e:
             logger.debug("Could not capture HEAD SHA during reconstruction: %s", e)
 
-    # Derive started_at from the last completed agent's Done! marker
-    # so that the timeline-event filter in _check_main_pr_completion
-    # includes events for the CURRENT agent (which may have finished
-    # before this reconstruction).  Using utcnow() would filter out
-    # those events and prevent completion detection.
-    #
-    # When no agents in the current status completed, we must NOT fall
-    # back to issue creation time — that would let stale timeline events
-    # from PRIOR status agents (e.g. speckit.specify in Backlog) pass
-    # the freshness filter for the current status's first agent (e.g.
-    # speckit.plan in Ready).  Instead, scan ALL comments for the most
-    # recent Done! marker from any agent and use its timestamp.
-    reconstructed_started_at: datetime | None = None
-    if last_done_timestamp:
-        try:
-            reconstructed_started_at = datetime.fromisoformat(last_done_timestamp)
-        except (ValueError, TypeError):
-            pass
-    if reconstructed_started_at is None:
-        # No Done! markers for current-status agents — look for the most
-        # recent Done! marker from ANY agent (e.g. a prior status).
-        comments = (issue_data or {}).get("comments", []) if issue_data else []
-        latest_any_done_ts: str | None = None
-        for c in comments:
-            body = c.get("body", "")
-            for line in body.split("\n"):
-                if line.strip().endswith(": Done!"):
-                    ts = c.get("created_at", "")
-                    if ts and (latest_any_done_ts is None or ts > latest_any_done_ts):
-                        latest_any_done_ts = ts
-        if latest_any_done_ts:
-            try:
-                reconstructed_started_at = datetime.fromisoformat(latest_any_done_ts)
-                logger.debug(
-                    "Using cross-status Done! timestamp %s as started_at "
-                    "for issue #%d (no Done! markers for current status agents)",
-                    latest_any_done_ts,
-                    issue_number,
-                )
-            except (ValueError, TypeError):
-                pass
-    if reconstructed_started_at is None:
-        # Use issue creation time as fallback — only reached when no
-        # Done! markers exist at all (truly the first agent overall).
-        issue_created_at = (issue_data or {}).get("created_at", "")
-        if issue_created_at:
-            try:
-                reconstructed_started_at = datetime.fromisoformat(issue_created_at)
-            except (ValueError, TypeError):
-                pass
-    # Final fallback — use utcnow() (worst case, same as before)
-    if reconstructed_started_at is None:
-        reconstructed_started_at = utcnow()
+    reconstructed_started_at = _derive_pipeline_started_at(last_done_timestamp, issue_data)
 
     pipeline = _cp.PipelineState(
         issue_number=issue_number,

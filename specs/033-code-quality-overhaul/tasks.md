@@ -60,14 +60,14 @@
 
 **Independent Test**: `ruff check` passes. `pytest -x` passes. All callers use canonical functions. SC-002: ≥200 lines removed. SC-010: zero DRY violations remaining.
 
-- [ ] T015 Identify and remove/update stale tests that mock removed duplicate functions in backend/tests/
-- [ ] T016 [US2] Consolidate all 8 repository resolution code paths to use canonical `resolve_repository()` from backend/src/utils.py — update callers in backend/src/api/workflow.py, backend/src/api/chat.py, backend/src/api/projects.py, backend/src/main.py
-- [ ] T017 [US2] Delete `_get_repository_info()` from backend/src/api/workflow.py and remove 102-line inlined fallback from backend/src/main.py
-- [ ] T018 [US2] Replace 5 inline "no project selected" checks with `require_selected_project()` in backend/src/api/chat.py, backend/src/api/workflow.py, backend/src/api/tasks.py
-- [ ] T019 [US2] Replace 4 inline cache check/refresh/set patterns with `cached_fetch()`: 2 patterns in backend/src/api/projects.py, 1 in backend/src/api/board.py, 1 in backend/src/api/chat.py
-- [ ] T020 [US2] Apply `@handle_github_errors` decorator (or shared helper) to endpoints in backend/src/api/board.py, backend/src/api/projects.py, backend/src/api/workflow.py per FR-007
-- [ ] T021 [P] [US2] Create `case_insensitive_get()` utility in frontend/src/lib/case-utils.ts and replace 5 inline `Object.keys().find()` in frontend/src/hooks/useAgentConfig.ts per FR-008
-- [ ] T022 [US2] Run `pytest -x`, `ruff check`, `npx vitest run` — verify SC-002 (≥200 lines removed), SC-010 (zero DRY violations); commit Phase 3
+- [X] T015 Identify and remove/update stale tests that mock removed duplicate functions in backend/tests/
+- [X] T016 [US2] Consolidate all 8 repository resolution code paths to use canonical `resolve_repository()` from backend/src/utils.py — update callers in backend/src/api/workflow.py, backend/src/api/chat.py, backend/src/api/projects.py, backend/src/main.py
+- [X] T017 [US2] Delete `_get_repository_info()` from backend/src/api/workflow.py and remove 102-line inlined fallback from backend/src/main.py
+- [X] T018 [US2] Replace 5 inline "no project selected" checks with `require_selected_project()` in backend/src/api/chat.py, backend/src/api/workflow.py, backend/src/api/tasks.py
+- [X] T019 [US2] Replace 4 inline cache check/refresh/set patterns with `cached_fetch()`: 2 patterns in backend/src/api/projects.py, 1 in backend/src/api/board.py, 1 in backend/src/api/chat.py
+- [X] T020 [US2] Apply `@handle_github_errors` decorator (or shared helper) to endpoints in backend/src/api/board.py, backend/src/api/projects.py, backend/src/api/workflow.py per FR-007
+- [X] T021 [P] [US2] Create `case_insensitive_get()` utility in frontend/src/lib/case-utils.ts and replace 5 inline `Object.keys().find()` in frontend/src/hooks/useAgentConfig.ts per FR-008
+- [X] T022 [US2] Run `pytest -x`, `ruff check`, `npx vitest run` — verify SC-002 (≥200 lines removed), SC-010 (zero DRY violations); commit Phase 3
 
 **Checkpoint**: All DRY violations resolved. ~230 lines removed. All tests pass.
 
@@ -79,69 +79,69 @@
 
 **Independent Test**: `cgc analyze complexity` → all functions below 25. `pytest -x` passes. SC-001 met.
 
-- [ ] T023 Identify and remove/update stale tests related to refactored functions in backend/tests/
+- [X] T023 Identify and remove/update stale tests related to refactored functions in backend/tests/
 
 ### 4.1: agent_output.py (Complexity 123 → <25 each)
 
-- [ ] T024 [US1] Add `CommentScanResult` dataclass to backend/src/services/copilot_polling/agent_output.py per data-model.md
-- [ ] T025 [US1] Extract `_reconstruct_pipeline_if_missing()` helper (~230 lines) from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
-- [ ] T026 [US1] Extract `_detect_completion_signals()` helper from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
-- [ ] T027 [US1] Extract `_post_markdown_outputs()` helper from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
-- [ ] T028 [US1] Extract `_merge_and_claim_child_pr()` helper from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
-- [ ] T029 [US1] Extract `_post_done_marker()` helper from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
-- [ ] T030 [US1] Refactor `post_agent_outputs_from_pr()` to orchestrate extracted helpers — verify complexity <25 in backend/src/services/copilot_polling/agent_output.py
+- [X] T024 [US1] Add `CommentScanResult` dataclass to backend/src/services/copilot_polling/agent_output.py per data-model.md
+- [X] T025 [US1] Extract `_reconstruct_pipeline_if_missing()` helper (~230 lines) from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
+- [X] T026 [US1] Extract `_detect_completion_signals()` helper from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
+- [X] T027 [US1] Extract `_post_markdown_outputs()` helper from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
+- [X] T028 [US1] Extract `_merge_and_claim_child_pr()` helper from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
+- [X] T029 [US1] Extract `_post_done_marker()` helper from `post_agent_outputs_from_pr()` in backend/src/services/copilot_polling/agent_output.py
+- [X] T030 [US1] Refactor `post_agent_outputs_from_pr()` to orchestrate extracted helpers — verify complexity <25 in backend/src/services/copilot_polling/agent_output.py
 
 ### 4.2: orchestrator.py (Complexity 91 → <25 each)
 
-- [ ] T031 [US1] Add `AgentResolution` dataclass to backend/src/services/workflow_orchestrator/orchestrator.py per data-model.md
-- [ ] T032 [US1] Extract `_resolve_agents_from_tracking_table()` from `assign_agent_for_status()` in backend/src/services/workflow_orchestrator/orchestrator.py
-- [ ] T033 [US1] Extract `_resolve_agents_from_config()` from `assign_agent_for_status()` in backend/src/services/workflow_orchestrator/orchestrator.py
-- [ ] T034 [US1] Extract `_determine_base_ref()` from `assign_agent_for_status()` in backend/src/services/workflow_orchestrator/orchestrator.py
-- [ ] T035 [US1] Extract `_resolve_model()` from `assign_agent_for_status()` in backend/src/services/workflow_orchestrator/orchestrator.py
-- [ ] T036 [US1] Refactor `assign_agent_for_status()` to use extracted helpers + `AgentResolution` dataclass in backend/src/services/workflow_orchestrator/orchestrator.py
+- [X] T031 [US1] Add `AgentResolution` dataclass to backend/src/services/workflow_orchestrator/orchestrator.py per data-model.md
+- [X] T032 [US1] Extract `_resolve_agents_from_tracking_table()` from `assign_agent_for_status()` in backend/src/services/workflow_orchestrator/orchestrator.py
+- [X] T033 [US1] Extract `_resolve_agents_from_config()` from `assign_agent_for_status()` in backend/src/services/workflow_orchestrator/orchestrator.py
+- [X] T034 [US1] Extract `_determine_base_ref()` from `assign_agent_for_status()` in backend/src/services/workflow_orchestrator/orchestrator.py
+- [X] T035 [US1] Extract `_resolve_model()` from `assign_agent_for_status()` in backend/src/services/workflow_orchestrator/orchestrator.py
+- [X] T036 [US1] Refactor `assign_agent_for_status()` to use extracted helpers + `AgentResolution` dataclass in backend/src/services/workflow_orchestrator/orchestrator.py
 
 ### 4.3: recovery.py (Complexity 72 → <20 each)
 
-- [ ] T037 [US1] Add `AgentStepState` enum to backend/src/models/agent.py per data-model.md — replace emoji string matching per FR-011
-- [ ] T038 [US1] Extract `_should_skip_recovery()` from `recover_stalled_issues()` in backend/src/services/copilot_polling/recovery.py
-- [ ] T039 [US1] Extract `_validate_tracking_table()` from `recover_stalled_issues()` in backend/src/services/copilot_polling/recovery.py
-- [ ] T040 [US1] Extract `_attempt_reassignment()` from `recover_stalled_issues()` in backend/src/services/copilot_polling/recovery.py
-- [ ] T041 [US1] Replace all emoji string matching in recovery.py with `AgentStepState.from_markdown()` calls in backend/src/services/copilot_polling/recovery.py
+- [X] T037 [US1] Add `AgentStepState` enum to backend/src/models/agent.py per data-model.md — replace emoji string matching per FR-011
+- [X] T038 [US1] Extract `_should_skip_recovery()` from `recover_stalled_issues()` in backend/src/services/copilot_polling/recovery.py
+- [X] T039 [US1] Extract `_validate_tracking_table()` from `recover_stalled_issues()` in backend/src/services/copilot_polling/recovery.py
+- [X] T040 [US1] Extract `_attempt_reassignment()` from `recover_stalled_issues()` in backend/src/services/copilot_polling/recovery.py
+- [X] T041 [US1] Replace all emoji string matching in recovery.py with `AgentStepState.from_markdown()` calls in backend/src/services/copilot_polling/recovery.py
 
 ### 4.4: polling_loop.py (Complexity 43 → <15)
 
-- [ ] T042 [US1] Add `PollStep` dataclass and `POLL_STEPS` list to backend/src/services/copilot_polling/polling_loop.py per data-model.md and FR-013
-- [ ] T043 [US1] Refactor `_poll_loop()` to iterate over `POLL_STEPS` list instead of repeated inline conditional blocks in backend/src/services/copilot_polling/polling_loop.py
+- [X] T042 [US1] Add `PollStep` dataclass and `POLL_STEPS` list to backend/src/services/copilot_polling/polling_loop.py per data-model.md and FR-013
+- [X] T043 [US1] Refactor `_poll_loop()` to iterate over `POLL_STEPS` list instead of repeated inline conditional blocks in backend/src/services/copilot_polling/polling_loop.py
 
 ### 4.5: chat.py (Complexity 42 → <20)
 
-- [ ] T044 [US1] Create `chat_messages` SQLite table migration in backend/src/migrations/ per data-model.md schema (FR-012)
-- [ ] T045 [US1] Replace `_messages` dict with SQLite-backed storage + TTL cleanup in backend/src/api/chat.py
-- [ ] T046 [US1] Extract chat command dispatch handlers from `send_message()` in backend/src/api/chat.py. The 5 command handlers are: (1) `/agent` — custom agent creation, (2) `#block` — blocking issue detection, (3) feature request — issue generation, (4) status change — board column move, (5) task generation — task from description
+- [X] T044 [US1] Create `chat_messages` SQLite table migration in backend/src/migrations/ per data-model.md schema (FR-012)
+- [X] T045 [US1] Replace `_messages` dict with SQLite-backed storage + TTL cleanup in backend/src/api/chat.py
+- [X] T046 [US1] Extract chat command dispatch handlers from `send_message()` in backend/src/api/chat.py. The 5 command handlers are: (1) `/agent` — custom agent creation, (2) `#block` — blocking issue detection, (3) feature request — issue generation, (4) status change — board column move, (5) task generation — task from description
 
 ### 4.6: cleanup_service.py (Complexity 42 → <20)
 
-- [ ] T047 [US1] Add `ItemClassification` dataclass to backend/src/services/cleanup_service.py per data-model.md
-- [ ] T048 [US1] Extract `_link_by_branch_name()` from `preflight()` in backend/src/services/cleanup_service.py
-- [ ] T049 [US1] Extract `_link_by_pr_body()` from `preflight()` in backend/src/services/cleanup_service.py
-- [ ] T050 [US1] Extract `_link_by_ownership()` from `preflight()` in backend/src/services/cleanup_service.py
-- [ ] T051 [US1] Refactor `preflight()` to use extracted helpers + `ItemClassification` dataclass in backend/src/services/cleanup_service.py
+- [X] T047 [US1] Add `ItemClassification` dataclass to backend/src/services/cleanup_service.py per data-model.md
+- [X] T048 [US1] Extract `_link_by_branch_name()` from `preflight()` in backend/src/services/cleanup_service.py
+- [X] T049 [US1] Extract `_link_by_pr_body()` from `preflight()` in backend/src/services/cleanup_service.py
+- [X] T050 [US1] Extract `_link_by_ownership()` from `preflight()` in backend/src/services/cleanup_service.py
+- [X] T051 [US1] Refactor `preflight()` to use extracted helpers + `ItemClassification` dataclass in backend/src/services/cleanup_service.py
 
 ### 4.7: get_board_data in service.py (Complexity 63 → <25)
 
-- [ ] T052 [US1] Extract `_build_column_map()` from `get_board_data()` in backend/src/services/github_projects/service.py
-- [ ] T053 [US1] Extract `_classify_board_items()` from `get_board_data()` in backend/src/services/github_projects/service.py
-- [ ] T054 [US1] Refactor `get_board_data()` to orchestrate extracted helpers — verify complexity <25 in backend/src/services/github_projects/service.py
+- [X] T052 [US1] Extract `_build_column_map()` from `get_board_data()` in backend/src/services/github_projects/service.py
+- [X] T053 [US1] Extract `_classify_board_items()` from `get_board_data()` in backend/src/services/github_projects/service.py
+- [X] T054 [US1] Refactor `get_board_data()` to orchestrate extracted helpers — verify complexity <25 in backend/src/services/github_projects/service.py
 
 ### 4.8: _reconstruct_pipeline_state in pipeline.py (Complexity 49 → <25)
 
-- [ ] T055 [US1] Extract `_parse_tracking_table_rows()` from `_reconstruct_pipeline_state()` in backend/src/services/copilot_polling/pipeline.py
-- [ ] T056 [US1] Extract `_reconcile_issue_states()` from `_reconstruct_pipeline_state()` in backend/src/services/copilot_polling/pipeline.py
-- [ ] T057 [US1] Refactor `_reconstruct_pipeline_state()` to use extracted helpers — verify complexity <25 in backend/src/services/copilot_polling/pipeline.py
+- [X] T055 [US1] Extract `_parse_tracking_table_rows()` from `_reconstruct_pipeline_state()` in backend/src/services/copilot_polling/pipeline.py
+- [X] T056 [US1] Extract `_reconcile_issue_states()` from `_reconstruct_pipeline_state()` in backend/src/services/copilot_polling/pipeline.py
+- [X] T057 [US1] Refactor `_reconstruct_pipeline_state()` to use extracted helpers — verify complexity <25 in backend/src/services/copilot_polling/pipeline.py
 
 ### 4.9: Verification
 
-- [ ] T058 [US1] Run `cgc analyze complexity` — verify all 8 refactored backend functions score <25 (SC-001). Additionally verify FR-010: confirm all extracted helpers accept explicit parameters (no closures over parent scope). Run `pytest -x`; commit Phase 4
+- [X] T058 [US1] Run `cgc analyze complexity` — verify all 8 refactored backend functions score <25 (SC-001). Additionally verify FR-010: confirm all extracted helpers accept explicit parameters (no closures over parent scope). Run `pytest -x`; commit Phase 4
 
 **Checkpoint**: All 8 high-complexity backend functions refactored below threshold 25. Chat storage migrated to SQLite. Emoji matching replaced with typed enum. All tests pass.
 

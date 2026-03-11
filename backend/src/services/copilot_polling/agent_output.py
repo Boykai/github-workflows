@@ -1,7 +1,8 @@
 """Agent output extraction and posting from completed PRs."""
 
 import asyncio
-from datetime import UTC
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
@@ -15,6 +16,670 @@ from .state import (
 )
 
 logger = get_logger(__name__)
+
+
+@dataclass(frozen=True)
+class CommentScanResult:
+    """Result of scanning PR/issue comments for completion signals."""
+
+    has_done_marker: bool
+    done_comment_id: str | None = None
+    agent_output_files: list[str] = field(default_factory=list)
+    merge_candidates: list[str] = field(default_factory=list)
+
+
+async def _reconstruct_pipeline_if_missing(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    project_id: str,
+) -> "_cp.PipelineState | None":
+    """Reconstruct in-memory pipeline state from the durable tracking table.
+
+    When volatile state is lost (e.g. after a container restart), this reads
+    the issue body and comments to rebuild a PipelineState so that agent
+    completions are detected and Done! markers posted correctly.
+
+    Returns the reconstructed pipeline, or None if reconstruction failed.
+    """
+    try:
+        body, comments = await _cp._get_tracking_state_from_issue(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+        steps = _cp.parse_tracking_from_body(body)
+        active_step = _cp.get_current_agent_from_tracking(body)
+        if not steps or not active_step:
+            return None
+
+        status_key = active_step.status
+        status_agents = [s.agent_name for s in steps if s.status == status_key]
+
+        # Determine completed agents by checking Done! comments
+        completed: list[str] = []
+        last_done_ts: str | None = None
+        for agent in status_agents:
+            done_marker = f"{agent}: Done!"
+            done_c = next(
+                (
+                    c
+                    for c in comments
+                    if any(line.strip() == done_marker for line in c.get("body", "").split("\n"))
+                ),
+                None,
+            )
+            if done_c:
+                completed.append(agent)
+                last_done_ts = done_c.get("created_at") or last_done_ts
+            else:
+                break  # Sequential — stop at first incomplete
+
+        # Derive started_at from the last Done! marker
+        recon_started: datetime | None = None
+        if last_done_ts:
+            try:
+                recon_started = datetime.fromisoformat(last_done_ts)
+            except (ValueError, TypeError):
+                pass
+        if recon_started is None:
+            latest_any_done_ts: str | None = None
+            for c in comments:
+                body_text = c.get("body", "")
+                for bline in body_text.split("\n"):
+                    if bline.strip().endswith(": Done!"):
+                        ts = c.get("created_at", "")
+                        if ts and (latest_any_done_ts is None or ts > latest_any_done_ts):
+                            latest_any_done_ts = ts
+            if latest_any_done_ts:
+                try:
+                    recon_started = datetime.fromisoformat(latest_any_done_ts)
+                except (ValueError, TypeError):
+                    pass
+        if recon_started is None:
+            recon_started = datetime(2020, 1, 1, tzinfo=UTC)
+
+        # Capture HEAD SHA from the main PR
+        recon_sha = ""
+        main_br = _cp.get_issue_main_branch(issue_number)
+        if main_br and main_br.get("head_sha"):
+            recon_sha = main_br["head_sha"]
+
+        pipeline = _cp.PipelineState(
+            issue_number=issue_number,
+            project_id=project_id,
+            status=status_key,
+            agents=status_agents,
+            current_agent_index=len(completed),
+            completed_agents=completed,
+            started_at=recon_started,
+            agent_assigned_sha=recon_sha,
+        )
+
+        # Reconstruct sub-issue mappings from GitHub API
+        pipeline.agent_sub_issues = await _cp._reconstruct_sub_issue_mappings(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+
+        _cp.set_pipeline_state(issue_number, pipeline)
+        logger.info(
+            "Reconstructed pipeline for issue #%d from tracking "
+            "table: active agent '%s', status '%s', %d/%d done",
+            issue_number,
+            active_step.agent_name,
+            status_key,
+            len(completed),
+            len(status_agents),
+        )
+
+        # Reconstruct main branch info if missing
+        if not _cp.get_issue_main_branch(issue_number):
+            try:
+                existing_pr = await _cp.github_projects_service.find_existing_pr_for_issue(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
+                if existing_pr:
+                    pr_det = await _cp.github_projects_service.get_pull_request(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        pr_number=existing_pr["number"],
+                    )
+                    h_sha = pr_det.get("last_commit", {}).get("sha", "") if pr_det else ""
+                    _cp.set_issue_main_branch(
+                        issue_number,
+                        existing_pr["head_ref"],
+                        existing_pr["number"],
+                        h_sha,
+                    )
+                    logger.info(
+                        "Reconstructed main branch '%s' (PR #%d) for issue #%d",
+                        existing_pr["head_ref"],
+                        existing_pr["number"],
+                        issue_number,
+                    )
+                    if pr_det and not pr_det.get("is_draft", True):
+                        _system_marked_ready_prs.add(existing_pr["number"])
+                        logger.info(
+                            "Marked main PR #%d as ready during "
+                            "agent_output reconstruction for issue #%d",
+                            existing_pr["number"],
+                            issue_number,
+                        )
+            except Exception as e:
+                logger.debug(
+                    "Could not reconstruct main branch for issue #%d: %s",
+                    issue_number,
+                    e,
+                )
+
+        # Claim merged child PRs for ALL agents to prevent misattribution
+        main_branch_recon = _cp.get_issue_main_branch(issue_number)
+        if main_branch_recon:
+            try:
+                linked_prs_recon = await _cp.github_projects_service.get_linked_pull_requests(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                )
+                main_pr_num_recon = main_branch_recon.get("pr_number")
+                for pr_recon in linked_prs_recon or []:
+                    pr_num_r = pr_recon.get("number")
+                    pr_state_r = (pr_recon.get("state") or "").upper()
+                    if (
+                        pr_state_r == "MERGED"
+                        and pr_num_r is not None
+                        and pr_num_r != main_pr_num_recon
+                    ):
+                        for recon_agent in status_agents:
+                            claim_key = f"{issue_number}:{pr_num_r}:{recon_agent}"
+                            if claim_key not in _claimed_child_prs:
+                                _claimed_child_prs.add(claim_key)
+                                logger.debug(
+                                    "Reconstructed claim for merged PR #%d "
+                                    "(agent '%s') on issue #%d",
+                                    pr_num_r,
+                                    recon_agent,
+                                    issue_number,
+                                )
+            except Exception as e:
+                logger.debug(
+                    "Could not reconstruct child PR claims for issue #%d: %s",
+                    issue_number,
+                    e,
+                )
+        return pipeline
+    except Exception as e:
+        logger.debug(
+            "Could not reconstruct pipeline for issue #%d: %s",
+            issue_number,
+            e,
+        )
+        return None
+
+
+async def _detect_completion_signals(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    current_agent: str,
+    pipeline: "_cp.PipelineState",
+) -> dict[str, Any] | None:
+    """Detect whether the current agent's PR work is complete.
+
+    Checks child PRs, standard Copilot PR completion, sub-issue PRs,
+    and main PR completion signals.
+
+    Returns the finished PR dict, or None if no completion detected.
+    """
+    if current_agent in ("copilot-review", "human"):
+        return None
+
+    main_branch_info = _cp.get_issue_main_branch(issue_number)
+    main_pr_number = main_branch_info["pr_number"] if main_branch_info else None
+    main_branch = main_branch_info["branch"] if main_branch_info else None
+    is_subsequent_agent = main_branch_info is not None
+
+    finished_pr = None
+
+    # For subsequent agents, check child PR completion FIRST
+    if is_subsequent_agent and main_branch and main_pr_number:
+        child_pr_info = await _cp._find_completed_child_pr(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            main_branch=main_branch,
+            main_pr_number=main_pr_number,
+            agent_name=current_agent,
+            pipeline=pipeline,
+        )
+        if child_pr_info:
+            finished_pr = child_pr_info
+            logger.info(
+                "Found completed child PR #%d for agent '%s' on issue #%d",
+                child_pr_info.get("number"),
+                current_agent,
+                issue_number,
+            )
+
+    # If no child PR, check standard Copilot PR completion (first agent only)
+    if not finished_pr and not is_subsequent_agent:
+        finished_pr = await _cp.github_projects_service.check_copilot_pr_completion(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+
+    # Check agent's sub-issue for PR completion (first agent only)
+    if not finished_pr and not is_subsequent_agent:
+        sub_num = _cp._get_sub_issue_number(pipeline, current_agent, issue_number)
+        if sub_num and sub_num != issue_number:
+            finished_pr = await _cp.github_projects_service.check_copilot_pr_completion(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=sub_num,
+            )
+            if finished_pr:
+                pr_num = finished_pr.get("number")
+                if pr_num:
+                    try:
+                        await _cp.github_projects_service.link_pull_request_to_issue(
+                            access_token=access_token,
+                            owner=owner,
+                            repo=repo,
+                            pr_number=pr_num,
+                            issue_number=issue_number,
+                        )
+                    except Exception as e:
+                        logger.debug("Suppressed error: %s", e)
+
+                if is_subsequent_agent and main_pr_number is not None and pr_num != main_pr_number:
+                    finished_pr["is_child_pr"] = True
+                    logger.info(
+                        "Marked sub-issue PR #%s as child PR for agent '%s' "
+                        "(parent issue #%d, main PR #%d)",
+                        pr_num,
+                        current_agent,
+                        issue_number,
+                        main_pr_number,
+                    )
+                logger.info(
+                    "Found completed PR #%s for agent '%s' via sub-issue #%d (parent issue #%d)",
+                    finished_pr.get("number"),
+                    current_agent,
+                    sub_num,
+                    issue_number,
+                )
+
+    # Check if work was done directly on the main PR (subsequent agents)
+    if not finished_pr and is_subsequent_agent and main_pr_number is not None:
+        agent_sub_number = _cp._get_sub_issue_number(pipeline, current_agent, issue_number)
+        main_pr_completed = await _cp._check_main_pr_completion(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            main_pr_number=main_pr_number,
+            issue_number=issue_number,
+            agent_name=current_agent,
+            pipeline_started_at=pipeline.started_at,
+            agent_assigned_sha=pipeline.agent_assigned_sha,
+            is_subsequent_agent=True,
+            sub_issue_number=agent_sub_number,
+        )
+        if main_pr_completed:
+            pr_details = await _cp.github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=main_pr_number,
+            )
+            if pr_details:
+                finished_pr = {
+                    "number": main_pr_number,
+                    "id": pr_details.get("id"),
+                    "head_ref": pr_details.get("head_ref", ""),
+                    "last_commit": pr_details.get("last_commit"),
+                    "copilot_finished": True,
+                }
+
+    if not finished_pr:
+        return None
+
+    pr_number = finished_pr.get("number")
+    if not pr_number:
+        return None
+
+    # For subsequent agents, verify fresh completion signals on main PR
+    if is_subsequent_agent and pr_number == main_pr_number and main_pr_number is not None:
+        verify_sub_number = _cp._get_sub_issue_number(pipeline, current_agent, issue_number)
+        main_pr_completed = await _cp._check_main_pr_completion(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            main_pr_number=main_pr_number,
+            issue_number=issue_number,
+            agent_name=current_agent,
+            pipeline_started_at=pipeline.started_at,
+            agent_assigned_sha=pipeline.agent_assigned_sha,
+            is_subsequent_agent=True,
+            sub_issue_number=verify_sub_number,
+        )
+        if not main_pr_completed:
+            logger.debug(
+                "Main PR #%d has no fresh completion signals for agent '%s' "
+                "on issue #%d — still in progress",
+                pr_number,
+                current_agent,
+                issue_number,
+            )
+            return None
+
+    return finished_pr
+
+
+async def _post_markdown_outputs(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    current_agent: str,
+    pipeline: "_cp.PipelineState",
+    pr_number: int,
+    head_ref: str,
+    pr_files: list[dict[str, Any]],
+) -> int:
+    """Post .md file contents from the PR as comments on the agent's sub-issue.
+
+    Returns the number of files posted.
+    """
+    expected_files = _cp.AGENT_OUTPUT_FILES.get(current_agent, [])
+    posted_count = 0
+
+    # Determine which sub-issue to post on
+    comment_issue_number: int | None = None
+    if pipeline and pipeline.agent_sub_issues:
+        sub_info = pipeline.agent_sub_issues.get(current_agent)
+        if sub_info and sub_info.get("number"):
+            comment_issue_number = sub_info["number"]
+            logger.info(
+                "Posting agent '%s' markdown outputs on sub-issue #%d (parent #%d)",
+                current_agent,
+                comment_issue_number,
+                issue_number,
+            )
+
+    # Fall back to the global sub-issue store
+    if comment_issue_number is None:
+        global_subs = _cp.get_issue_sub_issues(issue_number)
+        sub_info = global_subs.get(current_agent)
+        if sub_info and sub_info.get("number"):
+            comment_issue_number = sub_info["number"]
+            logger.info(
+                "Using sub-issue #%d from global store for agent '%s' (parent #%d)",
+                comment_issue_number,
+                current_agent,
+                issue_number,
+            )
+
+    if comment_issue_number is None:
+        logger.info(
+            "No sub-issue for agent '%s' on issue #%d — "
+            "skipping markdown file comments (only Done! on parent)",
+            current_agent,
+            issue_number,
+        )
+        return 0
+
+    # Post expected output files
+    for pr_file in pr_files:
+        filename = pr_file.get("filename", "")
+        basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
+
+        if basename.lower() in [f.lower() for f in expected_files]:
+            ref = head_ref or "HEAD"
+            content = await _cp.github_projects_service.get_file_content_from_ref(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                path=filename,
+                ref=ref,
+            )
+
+            if content:
+                comment_body = (
+                    f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
+                )
+                comment = await _cp.github_projects_service.create_issue_comment(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=comment_issue_number,
+                    body=comment_body,
+                )
+                if comment:
+                    posted_count += 1
+                    logger.info(
+                        "Posted content of %s as comment on sub-issue #%d",
+                        filename,
+                        comment_issue_number,
+                    )
+            else:
+                logger.warning(
+                    "Could not fetch content of %s from ref %s for issue #%d",
+                    filename,
+                    ref,
+                    issue_number,
+                )
+
+    # Post other .md files changed in the PR
+    for pr_file in pr_files:
+        filename = pr_file.get("filename", "")
+        basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
+
+        if (
+            basename.lower().endswith(".md")
+            and basename.lower() not in [f.lower() for f in expected_files]
+            and pr_file.get("status") in ("added", "modified")
+        ):
+            ref = head_ref or "HEAD"
+            content = await _cp.github_projects_service.get_file_content_from_ref(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                path=filename,
+                ref=ref,
+            )
+
+            if content:
+                comment_body = (
+                    f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
+                )
+                await _cp.github_projects_service.create_issue_comment(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=comment_issue_number,
+                    body=comment_body,
+                )
+                posted_count += 1
+
+    return posted_count
+
+
+async def _merge_and_claim_child_pr(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    current_agent: str,
+    pipeline: "_cp.PipelineState",
+    finished_pr: dict[str, Any],
+    pr_number: int,
+    is_child_pr: bool,
+) -> bool:
+    """Merge child PR into main branch and claim it.
+
+    Returns True if processing should continue to post Done!,
+    False if the merge failed and we should skip this issue.
+    """
+    main_branch_info = _cp.get_issue_main_branch(issue_number)
+
+    if is_child_pr and main_branch_info:
+        if finished_pr.get("is_merged", False):
+            logger.info(
+                "Child PR #%d for agent '%s' on issue #%d is already "
+                "merged — proceeding to post Done! marker",
+                pr_number,
+                current_agent,
+                issue_number,
+            )
+        else:
+            merge_result = await _cp._merge_child_pr_if_applicable(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+                main_branch=main_branch_info["branch"],
+                main_pr_number=main_branch_info["pr_number"],
+                completed_agent=current_agent,
+                pipeline=pipeline,
+            )
+            if merge_result and merge_result.get("status") == "merged":
+                logger.info(
+                    "Merged child PR #%d for agent '%s' on issue #%d",
+                    pr_number,
+                    current_agent,
+                    issue_number,
+                )
+                await asyncio.sleep(_cp.POST_ACTION_DELAY_SECONDS)
+            else:
+                logger.warning(
+                    "Failed to merge child PR #%d for agent '%s' on issue #%d "
+                    "— skipping Done! marker, will retry next cycle",
+                    pr_number,
+                    current_agent,
+                    issue_number,
+                )
+                return False
+
+    # Mark the child PR as claimed
+    if is_child_pr:
+        claimed_key = f"{issue_number}:{pr_number}:{current_agent}"
+        _claimed_child_prs.add(claimed_key)
+        logger.debug(
+            "Marked child PR #%d as claimed by agent '%s' on issue #%d",
+            pr_number,
+            current_agent,
+            issue_number,
+        )
+
+    return True
+
+
+async def _post_done_marker(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    current_agent: str,
+    pipeline: "_cp.PipelineState",
+    pr_number: int,
+    posted_count: int,
+    cache_key: str,
+) -> dict[str, Any] | None:
+    """Post the Done! marker on the parent issue and close the sub-issue.
+
+    Returns a result dict on success, or None on failure.
+    """
+    marker = f"{current_agent}: Done!"
+    done_comment = await _cp.github_projects_service.create_issue_comment(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+        body=marker,
+    )
+
+    if not done_comment:
+        logger.error("Failed to post Done! marker on issue #%d", issue_number)
+        return None
+
+    _posted_agent_outputs.add(cache_key)
+
+    # Determine sub-issue for closing
+    comment_issue_number: int | None = None
+    if pipeline and pipeline.agent_sub_issues:
+        sub_info = pipeline.agent_sub_issues.get(current_agent)
+        if sub_info and sub_info.get("number"):
+            comment_issue_number = sub_info["number"]
+    if comment_issue_number is None:
+        global_subs = _cp.get_issue_sub_issues(issue_number)
+        sub_info = global_subs.get(current_agent)
+        if sub_info and sub_info.get("number"):
+            comment_issue_number = sub_info["number"]
+
+    logger.info(
+        "Posted '%s' marker on parent issue #%d (%d .md files posted on %s)",
+        marker,
+        issue_number,
+        posted_count,
+        f"sub-issue #{comment_issue_number}" if comment_issue_number else "no sub-issue",
+    )
+
+    # Close the sub-issue as completed
+    if comment_issue_number is not None and comment_issue_number != issue_number:
+        closed = await _cp.github_projects_service.update_issue_state(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=comment_issue_number,
+            state="closed",
+            state_reason="completed",
+        )
+        if closed:
+            logger.info(
+                "Closed sub-issue #%d as completed (agent '%s' done)",
+                comment_issue_number,
+                current_agent,
+            )
+        else:
+            logger.warning(
+                "Failed to close sub-issue #%d after agent '%s' completion",
+                comment_issue_number,
+                current_agent,
+            )
+
+    # Update the tracking table
+    await _cp._update_issue_tracking(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+        agent_name=current_agent,
+        new_state="done",
+    )
+
+    return {
+        "status": "success",
+        "issue_number": issue_number,
+        "agent_name": current_agent,
+        "pr_number": pr_number,
+        "files_posted": posted_count,
+        "action": "agent_outputs_posted",
+    }
 
 
 async def post_agent_outputs_from_pr(
@@ -39,16 +704,6 @@ async def post_agent_outputs_from_pr(
 
     This runs BEFORE the status-specific checks (backlog/ready/in-progress) so
     that the Done! markers are in place for the existing comment-based detection.
-
-    Args:
-        access_token: GitHub access token
-        project_id: GitHub Project V2 node ID
-        owner: Repository owner
-        repo: Repository name
-        tasks: Pre-fetched project items
-
-    Returns:
-        List of results for each issue where outputs were posted
     """
     results = []
 
@@ -57,7 +712,6 @@ async def post_agent_outputs_from_pr(
         if not config:
             return results
 
-        # Find all issues with active pipelines
         for task in tasks:
             if task.issue_number is None:
                 continue
@@ -69,235 +723,15 @@ async def post_agent_outputs_from_pr(
 
             pipeline = _cp.get_pipeline_state(task.issue_number)
 
-            # If in-memory pipeline state is missing (e.g., after container
-            # restart), reconstruct from the durable tracking table in the
-            # issue body.  This ensures agent completions are detected and
-            # Done! markers posted even when volatile state has been lost.
-            # Without this, Step 0 skips the issue entirely, the Done!
-            # marker is never posted, and recovery (Step 5) mistakenly
-            # re-assigns the same agent — causing duplicate PRs.
+            # Reconstruct pipeline from tracking table if volatile state is lost
             if pipeline is None:
-                try:
-                    body, comments = await _cp._get_tracking_state_from_issue(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=task.issue_number,
-                    )
-                    steps = _cp.parse_tracking_from_body(body)
-                    active_step = _cp.get_current_agent_from_tracking(body)
-                    if steps and active_step:
-                        status_key = active_step.status
-                        # Build agent list for this status from the tracking table
-                        status_agents = [s.agent_name for s in steps if s.status == status_key]
-                        # Determine completed agents by checking Done! comments
-                        completed: list[str] = []
-                        last_done_ts: str | None = None
-                        for agent in status_agents:
-                            done_marker = f"{agent}: Done!"
-                            done_c = next(
-                                (
-                                    c
-                                    for c in comments
-                                    if any(
-                                        line.strip() == done_marker
-                                        for line in c.get("body", "").split("\n")
-                                    )
-                                ),
-                                None,
-                            )
-                            if done_c:
-                                completed.append(agent)
-                                last_done_ts = done_c.get("created_at") or last_done_ts
-                            else:
-                                break  # Sequential — stop at first incomplete
-
-                        # Derive started_at from the last Done! marker so that
-                        # timeline-event filters include events from the current
-                        # agent (which may have finished before this reconstruction).
-                        # Using utcnow() would filter out those events and cause
-                        # the pipeline to stall after a container restart.
-                        from datetime import datetime
-
-                        recon_started: datetime | None = None
-                        if last_done_ts:
-                            try:
-                                recon_started = datetime.fromisoformat(last_done_ts)
-                            except (ValueError, TypeError):
-                                pass
-                        if recon_started is None:
-                            # No Done! markers for current-status agents — look
-                            # for the most recent Done! marker from ANY agent
-                            # (e.g. a prior status).  Without this, stale events
-                            # from a prior-status agent pass the freshness filter.
-                            latest_any_done_ts: str | None = None
-                            for c in comments:
-                                body_text = c.get("body", "")
-                                for bline in body_text.split("\n"):
-                                    if bline.strip().endswith(": Done!"):
-                                        ts = c.get("created_at", "")
-                                        if ts and (
-                                            latest_any_done_ts is None or ts > latest_any_done_ts
-                                        ):
-                                            latest_any_done_ts = ts
-                            if latest_any_done_ts:
-                                try:
-                                    recon_started = datetime.fromisoformat(latest_any_done_ts)
-                                except (ValueError, TypeError):
-                                    pass
-
-                        if recon_started is None:
-                            # Truly the first agent overall — no Done! markers
-                            # anywhere. Use a very early timestamp so ALL
-                            # timeline events are relevant.
-                            recon_started = datetime(2020, 1, 1, tzinfo=UTC)
-
-                        # Capture HEAD SHA from the main PR so that
-                        # _check_main_pr_completion can compare against
-                        # it (Signal 3).  Without this, agent_assigned_sha
-                        # is empty and the "no SHA" fallback path can
-                        # produce false-positive completions.
-                        recon_sha = ""
-                        main_br = _cp.get_issue_main_branch(task.issue_number)
-                        if main_br and main_br.get("head_sha"):
-                            recon_sha = main_br["head_sha"]
-
-                        pipeline = _cp.PipelineState(
-                            issue_number=task.issue_number,
-                            project_id=project_id,
-                            status=status_key,
-                            agents=status_agents,
-                            current_agent_index=len(completed),
-                            completed_agents=completed,
-                            started_at=recon_started,
-                            agent_assigned_sha=recon_sha,
-                        )
-
-                        # Reconstruct sub-issue mappings from GitHub API
-                        pipeline.agent_sub_issues = await _cp._reconstruct_sub_issue_mappings(
-                            access_token=access_token,
-                            owner=task_owner,
-                            repo=task_repo,
-                            issue_number=task.issue_number,
-                        )
-
-                        _cp.set_pipeline_state(task.issue_number, pipeline)
-                        logger.info(
-                            "Reconstructed pipeline for issue #%d from tracking "
-                            "table: active agent '%s', status '%s', %d/%d done",
-                            task.issue_number,
-                            active_step.agent_name,
-                            status_key,
-                            len(completed),
-                            len(status_agents),
-                        )
-
-                        # Reconstruct main branch info if missing so that
-                        # subsequent-agent child PR detection works correctly
-                        if not _cp.get_issue_main_branch(task.issue_number):
-                            try:
-                                existing_pr = (
-                                    await _cp.github_projects_service.find_existing_pr_for_issue(
-                                        access_token=access_token,
-                                        owner=task_owner,
-                                        repo=task_repo,
-                                        issue_number=task.issue_number,
-                                    )
-                                )
-                                if existing_pr:
-                                    pr_det = await _cp.github_projects_service.get_pull_request(
-                                        access_token=access_token,
-                                        owner=task_owner,
-                                        repo=task_repo,
-                                        pr_number=existing_pr["number"],
-                                    )
-                                    h_sha = (
-                                        pr_det.get("last_commit", {}).get("sha", "")
-                                        if pr_det
-                                        else ""
-                                    )
-                                    _cp.set_issue_main_branch(
-                                        task.issue_number,
-                                        existing_pr["head_ref"],
-                                        existing_pr["number"],
-                                        h_sha,
-                                    )
-                                    logger.info(
-                                        "Reconstructed main branch '%s' (PR #%d) for issue #%d",
-                                        existing_pr["head_ref"],
-                                        existing_pr["number"],
-                                        task.issue_number,
-                                    )
-                                    # Mark the main PR in _system_marked_ready_prs
-                                    # if it's not a draft — prevents Signal 1 false
-                                    # positive in _check_main_pr_completion.
-                                    if pr_det and not pr_det.get("is_draft", True):
-                                        _system_marked_ready_prs.add(existing_pr["number"])
-                                        logger.info(
-                                            "Marked main PR #%d as ready during "
-                                            "agent_output reconstruction for issue #%d",
-                                            existing_pr["number"],
-                                            task.issue_number,
-                                        )
-                            except Exception as e:
-                                logger.debug(
-                                    "Could not reconstruct main branch for issue #%d: %s",
-                                    task.issue_number,
-                                    e,
-                                )
-
-                        # Claim merged child PRs for ALL agents (not just
-                        # completed ones) to prevent misattribution.  After a
-                        # container restart _claimed_child_prs is empty.
-                        # Without this, _find_completed_child_pr can return a
-                        # stale MERGED child PR from a previous (failed) run
-                        # as if it belongs to the current agent — posting a
-                        # false Done! marker and skipping agents entirely.
-                        main_branch_recon = _cp.get_issue_main_branch(task.issue_number)
-                        if main_branch_recon:
-                            try:
-                                linked_prs_recon = (
-                                    await _cp.github_projects_service.get_linked_pull_requests(
-                                        access_token=access_token,
-                                        owner=task_owner,
-                                        repo=task_repo,
-                                        issue_number=task.issue_number,
-                                    )
-                                )
-                                main_pr_num_recon = main_branch_recon.get("pr_number")
-                                for pr_recon in linked_prs_recon or []:
-                                    pr_num_r = pr_recon.get("number")
-                                    pr_state_r = (pr_recon.get("state") or "").upper()
-                                    if (
-                                        pr_state_r == "MERGED"
-                                        and pr_num_r is not None
-                                        and pr_num_r != main_pr_num_recon
-                                    ):
-                                        for recon_agent in status_agents:
-                                            claim_key = (
-                                                f"{task.issue_number}:{pr_num_r}:{recon_agent}"
-                                            )
-                                            if claim_key not in _claimed_child_prs:
-                                                _claimed_child_prs.add(claim_key)
-                                                logger.debug(
-                                                    "Reconstructed claim for merged PR #%d "
-                                                    "(agent '%s') on issue #%d",
-                                                    pr_num_r,
-                                                    recon_agent,
-                                                    task.issue_number,
-                                                )
-                            except Exception as e:
-                                logger.debug(
-                                    "Could not reconstruct child PR claims for issue #%d: %s",
-                                    task.issue_number,
-                                    e,
-                                )
-                except Exception as e:
-                    logger.debug(
-                        "Could not reconstruct pipeline for issue #%d: %s",
-                        task.issue_number,
-                        e,
-                    )
+                pipeline = await _reconstruct_pipeline_if_missing(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    project_id=project_id,
+                )
 
             if not pipeline or pipeline.is_complete:
                 continue
@@ -312,7 +746,6 @@ async def post_agent_outputs_from_pr(
                 continue
 
             # Check if the Done! marker is already posted (agent did it itself)
-            marker = f"{current_agent}: Done!"
             already_done = await _cp._check_agent_done_on_sub_or_parent(
                 access_token=access_token,
                 owner=task_owner,
@@ -324,208 +757,21 @@ async def post_agent_outputs_from_pr(
             if already_done:
                 continue
 
-            # ── Non-coding agents: skip Step 0 child-PR detection ──────
-            # copilot-review and human are NOT coding agents — they never
-            # create child PRs.  Their completion is detected exclusively
-            # by dedicated helpers:
-            #   • copilot-review → _check_copilot_review_done (Copilot
-            #     submitted a code review on the main PR)
-            #   • human → _check_human_agent_done (sub-issue closed, or
-            #     authorised user comments "human: Done!" / "Done!")
-            # If a stale merged child PR from a previous agent is
-            # misattributed to one of these agents (e.g. after a
-            # container restart where _claimed_child_prs is empty), the
-            # standard Step 0 detection would post a false Done! marker
-            # and advance the pipeline prematurely.  Skip them entirely.
-            if current_agent in ("copilot-review", "human"):
-                continue
-
-            # Determine if this is a subsequent agent (not the first in the overall pipeline).
-            main_branch_info = _cp.get_issue_main_branch(task.issue_number)
-            main_pr_number = main_branch_info["pr_number"] if main_branch_info else None
-            main_branch = main_branch_info["branch"] if main_branch_info else None
-            is_subsequent_agent = main_branch_info is not None
-
-            finished_pr = None
-
-            # For subsequent agents, check child PR completion FIRST
-            # Subsequent agents create child PRs targeting the main branch (not 'main')
-            if is_subsequent_agent and main_branch and main_pr_number:
-                child_pr_info = await _cp._find_completed_child_pr(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    main_branch=main_branch,
-                    main_pr_number=main_pr_number,
-                    agent_name=current_agent,
-                    pipeline=pipeline,
-                )
-                if child_pr_info:
-                    finished_pr = child_pr_info
-                    logger.info(
-                        "Found completed child PR #%d for agent '%s' on issue #%d",
-                        child_pr_info.get("number"),
-                        current_agent,
-                        task.issue_number,
-                    )
-
-            # If no child PR, check for standard Copilot PR completion (first agent).
-            # ONLY for the first agent (not subsequent): the parent issue's linked
-            # PRs include the main PR whose stale timeline events would cause false
-            # positives for subsequent agents.  Subsequent agents detect completion
-            # via child PR or _check_main_pr_completion (with freshness filtering).
-            if not finished_pr and not is_subsequent_agent:
-                finished_pr = await _cp.github_projects_service.check_copilot_pr_completion(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                )
-
-            # Still nothing: check agent's sub-issue for PR completion.
-            # Also guarded by not is_subsequent_agent — sub-issue PRs for
-            # subsequent agents are already discovered by _find_completed_child_pr
-            # (via _get_linked_prs_including_sub_issues).  Running the unguarded
-            # check here would find the child PR without freshness checks.
-            if not finished_pr and not is_subsequent_agent:
-                sub_num = _cp._get_sub_issue_number(pipeline, current_agent, task.issue_number)
-                if sub_num and sub_num != task.issue_number:
-                    finished_pr = await _cp.github_projects_service.check_copilot_pr_completion(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=sub_num,
-                    )
-                    if finished_pr:
-                        # Link the sub-issue PR to the parent for future detection
-                        pr_num = finished_pr.get("number")
-                        if pr_num:
-                            try:
-                                await _cp.github_projects_service.link_pull_request_to_issue(
-                                    access_token=access_token,
-                                    owner=task_owner,
-                                    repo=task_repo,
-                                    pr_number=pr_num,
-                                    issue_number=task.issue_number,
-                                )
-                            except Exception as e:
-                                logger.debug("Suppressed error: %s", e)
-
-                        # If this is a subsequent agent (main branch exists)
-                        # and the PR is NOT the main PR itself, it must be a
-                        # child PR.  Flag it so the merge step below runs.
-                        # Without this, child PRs found via the sub-issue
-                        # fallback skip the merge, and Done! is posted before
-                        # the child PR is merged into the main branch (#740).
-                        if (
-                            is_subsequent_agent
-                            and main_pr_number is not None
-                            and pr_num != main_pr_number
-                        ):
-                            finished_pr["is_child_pr"] = True
-                            logger.info(
-                                "Marked sub-issue PR #%s as child PR for agent '%s' "
-                                "(parent issue #%d, main PR #%d)",
-                                pr_num,
-                                current_agent,
-                                task.issue_number,
-                                main_pr_number,
-                            )
-                        logger.info(
-                            "Found completed PR #%s for agent '%s' via sub-issue #%d "
-                            "(parent issue #%d)",
-                            finished_pr.get("number"),
-                            current_agent,
-                            sub_num,
-                            task.issue_number,
-                        )
-
+            # Detect completion signals from PRs
+            finished_pr = await _detect_completion_signals(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                current_agent=current_agent,
+                pipeline=pipeline,
+            )
             if not finished_pr:
-                # No completed PR found via standard detection.
-                # For subsequent agents, also check if work was done directly
-                # on the main PR (Copilot pushes commits to the same branch
-                # rather than creating a child PR).
-                if is_subsequent_agent and main_pr_number is not None:
-                    # Resolve sub-issue number for accurate Copilot assignment
-                    # checks — Copilot is assigned to the sub-issue, not parent.
-                    agent_sub_number = _cp._get_sub_issue_number(
-                        pipeline, current_agent, task.issue_number
-                    )
-                    main_pr_completed = await _cp._check_main_pr_completion(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        main_pr_number=main_pr_number,
-                        issue_number=task.issue_number,
-                        agent_name=current_agent,
-                        pipeline_started_at=pipeline.started_at,
-                        agent_assigned_sha=pipeline.agent_assigned_sha,
-                        is_subsequent_agent=True,
-                        sub_issue_number=agent_sub_number,
-                    )
-                    if main_pr_completed:
-                        # Use the main PR as the finished PR
-                        pr_details = await _cp.github_projects_service.get_pull_request(
-                            access_token=access_token,
-                            owner=task_owner,
-                            repo=task_repo,
-                            pr_number=main_pr_number,
-                        )
-                        if pr_details:
-                            finished_pr = {
-                                "number": main_pr_number,
-                                "id": pr_details.get("id"),
-                                "head_ref": pr_details.get("head_ref", ""),
-                                "last_commit": pr_details.get("last_commit"),
-                                "copilot_finished": True,
-                            }
-                if not finished_pr:
-                    continue
+                continue
 
             pr_number = finished_pr.get("number")
             if not pr_number:
                 continue
-
-            # For subsequent agents, the main PR may show completion signals.
-            # We need to verify these are FRESH signals (after pipeline start)
-            # to avoid re-attributing the first agent's work.
-            #
-            # The is_first_uncompleted bypass was REMOVED because each new
-            # status creates a pipeline with index=0 and empty completed_agents,
-            # making every first-agent-per-status look like the pipeline's very
-            # first agent — even though the main PR was created by a different
-            # agent in a prior status.  The reconstruction logic already sets
-            # started_at to the issue creation time (or last Done! timestamp)
-            # so the freshness filter correctly passes the first agent's own
-            # completion events after a container restart.
-            if is_subsequent_agent and pr_number == main_pr_number and main_pr_number is not None:
-                # Resolve sub-issue number for accurate Copilot assignment
-                # checks — Copilot is assigned to the sub-issue, not parent.
-                verify_sub_number = _cp._get_sub_issue_number(
-                    pipeline, current_agent, task.issue_number
-                )
-                main_pr_completed = await _cp._check_main_pr_completion(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    main_pr_number=main_pr_number,
-                    issue_number=task.issue_number,
-                    agent_name=current_agent,
-                    pipeline_started_at=pipeline.started_at,
-                    agent_assigned_sha=pipeline.agent_assigned_sha,
-                    is_subsequent_agent=True,
-                    sub_issue_number=verify_sub_number,
-                )
-                if not main_pr_completed:
-                    logger.debug(
-                        "Main PR #%d has no fresh completion signals for agent '%s' "
-                        "on issue #%d — still in progress",
-                        pr_number,
-                        current_agent,
-                        task.issue_number,
-                    )
-                    continue
 
             cache_key = _cp.cache_key_agent_output(task.issue_number, current_agent, pr_number)
             if cache_key in _posted_agent_outputs:
@@ -538,10 +784,9 @@ async def post_agent_outputs_from_pr(
                 task.issue_number,
             )
 
-            # Track whether this is a child PR for later merging
             is_child_pr = finished_pr.get("is_child_pr", False)
 
-            # STEP 1: Get PR details for posting .md outputs
+            # Get PR details for posting .md outputs
             pr_details = await _cp.github_projects_service.get_pull_request(
                 access_token=access_token,
                 owner=task_owner,
@@ -557,9 +802,7 @@ async def post_agent_outputs_from_pr(
                 )
 
             # Track the "main" branch for this issue (first PR's branch)
-            # All subsequent agent branches will be created from and merged into this branch
             if head_ref and not _cp.get_issue_main_branch(task.issue_number):
-                # Get head commit SHA for subsequent agent branching
                 head_sha = ""
                 if pr_details and pr_details.get("last_commit", {}).get("sha"):
                     head_sha = pr_details["last_commit"]["sha"]
@@ -572,12 +815,6 @@ async def post_agent_outputs_from_pr(
                     task.issue_number,
                 )
 
-                # If the main PR is not a draft (the first agent made it
-                # ready-for-review), record it in _system_marked_ready_prs.
-                # Without this, Signal 1 in _check_main_pr_completion sees
-                # the non-draft PR and falsely reports completion for the
-                # NEXT agent, causing premature Done! posting and sub-issue
-                # closure which cancels the Copilot session.
                 if pr_details and not pr_details.get("is_draft", True):
                     _system_marked_ready_prs.add(pr_number)
                     logger.info(
@@ -586,8 +823,6 @@ async def post_agent_outputs_from_pr(
                         pr_number,
                     )
 
-                # Link the first PR to the GitHub Issue so it appears in the
-                # Development sidebar and auto-closes the issue on merge.
                 try:
                     await _cp.github_projects_service.link_pull_request_to_issue(
                         access_token=access_token,
@@ -604,7 +839,7 @@ async def post_agent_outputs_from_pr(
                         e,
                     )
 
-            # Get changed files from the PR
+            # Get changed files and post markdown outputs
             pr_files = await _cp.github_projects_service.get_pr_changed_files(
                 access_token=access_token,
                 owner=task_owner,
@@ -612,251 +847,47 @@ async def post_agent_outputs_from_pr(
                 pr_number=pr_number,
             )
 
-            # Find .md files that match the agent's expected outputs
-            expected_files = _cp.AGENT_OUTPUT_FILES.get(current_agent, [])
-            posted_count = 0
-
-            # Determine which issue to post markdown file comments on.
-            # Markdown files are ONLY posted on the sub-issue — never on the parent.
-            # The Done! marker is posted on the parent issue separately below.
-            comment_issue_number: int | None = None
-            if pipeline and pipeline.agent_sub_issues:
-                sub_info = pipeline.agent_sub_issues.get(current_agent)
-                if sub_info and sub_info.get("number"):
-                    comment_issue_number = sub_info["number"]
-                    logger.info(
-                        "Posting agent '%s' markdown outputs on sub-issue #%d (parent #%d)",
-                        current_agent,
-                        comment_issue_number,
-                        task.issue_number,
-                    )
-
-            # Fall back to the global sub-issue store (survives pipeline resets)
-            if comment_issue_number is None:
-                global_subs = _cp.get_issue_sub_issues(task.issue_number)
-                sub_info = global_subs.get(current_agent)
-                if sub_info and sub_info.get("number"):
-                    comment_issue_number = sub_info["number"]
-                    logger.info(
-                        "Using sub-issue #%d from global store for agent '%s' (parent #%d)",
-                        comment_issue_number,
-                        current_agent,
-                        task.issue_number,
-                    )
-
-            if comment_issue_number is None:
-                logger.info(
-                    "No sub-issue for agent '%s' on issue #%d — "
-                    "skipping markdown file comments (only Done! on parent)",
-                    current_agent,
-                    task.issue_number,
-                )
-
-            # Only post markdown file comments if a sub-issue exists.
-            # Markdown files are NEVER posted on the parent issue.
-            if comment_issue_number is not None:
-                for pr_file in pr_files:
-                    filename = pr_file.get("filename", "")
-                    basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
-
-                    if basename.lower() in [f.lower() for f in expected_files]:
-                        # Fetch file content from the PR branch
-                        ref = head_ref or "HEAD"
-                        content = await _cp.github_projects_service.get_file_content_from_ref(
-                            access_token=access_token,
-                            owner=task_owner,
-                            repo=task_repo,
-                            path=filename,
-                            ref=ref,
-                        )
-
-                        if content:
-                            # Post file content as a comment on the sub-issue only
-                            comment_body = f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
-                            comment = await _cp.github_projects_service.create_issue_comment(
-                                access_token=access_token,
-                                owner=task_owner,
-                                repo=task_repo,
-                                issue_number=comment_issue_number,
-                                body=comment_body,
-                            )
-                            if comment:
-                                posted_count += 1
-                                logger.info(
-                                    "Posted content of %s as comment on sub-issue #%d",
-                                    filename,
-                                    comment_issue_number,
-                                )
-                        else:
-                            logger.warning(
-                                "Could not fetch content of %s from ref %s for issue #%d",
-                                filename,
-                                ref,
-                                task.issue_number,
-                            )
-
-                # Also post any other .md files changed in the PR (on sub-issue only)
-                for pr_file in pr_files:
-                    filename = pr_file.get("filename", "")
-                    basename = filename.rsplit("/", 1)[-1] if "/" in filename else filename
-
-                    if (
-                        basename.lower().endswith(".md")
-                        and basename.lower() not in [f.lower() for f in expected_files]
-                        and pr_file.get("status") in ("added", "modified")
-                    ):
-                        ref = head_ref or "HEAD"
-                        content = await _cp.github_projects_service.get_file_content_from_ref(
-                            access_token=access_token,
-                            owner=task_owner,
-                            repo=task_repo,
-                            path=filename,
-                            ref=ref,
-                        )
-
-                        if content:
-                            comment_body = f"**`{filename}`** (generated by `{current_agent}`)\n\n---\n\n{content}"
-                            await _cp.github_projects_service.create_issue_comment(
-                                access_token=access_token,
-                                owner=task_owner,
-                                repo=task_repo,
-                                issue_number=comment_issue_number,
-                                body=comment_body,
-                            )
-                            posted_count += 1
-
-            # STEP 4: Merge child PR into the main branch BEFORE posting
-            # Done! so that the next agent starts from the correct base.
-            # If the merge fails we skip this issue entirely (no Done!,
-            # no cache entry) so it will be retried on the next poll cycle.
-            main_branch_info = _cp.get_issue_main_branch(task.issue_number)
-            if is_child_pr and main_branch_info:
-                if finished_pr.get("is_merged", False):
-                    # Child PR was already merged (e.g., container restarted
-                    # between merge and Done! posting).  Skip the merge step
-                    # and proceed to post the Done! marker.
-                    logger.info(
-                        "Child PR #%d for agent '%s' on issue #%d is already "
-                        "merged — proceeding to post Done! marker",
-                        pr_number,
-                        current_agent,
-                        task.issue_number,
-                    )
-                else:
-                    merge_result = await _cp._merge_child_pr_if_applicable(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=task.issue_number,
-                        main_branch=main_branch_info["branch"],
-                        main_pr_number=main_branch_info["pr_number"],
-                        completed_agent=current_agent,
-                        pipeline=pipeline,
-                    )
-                    if merge_result and merge_result.get("status") == "merged":
-                        logger.info(
-                            "Merged child PR #%d for agent '%s' on issue #%d",
-                            pr_number,
-                            current_agent,
-                            task.issue_number,
-                        )
-                        # Wait a moment for GitHub to fully process the merge
-                        await asyncio.sleep(_cp.POST_ACTION_DELAY_SECONDS)
-                    else:
-                        logger.warning(
-                            "Failed to merge child PR #%d for agent '%s' on issue #%d "
-                            "— skipping Done! marker, will retry next cycle",
-                            pr_number,
-                            current_agent,
-                            task.issue_number,
-                        )
-                        continue
-
-            # Mark the child PR as claimed (before Done! so it won't be
-            # misattributed even if Done! posting fails)
-            if is_child_pr:
-                claimed_key = f"{task.issue_number}:{pr_number}:{current_agent}"
-                _claimed_child_prs.add(claimed_key)
-                logger.debug(
-                    "Marked child PR #%d as claimed by agent '%s' on issue #%d",
-                    pr_number,
-                    current_agent,
-                    task.issue_number,
-                )
-
-            # Post the Done! marker on the PARENT issue only.
-            # This is the ONLY comment that goes on the main issue.
-            done_issue_number = task.issue_number  # Always the parent
-            done_comment = await _cp.github_projects_service.create_issue_comment(
+            posted_count = await _post_markdown_outputs(
                 access_token=access_token,
                 owner=task_owner,
                 repo=task_repo,
-                issue_number=done_issue_number,
-                body=marker,
+                issue_number=task.issue_number,
+                current_agent=current_agent,
+                pipeline=pipeline,
+                pr_number=pr_number,
+                head_ref=head_ref,
+                pr_files=pr_files,
             )
 
-            if done_comment:
-                # Only add to cache AFTER we know Done! was posted successfully
-                _posted_agent_outputs.add(cache_key)
+            # Merge child PR into main branch before posting Done!
+            should_continue = await _merge_and_claim_child_pr(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                current_agent=current_agent,
+                pipeline=pipeline,
+                finished_pr=finished_pr,
+                pr_number=pr_number,
+                is_child_pr=is_child_pr,
+            )
+            if not should_continue:
+                continue
 
-                logger.info(
-                    "Posted '%s' marker on parent issue #%d (%d .md files posted on %s)",
-                    marker,
-                    done_issue_number,
-                    posted_count,
-                    f"sub-issue #{comment_issue_number}"
-                    if comment_issue_number
-                    else "no sub-issue",
-                )
-
-                # STEP 5: Close the sub-issue as completed.
-                if comment_issue_number is not None and comment_issue_number != task.issue_number:
-                    closed = await _cp.github_projects_service.update_issue_state(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        issue_number=comment_issue_number,
-                        state="closed",
-                        state_reason="completed",
-                    )
-                    if closed:
-                        logger.info(
-                            "Closed sub-issue #%d as completed (agent '%s' done)",
-                            comment_issue_number,
-                            current_agent,
-                        )
-                    else:
-                        logger.warning(
-                            "Failed to close sub-issue #%d after agent '%s' completion",
-                            comment_issue_number,
-                            current_agent,
-                        )
-
-                # Update the tracking table in the issue body: mark agent as ✅ Done
-                await _cp._update_issue_tracking(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=task.issue_number,
-                    agent_name=current_agent,
-                    new_state="done",
-                )
-
-                results.append(
-                    {
-                        "status": "success",
-                        "issue_number": task.issue_number,
-                        "agent_name": current_agent,
-                        "pr_number": pr_number,
-                        "files_posted": posted_count,
-                        "action": "agent_outputs_posted",
-                    }
-                )
-            else:
-                logger.error(
-                    "Failed to post Done! marker on issue #%d",
-                    task.issue_number,
-                )
+            # Post the Done! marker and close sub-issue
+            result = await _post_done_marker(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                current_agent=current_agent,
+                pipeline=pipeline,
+                pr_number=pr_number,
+                posted_count=posted_count,
+                cache_key=cache_key,
+            )
+            if result:
+                results.append(result)
 
     except Exception as e:
         logger.error("Error posting agent outputs from PRs: %s", e)

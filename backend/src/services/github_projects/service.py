@@ -16,6 +16,7 @@ from githubkit.exception import RequestFailed
 from src.logging_utils import get_logger
 
 if TYPE_CHECKING:
+    from src.models.board import BoardItem
     from src.services.github_projects import GitHubClientFactory
 
 from src.exceptions import ValidationError
@@ -628,6 +629,184 @@ class GitHubProjectsService:
 
         return projects
 
+    @staticmethod
+    def _parse_board_item(item: dict, board_models: dict) -> BoardItem | None:
+        """Parse a single GraphQL project item node into a BoardItem."""
+        Assignee = board_models["Assignee"]
+        BoardItem = board_models["BoardItem"]
+        ContentType = board_models["ContentType"]
+        CustomFieldValue = board_models["CustomFieldValue"]
+        Label = board_models["Label"]
+        LinkedPR = board_models["LinkedPR"]
+        PRState = board_models["PRState"]
+        Repository = board_models["Repository"]
+
+        if not item:
+            return None
+        content = item.get("content", {})
+        if not content:
+            return None
+
+        field_values = item.get("fieldValues", {}).get("nodes", [])
+        status_name = ""
+        status_option_id = ""
+        priority_val = None
+        size_val = None
+        estimate_val = None
+
+        for fv in field_values:
+            if not fv:
+                continue
+            field_name = fv.get("field", {}).get("name", "")
+            if field_name == "Status":
+                status_name = fv.get("name", "")
+                status_option_id = fv.get("optionId", "")
+            elif field_name == "Priority":
+                priority_val = CustomFieldValue(name=fv.get("name", ""), color=fv.get("color"))
+            elif field_name == "Size":
+                size_val = CustomFieldValue(name=fv.get("name", ""), color=fv.get("color"))
+            elif field_name == "Estimate":
+                num = fv.get("number")
+                if num is not None:
+                    estimate_val = float(num)
+
+        if content.get("number") is not None and "state" in content:
+            content_type = ContentType.PULL_REQUEST
+        elif content.get("number") is not None:
+            content_type = ContentType.ISSUE
+        else:
+            content_type = ContentType.DRAFT_ISSUE
+
+        assignees = [
+            Assignee(login=a["login"], avatar_url=a.get("avatarUrl", ""))
+            for a in content.get("assignees", {}).get("nodes", [])
+            if a
+        ]
+
+        repo_data = content.get("repository")
+        repository = (
+            Repository(
+                owner=repo_data.get("owner", {}).get("login", ""), name=repo_data.get("name", "")
+            )
+            if repo_data
+            else None
+        )
+
+        linked_prs: list = []
+        seen_pr_ids: set[str] = set()
+        for event in content.get("timelineItems", {}).get("nodes", []):
+            if not event:
+                continue
+            pr_data = event.get("subject") or event.get("source")
+            if pr_data and pr_data.get("id") and pr_data["id"] not in seen_pr_ids:
+                seen_pr_ids.add(pr_data["id"])
+                pr_state_raw = pr_data.get("state", "OPEN").upper()
+                pr_state = (
+                    PRState.MERGED
+                    if pr_state_raw == "MERGED"
+                    else PRState.CLOSED
+                    if pr_state_raw == "CLOSED"
+                    else PRState.OPEN
+                )
+                linked_prs.append(
+                    LinkedPR(
+                        pr_id=pr_data["id"],
+                        number=pr_data.get("number", 0),
+                        title=pr_data.get("title", ""),
+                        state=pr_state,
+                        url=pr_data.get("url", ""),
+                    )
+                )
+
+        content_labels = [
+            Label(id=ln.get("id", ""), name=ln.get("name", ""), color=ln.get("color", ""))
+            for ln in content.get("labels", {}).get("nodes", [])
+            if ln
+        ]
+
+        milestone_data = content.get("milestone")
+        return BoardItem(
+            item_id=item["id"],
+            content_id=content.get("id"),
+            content_type=content_type,
+            title=content.get("title", "Untitled"),
+            number=content.get("number"),
+            repository=repository,
+            url=content.get("url"),
+            body=content.get("body"),
+            status=status_name or "No Status",
+            status_option_id=status_option_id,
+            assignees=assignees,
+            priority=priority_val,
+            size=size_val,
+            estimate=estimate_val,
+            linked_prs=linked_prs,
+            labels=content_labels,
+            created_at=content.get("createdAt"),
+            updated_at=content.get("updatedAt"),
+            milestone=milestone_data.get("title") if milestone_data else None,
+        )
+
+    @staticmethod
+    def _build_board_columns(
+        all_items: list,
+        status_options: list,
+        board_models: dict,
+    ) -> list:
+        """Group board items into columns by status and filter out sub-issues."""
+        BoardColumn = board_models["BoardColumn"]
+        StatusOption = board_models["StatusOption"]
+        StatusColor = board_models["StatusColor"]
+
+        columns_map: dict[str, list] = {opt.option_id: [] for opt in status_options}
+        no_status_items: list = []
+        for board_item in all_items:
+            if board_item.status_option_id in columns_map:
+                columns_map[board_item.status_option_id].append(board_item)
+            else:
+                no_status_items.append(board_item)
+
+        columns = []
+        for opt in status_options:
+            col_items = columns_map[opt.option_id]
+            columns.append(
+                BoardColumn(
+                    status=opt,
+                    items=col_items,
+                    item_count=len(col_items),
+                    estimate_total=sum(it.estimate or 0.0 for it in col_items),
+                )
+            )
+
+        if no_status_items:
+            columns.append(
+                BoardColumn(
+                    status=StatusOption(
+                        option_id="__no_status__", name="No Status", color=StatusColor.GRAY
+                    ),
+                    items=no_status_items,
+                    item_count=len(no_status_items),
+                    estimate_total=sum(it.estimate or 0.0 for it in no_status_items),
+                )
+            )
+
+        # Filter out sub-issues from all columns
+        all_sub_issue_ids: set[str] = set()
+        for board_item in all_items:
+            for si in board_item.sub_issues:
+                if si.id:
+                    all_sub_issue_ids.add(si.id)
+
+        if all_sub_issue_ids:
+            for col in columns:
+                original_count = len(col.items)
+                col.items = [it for it in col.items if it.content_id not in all_sub_issue_ids]
+                if len(col.items) != original_count:
+                    col.item_count = len(col.items)
+                    col.estimate_total = sum(it.estimate or 0.0 for it in col.items)
+
+        return columns
+
     async def get_board_data(self, access_token: str, project_id: str, limit: int = 100):
         """
         Get full board data for a project: items with custom fields and linked PRs.
@@ -657,6 +836,20 @@ class GitHubProjectsService:
             StatusOption,
             SubIssue,
         )
+
+        board_models = {
+            "Assignee": Assignee,
+            "BoardColumn": BoardColumn,
+            "BoardItem": BoardItem,
+            "ContentType": ContentType,
+            "CustomFieldValue": CustomFieldValue,
+            "Label": Label,
+            "LinkedPR": LinkedPR,
+            "PRState": PRState,
+            "Repository": Repository,
+            "StatusColor": StatusColor,
+            "StatusOption": StatusOption,
+        }
 
         all_items: list[BoardItem] = []
         has_next_page = True
@@ -709,142 +902,9 @@ class GitHubProjectsService:
             page_info = items_data.get("pageInfo", {})
 
             for item in items_data.get("nodes", []):
-                if not item:
-                    continue
-
-                content = item.get("content", {})
-                if not content:
-                    continue
-
-                # Parse field values (Status, Priority, Size, Estimate)
-                field_values = item.get("fieldValues", {}).get("nodes", [])
-                status_name = ""
-                status_option_id = ""
-                priority_val = None
-                size_val = None
-                estimate_val = None
-
-                for fv in field_values:
-                    if not fv:
-                        continue
-                    field_info = fv.get("field", {})
-                    field_name = field_info.get("name", "")
-
-                    if field_name == "Status":
-                        status_name = fv.get("name", "")
-                        status_option_id = fv.get("optionId", "")
-                    elif field_name == "Priority":
-                        priority_val = CustomFieldValue(
-                            name=fv.get("name", ""),
-                            color=fv.get("color"),
-                        )
-                    elif field_name == "Size":
-                        size_val = CustomFieldValue(
-                            name=fv.get("name", ""),
-                            color=fv.get("color"),
-                        )
-                    elif field_name == "Estimate":
-                        num = fv.get("number")
-                        if num is not None:
-                            estimate_val = float(num)
-
-                # Determine content type
-                if content.get("number") is not None and "state" in content:
-                    content_type = ContentType.PULL_REQUEST
-                elif content.get("number") is not None:
-                    content_type = ContentType.ISSUE
-                else:
-                    content_type = ContentType.DRAFT_ISSUE
-
-                # Parse assignees
-                assignees = [
-                    Assignee(
-                        login=assignee_node["login"],
-                        avatar_url=assignee_node.get("avatarUrl", ""),
-                    )
-                    for assignee_node in content.get("assignees", {}).get("nodes", [])
-                    if assignee_node
-                ]
-
-                # Parse repository
-                repo_data = content.get("repository")
-                repository = None
-                if repo_data:
-                    repository = Repository(
-                        owner=repo_data.get("owner", {}).get("login", ""),
-                        name=repo_data.get("name", ""),
-                    )
-
-                # Parse linked PRs from timeline events
-                linked_prs: list[LinkedPR] = []
-                seen_pr_ids: set[str] = set()
-                timeline = content.get("timelineItems", {}).get("nodes", [])
-                for event in timeline:
-                    if not event:
-                        continue
-                    pr_data = event.get("subject") or event.get("source")
-                    if pr_data and pr_data.get("id"):
-                        pr_id = pr_data["id"]
-                        if pr_id not in seen_pr_ids:
-                            seen_pr_ids.add(pr_id)
-                            pr_state_raw = pr_data.get("state", "OPEN").upper()
-                            if pr_state_raw == "MERGED":
-                                pr_state = PRState.MERGED
-                            elif pr_state_raw == "CLOSED":
-                                pr_state = PRState.CLOSED
-                            else:
-                                pr_state = PRState.OPEN
-
-                            linked_prs.append(
-                                LinkedPR(
-                                    pr_id=pr_id,
-                                    number=pr_data.get("number", 0),
-                                    title=pr_data.get("title", ""),
-                                    state=pr_state,
-                                    url=pr_data.get("url", ""),
-                                )
-                            )
-
-                # Parse labels from GraphQL response
-                content_labels: list[Label] = [
-                    Label(
-                        id=label_node.get("id", ""),
-                        name=label_node.get("name", ""),
-                        color=label_node.get("color", ""),
-                    )
-                    for label_node in content.get("labels", {}).get("nodes", [])
-                    if label_node
-                ]
-
-                # Parse timestamps and milestone
-                created_at = content.get("createdAt")
-                updated_at = content.get("updatedAt")
-                milestone_data = content.get("milestone")
-                milestone_name = milestone_data.get("title") if milestone_data else None
-
-                all_items.append(
-                    BoardItem(
-                        item_id=item["id"],
-                        content_id=content.get("id"),
-                        content_type=content_type,
-                        title=content.get("title", "Untitled"),
-                        number=content.get("number"),
-                        repository=repository,
-                        url=content.get("url"),
-                        body=content.get("body"),
-                        status=status_name or "No Status",
-                        status_option_id=status_option_id,
-                        assignees=assignees,
-                        priority=priority_val,
-                        size=size_val,
-                        estimate=estimate_val,
-                        linked_prs=linked_prs,
-                        labels=content_labels,
-                        created_at=created_at,
-                        updated_at=updated_at,
-                        milestone=milestone_name,
-                    )
-                )
+                parsed = self._parse_board_item(item, board_models)
+                if parsed:
+                    all_items.append(parsed)
 
             has_next_page = page_info.get("hasNextPage", False)
             after = page_info.get("endCursor")
@@ -949,66 +1009,9 @@ class GitHubProjectsService:
             except Exception as e:
                 logger.debug("Board reconciliation failed for %s/%s: %s", owner, repo_name, e)
 
-        # Group items into columns by status
-        status_options = project_meta.status_field.options
-
-        # Also create a "No Status" column for items without a status
-        columns_map: dict[str, list[BoardItem]] = {opt.option_id: [] for opt in status_options}
-        no_status_items: list[BoardItem] = []
-
-        for board_item in all_items:
-            if board_item.status_option_id in columns_map:
-                columns_map[board_item.status_option_id].append(board_item)
-            else:
-                no_status_items.append(board_item)
-
-        columns: list[BoardColumn] = []
-        for opt in status_options:
-            col_items = columns_map[opt.option_id]
-            estimate_total = sum(it.estimate or 0.0 for it in col_items)
-            columns.append(
-                BoardColumn(
-                    status=opt,
-                    items=col_items,
-                    item_count=len(col_items),
-                    estimate_total=estimate_total,
-                )
-            )
-
-        # Append no-status column if there are unclassified items
-        if no_status_items:
-            no_status_option = StatusOption(
-                option_id="__no_status__",
-                name="No Status",
-                color=StatusColor.GRAY,
-            )
-            estimate_total = sum(it.estimate or 0.0 for it in no_status_items)
-            columns.append(
-                BoardColumn(
-                    status=no_status_option,
-                    items=no_status_items,
-                    item_count=len(no_status_items),
-                    estimate_total=estimate_total,
-                )
-            )
-
-        # ── Sub-issue filtering for ALL columns (FR-001) ──
-        # Collect all sub-issue IDs across all parent items so we can
-        # exclude them from every column. Only parent issues should appear
-        # as top-level cards on the board.
-        all_sub_issue_ids: set[str] = set()
-        for board_item in all_items:
-            for si in board_item.sub_issues:
-                if si.id:
-                    all_sub_issue_ids.add(si.id)
-
-        if all_sub_issue_ids:
-            for col in columns:
-                original_count = len(col.items)
-                col.items = [it for it in col.items if it.content_id not in all_sub_issue_ids]
-                if len(col.items) != original_count:
-                    col.item_count = len(col.items)
-                    col.estimate_total = sum(it.estimate or 0.0 for it in col.items)
+        columns = self._build_board_columns(
+            all_items, project_meta.status_field.options, board_models
+        )
 
         logger.info(
             "Board data for project %s: %d items across %d columns",

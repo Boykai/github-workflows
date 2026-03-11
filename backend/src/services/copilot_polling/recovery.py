@@ -4,6 +4,7 @@ from typing import Any
 
 import src.services.copilot_polling as _cp
 from src.logging_utils import get_logger
+from src.models.agent import AgentStepState
 from src.utils import utcnow
 
 from .helpers import _get_sub_issue_number
@@ -54,7 +55,8 @@ async def _validate_and_reconcile_tracking_table(
             pipeline=pipeline,
         )
 
-        if is_done_in_github and STATE_DONE not in step.state:
+        step_state = AgentStepState.from_markdown(step.state)
+        if is_done_in_github and step_state != AgentStepState.DONE:
             # GitHub says Done but tracking table says Active/Pending
             corrections.append(f"'{step.agent_name}' was {step.state} in table but Done in GitHub")
             step.state = STATE_DONE
@@ -95,6 +97,135 @@ async def _validate_and_reconcile_tracking_table(
         )
 
     return updated_body, steps, True
+
+
+async def _should_skip_recovery(
+    issue_number: int,
+    task_owner: str,
+    task_repo: str,
+    now: Any,
+) -> bool:
+    """Check if recovery should be skipped for this issue (cooldown or blocking queue)."""
+    # Cooldown check
+    last_attempt = _recovery_last_attempt.get(issue_number)
+    if last_attempt:
+        elapsed = (now - last_attempt).total_seconds()
+        if elapsed < RECOVERY_COOLDOWN_SECONDS:
+            logger.debug(
+                "Recovery: issue #%d on cooldown (%.0fs / %ds)",
+                issue_number,
+                elapsed,
+                RECOVERY_COOLDOWN_SECONDS,
+            )
+            return True
+
+    # Blocking queue guard
+    try:
+        from src.models.blocking import BlockingQueueStatus
+        from src.services import blocking_queue as bq_service
+
+        repo_key = f"{task_owner}/{task_repo}"
+        bq_entry = await bq_service.get_entry(repo_key, issue_number)
+        if bq_entry and bq_entry.queue_status == BlockingQueueStatus.PENDING:
+            logger.debug(
+                "Recovery: issue #%d is pending in blocking queue — skipping recovery",
+                issue_number,
+            )
+            return True
+    except Exception as exc:
+        logger.debug(
+            "Recovery: blocking queue check failed for issue #%d: %s",
+            issue_number,
+            exc,
+            exc_info=True,
+        )
+
+    return False
+
+
+async def _attempt_reassignment(
+    access_token: str,
+    project_id: str,
+    issue_number: int,
+    task: Any,
+    agent_name: str,
+    agent_status: str,
+    active_step: Any,
+    missing: list[str],
+    config: Any,
+    now: Any,
+) -> dict[str, Any] | None:
+    """Re-assign a stalled agent. Returns a result dict or None."""
+    task_owner = task.repository_owner
+    task_repo = task.repository_name
+
+    agents_for_status = _cp.get_agent_slugs(config, agent_status)
+    try:
+        agent_index = agents_for_status.index(agent_name)
+    except ValueError:
+        logger.warning(
+            "Recovery: agent '%s' not found in mappings for status '%s'",
+            agent_name,
+            agent_status,
+        )
+        return None
+
+    orchestrator = _cp.get_workflow_orchestrator()
+    ctx = _cp.WorkflowContext(
+        session_id="recovery",
+        project_id=project_id,
+        access_token=access_token,
+        repository_owner=task_owner,
+        repository_name=task_repo,
+        issue_id=task.github_content_id,
+        issue_number=issue_number,
+        project_item_id=task.github_item_id,
+        current_state=_cp.WorkflowState.READY,
+    )
+    ctx.config = config
+
+    try:
+        assigned = await orchestrator.assign_agent_for_status(
+            ctx, agent_status, agent_index=agent_index
+        )
+    except Exception as e:
+        logger.error(
+            "Recovery: failed to re-assign agent '%s' for issue #%d: %s",
+            agent_name,
+            issue_number,
+            e,
+        )
+        _recovery_last_attempt[issue_number] = now
+        return None
+
+    _recovery_last_attempt[issue_number] = now
+
+    if assigned:
+        pending_key = f"{issue_number}:{agent_name}"
+        _pending_agent_assignments[pending_key] = now
+
+        result = {
+            "status": "recovered",
+            "issue_number": issue_number,
+            "agent_name": agent_name,
+            "agent_status": agent_status,
+            "was_active": active_step is not None,
+            "missing": missing,
+        }
+        logger.info(
+            "Recovery: re-assigned agent '%s' for issue #%d (missing: %s)",
+            agent_name,
+            issue_number,
+            ", ".join(missing),
+        )
+        return result
+    else:
+        logger.warning(
+            "Recovery: assign_agent_for_status returned False for '%s' on issue #%d",
+            agent_name,
+            issue_number,
+        )
+        return None
 
 
 async def recover_stalled_issues(
@@ -186,44 +317,9 @@ async def recover_stalled_issues(
             if not task_owner or not task_repo:
                 continue
 
-            # ── Cooldown check ────────────────────────────────────────────
-            last_attempt = _recovery_last_attempt.get(issue_number)
-            if last_attempt:
-                elapsed = (now - last_attempt).total_seconds()
-                if elapsed < RECOVERY_COOLDOWN_SECONDS:
-                    logger.debug(
-                        "Recovery: issue #%d on cooldown (%.0fs / %ds)",
-                        issue_number,
-                        elapsed,
-                        RECOVERY_COOLDOWN_SECONDS,
-                    )
-                    continue
-
-            # ── Blocking queue guard ──────────────────────────────────────
-            # If the issue is waiting in the blocking queue (pending behind a
-            # blocking issue), do NOT attempt recovery — the queue will
-            # activate it at the right time.  Without this check, recovery
-            # sees an unassigned agent in the pre-created tracking table and
-            # assigns it immediately, bypassing the serial blocking gate.
-            try:
-                from src.models.blocking import BlockingQueueStatus
-                from src.services import blocking_queue as bq_service
-
-                repo_key = f"{task_owner}/{task_repo}"
-                bq_entry = await bq_service.get_entry(repo_key, issue_number)
-                if bq_entry and bq_entry.queue_status == BlockingQueueStatus.PENDING:
-                    logger.debug(
-                        "Recovery: issue #%d is pending in blocking queue — skipping recovery",
-                        issue_number,
-                    )
-                    continue
-            except Exception as exc:
-                logger.debug(
-                    "Recovery: blocking queue check failed for issue #%d: %s",
-                    issue_number,
-                    exc,
-                    exc_info=True,
-                )
+            # Cooldown + blocking queue guard (T038)
+            if await _should_skip_recovery(issue_number, task_owner, task_repo, now):
+                continue
 
             # ── Read the issue body tracking table ────────────────────────
             try:
@@ -295,20 +391,17 @@ async def recover_stalled_issues(
                 pipeline=recovery_pipeline,
             )
 
-            # ── Determine expected agent from reconciled state ────────────
-            # After validation, the steps list reflects reality.  Find the
-            # first step that is not ✅ Done — that's our expected agent.
-            from src.services.agent_tracking import STATE_ACTIVE, STATE_DONE, STATE_PENDING
-
+            # Determine expected agent from reconciled state (T041: use AgentStepState)
             active_step = None
             pending_step = None
             for step in steps:
-                if STATE_DONE in step.state:
+                step_state = AgentStepState.from_markdown(step.state)
+                if step_state == AgentStepState.DONE:
                     continue
-                if STATE_ACTIVE in step.state:
+                if step_state == AgentStepState.ACTIVE:
                     active_step = step
                     break
-                if STATE_PENDING in step.state and pending_step is None:
+                if step_state == AgentStepState.QUEUED and pending_step is None:
                     pending_step = step
                     break
 
@@ -620,77 +713,21 @@ async def recover_stalled_issues(
                 ", ".join(missing),
             )
 
-            # ── Re-assign the agent ──────────────────────────────────────
-            # Figure out which status and agent_index to use
-            agents_for_status = _cp.get_agent_slugs(config, agent_status)
-            try:
-                agent_index = agents_for_status.index(agent_name)
-            except ValueError:
-                logger.warning(
-                    "Recovery: agent '%s' not found in mappings for status '%s'",
-                    agent_name,
-                    agent_status,
-                )
-                continue
-
-            orchestrator = _cp.get_workflow_orchestrator()
-            ctx = _cp.WorkflowContext(
-                session_id="recovery",
-                project_id=project_id,
+            # Re-assign the agent (T040)
+            result = await _attempt_reassignment(
                 access_token=access_token,
-                repository_owner=task_owner,
-                repository_name=task_repo,
-                issue_id=task.github_content_id,
+                project_id=project_id,
                 issue_number=issue_number,
-                project_item_id=task.github_item_id,
-                current_state=_cp.WorkflowState.READY,
+                task=task,
+                agent_name=agent_name,
+                agent_status=agent_status,
+                active_step=active_step,
+                missing=missing,
+                config=config,
+                now=now,
             )
-            ctx.config = config
-
-            try:
-                assigned = await orchestrator.assign_agent_for_status(
-                    ctx, agent_status, agent_index=agent_index
-                )
-            except Exception as e:
-                logger.error(
-                    "Recovery: failed to re-assign agent '%s' for issue #%d: %s",
-                    agent_name,
-                    issue_number,
-                    e,
-                )
-                _recovery_last_attempt[issue_number] = now
-                continue
-
-            # Set cooldown regardless of success to avoid rapid retries
-            _recovery_last_attempt[issue_number] = now
-
-            if assigned:
-                # Also add to pending set so normal polling doesn't double-assign
-                pending_key = f"{issue_number}:{agent_name}"
-                _pending_agent_assignments[pending_key] = now
-
-                results.append(
-                    {
-                        "status": "recovered",
-                        "issue_number": issue_number,
-                        "agent_name": agent_name,
-                        "agent_status": agent_status,
-                        "was_active": active_step is not None,
-                        "missing": missing,
-                    }
-                )
-                logger.info(
-                    "Recovery: re-assigned agent '%s' for issue #%d (missing: %s)",
-                    agent_name,
-                    issue_number,
-                    ", ".join(missing),
-                )
-            else:
-                logger.warning(
-                    "Recovery: assign_agent_for_status returned False for '%s' on issue #%d",
-                    agent_name,
-                    issue_number,
-                )
+            if result:
+                results.append(result)
 
     except Exception as e:
         logger.error("Error in recovery check: %s", e)
