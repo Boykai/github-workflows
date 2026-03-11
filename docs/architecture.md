@@ -75,7 +75,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `components/common/` | `ErrorBoundary`, `CelestialCatalogHero` (reusable hero with celestial animations), `CelestialLoader` (orbital loading indicator), `ThemedAgentIcon`, `ProjectSelectionEmptyState`, `agentIcons` |
 | `components/agents/` | `AgentsPanel`, `AgentCard`, `AgentAvatar`, `AgentChatFlow`, `AgentInlineEditor`, `AddAgentModal`, `AgentIconPickerModal`, `BulkModelUpdateDialog` |
 | `components/pipeline/` | `PipelineBoard`, `PipelineFlowGraph`, `AgentNode`, `StageCard`, `ModelSelector`, `PipelineModelDropdown`, `PipelineToolbar`, `SavedWorkflowsList`, `UnsavedChangesDialog` |
-| `components/tools/` | `ToolsPanel`, `ToolSelectorModal`, `ToolCard`, `McpPresetsGallery`, `EditRepoMcpModal`, `UploadMcpModal`, `RepoConfigPanel` |
+| `components/tools/` | `ToolsPanel`, `ToolSelectorModal`, `ToolCard`, `McpPresetsGallery`, `EditRepoMcpModal`, `UploadMcpModal`, `RepoConfigPanel`, `GitHubMcpConfigGenerator` |
 | `hooks/` | `useAuth`, `useChat`, `useChatHistory`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useAgents`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useChores`, `useMcpSettings`, `useMetadata`, `useSidebarState`, `useMediaQuery`, `usePipelineConfig`, `useTools`, `useNotifications` |
 | `pages/` | `AgentsPage`, `AgentsPipelinePage`, `AppPage`, `ChoresPage`, `LoginPage`, `NotFoundPage`, `ProjectsPage`, `SettingsPage`, `ToolsPage` |
 | `services/` | `api.ts` — centralized HTTP/WS client for all backend endpoints |

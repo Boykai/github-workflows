@@ -161,12 +161,18 @@ github-workflows/
 │   │   │   ├── pipeline/         # PipelineBoard, PipelineFlowGraph, AgentNode,
 │   │   │   │                     # StageCard, ModelSelector, PipelineToolbar
 │   │   │   ├── tools/            # ToolsPanel, ToolSelectorModal, ToolCard,
-│   │   │   │                     # McpPresetsGallery, EditRepoMcpModal
+│   │   │   │                     # McpPresetsGallery, EditRepoMcpModal,
+│   │   │   │                     # UploadMcpModal, RepoConfigPanel,
+│   │   │   │                     # GitHubMcpConfigGenerator
 │   │   │   ├── settings/         # AI, Display, Workflow, Notification preferences,
 │   │   │   │                     # ProjectSettings, GlobalSettings, SignalConnection,
 │   │   │   │                     # McpSettings, AdvancedSettings
 │   │   │   └── ui/               # Shared UI primitives (button, input, card, tooltip)
 │   │   ├── hooks/                # React hooks (see Architecture doc)
+│   │   ├── lib/                 # Shared utilities and helpers
+│   │   │   ├── utils.ts         #   cn() class-name helper
+│   │   │   ├── buildGitHubMcpConfig.ts  # GitHub.com MCP config generator
+│   │   │   └── commands/        #   Chat command registry + handlers
 │   │   ├── pages/                # AgentsPage, AgentsPipelinePage, AppPage,
 │   │   │                         # ChoresPage, LoginPage, NotFoundPage,
 │   │   │                         # ProjectsPage, SettingsPage, ToolsPage

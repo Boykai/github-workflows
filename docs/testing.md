@@ -145,6 +145,8 @@ Test files are co-located with components:
 - `lib/commands/registry.test.ts`
 - `lib/commands/handlers/help.test.ts`
 - `lib/commands/handlers/settings.test.ts`
+- `lib/buildGitHubMcpConfig.test.ts`
+- `components/tools/ToolsEnhancements.test.tsx`
 
 ### E2E Tests (Playwright)
 
