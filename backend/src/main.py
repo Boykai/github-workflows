@@ -392,19 +392,30 @@ def create_app() -> FastAPI:
         redoc_url="/api/redoc" if settings.enable_docs else None,
     )
 
-    # CORS middleware — explicit methods reduce attack surface.
+    # CORS middleware — explicit methods and headers reduce attack surface.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["*"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "X-Request-ID",
+            "X-Requested-With",
+        ],
     )
 
     # Request-ID middleware (must be added after CORS — Starlette LIFO order)
     from src.middleware.request_id import RequestIDMiddleware
 
     app.add_middleware(RequestIDMiddleware)
+
+    # Content Security Policy middleware
+    from src.middleware.csp import CSPMiddleware
+
+    app.add_middleware(CSPMiddleware)
 
     # Rate limiting — slowapi state + exception handler
     from slowapi import _rate_limit_exceeded_handler

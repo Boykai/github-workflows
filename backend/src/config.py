@@ -93,6 +93,11 @@ class Settings(BaseSettings):
     # API documentation toggle (independent of DEBUG)
     enable_docs: bool = False
 
+    # Explicit admin designation via environment variable (numeric GitHub user ID).
+    # When set, only this user can be promoted to admin.  When unset, the first
+    # authenticated user is auto-promoted (with a warning).
+    admin_github_user_id: int | None = None
+
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
         """Enforce mandatory secrets in non-debug (production) mode.
