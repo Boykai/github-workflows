@@ -208,6 +208,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 ## Active Technologies
 - Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16 (001-performance-review)
 - SQLite via aiosqlite (session/settings); in-memory TTL cache (`backend/src/services/cache.py`) (001-performance-review)
+- TypeScript ~5.9 (frontend), Python 3.13 (backend — no changes) + React 19.2, React Router DOM 7.13, TanStack React Query 5.90, Radix UI (slot, tooltip), Tailwind CSS 4.2, CVA 0.7, Lucide React 0.577 (035-confirm-critical-actions)
+- N/A (frontend-only changes; no new persistence) (035-confirm-critical-actions)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16
