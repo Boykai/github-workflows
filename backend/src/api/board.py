@@ -12,7 +12,7 @@ from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 from src.api.auth import get_session_dep
 from src.constants import BLOCKING_LABEL
 from src.dependencies import verify_project_access
-from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
+from src.exceptions import AppException, AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
 from src.logging_utils import get_logger, handle_service_error
 from src.models.blocking import BlockingQueueEntry
 from src.models.board import (
@@ -399,7 +399,7 @@ async def get_blocking_queue(
         entries = await bq_store.get_by_project(project_id)
         return [entry.model_dump() for entry in entries]
     except Exception as exc:
-        handle_service_error(exc, "load blocking queue", GitHubAPIError)
+        handle_service_error(exc, "load blocking queue", AppException)
 
 
 @router.post(
