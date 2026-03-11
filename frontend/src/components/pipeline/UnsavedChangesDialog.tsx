@@ -39,15 +39,6 @@ export function UnsavedChangesDialog({
       cancelBtnRef.current?.focus();
     });
 
-    return () => {
-      // Restore focus to the element that triggered the dialog
-      const prev = previousFocusRef.current;
-      if (prev?.isConnected) {
-        prev.focus();
-      }
-      previousFocusRef.current = null;
-    };
-
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.preventDefault();
@@ -74,7 +65,16 @@ export function UnsavedChangesDialog({
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+
+      // Restore focus to the element that triggered the dialog
+      const prev = previousFocusRef.current;
+      if (prev?.isConnected) {
+        prev.focus();
+      }
+      previousFocusRef.current = null;
+    };
   }, [isOpen, onCancel]);
 
   if (!isOpen) return null;
