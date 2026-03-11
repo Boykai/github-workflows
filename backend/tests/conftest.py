@@ -210,7 +210,7 @@ async def client(
     # that need to verify authorization behavior can re-enable it.
     app.dependency_overrides[verify_project_access] = lambda: None
 
-    with (
+    patches = [
         patch("src.services.database.get_db", return_value=mock_db),
         patch("src.services.database._connection", mock_db),
         patch("src.config.get_settings", return_value=mock_settings),
@@ -222,6 +222,10 @@ async def client(
         patch("src.api.chores.github_projects_service", mock_github_service),
         # resolve_repository (src.utils) lazy-imports github_projects_service
         patch("src.services.github_projects.github_projects_service", mock_github_service),
+        # Bypass direct check_project_access calls in handlers that use
+        # body-derived or session-derived project IDs (not path params).
+        patch("src.api.tasks.check_project_access", new_callable=AsyncMock),
+        patch("src.api.workflow.check_project_access", new_callable=AsyncMock),
         # github_auth_service — patched where imported
         patch("src.api.auth.github_auth_service", mock_github_auth_service),
         patch("src.api.projects.github_auth_service", mock_github_auth_service),
@@ -235,13 +239,21 @@ async def client(
         patch("src.api.settings.get_db", return_value=mock_db),
         patch("src.api.mcp.get_db", return_value=mock_db),
         patch("src.api.tools.get_db", return_value=mock_db),
-    ):
+    ]
+
+    for p in patches:
+        p.start()
+
+    try:
         transport = ASGITransport(app=app)
         async with AsyncClient(
             transport=transport,
             base_url="http://testserver",
         ) as ac:
             yield ac
+    finally:
+        for p in reversed(patches):
+            p.stop()
 
     app.dependency_overrides.clear()
 

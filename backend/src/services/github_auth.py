@@ -67,11 +67,17 @@ class GitHubAuthService:
         params = {
             "client_id": self.settings.github_client_id,
             "redirect_uri": self.settings.github_redirect_uri,
-            # The app creates issues, sub-issues, comments, labels, and PRs.
-            # GitHub returns misleading 404s for many of those writes when the
-            # OAuth token only has project/read scopes, so repository scope is
-            # required here for the core workflow to function.
-            "scope": "read:user read:org project repo",
+            # OWASP A01: Request minimum necessary scopes.
+            # - read:user    — read user profile
+            # - read:org     — read org membership (project discovery)
+            # - project      — read/write GitHub Projects V2
+            # - public_repo  — create issues, comments, labels, PRs in public repos
+            #
+            # NOTE: `repo` was previously used for private-repo write access.
+            # `public_repo` is sufficient for public repositories.  If private
+            # repo support is needed, users must re-authorize after scope change.
+            # Test all write operations in staging before final rollout.
+            "scope": "read:user read:org project public_repo",
             "state": state,
         }
 

@@ -79,3 +79,4 @@ frontend/e2e-report/
 # Misc
 *.tmp
 *.bak
+backend/uv.lock

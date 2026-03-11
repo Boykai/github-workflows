@@ -145,10 +145,32 @@ async def verify_project_access(
 
     Fetches the user's project list and confirms *project_id* is included.
     Raises HTTP 403 if the user does not own or have access to the project.
+
+    Use as a FastAPI ``Depends()`` when *project_id* is a path parameter.
+    For body/session-derived project IDs, call :func:`check_project_access`
+    directly.
     """
     svc = get_github_service(request)
+    await check_project_access(svc, session, project_id)
+
+
+async def check_project_access(
+    github_service: GitHubProjectsService,
+    session: UserSession,
+    project_id: str,
+) -> None:
+    """Verify *session* user has access to *project_id*.
+
+    Standalone helper callable from any async context — does **not**
+    require FastAPI dependency injection, so it works for body-derived
+    or session-derived project IDs as well as WebSocket handlers.
+
+    Raises :class:`AuthorizationError` (HTTP 403) on failure.
+    """
     try:
-        projects = await svc.list_user_projects(session.access_token, session.github_username)
+        projects = await github_service.list_user_projects(
+            session.access_token, session.github_username
+        )
         if any(p.project_id == project_id for p in projects):
             return
     except Exception as e:
