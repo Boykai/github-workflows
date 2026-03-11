@@ -156,8 +156,8 @@ async def process_signal_chat(
                     token,
                     project_id,
                 )
-            except Exception:
-                pass  # Signal flow can proceed without owner/repo
+            except Exception as e:
+                logger.debug("Signal flow proceeding without repo info: %s", e)
 
             agent_response = await handle_agent_command(
                 message=message_text,

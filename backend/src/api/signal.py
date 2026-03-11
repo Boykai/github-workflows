@@ -72,7 +72,8 @@ async def get_signal_connection(
     try:
         phone = enc.decrypt(conn.signal_phone_encrypted)
         masked = mask_phone_number(phone)
-    except Exception:
+    except Exception as e:
+        logger.debug("Could not decrypt phone number: %s", e)
         masked = None
 
     return SignalConnectionResponse(
@@ -122,7 +123,8 @@ async def check_signal_link_status(
         try:
             phone = enc.decrypt(existing.signal_phone_encrypted)
             masked = mask_phone_number(phone)
-        except Exception:
+        except Exception as e:
+            logger.debug("Could not decrypt phone number: %s", e)
             masked = None
 
         return SignalLinkStatusResponse(

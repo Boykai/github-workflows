@@ -197,7 +197,7 @@ async def commit_template_to_repo(
     # 6. Add tracking issue to project
     try:
         await github_service.add_issue_to_project(access_token, project_id, tracking_issue_node_id)
-    except Exception:
+    except Exception as e:
         logger.warning(
             "Failed to add tracking issue #%d to project %s",
             tracking_issue_number,

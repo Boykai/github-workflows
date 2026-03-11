@@ -626,7 +626,7 @@ class ChoresService:
                         )
                         if _pipeline_result.agent_mappings:
                             config.agent_mappings = _pipeline_result.agent_mappings
-                except Exception:
+                except Exception as e:
                     logger.debug(
                         "Pipeline mapping resolution failed for chore %s; using config defaults",
                         chore.name,
@@ -646,7 +646,7 @@ class ChoresService:
                         issue_number,
                         backlog_status,
                     )
-                except Exception:
+                except Exception as e:
                     logger.exception(
                         "Failed to set Backlog status for chore issue #%d",
                         issue_number,
@@ -745,7 +745,7 @@ class ChoresService:
                 )
         except _BlockedIssueSkip:
             pass  # Issue is queued — skip agent assignment, continue to CAS update
-        except Exception:
+        except Exception as e:
             logger.exception(
                 "Agent pipeline failed for chore %s (issue #%s)",
                 chore.name,
@@ -785,7 +785,7 @@ class ChoresService:
                     state="closed",
                     state_reason="not_planned",
                 )
-            except Exception:
+            except Exception as e:
                 logger.exception(
                     "Failed to close duplicate issue #%s for chore %s",
                     issue_number,
@@ -856,7 +856,7 @@ class ChoresService:
                                 "current_issue_node_id": None,
                             }
                         )
-                except Exception:
+                except Exception as e:
                     logger.exception(
                         "Failed to check issue status for chore %s (issue #%s)",
                         chore.name,
@@ -953,7 +953,8 @@ class ChoresService:
                     if isinstance(encoded_content, str):
                         try:
                             current_content = b64decode(encoded_content).decode("utf-8")
-                        except Exception:
+                        except Exception as e:
+                            logger.debug("Failed to decode file content: %s", e)
                             current_content = None
                     raise ChoreConflictError(
                         "File has been modified since page load",

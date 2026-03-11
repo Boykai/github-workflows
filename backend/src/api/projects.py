@@ -244,7 +244,7 @@ async def _start_copilot_polling(session: UserSession, project_id: str) -> None:
     # Resolve repository info for the project
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
-    except Exception:
+    except Exception as e:
         logger.warning(
             "Could not determine repository for project %s, polling not started",
             project_id,

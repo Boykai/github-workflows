@@ -1425,7 +1425,7 @@ async def _transition_after_pipeline_complete(
                             repo=repo,
                             issue_number=activated_entry.issue_number,
                         )
-                    except Exception:
+                    except Exception as e:
                         logger.exception(
                             "Failed to activate queued issue #%d",
                             activated_entry.issue_number,
@@ -1462,7 +1462,7 @@ async def _transition_after_pipeline_complete(
                             repo=repo,
                             issue_number=activated_entry.issue_number,
                         )
-                    except Exception:
+                    except Exception as e:
                         logger.exception(
                             "Failed to activate queued issue #%d",
                             activated_entry.issue_number,

@@ -72,7 +72,7 @@ async def get_current_session(
             try:
                 session = await github_auth_service.refresh_token(session)
                 logger.info("Auto-refreshed token for user %s", session.github_username)
-            except Exception:
+            except Exception as e:
                 logger.warning(
                     "Token refresh failed for user %s — forcing re-login",
                     session.github_username,

@@ -128,7 +128,7 @@ async def create_task(
             issue_node_id=issue_node_id,
             item_id=item_id,
         )
-    except Exception:
+    except Exception as e:
         logger.exception(
             "Failed to pre-create sub-issues for task issue #%d in project %s",
             issue_number,

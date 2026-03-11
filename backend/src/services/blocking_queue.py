@@ -476,7 +476,7 @@ async def sweep_stale_entries(
                 )
                 await mark_completed(repo_key, entry.issue_number)
                 swept.append(entry.issue_number)
-        except Exception:
+        except Exception as e:
             logger.warning(
                 "Blocking queue sweep: failed to check issue #%d for %s",
                 entry.issue_number,
