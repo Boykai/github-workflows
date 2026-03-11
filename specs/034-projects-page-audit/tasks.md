@@ -71,7 +71,7 @@
 - [ ] T015 [P] [US1] Audit and fix `frontend/src/components/board/BlockingIssuePill.tsx` and `frontend/src/components/board/BlockingChainPanel.tsx` for design token compliance — verify pill colors, action button styling, panel collapse/expand styling, and typography
 - [ ] T016 [P] [US1] Audit and fix `frontend/src/components/board/RefreshButton.tsx` for design token compliance — verify spinner animation, button variant, and icon sizing
 - [ ] T017 [US1] Audit and fix `frontend/src/layout/ProjectSelector.tsx` for design token compliance — verify dropdown panel background, option hover/selected states, search input styling, and loading indicator
-- [ ] T018 [US1] Verify light mode and dark mode rendering across all Projects page components by confirming all color references resolve correctly under both `@media (prefers-color-scheme: dark)` and default themes in `frontend/src/index.css`
+- [ ] T018 [US1] Verify light mode and dark mode rendering across all Projects page components by confirming all color references resolve correctly when toggling between `.light` and `.dark` classes on `<html>` and that system theme preference via the ThemeProvider (`matchMedia`) applies the correct class; validate resulting token usage in `frontend/src/index.css`
 
 **Checkpoint**: All visual elements on the Projects page use Celestial design tokens exclusively. No hardcoded colors, ad-hoc spacing, or mismatched typography remains. Both light and dark modes render correctly.
 

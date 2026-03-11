@@ -43,14 +43,27 @@ interface IssueDetailModalProps {
 export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
 
   useScrollLock(true);
 
-  // Focus the close button when the modal opens
+  // Focus the close button when the modal opens and restore focus on unmount
   useEffect(() => {
+    // Capture the element that was focused before the modal opened
+    const activeElement = document.activeElement;
+    if (activeElement instanceof HTMLElement) {
+      previouslyFocusedElementRef.current = activeElement;
+    }
+
+    // Then move focus to the close button
     requestAnimationFrame(() => {
       closeBtnRef.current?.focus();
     });
+
+    // On unmount, restore focus to the previously focused element
+    return () => {
+      previouslyFocusedElementRef.current?.focus();
+    };
   }, []);
 
   // Escape key + focus trapping
