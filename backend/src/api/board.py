@@ -319,8 +319,8 @@ async def get_board_data(
     # BEFORE fetching so concurrent requests don't serve stale data.
     cleared_sub_issue_count = 0
     if refresh:
-        cache.delete(cache_key)
         old_cached = cache.get(cache_key)
+        cache.delete(cache_key)
         if isinstance(old_cached, BoardDataResponse) and hasattr(old_cached, "columns"):
             for col in old_cached.columns:
                 for item in col.items:
