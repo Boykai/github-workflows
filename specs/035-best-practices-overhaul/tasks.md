@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/035-best-practices-overhaul/`
 **Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, contracts/
 
-**Tests**: Integration tests are included in Phase 7 (US6) as explicitly required by FR-026/FR-027. No other test tasks are generated.
+**Tests**: Integration tests are included in Phase 7 (US6) as explicitly required by FR-026/FR-027. Unit tests for new modules (e.g., `pipeline_state_store.py`, `chat_store.py`, `CSPMiddleware`) are expected to be written as part of each implementation task where the existing test infrastructure supports it, but are not called out as separate tasks.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing. Phase 1 (Data Integrity) is the blocking foundation — all other user stories depend on it. Phases 3–6 (US2–US5) can run in parallel after Phase 2 completes. Phases 7–8 (US6–US7) are independent.
 
@@ -313,8 +313,8 @@ With multiple developers:
 - Each user story should be independently completable and testable
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
-- Phase 1 (Data Integrity) is the critical path — all other work is blocked until it completes
-- Phases 2–5 are NOT sequential — they can run in parallel after Phase 1
+- Phase 2 (Data Integrity / US1) is the critical path — all other user story work is blocked until it completes
+- Phases 3–6 are NOT sequential — they can run in parallel after Phase 2 completes
 - Research decisions (R-001 through R-013) provide implementation guidance for each task
 - Contracts in `specs/035-best-practices-overhaul/contracts/` define exact interfaces for new modules
 - Avoid: vague tasks, same file conflicts, cross-story dependencies that break independence
