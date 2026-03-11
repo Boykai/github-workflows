@@ -69,7 +69,7 @@ services:
       - ghchat-network
 
   signal-api:
-    image: bbernhard/signal-cli-rest-api:latest
+    image: bbernhard/signal-cli-rest-api:0.83
     container_name: ghchat-signal-api
     restart: unless-stopped
     environment:

@@ -18,7 +18,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM nginx:alpine
+FROM nginx:1.27-alpine
 
 # Create non-root user for nginx
 RUN addgroup -S nginx-app && adduser -S -G nginx-app nginx-app \

@@ -4,30 +4,30 @@ version = "0.1.0"
 description = "FastAPI backend for Agent Projects"
 requires-python = ">=3.12"
 dependencies = [
-    "fastapi>=0.135.0",
-    "uvicorn[standard]>=0.41.0",
-    "githubkit>=0.14.6",
-    "httpx>=0.28.0",
-    "pydantic>=2.12.0",
-    "pydantic-settings>=2.13.0",
-    "python-multipart>=0.0.22",
-    "pyyaml>=6.0.3",
+    "fastapi>=0.135.0,<1",
+    "uvicorn[standard]>=0.41.0,<1",
+    "githubkit>=0.14.6,<1",
+    "httpx>=0.28.0,<1",
+    "pydantic>=2.12.0,<3",
+    "pydantic-settings>=2.13.0,<3",
+    "python-multipart>=0.0.22,<1",
+    "pyyaml>=6.0.3,<7",
     # GitHub Copilot SDK (default AI provider)
-    "github-copilot-sdk>=0.1.30",
+    "github-copilot-sdk>=0.1.30,<1",
     # Azure OpenAI (optional fallback provider)
-    "openai>=2.26.0",
-    "azure-ai-inference>=1.0.0b9",
+    "openai>=2.26.0,<3",
+    "azure-ai-inference>=1.0.0b9,<2",
     # SQLite async (durable settings/session storage)
-    "aiosqlite>=0.22.0",
+    "aiosqlite>=0.22.0,<1",
     # Encryption for session tokens
-    "cryptography>=44.0.0",
+    "cryptography>=44.0.0,<45",
     # Signal messaging integration
-    "tenacity>=9.1.0",
-    "websockets>=16.0",
+    "tenacity>=9.1.0,<10",
+    "websockets>=16.0,<17",
     # Rate limiting middleware (FastAPI-compatible)
-    "slowapi>=0.1.9",
+    "slowapi>=0.1.9,<1",
     # Code graph analysis (MCP server + CLI)
-    "codegraphcontext>=0.2.9",
+    "codegraphcontext>=0.2.9,<1",
 ]
 
 [project.optional-dependencies]
@@ -90,7 +90,7 @@ markers = [
 
 [tool.pyright]
 pythonVersion = "3.13"
-typeCheckingMode = "basic"
+typeCheckingMode = "standard"
 include = ["src"]
 exclude = ["**/__pycache__", "tests", "htmlcov"]
 reportMissingTypeStubs = false
