@@ -8,6 +8,15 @@ import App from './App';
 import './index.css';
 import { ThemeProvider } from './components/ThemeProvider';
 
+/* ── Global error telemetry ── */
+window.onerror = (_message, source, lineno, colno, error) => {
+  console.error('[global:onerror]', { source, lineno, colno, error });
+};
+
+window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+  console.error('[global:unhandledrejection]', event.reason);
+});
+
 const root = document.getElementById('root');
 if (root) {
   createRoot(root).render(
