@@ -72,13 +72,11 @@ export function useRealTimeSync(
         }
 
         if (data.type === 'refresh') {
-          // Refresh contract Rule 1 & 2: The backend already suppresses this
-          // message when task data is unchanged (hash comparison).  Invalidate
-          // the tasks query for task-level freshness, then request a debounced
-          // full board reload so concurrent auto-refresh + WebSocket refresh
-          // triggers are deduplicated (Rule 3).
+          // Refresh contract: The backend already suppresses this message when
+          // task data is unchanged (hash comparison). Invalidate only the tasks
+          // query for task-level freshness and reset the auto-refresh timer via
+          // markUpdated; board data continues to refresh on its own schedule.
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
-          onBoardReloadRequestedRef.current?.();
           markUpdated();
           return;
         }

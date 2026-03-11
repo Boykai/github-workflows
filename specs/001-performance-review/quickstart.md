@@ -85,7 +85,7 @@ Before starting implementation, read these files in order:
 5. `frontend/src/components/board/BoardColumn.tsx` — Memoized column component.
 6. `frontend/src/components/board/IssueCard.tsx` — Memoized card component.
 7. `frontend/src/components/chat/ChatPopup.tsx` — Drag listener (throttle candidate).
-8. `frontend/src/components/agents/AddAgentPopover.tsx` — Positioning listener (throttle candidate).
+8. `frontend/src/components/board/AddAgentPopover.tsx` — Positioning listener (throttle candidate).
 
 ## Development Workflow
 
