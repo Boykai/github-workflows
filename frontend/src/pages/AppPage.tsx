@@ -42,6 +42,14 @@ export function AppPage() {
               Move across projects, pipelines, chores, and agent operations inside a shell that
               feels sunlit by day, lunar by night, and quieter than a typical utility dashboard.
             </p>
+
+            <img
+              src="/images/hero-solune.svg"
+              alt="Solune — a celestial illustration of the sun and moon orbiting together against a starry sky"
+              className="mt-8 w-full max-w-lg rounded-2xl"
+              width={800}
+              height={400}
+            />
           </div>
 
           <div className="grid gap-6 lg:max-w-xl">
