@@ -697,7 +697,7 @@ async def confirm_proposal(
     request: Request,
     proposal_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
-    edit_request: ProposalConfirmRequest | None = None,
+    proposal_edits: ProposalConfirmRequest | None = None,
     github_projects_service=Depends(get_github_service),  # noqa: B008
     connection_manager=Depends(get_connection_manager),  # noqa: B008
 ) -> AITaskProposal:
@@ -718,12 +718,12 @@ async def confirm_proposal(
         raise ValidationError(f"Proposal already {proposal.status.value}")
 
     # Apply edits if provided
-    if edit_request:
-        if edit_request.edited_title:
-            proposal.edited_title = edit_request.edited_title
+    if proposal_edits:
+        if proposal_edits.edited_title:
+            proposal.edited_title = proposal_edits.edited_title
             proposal.status = ProposalStatus.EDITED
-        if edit_request.edited_description:
-            proposal.edited_description = edit_request.edited_description
+        if proposal_edits.edited_description:
+            proposal.edited_description = proposal_edits.edited_description
             if proposal.status != ProposalStatus.EDITED:
                 proposal.status = ProposalStatus.EDITED
 
