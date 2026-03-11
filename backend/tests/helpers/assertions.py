@@ -72,3 +72,44 @@ def assert_json_values(data: dict, expected: dict[str, Any]) -> None:
     for key, value in expected.items():
         assert key in data, f"Key '{key}' not found in response"
         assert data[key] == value, f"Key '{key}': expected {value!r}, got {data[key]!r}"
+
+
+# ── Performance assertion helpers (Spec 034) ──────────────────────
+
+
+def assert_api_call_count_reduced(
+    baseline: int,
+    optimized: int,
+    *,
+    min_reduction_pct: float = 50.0,
+    label: str = "API calls",
+) -> None:
+    """Assert that an optimized count is at least *min_reduction_pct* % lower.
+
+    Args:
+        baseline: Pre-optimization measurement.
+        optimized: Post-optimization measurement.
+        min_reduction_pct: Minimum reduction percentage (default 50).
+        label: Human-readable metric name for the error message.
+    """
+    if baseline == 0:
+        return  # nothing to reduce
+    reduction = (1 - optimized / baseline) * 100
+    assert reduction >= min_reduction_pct, (
+        f"{label}: expected ≥ {min_reduction_pct}% reduction, "
+        f"got {reduction:.1f}% (baseline={baseline}, optimized={optimized})"
+    )
+
+
+def assert_cache_hit(mock_cache_get, key_substring: str) -> None:
+    """Assert that at least one ``cache.get()`` call matched *key_substring*.
+
+    Args:
+        mock_cache_get: A ``unittest.mock.Mock`` patching ``cache.get``.
+        key_substring: Substring that must appear in at least one call's first arg.
+    """
+    calls = [str(c) for c in mock_cache_get.call_args_list]
+    assert any(key_substring in c for c in calls), (
+        f"Expected cache.get() call containing '{key_substring}', "
+        f"got: {calls}"
+    )

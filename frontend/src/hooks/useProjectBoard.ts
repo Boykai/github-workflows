@@ -8,6 +8,21 @@ import { boardApi } from '@/services/api';
 import { STALE_TIME_PROJECTS, STALE_TIME_SHORT } from '@/constants';
 import type { BoardProject, BoardDataResponse, RateLimitInfo } from '@/types';
 
+// ── Query-key helpers (Spec 034: selective invalidation) ─────────
+// Centralised query keys so every refresh caller (useRealTimeSync,
+// useBoardRefresh, manual refresh) targets the same cache entries.
+
+/** Query key for the board projects list. */
+export const boardProjectsKey = () => ['board', 'projects'] as const;
+
+/** Query key for a specific project's board data. */
+export const boardDataKey = (projectId: string | null) =>
+  ['board', 'data', projectId] as const;
+
+/** Query key for a project's task list (used by useRealTimeSync). */
+export const projectTasksKey = (projectId: string | null) =>
+  ['projects', projectId, 'tasks'] as const;
+
 interface UseProjectBoardOptions {
   /** Externally managed selected project ID (from session) */
   selectedProjectId?: string | null;
@@ -53,7 +68,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     isLoading: projectsLoading,
     error: projectsError,
   } = useQuery({
-    queryKey: ['board', 'projects'],
+    queryKey: boardProjectsKey(),
     queryFn: () => boardApi.listProjects(),
     staleTime: STALE_TIME_PROJECTS,
     retry: false,
@@ -69,7 +84,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     isFetching,
     error: boardError,
   } = useQuery({
-    queryKey: ['board', 'data', selectedProjectId],
+    queryKey: boardDataKey(selectedProjectId),
     queryFn: async () => {
       const result = await boardApi.getBoardData(selectedProjectId!);
       setLastUpdated(new Date());

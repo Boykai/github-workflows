@@ -149,10 +149,14 @@ def utcnow() -> datetime:
 async def resolve_repository(access_token: str, project_id: str) -> tuple[str, str]:
     """Resolve repository owner and name for a project using 3-step fallback.
 
+    Results are cached for the lifetime of the process to avoid repeated
+    GraphQL lookups for the same project during refresh flows (Spec 034 T021).
+
     Lookup order:
-    1. Project items (via GitHub Projects GraphQL API)
-    2. Workflow configuration (in-memory/DB)
-    3. Default repository from app settings (.env)
+    1. In-memory resolution cache
+    2. Project items (via GitHub Projects GraphQL API)
+    3. Workflow configuration (in-memory/DB)
+    4. Default repository from app settings (.env)
 
     Args:
         access_token: GitHub access token.
@@ -168,27 +172,43 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
     from src.services.github_projects import github_projects_service
     from src.services.workflow_orchestrator import get_workflow_config
 
+    # Check in-memory cache first to avoid repeated GraphQL calls
+    cached = _repo_resolution_cache.get(project_id)
+    if cached is not None:
+        logger.debug("Repository resolution cache hit for project %s", project_id)
+        return cached
+
     # 1. Try project items
     repo_info = await github_projects_service.get_project_repository(access_token, project_id)
     if repo_info:
+        _repo_resolution_cache[project_id] = repo_info
         return repo_info
 
     # 2. Try workflow config
     config = await get_workflow_config(project_id)
     if config and config.repository_owner and config.repository_name:
-        return config.repository_owner, config.repository_name
+        result = config.repository_owner, config.repository_name
+        _repo_resolution_cache[project_id] = result
+        return result
 
     # 3. Fall back to default repository from settings
     from src.config import get_settings
 
     settings = get_settings()
     if settings.default_repo_owner and settings.default_repo_name:
-        return settings.default_repo_owner, settings.default_repo_name
+        result = settings.default_repo_owner, settings.default_repo_name
+        _repo_resolution_cache[project_id] = result
+        return result
 
     raise ValidationError(
         "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
         "or ensure the project has at least one linked issue."
     )
+
+
+# Bounded cache for repository resolution results (Spec 034 T021).
+# Avoids repeated GraphQL lookups for the same project across refresh flows.
+_repo_resolution_cache: BoundedDict[str, tuple[str, str]] = BoundedDict(maxlen=128)
 
 
 async def cached_fetch[R](

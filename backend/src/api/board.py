@@ -306,7 +306,9 @@ async def get_board_data(
     if not refresh:
         cached = cache.get(cache_key)
         if cached:
-            logger.info("Returning cached board data for project %s", project_id)
+            logger.info(
+                "Board cache hit for project %s (source=cache)", project_id
+            )
             if isinstance(cached, BoardDataResponse):
                 # Return a shallow copy to avoid mutating the shared cache entry,
                 # which could leak stale rate_limit values across requests.
@@ -315,6 +317,7 @@ async def get_board_data(
 
     # On manual refresh, clear sub-issue caches BEFORE fetching board data so
     # that get_board_data() → get_sub_issues() doesn't serve stale cached entries.
+    cleared_sub_issue_count = 0
     if refresh:
         old_cached = cache.get(cache_key)
         if isinstance(old_cached, BoardDataResponse) and hasattr(old_cached, "columns"):
@@ -324,9 +327,20 @@ async def get_board_data(
                         si_key = get_sub_issues_cache_key(
                             item.repository.owner, item.repository.name, item.number
                         )
-                        cache.delete(si_key)
+                        if cache.delete(si_key):
+                            cleared_sub_issue_count += 1
+        if cleared_sub_issue_count:
+            logger.info(
+                "Cleared %d sub-issue cache entries for manual refresh (project=%s)",
+                cleared_sub_issue_count,
+                project_id,
+            )
 
-    logger.info("Fetching board data for project %s", project_id)
+    logger.info(
+        "Fetching board data for project %s (refresh=%s)",
+        project_id,
+        refresh,
+    )
 
     try:
         board_data = await github_projects_service.get_board_data(session.access_token, project_id)

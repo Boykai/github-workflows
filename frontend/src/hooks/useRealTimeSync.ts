@@ -5,6 +5,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { WS_FALLBACK_POLL_MS, WS_CONNECTION_TIMEOUT_MS } from '@/constants';
+import { projectTasksKey } from '@/hooks/useProjectBoard';
 
 /** Maximum reconnection delay in milliseconds (30 seconds). */
 const MAX_RECONNECT_DELAY_MS = 30_000;
@@ -62,14 +63,14 @@ export function useRealTimeSync(
           }
           lastReconnectInvalidationRef.current = now;
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
-          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          queryClient.invalidateQueries({ queryKey: projectTasksKey(projectId) });
           markUpdated();
           return;
         }
 
         if (data.type === 'refresh') {
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
-          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          queryClient.invalidateQueries({ queryKey: projectTasksKey(projectId) });
           markUpdated();
           return;
         }
@@ -81,7 +82,7 @@ export function useRealTimeSync(
           data.type === 'status_changed'
         ) {
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
-          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          queryClient.invalidateQueries({ queryKey: projectTasksKey(projectId) });
           markUpdated();
         }
 
@@ -105,7 +106,7 @@ export function useRealTimeSync(
 
     pollingIntervalRef.current = window.setInterval(() => {
       // Only invalidate tasks — board data refreshes on its own 5-minute schedule
-      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      queryClient.invalidateQueries({ queryKey: projectTasksKey(projectId) });
       setLastUpdate(new Date());
       onRefreshTriggeredRef.current?.();
     }, WS_FALLBACK_POLL_MS);
