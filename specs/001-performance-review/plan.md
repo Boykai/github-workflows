@@ -86,7 +86,7 @@ frontend/
 │   │   │   └── IssueCard.tsx       # memo'd card renderer
 │   │   ├── chat/
 │   │   │   └── ChatPopup.tsx       # Drag listener (throttle candidate)
-│   │   └── agents/
+│   │   └── board/
 │   │       └── AddAgentPopover.tsx  # Positioning listener (throttle candidate)
 │   └── pages/
 │       └── ProjectsPage.tsx        # Derived state (useMemo patterns already present)

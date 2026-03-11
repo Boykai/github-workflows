@@ -163,6 +163,9 @@ export function useBoardRefresh({
       doRefresh();
       resetTimer();
     } else if (debounceTimeoutRef.current === null) {
+      // Reset auto-refresh timer immediately so it does not fire during the
+      // debounce window and cause a duplicate refresh.
+      resetTimer();
       debounceTimeoutRef.current = window.setTimeout(() => {
         debounceTimeoutRef.current = null;
         doRefresh();

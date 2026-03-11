@@ -3,15 +3,13 @@
 import hashlib
 import json
 from datetime import timedelta
-from typing import Any, TypeVar
+from typing import Any
 
 from src.config import get_settings
 from src.logging_utils import get_logger
 from src.utils import utcnow
 
 logger = get_logger(__name__)
-
-T = TypeVar("T")
 
 
 class CacheEntry[T]:

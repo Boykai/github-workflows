@@ -362,9 +362,9 @@ async def get_board_data(
 
     # Cache board data — 300 seconds aligns with frontend's 5-minute auto-refresh.
     # Manual refresh (refresh=true) bypasses this cache entirely.
-    # Store a content hash for change detection: the WebSocket subscription can
-    # compare this hash to suppress `refresh` broadcasts when board data has not
-    # actually changed, satisfying FR-004 / SC-001.
+    # Store a content hash alongside the cached board data so that other
+    # components (for example, WebSocket subscribers) can optionally perform
+    # board-level change detection when deciding whether to trigger a refresh.
     board_hash = compute_data_hash(board_data.model_dump(mode="json", exclude={"rate_limit"}))
     cache.set(cache_key, board_data, ttl_seconds=300, data_hash=board_hash)
     return board_data

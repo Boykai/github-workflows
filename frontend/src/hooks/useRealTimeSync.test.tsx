@@ -805,7 +805,7 @@ describe('useRealTimeSync', () => {
   });
 
   describe('onBoardReloadRequested callback (refresh contract)', () => {
-    it('should invoke onBoardReloadRequested on refresh message', async () => {
+    it('should NOT invoke onBoardReloadRequested on refresh message (tasks-only invalidation)', async () => {
       const onBoardReloadRequested = vi.fn();
       renderHook(
         () => useRealTimeSync('PVT_123', { onBoardReloadRequested }),
@@ -820,7 +820,8 @@ describe('useRealTimeSync', () => {
         mockWebSocketInstances[0]?.simulateMessage({ type: 'refresh' });
       });
 
-      expect(onBoardReloadRequested).toHaveBeenCalledTimes(1);
+      // Refresh contract: refresh messages only invalidate tasks, not board data
+      expect(onBoardReloadRequested).not.toHaveBeenCalled();
     });
 
     it('should NOT invoke onBoardReloadRequested on task_update message', async () => {

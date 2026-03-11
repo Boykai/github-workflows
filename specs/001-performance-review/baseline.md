@@ -52,7 +52,7 @@
 
 ### Observed Behavior (Before)
 
-- **WebSocket `refresh` messages**: Sent unconditionally every 30 seconds regardless of data changes.
+- **WebSocket `refresh` messages**: Sent every 30 seconds only when the tasks payload hash has changed (hash comparison already exists in `projects.py`).
 - **Fallback polling**: Invalidates tasks query only (lightweight). Auto-refresh runs independently.
 - **Board auto-refresh**: 5-minute interval; no coordination with fallback polling or WebSocket refresh.
 - **Manual refresh**: Bypasses cache (`refresh=true`), clears sub-issue caches.
@@ -62,7 +62,7 @@
 
 ### Gaps Identified
 
-1. WebSocket subscription broadcasts `refresh` even when task data is unchanged (hash check exists on tasks but not on board structure).
+1. WebSocket subscription lacks board-structure-level change detection (hash comparison exists for tasks payloads but not for board columns/layout).
 2. No debounce between auto-refresh and WebSocket `refresh` arriving concurrently.
 3. Auto-refresh timer does not coordinate with fallback polling state.
 4. Callback props in `ProjectsPage` may defeat `React.memo` on child components if not stabilized with `useCallback`.
