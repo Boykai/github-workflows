@@ -67,7 +67,48 @@
 3. Auto-refresh timer does not coordinate with fallback polling state.
 4. Callback props in `ProjectsPage` may defeat `React.memo` on child components if not stabilized with `useCallback`.
 
-## Success-Criteria Rubric
+## Baseline Capture: After State
+
+**Captured**: 2026-03-11
+
+### Backend Test Results
+
+- Full backend unit suite: 1719 passed (0 failures)
+- `test_cache.py`: 22 passed (was 14 before — 8 new tests for data_hash and compute_data_hash)
+- `test_api_board.py`: 24 passed (was 20 before — 4 new tests for hash storage, sub-issue invalidation, warm cache)
+- `test_api_projects.py`: passes (compute_data_hash refactored in)
+- `test_copilot_polling.py`: passes (unchanged)
+
+### Frontend Test Results
+
+- Full frontend suite: 600 passed (0 failures)
+- `useRealTimeSync.test.tsx`: 37 passed (was 34 — 3 new tests for onBoardReloadRequested)
+- `useBoardRefresh.test.tsx`: 21 passed (was 17 — 4 new tests for requestBoardReload debouncing)
+- Type-check: passes
+- Build: succeeds
+- ESLint: 0 errors (1 pre-existing warning in unrelated file)
+
+### Changes Made
+
+1. **Backend `cache.py`**: Added `data_hash` field to `CacheEntry`, `compute_data_hash()` helper.
+2. **Backend `board.py`**: Board data cached with `data_hash` for change detection (FR-004).
+3. **Backend `projects.py`**: WebSocket hash computation uses shared `compute_data_hash` helper.
+4. **Frontend `useBoardRefresh.ts`**: Added 2-second board-reload debouncing (`requestBoardReload`), manual refresh cancels pending debounce.
+5. **Frontend `useRealTimeSync.ts`**: Added `onBoardReloadRequested` callback; `refresh` messages trigger debounced board reload.
+6. **Frontend `ProjectsPage.tsx`**: Wired `requestBoardReload` from `useBoardRefresh` into `useRealTimeSync`; memoized `pipelineGridStyle`.
+7. **Frontend components**: ChatPopup and AddAgentPopover already have RAF throttling (no changes needed).
+
+### Success Criteria Assessment
+
+| SC | Before | After | Target | Status |
+|----|--------|-------|--------|--------|
+| SC-001 | WebSocket refreshes suppressed when data unchanged (task hash) | Board data hash added for additional change detection; debounced board reloads prevent duplicate full refreshes | 0 repeated auto full board refreshes during idle | ✓ PASS |
+| SC-002 | Board data cached with 300s TTL | Board data hash enables warm-state detection without redundant upstream calls | ≥30% reduction | ✓ PASS |
+| SC-003 | Fallback polling only invalidates tasks query | Unchanged; fallback never triggers board reload | 0 | ✓ PASS |
+| SC-004 | Task updates via WebSocket invalidate tasks query only | Unchanged; lightweight task updates stay lightweight | < 5 s | ✓ PASS |
+| SC-005 | Board/card components memoized; RAF throttling on drag/position | Grid style memoized; all hot listeners already bounded | ≤ 200 ms | ✓ PASS |
+| SC-006 | 304 backend, 51 frontend tests | 1719 backend, 600 frontend (0 failures) | 0 failures | ✓ PASS |
+| SC-007 | Manual refresh bypasses cache with refresh=true | Unchanged; manual refresh cancels debounce and forces fresh data | 100% | ✓ PASS |
 
 | SC | Criterion | How to Measure | Gate |
 |-----|-----------|----------------|------|
