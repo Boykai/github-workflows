@@ -163,6 +163,8 @@ npx playwright test             # E2E
 - N/A — reads from existing MCP tools state via `useToolsList` hook; no new persistence (033-update-tools-mcp-config-generator)
 - Python 3.11 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic, aiosqlite (backend); React 18, TanStack React Query, @dnd-kit/core + @dnd-kit/sortable (frontend); Tailwind CSS, shadcn/ui (styling) (033-parallel-agent-layout)
 - SQLite via aiosqlite — `pipeline_configs.stages` stored as JSON text column (033-parallel-agent-layout)
+- TypeScript 5.x (React 18, Vite) + React, React Router, Tailwind CSS, Lucide Icons (034-update-app-title)
+- N/A — no data persistence changes (034-update-app-title)
 
 ## Custom Agents
 
@@ -210,6 +212,6 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 | Code Graph Context | Local | Code Analysis | Code indexing, call chains, dead code detection |
 
 ## Recent Changes
+- 034-update-app-title: Added TypeScript 5.x (React 18, Vite) + React, React Router, Tailwind CSS, Lucide Icons
 - 033-audit-pipelines-ux: Added TypeScript ~5.9 (frontend), Python 3.13 (backend) + React 19.2, TanStack Query v5.90, Tailwind CSS v4 (with `@tailwindcss/vite`), shadcn/ui (Radix UI primitives), dnd-kit (drag-and-drop), lucide-react 0.577 (icons), class-variance-authority 0.7.1 (frontend); FastAPI 0.135, aiosqlite 0.22, Pydantic v2.12 (backend)
 - 033-update-tools-mcp-config-generator: Added TypeScript 5.x (frontend), Python 3.11 (backend — no changes needed) + React 18, TanStack Query, Tailwind CSS, Lucide React icons, Vitest (tests)
-- 033-projects-page-audit: Added TypeScript 5.x with React 19.2 + React 19, TanStack React Query 5.90, Tailwind CSS v4 (via `@tailwindcss/vite`), Radix UI (Slot, Tooltip), Lucide React icons, class-variance-authority, tailwind-merge, react-router-dom 7.13, react-markdown 10.1, @dnd-kit (drag-and-drop)
