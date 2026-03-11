@@ -20,7 +20,7 @@ dependencies = [
     # SQLite async (durable settings/session storage)
     "aiosqlite>=0.22.0,<1",
     # Encryption for session tokens
-    "cryptography>=44.0.0,<45",
+    "cryptography>=46.0.5,<47",
     # Signal messaging integration
     "tenacity>=9.1.0,<10",
     "websockets>=16.0,<17",
