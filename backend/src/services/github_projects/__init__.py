@@ -51,13 +51,17 @@ class GitHubClientFactory:
         self._pool.clear()
 
 
+from src.services.github_projects.base_client import GitHubBaseClient  # noqa: E402
+from src.services.github_projects.rate_limit import RateLimitManager  # noqa: E402
 from src.services.github_projects.service import (  # noqa: E402
     GitHubProjectsService,
     github_projects_service,
 )
 
 __all__ = [
+    "GitHubBaseClient",
     "GitHubClientFactory",
     "GitHubProjectsService",
+    "RateLimitManager",
     "github_projects_service",
 ]
