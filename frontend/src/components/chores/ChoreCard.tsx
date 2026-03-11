@@ -103,7 +103,9 @@ export function ChoreCard({
   const { confirm } = useConfirmation();
   const pipelineTriggerRef = useRef<HTMLButtonElement>(null);
   const pipelinePopoverRef = useRef<HTMLDivElement>(null);
-  const [pipelineMenuPos, setPipelineMenuPos] = useState<{ top: number; left: number } | null>(null);
+  const [pipelineMenuPos, setPipelineMenuPos] = useState<{ top: number; left: number } | null>(
+    null
+  );
 
   const updatePipelineMenuPos = useCallback(() => {
     if (!pipelineTriggerRef.current) return;
@@ -185,12 +187,24 @@ export function ChoreCard({
   useLayoutEffect(() => {
     if (!showPipelineMenu) return;
     updatePipelineMenuPos();
-    const onReposition = () => updatePipelineMenuPos();
-    window.addEventListener('scroll', onReposition, { capture: true, passive: true });
-    window.addEventListener('resize', onReposition);
+
+    // Throttle scroll/resize recalculations to once per animation frame to
+    // prevent layout thrashing from repeated getBoundingClientRect calls.
+    let rafId = 0;
+    const scheduleReposition = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        updatePipelineMenuPos();
+      });
+    };
+
+    window.addEventListener('scroll', scheduleReposition, { capture: true, passive: true });
+    window.addEventListener('resize', scheduleReposition);
     return () => {
-      window.removeEventListener('scroll', onReposition, { capture: true });
-      window.removeEventListener('resize', onReposition);
+      window.removeEventListener('scroll', scheduleReposition, { capture: true });
+      window.removeEventListener('resize', scheduleReposition);
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [showPipelineMenu, updatePipelineMenuPos]);
 
@@ -267,7 +281,11 @@ export function ChoreCard({
                   onClick={handleToggleStatus}
                   disabled={updateMutation.isPending}
                   aria-label={`Click to ${chore.status === 'active' ? 'pause' : 'activate'}`}
-                  className={cn('shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm', chore.status === 'active' ? 'solar-chip-success' : 'solar-chip-violet', 'disabled:opacity-50')}
+                  className={cn(
+                    'shrink-0 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] cursor-pointer transition-colors shadow-sm',
+                    chore.status === 'active' ? 'solar-chip-success' : 'solar-chip-violet',
+                    'disabled:opacity-50'
+                  )}
                 >
                   {chore.status === 'active' ? 'Active' : 'Paused'}
                 </button>
@@ -343,7 +361,11 @@ export function ChoreCard({
                 ? 'border-amber-500/35 bg-amber-500/12 text-amber-700 hover:border-amber-500/60 hover:bg-amber-500/20 dark:text-amber-300'
                 : 'border-border/60 bg-muted/40 text-muted-foreground hover:border-border/80 hover:bg-muted/60 hover:text-foreground'
             )}
-            title={currentBlocking ? 'Blocking ON — click to set non-blocking' : 'Non-blocking — click to enable blocking'}
+            title={
+              currentBlocking
+                ? 'Blocking ON — click to set non-blocking'
+                : 'Non-blocking — click to enable blocking'
+            }
           >
             <span
               className={cn(
@@ -389,76 +411,82 @@ export function ChoreCard({
               />
             </button>
 
-            {showPipelineMenu && pipelineMenuPos !== null &&
+            {showPipelineMenu &&
+              pipelineMenuPos !== null &&
               createPortal(
                 <div
                   ref={pipelinePopoverRef}
-                  style={{ position: 'fixed', top: pipelineMenuPos.top, left: pipelineMenuPos.left }}
-                  className="z-[9999] w-[min(18rem,calc(100vw-1rem))] overflow-hidden rounded-[1rem] border border-border/80 bg-background/95 shadow-[0_18px_40px_hsl(var(--night)/0.24)] backdrop-blur-md">
-                <div className="border-b border-border/65 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Select Agent Pipeline
-                </div>
-                <div
-                  className="max-h-64 overflow-y-auto p-1.5"
-                  role="listbox"
-                  aria-label="Agent Pipeline options"
+                  style={{
+                    position: 'fixed',
+                    top: pipelineMenuPos.top,
+                    left: pipelineMenuPos.left,
+                  }}
+                  className="z-[9999] w-[min(18rem,calc(100vw-1rem))] overflow-hidden rounded-[1rem] border border-border/80 bg-background/95 shadow-[0_18px_40px_hsl(var(--night)/0.24)] backdrop-blur-md"
                 >
-                  <button
-                    type="button"
-                    role="option"
-                    aria-selected={currentPipelineId === ''}
-                    onClick={() => handlePipelineChange('')}
-                    className={cn(
-                      'flex w-full items-center justify-between gap-3 rounded-[0.85rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10',
-                      currentPipelineId === '' && 'bg-primary/10 text-foreground'
-                    )}
+                  <div className="border-b border-border/65 px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+                    Select Agent Pipeline
+                  </div>
+                  <div
+                    className="max-h-64 overflow-y-auto p-1.5"
+                    role="listbox"
+                    aria-label="Agent Pipeline options"
                   >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">Auto</p>
-                      <p className="text-[11px] text-muted-foreground">
-                        Use the project&apos;s selected pipeline
-                      </p>
-                    </div>
-                    {currentPipelineId === '' && (
-                      <Check className="h-4 w-4 shrink-0 text-primary" />
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={currentPipelineId === ''}
+                      onClick={() => handlePipelineChange('')}
+                      className={cn(
+                        'flex w-full items-center justify-between gap-3 rounded-[0.85rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10',
+                        currentPipelineId === '' && 'bg-primary/10 text-foreground'
+                      )}
+                    >
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">Auto</p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Use the project&apos;s selected pipeline
+                        </p>
+                      </div>
+                      {currentPipelineId === '' && (
+                        <Check className="h-4 w-4 shrink-0 text-primary" />
+                      )}
+                    </button>
+                    {pipelines.map((pipeline) => {
+                      const isSelected = pipeline.id === currentPipelineId;
+                      return (
+                        <button
+                          key={pipeline.id}
+                          type="button"
+                          role="option"
+                          aria-label={pipeline.name}
+                          aria-selected={isSelected}
+                          onClick={() => handlePipelineChange(pipeline.id)}
+                          className={cn(
+                            'flex w-full items-center justify-between gap-3 rounded-[0.85rem] px-3 py-2.5 text-left transition-colors hover:bg-primary/10',
+                            isSelected && 'bg-primary/10 text-foreground'
+                          )}
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">{pipeline.name}</p>
+                            <p className="mt-0.5 text-[11px] text-muted-foreground">
+                              {pipeline.stage_count} stage{pipeline.stage_count !== 1 ? 's' : ''}
+                              {' · '}
+                              {pipeline.agent_count} agent{pipeline.agent_count !== 1 ? 's' : ''}
+                            </p>
+                          </div>
+                          {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
+                        </button>
+                      );
+                    })}
+                    {currentPipelineId && !selectedPipeline && (
+                      <div className="rounded-[0.85rem] px-3 py-2.5 text-sm text-yellow-700 dark:text-yellow-300">
+                        Saved pipeline unavailable. Select another pipeline or return to Auto.
+                      </div>
                     )}
-                  </button>
-                  {pipelines.map((pipeline) => {
-                    const isSelected = pipeline.id === currentPipelineId;
-                    return (
-                      <button
-                        key={pipeline.id}
-                        type="button"
-                        role="option"
-                        aria-label={pipeline.name}
-                        aria-selected={isSelected}
-                        onClick={() => handlePipelineChange(pipeline.id)}
-                        className={cn(
-                          'flex w-full items-center justify-between gap-3 rounded-[0.85rem] px-3 py-2.5 text-left transition-colors hover:bg-primary/10',
-                          isSelected && 'bg-primary/10 text-foreground'
-                        )}
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium">{pipeline.name}</p>
-                          <p className="mt-0.5 text-[11px] text-muted-foreground">
-                            {pipeline.stage_count} stage{pipeline.stage_count !== 1 ? 's' : ''}
-                            {' · '}
-                            {pipeline.agent_count} agent{pipeline.agent_count !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                        {isSelected && <Check className="h-4 w-4 shrink-0 text-primary" />}
-                      </button>
-                    );
-                  })}
-                  {currentPipelineId && !selectedPipeline && (
-                    <div className="rounded-[0.85rem] px-3 py-2.5 text-sm text-yellow-700 dark:text-yellow-300">
-                      Saved pipeline unavailable. Select another pipeline or return to Auto.
-                    </div>
-                  )}
-                </div>
-              </div>,
-              document.body
-            )}
+                  </div>
+                </div>,
+                document.body
+              )}
           </div>
         </div>
 
@@ -514,9 +542,10 @@ export function ChoreCard({
                   <Save className="mr-1 h-3 w-3" />{' '}
                   {isSaving
                     ? 'Saving…'
-                    : editState?.current.name !== undefined || editState?.current.template_content !== undefined
-                    ? 'Save & Create PR'
-                    : 'Save'}
+                    : editState?.current.name !== undefined ||
+                        editState?.current.template_content !== undefined
+                      ? 'Save & Create PR'
+                      : 'Save'}
                 </Button>
               )}
             </div>

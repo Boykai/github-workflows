@@ -75,7 +75,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `components/common/` | `ErrorBoundary`, `CelestialCatalogHero` (reusable hero with celestial animations), `CelestialLoader` (orbital loading indicator), `ThemedAgentIcon`, `ProjectSelectionEmptyState`, `agentIcons` |
 | `components/agents/` | `AgentsPanel`, `AgentCard`, `AgentAvatar`, `AgentChatFlow`, `AgentInlineEditor`, `AddAgentModal`, `AgentIconPickerModal`, `BulkModelUpdateDialog` |
 | `components/pipeline/` | `PipelineBoard`, `PipelineFlowGraph`, `AgentNode`, `StageCard`, `ModelSelector`, `PipelineModelDropdown`, `PipelineToolbar`, `SavedWorkflowsList`, `UnsavedChangesDialog` |
-| `components/tools/` | `ToolsPanel`, `ToolSelectorModal`, `ToolCard`, `McpPresetsGallery`, `EditRepoMcpModal`, `UploadMcpModal`, `RepoConfigPanel` |
+| `components/tools/` | `ToolsPanel`, `ToolSelectorModal`, `ToolCard`, `McpPresetsGallery`, `EditRepoMcpModal`, `UploadMcpModal`, `RepoConfigPanel`, `GitHubMcpConfigGenerator` |
 | `hooks/` | `useAuth`, `useChat`, `useChatHistory`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useAgents`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useChores`, `useMcpSettings`, `useMetadata`, `useSidebarState`, `useMediaQuery`, `usePipelineConfig`, `useTools`, `useNotifications` |
 | `pages/` | `AgentsPage`, `AgentsPipelinePage`, `AppPage`, `ChoresPage`, `LoginPage`, `NotFoundPage`, `ProjectsPage`, `SettingsPage`, `ToolsPage` |
 | `services/` | `api.ts` — centralized HTTP/WS client for all backend endpoints |
@@ -83,7 +83,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 ## Backend Architecture
 
 - **Framework**: FastAPI with async endpoints, Pydantic v2 models
-- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (12 numbered SQL migrations)
+- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (23 SQL migration files, numbered 001–020)
 - **DI**: Singletons registered on `app.state` during lifespan; `dependencies.py` provides `Depends()` getters
 - **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware
 - **Exceptions**: Custom `AppException` hierarchy → `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ValidationError`, `GitHubAPIError`, `RateLimitError`, `McpValidationError`, `McpLimitExceededError`
@@ -100,7 +100,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `services/workflow_orchestrator/` | Pipeline orchestration: `models` (contexts/state), `config` (async load/persist), `transitions`, `orchestrator` |
 | `services/chores/` | Chore templates, scheduler, counter, chat, template builder, service |
 | `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) |
-| `migrations/` | SQL migration files `001` through `012` |
+| `migrations/` | SQL migration files `001` through `020` (23 files; prefixes 013–015 have two files each) |
 | `prompts/` | AI prompt templates for issue and task generation |
 | `middleware/` | `RequestIDMiddleware` |
 | `config.py` | `pydantic-settings` configuration from `.env` |

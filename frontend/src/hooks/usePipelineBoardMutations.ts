@@ -119,9 +119,15 @@ export function usePipelineBoardMutations(
         };
         return {
           ...prev,
-          stages: prev.stages.map((s) =>
-            s.id === stageId ? { ...s, agents: [...s.agents, newAgent] } : s,
-          ),
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const updatedAgents = [...s.agents, newAgent];
+            return {
+              ...s,
+              agents: updatedAgents,
+              execution_mode: updatedAgents.length >= 2 ? 'parallel' : s.execution_mode,
+            };
+          }),
         };
       });
     },
@@ -134,9 +140,15 @@ export function usePipelineBoardMutations(
         if (!prev) return null;
         return {
           ...prev,
-          stages: prev.stages.map((s) =>
-            s.id === stageId ? { ...s, agents: s.agents.filter((a) => a.id !== agentNodeId) } : s,
-          ),
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const remaining = s.agents.filter((a) => a.id !== agentNodeId);
+            return {
+              ...s,
+              agents: remaining,
+              execution_mode: remaining.length < 2 ? 'sequential' : s.execution_mode,
+            };
+          }),
         };
       });
     },

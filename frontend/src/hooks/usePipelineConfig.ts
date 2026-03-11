@@ -152,6 +152,24 @@ export function usePipelineConfig(projectId: string | null) {
     }
   }, [state.editingPipelineId, state.savedSnapshot, _resetPending]);
 
+  const setStageExecutionMode = useCallback(
+    (stageId: string, mode: 'sequential' | 'parallel') => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            // Only allow parallel if there are 2+ agents
+            const effectiveMode = mode === 'parallel' && s.agents.length < 2 ? 'sequential' : mode;
+            return { ...s, execution_mode: effectiveMode };
+          }),
+        };
+      });
+    },
+    []
+  );
+
   return {
     boardState: state.boardState, pipeline: state.pipeline,
     editingPipelineId: state.editingPipelineId, isDirty,
@@ -163,6 +181,7 @@ export function usePipelineConfig(projectId: string | null) {
     assignedPipelineId: assignment?.pipeline_id ?? '',
     assignPipeline, newPipeline, loadPipeline,
     savePipeline, saveAsCopy, deletePipeline, discardChanges,
+    setStageExecutionMode,
     ...boardMutations,
   };
 }
