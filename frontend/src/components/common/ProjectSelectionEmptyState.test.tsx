@@ -108,9 +108,7 @@ describe('ProjectSelectionEmptyState', () => {
     await user.click(screen.getByRole('button', { name: /browse github projects/i }));
 
     expect(screen.getByText('No projects available')).toBeInTheDocument();
-    expect(
-      screen.getByText('Connect a GitHub Project to start working here.')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Connect a GitHub Project to start working here.')).toBeInTheDocument();
   });
 
   it('shows a loader when projects are still loading', async () => {
@@ -159,7 +157,10 @@ describe('ProjectSelectionEmptyState', () => {
     // Create a promise we control to keep the selection pending
     let resolveSelection!: () => void;
     const onSelectProject = vi.fn(
-      () => new Promise<void>((resolve) => { resolveSelection = resolve; })
+      () =>
+        new Promise<void>((resolve) => {
+          resolveSelection = resolve;
+        })
     );
 
     render(

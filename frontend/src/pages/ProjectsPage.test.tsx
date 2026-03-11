@@ -99,9 +99,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@tanstack/react-query', async () => {
-  const actual = await vi.importActual<typeof import('@tanstack/react-query')>(
-    '@tanstack/react-query'
-  );
+  const actual =
+    await vi.importActual<typeof import('@tanstack/react-query')>('@tanstack/react-query');
 
   return {
     ...actual,
@@ -202,7 +201,9 @@ vi.mock('@/components/common/CelestialLoader', () => ({
 }));
 
 vi.mock('@/components/common/ProjectSelectionEmptyState', () => ({
-  ProjectSelectionEmptyState: ({ description }: { description: string }) => <div>{description}</div>,
+  ProjectSelectionEmptyState: ({ description }: { description: string }) => (
+    <div>{description}</div>
+  ),
 }));
 
 vi.mock('@/layout/ProjectSelector', () => ({
