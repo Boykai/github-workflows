@@ -32,5 +32,5 @@
 ## Notes
 
 - All items passed validation on initial review.
-- The spec references internal function names (e.g., `create_issue_from_recommendation()`, `assign_agent_for_status()`) in acceptance scenarios for precision — these are behavioral entry points, not implementation prescriptions.
+- Acceptance scenarios use behavior-focused language (e.g., "when the system assigns the next agent") rather than referencing internal function names, keeping the spec stakeholder-friendly.
 - No [NEEDS CLARIFICATION] markers exist — all decisions were resolved using the detailed parent issue context which provided explicit decisions on label schema, parallel execution deferral, scope boundaries, and label budget.

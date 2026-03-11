@@ -29,12 +29,12 @@ As issues move through the agent pipeline, the system automatically applies and 
 
 **Why this priority**: Without label writes, the read-path (Story 1) has no labels to consume. This is a co-equal prerequisite.
 
-**Independent Test**: Can be tested by running a single agent assignment and verifying the correct labels are applied via the existing `update_issue_state()` API.
+**Independent Test**: Can be tested by running a single agent assignment and verifying the correct labels are applied via the existing label management API.
 
 **Acceptance Scenarios**:
 
-1. **Given** a new parent issue is being created with pipeline config `speckit-full`, **When** `create_issue_from_recommendation()` runs, **Then** the issue is created with the `pipeline:speckit-full` label included in its initial label set.
-2. **Given** a parent issue currently has `agent:speckit.specify` label and the pipeline transitions to the next agent, **When** `assign_agent_for_status()` runs, **Then** the old `agent:speckit.specify` label is removed and `agent:speckit.plan` label is added in a single `update_issue_state()` call.
+1. **Given** a new parent issue is being created with pipeline config `speckit-full`, **When** the system creates the issue, **Then** the issue is created with the `pipeline:speckit-full` label included in its initial label set.
+2. **Given** a parent issue currently has `agent:speckit.specify` label and the pipeline transitions to the next agent, **When** the system assigns the next agent, **Then** the old `agent:speckit.specify` label is removed and `agent:speckit.plan` label is added in a single operation.
 3. **Given** an agent sub-issue for `speckit.specify` has the `active` label, **When** the pipeline transitions to `speckit.plan`, **Then** the `active` label is removed from the `speckit.specify` sub-issue and added to the `speckit.plan` sub-issue.
 4. **Given** a parent issue has an `agent:speckit.implement` label, **When** the pipeline completes (all agents done), **Then** the `agent:*` label is removed from the parent issue.
 
@@ -50,7 +50,7 @@ When the recovery system detects a stalled pipeline (an agent that has been idle
 
 **Acceptance Scenarios**:
 
-1. **Given** a parent issue with `agent:speckit.plan` label has been idle beyond the configured grace period, **When** `recover_stalled_issues()` runs, **Then** the `stalled` label is added to the parent issue.
+1. **Given** a parent issue with `agent:speckit.plan` label has been idle beyond the configured grace period, **When** stalled recovery runs, **Then** the `stalled` label is added to the parent issue.
 2. **Given** a parent issue with the `stalled` label, **When** the agent is successfully re-assigned, **Then** the `stalled` label is removed from the issue.
 3. **Given** a parent issue with a valid `agent:<slug>` label and the agent is within the grace period, **When** recovery runs, **Then** the system skips expensive reconciliation for this issue.
 
@@ -75,7 +75,7 @@ Users viewing the project board can instantly see which agent is active on each 
 
 ### User Story 5 - Simplified Recovery with Label-Assisted Validation (Priority: P3)
 
-The recovery subsystem uses labels to reduce API call overhead during self-healing and reconciliation. When `pipeline:<config>` label is present, the system reads the agent list directly from the config (skipping `get_sub_issues()` API call). When `agent:<slug>` is present, reconciliation starts from that agent's index instead of re-checking all agents. A consolidated validation function cross-checks labels against the tracking table and fixes whichever is stale.
+The recovery subsystem uses labels to reduce API call overhead during self-healing and reconciliation. When `pipeline:<config>` label is present, the system reads the agent list directly from the config (skipping the sub-issues API call). When `agent:<slug>` is present, reconciliation starts from that agent's index instead of re-checking all agents. A consolidated validation function cross-checks labels against the tracking table and fixes whichever is stale.
 
 **Why this priority**: Optimization of existing recovery paths. The pipeline works without it, but this dramatically reduces API consumption.
 
@@ -83,9 +83,9 @@ The recovery subsystem uses labels to reduce API call overhead during self-heali
 
 **Acceptance Scenarios**:
 
-1. **Given** a parent issue with `pipeline:speckit-full` label, **When** `_self_heal_tracking_table()` runs, **Then** it reads the agent list from the `speckit-full` config directly without calling `get_sub_issues()`.
-2. **Given** a parent issue with `agent:speckit.tasks` label (agent index 3 in the pipeline), **When** `_validate_and_reconcile_tracking_table()` runs, **Then** it only validates agents from index 3 onward (skipping already-completed agents 1 and 2).
-3. **Given** a label/tracking-table mismatch (e.g., label says `agent:speckit.plan` but table says `speckit.tasks` is active), **When** `validate_pipeline_labels()` runs, **Then** it determines which source is stale by checking GitHub ground truth (comments, sub-issue state) and corrects the stale source.
+1. **Given** a parent issue with `pipeline:speckit-full` label, **When** self-healing runs, **Then** it reads the agent list from the `speckit-full` config directly without calling the sub-issues API.
+2. **Given** a parent issue with `agent:speckit.tasks` label (agent index 3 in the pipeline), **When** tracking table reconciliation runs, **Then** it only validates agents from index 3 onward (skipping already-completed agents 1 and 2).
+3. **Given** a label/tracking-table mismatch (e.g., label says `agent:speckit.plan` but table says `speckit.tasks` is active), **When** label validation runs, **Then** it determines which source is stale by checking GitHub ground truth (comments, sub-issue state) and corrects the stale source.
 
 ---
 
@@ -94,7 +94,7 @@ The recovery subsystem uses labels to reduce API call overhead during self-heali
 - What happens when a parent issue was created before this feature (no pipeline labels)? The system falls through to the existing reconstruction chain with no behavioral change.
 - What happens when labels are manually removed by a user? The system falls through to the existing tracking-table-based flow and re-applies labels on the next pipeline transition.
 - What happens when the repository's label limit is approached? The label budget analysis shows worst case 10 labels out of GitHub's 100 per-issue limit — well within bounds.
-- What happens when two recovery cycles run concurrently and both try to swap labels? The `update_issue_state()` call is idempotent; the last write wins, and the next polling cycle reconciles any inconsistency.
+- What happens when two recovery cycles run concurrently and both try to swap labels? Label add/remove operations are idempotent; the last write wins, and the next polling cycle reconciles any inconsistency.
 - What happens when an agent slug contains special characters? Label names must comply with GitHub's label naming rules (max 50 characters, no commas). Agent slugs like `speckit.plan` are valid.
 - What happens if label creation fails (e.g., network error)? Label application failures are logged but do not block pipeline progression. The tracking table remains the authoritative source of truth; labels are supplementary.
 
