@@ -135,7 +135,7 @@ export function ProjectsPage() {
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
   const pipelineColumnCount = Math.max(transformedBoardData?.columns.length ?? 0, 1);
   const pipelineGridStyle = useMemo(
-    () => ({ gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))` }),
+    () => ({ gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(min(14rem, 85vw), 1fr))` }),
     [pipelineColumnCount]
   );
   const assignedPipeline = useMemo(
@@ -310,7 +310,7 @@ export function ProjectsPage() {
             onSelectProject={(projectId) => {
               void selectProject(projectId);
             }}
-            className="top-full bottom-auto left-0 right-auto mt-2 mb-0 min-w-[20rem]"
+            className="top-full bottom-auto left-0 right-auto mt-2 mb-0 min-w-[min(20rem,calc(100vw-3rem))]"
           />
         </div>
 

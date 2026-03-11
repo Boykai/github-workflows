@@ -48,8 +48,10 @@ export const BoardColumn = memo(function BoardColumn({
             </span>
           )}
           <button
-            className="rounded-full p-1.5 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-foreground"
+            className="rounded-full p-1.5 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
             title="Coming soon"
+            disabled
+            aria-disabled="true"
           >
             <svg
               width="14"

@@ -200,6 +200,7 @@ export const IssueCard = memo(function IssueCard({
               setIsSubIssuesExpanded(!isSubIssuesExpanded);
             }}
             type="button"
+            aria-expanded={isSubIssuesExpanded}
           >
             {isSubIssuesExpanded ? (
               <ChevronDown className="h-3.5 w-3.5" />
