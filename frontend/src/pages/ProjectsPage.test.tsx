@@ -247,6 +247,10 @@ describe('ProjectsPage', () => {
     mocks.boardControls.clearAll = mocks.clearAll;
     mocks.boardControls.hasActiveControls = true;
     mocks.projectBoard.boardError = null;
+    mocks.projectBoard.boardLoading = false;
+    mocks.projectBoard.projectsError = null;
+    mocks.projectBoard.projectsLoading = false;
+    mocks.projectBoard.selectedProjectId = 'PVT_1';
     mocks.projectBoard.selectProject = mocks.selectBoardProject;
     mocks.pipelineAssignment.blocking_override = true;
     mocks.syncStatus = 'connected';
@@ -314,5 +318,68 @@ describe('ProjectsPage', () => {
 
     const region = screen.getByRole('region', { name: 'Pipeline Stages' });
     expect(region).toBeInTheDocument();
+  });
+
+  it('renders the projects error banner with role="alert"', () => {
+    mocks.projectBoard.projectsError = new Error('Token expired');
+
+    render(<ProjectsPage />);
+
+    const alerts = screen.getAllByRole('alert');
+    const projectsAlert = alerts.find((el) => el.textContent?.includes('Failed to load projects'));
+    expect(projectsAlert).toBeDefined();
+    expect(projectsAlert).toHaveTextContent('Token expired');
+  });
+
+  it('shows loading state when board is loading', () => {
+    mocks.projectBoard.boardLoading = true;
+
+    render(<ProjectsPage />);
+
+    expect(screen.getByText('Loading board…')).toBeInTheDocument();
+  });
+
+  it('shows empty state when no project is selected', () => {
+    mocks.projectBoard.selectedProjectId = null;
+    mocks.projectBoard.projectsLoading = false;
+
+    render(<ProjectsPage />);
+
+    expect(
+      screen.getByText(
+        'Open one of your GitHub Projects to review its board, column flow, and current delivery state.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('renders the "Connecting" sync status label', () => {
+    mocks.syncStatus = 'connecting';
+
+    render(<ProjectsPage />);
+
+    expect(screen.getByText('Connecting')).toBeInTheDocument();
+  });
+
+  it('shows the blocking label split into two lines with override info', () => {
+    render(<ProjectsPage />);
+
+    expect(screen.getByText('Blocking on')).toBeInTheDocument();
+    expect(screen.getByText('Project override')).toBeInTheDocument();
+  });
+
+  it('shows "Pipeline default" when there is no blocking override', () => {
+    mocks.pipelineAssignment.blocking_override = null;
+
+    render(<ProjectsPage />);
+
+    expect(screen.getByText('Pipeline default')).toBeInTheDocument();
+  });
+
+  it('fires the refresh callback when the refresh button is clicked', async () => {
+    render(<ProjectsPage />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'Refresh board' }));
+
+    expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
 });

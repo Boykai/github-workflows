@@ -91,4 +91,101 @@ describe('ProjectSelectionEmptyState', () => {
       expect(screen.queryByRole('listbox', { name: /github projects/i })).not.toBeInTheDocument()
     );
   });
+
+  it('shows "No projects available" when the projects list is empty', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ProjectSelectionEmptyState
+        projects={[]}
+        isLoading={false}
+        selectedProjectId={null}
+        onSelectProject={vi.fn().mockResolvedValue(undefined)}
+        description="Select a project to inspect the board."
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /browse github projects/i }));
+
+    expect(screen.getByText('No projects available')).toBeInTheDocument();
+    expect(
+      screen.getByText('Connect a GitHub Project to start working here.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows a loader when projects are still loading', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ProjectSelectionEmptyState
+        projects={[]}
+        isLoading={true}
+        selectedProjectId={null}
+        onSelectProject={vi.fn().mockResolvedValue(undefined)}
+        description="Select a project to inspect the board."
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /browse github projects/i }));
+
+    expect(screen.getByText('Loading projects')).toBeInTheDocument();
+  });
+
+  it('closes the dropdown when Escape is pressed', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ProjectSelectionEmptyState
+        projects={projects}
+        isLoading={false}
+        selectedProjectId={null}
+        onSelectProject={vi.fn().mockResolvedValue(undefined)}
+        description="Select a project to inspect the board."
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /browse github projects/i }));
+    expect(screen.getByRole('listbox', { name: /github projects/i })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+
+    await waitFor(() =>
+      expect(screen.queryByRole('listbox', { name: /github projects/i })).not.toBeInTheDocument()
+    );
+  });
+
+  it('disables all options while a project selection is pending', async () => {
+    const user = userEvent.setup();
+    // Create a promise we control to keep the selection pending
+    let resolveSelection!: () => void;
+    const onSelectProject = vi.fn(
+      () => new Promise<void>((resolve) => { resolveSelection = resolve; })
+    );
+
+    render(
+      <ProjectSelectionEmptyState
+        projects={projects}
+        isLoading={false}
+        selectedProjectId={null}
+        onSelectProject={onSelectProject}
+        description="Select a project to inspect the board."
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: /browse github projects/i }));
+    // Start selecting a project but don't resolve yet
+    await user.click(screen.getByRole('option', { name: /alpha solune/i }));
+
+    // While pending, both options should be disabled
+    const options = screen.getAllByRole('option');
+    for (const option of options) {
+      expect(option).toBeDisabled();
+    }
+
+    // Resolve the pending selection
+    resolveSelection();
+    await waitFor(() =>
+      expect(screen.queryByRole('listbox', { name: /github projects/i })).not.toBeInTheDocument()
+    );
+  });
 });
