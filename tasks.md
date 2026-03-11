@@ -564,7 +564,7 @@
 
 ### Task 4.2 — Simplify `_self_heal_tracking_table()` with `pipeline:` Label
 
-**File**: `backend/src/services/agent_tracking.py`
+**File**: `backend/src/services/copilot_polling/pipeline.py`
 
 **Description**: When the `pipeline:<config>` label is present, use it to look up the agent list from the pipeline configuration directly — skipping the `get_sub_issues()` API call.
 
@@ -712,7 +712,7 @@
 
 ### Task 5.2 — Show Active Agent Badge on Board Cards
 
-**File**: `frontend/src/components/board/BoardCard.tsx` (or equivalent card component)
+**File**: `frontend/src/components/board/IssueCard.tsx`
 
 **Description**: Parse the `agent:*` label from the task's label list and display it as a colored badge on board cards.
 
@@ -734,7 +734,7 @@
 
 ### Task 5.3 — Show Pipeline Config Tag on Issue Cards
 
-**File**: `frontend/src/components/board/BoardCard.tsx` (or equivalent)
+**File**: `frontend/src/components/board/IssueCard.tsx`
 
 **Description**: Parse the `pipeline:*` label from the task's label list and display it as a colored tag.
 
@@ -755,7 +755,7 @@
 
 ### Task 5.4 — Show Stalled Warning Indicator
 
-**File**: `frontend/src/components/board/BoardCard.tsx` (or equivalent)
+**File**: `frontend/src/components/board/IssueCard.tsx`
 
 **Description**: Check for the `stalled` label and display a visual warning indicator on the card.
 
@@ -873,7 +873,7 @@ Verification (Tasks V.1–V.4) — depends on all phases
 | Phase 1: Constants & Utilities | 7 | 1 test file | `constants.py` |
 | Phase 2: Label Write Path | 7 | 1 test file | `orchestrator.py`, `pipeline.py`, `recovery.py` |
 | Phase 3: Label Read Path | 7 | 1 test file | `task.py`, `projects.py`, `polling_loop.py`, `pipeline.py` |
-| Phase 4: Recovery Consolidation | 6 | `state_validation.py` + 1 test | `agent_tracking.py`, `recovery.py`, `pipeline.py` |
-| Phase 5: Frontend Enhancements | 5 | — | `BoardCard.tsx`, `BoardToolbar.tsx`, `projects.py` |
+| Phase 4: Recovery Consolidation | 6 | `state_validation.py` + 1 test | `pipeline.py` (self-heal), `recovery.py`, `pipeline.py` |
+| Phase 5: Frontend Enhancements | 5 | — | `IssueCard.tsx`, `BoardToolbar.tsx`, `projects.py` |
 | Verification | 4 | — | — |
 | **Total** | **36** | **6** | **~12** |

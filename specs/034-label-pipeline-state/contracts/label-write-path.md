@@ -26,13 +26,13 @@ def _build_labels(
 async def assign_agent_for_status(
     self,
     ctx: WorkflowContext,
-    issue_number: int,
     status: str,
-    agents: list[str],
-    ...
-) -> dict[str, Any] | None:
+    agent_index: int = 0,
+) -> bool:
     """Assign agent with label swap: remove old agent:*, add new agent:<slug>.
     
+    ctx.issue_number provides the parent issue number.
+    Agent slug is derived from pipeline state and agent_index.
     Also moves 'active' label between sub-issues and removes 'stalled' if present.
     """
     ...

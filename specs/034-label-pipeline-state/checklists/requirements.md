@@ -6,7 +6,7 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [ ] No implementation details (languages, frameworks, APIs) — spec includes specific file paths, function names, and API call counts for implementer context
 - [x] Focused on user value and business needs
 - [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
@@ -27,10 +27,10 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [ ] No implementation details leak into specification — spec intentionally includes implementation context (file paths, function names, API call counts) to guide the multi-phase plan
 
 ## Notes
 
-- All items passed validation on initial review.
+- Two checklist items unchecked: spec intentionally includes implementation details (file paths, function names, API call counts) to guide the phased implementation plan. This is a deliberate design choice for this spec, not an oversight.
 - Acceptance scenarios use behavior-focused language (e.g., "when the system assigns the next agent") rather than referencing internal function names, keeping the spec stakeholder-friendly.
 - No [NEEDS CLARIFICATION] markers exist — all decisions were resolved using the detailed parent issue context which provided explicit decisions on label schema, parallel execution deferral, scope boundaries, and label budget.
