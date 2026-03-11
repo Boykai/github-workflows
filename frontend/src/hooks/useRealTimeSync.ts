@@ -18,6 +18,8 @@ type SyncStatus = 'disconnected' | 'connecting' | 'connected' | 'polling';
 interface UseRealTimeSyncOptions {
   /** Callback when a WebSocket-triggered refresh occurs (resets auto-refresh timer). */
   onRefreshTriggered?: () => void;
+  /** Request a debounced full-board reload (from useBoardRefresh). */
+  onBoardReloadRequested?: () => void;
 }
 
 interface UseRealTimeSyncReturn {
@@ -37,11 +39,13 @@ export function useRealTimeSync(
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttempts = useRef(0);
   const onRefreshTriggeredRef = useRef(options?.onRefreshTriggered);
+  const onBoardReloadRequestedRef = useRef(options?.onBoardReloadRequested);
   /** Timestamp of the last reconnection invalidation for debounce. */
   const lastReconnectInvalidationRef = useRef(0);
 
-  // Keep the callback ref up to date
+  // Keep the callback refs up to date
   onRefreshTriggeredRef.current = options?.onRefreshTriggered;
+  onBoardReloadRequestedRef.current = options?.onBoardReloadRequested;
 
   const handleMessage = useCallback(
     (event: MessageEvent) => {
@@ -68,8 +72,13 @@ export function useRealTimeSync(
         }
 
         if (data.type === 'refresh') {
-          // Only invalidate tasks — board data refreshes on its own 5-minute schedule
+          // Refresh contract Rule 1 & 2: The backend already suppresses this
+          // message when task data is unchanged (hash comparison).  Invalidate
+          // the tasks query for task-level freshness, then request a debounced
+          // full board reload so concurrent auto-refresh + WebSocket refresh
+          // triggers are deduplicated (Rule 3).
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          onBoardReloadRequestedRef.current?.();
           markUpdated();
           return;
         }

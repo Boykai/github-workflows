@@ -803,4 +803,67 @@ describe('useRealTimeSync', () => {
       });
     });
   });
+
+  describe('onBoardReloadRequested callback (refresh contract)', () => {
+    it('should invoke onBoardReloadRequested on refresh message', async () => {
+      const onBoardReloadRequested = vi.fn();
+      renderHook(
+        () => useRealTimeSync('PVT_123', { onBoardReloadRequested }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'refresh' });
+      });
+
+      expect(onBoardReloadRequested).toHaveBeenCalledTimes(1);
+    });
+
+    it('should NOT invoke onBoardReloadRequested on task_update message', async () => {
+      const onBoardReloadRequested = vi.fn();
+      renderHook(
+        () => useRealTimeSync('PVT_123', { onBoardReloadRequested }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'task_update' });
+      });
+
+      expect(onBoardReloadRequested).not.toHaveBeenCalled();
+    });
+
+    it('should NOT invoke onBoardReloadRequested during fallback polling', async () => {
+      const onBoardReloadRequested = vi.fn();
+      vi.useFakeTimers();
+
+      renderHook(
+        () => useRealTimeSync('PVT_123', { onBoardReloadRequested }),
+        { wrapper: createWrapper() }
+      );
+
+      // Trigger WebSocket error to start polling fallback
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateError();
+      });
+
+      // Advance past poll interval
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+      });
+
+      // Fallback polling only invalidates tasks — no board reload
+      expect(onBoardReloadRequested).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+  });
 });

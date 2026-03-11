@@ -473,4 +473,111 @@ describe('useBoardRefresh', () => {
 
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
+
+  // ---------- requestBoardReload debouncing (refresh contract Rule 3) ----------
+
+  it('should expose requestBoardReload function', () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    expect(result.current.requestBoardReload).toBeTypeOf('function');
+  });
+
+  it('requestBoardReload should trigger a board data invalidation', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    invalidateSpy.mockClear();
+
+    await act(async () => {
+      result.current.requestBoardReload();
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['board', 'data', 'PVT_123'] })
+    );
+  });
+
+  it('requestBoardReload should debounce rapid calls within 2s window', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    invalidateSpy.mockClear();
+
+    // First call should execute immediately
+    await act(async () => {
+      result.current.requestBoardReload();
+    });
+
+    const firstCallCount = invalidateSpy.mock.calls.filter(
+      (c) => JSON.stringify(c[0]).includes('board')
+    ).length;
+    expect(firstCallCount).toBe(1);
+
+    // Second call within debounce window should be deferred
+    invalidateSpy.mockClear();
+    await act(async () => {
+      result.current.requestBoardReload();
+    });
+
+    // Should not have called immediately
+    expect(invalidateSpy).not.toHaveBeenCalled();
+
+    // After debounce window, it should fire
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(invalidateSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ queryKey: ['board', 'data', 'PVT_123'] })
+    );
+  });
+
+  it('manual refresh should cancel pending debounced reload', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+    vi.spyOn(queryClient, 'cancelQueries').mockResolvedValue();
+    vi.spyOn(queryClient, 'setQueryData');
+
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    // First trigger requestBoardReload
+    await act(async () => {
+      result.current.requestBoardReload();
+    });
+
+    // Then immediately request another (will be debounced)
+    await act(async () => {
+      result.current.requestBoardReload();
+    });
+
+    // Now do a manual refresh — should cancel the debounced reload
+    await act(async () => {
+      result.current.refresh();
+    });
+
+    // The manual refresh should have called getBoardData (force=true)
+    expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
+  });
 });

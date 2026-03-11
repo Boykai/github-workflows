@@ -70,10 +70,12 @@ export function ProjectsPage() {
     rateLimitInfo,
     isRateLimitLow,
     resetTimer,
+    requestBoardReload,
   } = useBoardRefresh({ projectId: selectedProjectId, boardData });
 
   const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId, {
     onRefreshTriggered: resetTimer,
+    onBoardReloadRequested: requestBoardReload,
   });
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
