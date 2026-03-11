@@ -218,9 +218,25 @@ export function ProjectsPage() {
     (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
   const showRateLimitBanner =
     refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
+  const syncStatusLabel =
+    syncStatus === 'connected'
+      ? 'Live sync'
+      : syncStatus === 'polling'
+        ? 'Polling'
+        : syncStatus === 'connecting'
+          ? 'Connecting'
+          : 'Offline';
+  const syncStatusToneClass =
+    syncStatus === 'connected'
+      ? 'bg-emerald-400'
+      : syncStatus === 'polling'
+        ? 'bg-amber-400'
+        : syncStatus === 'connecting'
+          ? 'bg-sky-400'
+          : 'bg-rose-400';
 
   return (
-    <div className="projects-page-shell celestial-fade-in flex min-h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-6 backdrop-blur-sm">
+    <div className="projects-page-shell celestial-fade-in flex min-h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-4 backdrop-blur-sm sm:p-6">
       <CelestialCatalogHero
         className="projects-catalog-hero"
         eyebrow="Mission Control"
@@ -255,12 +271,12 @@ export function ProjectsPage() {
         }
       />
       {/* Page Header */}
-      <div className="flex items-start justify-between gap-4 shrink-0">
+      <div className="flex shrink-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="relative">
           <button
             type="button"
             onClick={() => setProjectSelectorOpen((current) => !current)}
-            className="moonwell flex min-w-[12rem] items-center gap-3 rounded-[1.05rem] border border-border/70 px-4 py-3 text-left shadow-sm transition-colors hover:border-primary/35 hover:bg-background/60"
+            className="moonwell flex w-full min-w-[12rem] max-w-full items-center gap-3 rounded-[1.05rem] border border-border/70 px-4 py-3 text-left shadow-sm transition-colors hover:border-primary/35 hover:bg-background/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-auto"
             aria-haspopup="listbox"
             aria-expanded={projectSelectorOpen}
             aria-label="Select project"
@@ -277,7 +293,10 @@ export function ProjectsPage() {
               </span>
             </span>
             <ChevronDown
-              className={cn('h-4 w-4 shrink-0 text-muted-foreground transition-transform', projectSelectorOpen ? 'rotate-180' : '')}
+              className={cn(
+                'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                projectSelectorOpen ? 'rotate-180' : ''
+              )}
             />
           </button>
 
@@ -294,22 +313,19 @@ export function ProjectsPage() {
           />
         </div>
 
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground lg:justify-end">
           {selectedProjectId && (
-            <span className="flex items-center gap-2">
+            <span
+              className="solar-chip-soft inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground"
+              aria-live="polite"
+            >
               <span
-                className={cn('w-2 h-2 rounded-full', syncStatus === 'connected'
-                    ? 'bg-green-500'
-                    : syncStatus === 'polling'
-                      ? 'bg-yellow-500'
-                      : syncStatus === 'connecting'
-                        ? 'bg-blue-500'
-                        : 'bg-red-500')}
+                className={cn(
+                  'h-2.5 w-2.5 rounded-full shadow-[0_0_0_3px_hsl(var(--background)/0.7)]',
+                  syncStatusToneClass
+                )}
               />
-              {syncStatus === 'connected' && 'Live'}
-              {syncStatus === 'polling' && 'Polling'}
-              {syncStatus === 'connecting' && 'Connecting...'}
-              {syncStatus === 'disconnected' && 'Offline'}
+              {syncStatusLabel}
             </span>
           )}
 
@@ -321,14 +337,16 @@ export function ProjectsPage() {
           )}
 
           {(lastUpdated || syncLastUpdate) && (
-            <span className="text-xs">Updated {formatTimeAgo(syncLastUpdate ?? lastUpdated!)}</span>
+            <span className="rounded-full border border-border/70 bg-background/45 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+              Updated {formatTimeAgo(syncLastUpdate ?? lastUpdated!)}
+            </span>
           )}
         </div>
       </div>
 
       {/* Toolbar */}
       {selectedProjectId && boardData && (
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-start gap-2">
           <BoardToolbar
             filters={boardControls.controls.filters}
             sort={boardControls.controls.sort}
@@ -356,7 +374,10 @@ export function ProjectsPage() {
 
       {/* Rate limit / error banners */}
       {showRateLimitBanner && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
+        <div
+          className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground"
+          role="alert"
+        >
           <span className="text-lg">⏳</span>
           <div className="flex flex-col gap-1">
             <strong>Rate limit reached</strong>
@@ -370,7 +391,10 @@ export function ProjectsPage() {
       )}
 
       {isRateLimitLow && !showRateLimitBanner && rateLimitInfo && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground">
+        <div
+          className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground"
+          role="alert"
+        >
           <TriangleAlert className="h-5 w-5 shrink-0" />
           <div className="flex flex-col gap-1">
             <strong>Rate limit low</strong>
@@ -380,7 +404,10 @@ export function ProjectsPage() {
       )}
 
       {refreshError && refreshError.type !== 'rate_limit' && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
+        <div
+          className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive"
+          role="alert"
+        >
           <TriangleAlert className="h-5 w-5 shrink-0" />
           <div className="flex flex-col gap-1">
             <strong>Refresh failed</strong>
@@ -390,7 +417,10 @@ export function ProjectsPage() {
       )}
 
       {projectsError && !projectsRateLimitError && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
+        <div
+          className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive"
+          role="alert"
+        >
           <TriangleAlert className="h-5 w-5 shrink-0" />
           <div className="flex flex-col gap-1">
             <strong>Failed to load projects</strong>
@@ -407,18 +437,23 @@ export function ProjectsPage() {
       )}
 
       {boardError && !boardLoading && !boardRateLimitError && (
-        <div className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive">
+        <div
+          className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive"
+          role="alert"
+        >
           <TriangleAlert className="h-5 w-5 shrink-0" />
           <div className="flex flex-col gap-1">
             <strong>Failed to load board data</strong>
             <p>{boardError.message}</p>
           </div>
-          <button
-            className="px-3 py-1.5 text-sm font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors ml-auto"
+          <Button
+            variant="destructive"
+            size="sm"
+            className="ml-auto self-start"
             onClick={() => selectBoardProject(selectedProjectId!)}
           >
-            Retry
-          </button>
+            Retry loading board data
+          </Button>
         </div>
       )}
 
@@ -434,7 +469,7 @@ export function ProjectsPage() {
       )}
 
       {selectedProjectId && boardLoading && (
-        <div className="flex flex-col items-center justify-center flex-1 gap-4">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4">
           <CelestialLoader size="md" label="Loading board…" />
         </div>
       )}
@@ -446,20 +481,26 @@ export function ProjectsPage() {
             projectName={selectedProject?.name}
             pipelines={savedPipelines?.pipelines ?? []}
             isLoadingPipelines={savedPipelinesLoading}
-            pipelinesError={savedPipelinesError instanceof Error ? savedPipelinesError.message : null}
+            pipelinesError={
+              savedPipelinesError instanceof Error ? savedPipelinesError.message : null
+            }
             onRetryPipelines={() => {
               void refetchSavedPipelines();
             }}
             onLaunched={() => {
               refresh();
-              void queryClient.invalidateQueries({ queryKey: ['pipelines', 'assignment', selectedProjectId] });
+              void queryClient.invalidateQueries({
+                queryKey: ['pipelines', 'assignment', selectedProjectId],
+              });
             }}
           />
 
           <section id="pipeline-stages" className="space-y-4 scroll-mt-24">
             <div>
               <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <h3 className="text-lg font-semibold">Pipeline Stages</h3>
+                <h3 id="pipeline-stages-heading" className="text-lg font-semibold">
+                  Pipeline Stages
+                </h3>
                 {(savedPipelines?.pipelines.length ?? 0) > 0 ? (
                   <div className="flex flex-wrap items-center gap-3">
                     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -568,17 +609,31 @@ export function ProjectsPage() {
                                 ? 'Blocking is currently on from the assigned pipeline — click to force this project off'
                                 : 'Blocking is currently off from the assigned pipeline — click to force this project on'
                           }
-                          className={cn('relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50', effectiveBlocking ? 'bg-amber-500' : 'bg-muted')}
+                          className={cn(
+                            'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50',
+                            effectiveBlocking ? 'bg-amber-500' : 'bg-muted'
+                          )}
                         >
                           <span
-                            className={cn('pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform', effectiveBlocking ? 'translate-x-4' : 'translate-x-0')}
+                            className={cn(
+                              'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform',
+                              effectiveBlocking ? 'translate-x-4' : 'translate-x-0'
+                            )}
                           />
                         </button>
-                        <span
-                          className={cn('flex items-center gap-1 text-xs font-semibold uppercase tracking-[0.16em]', effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground')}
-                        >
-                          <Lock className="h-3 w-3" />
-                          {effectiveBlocking ? 'BLOCKING(ON)' : 'BLOCKING(OFF)'}
+                        <span className="flex min-w-0 flex-col leading-none">
+                          <span
+                            className={cn(
+                              'flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em]',
+                              effectiveBlocking ? 'text-amber-500' : 'text-muted-foreground'
+                            )}
+                          >
+                            <Lock className="h-3 w-3" />
+                            {effectiveBlocking ? 'Blocking on' : 'Blocking off'}
+                          </span>
+                          <span className="mt-1 text-[10px] text-muted-foreground/75">
+                            {hasBlockingOverride ? 'Project override' : 'Pipeline default'}
+                          </span>
                         </span>
                       </label>
                     )}
@@ -593,7 +648,12 @@ export function ProjectsPage() {
                 )}
               </div>
               <div className="overflow-x-auto pb-2">
-                <div className="grid min-w-full items-stretch gap-3" style={pipelineGridStyle}>
+                <div
+                  className="grid min-w-full items-stretch gap-3"
+                  style={pipelineGridStyle}
+                  role="region"
+                  aria-labelledby="pipeline-stages-heading"
+                >
                   {transformedBoardData.columns.map((col) => {
                     const assigned =
                       assignedStageMap.get(col.status.name.toLowerCase())?.agents ?? [];
@@ -602,7 +662,7 @@ export function ProjectsPage() {
                     return (
                       <div
                         key={col.status.option_id}
-                        className="celestial-panel pipeline-stage-card flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm"
+                        className="celestial-panel pipeline-stage-card flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm sm:rounded-[1.35rem]"
                       >
                         <span
                           className="h-3 w-3 rounded-full"
@@ -639,9 +699,9 @@ export function ProjectsPage() {
             </div>
           </section>
 
-          <div id="board" className="flex min-h-[56rem] gap-6 scroll-mt-24">
+          <div id="board" className="flex min-h-[42rem] gap-6 scroll-mt-24 sm:min-h-[56rem]">
             {transformedBoardData.columns.every((col) => col.items.length === 0) ? (
-              <div className="celestial-panel flex min-h-[40rem] flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center">
+              <div className="celestial-panel flex min-h-[32rem] flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center sm:min-h-[40rem]">
                 {boardControls.hasActiveControls ? (
                   <>
                     <Search className="mb-2 h-10 w-10 text-primary/80" />
@@ -649,13 +709,15 @@ export function ProjectsPage() {
                     <p className="text-muted-foreground">
                       Try adjusting your filter, sort, or group settings.
                     </p>
-                    <button
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={boardControls.clearAll}
-                      className="mt-2 px-4 py-2 text-sm font-medium rounded-md border border-border bg-background text-foreground hover:bg-muted transition-colors"
+                      className="mt-2"
                       type="button"
                     >
-                      Clear All
-                    </button>
+                      Clear all filters
+                    </Button>
                   </>
                 ) : (
                   <>

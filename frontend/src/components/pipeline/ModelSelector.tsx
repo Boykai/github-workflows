@@ -145,12 +145,25 @@ export function ModelSelector({
     };
 
     updatePosition();
-    window.addEventListener('resize', updatePosition);
-    window.addEventListener('scroll', updatePosition, { capture: true, passive: true });
+
+    // Throttle scroll/resize recalculations to once per animation frame to
+    // prevent layout thrashing from repeated getBoundingClientRect calls.
+    let rafId = 0;
+    const scheduleUpdate = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        updatePosition();
+      });
+    };
+
+    window.addEventListener('resize', scheduleUpdate);
+    window.addEventListener('scroll', scheduleUpdate, { capture: true, passive: true });
 
     return () => {
-      window.removeEventListener('resize', updatePosition);
-      window.removeEventListener('scroll', updatePosition, { capture: true });
+      window.removeEventListener('resize', scheduleUpdate);
+      window.removeEventListener('scroll', scheduleUpdate, { capture: true });
+      if (rafId) cancelAnimationFrame(rafId);
     };
   }, [isOpen]);
 
@@ -246,7 +259,10 @@ export function ModelSelector({
                         setIsOpen(false);
                         setSearch('');
                       }}
-                      className={cn('flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10', !selectedModelId ? 'bg-primary/10' : '')}
+                      className={cn(
+                        'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10',
+                        !selectedModelId ? 'bg-primary/10' : ''
+                      )}
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
@@ -324,7 +340,10 @@ function ModelRow({
     <button
       type="button"
       onClick={() => onSelect(model)}
-      className={cn('flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10', isSelected ? 'bg-primary/10' : '')}
+      className={cn(
+        'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10',
+        isSelected ? 'bg-primary/10' : ''
+      )}
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
