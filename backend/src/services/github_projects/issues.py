@@ -110,23 +110,26 @@ class IssuesMixin:
         owner: str,
         repo: str,
         issue_number: int,
-        state: str,
+        state: str | None = None,
         state_reason: str | None = None,
         labels_add: list[str] | None = None,
         labels_remove: list[str] | None = None,
     ) -> bool:
         """Update a GitHub issue's state and optionally adjust labels."""
         try:
-            payload: dict = {"state": state}
+            payload: dict = {}
+            if state:
+                payload["state"] = state
             if state_reason:
                 payload["state_reason"] = state_reason
 
-            await self._rest(
-                access_token,
-                "PATCH",
-                f"/repos/{owner}/{repo}/issues/{issue_number}",
-                json=payload,
-            )
+            if payload:
+                await self._rest(
+                    access_token,
+                    "PATCH",
+                    f"/repos/{owner}/{repo}/issues/{issue_number}",
+                    json=payload,
+                )
 
             if labels_add:
                 await self._rest(

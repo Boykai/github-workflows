@@ -275,7 +275,6 @@ class TestSkipBlockingIssue:
                 "owner",
                 "repo",
                 100,
-                state="open",
                 labels_remove=["blocking"],
             )
 

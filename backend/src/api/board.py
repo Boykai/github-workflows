@@ -437,7 +437,6 @@ async def skip_blocking_issue(
             owner,
             repo,
             issue_number,
-            state="open",
             labels_remove=[BLOCKING_LABEL],
         )
     except Exception as exc:

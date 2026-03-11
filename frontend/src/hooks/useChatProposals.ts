@@ -47,9 +47,9 @@ export function useChatProposals() {
 
     if (response.action_type === 'status_update' && response.action_data) {
       const data = response.action_data as StatusUpdateActionData;
-      if (data.task_id && data.status === 'pending') {
+      if (data.proposal_id && data.task_id && data.status === 'pending') {
         const statusChange: StatusChangeProposal = {
-          proposal_id: data.proposal_id || '',
+          proposal_id: data.proposal_id,
           task_id: data.task_id,
           task_title: data.task_title || '',
           current_status: data.current_status || '',
