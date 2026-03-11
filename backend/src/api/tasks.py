@@ -2,12 +2,12 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
-from src.dependencies import require_selected_project
+from src.dependencies import check_project_access, get_github_service, require_selected_project
 from src.exceptions import ValidationError
 from src.logging_utils import get_logger
 from src.models.task import Task, TaskCreateRequest
@@ -79,16 +79,21 @@ async def _create_parent_issue_sub_issues(
 
 @router.post("", response_model=Task)
 async def create_task(
-    request: TaskCreateRequest,
+    task_body: TaskCreateRequest,
+    request: Request,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> Task:
     """Create a new task in a GitHub Project."""
     # Validate project is selected or provided
-    project_id = request.project_id
+    project_id = task_body.project_id
     if not project_id:
         project_id = require_selected_project(session)
 
-    logger.info("Creating issue in project %s: %s", project_id, request.title)
+    # Verify the authenticated user has access to the target project
+    svc = get_github_service(request)
+    await check_project_access(svc, session, project_id)
+
+    logger.info("Creating issue in project %s: %s", project_id, task_body.title)
 
     # Resolve repository info for issue creation
     owner, repo = await resolve_repository(session.access_token, project_id)
@@ -98,8 +103,8 @@ async def create_task(
         access_token=session.access_token,
         owner=owner,
         repo=repo,
-        title=request.title,
-        body=request.description or "",
+        title=task_body.title,
+        body=task_body.description or "",
     )
 
     issue_number = issue["number"]
@@ -139,8 +144,8 @@ async def create_task(
     task = Task(
         project_id=project_id,
         github_item_id=item_id,
-        title=request.title,
-        description=request.description,
+        title=task_body.title,
+        description=task_body.description,
         status="Todo",  # Default status for new items
         status_option_id="",  # Will be set by GitHub
         issue_number=issue_number,
@@ -155,7 +160,7 @@ async def create_task(
         {
             "type": "task_created",
             "task_id": item_id,
-            "title": request.title,
+            "title": task_body.title,
             "issue_number": issue_number,
             "issue_url": issue_url,
         },

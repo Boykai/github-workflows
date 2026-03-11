@@ -31,7 +31,7 @@ class TestGitHubAuthServiceOAuth:
         assert "https://github.com/login/oauth/authorize" in url
         assert "client_id=test_client_id" in url
         assert f"state={state}" in url
-        assert "scope=read%3Auser+read%3Aorg+project+repo" in url
+        assert "scope=read%3Auser+read%3Aorg+project+public_repo" in url
         assert len(state) > 20  # State should be a secure token
 
     @patch("src.services.github_auth.get_settings")

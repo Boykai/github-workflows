@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
-from src.dependencies import require_selected_project
+from src.dependencies import check_project_access, get_github_service, require_selected_project
 from src.exceptions import AppException, NotFoundError, ValidationError
 from src.logging_utils import get_logger, handle_service_error
 from src.middleware.rate_limit import limiter
@@ -194,6 +194,10 @@ async def confirm_recommendation(
     # Require project selection
     project_id = require_selected_project(session)
 
+    # Verify the authenticated user has access to the target project
+    svc = get_github_service(request)
+    await check_project_access(svc, session, project_id)
+
     # Resolve repository info using shared 3-step fallback
     owner, repo = await resolve_repository(session.access_token, project_id)
 
@@ -334,7 +338,9 @@ async def confirm_recommendation(
 
 
 @router.post("/recommendations/{recommendation_id}/reject")
+@limiter.limit("10/minute")
 async def reject_recommendation(
+    request: Request,
     recommendation_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
@@ -361,7 +367,9 @@ async def reject_recommendation(
 
 
 @router.post("/pipeline/{issue_number}/retry")
+@limiter.limit("10/minute")
 async def retry_pipeline(
+    request: Request,
     issue_number: int,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
@@ -375,6 +383,10 @@ async def retry_pipeline(
     - The user wants to manually kick off the next agent
     """
     project_id = require_selected_project(session)
+
+    # Verify the authenticated user has access to the target project
+    svc = get_github_service(request)
+    await check_project_access(svc, session, project_id)
 
     state = get_pipeline_state(issue_number)
     if not state:
@@ -524,6 +536,7 @@ async def get_config(
 
 @router.put("/config", response_model=WorkflowConfiguration)
 async def update_config(
+    request: Request,
     config_update: WorkflowConfiguration,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> WorkflowConfiguration:
@@ -531,6 +544,10 @@ async def update_config(
     Update workflow configuration (T040).
     """
     project_id = require_selected_project(session)
+
+    # Verify the authenticated user has access to the target project
+    svc = get_github_service(request)
+    await check_project_access(svc, session, project_id)
 
     # Ensure project_id matches
     config_update.project_id = project_id

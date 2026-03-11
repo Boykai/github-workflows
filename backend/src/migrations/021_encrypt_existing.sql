@@ -1,0 +1,23 @@
+-- Migration 021: Plaintext credential remediation metadata
+--
+-- Context: Finding #2 (OWASP A02) — At-rest encryption enforcement.
+-- Production deployments now require ENCRYPTION_KEY at startup.  This
+-- migration adds a tracking column so the application can identify
+-- sessions that were created before encryption was enforced and prompt
+-- operators to rotate/re-encrypt those credentials.
+--
+-- Remediation workflow:
+--   1. Set ENCRYPTION_KEY in production environment.
+--   2. Restart the backend — startup validation passes.
+--   3. Existing sessions with plaintext tokens are detected on read
+--      (legacy prefix detection in encryption.py) and re-encrypted
+--      automatically on the next token refresh or login.
+--   4. Operators can query:
+--        SELECT session_id, created_at FROM sessions
+--        WHERE needs_reencryption = 1;
+--      to monitor remediation progress.
+--
+-- This migration is additive (new column with default) and safe to
+-- apply to databases that already have encrypted tokens.
+
+ALTER TABLE user_sessions ADD COLUMN needs_reencryption INTEGER NOT NULL DEFAULT 0;
