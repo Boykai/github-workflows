@@ -10,13 +10,14 @@ Defines the authorization contract for project-scoped operations. Every API endp
 
 ```python
 async def verify_project_access(
+    request: Request,
     project_id: str,
     session: UserSession = Depends(get_current_session),
-) -> str:
+) -> None:
     """
-    Returns: verified project_id
-    Raises: HTTPException(403) if access denied
-    Raises: HTTPException(401) if not authenticated
+    Returns: None (side-effect-only — use as route dependency, not parameter injection)
+    Raises: AuthorizationError (mapped to HTTP 403) if access denied
+    Raises: HTTP 401 if not authenticated
     """
 ```
 
@@ -36,8 +37,8 @@ async def verify_project_access(
 1. Extract project_id from request
 2. Extract session from authentication cookie
 3. Query GitHub API: can this user's token access the project?
-4. IF yes → return project_id, continue to endpoint
-5. IF no  → return 403 Forbidden, do NOT execute endpoint body
+4. IF yes → return (side-effect-only), continue to endpoint
+5. IF no  → raise AuthorizationError (HTTP 403 Forbidden), do NOT execute endpoint body
 6. IF not authenticated → return 401 Unauthorized
 ```
 

@@ -13,7 +13,7 @@
 --      (legacy prefix detection in encryption.py) and re-encrypted
 --      automatically on the next token refresh or login.
 --   4. Operators can query:
---        SELECT session_id, created_at FROM sessions
+--        SELECT session_id, created_at FROM user_sessions
 --        WHERE needs_reencryption = 1;
 --      to monitor remediation progress.
 --
