@@ -21,33 +21,33 @@ describe('AgentSaveBar', () => {
 
   it('renders Save and Discard buttons', () => {
     render(<AgentSaveBar {...defaultProps} />);
-    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Discard unsaved changes' })).toBeInTheDocument();
   });
 
   it('calls onSave when Save is clicked', async () => {
     const onSave = vi.fn();
     render(<AgentSaveBar {...defaultProps} onSave={onSave} />);
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save changes' }));
     expect(onSave).toHaveBeenCalledTimes(1);
   });
 
   it('calls onDiscard when Discard is clicked', async () => {
     const onDiscard = vi.fn();
     render(<AgentSaveBar {...defaultProps} onDiscard={onDiscard} />);
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Discard' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Discard unsaved changes' }));
     expect(onDiscard).toHaveBeenCalledTimes(1);
   });
 
   it('shows Saving... text during save', () => {
     render(<AgentSaveBar {...defaultProps} isSaving={true} />);
-    expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Saving changes' })).toBeDisabled();
   });
 
   it('disables buttons while saving', () => {
     render(<AgentSaveBar {...defaultProps} isSaving={true} />);
-    expect(screen.getByRole('button', { name: 'Saving...' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Discard' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Saving changes' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Discard unsaved changes' })).toBeDisabled();
   });
 
   it('shows error message when present', () => {

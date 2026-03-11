@@ -343,6 +343,8 @@ export function AgentConfigRow({
 
   return (
     <div
+      role="region"
+      aria-label="Agent column assignments"
       className={cn('celestial-panel relative flex flex-col border border-border/60', isCompact ? 'rounded-[1rem] bg-[radial-gradient(circle_at_50%_-10%,hsl(var(--glow)/0.12),transparent_26%),linear-gradient(180deg,hsl(var(--background)/0.58),hsl(var(--background)/0.78))]' : 'rounded-[1.2rem]')}
     >
       {/* Header with toggle and presets */}
@@ -350,9 +352,10 @@ export function AgentConfigRow({
         className={cn('flex items-center gap-2 border-b border-border/40 bg-background/38', isCompact ? 'rounded-t-[1rem] px-3 py-1.5' : 'rounded-t-[1.2rem] p-2')}
       >
         <button
-          className={cn('solar-action flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground', isCompact ? 'h-5 w-5 text-xs' : 'h-6 w-6')}
+          className={cn('celestial-focus solar-action flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground', isCompact ? 'h-5 w-5 text-xs' : 'h-6 w-6')}
           onClick={() => setIsExpanded(!isExpanded)}
           title={isExpanded ? 'Collapse agent row' : 'Expand agent row'}
+          aria-label={isExpanded ? 'Collapse agent row' : 'Expand agent row'}
           type="button"
         >
           {isExpanded ? '▾' : '▸'}

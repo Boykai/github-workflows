@@ -158,7 +158,7 @@ export function AddAgentPopover({
           <div
             ref={popoverRef}
             style={{ position: 'fixed', top: position.top, left: position.left }}
-            className="celestial-fade-in z-[9999] flex max-h-80 w-64 flex-col overflow-hidden rounded-[1rem] border border-border bg-popover shadow-lg backdrop-blur-sm"
+            className="celestial-fade-in z-50 flex max-h-80 w-64 flex-col overflow-hidden rounded-[1rem] border border-border bg-popover shadow-lg backdrop-blur-sm"
             role="listbox"
             aria-label={`Add agent to ${status}`}
           >
@@ -240,9 +240,9 @@ export function AddAgentPopover({
                             className={cn(
                               'text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0',
                               agent.source === 'builtin'
-                                ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400'
+                                ? 'solar-chip-neutral'
                                 : agent.source === 'repository'
-                                  ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400'
+                                  ? 'solar-chip-success'
                                   : 'bg-muted text-muted-foreground'
                             )}
                           >
@@ -279,10 +279,12 @@ export function AddAgentPopover({
         ref={triggerRef}
         className={
           compact
-            ? 'w-full rounded-full border border-dashed border-primary/30 bg-background/22 px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-foreground'
-            : 'w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground'
+            ? 'celestial-focus w-full rounded-full border border-dashed border-primary/30 bg-background/22 px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-foreground'
+            : 'celestial-focus w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground'
         }
         onClick={() => setIsOpen(!isOpen)}
+        aria-expanded={isOpen}
+        aria-label={`Add agent to ${status}`}
         title={`Add agent to ${status}`}
         type="button"
       >
