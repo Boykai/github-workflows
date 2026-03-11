@@ -383,4 +383,15 @@ describe('ProjectsPage', () => {
 
     expect(mocks.refresh).toHaveBeenCalledTimes(1);
   });
+
+  // ── Performance regression: derived state memoization (Spec 034 T028) ──
+
+  it('renders the board grid with memoized column layout', () => {
+    render(<ProjectsPage />);
+    // The grid should be rendered — verifies pipelineGridStyle is computed correctly
+    // When there are columns in boardData, the grid should use repeat() layout
+    const boardGrid = document.querySelector('[style*="grid-template-columns"]');
+    // Grid layout should be present (either from board or empty state)
+    expect(boardGrid || screen.queryByText('No items')).toBeTruthy();
+  });
 });

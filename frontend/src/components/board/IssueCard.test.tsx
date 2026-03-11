@@ -152,4 +152,12 @@ describe('IssueCard', () => {
 
     expect(screen.getByText('Blocking')).toBeInTheDocument();
   });
+
+  // ── Performance regression: memo boundary (Spec 034 T030) ──
+
+  it('is wrapped in React.memo (prevents unchanged-card rerenders)', () => {
+    expect(IssueCard).toHaveProperty('$$typeof');
+    const typeofVal = (IssueCard as unknown as { $$typeof: symbol }).$$typeof;
+    expect(typeofVal.toString()).toContain('memo');
+  });
 });

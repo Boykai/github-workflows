@@ -760,7 +760,7 @@ class IssuesMixin:
                     len(sub_issues),
                     issue_number,
                 )
-                cache.set(cache_key, sub_issues, ttl_seconds=600)
+                cache.set(cache_key, sub_issues, ttl_seconds=300)
                 return sub_issues
             else:
                 logger.debug(

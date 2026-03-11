@@ -64,3 +64,11 @@ WebSocket reconnects:
 - Only one refresh operation executes at a time per scope.
 - The highest-priority source wins: `manual` > `auto_refresh` > `polling` > `websocket`.
 - Deduplicated events are logged for observability.
+
+## First-Pass Verification Notes
+
+- **Centralized query keys**: `boardDataKey`, `projectTasksKey`, `boardProjectsKey` exported from `useProjectBoard.ts` and used by `useRealTimeSync.ts` and `useBoardRefresh.ts` to prevent drift.
+- **Polling fallback scope**: Confirmed task-only (`projectTasksKey`) — no board data invalidation from polling.
+- **Auto-refresh scope**: Uses `boardDataKey` with `invalidateQueries` (non-forced, backend cache allowed).
+- **Manual refresh scope**: Uses `boardDataKey` with `cancelQueries` + `getBoardData(projectId, true)` + `setQueryData` (forced, bypasses all caches).
+- **WebSocket/polling storm prevention**: WebSocket starts first; polling only activates on WS failure/close/timeout.

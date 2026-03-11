@@ -73,4 +73,14 @@ describe('BoardColumn', () => {
     await userEvent.setup().click(screen.getByText('Clickable Issue'));
     expect(onCardClick).toHaveBeenCalledWith(item);
   });
+
+  // ── Performance regression: memo boundary (Spec 034 T029) ──
+
+  it('is wrapped in React.memo (prevents unnecessary rerenders)', () => {
+    // BoardColumn is exported as a memo component — verify the wrapper exists.
+    // React.memo components have a $$typeof of Symbol(react.memo).
+    expect(BoardColumn).toHaveProperty('$$typeof');
+    const typeofVal = (BoardColumn as unknown as { $$typeof: symbol }).$$typeof;
+    expect(typeofVal.toString()).toContain('memo');
+  });
 });

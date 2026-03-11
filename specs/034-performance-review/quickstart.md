@@ -232,7 +232,20 @@ Phase 4: Optional Second-Wave (deferred)
 cd backend
 uv run --extra dev ruff check src/          # Lint
 uv run --extra dev pyright                   # Type check
-uv run --extra dev pytest tests/unit/ -x     # Unit tests
+uv run --extra dev pytest tests/unit/ -x     # Unit tests (full suite)
+```
+
+#### Performance-targeted backend tests
+
+```bash
+# Cache behavior regression
+uv run --extra dev pytest tests/unit/test_cache.py -x -v
+
+# Board endpoint cache and refresh behavior
+uv run --extra dev pytest tests/unit/test_api_board.py -x -v
+
+# Polling rate-limit and idle behavior
+uv run --extra dev pytest tests/unit/test_copilot_polling.py -x -v
 ```
 
 ### Frontend
@@ -241,8 +254,24 @@ uv run --extra dev pytest tests/unit/ -x     # Unit tests
 cd frontend
 npm run lint                                  # ESLint
 npm run type-check                            # TypeScript check
-npm run test                                  # Vitest
+npm run test                                  # Vitest (full suite)
 npm run build                                 # Production build
+```
+
+#### Performance-targeted frontend tests
+
+```bash
+# Real-time sync and polling fallback invalidation scope
+npx vitest run src/hooks/useRealTimeSync.test.tsx --reporter=verbose
+
+# Board refresh policy (auto-refresh vs manual)
+npx vitest run src/hooks/useBoardRefresh.test.tsx --reporter=verbose
+
+# Query-key helper contracts
+npx vitest run src/hooks/useProjectBoard.test.tsx --reporter=verbose
+
+# Board component memo boundary verification
+npx vitest run src/components/board/BoardColumn.test.tsx src/components/board/IssueCard.test.tsx --reporter=verbose
 ```
 
 ### Documentation
@@ -250,3 +279,46 @@ npm run build                                 # Production build
 ```bash
 npx -y markdownlint-cli@0.48.0 specs/034-performance-review/*.md --config .markdownlint.json
 ```
+
+## Measurement Workflow
+
+### Representative Board Assumptions
+
+- **Board size**: 50–100 tasks across 4–6 columns
+- **Idle observation window**: 5 minutes with no user interaction
+- **WebSocket status**: Connected (primary) or polling fallback (secondary)
+- **Cache state**: Warm (entries populated from previous load)
+
+### Backend Baseline Measurement Steps
+
+1. Open a board with a representative project (50–100 tasks)
+2. Monitor network activity for outbound GitHub API calls over 5 minutes idle
+3. Record: idle API call count, board endpoint response time (warm vs cold cache)
+4. Record: WebSocket message count during idle period
+5. Record: polling cycle API call count (if fallback polling active)
+
+### Frontend Baseline Measurement Steps
+
+1. Open React DevTools Profiler
+2. Load the project board and record initial render counts per component
+3. Perform a card drag and record rerender scope (which columns/cards rerender)
+4. Open a popover and record event listener fire rate
+5. Inspect Network tab for: WebSocket messages, polling requests, board query invalidations
+
+### Backend Regression Suite Commands
+
+```bash
+cd backend
+uv run --extra dev pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -x -v
+```
+
+Expected: All tests pass, including new warm-vs-cold cache tests and board cache performance tests.
+
+### Frontend Regression Suite Commands
+
+```bash
+cd frontend
+npx vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx src/hooks/useProjectBoard.test.tsx src/components/board/BoardColumn.test.tsx src/components/board/IssueCard.test.tsx --reporter=verbose
+```
+
+Expected: All tests pass, including new polling fallback scope tests, auto-refresh scope tests, query-key contract tests, and memo boundary tests.
