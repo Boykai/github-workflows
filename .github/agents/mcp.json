@@ -10,6 +10,20 @@
         "resolve-library-id",
         "get-library-docs"
       ]
+    },
+    "CodeGraphContext": {
+      "type": "local",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "codegraphcontext",
+        "cgc",
+        "mcp",
+        "start"
+      ],
+      "tools": [
+        "*"
+      ]
     }
   }
 }
