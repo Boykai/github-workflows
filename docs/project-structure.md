@@ -56,7 +56,7 @@ github-workflows/
 │   │   │   └── workflow.py       #   Workflow config, pipeline, polling control
 │   │   ├── middleware/
 │   │   │   └── request_id.py     #   RequestIDMiddleware for tracing
-│   │   ├── migrations/           # SQL schema migrations (001–020, auto-run)
+│   │   ├── migrations/           # SQL schema migrations (23 SQL files, 001–020, auto-run)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── agent_creator.py  #   CreationStep, AgentPreview, AgentCreationState
@@ -125,7 +125,7 @@ github-workflows/
 │   └── tests/
 │       ├── conftest.py           # Shared test fixtures
 │       ├── helpers/              # Test helper utilities
-│       ├── unit/                 # 47 unit test files
+│       ├── unit/                 # 59 unit test files
 │       ├── integration/          # Integration tests
 │       └── test_api_e2e.py       # API end-to-end tests
 │
