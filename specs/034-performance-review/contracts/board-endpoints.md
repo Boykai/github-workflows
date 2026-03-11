@@ -71,7 +71,7 @@
 | transformedBoardData | Sort/filter board data | `useMemo` | Board data reference changes |
 | assignedPipeline | Pipeline lookup | `useMemo` | Pipeline data reference changes |
 | assignedStageMap | Stage aggregation | `useMemo` | Pipeline data reference changes |
-| pipelineGridStyle | CSS grid computation | **NEEDS `useMemo`** | Grid config reference changes |
+| pipelineGridStyle | CSS grid computation | `useMemo` | Grid config reference changes |
 
 ### Event Listener Contract (FR-012)
 
@@ -105,7 +105,7 @@
 | Test File | Coverage Target | New/Extended | Status |
 |-----------|----------------|-------------|--------|
 | useRealTimeSync.test.tsx | Polling fallback invalidates only task queries | Extended | ✅ 2 new tests |
-| useBoardRefresh.test.tsx | Auto-refresh uses task-only scope, not full board | Extended | ✅ 2 new tests |
+| useBoardRefresh.test.tsx | Auto-refresh uses board data scope (non-forced) | Extended | ✅ 2 new tests |
 | useProjectBoard.test.tsx | Query-key helper contracts | Extended | ✅ 3 new tests |
 | BoardColumn.test.tsx | Memo boundary verification | Extended | ✅ 1 new test |
 | IssueCard.test.tsx | Memo boundary verification | Extended | ✅ 1 new test |

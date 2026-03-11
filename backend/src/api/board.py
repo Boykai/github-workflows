@@ -315,11 +315,12 @@ async def get_board_data(
                 return cached.model_copy(update={"rate_limit": _get_rate_limit_info()})
             return cached
 
-    # On manual refresh, clear sub-issue caches BEFORE fetching board data so
-    # that get_board_data() → get_sub_issues() doesn't serve stale cached entries.
+    # On manual refresh, delete the board cache entry AND clear sub-issue caches
+    # BEFORE fetching so concurrent requests don't serve stale data.
     cleared_sub_issue_count = 0
     if refresh:
         old_cached = cache.get(cache_key)
+        cache.delete(cache_key)
         if isinstance(old_cached, BoardDataResponse) and hasattr(old_cached, "columns"):
             for col in old_cached.columns:
                 for item in col.items:

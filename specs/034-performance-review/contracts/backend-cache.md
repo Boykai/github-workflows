@@ -20,7 +20,7 @@ All cache entries follow consistent TTL policies:
 
 1. **No TTL drift**: Board data and sub-issue caches MUST share the same TTL (300s) so sub-issues never outlive their parent board data.
 2. **Stale-only-on-rate-limit**: `get_stale()` MUST only be called when the GitHub API returns a rate-limit error, never as a performance shortcut.
-3. **Manual refresh bypass**: When `refresh=True` is passed to the board endpoint, the handler MUST call `cache.delete()` on the board data key AND all related sub-issue keys BEFORE fetching new data.
+3. **Manual refresh bypass**: When `refresh=True` is passed to the board endpoint, the handler MUST call `cache.delete()` on the board data key AND iterate all related sub-issue keys, deleting each one, BEFORE fetching new data.
 
 ## Sub-Issue Cache Reuse Contract
 
