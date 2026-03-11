@@ -34,6 +34,13 @@ class RateLimitManager:
       async request — safe under concurrency.
     * An instance-level dict that serves as a fallback for callers
       outside an async request context (background tasks, CLI).
+
+    .. note::
+        This class is designed for single-threaded async (``asyncio``)
+        usage.  The instance-level ``_last_rate_limit`` is a best-effort
+        fallback and is not protected by a lock — safe in asyncio where
+        coroutines yield cooperatively, but not suitable for multi-threaded
+        environments.
     """
 
     def __init__(self) -> None:
