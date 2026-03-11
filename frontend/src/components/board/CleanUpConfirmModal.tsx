@@ -50,6 +50,18 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
 
   useScrollLock(true);
 
+  // Move focus into the dialog on mount so the Tab trap is effective
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      const focusable = dialogRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href], input, select, textarea'
+      );
+      if (focusable && focusable.length > 0) {
+        focusable[0].focus();
+      }
+    });
+  }, []);
+
   useEffect(() => {
     document.addEventListener('keydown', handleKeyDown);
     return () => {

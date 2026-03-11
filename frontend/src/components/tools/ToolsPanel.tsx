@@ -131,27 +131,32 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
 
   const handleDelete = async (toolId: string) => {
     const tool = tools.find((t) => t.id === toolId);
+    const toolName = tool?.name ?? 'this tool';
     const confirmed = await confirm({
       title: 'Delete Tool',
-      description: `Remove tool "${tool?.name}"? This cannot be undone.`,
+      description: `Remove tool "${toolName}"? This cannot be undone.`,
       variant: 'danger',
       confirmLabel: 'Yes, Delete',
     });
     if (!confirmed) return;
 
     // First attempt without force — backend auto-deletes when no agents are affected.
-    const result = await deleteTool({ toolId, confirm: false });
-    if (!result.success && result.affected_agents.length > 0) {
-      const agentList = result.affected_agents.map((a) => `• ${a.name}`).join('\n');
-      await confirm({
-        title: 'Tool In Use',
-        description: `This tool is assigned to the following agents:\n\n${agentList}\n\nDeleting it will remove it from these agents. Are you sure?`,
-        variant: 'danger',
-        confirmLabel: 'Delete Anyway',
-        onConfirm: async () => {
-          await deleteTool({ toolId, confirm: true });
-        },
-      });
+    try {
+      const result = await deleteTool({ toolId, confirm: false });
+      if (!result.success && result.affected_agents.length > 0) {
+        const agentList = result.affected_agents.map((a) => `• ${a.name}`).join(', ');
+        await confirm({
+          title: 'Tool In Use',
+          description: `This tool is assigned to the following agents: ${agentList}. Deleting it will remove it from these agents. Are you sure?`,
+          variant: 'danger',
+          confirmLabel: 'Delete Anyway',
+          onConfirm: async () => {
+            await deleteTool({ toolId, confirm: true });
+          },
+        });
+      }
+    } catch {
+      // Mutation error state is surfaced by TanStack Query — no additional handling needed.
     }
   };
 

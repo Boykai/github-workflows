@@ -198,7 +198,11 @@ export function ConfirmationDialog({
             aria-disabled={isLoading ? true : undefined}
           >
             {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
-            <span aria-live="polite">{isLoading ? 'Processing…' : confirmLabel}</span>
+            {isLoading ? (
+              <span aria-live="polite">Processing…</span>
+            ) : (
+              <span>{confirmLabel}</span>
+            )}
           </Button>
         </div>
       </div>

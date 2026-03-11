@@ -24,10 +24,15 @@ export function UnsavedChangesDialog({
 }: UnsavedChangesDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // Focus trap and Escape key handling
+  // Focus trap, focus restoration, and Escape key handling
   useEffect(() => {
     if (!isOpen) return;
+
+    // Capture the previously focused element for restoration on close
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     // Focus cancel button when dialog opens
     requestAnimationFrame(() => {
@@ -60,7 +65,16 @@ export function UnsavedChangesDialog({
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+
+      // Restore focus to the element that triggered the dialog
+      const prev = previousFocusRef.current;
+      if (prev?.isConnected) {
+        prev.focus();
+      }
+      previousFocusRef.current = null;
+    };
   }, [isOpen, onCancel]);
 
   if (!isOpen) return null;
