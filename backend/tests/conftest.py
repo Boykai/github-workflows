@@ -34,6 +34,10 @@ from httpx import ASGITransport, AsyncClient
 
 from src.config import Settings
 from src.models.user import UserSession
+from src.services.ai_agent import AIAgentService
+from src.services.github_auth import GitHubAuthService
+from src.services.github_projects.service import GitHubProjectsService
+from src.services.websocket import ConnectionManager
 
 # =============================================================================
 # Shared Test Constants
@@ -143,7 +147,7 @@ def mock_github_service() -> AsyncMock:
     ``MagicMock`` so they don't return unawaited coroutines when called
     without ``await`` in production code.
     """
-    mock = AsyncMock(name="GitHubProjectsService")
+    mock = AsyncMock(name="GitHubProjectsService", spec=GitHubProjectsService)
     mock.get_last_rate_limit = MagicMock(return_value=None)
     return mock
 
@@ -151,19 +155,19 @@ def mock_github_service() -> AsyncMock:
 @pytest.fixture
 def mock_github_auth_service() -> AsyncMock:
     """AsyncMock replacing the global ``github_auth_service`` instance."""
-    return AsyncMock(name="GitHubAuthService")
+    return AsyncMock(name="GitHubAuthService", spec=GitHubAuthService)
 
 
 @pytest.fixture
 def mock_ai_agent_service() -> AsyncMock:
     """AsyncMock replacing the ``AIAgentService`` returned by ``get_ai_agent_service()``."""
-    return AsyncMock(name="AIAgentService")
+    return AsyncMock(name="AIAgentService", spec=AIAgentService)
 
 
 @pytest.fixture
 def mock_websocket_manager() -> AsyncMock:
     """AsyncMock replacing the global ``connection_manager`` instance."""
-    mock = AsyncMock(name="ConnectionManager")
+    mock = AsyncMock(name="ConnectionManager", spec=ConnectionManager)
     mock.get_connection_count.return_value = 0
     mock.get_total_connections.return_value = 0
     return mock
@@ -240,3 +244,69 @@ async def client(
             yield ac
 
     app.dependency_overrides.clear()
+
+
+# =============================================================================
+# Factory helpers (consolidated from tests/helpers/mocks.py)
+# =============================================================================
+
+
+def make_mock_github_service(**overrides) -> AsyncMock:
+    """Create a pre-configured GitHubProjectsService mock with spec."""
+    mock = AsyncMock(name="GitHubProjectsService", spec=GitHubProjectsService)
+    mock.get_project_repository.return_value = overrides.pop(
+        "get_project_repository", ("owner", "repo")
+    )
+    mock.create_issue.return_value = overrides.pop(
+        "create_issue",
+        {
+            "id": 300042,
+            "number": 42,
+            "node_id": "I_abc",
+            "html_url": "https://github.com/owner/repo/issues/42",
+        },
+    )
+    mock.add_issue_to_project.return_value = overrides.pop("add_issue_to_project", "PVTI_new")
+    for method_name, return_value in overrides.items():
+        getattr(mock, method_name).return_value = return_value
+    return mock
+
+
+def make_mock_github_auth_service(**overrides) -> AsyncMock:
+    """Create a pre-configured GitHubAuthService mock with spec."""
+    mock = AsyncMock(name="GitHubAuthService", spec=GitHubAuthService)
+    for method_name, return_value in overrides.items():
+        getattr(mock, method_name).return_value = return_value
+    return mock
+
+
+def make_mock_ai_agent_service(**overrides) -> AsyncMock:
+    """Create a pre-configured AIAgentService mock with spec."""
+    mock = AsyncMock(name="AIAgentService", spec=AIAgentService)
+    for method_name, return_value in overrides.items():
+        getattr(mock, method_name).return_value = return_value
+    return mock
+
+
+def make_mock_websocket_manager(**overrides) -> AsyncMock:
+    """Create a pre-configured ConnectionManager mock with spec."""
+    mock = AsyncMock(name="ConnectionManager", spec=ConnectionManager)
+    mock.get_connection_count.return_value = overrides.pop("connection_count", 0)
+    mock.get_total_connections.return_value = overrides.pop("total_connections", 0)
+    for method_name, return_value in overrides.items():
+        getattr(mock, method_name).return_value = return_value
+    return mock
+
+
+def make_mock_db_connection() -> MagicMock:
+    """Create a mock aiosqlite Connection for testing database operations."""
+    mock = MagicMock(name="DatabaseConnection")
+    mock_cursor = MagicMock(name="DatabaseCursor")
+    mock_cursor.fetchone = AsyncMock(return_value=None)
+    mock_cursor.fetchall = AsyncMock(return_value=[])
+    mock.execute = AsyncMock(return_value=mock_cursor)
+    mock.executemany = AsyncMock()
+    mock.executescript = AsyncMock()
+    mock.commit = AsyncMock()
+    mock.close = AsyncMock()
+    return mock

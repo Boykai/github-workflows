@@ -16,6 +16,7 @@ from src.services.copilot_polling import (
     _discover_main_pr_for_review,
     _filter_events_after,
     _find_completed_child_pr,
+    _get_sub_issue_number,
     _get_tracking_state_from_issue,
     _merge_child_pr_if_applicable,
     _pending_agent_assignments,
@@ -140,8 +141,40 @@ class TestIsSubIssue:
         task.title = "[tag]NoSpaceAfter"
         assert is_sub_issue(task) is False
 
+    def test_sub_issue_label(self):
+        """A task with a 'sub-issue' label is classified as a sub-issue."""
+        task = MagicMock()
+        task.title = "Normal Title"
+        task.labels = [{"name": "sub-issue"}]
+        assert is_sub_issue(task) is True
 
-class TestGetPollingStatus:
+
+class TestGetSubIssueNumber:
+    """_get_sub_issue_number looks up the sub-issue number from pipeline state."""
+
+    def test_returns_sub_issue_number(self):
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"implement": {"number": 99}}
+        assert _get_sub_issue_number(pipeline, "implement", 42) == 99
+
+    def test_falls_back_to_parent(self):
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {}
+        assert _get_sub_issue_number(pipeline, "implement", 42) == 42
+
+    def test_none_pipeline(self):
+        assert _get_sub_issue_number(None, "implement", 42) == 42
+
+    def test_missing_agent(self):
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"other-agent": {"number": 55}}
+        assert _get_sub_issue_number(pipeline, "implement", 42) == 42
+
+    def test_sub_info_without_number(self):
+        pipeline = MagicMock()
+        pipeline.agent_sub_issues = {"implement": {"assignee": "user1"}}
+        assert _get_sub_issue_number(pipeline, "implement", 42) == 42
+
     """Tests for polling status retrieval."""
 
     def test_returns_status_dict(self):
