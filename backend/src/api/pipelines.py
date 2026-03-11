@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
-from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
+from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, build_parent_labels
 from src.exceptions import AppException, AuthorizationError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
 from src.models.pipeline import (
@@ -248,7 +248,7 @@ async def launch_pipeline_issue(
             repo=repo,
             title=_derive_issue_title(issue_description),
             body=issue_body,
-            labels=with_blocking_label(["ai-generated"], is_blocking),
+            labels=build_parent_labels(["ai-generated"], is_blocking),
         )
         await service.set_assignment(project_id, body.pipeline_id)
 

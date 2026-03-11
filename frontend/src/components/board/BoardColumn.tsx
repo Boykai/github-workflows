@@ -4,7 +4,7 @@
  */
 
 import { memo } from 'react';
-import type { BoardColumn as BoardColumnType, BoardItem, AvailableAgent } from '@/types';
+import type { BoardColumn as BoardColumnType, BoardItem, AvailableAgent, PipelineStateInfo } from '@/types';
 import type { BoardGroup } from '@/hooks/useBoardControls';
 import { statusColorToCSS } from './colorUtils';
 import { IssueCard } from './IssueCard';
@@ -15,6 +15,9 @@ interface BoardColumnProps {
   availableAgents?: AvailableAgent[];
   getGroups?: (items: BoardItem[]) => BoardGroup[] | null;
   blockingIssueNumbers?: Set<number>;
+  pipelineStates?: Map<number, PipelineStateInfo>;
+  pipelineName?: string;
+  onDeleteIssue?: (item: BoardItem) => void;
 }
 
 export const BoardColumn = memo(function BoardColumn({
@@ -23,6 +26,9 @@ export const BoardColumn = memo(function BoardColumn({
   availableAgents,
   getGroups,
   blockingIssueNumbers,
+  pipelineStates,
+  pipelineName,
+  onDeleteIssue,
 }: BoardColumnProps) {
   const dotColor = statusColorToCSS(column.status.color);
   const groups = getGroups?.(column.items);
@@ -92,6 +98,9 @@ export const BoardColumn = memo(function BoardColumn({
                     onClick={onCardClick}
                     availableAgents={availableAgents}
                     isBlocking={item.number != null && !!blockingIssueNumbers?.has(item.number)}
+                    pipelineState={item.number != null ? pipelineStates?.get(item.number) : undefined}
+                    pipelineName={pipelineName}
+                    onDelete={onDeleteIssue}
                   />
                 ))}
               </div>
@@ -106,6 +115,9 @@ export const BoardColumn = memo(function BoardColumn({
               onClick={onCardClick}
               availableAgents={availableAgents}
               isBlocking={item.number != null && !!blockingIssueNumbers?.has(item.number)}
+              pipelineState={item.number != null ? pipelineStates?.get(item.number) : undefined}
+              pipelineName={pipelineName}
+              onDelete={onDeleteIssue}
             />
           ))
         )}

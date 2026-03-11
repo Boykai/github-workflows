@@ -53,8 +53,10 @@ Domain labels (pick if relevant):
 - "accessibility" - A11y improvements
 - "ux" - User experience
 
-Auto-applied:
-- "ai-generated" - ALWAYS include this label
+Auto-applied (do NOT include — the system adds them automatically):
+- "ai-generated" - ALWAYS applied by the system
+- "parent" - ALWAYS applied by the system for parent issues
+- "blocking" - Applied when the issue is blocking
 
 IMPORTANT: An AI Coding Agent will implement this issue, so estimates should reflect automated development:
 - Most features can be implemented in 1-8 hours by an AI agent
@@ -79,7 +81,7 @@ Guidelines:
 - Include at least 5 functional requirements per feature (more for complex requests)
 - Technical notes should give the implementing agent clear guidance
 - Priority: P0 for blockers, P1 for important features, P2 for standard work, P3 for nice-to-haves
-- Labels: Always include "ai-generated", plus ONE type label, and relevant scope/domain labels
+- Labels: Select ONE type label and relevant scope/domain labels ("ai-generated" and "parent" are auto-applied)
 
 IMPORTANT: Output raw JSON ONLY. Do NOT wrap in markdown code fences (no ```json blocks). Keep each field value concise — aim for 1-3 sentences per string field and 5-8 functional requirements. Prioritize completeness of the JSON structure over verbosity in individual fields.
 

@@ -5,7 +5,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, userEvent } from '@/test/test-utils';
 import { IssueCard } from './IssueCard';
-import type { BoardItem } from '@/types';
+import type { BoardItem, PipelineStateInfo } from '@/types';
 
 function createBoardItem(overrides: Partial<BoardItem> = {}): BoardItem {
   return {
@@ -21,6 +21,22 @@ function createBoardItem(overrides: Partial<BoardItem> = {}): BoardItem {
     linked_prs: [],
     sub_issues: [],
     labels: [],
+    ...overrides,
+  };
+}
+
+function createPipelineState(overrides: Partial<PipelineStateInfo> = {}): PipelineStateInfo {
+  return {
+    issue_number: 42,
+    project_id: 'proj-1',
+    status: 'Ready',
+    agents: ['speckit.specify', 'speckit.plan', 'speckit.implement'],
+    current_agent_index: 1,
+    current_agent: 'speckit.plan',
+    completed_agents: ['speckit.specify'],
+    is_complete: false,
+    started_at: '2026-03-11T00:00:00Z',
+    error: null,
     ...overrides,
   };
 }
@@ -83,15 +99,22 @@ describe('IssueCard', () => {
     expect(screen.getByAltText('user2')).toBeInTheDocument();
   });
 
-  it('renders priority and size badges', () => {
+  it('renders priority badge in header', () => {
     const item = createBoardItem({
       priority: { name: 'P1', color: 'RED' },
+    });
+    render(<IssueCard item={item} onClick={vi.fn()} />);
+
+    expect(screen.getByText('P1')).toBeInTheDocument();
+  });
+
+  it('renders size and estimate badges in footer', () => {
+    const item = createBoardItem({
       size: { name: 'M', color: 'BLUE' },
       estimate: 5,
     });
     render(<IssueCard item={item} onClick={vi.fn()} />);
 
-    expect(screen.getByText('P1')).toBeInTheDocument();
     expect(screen.getByText('M')).toBeInTheDocument();
     expect(screen.getByText('5pt')).toBeInTheDocument();
   });
@@ -151,5 +174,108 @@ describe('IssueCard', () => {
     render(<IssueCard item={item} onClick={vi.fn()} isBlocking />);
 
     expect(screen.getByText('Blocking')).toBeInTheDocument();
+  });
+
+  it('caps visible labels at 3 and shows overflow count', () => {
+    const item = createBoardItem({
+      labels: [
+        { id: '1', name: 'bug', color: 'ff0000' },
+        { id: '2', name: 'feature', color: '00ff00' },
+        { id: '3', name: 'urgent', color: '0000ff' },
+        { id: '4', name: 'docs', color: 'ff00ff' },
+        { id: '5', name: 'test', color: '00ffff' },
+      ],
+    });
+    render(<IssueCard item={item} onClick={vi.fn()} />);
+
+    expect(screen.getByText('bug')).toBeInTheDocument();
+    expect(screen.getByText('feature')).toBeInTheDocument();
+    expect(screen.getByText('urgent')).toBeInTheDocument();
+    expect(screen.getByText('+2')).toBeInTheDocument();
+    expect(screen.queryByText('docs')).not.toBeInTheDocument();
+  });
+
+  it('renders pipeline health bar when pipelineState is provided', () => {
+    const item = createBoardItem();
+    const ps = createPipelineState();
+    const { container } = render(
+      <IssueCard item={item} onClick={vi.fn()} pipelineState={ps} />
+    );
+
+    // Health bar should have 3 segments (one per agent)
+    const healthBar = container.querySelector('.flex.gap-0\\.5.h-1\\.5');
+    expect(healthBar).toBeInTheDocument();
+    expect(healthBar?.children.length).toBe(3);
+  });
+
+  it('renders active agent chip when pipelineState has current_agent', () => {
+    const item = createBoardItem();
+    const ps = createPipelineState({ current_agent: 'speckit.plan' });
+    render(<IssueCard item={item} onClick={vi.fn()} pipelineState={ps} />);
+
+    expect(screen.getByText('plan')).toBeInTheDocument();
+  });
+
+  it('renders pipeline name chip when pipelineName is provided', () => {
+    const item = createBoardItem();
+    render(<IssueCard item={item} onClick={vi.fn()} pipelineName="My Pipeline" />);
+
+    expect(screen.getByText('My Pipeline')).toBeInTheDocument();
+  });
+
+  it('renders error alert icon when pipelineState has error', () => {
+    const item = createBoardItem();
+    const ps = createPipelineState({ error: 'Agent failed' });
+    render(<IssueCard item={item} onClick={vi.fn()} pipelineState={ps} />);
+
+    // AlertTriangle icon should be present with error title
+    const alert = screen.getByTitle('Agent failed');
+    expect(alert).toBeInTheDocument();
+  });
+
+  it('renders PR icon linking to first open PR', () => {
+    const item = createBoardItem({
+      linked_prs: [
+        {
+          pr_id: 'pr-1',
+          number: 10,
+          title: 'Fix bug',
+          state: 'open',
+          url: 'https://github.com/testorg/testrepo/pull/10',
+        },
+      ],
+    });
+    render(<IssueCard item={item} onClick={vi.fn()} />);
+
+    const prLink = screen.getByTitle('PR #10: Fix bug');
+    expect(prLink).toBeInTheDocument();
+    expect(prLink).toHaveAttribute('href', 'https://github.com/testorg/testrepo/pull/10');
+  });
+
+  it('shows delete confirmation on trash icon click and calls onDelete on confirm', async () => {
+    const onDelete = vi.fn();
+    const item = createBoardItem();
+    render(<IssueCard item={item} onClick={vi.fn()} onDelete={onDelete} />);
+
+    const user = userEvent.setup();
+
+    // The delete button should be present
+    const deleteBtn = screen.getByTitle('Delete issue and all sub-issues');
+    expect(deleteBtn).toBeInTheDocument();
+
+    // Click once — should show confirmation bar
+    await user.click(deleteBtn);
+    expect(screen.getByText(/Close parent/)).toBeInTheDocument();
+
+    // Click confirm
+    await user.click(screen.getByText('Confirm'));
+    expect(onDelete).toHaveBeenCalledWith(item);
+  });
+
+  it('does not show delete button when onDelete is not provided', () => {
+    const item = createBoardItem();
+    render(<IssueCard item={item} onClick={vi.fn()} />);
+
+    expect(screen.queryByTitle('Delete issue and all sub-issues')).not.toBeInTheDocument();
   });
 });

@@ -105,6 +105,25 @@ def _references_app_created_issue(issue_numbers: list[int], app_issue_numbers: s
     return any(issue_number in app_issue_numbers for issue_number in issue_numbers)
 
 
+def _collect_all_referenced_issues(branches_data: list[dict], prs_data: list[dict]) -> set[int]:
+    """Collect all issue numbers referenced by branches and PRs.
+
+    Scans branch names and PR body texts to find every issue number that
+    is referenced by any repository asset.  The resulting set is used to
+    decide which issues need parent-state lookups for orphan detection.
+    """
+    all_nums: set[int] = set()
+    for branch in branches_data:
+        name = branch.get("name", "")
+        all_nums.update(_extract_issue_numbers_from_branch(name))
+    for pr in prs_data:
+        body = pr.get("body") or ""
+        all_nums.update(_extract_issue_numbers_from_text(body))
+        head = pr.get("head", {}).get("ref", "") or ""
+        all_nums.update(_extract_issue_numbers_from_branch(head))
+    return all_nums
+
+
 def _is_solune_owned_pr(pr: dict, app_issue_numbers: set[int]) -> bool:
     """Best-effort identification of PRs created by Solune-managed flows.
 
@@ -470,12 +489,59 @@ async def fetch_parent_issue_states(
     return results
 
 
+async def fetch_issue_details_batch(
+    github_service,
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_numbers: list[int],
+) -> dict[int, dict]:
+    """Fetch issue details (number, title, state, labels, url) via batched GraphQL.
+
+    Used to populate :class:`OrphanedIssueInfo` for issues discovered only
+    through branch/PR references that are not already present in the board
+    data or app-created issue list.
+    """
+    if not issue_numbers:
+        return {}
+
+    results: dict[int, dict] = {}
+    BATCH_SIZE = 20
+
+    for i in range(0, len(issue_numbers), BATCH_SIZE):
+        batch = issue_numbers[i : i + BATCH_SIZE]
+        alias_fields = "\n            ".join(
+            f"i_{num}: issue(number: {num}) {{ number title state url labels(first: 10) {{ nodes {{ name }} }} }}"
+            for num in batch
+        )
+        query = f"""
+        query BatchIssueDetails($owner: String!, $repo: String!) {{
+          repository(owner: $owner, name: $repo) {{
+            {alias_fields}
+          }}
+        }}
+        """
+        try:
+            data = await github_service._graphql(
+                access_token, query, {"owner": owner, "repo": repo}
+            )
+            repo_node = (data or {}).get("repository") or {}
+            for num in batch:
+                issue_data = repo_node.get(f"i_{num}")
+                if issue_data:
+                    results[num] = issue_data
+        except Exception as e:
+            logger.warning("Failed to fetch issue details for batch starting at index %d: %s", i, e)
+
+    return results
+
+
 def _categorize_branch(
     branch_data: dict,
     open_issue_numbers: set[int],
     issue_titles: dict[int, str],
     app_issue_numbers: set[int],
-    app_sub_issue_closed_parent: dict[int, dict],
+    orphaned_by_parent: dict[int, dict],
     prs_data: list[dict],
 ) -> BranchInfo:
     """Categorize a single branch as eligible for deletion or preservation."""
@@ -497,15 +563,15 @@ def _categorize_branch(
             break
 
     if linked_issue is not None:
-        closed_parent = app_sub_issue_closed_parent.get(linked_issue)
-        if closed_parent:
+        orphan_parent = orphaned_by_parent.get(linked_issue)
+        if orphan_parent:
             return BranchInfo(
                 name=name,
                 eligible_for_deletion=True,
                 linked_issue_number=linked_issue,
                 linked_issue_title=issue_titles.get(linked_issue),
                 linking_method=linking_method,
-                deletion_reason=f"Sub-issue #{linked_issue} — parent issue #{closed_parent.get('number', '?')} has been closed",
+                deletion_reason=f"Sub-issue #{linked_issue} — parent issue #{orphan_parent.get('number', '?')} is no longer on the project board",
             )
         return BranchInfo(
             name=name,
@@ -530,15 +596,15 @@ def _categorize_branch(
                 break
 
     if linked_issue is not None:
-        closed_parent = app_sub_issue_closed_parent.get(linked_issue)
-        if closed_parent:
+        orphan_parent = orphaned_by_parent.get(linked_issue)
+        if orphan_parent:
             return BranchInfo(
                 name=name,
                 eligible_for_deletion=True,
                 linked_issue_number=linked_issue,
                 linked_issue_title=issue_titles.get(linked_issue),
                 linking_method="pr_reference",
-                deletion_reason=f"Sub-issue #{linked_issue} — parent issue #{closed_parent.get('number', '?')} has been closed",
+                deletion_reason=f"Sub-issue #{linked_issue} — parent issue #{orphan_parent.get('number', '?')} is no longer on the project board",
             )
         return BranchInfo(
             name=name,
@@ -549,20 +615,29 @@ def _categorize_branch(
             preservation_reason=f"Linked to open issue #{linked_issue} via PR reference",
         )
 
-    # Strategy 3: link by ownership
-    if _is_solune_owned_branch(name, prs_data, app_issue_numbers):
-        deletion_reason: str | None = None
-        for ref_num in _extract_issue_numbers_from_branch(name):
-            closed_parent = app_sub_issue_closed_parent.get(ref_num)
-            if closed_parent:
-                deletion_reason = f"Sub-issue #{ref_num} — parent issue #{closed_parent.get('number', '?')} has been closed"
-                break
-        return BranchInfo(name=name, eligible_for_deletion=True, deletion_reason=deletion_reason)
+    # Strategy 3: not linked to any active board issue — eligible for deletion.
+    # Build a deletion reason from orphan-by-parent info when available.
+    deletion_reason: str | None = None
+    for issue_num in referenced_issues:
+        orphan_parent = orphaned_by_parent.get(issue_num)
+        if orphan_parent:
+            deletion_reason = f"Parent issue #{orphan_parent.get('number', '?')} is no longer on the project board"
+            break
+    if deletion_reason is None:
+        for pr in prs_data:
+            if pr.get("head", {}).get("ref") == name:
+                for ref_num in _extract_issue_numbers_from_text(pr.get("body") or ""):
+                    orphan_parent = orphaned_by_parent.get(ref_num)
+                    if orphan_parent:
+                        deletion_reason = f"Parent issue #{orphan_parent.get('number', '?')} is no longer on the project board"
+                        break
+                if deletion_reason:
+                    break
 
     return BranchInfo(
         name=name,
-        eligible_for_deletion=False,
-        preservation_reason="Not recognized as a Solune-generated asset",
+        eligible_for_deletion=True,
+        deletion_reason=deletion_reason or "Not linked to any active issue on the project board",
     )
 
 
@@ -570,7 +645,7 @@ def _categorize_pr(
     pr: dict,
     open_issue_numbers: set[int],
     app_issue_numbers: set[int],
-    app_sub_issue_closed_parent: dict[int, dict],
+    orphaned_by_parent: dict[int, dict],
     preserved_branch_names: set[str],
     branches_to_delete: list[BranchInfo],
 ) -> PullRequestInfo:
@@ -580,7 +655,6 @@ def _categorize_pr(
     head_branch = pr.get("head", {}).get("ref", "")
     pr_body = pr.get("body") or ""
     referenced = _extract_issue_numbers_from_text(pr_body)
-    pr_is_solune_owned = _is_solune_owned_pr(pr, app_issue_numbers)
 
     # Check if any referenced issue is on the board
     linked_issue = None
@@ -590,15 +664,15 @@ def _categorize_pr(
             break
 
     if linked_issue is not None:
-        closed_parent = app_sub_issue_closed_parent.get(linked_issue)
-        if closed_parent and pr_is_solune_owned:
+        orphan_parent = orphaned_by_parent.get(linked_issue)
+        if orphan_parent:
             return PullRequestInfo(
                 number=pr_number,
                 title=pr_title,
                 head_branch=head_branch,
                 referenced_issues=referenced,
                 eligible_for_deletion=True,
-                deletion_reason=f"Sub-issue #{linked_issue} — parent issue #{closed_parent.get('number', '?')} has been closed",
+                deletion_reason=f"Sub-issue #{linked_issue} — parent issue #{orphan_parent.get('number', '?')} is no longer on the project board",
             )
         return PullRequestInfo(
             number=pr_number,
@@ -612,7 +686,7 @@ def _categorize_pr(
     branch_preserved = head_branch in preserved_branch_names
     if branch_preserved:
         branch_in_delete = any(b.name == head_branch for b in branches_to_delete)
-        if branch_in_delete and pr_is_solune_owned:
+        if branch_in_delete:
             matched = next((b for b in branches_to_delete if b.name == head_branch), None)
             return PullRequestInfo(
                 number=pr_number,
@@ -631,29 +705,28 @@ def _categorize_pr(
             preservation_reason=f"Head branch '{head_branch}' is linked to an open issue",
         )
 
-    if not pr_is_solune_owned:
-        return PullRequestInfo(
-            number=pr_number,
-            title=pr_title,
-            head_branch=head_branch,
-            referenced_issues=referenced,
-            eligible_for_deletion=False,
-            preservation_reason="Not recognized as a Solune-generated asset",
-        )
-
+    # Not linked to any active board issue — eligible for deletion.
+    # Build a deletion reason from orphan-by-parent info when available.
     pr_deletion_reason: str | None = None
     for ref_num in referenced:
-        closed_parent = app_sub_issue_closed_parent.get(ref_num)
-        if closed_parent:
-            pr_deletion_reason = f"Sub-issue #{ref_num} — parent issue #{closed_parent.get('number', '?')} has been closed"
+        orphan_parent = orphaned_by_parent.get(ref_num)
+        if orphan_parent:
+            pr_deletion_reason = f"Parent issue #{orphan_parent.get('number', '?')} is no longer on the project board"
             break
+    if pr_deletion_reason is None:
+        for ref_num in _extract_issue_numbers_from_branch(head_branch):
+            orphan_parent = orphaned_by_parent.get(ref_num)
+            if orphan_parent:
+                pr_deletion_reason = f"Parent issue #{orphan_parent.get('number', '?')} is no longer on the project board"
+                break
+
     return PullRequestInfo(
         number=pr_number,
         title=pr_title,
         head_branch=head_branch,
         referenced_issues=referenced,
         eligible_for_deletion=True,
-        deletion_reason=pr_deletion_reason,
+        deletion_reason=pr_deletion_reason or "Not linked to any active issue on the project board",
     )
 
 
@@ -709,22 +782,27 @@ async def preflight(
         if num is not None:
             app_issue_numbers.add(num)
 
-    # 3b. Fetch parent-issue state for all app-created issues concurrently.
-    #     Sub-issues of a closed parent are candidates for cleanup even when
-    #     the sub-issue itself is still open/on the board.
+    # 3b. Collect ALL issue numbers referenced by branches, PRs, the board,
+    #     and app-created issues.  Fetch parent info for every one so we can
+    #     detect orphaned sub-issues whose parent is no longer on the board.
+    all_referenced_issues = _collect_all_referenced_issues(branches_data, prs_data)
+    all_issue_numbers_to_check = open_issue_numbers | app_issue_numbers | all_referenced_issues
+
     raw_parent_states = await fetch_parent_issue_states(
         github_service,
         access_token,
         owner,
         repo,
-        list(app_issue_numbers),
+        list(all_issue_numbers_to_check),
     )
-    # Map: app sub-issue number → parent info dict  (only closed parents)
-    app_sub_issue_closed_parent: dict[int, dict] = {
-        issue_num: parent
-        for issue_num, parent in raw_parent_states.items()
-        if parent and str(parent.get("state", "")).upper() == "CLOSED"
-    }
+    # An issue is "orphaned by parent" when its parent exists but is NOT
+    # open on the project board.  This covers parents that were completed,
+    # closed, or removed from the board entirely.
+    orphaned_by_parent: dict[int, dict] = {}
+    for issue_num, parent in raw_parent_states.items():
+        if parent and parent.get("number") is not None:
+            if parent["number"] not in open_issue_numbers:
+                orphaned_by_parent[issue_num] = parent
 
     # 4. Categorize branches
     branches_to_delete: list[BranchInfo] = []
@@ -736,7 +814,7 @@ async def preflight(
             open_issue_numbers,
             issue_titles,
             app_issue_numbers,
-            app_sub_issue_closed_parent,
+            orphaned_by_parent,
             prs_data,
         )
         if info.eligible_for_deletion:
@@ -755,7 +833,7 @@ async def preflight(
             pr,
             open_issue_numbers,
             app_issue_numbers,
-            app_sub_issue_closed_parent,
+            orphaned_by_parent,
             preserved_branch_names,
             branches_to_delete,
         )
@@ -764,8 +842,11 @@ async def preflight(
         else:
             prs_to_preserve.append(info)
 
-    # 6. Identify orphaned app-created issues (open, labelled by app, not on board)
+    # 6. Identify ALL orphaned issues
     orphaned_issues: list[OrphanedIssueInfo] = []
+    seen_orphan_numbers: set[int] = set()
+
+    # 6a. App-created issues not on the board (existing logic)
     for issue in app_issues:
         issue_number = issue.get("number")
         if issue_number is not None and issue_number not in open_issue_numbers:
@@ -781,6 +862,66 @@ async def preflight(
                     html_url=issue.get("html_url"),
                 )
             )
+            seen_orphan_numbers.add(issue_number)
+
+    # 6b. Board issues whose parent is no longer on the board
+    for issue in board_issues:
+        issue_number = issue.get("number")
+        if issue_number is not None and issue_number not in seen_orphan_numbers:
+            orphan_parent = orphaned_by_parent.get(issue_number)
+            if orphan_parent:
+                orphaned_issues.append(
+                    OrphanedIssueInfo(
+                        number=issue_number,
+                        title=issue.get("title", ""),
+                        deletion_reason=f"Parent issue #{orphan_parent.get('number', '?')} is no longer on the project board",
+                    )
+                )
+                seen_orphan_numbers.add(issue_number)
+
+    # 6c. App-created issues on the board whose parent is no longer on the board
+    for issue in app_issues:
+        issue_number = issue.get("number")
+        if issue_number is not None and issue_number not in seen_orphan_numbers:
+            orphan_parent = orphaned_by_parent.get(issue_number)
+            if orphan_parent:
+                issue_labels = [
+                    lbl.get("name", "") if isinstance(lbl, dict) else str(lbl)
+                    for lbl in issue.get("labels", [])
+                ]
+                orphaned_issues.append(
+                    OrphanedIssueInfo(
+                        number=issue_number,
+                        title=issue.get("title", ""),
+                        labels=issue_labels,
+                        html_url=issue.get("html_url"),
+                        deletion_reason=f"Parent issue #{orphan_parent.get('number', '?')} is no longer on the project board",
+                    )
+                )
+                seen_orphan_numbers.add(issue_number)
+
+    # 6d. Issues known only through branch/PR references that are orphaned
+    unknown_orphaned = [num for num in orphaned_by_parent if num not in seen_orphan_numbers]
+    if unknown_orphaned:
+        orphan_details = await fetch_issue_details_batch(
+            github_service, access_token, owner, repo, unknown_orphaned
+        )
+        for issue_num in unknown_orphaned:
+            if issue_num in orphan_details:
+                detail = orphan_details[issue_num]
+                if str(detail.get("state", "")).upper() == "OPEN":
+                    parent = orphaned_by_parent[issue_num]
+                    labels = [n.get("name", "") for n in detail.get("labels", {}).get("nodes", [])]
+                    orphaned_issues.append(
+                        OrphanedIssueInfo(
+                            number=issue_num,
+                            title=detail.get("title", ""),
+                            labels=labels,
+                            html_url=detail.get("url"),
+                            deletion_reason=f"Parent issue #{parent.get('number', '?')} is no longer on the project board",
+                        )
+                    )
+                    seen_orphan_numbers.add(issue_num)
 
     return CleanupPreflightResponse(
         branches_to_delete=branches_to_delete,

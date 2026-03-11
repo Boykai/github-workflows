@@ -3,7 +3,7 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
+from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, MAX_ISSUE_LABELS, with_blocking_label
 from src.exceptions import ValidationError
 from src.logging_utils import get_logger
 from src.models.recommendation import IssueMetadata, IssueRecommendation
@@ -555,14 +555,19 @@ class WorkflowOrchestrator:
     def _build_labels(recommendation: IssueRecommendation) -> list[str]:
         """Build the final labels list from recommendation metadata.
 
-        Ensures 'ai-generated' is always present and maps priority/size
-        values to repo-style labels (e.g., 'P1', 'size:M') when applicable.
+        Ensures 'ai-generated' and 'parent' are always present and maps
+        priority/size values to repo-style labels (e.g., 'P1', 'size:M')
+        when applicable.
         """
         labels = list(recommendation.metadata.labels) if recommendation.metadata.labels else []
 
         # Ensure ai-generated is always present
         if "ai-generated" not in labels:
             labels.insert(0, "ai-generated")
+
+        # Ensure parent is always present on orchestrator-created issues
+        if "parent" not in labels:
+            labels.insert(0, "parent")
 
         # Map priority to label if not already present (e.g., "P1")
         if recommendation.metadata.priority:
@@ -576,7 +581,7 @@ class WorkflowOrchestrator:
             if size_label not in labels:
                 labels.append(size_label)
 
-        return with_blocking_label(labels, recommendation.is_blocking)
+        return with_blocking_label(labels, recommendation.is_blocking)[:MAX_ISSUE_LABELS]
 
     @staticmethod
     def _resolve_milestone_number(
@@ -596,6 +601,131 @@ class WorkflowOrchestrator:
         # the GitHub API handle it gracefully — milestone setting is
         # handled separately via project fields.
         return None
+
+    # ──────────────────────────────────────────────────────────────────
+    # STEP 1b: Create Parent Branch for Issue
+    # ──────────────────────────────────────────────────────────────────
+    @staticmethod
+    def _slugify_branch_name(issue_number: int, title: str) -> str:
+        """Build a branch name from issue number and title.
+
+        Format: ``<number>-<slugified-title>``  (max 100 chars to stay within
+        Git ref length limits).  Only lowercase alphanumeric and hyphens.
+        """
+        import re
+
+        slug = title.lower().strip()
+        slug = re.sub(r"[^a-z0-9]+", "-", slug)
+        slug = slug.strip("-")
+        if not slug:
+            slug = "issue"
+        branch = f"{issue_number}-{slug}"
+        # Git ref limit is 255 but keep it human-friendly
+        return branch[:100]
+
+    async def create_parent_branch(
+        self,
+        ctx: WorkflowContext,
+        title: str,
+        base_ref: str = "main",
+    ) -> str | None:
+        """Create a dedicated parent branch for a parent issue.
+
+        The branch is named ``<issue_number>-<slugified-title>`` and is created
+        from *base_ref* (which respects the blocking queue — it may be another
+        blocking issue's branch instead of ``main``).
+
+        The branch is then linked to the GitHub Issue (shows in the
+        "Development" sidebar) and registered as the issue's main branch so
+        all subsequent agent work branches from / merges into it.
+
+        Args:
+            ctx: Workflow context with issue_id, issue_number populated.
+            title: The issue title (used to derive the branch slug).
+            base_ref: Branch to create the parent branch from.
+
+        Returns:
+            The parent branch name on success, ``None`` on failure.
+        """
+        if not ctx.issue_number or not ctx.issue_id:
+            logger.warning("Cannot create parent branch — missing issue_number or issue_id")
+            return None
+
+        # Skip if main branch is already established (idempotent guard).
+        if get_issue_main_branch(ctx.issue_number):
+            logger.debug(
+                "Issue #%d already has a main branch — skipping parent branch creation",
+                ctx.issue_number,
+            )
+            return None
+
+        branch_name = self._slugify_branch_name(ctx.issue_number, title)
+
+        # Get repository info (node ID + HEAD OID)
+        repo_info = await self.github.get_repository_info(
+            ctx.access_token, ctx.repository_owner, ctx.repository_name
+        )
+        if not repo_info:
+            logger.error("Cannot create parent branch — get_repository_info returned None")
+            return None
+        repository_id = repo_info["repository_id"]
+
+        # Resolve the OID to branch from
+        if base_ref != "main" and base_ref != repo_info["default_branch"]:
+            head_oid = await self.github.get_branch_head_oid(
+                ctx.access_token, ctx.repository_owner, ctx.repository_name, base_ref
+            )
+            if not head_oid:
+                logger.warning(
+                    "Could not resolve HEAD for base_ref '%s' — falling back to default branch",
+                    base_ref,
+                )
+                head_oid = repo_info["head_oid"]
+        else:
+            head_oid = repo_info["head_oid"]
+
+        # Create the branch
+        ref_id = await self.github.create_branch(
+            ctx.access_token, repository_id, branch_name, head_oid
+        )
+        if ref_id is None:
+            logger.error(
+                "Failed to create parent branch '%s' for issue #%d",
+                branch_name,
+                ctx.issue_number,
+            )
+            return None
+
+        # If the branch already existed, get its actual HEAD
+        actual_oid = head_oid
+        if ref_id == "existing":
+            existing_head = await self.github.get_branch_head_oid(
+                ctx.access_token, ctx.repository_owner, ctx.repository_name, branch_name
+            )
+            if existing_head:
+                actual_oid = existing_head
+
+        # Link branch to the issue (Development sidebar)
+        await self.github.link_branch_to_issue(
+            access_token=ctx.access_token,
+            repository_id=repository_id,
+            issue_node_id=ctx.issue_id,
+            branch_name=branch_name,
+            oid=actual_oid,
+        )
+
+        # Register as the issue's main branch so all agents use it as base_ref.
+        # pr_number=0 indicates this is a pre-created parent branch, not a PR.
+        set_issue_main_branch(ctx.issue_number, branch_name, pr_number=0, head_sha=actual_oid)
+
+        logger.info(
+            "Created parent branch '%s' for issue #%d (base_ref='%s', oid=%s)",
+            branch_name,
+            ctx.issue_number,
+            base_ref,
+            actual_oid[:8],
+        )
+        return branch_name
 
     # ──────────────────────────────────────────────────────────────────
     # STEP 2: Add to Project with Backlog Status (T023)
@@ -923,21 +1053,40 @@ class WorkflowOrchestrator:
             main_branch = str(main_branch_info["branch"])
             main_pr_number = main_branch_info["pr_number"]
 
-            pr_details = await self.github.get_pull_request(
-                access_token=ctx.access_token,
-                owner=ctx.repository_owner,
-                repo=ctx.repository_name,
-                pr_number=main_pr_number,
-            )
-
-            if pr_details and pr_details.get("last_commit", {}).get("sha"):
-                current_head_sha = pr_details["last_commit"]["sha"]
-                logger.info(
-                    "Captured HEAD SHA '%s' for agent '%s' on issue #%d",
-                    current_head_sha[:8],
-                    agent_name,
-                    ctx.issue_number,
+            if main_pr_number and main_pr_number > 0:
+                # PR-backed main branch — fetch latest HEAD from the PR.
+                pr_details = await self.github.get_pull_request(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    pr_number=main_pr_number,
                 )
+
+                if pr_details and pr_details.get("last_commit", {}).get("sha"):
+                    current_head_sha = pr_details["last_commit"]["sha"]
+                    logger.info(
+                        "Captured HEAD SHA '%s' for agent '%s' on issue #%d",
+                        current_head_sha[:8],
+                        agent_name,
+                        ctx.issue_number,
+                    )
+
+                existing_pr = {
+                    "number": main_pr_number,
+                    "head_ref": main_branch,
+                }
+            else:
+                # Pre-created parent branch (pr_number=0) — use stored SHA.
+                current_head_sha = main_branch_info.get("head_sha", "")
+                if current_head_sha:
+                    logger.info(
+                        "Using stored HEAD SHA '%s' from parent branch '%s' "
+                        "for agent '%s' on issue #%d",
+                        current_head_sha[:8],
+                        main_branch,
+                        agent_name,
+                        ctx.issue_number,
+                    )
 
             base_ref = main_branch
 
@@ -950,11 +1099,6 @@ class WorkflowOrchestrator:
                 main_pr_number,
                 ctx.issue_number,
             )
-
-            existing_pr = {
-                "number": main_pr_number,
-                "head_ref": main_branch,
-            }
         else:
             # First agent — check for existing PR to establish main branch
             try:
@@ -2282,6 +2426,26 @@ class WorkflowOrchestrator:
                         )
                 except Exception as e:
                     logger.debug("Blocking queue enqueue skipped (not available): %s", e)
+
+            # Step 2.7: Create parent branch for the issue.
+            # The branch is named "<number>-<slug>" and serves as the base
+            # for all agent sub-issue branches.  Respect blocking: resolve
+            # base_ref from the blocking queue before creating the branch.
+            if ctx.issue_number and ctx.issue_id:
+                parent_base_ref = "main"
+                try:
+                    from src.services import blocking_queue as bq_service
+
+                    repo_key = f"{ctx.repository_owner}/{ctx.repository_name}"
+                    parent_base_ref = await bq_service.get_base_ref_for_issue(
+                        repo_key, ctx.issue_number
+                    )
+                except Exception:
+                    pass  # Fall back to "main"
+
+                await self.create_parent_branch(
+                    ctx, title=recommendation.title, base_ref=parent_base_ref
+                )
 
             # Step 3: Assign the first agent for Backlog status
             # If Backlog has no agents, use pass-through to find next actionable status (T028)

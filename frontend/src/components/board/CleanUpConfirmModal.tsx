@@ -139,19 +139,26 @@ export function CleanUpConfirmModal({ data, onConfirm, onCancel }: CleanUpConfir
               </span>
             </h3>
             <p className="text-xs text-muted-foreground mb-2">
-              App-created issues no longer attached to the project board.
+              Issues whose parent is no longer active on the project board.
             </p>
             <ul className="space-y-1 text-sm">
               {data.orphaned_issues.map((issue) => (
                 <li
                   key={issue.number}
-                  className="flex items-center gap-2 px-2 py-1 rounded bg-destructive/10"
+                  className="flex flex-col gap-0.5 px-2 py-1.5 rounded bg-destructive/10"
                 >
-                  <span className="font-medium">#{issue.number}</span>
-                  <span className="text-muted-foreground truncate">{issue.title}</span>
-                  {issue.labels.length > 0 && (
-                    <span className="text-xs text-muted-foreground">
-                      [{issue.labels.join(', ')}]
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium">#{issue.number}</span>
+                    <span className="text-muted-foreground truncate">{issue.title}</span>
+                    {issue.labels.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        [{issue.labels.join(', ')}]
+                      </span>
+                    )}
+                  </div>
+                  {issue.deletion_reason && (
+                    <span className="ml-5 text-[11px] text-muted-foreground">
+                      {issue.deletion_reason}
                     </span>
                   )}
                 </li>

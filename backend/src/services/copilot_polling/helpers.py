@@ -141,6 +141,12 @@ async def _check_copilot_review_done(
     requested (the initial assignment can fail silently), this function
     retries the un-draft and review-request operations before checking for
     completion.
+
+    **Pipeline ordering guard**: self-healing actions (requesting reviews,
+    setting timestamps) are suppressed unless the pipeline is actually at
+    the ``copilot-review`` step.  This prevents premature side effects
+    when the function is called for validation/reconciliation purposes
+    before preceding agents have completed.
     """
     from src.utils import utcnow
 
@@ -161,6 +167,21 @@ async def _check_copilot_review_done(
     )
     if done_marker:
         return True
+
+    # Pipeline ordering guard: only perform side effects (requesting
+    # reviews, setting timestamps) when the pipeline is actually at the
+    # copilot-review step.  Without this, reconciliation or validation
+    # calls can trigger reviews and detect auto-triggered completions
+    # before preceding agents (e.g. copilot) have finished.
+    pipeline = _cp.get_pipeline_state(parent_issue_number)
+    if pipeline and pipeline.current_agent != "copilot-review":
+        logger.debug(
+            "Skipping copilot-review side effects for issue #%d — "
+            "pipeline current agent is '%s', not 'copilot-review'",
+            parent_issue_number,
+            pipeline.current_agent,
+        )
+        return False
 
     # Locate the main PR for this issue using comprehensive discovery
     discovered = await _discover_main_pr_for_review(

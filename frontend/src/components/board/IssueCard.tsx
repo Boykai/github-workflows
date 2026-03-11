@@ -1,11 +1,20 @@
 /**
- * IssueCard component - displays a board item as a card with metadata badges.
- * Enhanced with filled priority badges, description snippets, assignee names, and label pills.
+ * IssueCard component — redesigned card with consistent sizing, pipeline health bar,
+ * active agent, error alerts, WIP/PR links, and delete support.
  */
 
 import { memo, useState } from 'react';
-import { ChevronDown, ChevronRight, Circle, CircleCheckBig, Lock } from 'lucide-react';
-import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
+import {
+  AlertTriangle,
+  ChevronDown,
+  ChevronRight,
+  Circle,
+  CircleCheckBig,
+  GitPullRequest,
+  Lock,
+  Trash2,
+} from 'lucide-react';
+import type { BoardItem, SubIssue, AvailableAgent, PipelineStateInfo } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
 import { cn } from '@/lib/utils';
@@ -13,11 +22,6 @@ import { cn } from '@/lib/utils';
 /** Allowed avatar URL hostnames from GitHub. */
 const ALLOWED_AVATAR_HOSTS = ['avatars.githubusercontent.com'];
 
-/**
- * Validate that an avatar URL uses https and originates from a known GitHub
- * avatar domain.  Returns the URL if valid, or a placeholder SVG data URI
- * on failure.
- */
 function validateAvatarUrl(url: string | undefined | null): string {
   const placeholder =
     'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2224%22 height=%2224%22 viewBox=%220 0 24 24%22%3E%3Ccircle cx=%2212%22 cy=%2212%22 r=%2212%22 fill=%22%23d1d5db%22/%3E%3C/svg%3E';
@@ -37,7 +41,12 @@ interface IssueCardProps {
   onClick: (item: BoardItem) => void;
   availableAgents?: AvailableAgent[];
   isBlocking?: boolean;
+  pipelineState?: PipelineStateInfo;
+  pipelineName?: string;
+  onDelete?: (item: BoardItem) => void;
 }
+
+// ── Sub-issue helpers ──────────────────────────────────────────
 
 function SubIssueStateIcon({ state }: { state: string }) {
   if (state === 'closed') {
@@ -69,15 +78,11 @@ function SubIssueRow({
     ? availableAgents?.find((a) => a.slug.toLowerCase() === subIssue.assigned_agent!.toLowerCase())
     : undefined;
   const modelName = agentMeta?.default_model_name;
+  const firstOpenPr = subIssue.linked_prs?.find((pr) => pr.state === 'open');
 
   return (
-    <a
-      className="solar-chip-soft flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-foreground no-underline transition-colors hover:border-primary/35 hover:bg-primary/10"
-      href={subIssue.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={(e) => e.stopPropagation()}
-      title={subIssue.title}
+    <div
+      className="solar-chip-soft flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs text-foreground transition-colors hover:border-primary/35 hover:bg-primary/10"
     >
       <SubIssueStateIcon state={subIssue.state} />
       {agentLabel && (
@@ -86,48 +91,111 @@ function SubIssueRow({
         </span>
       )}
       {modelName && <span className="text-[10px] text-muted-foreground truncate">{modelName}</span>}
-      <span className="text-muted-foreground ml-auto">#{subIssue.number}</span>
-    </a>
+      <span className="text-muted-foreground ml-auto flex items-center gap-1">
+        {firstOpenPr && (
+          <a
+            href={firstOpenPr.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title={`PR #${firstOpenPr.number}: ${firstOpenPr.title}`}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <GitPullRequest className="h-3 w-3" />
+          </a>
+        )}
+        <a
+          href={subIssue.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => e.stopPropagation()}
+          className="hover:text-foreground"
+        >
+          #{subIssue.number}
+        </a>
+      </span>
+    </div>
   );
 }
 
+// ── Pipeline health bar ────────────────────────────────────────
+
+function PipelineHealthBar({ pipelineState }: { pipelineState: PipelineStateInfo }) {
+  const { agents, completed_agents, current_agent_index, error } = pipelineState;
+  if (agents.length === 0) return null;
+
+  return (
+    <div className="flex gap-0.5 h-1.5 w-full rounded-full overflow-hidden" title={`${completed_agents.length}/${agents.length} agents complete`}>
+      {agents.map((agent, idx) => {
+        let color: string;
+        if (completed_agents.includes(agent)) {
+          color = 'bg-emerald-500';
+        } else if (idx === current_agent_index && !error) {
+          color = 'bg-blue-500 animate-pulse';
+        } else if (error && idx === current_agent_index) {
+          color = 'bg-red-500';
+        } else {
+          color = 'bg-muted-foreground/20';
+        }
+        return (
+          <div
+            key={`${agent}-${idx}`}
+            className={cn('flex-1 rounded-full', color)}
+            title={`${agent}: ${completed_agents.includes(agent) ? 'done' : idx === current_agent_index ? (error ? 'errored' : 'active') : 'pending'}`}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Label helpers ──────────────────────────────────────────────
+
 const FALLBACK_LABEL_COLOR = 'd1d5db';
+const MAX_VISIBLE_LABELS = 3;
 
 function sanitizeHexColor(hex: string | null | undefined): string {
-  if (!hex) {
-    return FALLBACK_LABEL_COLOR;
-  }
-
+  if (!hex) return FALLBACK_LABEL_COLOR;
   const normalized = hex.replace(/^#/, '').toLowerCase();
-  if (normalized.length !== 6 || !/^[0-9a-f]{6}$/.test(normalized)) {
-    return FALLBACK_LABEL_COLOR;
-  }
-
+  if (normalized.length !== 6 || !/^[0-9a-f]{6}$/.test(normalized)) return FALLBACK_LABEL_COLOR;
   return normalized;
 }
+
+// ── Main card ──────────────────────────────────────────────────
 
 export const IssueCard = memo(function IssueCard({
   item,
   onClick,
   availableAgents,
   isBlocking = false,
+  pipelineState,
+  pipelineName,
+  onDelete,
 }: IssueCardProps) {
   const [isSubIssuesExpanded, setIsSubIssuesExpanded] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const subIssues = item.sub_issues ?? [];
   const labels = item.labels ?? [];
   const priorityName = item.priority?.name ?? '';
   const priorityConfig = PRIORITY_COLORS[priorityName] ?? PRIORITY_COLORS.P2;
 
-  // Truncate body to ~80 chars for description snippet
-  const snippet = item.body
-    ? item.body.length > 80
-      ? item.body.slice(0, 80).trimEnd() + '…'
-      : item.body
-    : null;
+  // Active agent resolution
+  const activeAgentSlug = pipelineState?.current_agent ?? null;
+  const activeAgentMeta = activeAgentSlug
+    ? availableAgents?.find((a) => a.slug.toLowerCase() === activeAgentSlug.toLowerCase())
+    : undefined;
+  const activeAgentLabel = activeAgentSlug ? activeAgentSlug.replace('speckit.', '') : null;
+
+  // First open PR on the parent
+  const firstOpenPr = item.linked_prs.find((pr) => pr.state === 'open');
+
+  // Visible labels (capped)
+  const visibleLabels = labels.slice(0, MAX_VISIBLE_LABELS);
+  const overflowCount = Math.max(0, labels.length - MAX_VISIBLE_LABELS);
 
   return (
     <div
-      className="project-board-card celestial-panel flex cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/90 p-3 shadow-sm backdrop-blur-sm hover:-translate-y-0.5 hover:border-primary/35 hover:bg-card/96 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      className="project-board-card celestial-panel flex min-h-[11rem] cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/90 p-3 shadow-sm backdrop-blur-sm hover:-translate-y-0.5 hover:border-primary/35 hover:bg-card/96 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
       onClick={() => onClick(item)}
       role="button"
       tabIndex={0}
@@ -138,38 +206,108 @@ export const IssueCard = memo(function IssueCard({
         }
       }}
     >
-      {/* Repository + Issue Number */}
-      {item.repository && (
-        <div className="flex items-center gap-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-          {item.repository.owner}/{item.repository.name}
+      {/* ── Row 1: Header — repo/number + status + actions ── */}
+      <div className="flex items-center justify-between gap-1">
+        <div className="flex items-center gap-1 truncate text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+          {item.repository && (
+            <span className="truncate">
+              {item.repository.owner}/{item.repository.name}
+            </span>
+          )}
           {item.number != null && <span className="font-medium">#{item.number}</span>}
+          {item.content_type === 'draft_issue' && (
+            <span className="solar-chip-soft rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground ml-1">
+              Draft
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 shrink-0">
+          {/* Status pill */}
+          {item.priority && (
+            <span
+              className={cn(
+                'rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]',
+                priorityConfig.bg,
+                priorityConfig.text
+              )}
+            >
+              {item.priority.name}
+            </span>
+          )}
+          {/* WIP / PR link */}
+          {firstOpenPr && (
+            <a
+              href={firstOpenPr.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              title={`PR #${firstOpenPr.number}: ${firstOpenPr.title}`}
+              className="rounded-full p-1 text-muted-foreground hover:bg-primary/10 hover:text-foreground transition-colors"
+            >
+              <GitPullRequest className="h-3.5 w-3.5" />
+            </a>
+          )}
+          {/* Delete button */}
+          {onDelete && (
+            <button
+              className="rounded-full p-1 text-muted-foreground/50 hover:bg-destructive/10 hover:text-destructive transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setConfirmDelete(true);
+              }}
+              title="Delete issue and all sub-issues"
+              type="button"
+            >
+              <Trash2 className={cn('h-3.5 w-3.5', confirmDelete && 'text-destructive')} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* ── Row 2: Title ── */}
+      <div className="text-sm font-semibold leading-snug text-foreground line-clamp-2">{item.title}</div>
+
+      {/* ── Row 3: Pipeline info — config name + active agent + error ── */}
+      {(pipelineName || activeAgentLabel || pipelineState?.error) && (
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {pipelineName && (
+            <span className="solar-chip rounded-sm px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {pipelineName}
+            </span>
+          )}
+          {activeAgentLabel && (
+            <span
+              className="solar-chip rounded-sm px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-blue-600 dark:text-blue-400"
+              title={activeAgentMeta?.default_model_name ? `Model: ${activeAgentMeta.default_model_name}` : activeAgentSlug ?? ''}
+            >
+              {activeAgentLabel}
+            </span>
+          )}
+          {pipelineState?.error && (
+            <span
+              className="inline-flex items-center gap-0.5 text-red-500"
+              title={pipelineState.error}
+            >
+              <AlertTriangle className="h-3.5 w-3.5" />
+            </span>
+          )}
         </div>
       )}
-      {item.content_type === 'draft_issue' && (
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <span className="solar-chip-soft rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-            Draft
-          </span>
-        </div>
+
+      {/* ── Row 4: Health bar ── */}
+      {pipelineState && pipelineState.agents.length > 0 && (
+        <PipelineHealthBar pipelineState={pipelineState} />
       )}
 
-      {/* Title */}
-      <div className="text-sm font-semibold leading-snug text-foreground">{item.title}</div>
-
-      {/* Description snippet */}
-      {snippet && (
-        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">{snippet}</p>
-      )}
-
-      {/* Labels */}
+      {/* ── Row 5: Labels + Blocking ── */}
       {(labels.length > 0 || isBlocking) && (
-        <div className="flex flex-wrap gap-1">
-          {labels.map((label) => {
+        <div className="flex items-center gap-1 flex-wrap">
+          {visibleLabels.map((label) => {
             const safeColor = sanitizeHexColor(label.color);
             return (
               <span
                 key={label.id}
-                className="rounded-full px-2 py-0.5 text-[10px] font-semibold truncate max-w-[120px]"
+                className="rounded-full px-2 py-0.5 text-[10px] font-semibold truncate max-w-[100px] shrink-0"
                 style={{
                   backgroundColor: `#${safeColor}18`,
                   color: `#${safeColor}`,
@@ -181,8 +319,13 @@ export const IssueCard = memo(function IssueCard({
               </span>
             );
           })}
+          {overflowCount > 0 && (
+            <span className="rounded-full px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground bg-muted/50 shrink-0">
+              +{overflowCount}
+            </span>
+          )}
           {isBlocking && (
-            <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+            <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400 shrink-0">
               <Lock className="h-3 w-3" />
               Blocking
             </span>
@@ -190,9 +333,9 @@ export const IssueCard = memo(function IssueCard({
         </div>
       )}
 
-      {/* Sub-Issues (collapsible) */}
+      {/* ── Row 6: Sub-Issues (collapsible) ── */}
       {subIssues.length > 0 && (
-        <div className="flex flex-col gap-1.5 mt-1">
+        <div className="flex flex-col gap-1 pt-1">
           <button
             className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
             onClick={(e) => {
@@ -221,70 +364,94 @@ export const IssueCard = memo(function IssueCard({
         </div>
       )}
 
-      {/* Metadata badges */}
-      <div className="mt-1 flex flex-wrap gap-1.5">
-        {item.priority && (
-          <span
-            className={cn('rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em]', priorityConfig.bg, priorityConfig.text)}
-          >
-            {item.priority.name}
-          </span>
-        )}
-        {item.size && (
-          <span
-            className="solar-chip-soft rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
-            style={item.size.color ? { borderColor: statusColorToCSS(item.size.color) } : undefined}
-          >
-            {item.size.name}
-          </span>
-        )}
-        {item.estimate != null && (
-          <span className="solar-chip-soft rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-            {item.estimate}pt
-          </span>
-        )}
-      </div>
-
-      {/* Footer: Assignees + Linked PRs */}
-      <div className="mt-2 flex items-center justify-between border-t border-border/70 pt-2">
-        {/* Assignees with names */}
+      {/* ── Row 7: Footer — assignees + metadata ── */}
+      <div className="mt-auto flex items-center justify-between border-t border-border/70 pt-1.5">
         <div className="flex items-center gap-2">
           {item.assignees.length > 0 && (
             <div className="flex items-center -space-x-1.5">
               {item.assignees.map((assignee) => (
                 <img
                   key={assignee.login}
-                  className="h-6 w-6 rounded-full border-2 border-card"
+                  className="h-5 w-5 rounded-full border-2 border-card"
                   src={validateAvatarUrl(assignee.avatar_url)}
                   alt={assignee.login}
                   title={assignee.login}
-                  width={24}
-                  height={24}
+                  width={20}
+                  height={20}
                 />
               ))}
             </div>
           )}
           {item.assignees.length > 0 && item.assignees.length <= 2 && (
-            <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+            <span className="text-[10px] text-muted-foreground truncate max-w-[80px]">
               {item.assignees.map((a) => a.login).join(', ')}
             </span>
           )}
         </div>
-
-        {/* Linked PRs */}
-        {item.linked_prs.length > 0 && (
-          <span
-            className="flex items-center gap-1 text-xs font-medium text-muted-foreground"
-            title={`${item.linked_prs.length} linked PR(s)`}
-          >
-            <PullRequestIcon />
-            {item.linked_prs.length}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {item.size && (
+            <span
+              className="solar-chip-soft rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground"
+              style={item.size.color ? { borderColor: statusColorToCSS(item.size.color) } : undefined}
+            >
+              {item.size.name}
+            </span>
+          )}
+          {item.estimate != null && (
+            <span className="solar-chip-soft rounded-full px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+              {item.estimate}pt
+            </span>
+          )}
+          {item.linked_prs.length > 0 && (
+            <span
+              className="flex items-center gap-0.5 text-[10px] font-medium text-muted-foreground"
+              title={`${item.linked_prs.length} linked PR(s)`}
+            >
+              <PullRequestIcon />
+              {item.linked_prs.length}
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* ── Delete confirmation bar ── */}
+      {confirmDelete && (
+        <div
+          className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-[11px] text-destructive"
+          role="alert"
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+          <span className="truncate">Close parent + sub-issues, PRs &amp; branches?</span>
+          <button
+            className="ml-auto shrink-0 rounded-md bg-destructive/10 px-2 py-0.5 font-semibold text-destructive hover:bg-destructive/20 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.(item);
+              setConfirmDelete(false);
+            }}
+            type="button"
+          >
+            Confirm
+          </button>
+          <button
+            className="shrink-0 rounded-md px-2 py-0.5 font-medium text-muted-foreground hover:text-foreground transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              setConfirmDelete(false);
+            }}
+            type="button"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 });
+
+// ── SVG icons ──────────────────────────────────────────────────
 
 function SubIssuesIcon() {
   return (

@@ -75,6 +75,8 @@ import type {
   ToolDeleteResult,
   FileUploadResponse,
   BlockingQueueEntry,
+  PipelineStateInfo,
+  CascadeCloseResponse,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -397,6 +399,16 @@ export const boardApi = {
       { method: 'DELETE' }
     );
   },
+
+  /**
+   * Cascade-close a parent issue: closes sub-issues, PRs, deletes branches, and closes the parent.
+   */
+  deleteIssue(projectId: string, issueNumber: number, owner: string, repo: string): Promise<CascadeCloseResponse> {
+    return request<CascadeCloseResponse>(
+      `/board/projects/${projectId}/issues/${issueNumber}?owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`,
+      { method: 'DELETE' }
+    );
+  },
 };
 
 // ============ Settings API ============
@@ -511,6 +523,13 @@ export const workflowApi = {
    */
   listAgents(): Promise<{ agents: AvailableAgent[] }> {
     return request<{ agents: AvailableAgent[] }>('/workflow/agents');
+  },
+
+  /**
+   * Get all active pipeline states for the current project.
+   */
+  getPipelineStates(): Promise<{ pipeline_states: Record<string, PipelineStateInfo>; count: number }> {
+    return request<{ pipeline_states: Record<string, PipelineStateInfo>; count: number }>('/workflow/pipeline-states');
   },
 };
 

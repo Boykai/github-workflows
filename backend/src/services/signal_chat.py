@@ -17,7 +17,7 @@ from __future__ import annotations
 
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from src.constants import DEFAULT_STATUS_COLUMNS, with_blocking_label
+from src.constants import DEFAULT_STATUS_COLUMNS, build_parent_labels
 from src.logging_utils import get_logger
 from src.models.chat import ActionType, ChatMessage, SenderType
 from src.models.signal import (
@@ -386,7 +386,10 @@ async def _handle_confirm(
                 repo=repo,
                 title=rec.title,
                 body="\n".join(body_parts),
-                labels=with_blocking_label([], rec.is_blocking),
+                labels=build_parent_labels(
+                    rec.metadata.labels if rec.metadata else None,
+                    rec.is_blocking,
+                ),
             )
             item_id = await gh.add_issue_to_project(
                 access_token=token,
@@ -450,7 +453,7 @@ async def _handle_confirm(
                 repo=repo,
                 title=proposal.final_title,
                 body=proposal.final_description or "",
-                labels=with_blocking_label([], proposal.is_blocking),
+                labels=build_parent_labels(is_blocking=proposal.is_blocking),
             )
             item_id = await gh.add_issue_to_project(
                 access_token=token,

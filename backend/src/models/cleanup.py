@@ -57,12 +57,13 @@ class PullRequestInfo(BaseModel):
 
 
 class OrphanedIssueInfo(BaseModel):
-    """An app-created GitHub Issue that is no longer on the project board."""
+    """A GitHub Issue that is orphaned (parent no longer on the project board)."""
 
     number: int
     title: str
     labels: list[str] = []
     html_url: str | None = None
+    deletion_reason: str | None = None
 
 
 class CleanupPreflightResponse(BaseModel):

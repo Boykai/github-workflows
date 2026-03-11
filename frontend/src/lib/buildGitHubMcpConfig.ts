@@ -24,7 +24,6 @@ export const BUILTIN_MCPS: readonly BuiltInMcp[] = [
     name: 'Context7',
     serverKey: 'context7',
     config: {
-      builtin: true,
       type: 'http',
       url: 'https://mcp.context7.com/mcp',
       tools: ['resolve-library-id', 'get-library-docs'],
@@ -37,7 +36,6 @@ export const BUILTIN_MCPS: readonly BuiltInMcp[] = [
     name: 'Code Graph Context',
     serverKey: 'CodeGraphContext',
     config: {
-      builtin: true,
       type: 'local',
       command: 'uvx',
       args: ['--from', 'codegraphcontext', 'cgc', 'mcp', 'start'],

@@ -2,6 +2,7 @@ import { useId, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   CheckCircle2,
+  ChevronRight,
   FileUp,
   LoaderCircle,
   Orbit,
@@ -81,6 +82,7 @@ export function ProjectIssueLaunchPanel({
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [submissionResult, setSubmissionResult] = useState<WorkflowResult | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   const selectedPipeline = useMemo(
     () => pipelines.find((pipeline) => pipeline.id === pipelineId) ?? null,
@@ -217,21 +219,39 @@ export function ProjectIssueLaunchPanel({
   return (
     <section className="celestial-panel relative overflow-hidden rounded-[1.45rem] border border-border/80 bg-background/34 p-5 shadow-sm sm:p-6">
       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/45 to-transparent" />
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_20rem]">
+
+      {/* Clickable header — always visible */}
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={() => setExpanded((prev) => !prev)}
+        className="flex w-full items-center gap-3 text-left"
+      >
+        <ChevronRight
+          className={cn(
+            'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+            expanded && 'rotate-90'
+          )}
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
+            <Orbit className="h-3.5 w-3.5" />
+            Parent issue intake
+          </span>
+          {projectName ? (
+            <span className="rounded-full border border-border/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              {projectName}
+            </span>
+          ) : null}
+        </div>
+      </button>
+
+      {/* Collapsible body */}
+      {expanded && (
+      <>
+      <div className="mt-5 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_20rem]">
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
-                <Orbit className="h-3.5 w-3.5" />
-                Parent issue intake
-              </span>
-              {projectName ? (
-                <span className="rounded-full border border-border/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {projectName}
-                </span>
-              ) : null}
-            </div>
-            <div className="space-y-2">
               <h3 className="text-lg font-semibold text-foreground">
                 Launch an agent pipeline from existing GitHub issue context
               </h3>
@@ -240,7 +260,6 @@ export function ProjectIssueLaunchPanel({
                 saved Agent Pipeline Config. This launch also keeps the project&apos;s active
                 pipeline in sync so downstream agents continue with the same configuration.
               </p>
-            </div>
           </div>
 
           <div className="rounded-[1.25rem] border border-border/75 bg-background/58 p-4 backdrop-blur-sm">
@@ -478,14 +497,16 @@ export function ProjectIssueLaunchPanel({
             {launchMutation.isPending ? (
               <>
                 <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
-                Launching pipeline…
+                Launching issue…
               </>
             ) : (
-              'Launch pipeline'
+              'Launch issue'
             )}
           </Button>
         </div>
       </div>
+      </>
+      )}
     </section>
   );
 }

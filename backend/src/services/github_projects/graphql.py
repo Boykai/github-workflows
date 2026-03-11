@@ -875,6 +875,21 @@ mutation($repositoryId: ID!, $name: String!, $oid: GitObjectID!) {
 }
 """
 
+# Link an existing branch to a GitHub Issue (shows in "Development" sidebar).
+# name is the BARE branch name (no refs/heads/ prefix).
+CREATE_LINKED_BRANCH_MUTATION = """
+mutation($issueId: ID!, $oid: GitObjectID!, $name: String!, $repositoryId: ID!) {
+  createLinkedBranch(input: {issueId: $issueId, oid: $oid, name: $name, repositoryId: $repositoryId}) {
+    linkedBranch {
+      id
+      ref {
+        name
+      }
+    }
+  }
+}
+"""
+
 # Commit files to a branch without cloning. Contents must be Base64-encoded.
 # branch.branchName is the BARE name (no refs/heads/ prefix).
 CREATE_COMMIT_ON_BRANCH_MUTATION = """

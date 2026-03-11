@@ -19,6 +19,7 @@ from src.models.board import (
     BoardDataResponse,
     BoardProject,
     BoardProjectListResponse,
+    CascadeCloseResponse,
     RateLimitInfo,
     StatusColor,
     StatusField,
@@ -636,4 +637,121 @@ async def _resolve_queue_entry(project_id: str, issue_number: int):
     raise HTTPException(
         status_code=status.HTTP_404_NOT_FOUND,
         detail=f"Issue #{issue_number} not found in blocking queue for this project",
+    )
+
+
+# ────────────────────────────────────────────────────────────────
+# Cascade close: parent + sub-issues + PRs + branches
+# ────────────────────────────────────────────────────────────────
+
+
+@router.delete(
+    "/projects/{project_id}/issues/{issue_number}",
+    response_model=CascadeCloseResponse,
+    dependencies=[Depends(verify_project_access)],
+)
+async def cascade_close_issue(
+    project_id: str,
+    issue_number: int,
+    owner: str = Query(..., description="Repository owner"),
+    repo: str = Query(..., description="Repository name"),
+    session: Annotated[UserSession, Depends(get_session_dep)] = None,  # type: ignore[assignment]
+) -> CascadeCloseResponse:
+    """Cascade-close a parent issue: close sub-issues, close PRs, delete branches, close parent.
+
+    This is a **reversible** operation — issues and PRs are closed, not deleted.
+    Branches are deleted since they can be recreated.
+    """
+    from src.services.workflow_orchestrator import (
+        clear_issue_main_branch,
+        clear_issue_sub_issues,
+        remove_pipeline_state,
+    )
+
+    token = session.access_token
+    closed_issues = 0
+    closed_prs = 0
+    deleted_branches = 0
+
+    # 1. Fetch sub-issues
+    sub_issues = await github_projects_service.get_sub_issues(token, owner, repo, issue_number)
+
+    # 2. Close sub-issues and collect their linked PRs
+    for sub in sub_issues:
+        sub_number = sub.get("number")
+        if sub_number and sub.get("state") != "closed":
+            ok = await github_projects_service.update_issue_state(
+                token, owner, repo, sub_number, state="closed", state_reason="not_planned"
+            )
+            if ok:
+                closed_issues += 1
+
+        # Collect linked PRs from sub-issues
+        if sub_number:
+            sub_prs = await github_projects_service.get_linked_pull_requests(
+                token, owner, repo, sub_number
+            )
+            for pr in sub_prs:
+                pr_number = pr.get("number")
+                pr_state = pr.get("state", "").upper()
+                if pr_number and pr_state not in ("CLOSED", "MERGED"):
+                    ok = await github_projects_service.close_pull_request(
+                        token, owner, repo, pr_number
+                    )
+                    if ok:
+                        closed_prs += 1
+
+                # Delete branch from PR head ref
+                head_ref = pr.get("headRefName")
+                if head_ref and head_ref != "main":
+                    ok = await github_projects_service.delete_branch(token, owner, repo, head_ref)
+                    if ok:
+                        deleted_branches += 1
+
+    # 3. Collect and handle parent's linked PRs
+    parent_prs = await github_projects_service.get_linked_pull_requests(
+        token, owner, repo, issue_number
+    )
+    for pr in parent_prs:
+        pr_number = pr.get("number")
+        pr_state = pr.get("state", "").upper()
+        if pr_number and pr_state not in ("CLOSED", "MERGED"):
+            ok = await github_projects_service.close_pull_request(token, owner, repo, pr_number)
+            if ok:
+                closed_prs += 1
+        head_ref = pr.get("headRefName")
+        if head_ref and head_ref != "main":
+            ok = await github_projects_service.delete_branch(token, owner, repo, head_ref)
+            if ok:
+                deleted_branches += 1
+
+    # 4. Close the parent issue
+    ok = await github_projects_service.update_issue_state(
+        token, owner, repo, issue_number, state="closed", state_reason="not_planned"
+    )
+    if ok:
+        closed_issues += 1
+
+    # 5. Clean up in-memory pipeline state
+    remove_pipeline_state(issue_number)
+    clear_issue_main_branch(issue_number)
+    clear_issue_sub_issues(issue_number)
+
+    # 6. Invalidate board cache
+    board_cache_key = get_cache_key("board_data", project_id)
+    cache.delete(board_cache_key)
+
+    logger.info(
+        "Cascade-closed issue #%d: %d issues, %d PRs, %d branches",
+        issue_number,
+        closed_issues,
+        closed_prs,
+        deleted_branches,
+    )
+
+    return CascadeCloseResponse(
+        issue_number=issue_number,
+        closed_issues=closed_issues,
+        closed_prs=closed_prs,
+        deleted_branches=deleted_branches,
     )

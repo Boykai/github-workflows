@@ -35,6 +35,8 @@ SESSION_COOKIE_NAME = "session_id"
 
 GITHUB_ISSUE_BODY_MAX_LENGTH = 65_536
 BLOCKING_LABEL = "blocking"
+PARENT_LABEL = "parent"
+MAX_ISSUE_LABELS = 20
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Notification Event Types
@@ -127,6 +129,7 @@ LABELS: list[str] = [
     # Status labels
     "ai-generated",
     "sub-issue",
+    PARENT_LABEL,
     BLOCKING_LABEL,
     "good first issue",
     "help wanted",
@@ -144,3 +147,29 @@ def with_blocking_label(labels: list[str] | None, is_blocking: bool) -> list[str
     if is_blocking and BLOCKING_LABEL not in result:
         result.append(BLOCKING_LABEL)
     return result
+
+
+def build_parent_labels(
+    extra_labels: list[str] | None = None,
+    is_blocking: bool = False,
+) -> list[str]:
+    """Build the final labels list for a parent issue.
+
+    Always includes ``parent`` and ``ai-generated``.  Merges *extra_labels*,
+    adds ``blocking`` when needed, deduplicates, and caps at
+    ``MAX_ISSUE_LABELS`` unique values.
+    """
+    result = list(extra_labels or [])
+    for required in (PARENT_LABEL, "ai-generated"):
+        if required not in result:
+            result.insert(0, required)
+    if is_blocking and BLOCKING_LABEL not in result:
+        result.append(BLOCKING_LABEL)
+    # Deduplicate preserving order, then cap
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for label in result:
+        if label not in seen:
+            seen.add(label)
+            deduped.append(label)
+    return deduped[:MAX_ISSUE_LABELS]

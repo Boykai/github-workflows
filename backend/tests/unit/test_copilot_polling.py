@@ -4011,9 +4011,14 @@ class TestValidateAndReconcileTrackingTable:
         new_callable=AsyncMock,
     )
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_corrects_pending_agent_to_done(self, mock_service, mock_check_done):
-        """Pending agent corrected to Done when GitHub has Done! marker."""
-        from src.services.agent_tracking import STATE_DONE, parse_tracking_from_body
+    async def test_stops_at_first_incomplete_agent(self, mock_service, mock_check_done):
+        """Sequential enforcement: agents after the first incomplete one are not checked.
+
+        When speckit.specify is NOT done, speckit.plan must NOT be checked —
+        even if it has a Done! marker in GitHub. This prevents side effects
+        (e.g., copilot-review requesting reviews before preceding agents finish).
+        """
+        from src.services.agent_tracking import parse_tracking_from_body
 
         async def side_effect(*, agent_name, **kwargs):
             return agent_name == "speckit.plan"
@@ -4032,10 +4037,11 @@ class TestValidateAndReconcileTrackingTable:
             pipeline=None,
         )
 
-        assert corrected is True
+        # speckit.specify is not done → break → speckit.plan never checked → no corrections
+        assert corrected is False
         assert "Active" in updated_steps[0].state
-        assert STATE_DONE in updated_steps[1].state
-        mock_service.update_issue_body.assert_awaited_once()
+        assert "Pending" in updated_steps[1].state
+        mock_service.update_issue_body.assert_not_called()
 
     @pytest.mark.asyncio
     @patch(
@@ -6784,6 +6790,48 @@ class TestCheckCopilotReviewDone:
             # check_agent_completion_comment IS called (for Done! marker)
             # but has_copilot_reviewed_pr returned False so step is not done
             mock_service.has_copilot_reviewed_pr.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_pipeline_ordering_guard_blocks_when_not_current_agent(self, mock_service):
+        """Side effects are suppressed when pipeline current agent is NOT copilot-review.
+
+        This prevents the reconciliation loop from premature review requests
+        and auto-triggered review detection before preceding agents complete.
+        """
+        from src.services.copilot_polling import set_pipeline_state
+
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+
+        # Pipeline is at 'copilot' (index 0), NOT copilot-review
+        set_pipeline_state(
+            42,
+            PipelineState(
+                issue_number=42,
+                project_id="proj",
+                status="In Progress",
+                agents=["copilot", "copilot-review", "judge"],
+                current_agent_index=0,
+            ),
+        )
+        try:
+            result = await _check_copilot_review_done(
+                access_token="token",
+                owner="owner",
+                repo="repo",
+                parent_issue_number=42,
+            )
+
+            # Should return False immediately — no review request, no side effects
+            assert result is False
+            # Only the Done! marker check should fire, nothing else
+            mock_service.check_agent_completion_comment.assert_awaited_once()
+            mock_service.get_pull_request.assert_not_called()
+            mock_service.has_copilot_reviewed_pr.assert_not_called()
+        finally:
+            from src.services.copilot_polling import remove_pipeline_state
+
+            remove_pipeline_state(42)
 
 
 # ────────────────────────────────────────────────────────────────────

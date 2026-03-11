@@ -164,6 +164,15 @@ vi.mock('@/hooks/useConfirmation', () => ({
   }),
 }));
 
+vi.mock('@/hooks/useSelectedPipeline', () => ({
+  useSelectedPipeline: () => ({
+    pipelineId: '',
+    pipelineName: '',
+    isLoading: false,
+    hasAssignment: false,
+  }),
+}));
+
 vi.mock('@/services/api', () => ({
   pipelinesApi: {
     seedPresets: vi.fn().mockResolvedValue(undefined),

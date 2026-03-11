@@ -187,3 +187,12 @@ class BoardProjectListResponse(BaseModel):
     rate_limit: RateLimitInfo | None = Field(
         default=None, description="GitHub API rate limit status"
     )
+
+
+class CascadeCloseResponse(BaseModel):
+    """Response from cascade-closing a parent issue and its resources."""
+
+    issue_number: int
+    closed_issues: int = Field(description="Number of issues closed (parent + sub-issues)")
+    closed_prs: int = Field(description="Number of PRs closed")
+    deleted_branches: int = Field(description="Number of branches deleted")

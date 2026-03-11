@@ -27,12 +27,13 @@ import { ProjectSelector } from '@/layout/ProjectSelector';
 import { useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useBoardControls } from '@/hooks/useBoardControls';
 import { useBlockingQueue } from '@/hooks/useBlockingQueue';
+import { usePipelineStates } from '@/hooks/usePipelineStates';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import { formatAgentName } from '@/utils/formatAgentName';
 import { cn } from '@/lib/utils';
 import type { BoardItem } from '@/types';
-import { ApiError, pipelinesApi } from '@/services/api';
+import { ApiError, boardApi, pipelinesApi } from '@/services/api';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
 
@@ -82,6 +83,7 @@ export function ProjectsPage() {
   const pipelineSelectorRef = useRef<HTMLDivElement>(null);
 
   const { agents: availableAgents } = useAvailableAgents(selectedProjectId);
+  const pipelineStates = usePipelineStates(selectedProjectId);
 
   // Board controls: filter, sort, group-by with localStorage persistence
   const boardControls = useBoardControls(selectedProjectId, boardData ?? undefined);
@@ -131,8 +133,30 @@ export function ProjectsPage() {
     },
   });
 
+  const deleteIssueMutation = useMutation({
+    mutationFn: ({ issueNumber, owner, repo }: { issueNumber: number; owner: string; repo: string }) =>
+      boardApi.deleteIssue(selectedProjectId!, issueNumber, owner, repo),
+    onSuccess: () => {
+      if (!selectedProjectId) return;
+      queryClient.invalidateQueries({ queryKey: ['board', 'data', selectedProjectId] });
+      queryClient.invalidateQueries({ queryKey: ['workflow', 'pipeline-states', selectedProjectId] });
+    },
+  });
+
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
+  const handleDeleteIssue = useCallback(
+    (item: BoardItem) => {
+      if (item.number != null && item.repository) {
+        deleteIssueMutation.mutate({
+          issueNumber: item.number,
+          owner: item.repository.owner,
+          repo: item.repository.name,
+        });
+      }
+    },
+    [deleteIssueMutation]
+  );
   const pipelineColumnCount = Math.max(transformedBoardData?.columns.length ?? 0, 1);
   const pipelineGridStyle = {
     gridTemplateColumns: `repeat(${pipelineColumnCount}, minmax(14rem, 1fr))`,
@@ -736,6 +760,9 @@ export function ProjectsPage() {
                 availableAgents={availableAgents}
                 getGroups={boardControls.getGroups}
                 blockingIssueNumbers={blockingIssueNumbers}
+                pipelineStates={pipelineStates}
+                pipelineName={assignedPipeline?.name}
+                onDeleteIssue={handleDeleteIssue}
               />
             )}
           </div>

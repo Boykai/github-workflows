@@ -69,6 +69,31 @@ class IssuesMixin:
         logger.info("Created issue #%d in %s/%s", issue["number"], owner, repo)
         return issue
 
+    async def get_issue(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        issue_number: int,
+    ) -> dict | None:
+        """Fetch basic issue data (title, state, labels) via REST API.
+
+        Returns:
+            Dict with issue fields, or None if not found.
+        """
+        try:
+            return cast(
+                dict,
+                await self._rest(
+                    access_token,
+                    "GET",
+                    f"/repos/{owner}/{repo}/issues/{issue_number}",
+                ),
+            )
+        except Exception as e:
+            logger.warning("Failed to fetch issue #%d: %s", issue_number, e)
+            return None
+
     async def update_issue_body(
         self,
         access_token: str,
@@ -162,6 +187,27 @@ class IssuesMixin:
             return True
         except Exception as e:
             logger.warning("Failed to update issue #%d state: %s", issue_number, e)
+            return False
+
+    async def close_pull_request(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+    ) -> bool:
+        """Close a pull request on GitHub."""
+        try:
+            await self._rest(
+                access_token,
+                "PATCH",
+                f"/repos/{owner}/{repo}/pulls/{pr_number}",
+                json={"state": "closed"},
+            )
+            logger.info("Closed PR #%d in %s/%s", pr_number, owner, repo)
+            return True
+        except Exception as e:
+            logger.warning("Failed to close PR #%d: %s", pr_number, e)
             return False
 
     async def add_issue_to_project(

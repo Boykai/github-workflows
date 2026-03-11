@@ -2289,6 +2289,30 @@ async def _activate_queued_issue(
         ctx.project_item_id = item_id
 
         orchestrator = _cp.get_workflow_orchestrator()
+
+        # Create parent branch if one hasn't been established yet.
+        # Pending issues skip branch creation during execute_full_workflow;
+        # they get it here when the blocking queue activates them.
+        from src.services.workflow_orchestrator import get_issue_main_branch
+
+        if not get_issue_main_branch(issue_number):
+            try:
+                from src.services import blocking_queue as bq_service
+
+                repo_key = f"{owner}/{repo}"
+                parent_base_ref = await bq_service.get_base_ref_for_issue(repo_key, issue_number)
+            except Exception:
+                parent_base_ref = "main"
+
+            issue_data = await _cp.github_projects_service.get_issue(
+                access_token, owner, repo, issue_number
+            )
+            issue_title = issue_data.get("title", "") if issue_data else ""
+            if issue_title:
+                await orchestrator.create_parent_branch(
+                    ctx, title=issue_title, base_ref=parent_base_ref
+                )
+
         await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 
         logger.info("Successfully activated queued issue #%d", issue_number)

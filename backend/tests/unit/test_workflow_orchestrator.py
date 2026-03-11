@@ -2088,6 +2088,11 @@ def _make_orch() -> WorkflowOrchestrator:
         "create_issue",
         "update_project_item_field",
         "set_issue_metadata",
+        "get_issue",
+        "create_branch",
+        "get_branch_head_oid",
+        "link_branch_to_issue",
+        "get_repository_info",
     ):
         setattr(gh, m, AsyncMock())
     gh.tailor_body_for_agent = Mock(return_value="tailored body")
@@ -2519,6 +2524,7 @@ class TestExecuteFullWorkflow:
         orch.create_issue_from_recommendation = AsyncMock()
         orch.add_to_project_with_backlog = AsyncMock()
         orch.create_all_sub_issues = AsyncMock(return_value={})
+        orch.create_parent_branch = AsyncMock()
         orch.assign_agent_for_status = AsyncMock(return_value=True)
 
         result = await orch.execute_full_workflow(ctx, rec)
@@ -2543,6 +2549,7 @@ class TestExecuteFullWorkflow:
         orch.create_issue_from_recommendation = AsyncMock()
         orch.add_to_project_with_backlog = AsyncMock()
         orch.create_all_sub_issues = AsyncMock(return_value={})
+        orch.create_parent_branch = AsyncMock()
         orch.assign_agent_for_status = AsyncMock(return_value=True)
         orch.github.update_item_status_by_name = AsyncMock(return_value=True)
 
@@ -2563,6 +2570,7 @@ class TestExecuteFullWorkflow:
         orch.create_issue_from_recommendation = AsyncMock()
         orch.add_to_project_with_backlog = AsyncMock()
         orch.create_all_sub_issues = AsyncMock(return_value=sub_issues)
+        orch.create_parent_branch = AsyncMock()
         orch.assign_agent_for_status = AsyncMock(return_value=True)
 
         result = await orch.execute_full_workflow(ctx, rec)
@@ -3635,3 +3643,206 @@ class TestResolveEffectiveModel:
 
         call_kwargs = mock_github.assign_copilot_to_issue.call_args.kwargs
         assert call_kwargs["model"] == "gemini-1.5-pro"
+
+
+# ────────────────────────────────────────────────────────────────────
+# _slugify_branch_name  (T034 parent branch naming)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestSlugifyBranchName:
+    """Tests for WorkflowOrchestrator._slugify_branch_name."""
+
+    def test_basic_title(self):
+        assert WorkflowOrchestrator._slugify_branch_name(42, "New Feature") == "42-new-feature"
+
+    def test_special_characters_stripped(self):
+        assert (
+            WorkflowOrchestrator._slugify_branch_name(7, "Fix: bug #123 (urgent!)")
+            == "7-fix-bug-123-urgent"
+        )
+
+    def test_leading_trailing_hyphens_stripped(self):
+        assert WorkflowOrchestrator._slugify_branch_name(1, "---hello world---") == "1-hello-world"
+
+    def test_consecutive_hyphens_collapsed(self):
+        assert WorkflowOrchestrator._slugify_branch_name(5, "a    b---c") == "5-a-b-c"
+
+    def test_max_length_truncated(self):
+        long_title = "a" * 200
+        result = WorkflowOrchestrator._slugify_branch_name(99, long_title)
+        assert len(result) <= 100
+        assert result.startswith("99-")
+
+    def test_empty_title_fallback(self):
+        result = WorkflowOrchestrator._slugify_branch_name(10, "")
+        assert result == "10-issue"
+
+    def test_title_with_only_special_chars(self):
+        result = WorkflowOrchestrator._slugify_branch_name(10, "!!! @@@")
+        assert result == "10-issue"
+
+
+# ────────────────────────────────────────────────────────────────────
+# create_parent_branch  (T034 parent branch creation)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestCreateParentBranch:
+    """Tests for WorkflowOrchestrator.create_parent_branch."""
+
+    @pytest.fixture(autouse=True)
+    def _clear(self):
+        _issue_main_branches.clear()
+        yield
+        _issue_main_branches.clear()
+
+    @pytest.mark.asyncio
+    async def test_creates_branch_and_links(self):
+        orch = _make_orch()
+        orch.github.get_repository_info = AsyncMock(
+            return_value={"repository_id": "R_1", "default_branch": "main", "head_oid": "abc123"}
+        )
+        orch.github.get_branch_head_oid = AsyncMock(return_value="def456")
+        orch.github.create_branch = AsyncMock(return_value="REF_1")
+        orch.github.link_branch_to_issue = AsyncMock(return_value=True)
+        ctx = _make_ctx(issue_number=42, issue_id="I_42")
+
+        result = await orch.create_parent_branch(ctx, title="New Feature", base_ref="main")
+
+        assert result == "42-new-feature"
+        orch.github.create_branch.assert_awaited_once()
+        orch.github.link_branch_to_issue.assert_awaited_once()
+        # Should have registered in state
+        info = _issue_main_branches.get(42)
+        assert info is not None
+        assert info["branch"] == "42-new-feature"
+        assert info["pr_number"] == 0
+
+    @pytest.mark.asyncio
+    async def test_existing_branch_still_links(self):
+        orch = _make_orch()
+        orch.github.get_repository_info = AsyncMock(
+            return_value={"repository_id": "R_1", "default_branch": "main", "head_oid": "abc123"}
+        )
+        orch.github.get_branch_head_oid = AsyncMock(return_value="def456")
+        orch.github.create_branch = AsyncMock(return_value="existing")
+        orch.github.link_branch_to_issue = AsyncMock(return_value=True)
+        ctx = _make_ctx(issue_number=42, issue_id="I_42")
+
+        result = await orch.create_parent_branch(ctx, title="New Feature")
+
+        assert result == "42-new-feature"
+        orch.github.link_branch_to_issue.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_branch_creation_fails_returns_none(self):
+        orch = _make_orch()
+        orch.github.get_repository_info = AsyncMock(
+            return_value={"repository_id": "R_1", "default_branch": "main", "head_oid": "abc123"}
+        )
+        orch.github.get_branch_head_oid = AsyncMock(return_value="def456")
+        orch.github.create_branch = AsyncMock(return_value=None)
+        ctx = _make_ctx(issue_number=42, issue_id="I_42")
+
+        result = await orch.create_parent_branch(ctx, title="New Feature")
+
+        assert result is None
+        orch.github.link_branch_to_issue.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_no_repo_info_returns_none(self):
+        orch = _make_orch()
+        orch.github.get_repository_info = AsyncMock(return_value=None)
+        ctx = _make_ctx(issue_number=42, issue_id="I_42")
+
+        result = await orch.create_parent_branch(ctx, title="New Feature")
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_uses_blocking_base_ref(self):
+        orch = _make_orch()
+        orch.github.get_repository_info = AsyncMock(
+            return_value={"repository_id": "R_1", "default_branch": "main", "head_oid": "abc123"}
+        )
+        orch.github.get_branch_head_oid = AsyncMock(return_value="block789")
+        orch.github.create_branch = AsyncMock(return_value="REF_1")
+        orch.github.link_branch_to_issue = AsyncMock(return_value=True)
+        ctx = _make_ctx(issue_number=42, issue_id="I_42")
+
+        result = await orch.create_parent_branch(
+            ctx, title="Feature", base_ref="10-blocking-feature"
+        )
+
+        assert result == "42-feature"
+        # Should have resolved OID from the blocking branch, not default
+        orch.github.get_branch_head_oid.assert_awaited_once_with(
+            "tok", "owner", "repo", "10-blocking-feature"
+        )
+
+    @pytest.mark.asyncio
+    async def test_skips_when_main_branch_already_set(self):
+        """If a main branch is already registered, create_parent_branch returns early."""
+        from src.services.workflow_orchestrator import set_issue_main_branch
+
+        set_issue_main_branch(42, "existing-branch", 99, "sha")
+        orch = _make_orch()
+        ctx = _make_ctx(issue_number=42, issue_id="I_42")
+
+        await orch.create_parent_branch(ctx, title="Feature")
+
+        # Should not hit github at all
+        orch.github.get_repository_info.assert_not_awaited()
+
+
+# ────────────────────────────────────────────────────────────────────
+# _determine_base_ref with pr_number=0  (parent branch compatibility)
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestDetermineBaseRefParentBranch:
+    """Tests for _determine_base_ref handling pre-created parent branches (pr_number=0)."""
+
+    @pytest.fixture(autouse=True)
+    def _clear(self):
+        _issue_main_branches.clear()
+        yield
+        _issue_main_branches.clear()
+
+    @pytest.mark.asyncio
+    async def test_parent_branch_skips_pr_fetch(self):
+        """When pr_number=0, should NOT call get_pull_request."""
+        from src.services.workflow_orchestrator import set_issue_main_branch
+
+        set_issue_main_branch(10, "42-new-feature", 0, "sha_parent")
+
+        orch = _make_orch()
+        ctx = _make_ctx(issue_number=10)
+
+        base_ref, head_sha, existing_pr = await orch._determine_base_ref(ctx, "agent", 1)
+
+        assert base_ref == "42-new-feature"
+        assert head_sha == "sha_parent"
+        assert existing_pr is None  # No PR for parent branch
+        orch.github.get_pull_request.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_pr_backed_branch_fetches_pr(self):
+        """When pr_number > 0, should fetch PR details."""
+        from src.services.workflow_orchestrator import set_issue_main_branch
+
+        set_issue_main_branch(10, "copilot/branch", 77, "old_sha")
+
+        orch = _make_orch()
+        orch.github.get_pull_request = AsyncMock(
+            return_value={"last_commit": {"sha": "new_sha_from_pr"}}
+        )
+        ctx = _make_ctx(issue_number=10)
+
+        base_ref, head_sha, existing_pr = await orch._determine_base_ref(ctx, "agent", 1)
+
+        assert base_ref == "copilot/branch"
+        assert head_sha == "new_sha_from_pr"
+        assert existing_pr == {"number": 77, "head_ref": "copilot/branch"}
+        orch.github.get_pull_request.assert_awaited_once()

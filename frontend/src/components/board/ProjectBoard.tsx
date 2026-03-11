@@ -4,7 +4,7 @@
  * Supports optional grouping within columns via getGroups callback.
  */
 
-import type { BoardDataResponse, BoardItem, AvailableAgent } from '@/types';
+import type { BoardDataResponse, BoardItem, AvailableAgent, PipelineStateInfo } from '@/types';
 import type { BoardGroup } from '@/hooks/useBoardControls';
 import { BoardColumn } from './BoardColumn';
 
@@ -14,6 +14,9 @@ interface ProjectBoardProps {
   availableAgents?: AvailableAgent[];
   getGroups?: (items: BoardItem[]) => BoardGroup[] | null;
   blockingIssueNumbers?: Set<number>;
+  pipelineStates?: Map<number, PipelineStateInfo>;
+  pipelineName?: string;
+  onDeleteIssue?: (item: BoardItem) => void;
 }
 
 export function ProjectBoard({
@@ -22,6 +25,9 @@ export function ProjectBoard({
   availableAgents,
   getGroups,
   blockingIssueNumbers,
+  pipelineStates,
+  pipelineName,
+  onDeleteIssue,
 }: ProjectBoardProps) {
   const columnCount = Math.max(boardData.columns.length, 1);
 
@@ -39,6 +45,9 @@ export function ProjectBoard({
             availableAgents={availableAgents}
             getGroups={getGroups}
             blockingIssueNumbers={blockingIssueNumbers}
+            pipelineStates={pipelineStates}
+            pipelineName={pipelineName}
+            onDeleteIssue={onDeleteIssue}
           />
         ))}
       </div>

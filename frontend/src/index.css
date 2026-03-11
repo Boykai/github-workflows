@@ -503,12 +503,18 @@
       0 16px 28px hsl(var(--night) / 0.24);
   }
 
+  .dark .projects-page-shell .project-board-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
   .dark .projects-page-shell .project-board-card::before {
     background:
       radial-gradient(circle at 18% 18%, hsl(var(--star-soft) / 0.58) 0 0.8px, transparent 1.4px),
       radial-gradient(circle at 76% 12%, hsl(var(--gold) / 0.62) 0 0.9px, transparent 1.5px),
       linear-gradient(124deg, transparent 0 76%, hsl(var(--gold) / 0.04) 76.3%, transparent 76.8%);
     opacity: 0.46;
+    z-index: 0;
   }
 
   .ritual-stage {
@@ -627,12 +633,18 @@
       0 14px 28px hsl(var(--night) / 0.12);
   }
 
+  .project-board-card > * {
+    position: relative;
+    z-index: 1;
+  }
+
   .project-board-card::before {
     content: '';
     position: absolute;
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
+    z-index: 0;
     background:
       radial-gradient(circle at 18% 18%, hsl(var(--star-soft) / 0.7) 0 0.9px, transparent 1.6px),
       radial-gradient(circle at 76% 12%, hsl(var(--gold) / 0.78) 0 1px, transparent 1.7px),
@@ -795,6 +807,11 @@
     box-shadow:
       inset 0 1px 0 hsl(var(--star-soft) / 0.1),
       0 18px 32px hsl(var(--night) / 0.28);
+  }
+
+  .dark .project-board-card > * {
+    position: relative;
+    z-index: 1;
   }
 
   /* Rich starfield with halos on principal stars (dark theme) */

@@ -76,7 +76,10 @@ describe('ProjectIssueLaunchPanel', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', { name: 'Launch pipeline' }));
+    // Expand the collapsed section
+    await userEvent.click(screen.getByRole('button', { name: /parent issue intake/i }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Launch issue' }));
 
     expect(
       screen.getByText('Paste or upload the parent issue description first.')
@@ -90,7 +93,7 @@ describe('ProjectIssueLaunchPanel', () => {
       '# Import existing issue\n\nPreserve this parent issue context.'
     );
     await userEvent.selectOptions(screen.getByLabelText('Agent Pipeline Config'), 'pipe-1');
-    await userEvent.click(screen.getByRole('button', { name: 'Launch pipeline' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Launch issue' }));
 
     await waitFor(() => {
       expect(mockLaunch).toHaveBeenCalledWith('PVT_1', {
@@ -118,11 +121,14 @@ describe('ProjectIssueLaunchPanel', () => {
       />
     );
 
+    // Expand the collapsed section
+    await user.click(screen.getByRole('button', { name: /parent issue intake/i }));
+
     const descriptionField = screen.getByLabelText('GitHub Parent Issue Description');
     const pipelineSelect = screen.getByLabelText('Agent Pipeline Config');
 
     await user.type(descriptionField, 'Keep this parent issue context.');
-    await user.click(screen.getByRole('button', { name: 'Launch pipeline' }));
+    await user.click(screen.getByRole('button', { name: 'Launch issue' }));
 
     expect(
       screen.getByText('Select an Agent Pipeline Config before launching.')
@@ -131,7 +137,7 @@ describe('ProjectIssueLaunchPanel', () => {
 
     await user.selectOptions(pipelineSelect, 'pipe-1');
     await user.clear(descriptionField);
-    await user.click(screen.getByRole('button', { name: 'Launch pipeline' }));
+    await user.click(screen.getByRole('button', { name: 'Launch issue' }));
 
     expect(
       screen.getByText('Paste or upload the parent issue description first.')
@@ -150,6 +156,9 @@ describe('ProjectIssueLaunchPanel', () => {
         onRetryPipelines={vi.fn()}
       />
     );
+
+    // Expand the collapsed section
+    await userEvent.click(screen.getByRole('button', { name: /parent issue intake/i }));
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['# Imported issue\n\nLoaded from disk.'], 'issue.md', {
@@ -176,6 +185,9 @@ describe('ProjectIssueLaunchPanel', () => {
         onRetryPipelines={vi.fn()}
       />
     );
+
+    // Expand the collapsed section
+    await userEvent.click(screen.getByRole('button', { name: /parent issue intake/i }));
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['binary'], 'issue.png', { type: 'image/png' });
@@ -210,9 +222,12 @@ describe('ProjectIssueLaunchPanel', () => {
       />
     );
 
+    // Expand the collapsed section
+    await user.click(screen.getByRole('button', { name: /parent issue intake/i }));
+
     await user.type(screen.getByLabelText('GitHub Parent Issue Description'), '# Retry me');
     await user.selectOptions(screen.getByLabelText('Agent Pipeline Config'), 'pipe-1');
-    await user.click(screen.getByRole('button', { name: 'Launch pipeline' }));
+    await user.click(screen.getByRole('button', { name: 'Launch issue' }));
 
     expect(await screen.findByText('Launch failed')).toBeInTheDocument();
     expect(screen.getByText('The selected pipeline could not be started.')).toBeInTheDocument();
@@ -238,6 +253,9 @@ describe('ProjectIssueLaunchPanel', () => {
         onRetryPipelines={onRetryPipelines}
       />
     );
+
+    // Expand the collapsed section
+    await user.click(screen.getByRole('button', { name: /parent issue intake/i }));
 
     expect(screen.getByText('Could not load pipeline configs.')).toBeInTheDocument();
 

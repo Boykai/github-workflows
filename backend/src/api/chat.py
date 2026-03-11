@@ -17,7 +17,7 @@ from src.api.auth import get_session_dep
 from src.constants import (
     DEFAULT_STATUS_COLUMNS,
     GITHUB_ISSUE_BODY_MAX_LENGTH,
-    with_blocking_label,
+    build_parent_labels,
 )
 from src.dependencies import get_connection_manager, get_github_service, require_selected_project
 from src.exceptions import NotFoundError, ValidationError
@@ -756,7 +756,7 @@ async def confirm_proposal(
             repo=repo,
             title=proposal.final_title,
             body=body,
-            labels=with_blocking_label([], proposal.is_blocking),
+            labels=build_parent_labels(is_blocking=proposal.is_blocking),
         )
 
         issue_number = issue["number"]

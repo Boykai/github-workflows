@@ -36,8 +36,12 @@ async def _validate_and_reconcile_tracking_table(
     issue body is a convenience display that can fall behind if a body-update
     API call fails or the process restarts mid-cycle.
 
-    This function walks *every* step, checks its actual state via GitHub,
-    and corrects the tracking table when it disagrees.
+    This function walks steps **sequentially** and stops at the first agent
+    that is not yet done.  Checking agents beyond the first incomplete one
+    is incorrect for sequential pipelines because completion checks for
+    non-coding agents (``copilot-review``, ``human``) have side effects
+    (e.g., requesting Copilot reviews, setting timestamps) that must not
+    fire until all preceding agents have completed.
 
     Returns:
         (updated_body, updated_steps, table_was_corrected)
@@ -61,6 +65,12 @@ async def _validate_and_reconcile_tracking_table(
             # GitHub says Done but tracking table says Active/Pending
             corrections.append(f"'{step.agent_name}' was {step.state} in table but Done in GitHub")
             step.state = STATE_DONE
+        elif not is_done_in_github:
+            # Sequential pipeline: stop at the first incomplete agent.
+            # Agents beyond this point cannot be done yet, and checking
+            # them would trigger side effects (e.g., copilot-review
+            # requesting reviews before preceding agents finish).
+            break
 
     if not corrections:
         return body, steps, False

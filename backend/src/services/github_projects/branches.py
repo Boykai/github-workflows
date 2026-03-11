@@ -4,6 +4,7 @@ from __future__ import annotations
 from src.logging_utils import get_logger
 from src.services.github_projects.graphql import (
     CREATE_BRANCH_MUTATION,
+    CREATE_LINKED_BRANCH_MUTATION,
     GET_BRANCH_HEAD_QUERY,
 )
 
@@ -144,3 +145,56 @@ class BranchesMixin:
             return (ref.get("target") or {}).get("oid")
         except ValueError:
             return None
+
+    async def link_branch_to_issue(
+        self,
+        access_token: str,
+        repository_id: str,
+        issue_node_id: str,
+        branch_name: str,
+        oid: str,
+    ) -> bool:
+        """Link an existing branch to a GitHub Issue (Development sidebar).
+
+        Args:
+            access_token: GitHub OAuth token.
+            repository_id: Repository node ID.
+            issue_node_id: Issue node ID.
+            branch_name: Bare branch name (e.g., ``42-my-feature``).
+            oid: Commit SHA the branch points to.
+
+        Returns:
+            True on success, False on failure.
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                CREATE_LINKED_BRANCH_MUTATION,
+                {
+                    "issueId": issue_node_id,
+                    "oid": oid,
+                    "name": branch_name,
+                    "repositoryId": repository_id,
+                },
+            )
+            linked = (data.get("createLinkedBranch") or {}).get("linkedBranch")
+            if linked:
+                ref_name = (linked.get("ref") or {}).get("name", "")
+                logger.info(
+                    "Linked branch '%s' to issue %s (ref=%s)",
+                    branch_name,
+                    issue_node_id[:12],
+                    ref_name,
+                )
+                return True
+            logger.warning("createLinkedBranch returned no linkedBranch data")
+            return False
+        except ValueError as exc:
+            error_msg = str(exc).lower()
+            if "already linked" in error_msg or "already exists" in error_msg:
+                logger.info(
+                    "Branch '%s' already linked to issue — treating as success", branch_name
+                )
+                return True
+            logger.error("Failed to link branch '%s' to issue: %s", branch_name, exc)
+            return False

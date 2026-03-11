@@ -10,7 +10,7 @@ from pathlib import Path
 
 import aiosqlite
 
-from src.constants import with_blocking_label
+from src.constants import build_parent_labels
 from src.logging_utils import get_logger
 from src.models.chores import Chore, ChoreCreate, ChoreStatus, ChoreTriggerResult, ChoreUpdate
 
@@ -563,7 +563,7 @@ class ChoresService:
             repo,
             title=chore.name,
             body=issue_body,
-            labels=with_blocking_label(["chore"], is_blocking),
+            labels=build_parent_labels(["chore"], is_blocking),
         )
 
         issue_number = issue["number"]

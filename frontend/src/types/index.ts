@@ -420,6 +420,18 @@ export interface PipelineStateInfo {
   error: string | null;
 }
 
+export interface PipelineStatesResponse {
+  pipeline_states: Record<string, PipelineStateInfo>;
+  count: number;
+}
+
+export interface CascadeCloseResponse {
+  issue_number: number;
+  closed_issues: number;
+  closed_prs: number;
+  deleted_branches: number;
+}
+
 // ============ Board Types ============
 
 // ============ Status Change Proposal ============
@@ -802,6 +814,7 @@ export interface OrphanedIssueInfo {
   title: string;
   labels: string[];
   html_url: string | null;
+  deletion_reason: string | null;
 }
 
 export interface CleanupPreflightResponse {

@@ -310,11 +310,11 @@ describe('GitHubMcpConfigGenerator', () => {
     expect(codeBlock.textContent).toContain('CodeGraphContext');
   });
 
-  it('renders builtin metadata in the generated configuration JSON', () => {
+  it('does not include builtin property in the generated configuration JSON', () => {
     render(<GitHubMcpConfigGenerator tools={[]} />);
 
     const codeBlock = screen.getByTestId('github-mcp-config-code');
-    expect(codeBlock.textContent).toContain('"builtin": true');
+    expect(codeBlock.textContent).not.toContain('"builtin"');
   });
 
   it('shows the syntax-highlighted code block guidance', () => {

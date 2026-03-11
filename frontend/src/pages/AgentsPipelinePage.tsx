@@ -7,6 +7,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties }
 import { useBlocker } from 'react-router-dom';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useQueryClient } from '@tanstack/react-query';
+import { ChevronRight } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -15,6 +16,7 @@ import { useWorkflow } from '@/hooks/useWorkflow';
 import { usePipelineConfig, pipelineKeys } from '@/hooks/usePipelineConfig';
 import { useModels } from '@/hooks/useModels';
 import { useConfirmation } from '@/hooks/useConfirmation';
+import { useSelectedPipeline } from '@/hooks/useSelectedPipeline';
 import { pipelinesApi } from '@/services/api';
 import { AgentConfigRow } from '@/components/board/AgentConfigRow';
 import { AddAgentPopover } from '@/components/board/AddAgentPopover';
@@ -29,6 +31,7 @@ import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
+import { cn } from '@/lib/utils';
 import { formatAgentName } from '@/utils/formatAgentName';
 
 export function AgentsPipelinePage() {
@@ -54,6 +57,8 @@ export function AgentsPipelinePage() {
   const pipelineConfig = usePipelineConfig(projectId);
   const { models: availableModels } = useModels();
   const { confirm } = useConfirmation();
+  const { pipelineName: assignedPipelineName, hasAssignment } = useSelectedPipeline(projectId);
+  const [currentPipelineExpanded, setCurrentPipelineExpanded] = useState(false);
 
   const columns = useMemo(() => boardData?.columns ?? [], [boardData?.columns]);
   const alignedColumnCount = Math.max(
@@ -327,6 +332,30 @@ export function AgentsPipelinePage() {
             </div>
           )}
 
+          {/* Current Pipeline — collapsible */}
+          <div className="celestial-panel rounded-[1.2rem] border border-border/75 bg-background/28 p-4 shadow-sm">
+            <button
+              type="button"
+              aria-expanded={currentPipelineExpanded}
+              onClick={() => setCurrentPipelineExpanded((prev) => !prev)}
+              className="flex w-full items-center gap-3 text-left"
+            >
+              <ChevronRight
+                className={cn(
+                  'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+                  currentPipelineExpanded && 'rotate-90'
+                )}
+              />
+              <h3 className="text-lg font-semibold text-foreground">Current Pipeline</h3>
+              {hasAssignment && (
+                <span className="rounded-full border border-primary/25 bg-primary/8 px-3 py-0.5 text-[11px] font-medium text-primary">
+                  {assignedPipelineName}
+                </span>
+              )}
+            </button>
+
+            {currentPipelineExpanded && (
+            <div className="mt-4 space-y-4">
           {/* Agent Config Row — drag-and-drop assignment */}
           <AgentConfigRow
             columnCount={alignedColumnCount}
@@ -388,6 +417,9 @@ export function AgentsPipelinePage() {
                 })}
               </div>
             </div>
+          </div>
+            </div>
+            )}
           </div>
 
           {/* Saved Workflows List */}
