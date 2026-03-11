@@ -319,7 +319,7 @@ With multiple developers:
 | **US5 tasks** | 6 (T038–T043) |
 | **US6 tasks** | 4 (T044–T047) |
 | **Polish tasks** | 3 (T048–T050) |
-| **Parallel opportunities** | 25 tasks marked `[P]` across setup, foundational, visual audits, accessibility audits, responsive audits, and final validation |
+| **Parallel opportunities** | 27 tasks marked `[P]` across setup, foundational, visual audits, accessibility audits, responsive audits, and final validation |
 | **MVP scope** | Phases 1–4 (T001–T024) for visual cohesion and bug-free states |
 | **Independent test criteria** | Each user story phase includes a standalone validation scenario derived from spec.md |
 | **Format validation** | Every task uses the required `- [ ] T### [P?] [US?] Description with file path` checklist structure |
