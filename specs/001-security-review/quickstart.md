@@ -26,8 +26,13 @@ COOKIE_SECURE=          # Auto-detected from URL prefix
 ENCRYPTION_KEY=your-fernet-key-here          # REQUIRED — generated with: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
 GITHUB_WEBHOOK_SECRET=your-webhook-secret    # REQUIRED — configured in GitHub webhook settings
 SESSION_SECRET_KEY=your-64-char-minimum-key  # REQUIRED — at least 64 characters
-COOKIE_SECURE=true                           # REQUIRED — must be true
+COOKIE_SECURE=true                           # RECOMMENDED — explicitly enable secure cookies
+FRONTEND_URL=https://your-domain.com         # REQUIRED if COOKIE_SECURE is not true; must start with https:// to infer secure cookies
 CORS_ORIGINS=https://your-domain.com         # REQUIRED — valid URL format with scheme
+
+# In production, at least one of the following must hold:
+#   - COOKIE_SECURE=true
+#   - FRONTEND_URL starts with https://
 
 # Development mode (DEBUG=true) skips these checks
 DEBUG=true
@@ -110,9 +115,9 @@ async def create_task(project_id: str, session: UserSession = Depends(get_curren
 ```python
 from src.dependencies import verify_project_access
 
-@router.post("/tasks/{project_id}")
+@router.post("/tasks/{project_id}", dependencies=[Depends(verify_project_access)])
 async def create_task(
-    project_id: str = Depends(verify_project_access),
+    project_id: str,
     session: UserSession = Depends(get_current_session),
 ):
     # project_id is verified — user has access
@@ -124,13 +129,13 @@ async def create_task(
 When creating new endpoints that accept a `project_id`:
 
 1. Import `verify_project_access` from `src.dependencies`
-2. Add it as a dependency on the `project_id` parameter
-3. The dependency automatically verifies access and returns 403 if denied
+2. Add it as a route-level dependency via `dependencies=[Depends(verify_project_access)]`
+3. The dependency automatically verifies access and raises 403 if denied; `project_id` remains a normal path parameter
 
 ```python
-@router.get("/new-feature/{project_id}")
+@router.get("/new-feature/{project_id}", dependencies=[Depends(verify_project_access)])
 async def new_feature(
-    project_id: str = Depends(verify_project_access),
+    project_id: str,
     session: UserSession = Depends(get_current_session),
 ):
     # Safe — project access is verified before this code runs
