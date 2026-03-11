@@ -9,8 +9,8 @@ import './index.css';
 import { ThemeProvider } from './components/ThemeProvider';
 
 /* ── Global error telemetry ── */
-window.onerror = (_message, source, lineno, colno, error) => {
-  console.error('[global:onerror]', { source, lineno, colno, error });
+window.onerror = (message, source, lineno, colno, error) => {
+  console.error('[global:onerror]', { message, source, lineno, colno, error });
 };
 
 window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
