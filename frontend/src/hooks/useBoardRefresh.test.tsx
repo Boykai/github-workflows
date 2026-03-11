@@ -473,4 +473,55 @@ describe('useBoardRefresh', () => {
 
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
+
+  // ── Performance regression: auto-refresh scope and board data key (Spec 034) ──
+
+  describe('auto-refresh uses task-only scope', () => {
+    it('auto-refresh timer should invalidate board data query, not tasks', async () => {
+      vi.useFakeTimers();
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Auto-refresh fires after AUTO_REFRESH_INTERVAL_MS (mocked to 1s)
+      await act(async () => {
+        vi.advanceTimersByTime(1100);
+      });
+
+      // auto-refresh should use boardDataKey — ['board', 'data', projectId]
+      const calls = invalidateSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const lastKey = (calls[calls.length - 1]?.[0] as { queryKey?: unknown[] })?.queryKey;
+      expect(lastKey).toEqual(['board', 'data', 'PVT_123']);
+
+      vi.useRealTimers();
+    });
+
+    it('manual refresh should call boardApi.getBoardData with refresh=true', async () => {
+      vi.useFakeTimers();
+      mockGetBoardData.mockResolvedValue({ project: {}, columns: [] });
+
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+
+      const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.refresh();
+        await vi.advanceTimersByTimeAsync(10);
+      });
+
+      expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
+
+      vi.useRealTimers();
+    });
+  });
 });

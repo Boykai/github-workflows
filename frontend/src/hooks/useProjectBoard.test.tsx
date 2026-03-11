@@ -172,4 +172,27 @@ describe('useProjectBoard', () => {
     expect(result.current.projectsError).toBeInstanceOf(Error);
     expect(result.current.projectsError?.message).toBe('Network error');
   });
+
+  // ── Performance regression: query-key helpers (Spec 034) ──
+
+  describe('query-key helpers', () => {
+    it('boardProjectsKey returns stable key', async () => {
+      const { boardProjectsKey } = await import('./useProjectBoard');
+      expect(boardProjectsKey()).toEqual(['board', 'projects']);
+      // Should return a new array each time (no accidental mutation)
+      expect(boardProjectsKey()).not.toBe(boardProjectsKey());
+    });
+
+    it('boardDataKey includes projectId', async () => {
+      const { boardDataKey } = await import('./useProjectBoard');
+      expect(boardDataKey('PVT_123')).toEqual(['board', 'data', 'PVT_123']);
+      expect(boardDataKey(null)).toEqual(['board', 'data', null]);
+    });
+
+    it('projectTasksKey includes projectId', async () => {
+      const { projectTasksKey } = await import('./useProjectBoard');
+      expect(projectTasksKey('PVT_123')).toEqual(['projects', 'PVT_123', 'tasks']);
+      expect(projectTasksKey(null)).toEqual(['projects', null, 'tasks']);
+    });
+  });
 });

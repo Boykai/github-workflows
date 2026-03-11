@@ -536,3 +536,63 @@ class TestDispatchAgentsForActivated:
             )
 
             mock_orchestrator.assign_agent_for_status.assert_not_awaited()
+
+
+# ── Performance regression: board cache and refresh behaviour (Spec 034) ────
+
+
+class TestBoardCachePerformance:
+    """Board endpoint should serve cached data and avoid redundant refreshes."""
+
+    async def test_warm_cache_skips_github_fetch(self, client, mock_github_service):
+        """Non-manual request with warm cache must NOT call get_board_data."""
+        bd = _make_board_data()
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = bd
+            resp = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp.status_code == 200
+            mock_github_service.get_board_data.assert_not_called()
+
+    async def test_manual_refresh_clears_sub_issue_caches(self, client, mock_github_service):
+        """Manual refresh must clear sub-issue cache entries before fetching."""
+        from src.models.board import Repository
+
+        bp = _make_board_project()
+        # Build board data with an item that has repository + number
+        bd = BoardDataResponse(
+            project=bp,
+            columns=[
+                BoardColumn(
+                    status=bp.status_field.options[0],
+                    items=[
+                        BoardItem(
+                            item_id="PVTI_1",
+                            content_type=ContentType.ISSUE,
+                            title="Fix bug",
+                            status="Todo",
+                            status_option_id="opt1",
+                            number=42,
+                            repository=Repository(owner="o", name="r"),
+                        )
+                    ],
+                    item_count=1,
+                ),
+            ],
+        )
+
+        mock_github_service.get_board_data.return_value = _make_board_data()
+
+        with (
+            patch("src.api.board.cache") as mock_cache,
+            patch("src.api.board.get_sub_issues_cache_key", return_value="SUB_ISSUES:o/r#42"),
+        ):
+            mock_cache.get.return_value = bd
+            mock_cache.delete.return_value = True
+
+            resp = await client.get(
+                "/api/v1/board/projects/PVT_abc", params={"refresh": True}
+            )
+            assert resp.status_code == 200
+            # Verify cache.delete was called for the sub-issue key
+            delete_calls = [str(c) for c in mock_cache.delete.call_args_list]
+            assert any("SUB_ISSUES" in c for c in delete_calls)

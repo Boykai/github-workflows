@@ -179,3 +179,57 @@ class TestCacheClearExpiredSafety:
 
         # Should return None, not raise
         assert cache.get("k1") is None
+
+
+# ── Performance regression: warm-versus-cold cache behavior (Spec 034) ──────
+
+
+class TestWarmVsColdCacheBehavior:
+    """Verify that warm caches return data without expiry, and cold caches miss."""
+
+    @patch("src.services.cache.get_settings")
+    def test_warm_cache_returns_immediately(self, mock_settings):
+        """Warm cache entry returns value without waiting."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("board_data:proj1", {"columns": []})
+        assert cache.get("board_data:proj1") == {"columns": []}
+
+    @patch("src.services.cache.get_settings")
+    def test_cold_cache_returns_none(self, mock_settings):
+        """Cold cache (no entry) returns None."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        assert cache.get("board_data:proj1") is None
+
+    @patch("src.services.cache.get_settings")
+    def test_sub_issue_cache_survives_within_ttl(self, mock_settings):
+        """Sub-issue cache entries survive within their TTL window."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("SUB_ISSUES:owner/repo#42", [{"id": "sub1"}], ttl_seconds=300)
+        assert cache.get("SUB_ISSUES:owner/repo#42") == [{"id": "sub1"}]
+
+    @patch("src.services.cache.get_settings")
+    def test_delete_removes_sub_issue_cache(self, mock_settings):
+        """Manual refresh path: delete clears specific sub-issue entries."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        cache = InMemoryCache()
+        cache.set("SUB_ISSUES:owner/repo#42", [{"id": "sub1"}], ttl_seconds=300)
+        assert cache.delete("SUB_ISSUES:owner/repo#42") is True
+        assert cache.get("SUB_ISSUES:owner/repo#42") is None
+
+    @patch("src.services.cache.get_settings")
+    def test_stale_fallback_only_for_degraded_mode(self, mock_settings):
+        """get_stale returns value even after expiry (for rate-limit fallback)."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=0)
+        cache = InMemoryCache()
+        cache.set("board_data:proj1", {"stale": True}, ttl_seconds=0)
+        time.sleep(0.01)
+        # Regular get returns None (expired)
+        assert cache.get("board_data:proj1") is None
+        # get_stale still returns the value (degraded mode)
+        # Re-set because the regular get deleted it
+        cache.set("board_data:proj1", {"stale": True}, ttl_seconds=0)
+        time.sleep(0.01)
+        assert cache.get_stale("board_data:proj1") == {"stale": True}
