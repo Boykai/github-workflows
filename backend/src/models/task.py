@@ -28,6 +28,9 @@ class Task(BaseModel):
     status: str = Field(..., description="Current status column name")
     status_option_id: str = Field(..., description="Status field option ID")
     assignees: list[str] | None = Field(default=None, description="List of assigned user logins")
+    labels: list[dict[str, str]] | None = Field(
+        default=None, description="Issue labels [{name, color}, ...]"
+    )
     created_at: datetime = Field(default_factory=utcnow, description="Task creation time")
     updated_at: datetime = Field(default_factory=utcnow, description="Last modification time")
 

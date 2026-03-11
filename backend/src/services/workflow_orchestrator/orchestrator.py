@@ -3,7 +3,14 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, with_blocking_label
+from src.constants import (
+    ACTIVE_LABEL,
+    GITHUB_ISSUE_BODY_MAX_LENGTH,
+    STALLED_LABEL,
+    build_agent_label,
+    build_pipeline_label,
+    with_blocking_label,
+)
 from src.exceptions import ValidationError
 from src.logging_utils import get_logger
 from src.models.recommendation import IssueMetadata, IssueRecommendation
@@ -496,6 +503,18 @@ class WorkflowOrchestrator:
         logger.info("Creating GitHub issue: %s", recommendation.title)
         ctx.current_state = WorkflowState.CREATING
 
+        # Pre-create fixed pipeline labels (idempotent, non-blocking)
+        try:
+            from src.constants import ensure_pipeline_labels_exist
+
+            await ensure_pipeline_labels_exist(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+            )
+        except Exception:
+            logger.debug("Non-blocking: failed to pre-create pipeline labels", exc_info=True)
+
         body = self.format_issue_body(recommendation)
 
         # Append the agent pipeline tracking table to the issue body
@@ -517,13 +536,26 @@ class WorkflowOrchestrator:
                 },
             )
 
+        # Resolve pipeline config name for the pipeline:<config> label
+        pipeline_config_name: str | None = None
+        if ctx.selected_pipeline_id:
+            try:
+                from src.services.pipelines.service import PipelineService
+
+                _svc = PipelineService()
+                _pc = await _svc.get_pipeline(ctx.project_id, ctx.selected_pipeline_id)
+                if _pc:
+                    pipeline_config_name = _pc.name
+            except Exception:
+                logger.debug("Could not resolve pipeline config name for label", exc_info=True)
+
         issue = await self.github.create_issue(
             access_token=ctx.access_token,
             owner=ctx.repository_owner,
             repo=ctx.repository_name,
             title=recommendation.title,
             body=body,
-            labels=self._build_labels(recommendation),
+            labels=self._build_labels(recommendation, pipeline_config_name=pipeline_config_name),
             milestone=self._resolve_milestone_number(recommendation, ctx),
             assignees=recommendation.metadata.assignees or None,
         )
@@ -552,11 +584,15 @@ class WorkflowOrchestrator:
         return issue
 
     @staticmethod
-    def _build_labels(recommendation: IssueRecommendation) -> list[str]:
+    def _build_labels(
+        recommendation: IssueRecommendation,
+        pipeline_config_name: str | None = None,
+    ) -> list[str]:
         """Build the final labels list from recommendation metadata.
 
         Ensures 'ai-generated' is always present and maps priority/size
         values to repo-style labels (e.g., 'P1', 'size:M') when applicable.
+        Appends ``pipeline:<config>`` when *pipeline_config_name* is provided.
         """
         labels = list(recommendation.metadata.labels) if recommendation.metadata.labels else []
 
@@ -575,6 +611,10 @@ class WorkflowOrchestrator:
             size_label = f"size:{recommendation.metadata.size.value}"
             if size_label not in labels:
                 labels.append(size_label)
+
+        # Append pipeline:<config> label when config name is known
+        if pipeline_config_name:
+            labels.append(build_pipeline_label(pipeline_config_name))
 
         return with_blocking_label(labels, recommendation.is_blocking)
 
@@ -1793,6 +1833,67 @@ class WorkflowOrchestrator:
             agent_name=agent_name,
             config=config,
         )
+
+        # ── Pipeline label updates (non-blocking) ────────────────────────
+        # Swap agent:<old> → agent:<new> on the parent issue and move the
+        # "active" label to the new sub-issue.  Failures are logged but
+        # never block pipeline progression (FR-017).
+        try:
+            old_agent_label = (
+                build_agent_label(agent_slugs[agent_index - 1]) if agent_index > 0 else None
+            )
+            labels_to_remove: list[str] = [STALLED_LABEL]
+            if old_agent_label:
+                labels_to_remove.append(old_agent_label)
+            await self.github.update_issue_state(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                issue_number=ctx.issue_number,
+                labels_add=[build_agent_label(agent_name)],
+                labels_remove=labels_to_remove,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Non-blocking: failed to swap agent label on issue #%s: %s",
+                ctx.issue_number,
+                exc,
+            )
+
+        # Move "active" label to the current sub-issue (T014)
+        if sub_issue_number:
+            try:
+                # Add active to new sub-issue
+                await self.github.update_issue_state(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=sub_issue_number,
+                    labels_add=[ACTIVE_LABEL],
+                )
+                # Remove active from previous sub-issue (if any)
+                if agent_index > 0:
+                    prev_agent = agent_slugs[agent_index - 1]
+                    pipeline = get_pipeline_state(ctx.issue_number)
+                    prev_sub = (
+                        pipeline.agent_sub_issues.get(prev_agent, {}).get("number")
+                        if pipeline
+                        else None
+                    )
+                    if prev_sub and prev_sub != sub_issue_number:
+                        await self.github.update_issue_state(
+                            access_token=ctx.access_token,
+                            owner=ctx.repository_owner,
+                            repo=ctx.repository_name,
+                            issue_number=prev_sub,
+                            labels_remove=[ACTIVE_LABEL],
+                        )
+            except Exception as exc:
+                logger.warning(
+                    "Non-blocking: failed to move active label for issue #%s: %s",
+                    ctx.issue_number,
+                    exc,
+                )
 
         # Special agent handlers (early return)
         if agent_name == "human":

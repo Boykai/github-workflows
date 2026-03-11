@@ -135,6 +135,9 @@ LABELS: list[str] = [
     "performance",
     "accessibility",
     "ux",
+    # Pipeline state labels (dynamic prefixed labels are also valid)
+    "active",
+    "stalled",
 ]
 
 
@@ -144,3 +147,145 @@ def with_blocking_label(labels: list[str] | None, is_blocking: bool) -> list[str
     if is_blocking and BLOCKING_LABEL not in result:
         result.append(BLOCKING_LABEL)
     return result
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Pipeline State Labels
+# ──────────────────────────────────────────────────────────────────────────────
+# Labels used for fast-path pipeline state detection from the GraphQL board
+# query.  These supplement (never replace) the Markdown tracking table.
+
+PIPELINE_LABEL_PREFIX: str = "pipeline:"
+AGENT_LABEL_PREFIX: str = "agent:"
+ACTIVE_LABEL: str = "active"
+STALLED_LABEL: str = "stalled"
+
+# Pre-creation colours (hex without '#')
+PIPELINE_LABEL_COLOR: str = "0052cc"
+AGENT_LABEL_COLOR: str = "7057ff"
+ACTIVE_LABEL_COLOR: str = "0e8a16"
+STALLED_LABEL_COLOR: str = "d73a4a"
+
+
+# ── Parsing: label string → extracted value ──────────────────────────────────
+
+
+def extract_pipeline_config(label_name: str) -> str | None:
+    """Return the config name from a ``pipeline:<config>`` label, or None."""
+    if label_name.startswith(PIPELINE_LABEL_PREFIX):
+        return label_name[len(PIPELINE_LABEL_PREFIX):]
+    return None
+
+
+def extract_agent_slug(label_name: str) -> str | None:
+    """Return the agent slug from an ``agent:<slug>`` label, or None."""
+    if label_name.startswith(AGENT_LABEL_PREFIX):
+        return label_name[len(AGENT_LABEL_PREFIX):]
+    return None
+
+
+# ── Building: value → label string ───────────────────────────────────────────
+
+
+def build_pipeline_label(config_name: str) -> str:
+    """Build a ``pipeline:<config>`` label string."""
+    return f"{PIPELINE_LABEL_PREFIX}{config_name}"
+
+
+def build_agent_label(agent_slug: str) -> str:
+    """Build an ``agent:<slug>`` label string."""
+    return f"{AGENT_LABEL_PREFIX}{agent_slug}"
+
+
+# ── Querying: label list → extracted value ───────────────────────────────────
+
+
+def _label_name(label: object) -> str:
+    """Extract the name from a label that may be a dict or an object."""
+    if isinstance(label, dict):
+        return label.get("name", "")
+    return getattr(label, "name", "")
+
+
+def find_pipeline_label(labels: list) -> str | None:
+    """Return the pipeline config name from the first ``pipeline:*`` label."""
+    for label in labels:
+        name = _label_name(label)
+        config = extract_pipeline_config(name)
+        if config is not None:
+            return config
+    return None
+
+
+def find_agent_label(labels: list) -> str | None:
+    """Return the agent slug from the first ``agent:*`` label."""
+    for label in labels:
+        name = _label_name(label)
+        slug = extract_agent_slug(name)
+        if slug is not None:
+            return slug
+    return None
+
+
+def has_stalled_label(labels: list) -> bool:
+    """Return True if any label in the list is the ``stalled`` label."""
+    for label in labels:
+        if _label_name(label) == STALLED_LABEL:
+            return True
+    return False
+
+
+async def ensure_pipeline_labels_exist(
+    access_token: str,
+    owner: str,
+    repo: str,
+) -> None:
+    """Pre-create fixed pipeline labels with correct colours.
+
+    Creates ``active`` (green) and ``stalled`` (red).  Dynamic
+    ``pipeline:*`` and ``agent:*`` labels are created on first use by
+    the GitHub ``POST /labels`` endpoint embedded in ``update_issue_state``.
+
+    Idempotent — 422 (already exists) is silently ignored.
+    """
+    import httpx
+
+    _FIXED_LABELS = [
+        (ACTIVE_LABEL, ACTIVE_LABEL_COLOR, "Marks the active agent sub-issue"),
+        (STALLED_LABEL, STALLED_LABEL_COLOR, "Pipeline is stalled and needs recovery"),
+    ]
+
+    try:
+        async with httpx.AsyncClient() as client:
+            for name, color, description in _FIXED_LABELS:
+                try:
+                    resp = await client.post(
+                        f"https://api.github.com/repos/{owner}/{repo}/labels",
+                        headers={
+                            "Authorization": f"Bearer {access_token}",
+                            "Accept": "application/vnd.github+json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                        },
+                        json={"name": name, "color": color, "description": description},
+                    )
+                    if resp.status_code == 422:
+                        pass  # already exists — idempotent
+                    elif resp.status_code >= 400:
+                        from src.logging_utils import get_logger
+
+                        get_logger(__name__).warning(
+                            "Failed to pre-create label '%s': %d %s",
+                            name,
+                            resp.status_code,
+                            resp.text,
+                        )
+                except Exception:
+                    from src.logging_utils import get_logger
+
+                    get_logger(__name__).warning(
+                        "Failed to pre-create label '%s'", name, exc_info=True
+                    )
+    except Exception:
+        from src.logging_utils import get_logger
+
+        get_logger(__name__).warning("Failed to create httpx client for label pre-creation", exc_info=True)

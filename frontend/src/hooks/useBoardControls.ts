@@ -12,6 +12,7 @@ export interface BoardFilterState {
   labels: string[];
   assignees: string[];
   milestones: string[];
+  pipelineConfig: string | null;
 }
 
 export interface BoardSortState {
@@ -36,7 +37,7 @@ export interface BoardGroup {
 
 // ─── Defaults ─────────────────────────────────────────────────────────────────
 
-const DEFAULT_FILTERS: BoardFilterState = { labels: [], assignees: [], milestones: [] };
+const DEFAULT_FILTERS: BoardFilterState = { labels: [], assignees: [], milestones: [], pipelineConfig: null };
 const DEFAULT_SORT: BoardSortState = { field: null, direction: 'asc' };
 const DEFAULT_GROUP: BoardGroupState = { field: null };
 
@@ -60,6 +61,7 @@ function cloneFilters(filters: BoardFilterState = DEFAULT_FILTERS): BoardFilterS
     labels: [...filters.labels],
     assignees: [...filters.assignees],
     milestones: [...filters.milestones],
+    pipelineConfig: filters.pipelineConfig ?? null,
   };
 }
 
@@ -101,6 +103,7 @@ function mergeStoredControlsWithDefaults(value: unknown): BoardControlsState {
       milestones: Array.isArray(filters.milestones)
         ? [...filters.milestones]
         : base.filters.milestones,
+      pipelineConfig: filters.pipelineConfig && typeof filters.pipelineConfig === 'string' ? filters.pipelineConfig : null,
     },
     sort: {
       field: VALID_SORT_FIELDS.includes(sort.field ?? null)
@@ -242,6 +245,22 @@ export function useBoardControls(
     return Array.from(set).sort();
   }, [boardData]);
 
+  const availablePipelineConfigs = useMemo(() => {
+    if (!boardData) return [];
+    const set = new Set<string>();
+    const prefix = 'pipeline:';
+    for (const col of getParentIssueColumns(boardData)) {
+      for (const item of col.items) {
+        for (const label of item.labels ?? []) {
+          if (label.name.startsWith(prefix)) {
+            set.add(label.name.slice(prefix.length));
+          }
+        }
+      }
+    }
+    return Array.from(set).sort();
+  }, [boardData]);
+
   // ── Transform: filter → sort → (group is applied at render time) ──────────
 
   const transformedData = useMemo((): BoardDataResponse | undefined => {
@@ -267,6 +286,12 @@ export function useBoardControls(
       if (filters.milestones.length > 0) {
         items = items.filter(
           (item) => item.milestone != null && filters.milestones.includes(item.milestone)
+        );
+      }
+      if (filters.pipelineConfig) {
+        const configLabel = `pipeline:${filters.pipelineConfig}`;
+        items = items.filter((item) =>
+          (item.labels ?? []).some((l) => l.name === configLabel)
         );
       }
 
@@ -350,7 +375,8 @@ export function useBoardControls(
   const hasActiveFilters =
     controls.filters.labels.length > 0 ||
     controls.filters.assignees.length > 0 ||
-    controls.filters.milestones.length > 0;
+    controls.filters.milestones.length > 0 ||
+    controls.filters.pipelineConfig !== null;
 
   const hasActiveSort = controls.sort.field !== null;
   const hasActiveGroup = controls.group.field !== null;
@@ -365,6 +391,7 @@ export function useBoardControls(
     availableLabels,
     availableAssignees,
     availableMilestones,
+    availablePipelineConfigs,
     transformedData,
     getGroups,
     hasActiveFilters,
