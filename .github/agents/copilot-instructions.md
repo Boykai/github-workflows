@@ -204,3 +204,10 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - **Always use Context7 MCP for library documentation.** Before writing or modifying code that uses any library, framework, or API, look up the current documentation via Context7. Never rely solely on training data for syntax, options, or best practices.
 - **Always use Code Graph Context MCP when exploring the codebase.** Before making changes, use Code Graph Context to understand call chains, code relationships, and dependency graphs. This prevents unintended side effects and ensures changes are consistent with the existing architecture.
+
+## Active Technologies
+- Python 3.12+ (Pyright targets 3.13) / TypeScript 5.9 (ES2022 target) + FastAPI 0.135+, React 19.2, TanStack React Query 5.90, Vite 7.3, GitHubKit 0.14.6+, aiosqlite 0.22+ (001-code-quality-check)
+- SQLite (async via aiosqlite) with numbered SQL migrations (001–020, 21 files) (001-code-quality-check)
+
+## Recent Changes
+- 001-code-quality-check: Added Python 3.12+ (Pyright targets 3.13) / TypeScript 5.9 (ES2022 target) + FastAPI 0.135+, React 19.2, TanStack React Query 5.90, Vite 7.3, GitHubKit 0.14.6+, aiosqlite 0.22+
