@@ -5,7 +5,7 @@
 
 **Tests**: Integration tests are included in Phase 7 (US6) as explicitly required by FR-026/FR-027. Unit tests for new modules (e.g., `pipeline_state_store.py`, `chat_store.py`, `CSPMiddleware`) are expected to be written as part of each implementation task where the existing test infrastructure supports it, but are not called out as separate tasks.
 
-**Organization**: Tasks are grouped by user story to enable independent implementation and testing. Phase 1 (Data Integrity) is the blocking foundation — all other user stories depend on it. Phases 3–6 (US2–US5) can run in parallel after Phase 2 completes. Phases 7–8 (US6–US7) are independent.
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing. Phase 1 (Setup) creates shared infrastructure. Phase 2 (User Story 1 / Data Integrity) is the blocking foundation — all other user stories depend on it. Phases 3–6 (US2–US5) can run in parallel after Phase 2 completes. Phases 7–8 (US6–US7) are independent.
 
 ## Format: `[ID] [P?] [Story] Description`
 

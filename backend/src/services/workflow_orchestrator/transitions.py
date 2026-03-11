@@ -29,9 +29,6 @@ from .models import MainBranchInfo, PipelineState
 
 logger = get_logger(__name__)
 
-# Module-level lock for concurrent mutations
-_state_lock = asyncio.Lock()
-
 AGENT_TRIGGER_STALE_SECONDS = 120
 
 

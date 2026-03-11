@@ -20,6 +20,7 @@ from src.services.pipeline_state_store import (
     get_all_pipeline_states,
     get_main_branch,
     get_pipeline_state,
+    get_pipeline_state_async,
     get_sub_issue_map,
     get_trigger_inflight,
     init_pipeline_state_store,
@@ -162,6 +163,33 @@ class TestPipelineStateLifecycle:
         all_states = get_all_pipeline_states()
         assert len(all_states) == 3
         assert set(all_states.keys()) == {10, 20, 30}
+
+    async def test_evicted_state_recovered_from_sqlite(self, db: aiosqlite.Connection):
+        """States evicted from L1 (BoundedDict) are recoverable via async fallback."""
+        await init_pipeline_state_store(db)
+
+        state = PipelineState(
+            issue_number=1,
+            project_id=PROJECT_ID,
+            status="In Progress",
+            agents=["agent-1"],
+            current_agent_index=0,
+        )
+        await set_pipeline_state(1, state)
+
+        # Manually evict from L1 to simulate BoundedDict eviction
+        _pipeline_states.pop(1, None)
+        assert get_pipeline_state(1) is None  # L1 miss
+
+        # Async fallback should recover from SQLite
+        recovered = await get_pipeline_state_async(1)
+        assert recovered is not None
+        assert recovered.issue_number == 1
+        assert recovered.status == "In Progress"
+        assert recovered.agents == ["agent-1"]
+
+        # L1 should now be repopulated
+        assert get_pipeline_state(1) is not None
 
 
 class TestMainBranchLifecycle:
