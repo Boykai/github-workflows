@@ -1,7 +1,7 @@
 # Tasks: Audit & Polish the Agents Page for Quality and Consistency
 
 **Input**: Design documents from `/specs/035-audit-agents-page/`
-**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
+**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/component-contracts.yaml, quickstart.md
 
 **Tests**: No new tests are mandated by the specification. Existing tests (AgentSaveBar, AgentTile, ThemedAgentIcon) must continue to pass. Tests are NOT included in task phases below unless accessibility scanning reveals gaps.
 
