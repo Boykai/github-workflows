@@ -1,104 +1,91 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Agent MCP Sync — Propagate Activated & Built-in MCPs to Agent Files
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `036-agent-mcp-sync` | **Date**: 2026-03-11 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/036-agent-mcp-sync/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Implement a centralized agent file sync utility that keeps every `.github/agents/*.agent.md` file's `mcp` field in sync with the current set of activated and built-in MCPs, while unconditionally enforcing `tools: ["*"]` on all agent definitions. The sync runs on three triggers: (1) MCP activation/deactivation via the Tools page, (2) agent file creation/update, and (3) application startup. The backend service reads the current activation state from the `mcp_configurations` database table and the `BUILTIN_MCPS` registry, merges them into each agent's YAML frontmatter `mcp` field (deduplicating by server key), sets `tools: ["*"]`, and commits the updated files to the repository. The frontend triggers this sync after tool toggle mutations and surfaces warnings when restrictive `tools` values are overridden.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11 (backend), TypeScript 5.9 (frontend)
+**Primary Dependencies**: FastAPI, aiosqlite, httpx, PyYAML (backend); React 19.2, TanStack React Query 5.90 (frontend)
+**Storage**: aiosqlite (`mcp_configurations` table) + GitHub repository files (agent `.agent.md` files, `mcp.json`)
+**Testing**: pytest (backend), Vitest 4.0 (frontend)
+**Target Platform**: Linux server (backend API), browser (frontend SPA)
+**Project Type**: Web application (frontend + backend)
+**Performance Goals**: Sync 25 agent files with 10 active MCPs in < 5 seconds (SC-007)
+**Constraints**: Must be idempotent — repeated runs produce zero file modifications if state is unchanged (SC-004)
+**Scale/Scope**: ~15 agent files, ~2 built-in MCPs, up to 25 user-activated MCPs per project
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | Full spec exists at `specs/036-agent-mcp-sync/spec.md` with 5 prioritized user stories, Given-When-Then acceptance scenarios, and independent test criteria. |
+| **II. Template-Driven Workflow** | ✅ PASS | All artifacts follow canonical templates. Plan follows `plan-template.md`. |
+| **III. Agent-Orchestrated Execution** | ✅ PASS | `speckit.plan` agent produces this plan with well-defined inputs (spec.md) and outputs (plan.md, research.md, data-model.md, contracts/, quickstart.md). |
+| **IV. Test Optionality with Clarity** | ✅ PASS | Tests are included for the sync utility (backend unit tests) and the frontend integration (Vitest). This is justified by the data-integrity nature of the feature — incorrect sync could corrupt agent files across the repository. |
+| **V. Simplicity and DRY** | ✅ PASS | Single centralized sync function (`sync_agent_mcps`) avoids duplication across creation/update/startup paths. No premature abstractions — the sync utility is a direct merge operation. |
+
+**Gate Result**: ✅ ALL PASS — proceed to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/036-agent-mcp-sync/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output
+│   └── agent-sync-api.yaml
+└── tasks.md             # Phase 2 output (/speckit.tasks command)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
 │   ├── services/
-│   └── api/
+│   │   ├── agents/
+│   │   │   ├── service.py           # Modified: add sync_agent_mcps() method
+│   │   │   └── agent_mcp_sync.py    # NEW: centralized MCP sync utility
+│   │   └── tools/
+│   │       └── service.py           # Modified: call sync after tool operations
+│   ├── api/
+│   │   ├── agents.py                # Modified: trigger sync on create/update
+│   │   └── tools.py                 # Modified: trigger sync on activate/deactivate
+│   └── startup.py                   # Modified: trigger sync on app startup
 └── tests/
+    └── unit/
+        └── test_agent_mcp_sync.py   # NEW: unit tests for sync utility
 
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
+│   ├── hooks/
+│   │   └── useTools.ts              # Modified: invalidate agent queries after sync
+│   ├── lib/
+│   │   └── buildGitHubMcpConfig.ts  # Reference only (BUILTIN_MCPS constant)
 │   └── services/
+│       └── api.ts                   # Modified: add syncAgentMcps API call
 └── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+    └── unit/
+        └── buildGitHubMcpConfig.test.ts  # Existing tests, no changes
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (Option 2). Changes span both `backend/` and `frontend/` directories, modifying existing services and adding one new module (`agent_mcp_sync.py`) in the backend agents service.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations detected. No complexity justifications required.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| (none) | — | — |

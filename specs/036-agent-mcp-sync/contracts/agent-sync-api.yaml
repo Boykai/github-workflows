@@ -1,0 +1,127 @@
+openapi: 3.0.3
+info:
+  title: Agent MCP Sync API
+  version: 1.0.0
+  description: |
+    API endpoints for synchronizing MCP configurations across agent files.
+    These endpoints are additions to the existing agents and tools API surfaces.
+
+paths:
+  /agents/{project_id}/sync-mcps:
+    post:
+      operationId: syncAgentMcps
+      summary: Synchronize MCPs across all agent files
+      description: |
+        Triggers a full sync of the `mcp-servers` field and `tools: ["*"]` enforcement
+        across all `.github/agents/*.agent.md` files in the repository. Reads the current
+        set of active MCPs (built-in + user-activated) and merges them into each agent file's
+        YAML frontmatter. Returns a summary of files updated, skipped, and any warnings.
+      parameters:
+        - name: project_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: The project identifier
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                trigger:
+                  type: string
+                  enum: [startup, tool_toggle, agent_create, agent_update, manual]
+                  description: What initiated this sync operation
+                  default: manual
+      responses:
+        '200':
+          description: Sync completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AgentMcpSyncResult'
+        '404':
+          description: Project not found
+        '500':
+          description: Sync failed with unrecoverable error
+
+components:
+  schemas:
+    AgentMcpSyncResult:
+      type: object
+      required:
+        - success
+        - files_updated
+        - files_skipped
+        - files_unchanged
+      properties:
+        success:
+          type: boolean
+          description: Whether the sync completed without fatal errors
+        files_updated:
+          type: integer
+          description: Number of agent files that were modified
+        files_skipped:
+          type: integer
+          description: Number of files skipped (unparseable frontmatter, etc.)
+        files_unchanged:
+          type: integer
+          description: Number of files already in sync (no changes needed)
+        warnings:
+          type: array
+          items:
+            type: string
+          description: |
+            Warning messages generated during sync. Includes notifications about
+            overridden `tools` values and server key conflicts.
+        errors:
+          type: array
+          items:
+            type: string
+          description: |
+            Non-fatal error messages for individual file failures. The sync continues
+            processing remaining files when one fails.
+        synced_mcps:
+          type: array
+          items:
+            type: string
+          description: List of MCP server keys that were synced to agent files
+
+    McpServerConfig:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [http, stdio, local, sse]
+          description: Server connection type
+        url:
+          type: string
+          description: Server endpoint URL (required for http/sse types)
+        command:
+          type: string
+          description: Local command to execute (required for stdio/local types)
+        args:
+          type: array
+          items:
+            type: string
+          description: Command arguments (for stdio/local types)
+        tools:
+          oneOf:
+            - type: array
+              items:
+                type: string
+            - type: string
+              enum: ['*']
+          description: Tool filter for this server
+        headers:
+          type: object
+          additionalProperties:
+            type: string
+          description: HTTP headers or environment variables
+        builtin:
+          type: boolean
+          description: Whether this is a system-provided built-in MCP
