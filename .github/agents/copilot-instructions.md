@@ -206,4 +206,4 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 | Code Graph Context | Local | Code Analysis | Code indexing, call chains, dead code detection |
 
 ## Recent Changes
-- 033-parallel-agent-layout: Added Python 3.11 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic, aiosqlite (backend); React 18, TanStack React Query, @dnd-kit/core + @dnd-kit/sortable (frontend); Tailwind CSS, shadcn/ui (styling)
+- 033-projects-page-audit: Added TypeScript 5.x with React 19.2 + React 19, TanStack React Query 5.90, Tailwind CSS v4 (via `@tailwindcss/vite`), Radix UI (Slot, Tooltip), Lucide React icons, class-variance-authority, tailwind-merge, react-router-dom 7.13, react-markdown 10.1, @dnd-kit (drag-and-drop)

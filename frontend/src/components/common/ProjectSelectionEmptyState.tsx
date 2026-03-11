@@ -59,7 +59,7 @@ export function ProjectSelectionEmptyState({
   };
 
   return (
-    <div className="celestial-panel flex flex-1 flex-col items-center justify-center rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-8 text-center">
+    <div className="celestial-panel flex flex-1 flex-col items-center justify-center rounded-[1.4rem] border border-dashed border-border/80 bg-background/26 p-6 text-center sm:rounded-[1.5rem] sm:p-8">
       <div ref={containerRef} className="flex w-full max-w-xl flex-col items-center">
         <button
           type="button"
@@ -88,7 +88,7 @@ export function ProjectSelectionEmptyState({
         <button
           type="button"
           onClick={() => setIsOpen((current) => !current)}
-          className="solar-chip-soft mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-primary/12 hover:text-foreground"
+          className="solar-chip-soft mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-primary/12 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         >
           Browse GitHub Projects
           <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', isOpen && 'rotate-180')} />
@@ -117,7 +117,11 @@ export function ProjectSelectionEmptyState({
                 </p>
               </div>
             ) : (
-              <div className="max-h-[18rem] overflow-y-auto py-2">
+              <div
+                className="max-h-[18rem] overflow-y-auto py-2"
+                role="listbox"
+                aria-label="GitHub Projects"
+              >
                 {projects.map((project) => {
                   const isSelected = project.project_id === selectedProjectId;
                   const isPending = pendingProjectId === project.project_id;
@@ -126,10 +130,12 @@ export function ProjectSelectionEmptyState({
                     <button
                       key={project.project_id}
                       type="button"
+                      role="option"
+                      aria-selected={isSelected}
                       onClick={() => handleSelectProject(project.project_id)}
                       disabled={pendingProjectId !== null}
                       className={cn(
-                        'flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10 disabled:cursor-wait disabled:opacity-70',
+                        'flex w-full items-center gap-3 rounded-[1rem] px-3 py-2.5 text-left text-sm transition-colors hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-wait disabled:opacity-70',
                         isSelected ? 'bg-primary/10 text-primary' : 'text-foreground'
                       )}
                     >
