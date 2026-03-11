@@ -672,3 +672,65 @@ class TestSkipToNonBlocking:
         assert entry20.is_blocking is False
         assert entry20.queue_status == BlockingQueueStatus.PENDING
         assert activated == []
+
+
+# ─── get_base_ref_for_entry Tests ────────────────────────────────────
+
+
+class TestGetBaseRefForEntry:
+    """Tests for get_base_ref_for_entry — entry-specific branch resolution."""
+
+    @pytest.mark.asyncio
+    async def test_uses_blocking_source_issue_branch(self, db):
+        """Should use blocking_source_issue's branch when available."""
+        # Enqueue two blocking issues; #1 activates, #2 stays pending
+        await _enqueue(1, blocking=True, db_conn=db)
+        await _enqueue(2, blocking=True, db_conn=db)
+        assert await _status(1) == BlockingQueueStatus.ACTIVE
+        assert await _status(2) == BlockingQueueStatus.PENDING
+
+        # Set parent_branch on #1 (simulating a created branch)
+        await store.update_status(
+            REPO, 1,
+            queue_status=BlockingQueueStatus.IN_REVIEW,
+            parent_branch="copilot/fix-issue-1",
+        )
+
+        # Complete #1, which activates #2 with blocking_source_issue=#1
+        activated = await bq.mark_completed(REPO, 1)
+        assert len(activated) == 1
+        assert activated[0].issue_number == 2
+
+        # Now #2 should resolve base ref using #1's branch via get_base_ref_for_entry
+        with patch("src.services.blocking_queue._get_issue_branch", return_value="copilot/fix-issue-1"):
+            base_ref = await bq.get_base_ref_for_entry(REPO, 2)
+        assert base_ref == "copilot/fix-issue-1"
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_global_resolution(self, db):
+        """Should fall back to get_base_ref_for_issue when no blocking_source_issue."""
+        await _enqueue(1, blocking=False, db_conn=db)
+        assert await _status(1) == BlockingQueueStatus.ACTIVE
+
+        # Entry has no blocking_source_issue, so should fall back
+        base_ref = await bq.get_base_ref_for_entry(REPO, 1)
+        assert base_ref == "main"
+
+    @pytest.mark.asyncio
+    async def test_falls_back_when_source_has_no_branch(self, db):
+        """Should fall back when blocking_source_issue exists but has no branch."""
+        await _enqueue(1, blocking=True, db_conn=db)
+        await _enqueue(2, blocking=True, db_conn=db)
+
+        await bq.mark_completed(REPO, 1)
+        # #2 is now active with blocking_source_issue=#1
+        # But #1's branch is None (completed, no parent_branch set)
+        with patch("src.services.blocking_queue._get_issue_branch", return_value=None):
+            base_ref = await bq.get_base_ref_for_entry(REPO, 2)
+        assert base_ref == "main"
+
+    @pytest.mark.asyncio
+    async def test_falls_back_for_unknown_issue(self, db):
+        """Should fall back to 'main' for issues not in the queue."""
+        base_ref = await bq.get_base_ref_for_entry(REPO, 999)
+        assert base_ref == "main"
