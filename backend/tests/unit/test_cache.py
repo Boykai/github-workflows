@@ -4,7 +4,7 @@ import time
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
-from src.services.cache import CacheEntry, InMemoryCache
+from src.services.cache import CacheEntry, InMemoryCache, compute_data_hash
 from src.utils import utcnow
 
 
@@ -137,6 +137,33 @@ class TestInMemoryCache:
         cache.set("test_key", "updated")
 
         assert cache.get("test_key") == "updated"
+
+
+class TestComputeDataHash:
+    """Tests for compute_data_hash helper."""
+
+    def test_deterministic_for_same_data(self):
+        """Same data should produce the same hash."""
+        data = {"columns": [{"name": "Todo"}, {"name": "Done"}], "count": 5}
+        assert compute_data_hash(data) == compute_data_hash(data)
+
+    def test_different_data_produces_different_hash(self):
+        """Different data should produce different hashes."""
+        data_a = {"columns": [{"name": "Todo"}]}
+        data_b = {"columns": [{"name": "Done"}]}
+        assert compute_data_hash(data_a) != compute_data_hash(data_b)
+
+    def test_key_order_independent(self):
+        """Key ordering should not affect hash (sort_keys=True)."""
+        data_a = {"b": 2, "a": 1}
+        data_b = {"a": 1, "b": 2}
+        assert compute_data_hash(data_a) == compute_data_hash(data_b)
+
+    def test_returns_hex_string(self):
+        """Hash should be a hex-encoded SHA-256 string."""
+        h = compute_data_hash({"key": "value"})
+        assert isinstance(h, str)
+        assert len(h) == 64  # SHA-256 hex length
 
 
 class TestCacheClearExpiredSafety:

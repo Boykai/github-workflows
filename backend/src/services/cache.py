@@ -1,7 +1,9 @@
 """In-memory cache service with TTL."""
 
+import hashlib
+import json
 from datetime import timedelta
-from typing import Any, TypeVar
+from typing import Any
 
 from src.config import get_settings
 from src.logging_utils import get_logger
@@ -9,14 +11,16 @@ from src.utils import utcnow
 
 logger = get_logger(__name__)
 
-T = TypeVar("T")
-
 
 class CacheEntry[T]:
     """Cache entry with expiration and optional ETag support."""
 
     def __init__(
-        self, value: T, ttl_seconds: int, etag: str | None = None, last_modified: str | None = None
+        self,
+        value: T,
+        ttl_seconds: int,
+        etag: str | None = None,
+        last_modified: str | None = None,
     ):
         self.value = value
         self.expires_at = utcnow() + timedelta(seconds=ttl_seconds)
@@ -205,3 +209,9 @@ def get_repo_agents_cache_key(owner: str, repo: str) -> str:
     from src.constants import CACHE_PREFIX_REPO_AGENTS
 
     return get_cache_key(CACHE_PREFIX_REPO_AGENTS, f"{owner}/{repo}")
+
+
+def compute_data_hash(data: Any) -> str:
+    """Compute a stable SHA-256 hash of serializable data for change detection."""
+    serialized = json.dumps(data, sort_keys=True, default=str).encode()
+    return hashlib.sha256(serialized).hexdigest()

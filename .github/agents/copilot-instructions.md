@@ -204,3 +204,10 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - **Always use Context7 MCP for library documentation.** Before writing or modifying code that uses any library, framework, or API, look up the current documentation via Context7. Never rely solely on training data for syntax, options, or best practices.
 - **Always use Code Graph Context MCP when exploring the codebase.** Before making changes, use Code Graph Context to understand call chains, code relationships, and dependency graphs. This prevents unintended side effects and ensures changes are consistent with the existing architecture.
+
+## Active Technologies
+- Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16 (001-performance-review)
+- SQLite via aiosqlite (session/settings); in-memory TTL cache (`backend/src/services/cache.py`) (001-performance-review)
+
+## Recent Changes
+- 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16

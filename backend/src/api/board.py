@@ -360,7 +360,8 @@ async def get_board_data(
     board_data.rate_limit = _get_rate_limit_info()
 
     # Cache board data — 300 seconds aligns with frontend's 5-minute auto-refresh.
-    # Manual refresh (refresh=true) bypasses this cache entirely.
+    # Manual refresh (refresh=true) bypasses cache reads but still populates the
+    # cache so subsequent non-refresh requests benefit from the fresh data.
     cache.set(cache_key, board_data, ttl_seconds=300)
     return board_data
 

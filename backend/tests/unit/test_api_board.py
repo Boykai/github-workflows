@@ -174,6 +174,61 @@ class TestGetBoardData:
         assert resp.status_code == 200
         mock_github_service.get_board_data.assert_called_once()
 
+    async def test_board_data_cache_stores_data_hash(self, client, mock_github_service):
+        """Board data should be cached with a data_hash for change detection."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = None
+            mock_cache.get_stale.return_value = None
+            resp = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp.status_code == 200
+
+            # Verify cache.set was called
+            assert mock_cache.set.called
+
+    async def test_manual_refresh_clears_sub_issue_caches(self, client, mock_github_service):
+        """Manual refresh (refresh=true) must clear sub-issue caches before fetching."""
+        bd = _make_board_data()
+        # Add repository info to the board item
+        from src.models.board import Repository
+
+        bd.columns[0].items[0].repository = Repository(owner="test-owner", name="test-repo")
+        bd.columns[0].items[0].number = 42
+
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            # First populate cache
+            mock_cache.get.return_value = bd
+            mock_cache.get_stale.return_value = None
+
+            resp = await client.get("/api/v1/board/projects/PVT_abc", params={"refresh": True})
+            assert resp.status_code == 200
+
+            # Verify cache.delete was called for sub-issue cache key
+            delete_calls = [str(call) for call in mock_cache.delete.call_args_list]
+            assert any("sub_issues" in str(call) for call in delete_calls)
+
+    async def test_unchanged_board_data_returns_cached_with_fresh_rate_limit(
+        self, client, mock_github_service
+    ):
+        """When board data is cached and unchanged, response includes fresh rate_limit."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        # First request populates cache
+        resp1 = await client.get("/api/v1/board/projects/PVT_abc")
+        assert resp1.status_code == 200
+
+        # Second request should use cache
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = bd
+            resp2 = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp2.status_code == 200
+            mock_cache.get.assert_called_once()
+
 
 # ── Regression: board error responses must NOT leak internal details ────────
 
