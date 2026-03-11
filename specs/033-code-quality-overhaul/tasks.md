@@ -29,11 +29,11 @@ description: "Executable task list for code quality & technical debt overhaul"
 **Purpose**: Clean the baseline so later refactors start from accurate analysis, valid tests, and current shared helpers.
 
 - [ ] T001 Audit and remove stale cleanup tests in `backend/tests/` that reference commented-out code or the pre-adoption behavior of `handle_service_error()` and `safe_error_response()`
-- [ ] T002 Update analysis exclusions for coverage artifacts in `backend/pyproject.toml` so `backend/htmlcov/` is outside static-analysis scope
-- [ ] T003 [P] Remove commented-out code blocks without tracked TODOs from `backend/src/services/copilot_polling/agent_output.py`
-- [ ] T004 [P] Remove commented-out code blocks without tracked TODOs from `backend/src/services/copilot_polling/pipeline.py`
-- [ ] T005 [P] Remove commented-out code blocks without tracked TODOs from `backend/src/services/workflow_orchestrator/orchestrator.py`
-- [ ] T006 Decide whether to adopt or delete `handle_service_error()` and `safe_error_response()` in `backend/src/logging_utils.py` before shared error-handling work begins
+- [x] T002 Update analysis exclusions for coverage artifacts in `backend/pyproject.toml` so `backend/htmlcov/` is outside static-analysis scope
+- [x] T003 [P] Remove commented-out code blocks without tracked TODOs from `backend/src/services/copilot_polling/agent_output.py`
+- [x] T004 [P] Remove commented-out code blocks without tracked TODOs from `backend/src/services/copilot_polling/pipeline.py`
+- [x] T005 [P] Remove commented-out code blocks without tracked TODOs from `backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T006 Decide whether to adopt or delete `handle_service_error()` and `safe_error_response()` in `backend/src/logging_utils.py` before shared error-handling work begins
 
 **Checkpoint**: Baseline cleanup is complete and the repository is ready for shared infrastructure work.
 
@@ -47,10 +47,10 @@ description: "Executable task list for code quality & technical debt overhaul"
 
 - [ ] T007 Configure root structured JSON logging in `backend/src/main.py` and `backend/src/logging_utils.py` per `specs/033-code-quality-overhaul/contracts/structured-logging.md`
 - [ ] T008 [P] Standardize logger acquisition and structured `extra={}` usage across `backend/src/api/` and `backend/src/services/`
-- [ ] T009 [P] Finalize the canonical repository-resolution contract and `cached_fetch()` helper in `backend/src/utils.py`
-- [ ] T010 [P] Add `require_selected_project()` and related dependency wiring in `backend/src/dependencies.py`
-- [ ] T011 Implement the shared GitHub error-handling pattern in `backend/src/logging_utils.py` and `backend/src/exceptions.py`
-- [ ] T012 Run `pytest -x` and `ruff check` against `backend/src/` and `backend/tests/` to confirm the shared foundation is stable
+- [x] T009 [P] Finalize the canonical repository-resolution contract and `cached_fetch()` helper in `backend/src/utils.py`
+- [x] T010 [P] Add `require_selected_project()` and related dependency wiring in `backend/src/dependencies.py`
+- [x] T011 Implement the shared GitHub error-handling pattern in `backend/src/logging_utils.py` and `backend/src/exceptions.py`
+- [x] T012 Run `pytest -x` and `ruff check` against `backend/src/` and `backend/tests/` to confirm the shared foundation is stable
 
 **Checkpoint**: Shared helpers, logging, and backend error handling are ready; user stories can now proceed.
 
@@ -70,15 +70,15 @@ description: "Executable task list for code quality & technical debt overhaul"
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Add `CommentScanResult` and extract `post_agent_outputs_from_pr()` helpers in `backend/src/services/copilot_polling/agent_output.py`
-- [ ] T017 [US1] Add `AgentResolution` and split `assign_agent_for_status()` into focused resolvers in `backend/src/services/workflow_orchestrator/orchestrator.py`
-- [ ] T018 [US1] Extend `AgentStepState` in `backend/src/models/agent.py` and replace emoji parsing in `backend/src/services/copilot_polling/recovery.py`
-- [ ] T019 [US1] Add `PollStep` plus a data-driven step list in `backend/src/services/copilot_polling/polling_loop.py`
-- [ ] T020 [US1] Create the `chat_messages` SQLite migration in `backend/src/migrations/` for persistent chat storage
-- [ ] T021 [US1] Move chat message persistence from in-memory storage to SQLite in `backend/src/api/chat.py`
+- [x] T016 [US1] Add `CommentScanResult` and extract `post_agent_outputs_from_pr()` helpers in `backend/src/services/copilot_polling/agent_output.py`
+- [x] T017 [US1] Add `AgentResolution` and split `assign_agent_for_status()` into focused resolvers in `backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T018 [US1] Extend `AgentStepState` in `backend/src/models/agent.py` and replace emoji parsing in `backend/src/services/copilot_polling/recovery.py`
+- [x] T019 [US1] Add `PollStep` plus a data-driven step list in `backend/src/services/copilot_polling/polling_loop.py`
+- [x] T020 [US1] Create the `chat_messages` SQLite migration in `backend/src/migrations/` for persistent chat storage
+- [x] T021 [US1] Move chat message persistence from in-memory storage to SQLite in `backend/src/api/chat.py`
 - [ ] T022 [US1] Extract chat command dispatch handlers from `backend/src/api/chat.py` into focused command-processing helpers
-- [ ] T023 [US1] Add `ItemClassification` and split `preflight()` responsibilities in `backend/src/services/cleanup_service.py`
-- [ ] T024 [US1] Refactor `_reconstruct_pipeline_state()` in `backend/src/services/copilot_polling/pipeline.py` and `get_board_data()` in `backend/src/services/github_projects/service.py` into explicit helper flows
+- [x] T023 [US1] Add `ItemClassification` and split `preflight()` responsibilities in `backend/src/services/cleanup_service.py`
+- [x] T024 [US1] Refactor `_reconstruct_pipeline_state()` in `backend/src/services/copilot_polling/pipeline.py` and `get_board_data()` in `backend/src/services/github_projects/service.py` into explicit helper flows
 - [ ] T025 [US1] Run `cgc analyze complexity` and `pytest -x` for `backend/src/services/copilot_polling/`, `backend/src/services/workflow_orchestrator/`, `backend/src/api/chat.py`, and `backend/tests/unit/`
 
 **Checkpoint**: The backend polling and orchestration hotspots are decomposed, testable, and below the complexity threshold.
@@ -98,11 +98,11 @@ description: "Executable task list for code quality & technical debt overhaul"
 
 ### Implementation for User Story 2
 
-- [ ] T028 [US2] Consolidate repository fallback logic on `resolve_repository()` in `backend/src/utils.py` and remove duplicate resolution code from `backend/src/api/chat.py`, `backend/src/api/workflow.py`, and `backend/src/main.py`
-- [ ] T029 [US2] Adopt `require_selected_project()` in `backend/src/api/chat.py`, `backend/src/api/workflow.py`, `backend/src/api/tasks.py`, and `backend/src/api/chores.py`
+- [x] T028 [US2] Consolidate repository fallback logic on `resolve_repository()` in `backend/src/utils.py` and remove duplicate resolution code from `backend/src/api/chat.py`, `backend/src/api/workflow.py`, and `backend/src/main.py`
+- [x] T029 [US2] Adopt `require_selected_project()` in `backend/src/api/chat.py`, `backend/src/api/workflow.py`, `backend/src/api/tasks.py`, and `backend/src/api/chores.py`
 - [ ] T030 [US2] Replace inline cache management with `cached_fetch()` in `backend/src/api/projects.py`, `backend/src/api/board.py`, `backend/src/api/chat.py`, and `backend/src/api/workflow.py`
-- [ ] T031 [US2] Apply the shared GitHub error-handling pattern in `backend/src/api/board.py`, `backend/src/api/projects.py`, `backend/src/api/workflow.py`, and `backend/src/api/tasks.py`
-- [ ] T032 [P] [US2] Create `case_insensitive_get()` in `frontend/src/lib/case-utils.ts` and replace inline key-matching logic in `frontend/src/hooks/useAgentConfig.ts`
+- [x] T031 [US2] Apply the shared GitHub error-handling pattern in `backend/src/api/board.py`, `backend/src/api/projects.py`, `backend/src/api/workflow.py`, and `backend/src/api/tasks.py`
+- [x] T032 [P] [US2] Create `case_insensitive_get()` in `frontend/src/lib/case-utils.ts` and replace inline key-matching logic in `frontend/src/hooks/useAgentConfig.ts`
 - [ ] T033 [US2] Run `pytest -x`, `ruff check`, and `npx vitest run` for `backend/src/api/`, `backend/src/utils.py`, `frontend/src/hooks/useAgentConfig.ts`, and related tests
 
 **Checkpoint**: Repository and endpoint helper behavior is centralized, consistent, and independently verified.
@@ -122,13 +122,13 @@ description: "Executable task list for code quality & technical debt overhaul"
 
 ### Implementation for User Story 3
 
-- [ ] T036 [US3] Extract static bot-detection utilities to `backend/src/services/github_projects/identities.py` and update callers in `backend/src/services/github_projects/` and `backend/src/api/`
-- [ ] T037 [US3] Introduce `RateLimitManager` in `backend/src/services/github_projects/rate_limit.py` and adopt it in `backend/src/services/github_projects/service.py`
-- [ ] T038 [US3] Implement `GitHubBaseClient` in `backend/src/services/github_projects/base_client.py` and rebase `backend/src/services/github_projects/service.py` on the shared client contract
-- [ ] T039 [P] [US3] After `backend/src/services/github_projects/base_client.py` lands, extract `GitHubBranchService` in `backend/src/services/github_projects/branches.py` and update branch callers in `backend/src/api/workflow.py` and `backend/src/services/github_commit_workflow.py`
-- [ ] T040 [P] [US3] After `backend/src/services/github_projects/base_client.py` lands, extract `GitHubPullRequestService` in `backend/src/services/github_projects/pull_requests.py` and update callers in `backend/src/api/cleanup.py` and `backend/src/services/cleanup_service.py`
-- [ ] T041 [P] [US3] After `backend/src/services/github_projects/base_client.py` lands, extract `GitHubIssuesService` in `backend/src/services/github_projects/issues.py` and update callers in `backend/src/api/chat.py` and `backend/src/services/agent_creator.py`
-- [ ] T042 [P] [US3] After `backend/src/services/github_projects/base_client.py` lands, extract `GitHubProjectBoardService` in `backend/src/services/github_projects/projects.py` and update callers in `backend/src/api/board.py`, `backend/src/api/projects.py`, and `backend/src/api/tasks.py`
+- [x] T036 [US3] Extract static bot-detection utilities to `backend/src/services/github_projects/identities.py` and update callers in `backend/src/services/github_projects/` and `backend/src/api/`
+- [x] T037 [US3] Introduce `RateLimitManager` in `backend/src/services/github_projects/rate_limit.py` and adopt it in `backend/src/services/github_projects/service.py`
+- [x] T038 [US3] Implement `GitHubBaseClient` in `backend/src/services/github_projects/base_client.py` and rebase `backend/src/services/github_projects/service.py` on the shared client contract
+- [x] T039 [P] [US3] After `backend/src/services/github_projects/base_client.py` lands, extract `GitHubBranchService` in `backend/src/services/github_projects/branches.py` and update branch callers in `backend/src/api/workflow.py` and `backend/src/services/github_commit_workflow.py`
+- [x] T040 [P] [US3] After `backend/src/services/github_projects/base_client.py` lands, extract `GitHubPullRequestService` in `backend/src/services/github_projects/pull_requests.py` and update callers in `backend/src/api/cleanup.py` and `backend/src/services/cleanup_service.py`
+- [x] T041 [P] [US3] After `backend/src/services/github_projects/base_client.py` lands, extract `GitHubIssuesService` in `backend/src/services/github_projects/issues.py` and update callers in `backend/src/api/chat.py` and `backend/src/services/agent_creator.py`
+- [x] T042 [P] [US3] After `backend/src/services/github_projects/base_client.py` lands, extract `GitHubProjectBoardService` in `backend/src/services/github_projects/projects.py` and update callers in `backend/src/api/board.py`, `backend/src/api/projects.py`, and `backend/src/api/tasks.py`
 - [ ] T043 [US3] Add new GitHub service dependency getters in `backend/src/dependencies.py` and typed return models in `backend/src/models/project.py`, `backend/src/models/task.py`, and `backend/src/models/workflow.py`
 - [ ] T044 [US3] Run `pytest -x`, `pyright`, and `wc -l` checks across `backend/src/services/github_projects/`, `backend/src/dependencies.py`, and `backend/tests/unit/`
 
@@ -149,12 +149,12 @@ description: "Executable task list for code quality & technical debt overhaul"
 
 ### Implementation for User Story 4
 
-- [ ] T047 [US4] Split `frontend/src/components/settings/GlobalSettings.tsx` into `frontend/src/components/settings/AISettingsSection.tsx`, `frontend/src/components/settings/DisplaySettings.tsx`, `frontend/src/components/settings/WorkflowSettings.tsx`, and `frontend/src/components/settings/NotificationSettings.tsx`
-- [ ] T048 [US4] Create `frontend/src/components/settings/globalSettingsSchema.ts` and migrate `frontend/src/components/settings/GlobalSettings.tsx` plus `frontend/package.json` to `react-hook-form`, `zod`, and `@hookform/resolvers`
+- [x] T047 [US4] Split `frontend/src/components/settings/GlobalSettings.tsx` into `frontend/src/components/settings/AISettingsSection.tsx`, `frontend/src/components/settings/DisplaySettings.tsx`, `frontend/src/components/settings/WorkflowSettings.tsx`, and `frontend/src/components/settings/NotificationSettings.tsx`
+- [x] T048 [US4] Create `frontend/src/components/settings/globalSettingsSchema.ts` and migrate `frontend/src/components/settings/GlobalSettings.tsx` plus `frontend/package.json` to `react-hook-form`, `zod`, and `@hookform/resolvers`
 - [ ] T049 [US4] Decompose `frontend/src/hooks/usePipelineConfig.ts` into `frontend/src/hooks/usePipelineBoard.ts`, `frontend/src/hooks/usePipelineValidation.ts`, `frontend/src/hooks/usePipelineModelOverride.ts`, and `frontend/src/hooks/usePipelineReducer.ts`
-- [ ] T050 [P] [US4] Extract shared time helpers in `frontend/src/lib/time-utils.ts` and adopt them in `frontend/src/components/chores/FeaturedRitualsPanel.tsx` and `frontend/src/components/chores/ChoreCard.tsx`
+- [x] T050 [P] [US4] Extract shared time helpers in `frontend/src/lib/time-utils.ts` and adopt them in `frontend/src/components/chores/FeaturedRitualsPanel.tsx` and `frontend/src/components/chores/ChoreCard.tsx`
 - [ ] T051 [P] [US4] Replace unsafe response casts with validated schemas in `frontend/src/hooks/useChat.ts` and `frontend/src/services/api.ts`
-- [ ] T052 [US4] Extract `frontend/src/components/AnimatedBackground.tsx` from `frontend/src/pages/LoginPage.tsx` and simplify the page structure
+- [x] T052 [US4] Extract `frontend/src/components/AnimatedBackground.tsx` from `frontend/src/pages/LoginPage.tsx` and simplify the page structure
 - [ ] T053 [US4] Run `npx vitest run`, `npx tsc --noEmit`, and `npx eslint .` for `frontend/src/components/settings/`, `frontend/src/hooks/`, `frontend/src/pages/LoginPage.tsx`, and related tests
 
 **Checkpoint**: The frontend settings and pipeline editing surfaces are split into focused units and validated with tests.
