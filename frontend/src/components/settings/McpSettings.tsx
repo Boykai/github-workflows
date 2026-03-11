@@ -9,6 +9,7 @@
 import { useState, useCallback } from 'react';
 import { SettingsSection } from './SettingsSection';
 import { useMcpSettings } from '@/hooks/useMcpSettings';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import { authApi, ApiError } from '@/services/api';
 import { TOAST_SUCCESS_MS } from '@/constants';
 import type { McpConfiguration } from '@/types';
@@ -50,8 +51,6 @@ function McpListItem({
   onRemove: (id: string) => void;
   isDeleting: boolean;
 }) {
-  const [showConfirm, setShowConfirm] = useState(false);
-
   return (
     <div className="flex items-center justify-between gap-4 rounded-[1rem] border border-border bg-background/46 p-4">
       <div className="flex flex-col gap-1 min-w-0">
@@ -62,43 +61,19 @@ function McpListItem({
         <span className="text-xs text-muted-foreground truncate">{mcp.endpoint_url}</span>
       </div>
 
-      {!showConfirm ? (
-        <button
-          className="shrink-0 inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md
-            border border-destructive/30 text-destructive
-            hover:bg-destructive/10 transition-colors"
-          onClick={() => setShowConfirm(true)}
-          type="button"
-        >
-          Remove
-        </button>
-      ) : (
-        <div className="shrink-0 flex items-center gap-2">
-          <button
-            className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md
-              bg-destructive text-destructive-foreground shadow-sm
-              hover:bg-destructive/90 transition-colors
-              disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={() => {
-              onRemove(mcp.id);
-              setShowConfirm(false);
-            }}
-            disabled={isDeleting}
-            type="button"
-          >
-            {isDeleting ? 'Removing…' : 'Confirm'}
-          </button>
-          <button
-            className="inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md
-              border border-border text-muted-foreground
-              hover:bg-primary/10 hover:text-foreground transition-colors"
-            onClick={() => setShowConfirm(false)}
-            type="button"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
+      <button
+        className={cn(
+          'shrink-0 inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-md',
+          'border border-destructive/30 text-destructive',
+          'hover:bg-destructive/10 transition-colors',
+          'disabled:opacity-50 disabled:cursor-not-allowed',
+        )}
+        onClick={() => onRemove(mcp.id)}
+        disabled={isDeleting}
+        type="button"
+      >
+        {isDeleting ? 'Removing…' : 'Remove'}
+      </button>
     </div>
   );
 }
@@ -281,6 +256,7 @@ export function McpSettings() {
     authError,
   } = useMcpSettings();
 
+  const { confirm } = useConfirmation();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const showSuccess = useCallback((msg: string) => {
@@ -304,6 +280,14 @@ export function McpSettings() {
 
   const handleRemove = useCallback(
     async (mcpId: string) => {
+      const mcpName = mcps?.find((m) => m.id === mcpId)?.name ?? 'this MCP';
+      const confirmed = await confirm({
+        title: 'Remove MCP Configuration',
+        description: `Remove "${mcpName}" from your MCP configurations? This action cannot be undone.`,
+        variant: 'danger',
+        confirmLabel: 'Remove',
+      });
+      if (!confirmed) return;
       try {
         resetDeleteError();
         await deleteMcp(mcpId);
@@ -312,7 +296,7 @@ export function McpSettings() {
         // Error is captured by the mutation state
       }
     },
-    [deleteMcp, showSuccess, resetDeleteError]
+    [mcps, confirm, deleteMcp, showSuccess, resetDeleteError]
   );
 
   // Extract a human-readable message from a delete error

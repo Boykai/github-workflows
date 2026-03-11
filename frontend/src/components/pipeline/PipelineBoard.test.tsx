@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { createTestQueryClient, render, screen } from '@/test/test-utils';
+import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 import { PipelineBoard } from './PipelineBoard';
 import type { PipelineStage, PipelineAgentNode } from '@/types';
 
@@ -35,7 +36,9 @@ function renderPipelineBoard(ui: ReactElement) {
 
   return render(ui, {
     wrapper: ({ children }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConfirmationDialogProvider>{children}</ConfirmationDialogProvider>
+      </QueryClientProvider>
     ),
   });
 }
@@ -71,7 +74,7 @@ describe('PipelineBoard', () => {
   });
 
   it('sets aria-invalid and aria-describedby when a name validation error exists', () => {
-    render(
+    renderPipelineBoard(
       <PipelineBoard
         columnCount={1}
         stages={[createStage()]}
@@ -90,6 +93,9 @@ describe('PipelineBoard', () => {
         onRemoveAgent={vi.fn()}
         onUpdateAgent={vi.fn()}
         onUpdateStage={vi.fn()}
+        onReorderAgents={vi.fn()}
+        pipelineBlocking={false}
+        onBlockingChange={vi.fn()}
       />
     );
 
@@ -102,7 +108,7 @@ describe('PipelineBoard', () => {
   });
 
   it('does not set aria-invalid when there is no validation error', () => {
-    render(
+    renderPipelineBoard(
       <PipelineBoard
         columnCount={1}
         stages={[createStage()]}
@@ -121,6 +127,9 @@ describe('PipelineBoard', () => {
         onRemoveAgent={vi.fn()}
         onUpdateAgent={vi.fn()}
         onUpdateStage={vi.fn()}
+        onReorderAgents={vi.fn()}
+        pipelineBlocking={false}
+        onBlockingChange={vi.fn()}
       />
     );
 

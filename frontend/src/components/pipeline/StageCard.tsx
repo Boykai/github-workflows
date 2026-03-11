@@ -3,7 +3,7 @@
  * Contains agent nodes and supports inline renaming and tool selection.
  */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { GitBranch, Lock, Plus, Trash2 } from 'lucide-react';
 import {
@@ -29,6 +29,7 @@ import { ParallelStageGroup } from './ParallelStageGroup';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useConfirmation } from '@/hooks/useConfirmation';
 import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
 import { cn } from '@/lib/utils';
 import { formatAgentName } from '@/utils/formatAgentName';
@@ -101,6 +102,7 @@ export function StageCard({
   onCloneAgent,
   onReorderAgents,
 }: StageCardProps) {
+  const { confirm } = useConfirmation();
   const hasAgents = stage.agents.length > 0;
   const isParallelStage =
     stage.execution_mode === 'parallel' && stage.agents.length > 1;
@@ -188,6 +190,24 @@ export function StageCard({
     setIsEditing(false);
   };
 
+  const handleRemoveStage = useCallback(async () => {
+    const agentCount = stage.agents.length;
+    const description =
+      agentCount > 0
+        ? `Remove stage "${stage.name}" and its ${agentCount} assigned agent${agentCount !== 1 ? 's' : ''}? This change takes effect when you save the pipeline.`
+        : `Remove stage "${stage.name}"? This change takes effect when you save the pipeline.`;
+
+    const confirmed = await confirm({
+      title: 'Remove Pipeline Stage',
+      description,
+      variant: 'warning',
+      confirmLabel: 'Remove Stage',
+    });
+    if (confirmed) {
+      onRemove();
+    }
+  }, [confirm, stage.name, stage.agents.length, onRemove]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') handleRenameConfirm();
     if (e.key === 'Escape') {
@@ -261,7 +281,7 @@ export function StageCard({
         <Tooltip contentKey="pipeline.stage.deleteButton">
           <button
             type="button"
-            onClick={onRemove}
+            onClick={handleRemoveStage}
             aria-label="Remove stage"
             className="shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive"
           >

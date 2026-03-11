@@ -2,7 +2,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
-import { createTestQueryClient, render, screen } from '@/test/test-utils';
+import { createTestQueryClient, render, screen, waitFor } from '@/test/test-utils';
+import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 import { StageCard } from './StageCard';
 import type { PipelineStage, AvailableAgent, PipelineAgentNode } from '@/types';
 
@@ -50,7 +51,9 @@ function renderStageCard(ui: ReactElement) {
 
   return render(ui, {
     wrapper: ({ children }) => (
-      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConfirmationDialogProvider>{children}</ConfirmationDialogProvider>
+      </QueryClientProvider>
     ),
   });
 }
@@ -130,5 +133,77 @@ describe('StageCard', () => {
       screen.getByText(/Agents in this stage are grouped/i)
     ).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /add agent to group/i })).toBeInTheDocument();
+  });
+
+  it('shows a confirmation dialog before removing a stage with agents', async () => {
+    const onRemove = vi.fn();
+    renderStageCard(
+      <StageCard
+        stage={createStage({
+          name: 'Review',
+          agents: [createAgentNode()],
+        })}
+        availableAgents={[]}
+        projectId="project-1"
+        onUpdate={vi.fn()}
+        onRemove={onRemove}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onReorderAgents={vi.fn()}
+      />
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /remove stage/i }));
+
+    // Confirmation dialog should appear
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Remove Pipeline Stage')).toBeInTheDocument();
+    expect(screen.getByText(/Remove stage "Review" and its 1 assigned agent/)).toBeInTheDocument();
+
+    // onRemove should not have been called yet
+    expect(onRemove).not.toHaveBeenCalled();
+
+    // Confirm the removal
+    await user.click(screen.getByText('Remove Stage'));
+
+    await waitFor(() => {
+      expect(onRemove).toHaveBeenCalledOnce();
+    });
+  });
+
+  it('does not remove the stage when confirmation is cancelled', async () => {
+    const onRemove = vi.fn();
+    renderStageCard(
+      <StageCard
+        stage={createStage({ name: 'Build' })}
+        availableAgents={[]}
+        projectId="project-1"
+        onUpdate={vi.fn()}
+        onRemove={onRemove}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onReorderAgents={vi.fn()}
+      />
+    );
+
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: /remove stage/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+    });
+
+    // Cancel the removal
+    await user.click(screen.getByText('Cancel'));
+
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+    expect(onRemove).not.toHaveBeenCalled();
   });
 });
