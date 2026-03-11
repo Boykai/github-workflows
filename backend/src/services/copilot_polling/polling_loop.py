@@ -256,7 +256,7 @@ async def _step_sweep_blocking_queue(
             repo=repo,
         )
 
-        # Dispatch agents for newly activated entries (mirrors pipeline.py activation pattern)
+        # Dispatch agents for newly activated entries (mirrors _activate_queued_issue pattern in pipeline.py)
         if activated:
             from .pipeline import _activate_queued_issue
 
