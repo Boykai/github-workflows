@@ -10,19 +10,21 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import datetime
+from typing import TYPE_CHECKING, Any
 
 import aiosqlite
 
 from src.logging_utils import get_logger
 from src.utils import BoundedDict, utcnow
 
-from .workflow_orchestrator.models import MainBranchInfo, PipelineState
+if TYPE_CHECKING:
+    from .workflow_orchestrator.models import MainBranchInfo, PipelineState
 
 logger = get_logger(__name__)
 
 # L1 in-memory caches (identical structure to transitions.py originals)
-_pipeline_states: BoundedDict[int, PipelineState] = BoundedDict(maxlen=500)
-_issue_main_branches: BoundedDict[int, MainBranchInfo] = BoundedDict(maxlen=500)
+_pipeline_states: BoundedDict[int, Any] = BoundedDict(maxlen=500)
+_issue_main_branches: BoundedDict[int, Any] = BoundedDict(maxlen=500)
 _issue_sub_issue_map: BoundedDict[int, dict[str, dict]] = BoundedDict(maxlen=500)
 _agent_trigger_inflight: BoundedDict[str, datetime] = BoundedDict(maxlen=2000)
 
@@ -111,8 +113,9 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
 # ── Row conversion helpers ──────────────────────────────────────
 
 
-def _row_to_pipeline_state(row) -> PipelineState:
+def _row_to_pipeline_state(row) -> Any:
     """Convert a database row to a PipelineState dataclass."""
+    from .workflow_orchestrator.models import PipelineState
     if isinstance(row, tuple):
         # Positional: issue_number, project_id, status, agent_name, agent_instance_id,
         #             pr_number, pr_url, sub_issues, metadata, created_at, updated_at
@@ -163,7 +166,7 @@ def _row_to_pipeline_state(row) -> PipelineState:
     )
 
 
-def _pipeline_state_to_row(issue_number: int, state: PipelineState) -> tuple:
+def _pipeline_state_to_row(issue_number: int, state: Any) -> tuple:
     """Convert a PipelineState to SQLite row values."""
     metadata = {
         "agents": state.agents,
@@ -194,12 +197,16 @@ def _pipeline_state_to_row(issue_number: int, state: PipelineState) -> tuple:
     )
 
 
-def _row_to_main_branch(row) -> MainBranchInfo:
+def _row_to_main_branch(row) -> dict:
     """Convert a database row to a MainBranchInfo TypedDict."""
+    from .workflow_orchestrator.models import MainBranchInfo
+
     if isinstance(row, tuple):
         return MainBranchInfo(branch=row[1], pr_number=row[2], head_sha=row[3] or "")
     return MainBranchInfo(
-        branch=row["branch"], pr_number=row["pr_number"], head_sha=row.get("head_sha", "")
+        branch=row["branch"],
+        pr_number=row["pr_number"],
+        head_sha=row["head_sha"] if "head_sha" in row.keys() else "",
     )
 
 
@@ -214,24 +221,24 @@ def _row_to_sub_issue_entry(row) -> dict:
     return {
         "number": row["sub_issue_number"],
         "node_id": row["sub_issue_node_id"],
-        "url": row.get("sub_issue_url", ""),
+        "url": row["sub_issue_url"] or "",
     }
 
 
 # ── Pipeline States ─────────────────────────────────────────────
 
 
-def get_pipeline_state(issue_number: int) -> PipelineState | None:
+def get_pipeline_state(issue_number: int) -> Any:
     """Read pipeline state — L1 cache only (populated at startup)."""
     return _pipeline_states.get(issue_number)
 
 
-def get_all_pipeline_states() -> dict[int, PipelineState]:
+def get_all_pipeline_states() -> dict[int, Any]:
     """Get all pipeline states from L1 cache."""
     return dict(_pipeline_states)
 
 
-async def set_pipeline_state(issue_number: int, state: PipelineState) -> None:
+async def set_pipeline_state(issue_number: int, state: Any) -> None:
     """Write-through: update L1 cache AND SQLite atomically."""
     async with _store_lock:
         _pipeline_states[issue_number] = state
@@ -265,12 +272,12 @@ async def delete_pipeline_state(issue_number: int) -> None:
 # ── Issue Main Branches ─────────────────────────────────────────
 
 
-def get_main_branch(issue_number: int) -> MainBranchInfo | None:
+def get_main_branch(issue_number: int) -> Any:
     """Read main branch info from L1 cache."""
     return _issue_main_branches.get(issue_number)
 
 
-async def set_main_branch(issue_number: int, info: MainBranchInfo) -> None:
+async def set_main_branch(issue_number: int, info: Any) -> None:
     """Write-through: update L1 cache AND SQLite atomically."""
     async with _store_lock:
         _issue_main_branches[issue_number] = info
