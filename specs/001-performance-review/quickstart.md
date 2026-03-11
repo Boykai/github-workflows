@@ -126,8 +126,36 @@ Before starting implementation, read these files in order:
 
 See [contracts/refresh-contract.md](./contracts/refresh-contract.md) for the full refresh policy governing all update paths.
 
+## Manual Network / Profiler Verification Steps
+
+### Backend: Idle Board API Activity
+
+1. Open a board in the browser and leave it idle for 10 minutes.
+2. In the browser DevTools **Network** tab, filter for `/api/v1/board/` requests.
+3. Count the number of full board data requests (excluding tasks-only polls).
+4. **Target**: 0 full board reloads during idle (SC-001).
+
+### Frontend: Board Interaction Profiling
+
+1. Open React DevTools **Profiler** tab.
+2. Start recording, then perform representative board interactions:
+   - Click and expand 3 issue cards in `ProjectsPage.tsx`.
+   - Drag-resize the chat panel in `ChatPopup.tsx`.
+   - Open and close the agent popover in `AddAgentPopover.tsx`.
+3. Stop recording and inspect the flamegraph.
+4. **Target**: No unnecessary re-renders of unchanged columns/cards; 95th-percentile interaction ≤ 200 ms (SC-005).
+
+### Frontend: WebSocket and Fallback Polling
+
+1. With the board open, observe WebSocket messages in the Network → WS tab.
+2. Verify that `task_update` / `task_created` messages only invalidate the tasks query.
+3. Simulate WebSocket failure (e.g., disconnect network briefly) and verify fallback polling activates at 30-second intervals.
+4. Verify fallback polls invalidate tasks only (not full board data).
+5. **Target**: 0 full board reloads from fallback polling (SC-003).
+
 ## Relevant Spec References
 
 - [spec.md](./spec.md) — Feature specification with user stories and acceptance criteria
 - [research.md](./research.md) — Research findings and technology decisions
 - [data-model.md](./data-model.md) — Entity definitions and relationships
+- [baseline.md](./baseline.md) — Before/after measurement workbook

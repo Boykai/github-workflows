@@ -1,5 +1,7 @@
 """In-memory cache service with TTL."""
 
+import hashlib
+import json
 from datetime import timedelta
 from typing import Any, TypeVar
 
@@ -16,12 +18,18 @@ class CacheEntry[T]:
     """Cache entry with expiration and optional ETag support."""
 
     def __init__(
-        self, value: T, ttl_seconds: int, etag: str | None = None, last_modified: str | None = None
+        self,
+        value: T,
+        ttl_seconds: int,
+        etag: str | None = None,
+        last_modified: str | None = None,
+        data_hash: str | None = None,
     ):
         self.value = value
         self.expires_at = utcnow() + timedelta(seconds=ttl_seconds)
         self.etag = etag
         self.last_modified = last_modified
+        self.data_hash = data_hash
 
     @property
     def is_expired(self) -> bool:
@@ -83,6 +91,7 @@ class InMemoryCache:
         ttl_seconds: int | None = None,
         etag: str | None = None,
         last_modified: str | None = None,
+        data_hash: str | None = None,
     ) -> None:
         """
         Set value in cache.
@@ -93,9 +102,12 @@ class InMemoryCache:
             ttl_seconds: TTL in seconds (defaults to config value)
             etag: Optional ETag from API response
             last_modified: Optional Last-Modified header from API response
+            data_hash: Optional content hash for change detection
         """
         ttl = ttl_seconds or self._settings.cache_ttl_seconds
-        self._cache[key] = CacheEntry(value, ttl, etag=etag, last_modified=last_modified)
+        self._cache[key] = CacheEntry(
+            value, ttl, etag=etag, last_modified=last_modified, data_hash=data_hash
+        )
         logger.debug("Cache set: %s (TTL: %ds)", key, ttl)
 
     def get_entry(self, key: str) -> CacheEntry[Any] | None:
@@ -205,3 +217,9 @@ def get_repo_agents_cache_key(owner: str, repo: str) -> str:
     from src.constants import CACHE_PREFIX_REPO_AGENTS
 
     return get_cache_key(CACHE_PREFIX_REPO_AGENTS, f"{owner}/{repo}")
+
+
+def compute_data_hash(data: Any) -> str:
+    """Compute a stable SHA-256 hash of serializable data for change detection."""
+    serialized = json.dumps(data, sort_keys=True, default=str).encode()
+    return hashlib.sha256(serialized).hexdigest()

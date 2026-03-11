@@ -28,6 +28,7 @@ from src.models.project import GitHubProject
 from src.models.user import UserSession
 from src.services.cache import (
     cache,
+    compute_data_hash,
     get_cache_key,
     get_sub_issues_cache_key,
     get_user_projects_cache_key,
@@ -361,7 +362,11 @@ async def get_board_data(
 
     # Cache board data — 300 seconds aligns with frontend's 5-minute auto-refresh.
     # Manual refresh (refresh=true) bypasses this cache entirely.
-    cache.set(cache_key, board_data, ttl_seconds=300)
+    # Store a content hash for change detection: the WebSocket subscription can
+    # compare this hash to suppress `refresh` broadcasts when board data has not
+    # actually changed, satisfying FR-004 / SC-001.
+    board_hash = compute_data_hash(board_data.model_dump(mode="json", exclude={"rate_limit"}))
+    cache.set(cache_key, board_data, ttl_seconds=300, data_hash=board_hash)
     return board_data
 
 

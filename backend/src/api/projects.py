@@ -1,8 +1,6 @@
 """Projects API endpoints."""
 
 import asyncio
-import hashlib
-import json
 from collections.abc import AsyncGenerator
 from datetime import timedelta
 from typing import Annotated
@@ -21,6 +19,7 @@ from src.models.task import TaskListResponse
 from src.models.user import UserResponse, UserSession
 from src.services.cache import (
     cache,
+    compute_data_hash,
     get_project_items_cache_key,
     get_user_projects_cache_key,
 )
@@ -372,9 +371,7 @@ async def websocket_subscribe(
                     tasks = await send_tasks()
                     if tasks is not None:
                         tasks_payload = [task.model_dump(mode="json") for task in tasks]
-                        current_hash = hashlib.sha256(
-                            json.dumps(tasks_payload, sort_keys=True).encode()
-                        ).hexdigest()
+                        current_hash = compute_data_hash(tasks_payload)
 
                         if current_hash != last_sent_hash:
                             await websocket.send_json(
