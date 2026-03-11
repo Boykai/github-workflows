@@ -296,6 +296,7 @@ export function ProjectsPage() {
       />
       {/* Page Header */}
       <div className="flex shrink-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        {selectedProjectId && (
         <div className="relative">
           <button
             type="button"
@@ -336,6 +337,7 @@ export function ProjectsPage() {
             className="top-full bottom-auto left-0 right-auto mt-2 mb-0 min-w-[20rem]"
           />
         </div>
+        )}
 
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground lg:justify-end">
           {selectedProjectId && (

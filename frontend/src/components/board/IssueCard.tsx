@@ -195,7 +195,10 @@ export const IssueCard = memo(function IssueCard({
 
   return (
     <div
-      className="project-board-card celestial-panel flex min-h-[11rem] cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/90 p-3 shadow-sm backdrop-blur-sm hover:-translate-y-0.5 hover:border-primary/35 hover:bg-card/96 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+      className={cn(
+        "project-board-card celestial-panel flex cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/90 p-3 shadow-sm backdrop-blur-sm transition-[min-height] duration-200 ease-in-out hover:-translate-y-0.5 hover:border-primary/35 hover:bg-card/96 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
+        isSubIssuesExpanded ? "min-h-[13.2rem]" : "min-h-[11rem]",
+      )}
       onClick={() => onClick(item)}
       role="button"
       tabIndex={0}
@@ -418,7 +421,7 @@ export const IssueCard = memo(function IssueCard({
       {confirmDelete && (
         <div
           className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-2 py-1.5 text-[11px] text-destructive"
-          role="alert"
+          role="toolbar"
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
         >
