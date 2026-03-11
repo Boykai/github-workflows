@@ -207,4 +207,5 @@ async def dev_login(
         return UserResponse.from_session(session)
 
     except Exception as e:
-        handle_service_error(e, "dev login", AuthenticationError)
+        logger.error("Dev login failed", exc_info=True)
+        raise AuthenticationError("Authentication failed") from e
