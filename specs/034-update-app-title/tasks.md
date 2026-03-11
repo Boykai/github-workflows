@@ -3,7 +3,7 @@
 **Input**: Design documents from `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/`
 **Prerequisites**: `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/plan.md` (required), `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/spec.md` (required), `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/research.md`, `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/data-model.md`, `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/contracts/`, `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/quickstart.md`
 
-**Tests**: The feature specification does not request a TDD workflow, so no dedicated test-authoring tasks are included. Existing frontend validation commands and the quickstart checklist must pass after implementation.
+**Tests**: The feature specification does not request a TDD workflow, so no dedicated test-authoring tasks are included. Existing frontend validation commands (`npm run lint`, `npm run type-check`, `npm run test`, `npm run build`) and the quickstart checklist must pass after implementation.
 
 **Organization**: Tasks are grouped by user story so each story can be implemented, validated, and delivered independently.
 
@@ -25,7 +25,7 @@
 
 **Purpose**: Confirm the exact user-facing branding surfaces and guardrails before editing files.
 
-- [ ] T001 Confirm the in-scope branding replacements and preserved taglines in `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/research.md` and `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/quickstart.md`
+- [ ] T001 Review `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/spec.md`, `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/research.md`, and `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/quickstart.md` to confirm the approved target files and preserved sidebar taglines before editing `/home/runner/work/github-workflows/github-workflows/frontend/`
 
 **Checkpoint**: The implementation scope is limited to the approved user-facing title surfaces and excludes comments, test fixtures, and internal identifiers.
 
@@ -37,7 +37,8 @@
 
 **⚠️ CRITICAL**: No user story work should begin until the approved replacement list is confirmed across the known frontend files.
 
-- [ ] T002 Search `/home/runner/work/github-workflows/github-workflows/frontend/index.html`, `/home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx` for in-scope `Solune` branding and preserve the out-of-scope references documented in `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/research.md`
+- [ ] T002 Catalog the in-scope user-facing `Solune` matches in `/home/runner/work/github-workflows/github-workflows/frontend/index.html`, `/home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx` using `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/research.md`
+- [ ] T003 Validate that the out-of-scope `Solune` references documented in `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/research.md` remain untouched while implementing changes in `/home/runner/work/github-workflows/github-workflows/frontend/`
 
 **Checkpoint**: The exact set of user-facing strings to replace is frozen and can be implemented without touching unrelated branding references.
 
@@ -51,7 +52,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Replace `<title>Solune</title>` with `<title>Hello World</title>` in `/home/runner/work/github-workflows/github-workflows/frontend/index.html`
+- [ ] T004 [US1] Replace `<title>Solune</title>` with `<title>Hello World</title>` in `/home/runner/work/github-workflows/github-workflows/frontend/index.html`
 
 **Checkpoint**: The browser tab shows the new title without requiring any backend or environment-specific changes.
 
@@ -65,9 +66,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T004 [P] [US2] Update the sidebar brand label to `Hello World` in `/home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx` while keeping the `Sun & Moon` and `Guided solar orbit` taglines unchanged
-- [ ] T005 [US2] Update the login page heading and opening branding sentence to `Hello World` in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx` while preserving the existing workspace badge and supporting copy
-- [ ] T006 [P] [US2] Update the settings subtitle to `Configure your preferences for Hello World.` in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx`
+- [ ] T005 [P] [US2] Update the sidebar brand label to `Hello World` in `/home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx`
+- [ ] T006 [US2] Update the login page heading and opening branding sentence to `Hello World` in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx` while preserving the existing workspace badge and supporting copy
+- [ ] T007 [P] [US2] Update the settings subtitle to `Configure your preferences for Hello World.` in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx`
 
 **Checkpoint**: All primary in-app branding surfaces display `Hello World` consistently without changing unrelated copy.
 
@@ -81,8 +82,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Re-scan `/home/runner/work/github-workflows/github-workflows/frontend/index.html`, `/home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx` for residual user-facing `Solune` strings and clear any missed replacements before merge
-- [ ] T008 [US3] Search `/home/runner/work/github-workflows/github-workflows/frontend/` for alternate user-facing title definitions or environment-specific overrides beyond the approved files and resolve any in-scope leftovers called out by `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/research.md`
+- [ ] T008 [US3] Re-scan `/home/runner/work/github-workflows/github-workflows/frontend/index.html`, `/home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx` for residual user-facing `Solune` strings after T004-T007
+- [ ] T009 [US3] Search `/home/runner/work/github-workflows/github-workflows/frontend/` for alternate user-facing title definitions or environment-specific overrides beyond the approved files listed in `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/research.md`
+- [ ] T010 [US3] Resolve any additional in-scope user-facing title leftovers discovered by T008 or T009 in the exact `/home/runner/work/github-workflows/github-workflows/frontend/` files where they appear before merge
 
 **Checkpoint**: No user-facing title references to the old name remain in the frontend code paths covered by the specification.
 
@@ -92,8 +94,8 @@
 
 **Purpose**: Run the existing quality gates and manual acceptance checks for the completed title update.
 
-- [ ] T009 [P] Run `npm run lint`, `npm run type-check`, `npm run test`, and `npm run build` in `/home/runner/work/github-workflows/github-workflows/frontend/` and resolve any failures caused by the branding edits
-- [ ] T010 [P] Execute the verification checklist in `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/quickstart.md` against `/home/runner/work/github-workflows/github-workflows/frontend/index.html`, `/home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx`
+- [ ] T011 [P] Run `npm run lint`, `npm run type-check`, `npm run test`, and `npm run build` in `/home/runner/work/github-workflows/github-workflows/frontend/` and resolve any failures caused by the branding edits
+- [ ] T012 [P] Execute the verification checklist in `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/quickstart.md` against `/home/runner/work/github-workflows/github-workflows/frontend/index.html`, `/home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx`
 
 ---
 
@@ -132,8 +134,8 @@ US3 -> Polish
 
 ### Parallel Opportunities
 
-- **US2**: T004 and T006 can run in parallel because they edit different files; T005 proceeds separately in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx`
-- **Polish**: T009 and T010 can run in parallel once all file edits and residual-branding checks are complete
+- **US2**: T005 and T007 can run in parallel because they edit different files; T006 proceeds separately in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx`
+- **Polish**: T011 and T012 can run in parallel once all file edits and residual-branding checks are complete
 
 ---
 
@@ -143,22 +145,22 @@ US3 -> Polish
 
 ```text
 No safe same-story parallel split is recommended.
-T003 is the only implementation task and should land on its own.
+T004 is the only implementation task and should land on its own.
 ```
 
 ### User Story 2
 
 ```text
-Task T004: Update sidebar branding in /home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx
-Task T005: Update login branding copy in /home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx
-Task T006: Update settings subtitle in /home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx
+Task T005: Update sidebar branding in /home/runner/work/github-workflows/github-workflows/frontend/src/layout/Sidebar.tsx
+Task T006: Update login branding copy in /home/runner/work/github-workflows/github-workflows/frontend/src/pages/LoginPage.tsx
+Task T007: Update settings subtitle in /home/runner/work/github-workflows/github-workflows/frontend/src/pages/SettingsPage.tsx
 ```
 
 ### User Story 3
 
 ```text
 No safe same-story parallel split is recommended.
-T007 should confirm the approved files are clean before T008 broadens the frontend search for unexpected user-facing title overrides.
+T008 should confirm the approved files are clean before T009 broadens the frontend search, and T010 depends on both discovery steps.
 ```
 
 ---
@@ -198,15 +200,15 @@ With multiple developers:
 
 | Metric | Value |
 |--------|-------|
-| **Total tasks** | 10 |
+| **Total tasks** | 12 |
 | **Setup tasks** | 1 (T001) |
-| **Foundational tasks** | 1 (T002) |
-| **US1 tasks** | 1 (T003) |
-| **US2 tasks** | 3 (T004-T006) |
-| **US3 tasks** | 2 (T007-T008) |
-| **Polish tasks** | 2 (T009-T010) |
+| **Foundational tasks** | 2 (T002-T003) |
+| **US1 tasks** | 1 (T004) |
+| **US2 tasks** | 3 (T005-T007) |
+| **US3 tasks** | 3 (T008-T010) |
+| **Polish tasks** | 2 (T011-T012) |
 | **Parallel opportunities** | 4 tasks marked `[P]` across the US2 file splits and final validation |
-| **Suggested MVP scope** | Phases 1-3 (T001-T003) for the browser-tab rename; add Phase 4 (T004-T006) for product-ready branding consistency |
+| **Suggested MVP scope** | Phases 1-3 (T001-T004) for the browser-tab rename; add Phase 4 (T005-T007) for product-ready branding consistency |
 | **Independent test criteria** | Each user story phase includes a standalone browser/search validation scenario derived from `/home/runner/work/github-workflows/github-workflows/specs/034-update-app-title/spec.md` |
 | **Format validation** | Every task uses the required `- [ ] T### [P?] [US?] Description with file path` checklist structure |
 
