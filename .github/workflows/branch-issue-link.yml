@@ -94,25 +94,30 @@ jobs:
           ISSUE_NUMBER="${{ steps.parse.outputs.ISSUE_NUMBER }}"
           BRANCH_NAME="${{ steps.parse.outputs.BRANCH_NAME }}"
 
-          # Fetch comments with retry/backoff to handle transient API failures
-          # gracefully, matching the resilience pattern used in the post-comment step.
+          # Fetch comments with retry + exponential backoff to handle transient
+          # API failures gracefully.  We track success via a flag rather than
+          # checking whether COMMENTS is non-empty, because an issue with zero
+          # comments legitimately produces empty output on a *successful* fetch.
           MAX_RETRIES=3
-          SLEEP_SECONDS=5
           COMMENTS=""
+          FETCH_OK=false
 
           for attempt in $(seq 1 "$MAX_RETRIES"); do
             if COMMENTS=$(gh issue view "$ISSUE_NUMBER" --repo "${{ github.repository }}" --json comments --jq '.comments[].body' 2>&1); then
+              FETCH_OK=true
               break
             fi
             echo "::warning::Failed to fetch comments for issue #${ISSUE_NUMBER} (attempt ${attempt}/${MAX_RETRIES})."
             if [ "$attempt" -lt "$MAX_RETRIES" ]; then
-              sleep "$SLEEP_SECONDS"
+              SLEEP_TIME=$((2 ** attempt))
+              echo "::debug::Retrying in ${SLEEP_TIME}s..."
+              sleep "$SLEEP_TIME"
             fi
           done
 
           # If all retries failed, skip the idempotency check rather than
           # blocking branch creation — worst case is a duplicate comment.
-          if [ -z "$COMMENTS" ]; then
+          if [ "$FETCH_OK" != "true" ]; then
             echo "::warning::Unable to fetch comments for issue #${ISSUE_NUMBER} after ${MAX_RETRIES} attempts. Skipping idempotency check."
             echo "ALREADY_LINKED=false" >> "$GITHUB_OUTPUT"
             exit 0
