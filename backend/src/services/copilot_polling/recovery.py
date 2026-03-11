@@ -344,7 +344,7 @@ async def recover_stalled_issues(
             # the pipeline is demonstrably active — skip the expensive issue
             # body fetch and tracking table parse.
             task_labels = getattr(task, "labels", None) or []
-            if task_labels and find_agent_label(task_labels) and not has_stalled_label(task_labels):
+            if find_agent_label(task_labels) and not has_stalled_label(task_labels):
                 logger.debug(
                     "Recovery: skipping issue #%d — has active agent label, not stalled",
                     issue_number,

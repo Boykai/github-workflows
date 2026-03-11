@@ -5,13 +5,10 @@ cross-checks pipeline labels against the Markdown tracking table and
 corrects whichever source is stale.
 """
 
-from typing import Any
-
 import src.services.copilot_polling as _cp
 from src.constants import (
     build_agent_label,
     find_agent_label,
-    find_pipeline_label,
 )
 from src.logging_utils import get_logger
 
@@ -45,7 +42,6 @@ async def validate_pipeline_labels(
 
     # Determine label-derived agent
     label_agent = find_agent_label(labels)
-    label_config = pipeline_config_name or find_pipeline_label(labels)
 
     # Determine tracking-table-derived agent
     table_agent: str | None = None

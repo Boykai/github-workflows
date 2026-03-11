@@ -26,9 +26,9 @@
 
 **Purpose**: Define pipeline label constants and pure-function utilities that all subsequent phases depend on. These are the foundation referenced by contracts/label-utilities.md.
 
-- [ ] T001 Add pipeline label constants (`PIPELINE_LABEL_PREFIX`, `AGENT_LABEL_PREFIX`, `ACTIVE_LABEL`, `STALLED_LABEL`) and color constants (`PIPELINE_LABEL_COLOR`, `AGENT_LABEL_COLOR`, `ACTIVE_LABEL_COLOR`, `STALLED_LABEL_COLOR`) to `backend/src/constants.py`, and append new label names to the existing `LABELS` allowlist
-- [ ] T002 Add label parsing and builder pure functions (`extract_pipeline_config()`, `extract_agent_slug()`, `build_pipeline_label()`, `build_agent_label()`) to `backend/src/constants.py` — must satisfy round-trip invariant per contracts/label-utilities.md
-- [ ] T003 Add label list query utilities (`find_pipeline_label()`, `find_agent_label()`, `has_stalled_label()`) accepting both `list[dict]` and `list[Label]` via duck-typing to `backend/src/constants.py`
+- [x] T001 Add pipeline label constants (`PIPELINE_LABEL_PREFIX`, `AGENT_LABEL_PREFIX`, `ACTIVE_LABEL`, `STALLED_LABEL`) and color constants (`PIPELINE_LABEL_COLOR`, `AGENT_LABEL_COLOR`, `ACTIVE_LABEL_COLOR`, `STALLED_LABEL_COLOR`) to `backend/src/constants.py`, and append new label names to the existing `LABELS` allowlist
+- [x] T002 Add label parsing and builder pure functions (`extract_pipeline_config()`, `extract_agent_slug()`, `build_pipeline_label()`, `build_agent_label()`) to `backend/src/constants.py` — must satisfy round-trip invariant per contracts/label-utilities.md
+- [x] T003 Add label list query utilities (`find_pipeline_label()`, `find_agent_label()`, `has_stalled_label()`) accepting both `list[dict]` and `list[Label]` via duck-typing to `backend/src/constants.py`
 
 ---
 
@@ -38,12 +38,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 Add `labels: list[dict[str, str]] | None = None` field to the `Task` model in `backend/src/models/task.py` — use simple dict representation per research R-003 to avoid cross-model coupling
-- [ ] T005 Map label data from GraphQL response `content.labels.nodes` to `Task.labels` during construction in `backend/src/services/github_projects/projects.py` inside `get_project_items()`
-- [ ] T006 [P] Add `labels?: Array<{name: string; color: string}>` to the `Task` interface in `frontend/src/types/index.ts` and update `TaskListResponse` type
-- [ ] T007 [P] Update API response type handling in `frontend/src/services/api.ts` to include label data from task responses
-- [ ] T008 [P] Implement `ensure_pipeline_labels_exist()` async function in `backend/src/constants.py` that pre-creates `active` (green) and `stalled` (red) labels with correct colors via GitHub REST API, with local cache flag to avoid redundant creation and 422 handling for idempotency — per research R-005
-- [ ] T009 [P] Write unit tests for all label constants and utilities in `backend/tests/unit/test_label_constants.py` — cover: round-trip invariants for build/extract pairs, `find_*` with mixed label formats, edge cases (empty lists, missing name keys, non-matching prefixes), and `has_stalled_label` true/false paths
+- [x] T004 Add `labels: list[dict[str, str]] | None = None` field to the `Task` model in `backend/src/models/task.py` — use simple dict representation per research R-003 to avoid cross-model coupling
+- [x] T005 Map label data from GraphQL response `content.labels.nodes` to `Task.labels` during construction in `backend/src/services/github_projects/projects.py` inside `get_project_items()`
+- [x] T006 [P] Add `labels?: Array<{name: string; color: string}>` to the `Task` interface in `frontend/src/types/index.ts` and update `TaskListResponse` type
+- [x] T007 [P] Update API response type handling in `frontend/src/services/api.ts` to include label data from task responses
+- [x] T008 [P] Implement `ensure_pipeline_labels_exist()` async function in `backend/src/constants.py` that pre-creates `active` (green) and `stalled` (red) labels with correct colors via GitHub REST API, with local cache flag to avoid redundant creation and 422 handling for idempotency — per research R-005
+- [x] T009 [P] Write unit tests for all label constants and utilities in `backend/tests/unit/test_label_constants.py` — cover: round-trip invariants for build/extract pairs, `find_*` with mixed label formats, edge cases (empty lists, missing name keys, non-matching prefixes), and `has_stalled_label` true/false paths
 
 **Checkpoint**: Foundation ready — Task model includes labels, GraphQL data is propagated, utilities are tested. User story implementation can begin.
 
@@ -61,16 +61,16 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [US2] Write unit tests for label write path in `backend/tests/unit/test_label_write_path.py` — cover: `_build_labels()` with/without `pipeline_config_name`, agent label swap (old removed + new added in single operation), `active` label move between sub-issues, `agent:*` removal on pipeline completion, stalled label removal on re-assignment, and non-blocking error handling (label failure logged as warning, never raises)
+- [x] T010 [US2] Write unit tests for label write path in `backend/tests/unit/test_label_write_path.py` — cover: `_build_labels()` with/without `pipeline_config_name`, agent label swap (old removed + new added in single operation), `active` label move between sub-issues, `agent:*` removal on pipeline completion, stalled label removal on re-assignment, and non-blocking error handling (label failure logged as warning, never raises)
 
 ### Implementation for User Story 2
 
-- [ ] T011 [US2] Extend `_build_labels()` static method to accept optional `pipeline_config_name: str | None = None` parameter and append `build_pipeline_label(pipeline_config_name)` when provided in `backend/src/services/workflow_orchestrator/orchestrator.py`
-- [ ] T012 [US2] Pass the pipeline config name to `_build_labels()` at parent issue creation call site in `backend/src/services/workflow_orchestrator/orchestrator.py` so new issues receive the `pipeline:<config>` label in their initial label set
-- [ ] T013 [US2] Add agent label swap logic in `assign_agent_for_status()` in `backend/src/services/workflow_orchestrator/orchestrator.py` — call `update_issue_state()` with `labels_add=[build_agent_label(new_slug)]` and `labels_remove=[build_agent_label(old_slug), STALLED_LABEL]` on the parent issue; wrap in try/except to ensure label failures are non-blocking (FR-017)
-- [ ] T014 [US2] Add `active` label move between sub-issues in `assign_agent_for_status()` in `backend/src/services/workflow_orchestrator/orchestrator.py` — remove `ACTIVE_LABEL` from previous sub-issue and add to new sub-issue via `update_issue_state()`; wrap in try/except for non-blocking failures
-- [ ] T015 [P] [US2] Remove `agent:*` label from parent issue on pipeline completion in `backend/src/services/copilot_polling/pipeline.py` — when all agents are done, call `update_issue_state(labels_remove=[current_agent_label])`; also remove `ACTIVE_LABEL` from the last sub-issue
-- [ ] T016 [US2] Call `ensure_pipeline_labels_exist()` at first pipeline use (before first issue creation) in `backend/src/services/workflow_orchestrator/orchestrator.py` to pre-create fixed labels with correct colors
+- [x] T011 [US2] Extend `_build_labels()` static method to accept optional `pipeline_config_name: str | None = None` parameter and append `build_pipeline_label(pipeline_config_name)` when provided in `backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T012 [US2] Pass the pipeline config name to `_build_labels()` at parent issue creation call site in `backend/src/services/workflow_orchestrator/orchestrator.py` so new issues receive the `pipeline:<config>` label in their initial label set
+- [x] T013 [US2] Add agent label swap logic in `assign_agent_for_status()` in `backend/src/services/workflow_orchestrator/orchestrator.py` — call `update_issue_state()` with `labels_add=[build_agent_label(new_slug)]` and `labels_remove=[build_agent_label(old_slug), STALLED_LABEL]` on the parent issue; wrap in try/except to ensure label failures are non-blocking (FR-017)
+- [x] T014 [US2] Add `active` label move between sub-issues in `assign_agent_for_status()` in `backend/src/services/workflow_orchestrator/orchestrator.py` — remove `ACTIVE_LABEL` from previous sub-issue and add to new sub-issue via `update_issue_state()`; wrap in try/except for non-blocking failures
+- [x] T015 [P] [US2] Remove `agent:*` label from parent issue on pipeline completion in `backend/src/services/copilot_polling/pipeline.py` — when all agents are done, call `update_issue_state(labels_remove=[current_agent_label])`; also remove `ACTIVE_LABEL` from the last sub-issue
+- [x] T016 [US2] Call `ensure_pipeline_labels_exist()` at first pipeline use (before first issue creation) in `backend/src/services/workflow_orchestrator/orchestrator.py` to pre-create fixed labels with correct colors
 
 **Checkpoint**: All pipeline transitions now apply, swap, or remove labels. Verify by running a pipeline lifecycle and checking labels on issues via GitHub API.
 
@@ -86,14 +86,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [US1] Write unit tests for fast-path reconstruction in `backend/tests/unit/test_label_fast_path.py` — cover: `_build_pipeline_from_labels()` produces correct `PipelineState` (current_agent_index, agents list, completed_agents); fast-path returns None when agent slug not found in config; fallthrough to existing chain when labels absent; fallthrough when only one of two required labels present; multiple `agent:` labels selects first match; `labels` parameter is optional (None skips fast-path)
+- [x] T017 [US1] Write unit tests for fast-path reconstruction in `backend/tests/unit/test_label_fast_path.py` — cover: `_build_pipeline_from_labels()` produces correct `PipelineState` (current_agent_index, agents list, completed_agents); fast-path returns None when agent slug not found in config; fallthrough to existing chain when labels absent; fallthrough when only one of two required labels present; multiple `agent:` labels selects first match; `labels` parameter is optional (None skips fast-path)
 
 ### Implementation for User Story 1
 
-- [ ] T018 [US1] Implement `_build_pipeline_from_labels()` helper function in `backend/src/services/copilot_polling/pipeline.py` — accepts issue_number, project_id, status, pipeline_config_name, agent_slug, and PipelineConfig; looks up agent index in config's agent list; builds and returns `PipelineState` or None if agent slug not found
-- [ ] T019 [US1] Add `labels: list[dict[str, str]] | None = None` parameter to `_get_or_reconstruct_pipeline()` and insert fast-path layer after cache check but before issue body fetch in `backend/src/services/copilot_polling/pipeline.py` — extract config name and agent slug from labels, look up pipeline config from database, call `_build_pipeline_from_labels()`, cache result on success, fall through on failure
-- [ ] T020 [US1] Propagate `task.labels` from polling loop through to `_get_or_reconstruct_pipeline()` calls in `backend/src/services/copilot_polling/polling_loop.py` — update all call sites that invoke pipeline reconstruction to pass the task's labels
-- [ ] T021 [P] [US1] Expose labels in task API responses by ensuring `labels` field is serialized in task endpoints in `backend/src/api/projects.py` — verify `TaskListResponse` includes label data for frontend consumption (FR-013)
+- [x] T018 [US1] Implement `_build_pipeline_from_labels()` helper function in `backend/src/services/copilot_polling/pipeline.py` — accepts issue_number, project_id, status, pipeline_config_name, agent_slug, and PipelineConfig; looks up agent index in config's agent list; builds and returns `PipelineState` or None if agent slug not found
+- [x] T019 [US1] Add `labels: list[dict[str, str]] | None = None` parameter to `_get_or_reconstruct_pipeline()` and insert fast-path layer after cache check but before issue body fetch in `backend/src/services/copilot_polling/pipeline.py` — extract config name and agent slug from labels, look up pipeline config from database, call `_build_pipeline_from_labels()`, cache result on success, fall through on failure
+- [x] T020 [US1] Propagate `task.labels` from polling loop through to `_get_or_reconstruct_pipeline()` calls in `backend/src/services/copilot_polling/polling_loop.py` — update all call sites that invoke pipeline reconstruction to pass the task's labels
+- [x] T021 [P] [US1] Expose labels in task API responses by ensuring `labels` field is serialized in task endpoints in `backend/src/api/projects.py` — verify `TaskListResponse` includes label data for frontend consumption (FR-013)
 
 **Checkpoint**: Pipeline state recovery from labels works with zero additional API calls. Issues without labels fall through to existing reconstruction chain. Verify by clearing cache and confirming fast-path builds correct PipelineState.
 
@@ -105,9 +105,9 @@
 
 **Independent Test**: Simulate a stalled pipeline by setting an agent idle beyond the grace period. Verify `stalled` label appears. Re-assign the agent and verify `stalled` label is removed. Verify active issues with valid agent labels skip reconciliation.
 
-- [ ] T022 [US3] Apply `stalled` label when `recover_stalled_issues()` detects an issue needing re-assignment in `backend/src/services/copilot_polling/recovery.py` — call `update_issue_state(labels_add=[STALLED_LABEL])` just before triggering re-assignment; wrap in try/except for non-blocking failure
-- [ ] T023 [US3] Add early-exit optimization in `recover_stalled_issues()` in `backend/src/services/copilot_polling/recovery.py` — when `task.labels` contains a valid `agent:<slug>` label and `has_stalled_label()` returns False, skip expensive issue body fetch and tracking table parsing for that issue (agent is assigned and not stalled)
-- [ ] T024 [P] [US3] Pass `task.labels` to recovery functions in `backend/src/services/copilot_polling/polling_loop.py` — ensure `recover_stalled_issues()` receives task objects with populated labels for the early-exit optimization
+- [x] T022 [US3] Apply `stalled` label when `recover_stalled_issues()` detects an issue needing re-assignment in `backend/src/services/copilot_polling/recovery.py` — call `update_issue_state(labels_add=[STALLED_LABEL])` just before triggering re-assignment; wrap in try/except for non-blocking failure
+- [x] T023 [US3] Add early-exit optimization in `recover_stalled_issues()` in `backend/src/services/copilot_polling/recovery.py` — when `task.labels` contains a valid `agent:<slug>` label and `has_stalled_label()` returns False, skip expensive issue body fetch and tracking table parsing for that issue (agent is assigned and not stalled)
+- [x] T024 [P] [US3] Pass `task.labels` to recovery functions in `backend/src/services/copilot_polling/polling_loop.py` — ensure `recover_stalled_issues()` receives task objects with populated labels for the early-exit optimization
 
 **Checkpoint**: Stalled issues are visually identifiable via label. Recovery skips unnecessary reconciliation for active issues. Verify by monitoring API call counts during recovery.
 
@@ -119,9 +119,9 @@
 
 **Independent Test**: Load the project board with issues that have pipeline labels. Verify agent badge, pipeline config tag, and stalled indicator render on cards. Verify pipeline config filter shows only matching issues.
 
-- [ ] T025 [US4] Add pipeline label rendering to `IssueCard` in `frontend/src/components/board/IssueCard.tsx` — parse `agent:<slug>` labels into an active agent badge (purple), `pipeline:<config>` labels into a config tag (blue), and `stalled` label into a warning indicator (red); use existing badge/tag patterns from the component
-- [ ] T026 [P] [US4] Add pipeline config filter dropdown to `BoardToolbar` in `frontend/src/components/board/BoardToolbar.tsx` — extract unique `pipeline:<config>` values from board items; add a dedicated filter (separate from general label filter) that filters board cards to only show issues matching the selected pipeline config
-- [ ] T027 [US4] Update board data flow in `frontend/src/components/board/ProjectBoard.tsx` to propagate parsed pipeline label metadata (agent slug, config name, is-stalled) to `IssueCard` components, extracting from `item.labels` array
+- [x] T025 [US4] Add pipeline label rendering to `IssueCard` in `frontend/src/components/board/IssueCard.tsx` — parse `agent:<slug>` labels into an active agent badge (purple), `pipeline:<config>` labels into a config tag (blue), and `stalled` label into a warning indicator (red); use existing badge/tag patterns from the component
+- [x] T026 [P] [US4] Add pipeline config filter dropdown to `BoardToolbar` in `frontend/src/components/board/BoardToolbar.tsx` — extract unique `pipeline:<config>` values from board items; add a dedicated filter (separate from general label filter) that filters board cards to only show issues matching the selected pipeline config
+- [x] T027 [US4] Update board data flow in `frontend/src/components/board/ProjectBoard.tsx` to propagate parsed pipeline label metadata (agent slug, config name, is-stalled) to `IssueCard` components, extracting from `item.labels` array
 
 **Checkpoint**: Board cards display agent badges, pipeline tags, and stalled indicators. Pipeline config filter works. Verify by visual inspection on a board with pipeline-labeled issues.
 
@@ -137,14 +137,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T028 [US5] Write unit tests for label validation in `backend/tests/unit/test_label_validation.py` — cover: labels match tracking table (no corrections), labels ahead of tracking table (label stale → fix label), tracking table ahead of labels (table stale → fix label), missing labels fallthrough, ground truth tiebreaker logic, idempotent re-validation, and WARNING-level logging of corrections
+- [x] T028 [US5] Write unit tests for label validation in `backend/tests/unit/test_label_validation.py` — cover: labels match tracking table (no corrections), labels ahead of tracking table (label stale → fix label), tracking table ahead of labels (table stale → fix label), missing labels fallthrough, ground truth tiebreaker logic, idempotent re-validation, and WARNING-level logging of corrections
 
 ### Implementation for User Story 5
 
-- [ ] T029 [US5] Create `validate_pipeline_labels()` function in new file `backend/src/services/copilot_polling/state_validation.py` — compare label-derived agent state vs tracking-table-derived agent state; when they disagree, check GitHub ground truth (sub-issue state, assignment) and fix the stale source; return `(corrections_made: bool, correction_descriptions: list[str])`; log corrections at WARNING level
-- [ ] T030 [US5] Simplify `_self_heal_tracking_table()` using `pipeline:<config>` label for direct config lookup in `backend/src/services/agent_tracking.py` — when pipeline config name is available from labels, read agent list from config directly instead of calling the sub-issues API (saves 1–2 API calls per self-heal)
-- [ ] T031 [US5] Optimize `_validate_and_reconcile_tracking_table()` start index using `agent:<slug>` label in `backend/src/services/copilot_polling/recovery.py` — when agent slug is available, find its index in the pipeline config and only validate agents from that index onward (skip already-completed agents)
-- [ ] T032 [US5] Integrate `validate_pipeline_labels()` into the polling cycle in `backend/src/services/copilot_polling/polling_loop.py` — call validation at most once per polling cycle per issue, after fast-path reconstruction but before recovery; ensure validation is non-blocking
+- [x] T029 [US5] Create `validate_pipeline_labels()` function in new file `backend/src/services/copilot_polling/state_validation.py` — compare label-derived agent state vs tracking-table-derived agent state; when they disagree, check GitHub ground truth (sub-issue state, assignment) and fix the stale source; return `(corrections_made: bool, correction_descriptions: list[str])`; log corrections at WARNING level
+- [x] T030 [US5] Simplify `_self_heal_tracking_table()` using `pipeline:<config>` label for direct config lookup in `backend/src/services/agent_tracking.py` — when pipeline config name is available from labels, read agent list from config directly instead of calling the sub-issues API (saves 1–2 API calls per self-heal)
+- [x] T031 [US5] Optimize `_validate_and_reconcile_tracking_table()` start index using `agent:<slug>` label in `backend/src/services/copilot_polling/recovery.py` — when agent slug is available, find its index in the pipeline config and only validate agents from that index onward (skip already-completed agents)
+- [x] T032 [US5] Integrate `validate_pipeline_labels()` into the polling cycle in `backend/src/services/copilot_polling/polling_loop.py` — call validation at most once per polling cycle per issue, after fast-path reconstruction but before recovery; ensure validation is non-blocking
 
 **Checkpoint**: Recovery uses fewer API calls when labels are present. Label/tracking-table mismatches are detected and corrected. Verify by comparing API call counts before and after.
 
@@ -154,9 +154,9 @@
 
 **Purpose**: Final validation, documentation, and cleanup across all modified files.
 
-- [ ] T033 [P] Run all quickstart.md validation scenarios end-to-end to verify label operations across the full pipeline lifecycle in `specs/034-label-pipeline-state/quickstart.md`
-- [ ] T034 Code review and cleanup across all modified backend and frontend files — verify consistent error handling (all label writes wrapped in try/except), verify FR-016 (at most one `agent:` label per parent issue), verify FR-015 (tracking table remains authoritative)
-- [ ] T035 [P] Verify all existing tests pass with new label fields — run `pytest backend/tests/` to confirm no regressions from Task model extension or function signature changes
+- [x] T033 [P] Run all quickstart.md validation scenarios end-to-end to verify label operations across the full pipeline lifecycle in `specs/034-label-pipeline-state/quickstart.md`
+- [x] T034 Code review and cleanup across all modified backend and frontend files — verify consistent error handling (all label writes wrapped in try/except), verify FR-016 (at most one `agent:` label per parent issue), verify FR-015 (tracking table remains authoritative)
+- [x] T035 [P] Verify all existing tests pass with new label fields — run `pytest backend/tests/` to confirm no regressions from Task model extension or function signature changes
 
 ---
 

@@ -255,30 +255,37 @@ async def ensure_pipeline_labels_exist(
         (STALLED_LABEL, STALLED_LABEL_COLOR, "Pipeline is stalled and needs recovery"),
     ]
 
-    for name, color, description in _FIXED_LABELS:
-        try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.post(
-                    f"https://api.github.com/repos/{owner}/{repo}/labels",
-                    headers={
-                        "Authorization": f"Bearer {access_token}",
-                        "Accept": "application/vnd.github+json",
-                        "X-GitHub-Api-Version": "2022-11-28",
-                    },
-                    json={"name": name, "color": color, "description": description},
-                )
-                if resp.status_code == 422:
-                    pass  # already exists — idempotent
-                elif resp.status_code >= 400:
+    try:
+        async with httpx.AsyncClient() as client:
+            for name, color, description in _FIXED_LABELS:
+                try:
+                    resp = await client.post(
+                        f"https://api.github.com/repos/{owner}/{repo}/labels",
+                        headers={
+                            "Authorization": f"Bearer {access_token}",
+                            "Accept": "application/vnd.github+json",
+                            "X-GitHub-Api-Version": "2022-11-28",
+                        },
+                        json={"name": name, "color": color, "description": description},
+                    )
+                    if resp.status_code == 422:
+                        pass  # already exists — idempotent
+                    elif resp.status_code >= 400:
+                        from src.logging_utils import get_logger
+
+                        get_logger(__name__).warning(
+                            "Failed to pre-create label '%s': %d %s",
+                            name,
+                            resp.status_code,
+                            resp.text,
+                        )
+                except Exception:
                     from src.logging_utils import get_logger
 
                     get_logger(__name__).warning(
-                        "Failed to pre-create label '%s': %d %s",
-                        name,
-                        resp.status_code,
-                        resp.text,
+                        "Failed to pre-create label '%s'", name, exc_info=True
                     )
-        except Exception:
-            from src.logging_utils import get_logger
+    except Exception:
+        from src.logging_utils import get_logger
 
-            get_logger(__name__).warning("Failed to pre-create label '%s'", name, exc_info=True)
+        get_logger(__name__).warning("Failed to create httpx client for label pre-creation", exc_info=True)

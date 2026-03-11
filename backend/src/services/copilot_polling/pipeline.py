@@ -5,7 +5,7 @@ from datetime import datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
-from src.constants import ACTIVE_LABEL, build_agent_label, find_agent_label
+from src.constants import ACTIVE_LABEL, build_agent_label, find_agent_label, find_pipeline_label
 from src.logging_utils import get_logger
 from src.utils import utcnow
 
@@ -143,8 +143,6 @@ async def _build_pipeline_from_labels(
     is not found in the config, triggering fallthrough to the regular
     reconstruction chain.
     """
-    from src.constants import find_agent_label, find_pipeline_label
-
     config_name = find_pipeline_label(labels)
     agent_slug = find_agent_label(labels)
     if not config_name or not agent_slug:

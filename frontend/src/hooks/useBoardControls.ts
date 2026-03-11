@@ -103,7 +103,7 @@ function mergeStoredControlsWithDefaults(value: unknown): BoardControlsState {
       milestones: Array.isArray(filters.milestones)
         ? [...filters.milestones]
         : base.filters.milestones,
-      pipelineConfig: typeof filters.pipelineConfig === 'string' ? filters.pipelineConfig : null,
+      pipelineConfig: filters.pipelineConfig && typeof filters.pipelineConfig === 'string' ? filters.pipelineConfig : null,
     },
     sort: {
       field: VALID_SORT_FIELDS.includes(sort.field ?? null)
