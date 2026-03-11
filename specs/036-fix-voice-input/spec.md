@@ -21,7 +21,7 @@ A user opens the chat interface in Firefox (version 85 or later) and sees the mi
 2. **Given** a user opens the chat in Chrome, **When** the page loads, **Then** the microphone button is enabled and no "not supported" message is shown.
 3. **Given** a user opens the chat in Edge, **When** the page loads, **Then** the microphone button is enabled and no "not supported" message is shown.
 4. **Given** a user opens the chat in Safari (14.1+), **When** the page loads, **Then** the microphone button is enabled and no "not supported" message is shown.
-5. **Given** a user opens the chat in a browser that genuinely lacks speech recognition support, **When** the page loads, **Then** the microphone button is disabled and displays "Voice input not supported in this browser" (grammatically correct).
+5. **Given** a user opens the chat in a browser that genuinely lacks speech recognition support, **When** the page loads, **Then** the microphone button is disabled and displays "Voice input not supported in this browser."
 
 ---
 
@@ -69,7 +69,7 @@ Today, the error message reads "Voice input not support in this browser" — a g
 
 **Acceptance Scenarios**:
 
-1. **Given** a user opens the chat in an unsupported browser, **When** the page loads, **Then** the error message reads "Voice input not supported in this browser" (not "not support").
+1. **Given** a user opens the chat in an unsupported browser, **When** the page loads, **Then** the error message reads "Voice input not supported in this browser."
 2. **Given** a user opens the chat in a supported browser, **When** the page loads, **Then** no error message is displayed at all.
 
 ---
