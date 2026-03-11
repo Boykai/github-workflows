@@ -1427,8 +1427,9 @@ async def _transition_after_pipeline_complete(
                         )
                     except Exception as e:
                         logger.exception(
-                            "Failed to activate queued issue #%d",
+                            "Failed to activate queued issue #%d: %s",
                             activated_entry.issue_number,
+                            e,
                         )
         except Exception as e:
             logger.debug("Blocking queue mark_completed skipped (not available): %s", e)
@@ -1464,8 +1465,9 @@ async def _transition_after_pipeline_complete(
                         )
                     except Exception as e:
                         logger.exception(
-                            "Failed to activate queued issue #%d",
+                            "Failed to activate queued issue #%d: %s",
                             activated_entry.issue_number,
+                            e,
                         )
         except Exception as e:
             logger.debug("Blocking queue mark_in_review skipped (not available): %s", e)

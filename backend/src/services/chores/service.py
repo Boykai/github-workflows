@@ -628,8 +628,9 @@ class ChoresService:
                             config.agent_mappings = _pipeline_result.agent_mappings
                 except Exception as e:
                     logger.debug(
-                        "Pipeline mapping resolution failed for chore %s; using config defaults",
+                        "Pipeline mapping resolution failed for chore %s; using config defaults: %s",
                         chore.name,
+                        e,
                     )
 
                 # Set issue status to Backlog on the project board
@@ -648,8 +649,9 @@ class ChoresService:
                     )
                 except Exception as e:
                     logger.exception(
-                        "Failed to set Backlog status for chore issue #%d",
+                        "Failed to set Backlog status for chore issue #%d: %s",
                         issue_number,
+                        e,
                     )
 
                 # Build workflow context
@@ -747,9 +749,10 @@ class ChoresService:
             pass  # Issue is queued — skip agent assignment, continue to CAS update
         except Exception as e:
             logger.exception(
-                "Agent pipeline failed for chore %s (issue #%s)",
+                "Agent pipeline failed for chore %s (issue #%s): %s",
                 chore.name,
                 issue_number,
+                e,
             )
 
         # CAS update chore record
@@ -787,9 +790,10 @@ class ChoresService:
                 )
             except Exception as e:
                 logger.exception(
-                    "Failed to close duplicate issue #%s for chore %s",
+                    "Failed to close duplicate issue #%s for chore %s: %s",
                     issue_number,
                     chore.name,
+                    e,
                 )
             return ChoreTriggerResult(
                 chore_id=chore.id,
@@ -858,9 +862,10 @@ class ChoresService:
                         )
                 except Exception as e:
                     logger.exception(
-                        "Failed to check issue status for chore %s (issue #%s)",
+                        "Failed to check issue status for chore %s (issue #%s): %s",
                         chore.name,
                         chore.current_issue_number,
+                        e,
                     )
 
             # Evaluate trigger condition

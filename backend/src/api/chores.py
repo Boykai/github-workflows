@@ -115,8 +115,9 @@ async def list_templates(
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as e:
         logger.warning(
-            "Failed to resolve repository for project %s when listing chore templates",
+            "Failed to resolve repository for project %s when listing chore templates: %s",
             project_id,
+            e,
             exc_info=True,
         )
         return []
@@ -304,9 +305,10 @@ async def delete_chore(
             closed_issue_number = existing.current_issue_number
         except Exception as e:
             logger.warning(
-                "Failed to close issue #%s when deleting chore %s",
+                "Failed to close issue #%s when deleting chore %s: %s",
                 existing.current_issue_number,
                 chore_id,
+                e,
             )
 
     await service.delete_chore(chore_id)
