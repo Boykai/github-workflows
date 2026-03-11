@@ -54,7 +54,7 @@ function SubIssueStateIcon({ state }: { state: string }) {
   );
 }
 
-function SubIssueRow({
+const SubIssueRow = memo(function SubIssueRow({
   subIssue,
   availableAgents,
 }: {
@@ -89,7 +89,7 @@ function SubIssueRow({
       <span className="text-muted-foreground ml-auto">#{subIssue.number}</span>
     </a>
   );
-}
+});
 
 const FALLBACK_LABEL_COLOR = 'd1d5db';
 
@@ -247,6 +247,7 @@ export const IssueCard = memo(function IssueCard({
               setIsSubIssuesExpanded(!isSubIssuesExpanded);
             }}
             type="button"
+            aria-expanded={isSubIssuesExpanded}
           >
             {isSubIssuesExpanded ? (
               <ChevronDown className="h-3.5 w-3.5" />

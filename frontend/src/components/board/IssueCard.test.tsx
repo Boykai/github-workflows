@@ -152,4 +152,30 @@ describe('IssueCard', () => {
 
     expect(screen.getByText('Blocking')).toBeInTheDocument();
   });
+
+  it('sets aria-expanded on the sub-issues toggle button', async () => {
+    const item = createBoardItem({
+      sub_issues: [
+        {
+          id: 'si-1',
+          number: 1,
+          title: 'Sub 1',
+          url: '#',
+          state: 'open',
+          assignees: [],
+          linked_prs: [],
+        },
+      ],
+    });
+    render(<IssueCard item={item} onClick={vi.fn()} />);
+
+    // The card itself has role="button", so filter for the inner toggle button by type attr
+    const buttons = screen.getAllByRole('button');
+    const toggle = buttons.find((btn) => btn.getAttribute('type') === 'button')!;
+    expect(toggle).toBeDefined();
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.setup().click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  });
 });
