@@ -163,3 +163,44 @@
 | Rate limit / polling | ✅ Resolved | Comprehensive handling in place; ETag support deferred to second pass |
 
 **All NEEDS CLARIFICATION items resolved.** Proceeding to Phase 1 design.
+
+---
+
+## Implementation Audit (Spec 034 First Pass)
+
+**Date**: 2026-03-11 | **Status**: Complete
+
+### Spec 022 Audit Confirmation
+
+All five Spec 022 targets confirmed fully implemented:
+
+| Target | Status | Evidence |
+|--------|--------|----------|
+| WebSocket SHA256 change detection | ✅ | `projects.py` lines 375-388 — hash comparison before send |
+| Board cache TTL 300s | ✅ | `board.py` line 364 — `ttl_seconds=300` |
+| Sub-issue cache invalidation on manual refresh | ✅ | `board.py` lines 318-327 — clears all `SUB_ISSUES:*` entries |
+| Stale fallback on rate limit | ✅ | `board.py` stale fallback via `cache.get_stale()` |
+| Rate-limit-aware polling | ✅ | `polling_loop.py` — pause/skip/slow thresholds |
+
+### Gap Fixes Applied
+
+1. **Sub-issue cache TTL alignment**: Fixed 600s → 300s in `issues.py` to match board data TTL (contract violation).
+2. **Centralized query keys**: Extracted `boardProjectsKey`, `boardDataKey`, `projectTasksKey` from inline strings to prevent drift.
+3. **Repository resolution caching**: Added `BoundedDict(maxlen=128)` memoization for `resolve_repository()` to avoid repeated GraphQL lookups.
+4. **pipelineGridStyle memoization**: Wrapped with `useMemo` to prevent object recreation on every render.
+
+### Items Already Implemented (No Code Changes Needed)
+
+- Polling fallback invalidation already targets task queries only (not board data).
+- Auto-refresh already uses `invalidateQueries` (non-forced, backend cache allowed).
+- WebSocket messages already skip unchanged data via SHA256 hash.
+- BoardColumn and IssueCard already wrapped in `React.memo`.
+- ChatPopup drag listeners already gated to `requestAnimationFrame`.
+- `workflow.py` already uses the canonical `resolve_repository` from `utils.py`.
+
+### Deferred to Second Pass
+
+- Board virtualization (react-window / react-virtuoso)
+- ETag-based conditional requests to GitHub REST API
+- Deeper service decomposition of GitHub project fetching pipeline
+- Request budget instrumentation and render timing dashboards

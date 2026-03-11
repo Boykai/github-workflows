@@ -60,4 +60,12 @@ Board refresh (manual, refresh=true):
 - `BoundedSet` and `BoundedDict` use FIFO eviction when capacity is reached.
 - Default capacity is configurable per instance.
 - GraphQL in-flight coalescing uses `BoundedDict(maxlen=256)`.
+- Repository resolution memoization uses `BoundedDict(maxlen=128)`.
 - No cache entry persists beyond its TTL + stale window.
+
+## First-Pass Verification Notes
+
+- **Sub-issue TTL alignment**: Fixed from 600s to 300s to match board data TTL (prevents inconsistent staleness).
+- **Warm cache reuse**: `get_sub_issues()` in `issues.py` already checks cache before API call (confirmed).
+- **Manual refresh bypass**: Board endpoint clears sub-issue caches and logs count before fetching fresh data (enhanced with instrumentation).
+- **Repository resolution**: Memoized with `BoundedDict(maxlen=128)` to avoid repeated GraphQL lookups across refresh flows.

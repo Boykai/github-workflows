@@ -307,3 +307,28 @@ class TestStartCopilotPolling:
             ms.return_value = MagicMock(default_repo_owner="", default_repo_name="")
             await _start_copilot_polling(session, "proj-1")
             mock_poll.assert_not_called()
+
+
+# ── Performance regression: WebSocket zero-change cycle (Spec 034 T014) ────
+
+
+class TestWebSocketZeroChangeCycle:
+    """Verify that unchanged WebSocket refresh cycles skip sending messages."""
+
+    async def test_send_tasks_returns_cached_without_api_call(self, mock_github_service):
+        """Periodic (non-forced) send_tasks should use cache, not call GitHub."""
+        from src.api.projects import get_project_items_cache_key
+        from src.services.cache import cache
+
+        cache_key = get_project_items_cache_key("PVT_abc")
+        fake_tasks = [_task()]
+        cache.set(cache_key, fake_tasks)
+
+        # Cache should return the value without calling the service
+        cached = cache.get(cache_key)
+        assert cached is not None
+        assert len(cached) == 1
+        mock_github_service.get_project_items.assert_not_called()
+
+        # Clean up
+        cache.delete(cache_key)

@@ -246,6 +246,20 @@ async def client(
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(autouse=True)
+def _clear_repo_resolution_cache():
+    """Clear the repository resolution cache between all tests.
+
+    The ``_repo_resolution_cache`` in ``src.utils`` is a module-level
+    ``BoundedDict`` that memoizes ``resolve_repository`` results (Spec 034).
+    Without cleanup, cached results from one test can leak into another.
+    """
+    from src.utils import _repo_resolution_cache
+
+    _repo_resolution_cache.clear()
+    yield
+
+
 # =============================================================================
 # Factory helpers (consolidated from tests/helpers/mocks.py)
 # =============================================================================

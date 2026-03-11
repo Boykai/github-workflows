@@ -10,6 +10,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AUTO_REFRESH_INTERVAL_MS, RATE_LIMIT_LOW_THRESHOLD } from '@/constants';
 import type { RateLimitInfo, RefreshError, BoardDataResponse } from '@/types';
 import { ApiError, boardApi } from '@/services/api';
+import { boardDataKey } from '@/hooks/useProjectBoard';
 
 interface UseBoardRefreshOptions {
   /** Currently selected project ID */
@@ -50,7 +51,7 @@ export function useBoardRefresh({
   // This runs once when boardData first arrives (lastRefreshedAt is still null).
   useEffect(() => {
     if (lastRefreshedAt !== null || !projectId) return;
-    const queryState = queryClient.getQueryState(['board', 'data', projectId]);
+    const queryState = queryClient.getQueryState(boardDataKey(projectId));
     if (queryState?.dataUpdatedAt) {
       setLastRefreshedAt(new Date(queryState.dataUpdatedAt));
     }
@@ -85,13 +86,13 @@ export function useBoardRefresh({
           // Manual refresh: cancel any in-progress automatic refresh first,
           // then bypass the backend cache by fetching with refresh=true
           // and writing the result directly into TanStack Query.
-          await queryClient.cancelQueries({ queryKey: ['board', 'data', projectId] });
+          await queryClient.cancelQueries({ queryKey: boardDataKey(projectId) });
           const data = await boardApi.getBoardData(projectId, /* refresh */ true);
-          queryClient.setQueryData(['board', 'data', projectId], data);
+          queryClient.setQueryData(boardDataKey(projectId), data);
         } else {
           // Auto-refresh: revalidate using the default queryFn which may
           // serve backend-cached data — acceptable for periodic background refreshes.
-          await queryClient.invalidateQueries({ queryKey: ['board', 'data', projectId] });
+          await queryClient.invalidateQueries({ queryKey: boardDataKey(projectId) });
         }
         setLastRefreshedAt(new Date());
         setError(null);

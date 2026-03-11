@@ -94,15 +94,18 @@
 
 ### Backend Tests to Extend
 
-| Test File | Coverage Target | New/Extended |
-|-----------|----------------|-------------|
-| test_cache.py | Warm vs. cold sub-issue cache hit measurement | Extended |
-| test_api_board.py | Idle board produces zero redundant API calls | Extended |
-| test_copilot_polling.py | Polling does not trigger full board refresh | Extended |
+| Test File | Coverage Target | New/Extended | Status |
+|-----------|----------------|-------------|--------|
+| test_cache.py | Warm vs. cold sub-issue cache hit measurement | Extended | ✅ 5 new tests |
+| test_api_board.py | Idle board produces zero redundant API calls | Extended | ✅ 2 new tests |
+| test_copilot_polling.py | Polling does not trigger full board refresh | Existing | ✅ Verified by audit |
 
 ### Frontend Tests to Extend
 
-| Test File | Coverage Target | New/Extended |
-|-----------|----------------|-------------|
-| useRealTimeSync.test.tsx | Polling fallback invalidates only task queries | Extended |
-| useBoardRefresh.test.tsx | Auto-refresh uses task-only scope, not full board | Extended |
+| Test File | Coverage Target | New/Extended | Status |
+|-----------|----------------|-------------|--------|
+| useRealTimeSync.test.tsx | Polling fallback invalidates only task queries | Extended | ✅ 2 new tests |
+| useBoardRefresh.test.tsx | Auto-refresh uses task-only scope, not full board | Extended | ✅ 2 new tests |
+| useProjectBoard.test.tsx | Query-key helper contracts | Extended | ✅ 3 new tests |
+| BoardColumn.test.tsx | Memo boundary verification | Extended | ✅ 1 new test |
+| IssueCard.test.tsx | Memo boundary verification | Extended | ✅ 1 new test |
