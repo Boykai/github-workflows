@@ -93,7 +93,11 @@ def assert_api_call_count_reduced(
         label: Human-readable metric name for the error message.
     """
     if baseline == 0:
-        return  # nothing to reduce
+        assert optimized == 0, (
+            f"{label}: baseline is 0 but optimized is {optimized} — "
+            "expected 0 when there is nothing to reduce"
+        )
+        return
     reduction = (1 - optimized / baseline) * 100
     assert reduction >= min_reduction_pct, (
         f"{label}: expected ≥ {min_reduction_pct}% reduction, "

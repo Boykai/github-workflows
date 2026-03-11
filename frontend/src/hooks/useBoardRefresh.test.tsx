@@ -476,8 +476,8 @@ describe('useBoardRefresh', () => {
 
   // ── Performance regression: auto-refresh scope and board data key (Spec 034) ──
 
-  describe('auto-refresh uses task-only scope', () => {
-    it('auto-refresh timer should invalidate board data query, not tasks', async () => {
+  describe('auto-refresh uses board data scope (non-forced)', () => {
+    it('auto-refresh timer should invalidate the board data query key', async () => {
       vi.useFakeTimers();
       const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },

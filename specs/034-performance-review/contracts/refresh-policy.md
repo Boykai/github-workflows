@@ -15,15 +15,16 @@ All data refresh operations follow a single coherent policy. Each refresh source
 | WebSocket `refresh` | task_only | No | No | None |
 | WebSocket `initial_data` | task_only | No | No | 2s |
 | Fallback polling (30s) | task_only | No | No | None |
-| Auto-refresh (5 min) | task_only | No | No | None |
+| Auto-refresh (5 min) | board_data (non-forced) | No | Yes (non-forced, backend cache allowed) | None |
 | Manual refresh (user) | full_board | Yes | Yes | None (dedup only) |
 
 ### Invariants
 
-1. **No accidental full board reload**: Only `manual` refresh triggers a full board data reload. WebSocket, polling, and auto-refresh MUST NOT invalidate the board data query.
-2. **Task-only invalidation**: WebSocket and polling events invalidate task-level queries (`['tasks', projectId]`) without touching board-level queries (`['board', projectId]`).
-3. **Manual refresh supremacy**: When a manual refresh is in progress, auto-refresh and polling events are either deduplicated or deferred until the manual refresh completes.
-4. **No polling storm**: The transition from WebSocket to polling fallback MUST NOT trigger a burst of full board refreshes. Polling uses the same lightweight task-only invalidation as WebSocket.
+1. **No accidental full board reload from WebSocket/polling**: Only `manual` refresh and `auto-refresh` trigger a board data reload. WebSocket and polling MUST NOT invalidate the board data query.
+2. **WebSocket/polling task-only invalidation**: WebSocket and polling events invalidate task-level queries (`['tasks', projectId]`) without touching board-level queries (`['board', projectId]`).
+3. **Auto-refresh uses non-forced board invalidation**: Auto-refresh invalidates the board data query via `invalidateQueries` (non-forced), allowing the backend cache to serve fresh data without bypassing it. This is distinct from manual refresh which bypasses all caches.
+4. **Manual refresh supremacy**: When a manual refresh is in progress, auto-refresh and polling events are either deduplicated or deferred until the manual refresh completes.
+5. **No polling storm**: The transition from WebSocket to polling fallback MUST NOT trigger a burst of full board refreshes. Polling uses the same lightweight task-only invalidation as WebSocket.
 
 ## WebSocket → Polling Fallback Contract
 
@@ -54,7 +55,7 @@ WebSocket reconnects:
 ## Auto-Refresh Contract
 
 - **Interval**: 300,000ms (5 minutes)
-- **Scope**: task_only (non-forced)
+- **Scope**: board_data (non-forced, backend cache allowed)
 - **Page visibility**: Pauses when tab is hidden; force-refreshes when tab becomes visible if data is stale > 5 minutes
 - **Interaction with manual refresh**: Timer resets after any manual refresh
 
@@ -69,6 +70,6 @@ WebSocket reconnects:
 
 - **Centralized query keys**: `boardDataKey`, `projectTasksKey`, `boardProjectsKey` exported from `useProjectBoard.ts` and used by `useRealTimeSync.ts` and `useBoardRefresh.ts` to prevent drift.
 - **Polling fallback scope**: Confirmed task-only (`projectTasksKey`) — no board data invalidation from polling.
-- **Auto-refresh scope**: Uses `boardDataKey` with `invalidateQueries` (non-forced, backend cache allowed).
+- **Auto-refresh scope**: Uses `boardDataKey` with `invalidateQueries` (non-forced, backend cache allowed). This is intentionally broader than task-only because the 5-minute auto-refresh is meant to keep board layout data reasonably fresh, while still respecting the backend's 300s cache TTL.
 - **Manual refresh scope**: Uses `boardDataKey` with `cancelQueries` + `getBoardData(projectId, true)` + `setQueryData` (forced, bypasses all caches).
 - **WebSocket/polling storm prevention**: WebSocket starts first; polling only activates on WS failure/close/timeout.
