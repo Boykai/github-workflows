@@ -912,10 +912,11 @@ async def confirm_proposal(
                 )
                 user_chat_model = effective_user_settings.ai.model
                 user_agent_model = effective_user_settings.ai.agent_model
-            except Exception:
+            except Exception as e:
                 logger.warning(
-                    "Could not load effective user settings for session %s; user_chat_model left empty",
+                    "Could not load effective user settings for session %s; user_chat_model left empty: %s",
                     session.session_id,
+                    e,
                 )
                 user_chat_model = ""
                 user_agent_model = ""

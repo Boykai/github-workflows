@@ -440,7 +440,8 @@ class AgentsService:
                         path=f".github/agents/{name}",
                     )
                     content = file_data.get("content", "") if file_data else ""
-                except Exception:
+                except Exception as e:
+                    logger.debug("Could not fetch agent file content: %s", e)
                     content = ""
 
             # Parse YAML frontmatter
@@ -550,8 +551,8 @@ class AgentsService:
                 )
         except ValueError:
             raise  # Re-raise our own validation error
-        except Exception:
-            pass  # File not found or API error — safe to proceed
+        except Exception as e:
+            logger.debug("Agent body not found, proceeding: %s", e)
 
         description = body.description
         requested_tools = list(body.tools)
@@ -1295,7 +1296,8 @@ class AgentsService:
                 repo=repo,
                 path=".github/agents",
             )
-        except Exception:
+        except Exception as e:
+            logger.debug("Could not list agent files: %s", e)
             return []
 
         examples: list[str] = []
@@ -1316,7 +1318,8 @@ class AgentsService:
                     content = file_data["content"]
                     # Trim to first 1500 chars to avoid token overload
                     examples.append(f"### {name}\n```\n{content[:1500]}\n```")
-            except Exception:
+            except Exception as e:
+                logger.debug("Skipping agent file due to error: %s", e)
                 continue
         return examples
 
