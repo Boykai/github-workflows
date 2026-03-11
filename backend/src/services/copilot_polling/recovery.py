@@ -3,6 +3,7 @@
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.constants import STALLED_LABEL, find_agent_label, has_stalled_label
 from src.logging_utils import get_logger
 from src.models.agent import AgentStepState
 from src.services.github_projects.identities import is_copilot_author
@@ -185,6 +186,22 @@ async def _attempt_reassignment(
     )
     ctx.config = config
 
+    # Apply stalled label before re-assignment (non-blocking)
+    try:
+        await _cp.github_projects_service.update_issue_state(
+            access_token=access_token,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=issue_number,
+            labels_add=[STALLED_LABEL],
+        )
+    except Exception as exc:
+        logger.warning(
+            "Non-blocking: failed to apply stalled label on issue #%d: %s",
+            issue_number,
+            exc,
+        )
+
     try:
         assigned = await orchestrator.assign_agent_for_status(
             ctx, agent_status, agent_index=agent_index
@@ -320,6 +337,18 @@ async def recover_stalled_issues(
 
             # Cooldown + blocking queue guard (T038)
             if await _should_skip_recovery(issue_number, task_owner, task_repo, now):
+                continue
+
+            # ── Label-based early exit ────────────────────────────────────
+            # If the task has a valid agent label and is not marked stalled,
+            # the pipeline is demonstrably active — skip the expensive issue
+            # body fetch and tracking table parse.
+            task_labels = getattr(task, "labels", None) or []
+            if find_agent_label(task_labels) and not has_stalled_label(task_labels):
+                logger.debug(
+                    "Recovery: skipping issue #%d — has active agent label, not stalled",
+                    issue_number,
+                )
                 continue
 
             # ── Read the issue body tracking table ────────────────────────

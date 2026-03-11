@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
+from src.constants import ACTIVE_LABEL, build_agent_label, find_agent_label, find_pipeline_label
 from src.logging_utils import get_logger
 from src.utils import utcnow
 
@@ -127,6 +128,66 @@ async def _self_heal_tracking_table(
     return steps
 
 
+async def _build_pipeline_from_labels(
+    issue_number: int,
+    project_id: str,
+    status: str,
+    labels: list[dict[str, str]],
+) -> "_cp.PipelineState | None":
+    """Build PipelineState from label data and pipeline configuration.
+
+    Uses ``pipeline:<config>`` to look up the full agent list and
+    ``agent:<slug>`` to determine the current agent index.
+
+    Returns None when the labels are insufficient or the agent slug
+    is not found in the config, triggering fallthrough to the regular
+    reconstruction chain.
+    """
+    config_name = find_pipeline_label(labels)
+    agent_slug = find_agent_label(labels)
+    if not config_name or not agent_slug:
+        return None
+
+    # Look up pipeline config from DB
+    try:
+        from src.services.pipelines.service import PipelineService
+
+        svc = PipelineService()
+        configs = await svc.list_pipelines(project_id)
+        matched_config = next((c for c in configs if c.name == config_name), None)
+        if not matched_config:
+            return None
+    except Exception:
+        return None
+
+    # Build ordered agent list from pipeline stages
+    all_agents: list[str] = []
+    for stage in matched_config.stages:
+        for agent in stage.agents:
+            slug = getattr(agent, "slug", None) or str(agent)
+            all_agents.append(slug)
+
+    if not all_agents:
+        return None
+
+    # Find the current agent's index
+    try:
+        agent_index = all_agents.index(agent_slug)
+    except ValueError:
+        return None  # agent not in config → fallthrough
+
+    completed = all_agents[:agent_index]
+
+    return _cp.PipelineState(
+        issue_number=issue_number,
+        project_id=project_id,
+        status=status,
+        agents=all_agents,
+        current_agent_index=agent_index,
+        completed_agents=list(completed),
+    )
+
+
 async def _get_or_reconstruct_pipeline(
     access_token: str,
     owner: str,
@@ -136,12 +197,17 @@ async def _get_or_reconstruct_pipeline(
     status: str,
     agents: list[str],
     expected_status: str | None = None,
+    labels: list[dict[str, str]] | None = None,
 ) -> "_cp.PipelineState":
     """
     Get existing pipeline state or reconstruct from issue comments.
 
-    This consolidates the repeated pattern of checking for existing pipeline
-    state and reconstructing it if missing or for a different status.
+    Reconstruction chain (in order of preference):
+    1. In-memory cache hit → return cached state
+    2. Label fast-path → build from pipeline:<config> + agent:<slug>
+    3. Issue body → parse tracking table
+    4. Sub-issues → self-heal tracking table
+    5. Full reconstruction → _reconstruct_pipeline_state()
 
     Args:
         access_token: GitHub access token
@@ -152,6 +218,7 @@ async def _get_or_reconstruct_pipeline(
         status: Current workflow status
         agents: Ordered list of agents for this status
         expected_status: If provided, only use cached pipeline if status matches
+        labels: Issue labels from the board query (enables fast-path)
 
     Returns:
         PipelineState (either cached or reconstructed)
@@ -162,6 +229,25 @@ async def _get_or_reconstruct_pipeline(
     if pipeline is not None:
         if expected_status is None or pipeline.status == expected_status:
             return pipeline
+
+    # ── Label fast-path (zero additional API calls) ───────────────────
+    if labels:
+        fast_path = await _build_pipeline_from_labels(
+            issue_number=issue_number,
+            project_id=project_id,
+            status=status,
+            labels=labels,
+        )
+        if fast_path is not None:
+            _cp.set_pipeline_state(issue_number, fast_path)
+            logger.info(
+                "Fast-path: built pipeline for issue #%d from labels "
+                "(agent=%s, index=%d)",
+                issue_number,
+                fast_path.current_agent,
+                fast_path.current_agent_index,
+            )
+            return fast_path
 
     # Before reconstructing with the caller's agents, check the tracking
     # table in the issue body.  If an earlier pipeline status still has
@@ -364,6 +450,43 @@ async def _process_pipeline_completion(
                     task.issue_number,
                     e,
                 )
+
+        # All agents done → clean up pipeline labels (non-blocking)
+        try:
+            labels_to_remove: list[str] = []
+            # Remove the current agent:* label from parent
+            task_labels = getattr(task, "labels", None) or []
+            agent_slug = find_agent_label(task_labels)
+            if agent_slug:
+                labels_to_remove.append(build_agent_label(agent_slug))
+            elif pipeline.current_agent:
+                labels_to_remove.append(build_agent_label(pipeline.current_agent))
+            if labels_to_remove:
+                await _cp.github_projects_service.update_issue_state(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=task.issue_number,
+                    labels_remove=labels_to_remove,
+                )
+            # Remove active from the last sub-issue
+            last_agent = pipeline.agents[-1] if pipeline.agents else None
+            if last_agent:
+                last_sub = pipeline.agent_sub_issues.get(last_agent, {}).get("number")
+                if last_sub:
+                    await _cp.github_projects_service.update_issue_state(
+                        access_token=access_token,
+                        owner=task_owner,
+                        repo=task_repo,
+                        issue_number=last_sub,
+                        labels_remove=[ACTIVE_LABEL],
+                    )
+        except Exception as e:
+            logger.warning(
+                "Non-blocking: failed to clean up pipeline labels for issue #%d: %s",
+                task.issue_number,
+                e,
+            )
 
         # All agents done → transition to next status
         return await _transition_after_pipeline_complete(
@@ -577,6 +700,7 @@ async def check_backlog_issues(
                 project_id=project_id,
                 status=config.status_backlog,
                 agents=agents,
+                labels=task.labels,
             )
 
             # Skip if no agents found (neither DB config nor tracking table)
@@ -669,6 +793,7 @@ async def check_ready_issues(
                 status=config.status_ready,
                 agents=agents,
                 expected_status=config.status_ready,
+                labels=task.labels,
             )
 
             # Skip if no agents found (neither DB config nor tracking table)
@@ -1792,6 +1917,7 @@ async def check_in_review_issues(
                     project_id=project_id,
                     status=config.status_in_review,
                     agents=agents,
+                    labels=task.labels,
                 )
 
             # Process pipeline completion/advancement
@@ -1948,6 +2074,7 @@ async def check_in_progress_issues(
                     status=config.status_in_progress if config else "In Progress",
                     agents=agents,
                     expected_status=config.status_in_progress if config else "In Progress",
+                    labels=task.labels,
                 )
                 # If still no agents after checking tracking table, fall to legacy path
                 if not pipeline.agents:

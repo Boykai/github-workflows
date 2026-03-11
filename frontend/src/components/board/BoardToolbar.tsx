@@ -22,6 +22,7 @@ interface BoardToolbarProps {
   availableLabels: string[];
   availableAssignees: string[];
   availableMilestones: string[];
+  availablePipelineConfigs?: string[];
   hasActiveFilters: boolean;
   hasActiveSort: boolean;
   hasActiveGroup: boolean;
@@ -141,6 +142,7 @@ export function BoardToolbar({
   availableLabels,
   availableAssignees,
   availableMilestones,
+  availablePipelineConfigs = [],
   hasActiveFilters,
   hasActiveSort,
   hasActiveGroup,
@@ -219,7 +221,7 @@ export function BoardToolbar({
             <span className="text-sm font-semibold">Filters</span>
             {hasActiveFilters && (
               <button
-                onClick={() => onFiltersChange({ labels: [], assignees: [], milestones: [] })}
+                onClick={() => onFiltersChange({ labels: [], assignees: [], milestones: [], pipelineConfig: null })}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 type="button"
               >
@@ -245,6 +247,30 @@ export function BoardToolbar({
             selected={filters.milestones}
             onChange={(milestones) => onFiltersChange({ ...filters, milestones })}
           />
+          {availablePipelineConfigs.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+                Pipeline Config
+              </span>
+              <select
+                className="rounded-md border border-border bg-background px-2 py-1 text-xs"
+                value={filters.pipelineConfig ?? ''}
+                onChange={(e) =>
+                  onFiltersChange({
+                    ...filters,
+                    pipelineConfig: e.target.value || null,
+                  })
+                }
+              >
+                <option value="">All pipelines</option>
+                {availablePipelineConfigs.map((cfg) => (
+                  <option key={cfg} value={cfg}>
+                    {cfg}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
       )}
 
