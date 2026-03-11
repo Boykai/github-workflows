@@ -193,37 +193,37 @@
 
 **Independent Test**: `npx vitest run`, `npx tsc --noEmit`. All components < 200 lines. SC-004 met.
 
-- [ ] T073 Identify and remove/update stale frontend tests related to components being refactored in frontend/src/
+- [x] T073 Identify and remove/update stale frontend tests related to components being refactored in frontend/src/
 
 ### 6.1: Settings Form (GlobalSettings.tsx)
 
-- [ ] T074 [P] [US4] Install `react-hook-form` and `zod` + `@hookform/resolvers` in frontend/package.json
-- [ ] T075 [US4] Extract `<AISettingsSection />` component from frontend/src/components/settings/GlobalSettings.tsx (<100 lines)
-- [ ] T076 [US4] Extract `<DisplaySettings />` component from frontend/src/components/settings/GlobalSettings.tsx (<100 lines)
-- [ ] T077 [US4] Extract `<WorkflowSettings />` component from frontend/src/components/settings/GlobalSettings.tsx (<100 lines)
-- [ ] T078 [US4] Extract `<NotificationSettings />` component from frontend/src/components/settings/GlobalSettings.tsx (<100 lines)
-- [ ] T079 [US4] Migrate GlobalSettings.tsx to react-hook-form + zod schema — eliminate manual flatten/unflatten per FR-021
+- [x] T074 [P] [US4] Install `react-hook-form` and `zod` + `@hookform/resolvers` in frontend/package.json
+- [x] T075 [US4] Extract `<AISettingsSection />` component from frontend/src/components/settings/GlobalSettings.tsx (<100 lines)
+- [x] T076 [US4] Extract `<DisplaySettings />` component from frontend/src/components/settings/GlobalSettings.tsx (<100 lines)
+- [x] T077 [US4] Extract `<WorkflowSettings />` component from frontend/src/components/settings/GlobalSettings.tsx (<100 lines)
+- [x] T078 [US4] Extract `<NotificationSettings />` component from frontend/src/components/settings/GlobalSettings.tsx (<100 lines)
+- [x] T079 [US4] Migrate GlobalSettings.tsx to react-hook-form + zod schema — eliminate manual flatten/unflatten per FR-021
 
 ### 6.2: Pipeline Config Hook
 
-- [ ] T080 [US4] Extract `usePipelineBoard()` hook from frontend/src/hooks/usePipelineConfig.ts (<200 lines)
-- [ ] T081 [US4] Extract `usePipelineValidation()` hook from frontend/src/hooks/usePipelineConfig.ts (<200 lines)
-- [ ] T082 [US4] Extract `usePipelineModelOverride()` hook from frontend/src/hooks/usePipelineConfig.ts (<200 lines)
-- [ ] T083 [US4] Refactor remaining usePipelineConfig.ts to use `useReducer` for complex state instead of 10+ `useState` calls
+- [x] T080 [US4] Extract `usePipelineBoard()` hook from frontend/src/hooks/usePipelineConfig.ts (<200 lines)
+- [x] T081 [US4] Extract `usePipelineValidation()` hook from frontend/src/hooks/usePipelineConfig.ts (<200 lines)
+- [x] T082 [US4] Extract `usePipelineModelOverride()` hook from frontend/src/hooks/usePipelineConfig.ts (<200 lines)
+- [x] T083 [US4] Refactor remaining usePipelineConfig.ts to use `useReducer` for complex state instead of 10+ `useState` calls
 
 ### 6.3: Shared Utilities
 
-- [ ] T084 [P] [US4] Create `frontend/src/lib/time-utils.ts` — extract `msToReadable()`, `daysToMs()`, `getProgressPercent()` per FR-019
-- [ ] T085 [P] [US4] Replace inline time calculations in frontend/src/components/chores/FeaturedRitualsPanel.tsx and ChoreCard.tsx with time-utils
-- [ ] T086 [P] [US4] Replace `as unknown as ...` casts with zod-validated schemas in frontend/src/hooks/useChat.ts per FR-020
+- [x] T084 [P] [US4] Create `frontend/src/lib/time-utils.ts` — extract `msToReadable()`, `daysToMs()`, `getProgressPercent()` per FR-019
+- [x] T085 [P] [US4] Replace inline time calculations in frontend/src/components/chores/FeaturedRitualsPanel.tsx and ChoreCard.tsx with time-utils
+- [x] T086 [P] [US4] Replace `as unknown as ...` casts with zod-validated schemas in frontend/src/hooks/useChat.ts per FR-020
 
 ### 6.4: Login Page
 
-- [ ] T087 [US4] Extract `<AnimatedBackground />` component from frontend/src/pages/LoginPage.tsx — reduce nesting per FR-018
+- [x] T087 [US4] Extract `<AnimatedBackground />` component from frontend/src/pages/LoginPage.tsx — reduce nesting per FR-018
 
 ### 6.5: Verification
 
-- [ ] T088 [US4] Run `npx vitest run`, `npx tsc --noEmit`, `npx eslint .` — verify all components/hooks < 200 lines (SC-004); commit Phase 6
+- [x] T088 [US4] Run `npx vitest run`, `npx tsc --noEmit`, `npx eslint .` — verify all components/hooks < 200 lines (SC-004); commit Phase 6
 
 **Checkpoint**: All frontend complexity hotspots resolved. Form state modernized. All components under 200 lines.
 
@@ -235,12 +235,12 @@
 
 **Independent Test**: `docker compose build` succeeds. No `latest` tags. All deps have upper bounds. SC-008 met.
 
-- [ ] T089 [US5] FR-029 check: no stale tests expected from Docker/dependency changes — verify with `pytest -x` baseline before proceeding
-- [ ] T090 [US5] Pin signal-api Docker image to specific semantic version in docker-compose.yml (replace `bbernhard/signal-cli-rest-api:latest`)
-- [ ] T091 [P] [US5] Pin nginx version in frontend/Dockerfile (e.g., `nginx:1.27-alpine` instead of `nginx:alpine`) per FR-022
-- [ ] T092 [US5] Add upper-bound version constraints to all major Python dependencies in backend/pyproject.toml per FR-023 — bounds must include currently installed versions
-- [ ] T093 [US5] Upgrade pyright from `basic` to `standard` mode in backend/pyproject.toml — fix or document all new type errors per SC-007
-- [ ] T094 [US5] Run `docker compose build`, `pytest -x`, `pyright backend/src/` — verify SC-008 (reproducible builds); commit Phase 7
+- [x] T089 [US5] FR-029 check: no stale tests expected from Docker/dependency changes — verify with `pytest -x` baseline before proceeding
+- [x] T090 [US5] Pin signal-api Docker image to specific semantic version in docker-compose.yml (replace `bbernhard/signal-cli-rest-api:latest`)
+- [x] T091 [P] [US5] Pin nginx version in frontend/Dockerfile (e.g., `nginx:1.27-alpine` instead of `nginx:alpine`) per FR-022
+- [x] T092 [US5] Add upper-bound version constraints to all major Python dependencies in backend/pyproject.toml per FR-023 — bounds must include currently installed versions
+- [x] T093 [US5] Upgrade pyright from `basic` to `standard` mode in backend/pyproject.toml — fix or document all new type errors per SC-007
+- [x] T094 [US5] Run `docker compose build`, `pytest -x`, `pyright backend/src/` — verify SC-008 (reproducible builds); commit Phase 7
 
 **Checkpoint**: Infrastructure hardened. All Docker tags pinned. All dependency versions bounded. Pyright standard mode active.
 
@@ -254,22 +254,22 @@
 
 ### 8.1: Mock Consolidation
 
-- [ ] T095 [US6] Merge all mock factories from backend/tests/helpers/mocks.py into backend/tests/conftest.py per FR-025
-- [ ] T096 [US6] Delete backend/tests/helpers/mocks.py after consolidation — update all test imports
-- [ ] T097 [US6] Add `spec=` parameter to mock constructors in backend/tests/conftest.py per FR-024
+- [x] T095 [US6] Merge all mock factories from backend/tests/helpers/mocks.py into backend/tests/conftest.py per FR-025
+- [x] T096 [US6] Delete backend/tests/helpers/mocks.py after consolidation — update all test imports
+- [x] T097 [US6] Add `spec=` parameter to mock constructors in backend/tests/conftest.py per FR-024
 
 ### 8.2: Unit Tests for Refactored Functions
 
-- [ ] T098 [P] [US6] Write unit tests for extracted agent_output.py helpers in backend/tests/unit/test_agent_output.py
-- [ ] T099 [P] [US6] Write unit tests for extracted orchestrator.py helpers in backend/tests/unit/test_orchestrator.py
-- [ ] T100 [P] [US6] Write unit tests for extracted recovery.py helpers + AgentStepState enum in backend/tests/unit/test_recovery.py
-- [ ] T101 [P] [US6] Write unit tests for chat.py command handlers + SQLite storage in backend/tests/unit/test_chat.py
-- [ ] T102 [P] [US6] Write unit tests for cleanup_service.py extracted helpers in backend/tests/unit/test_cleanup_service.py
-- [ ] T103 [P] [US6] Write unit tests for polling_loop.py PollStep iteration in backend/tests/unit/test_polling_loop.py
+- [x] T098 [P] [US6] Write unit tests for extracted agent_output.py helpers in backend/tests/unit/test_agent_output.py
+- [x] T099 [P] [US6] Write unit tests for extracted orchestrator.py helpers in backend/tests/unit/test_orchestrator.py
+- [x] T100 [P] [US6] Write unit tests for extracted recovery.py helpers + AgentStepState enum in backend/tests/unit/test_recovery.py
+- [x] T101 [P] [US6] Write unit tests for chat.py command handlers + SQLite storage in backend/tests/unit/test_chat.py
+- [x] T102 [P] [US6] Write unit tests for cleanup_service.py extracted helpers in backend/tests/unit/test_cleanup_service.py
+- [x] T103 [P] [US6] Write unit tests for polling_loop.py PollStep iteration in backend/tests/unit/test_polling_loop.py
 
 ### 8.3: Verification
 
-- [ ] T104 [US6] Run `pytest --cov=src --cov-report=term` — verify refactored modules ≥70% coverage (SC-006); commit Phase 8
+- [x] T104 [US6] Run `pytest --cov=src --cov-report=term` — verify refactored modules ≥70% coverage (SC-006); commit Phase 8
 
 **Checkpoint**: All refactored functions have dedicated tests. Mock factories consolidated. ≥70% coverage on refactored modules.
 
@@ -279,14 +279,14 @@
 
 **Purpose**: Final validation across all phases. Verify all success criteria. Update documentation.
 
-- [ ] T105 FR-029 check: no stale tests expected from verification-only phase
-- [ ] T106 Run `cgc analyze complexity` — verify SC-001 (all backend functions <25)
-- [ ] T107 Run `wc -l` on all backend source files — verify SC-003 (no file >1,500 lines)
-- [ ] T108 [P] Run full static analysis suite: `ruff check backend/src/`, `pyright backend/src/`, `npx tsc --noEmit`, `npx eslint .` — verify SC-007 (zero new warnings)
-- [ ] T109 [P] Verify SC-002: count total backend LOC reduction (target ≥200 lines removed)
-- [ ] T110 [P] Verify SC-009 proxy: confirm no function in backend/src/ requires reading >200 lines to understand a single responsibility (`wc -l` on all extracted helpers <200)
-- [ ] T111 Run quickstart.md validation — verify all before/after examples from specs/033-code-quality-overhaul/quickstart.md match actual code
-- [ ] T112 Final commit with comprehensive message listing all success criteria verified
+- [x] T105 FR-029 check: no stale tests expected from verification-only phase
+- [x] T106 Run `cgc analyze complexity` — verify SC-001 (all backend functions <25)
+- [x] T107 Run `wc -l` on all backend source files — verify SC-003 (no file >1,500 lines)
+- [x] T108 [P] Run full static analysis suite: `ruff check backend/src/`, `pyright backend/src/`, `npx tsc --noEmit`, `npx eslint .` — verify SC-007 (zero new warnings)
+- [x] T109 [P] Verify SC-002: count total backend LOC reduction (target ≥200 lines removed)
+- [x] T110 [P] Verify SC-009 proxy: confirm no function in backend/src/ requires reading >200 lines to understand a single responsibility (`wc -l` on all extracted helpers <200)
+- [x] T111 Run quickstart.md validation — verify all before/after examples from specs/033-code-quality-overhaul/quickstart.md match actual code
+- [x] T112 Final commit with comprehensive message listing all success criteria verified
 
 ---
 
