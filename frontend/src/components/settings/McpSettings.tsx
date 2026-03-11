@@ -280,7 +280,7 @@ export function McpSettings() {
 
   const handleRemove = useCallback(
     async (mcpId: string) => {
-      const mcpName = mcps?.find((m) => m.id === mcpId)?.name ?? 'this MCP';
+      const mcpName = mcps?.find((m) => m.id === mcpId)?.name ?? 'the selected configuration';
       const confirmed = await confirm({
         title: 'Remove MCP Configuration',
         description: `Remove "${mcpName}" from your MCP configurations? This action cannot be undone.`,
