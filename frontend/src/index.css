@@ -197,7 +197,7 @@
     --popover: 39 82% 96%;
     --popover-foreground: 228 24% 16%;
 
-    --primary: 42 90% 48%;
+    --primary: 42 90% 38%;
     --primary-foreground: 32 36% 12%;
 
     --secondary: 38 52% 89%;
@@ -212,9 +212,9 @@
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 37 34% 78%;
+    --border: 37 36% 49%;
     --input: 39 50% 93%;
-    --ring: 42 90% 48%;
+    --ring: 42 90% 38%;
 
     --panel: 40 78% 95%;
     --panel-foreground: 228 24% 16%;
@@ -227,11 +227,11 @@
     --radius: 1rem;
 
     --priority-p0: 0 72% 51%;
-    --priority-p1: 25 95% 53%;
+    --priority-p1: 25 95% 47%;
     --priority-p2: 217 91% 60%;
-    --priority-p3: 142 71% 45%;
+    --priority-p3: 142 71% 36%;
 
-    --sync-connected: 160 84% 39%;
+    --sync-connected: 160 84% 33%;
     --sync-polling: 38 92% 50%;
     --sync-connecting: 199 89% 48%;
     --sync-disconnected: 0 84% 60%;
@@ -260,9 +260,9 @@
     --accent-foreground: 38 45% 89%;
 
     --destructive: 0 65% 53%;
-    --destructive-foreground: 240 10% 92%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 239 16% 24%;
+    --border: 239 18% 46%;
     --input: 238 18% 15%;
     --ring: 45 90% 68%;
 
