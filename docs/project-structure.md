@@ -151,7 +151,8 @@ github-workflows/
 │   │   │   │                     # agent config UI, cleanup UI
 │   │   │   ├── chat/             # ChatInterface, ChatPopup, MessageBubble,
 │   │   │   │                     # TaskPreview, StatusChangePreview,
-│   │   │   │                     # IssueRecommendationPreview, CommandAutocomplete
+│   │   │   │                     # IssueRecommendationPreview, CommandAutocomplete,
+│   │   │   │                     # ChatToolbar, VoiceInputButton
 │   │   │   ├── common/           # ErrorBoundary, CelestialCatalogHero,
 │   │   │   │                     # CelestialLoader, ThemedAgentIcon, agentIcons
 │   │   │   ├── agents/           # AgentsPanel, AgentCard, AgentAvatar,
