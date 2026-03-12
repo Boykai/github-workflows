@@ -54,6 +54,7 @@
   --animate-float: float 6s ease-in-out infinite;
   --animate-cosmic-fade-in: cosmic-fade-in 0.5s ease-out both;
   --animate-star-wink: star-wink 5s ease-in-out infinite;
+  --animate-mic-recording: mic-recording-pulse 1.5s ease-in-out infinite;
 
   /* Theme transition token */
   --transition-theme-shift: 600ms ease-in-out;
@@ -97,6 +98,19 @@
       box-shadow:
         0 0 24px hsl(var(--glow) / 0.6),
         0 0 48px hsl(var(--gold) / 0.15);
+    }
+  }
+  @keyframes mic-recording-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 hsl(var(--destructive) / 0.4);
+      transform: scale(1);
+    }
+    50% {
+      box-shadow:
+        0 0 0 6px hsl(var(--destructive) / 0),
+        0 0 12px hsl(var(--destructive) / 0.15);
+      transform: scale(1.05);
     }
   }
   @keyframes orbit-spin {
@@ -1425,6 +1439,11 @@
   /* Glow pulse — use on halo / badge / indicator elements */
   .celestial-pulse-glow {
     animation: var(--animate-pulse-glow);
+  }
+
+  /* Mic recording pulse — expanding ring + subtle scale */
+  .mic-recording-pulse {
+    animation: var(--animate-mic-recording);
   }
 
   /* Orbital spin — use on orbit ring decorative elements */

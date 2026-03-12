@@ -25,7 +25,6 @@ export function VoiceInputButton({
         type="button"
         disabled
         className="w-8 h-8 flex items-center justify-center rounded-full text-muted-foreground/50 cursor-not-allowed"
-        title="Voice input not supported in this browser"
         aria-label="Voice input not supported"
       >
         <MicOff className="w-4 h-4" />
@@ -38,7 +37,7 @@ export function VoiceInputButton({
       <button
         type="button"
         onClick={onToggle}
-        className="w-8 h-8 flex items-center justify-center rounded-full bg-destructive/10 text-destructive animate-pulse transition-colors hover:bg-destructive/20"
+        className="celestial-focus mic-recording-pulse w-8 h-8 flex items-center justify-center rounded-full bg-destructive/10 text-destructive transition-colors hover:bg-destructive/20 focus-visible:outline-none"
         aria-label="Stop recording"
       >
         <Square className="w-3.5 h-3.5 fill-current" />
@@ -50,9 +49,11 @@ export function VoiceInputButton({
     <button
       type="button"
       onClick={onToggle}
-      className={cn('flex h-8 w-8 items-center justify-center rounded-full transition-colors hover:bg-primary/10', error ? 'text-destructive' : 'text-muted-foreground hover:text-foreground')}
-      aria-label="Start voice input"
-      title={error || 'Voice input'}
+      className={cn(
+        'celestial-focus flex h-8 w-8 items-center justify-center rounded-full transition-colors focus-visible:outline-none hover:bg-primary/10',
+        error ? 'text-destructive' : 'text-muted-foreground hover:text-foreground'
+      )}
+      aria-label={error ? 'Voice input error — click to retry' : 'Start voice input'}
     >
       <Mic className="w-4 h-4" />
     </button>

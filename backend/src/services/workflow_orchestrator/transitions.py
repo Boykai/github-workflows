@@ -1,33 +1,65 @@
-"""Pipeline state, branch tracking, and sub-issue map management."""
+"""Pipeline state, branch tracking, and sub-issue map management.
 
-from datetime import datetime
+State is stored in-memory (BoundedDict L1 cache) and persisted to SQLite
+via ``pipeline_state_store`` for durability across container restarts.
+"""
+
+import asyncio
 
 from src.logging_utils import get_logger
-from src.utils import BoundedDict, utcnow
+from src.services.pipeline_state_store import (
+    _agent_trigger_inflight,
+    _issue_main_branches,
+    _issue_sub_issue_map,
+    _pipeline_states,
+)
+from src.services.pipeline_state_store import (
+    clear_all_trigger_inflights as _clear_all_trigger_inflights_async,
+)
+from src.services.pipeline_state_store import (
+    delete_main_branch as _delete_main_branch_async,
+)
+from src.services.pipeline_state_store import (
+    delete_pipeline_state as _delete_pipeline_state_async,
+)
+from src.services.pipeline_state_store import (
+    delete_sub_issue_map as _delete_sub_issue_map_async,
+)
+from src.services.pipeline_state_store import (
+    delete_trigger_inflight as _delete_trigger_inflight_async,
+)
+from src.services.pipeline_state_store import (
+    set_main_branch as _set_main_branch_async,
+)
+from src.services.pipeline_state_store import (
+    set_pipeline_state as _set_pipeline_state_async,
+)
+from src.services.pipeline_state_store import (
+    set_sub_issue_map as _set_sub_issue_map_async,
+)
+from src.services.pipeline_state_store import (
+    set_trigger_inflight as _set_trigger_inflight_async,
+)
+from src.utils import utcnow
 
 from .models import MainBranchInfo, PipelineState
 
 logger = get_logger(__name__)
 
-# In-memory storage for pipeline states (per issue number)
-_pipeline_states: BoundedDict[int, PipelineState] = BoundedDict(maxlen=500)
-
-# In-memory storage for the "main" PR branch per issue
-# The first PR's branch becomes the base for all subsequent agent branches
-# Maps issue_number -> {branch: str, pr_number: int}
-_issue_main_branches: BoundedDict[int, MainBranchInfo] = BoundedDict(maxlen=500)
-
-# Global sub-issue mapping store that persists across pipeline state resets.
-# When pipeline state is removed during status transitions (e.g., Backlog → Ready),
-# the agent_sub_issues on PipelineState are lost.  This global store retains the
-# mapping so subsequent agents can still look up (and close) their sub-issues.
-# Maps issue_number → {agent_name → {"number": int, "node_id": str, "url": str}}
-_issue_sub_issue_map: BoundedDict[int, dict[str, dict]] = BoundedDict(maxlen=500)
-
-# Guard for overlapping trigger paths (polling + manual/user actions).
-# Key format: "issue:status:agent" → timestamp of in-flight trigger start.
-_agent_trigger_inflight: BoundedDict[str, datetime] = BoundedDict(maxlen=2000)
 AGENT_TRIGGER_STALE_SECONDS = 120
+
+
+def _schedule_persist(coro) -> None:
+    """Schedule a persistence coroutine in the background (fire-and-forget).
+
+    If no event loop is running (e.g. in sync tests), the persist is skipped
+    and data remains in the L1 cache only.
+    """
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(coro)
+    except RuntimeError:
+        pass
 
 
 def _agent_trigger_key(issue_number: int, status: str, agent_name: str) -> str:
@@ -65,12 +97,15 @@ def should_skip_agent_trigger(
         )
 
     _agent_trigger_inflight[key] = now
+    _schedule_persist(_set_trigger_inflight_async(key, now))
     return False, 0.0
 
 
 def release_agent_trigger(issue_number: int, status: str, agent_name: str) -> None:
     """Release in-flight marker for an agent trigger."""
-    _agent_trigger_inflight.pop(_agent_trigger_key(issue_number, status, agent_name), None)
+    key = _agent_trigger_key(issue_number, status, agent_name)
+    _agent_trigger_inflight.pop(key, None)
+    _schedule_persist(_delete_trigger_inflight_async(key))
 
 
 def clear_agent_trigger_buffer(issue_number: int, status: str, agent_name: str) -> None:
@@ -81,6 +116,7 @@ def clear_agent_trigger_buffer(issue_number: int, status: str, agent_name: str) 
 def clear_all_agent_trigger_buffers() -> None:
     """Clear all trigger buffer entries."""
     _agent_trigger_inflight.clear()
+    _schedule_persist(_clear_all_trigger_inflights_async())
 
 
 def get_pipeline_state(issue_number: int) -> PipelineState | None:
@@ -94,13 +130,15 @@ def get_all_pipeline_states() -> dict[int, PipelineState]:
 
 
 def set_pipeline_state(issue_number: int, state: PipelineState) -> None:
-    """Set or update pipeline state for an issue."""
+    """Set or update pipeline state for an issue (L1 + SQLite write-behind)."""
     _pipeline_states[issue_number] = state
+    _schedule_persist(_set_pipeline_state_async(issue_number, state))
 
 
 def remove_pipeline_state(issue_number: int) -> None:
     """Remove pipeline state for an issue (e.g., after status transition)."""
     _pipeline_states.pop(issue_number, None)
+    _schedule_persist(_delete_pipeline_state_async(issue_number))
 
 
 def get_issue_main_branch(issue_number: int) -> MainBranchInfo | None:
@@ -140,6 +178,7 @@ def set_issue_sub_issues(issue_number: int, mappings: dict[str, dict]) -> None:
     existing = _issue_sub_issue_map.get(issue_number, {})
     existing.update(mappings)
     _issue_sub_issue_map[issue_number] = existing
+    _schedule_persist(_set_sub_issue_map_async(issue_number, mappings))
 
 
 def set_issue_main_branch(
@@ -169,6 +208,12 @@ def set_issue_main_branch(
         "pr_number": pr_number,
         "head_sha": head_sha,
     }
+    _schedule_persist(
+        _set_main_branch_async(
+            issue_number,
+            MainBranchInfo(branch=branch, pr_number=pr_number, head_sha=head_sha),
+        )
+    )
     logger.info(
         "Set main branch for issue #%d: '%s' (PR #%d, SHA: %s)",
         issue_number,
@@ -181,6 +226,7 @@ def set_issue_main_branch(
 def clear_issue_main_branch(issue_number: int) -> None:
     """Clear the main branch tracking for an issue (e.g., when issue is closed)."""
     _issue_main_branches.pop(issue_number, None)
+    _schedule_persist(_delete_main_branch_async(issue_number))
 
 
 def clear_issue_sub_issues(issue_number: int) -> None:
@@ -191,6 +237,7 @@ def clear_issue_sub_issues(issue_number: int) -> None:
     ``clear_issue_main_branch`` for full cleanup.
     """
     _issue_sub_issue_map.pop(issue_number, None)
+    _schedule_persist(_delete_sub_issue_map_async(issue_number))
 
 
 def update_issue_main_branch_sha(issue_number: int, head_sha: str) -> None:
@@ -212,6 +259,7 @@ def update_issue_main_branch_sha(issue_number: int, head_sha: str) -> None:
         return
     old_sha = _issue_main_branches[issue_number].get("head_sha", "")
     _issue_main_branches[issue_number]["head_sha"] = head_sha
+    _schedule_persist(_set_main_branch_async(issue_number, _issue_main_branches[issue_number]))
     logger.info(
         "Updated HEAD SHA for issue #%d main branch '%s': %s → %s",
         issue_number,

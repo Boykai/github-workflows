@@ -9,16 +9,23 @@ github-workflows/
 │   └── post-start.sh             #   Prints Codespaces callback URL
 ├── .env.example                  # Environment template (documented)
 ├── .github/
-│   ├── agents/                   # Spec Kit custom Copilot agent definitions
-│   │   ├── speckit.specify.agent.md
-│   │   ├── speckit.plan.agent.md
-│   │   ├── speckit.tasks.agent.md
-│   │   ├── speckit.implement.agent.md
-│   │   ├── speckit.clarify.agent.md
+│   ├── agents/                   # Custom Copilot agent definitions + MCP config
+│   │   ├── archivist.agent.md
+│   │   ├── designer.agent.md
+│   │   ├── judge.agent.md
+│   │   ├── linter.agent.md
+│   │   ├── quality-assurance.agent.md
+│   │   ├── tester.agent.md
 │   │   ├── speckit.analyze.agent.md
 │   │   ├── speckit.checklist.agent.md
+│   │   ├── speckit.clarify.agent.md
 │   │   ├── speckit.constitution.agent.md
+│   │   ├── speckit.implement.agent.md
+│   │   ├── speckit.plan.agent.md
+│   │   ├── speckit.specify.agent.md
+│   │   ├── speckit.tasks.agent.md
 │   │   ├── speckit.taskstoissues.agent.md
+│   │   ├── mcp.json              #   Built-in MCP server definitions (Context7, CodeGraphContext)
 │   │   └── copilot-instructions.md
 │   ├── prompts/                  # GitHub Copilot prompt files
 │   └── workflows/                # GitHub Actions workflows
@@ -102,7 +109,8 @@ github-workflows/
 │   │       │   ├── service.py    #   ChoresService
 │   │       │   └── template_builder.py  # Template generation
 │   │       ├── agents/
-│   │       │   └── service.py    #   Agent configuration service
+│   │       │   ├── service.py    #   Agent configuration CRUD (SQLite + GitHub repo merge)
+│   │       │   └── agent_mcp_sync.py  # MCP sync: enforces tools: ["*"] + mcp-servers on all agent files
 │   │       ├── agent_creator.py  #   #agent command: guided agent creation flow
 │   │       ├── agent_tracking.py #   Agent pipeline tracking (issue body markdown)
 │   │       ├── ai_agent.py       #   AI issue generation (via CompletionProvider)
@@ -151,7 +159,8 @@ github-workflows/
 │   │   │   │                     # agent config UI, cleanup UI
 │   │   │   ├── chat/             # ChatInterface, ChatPopup, MessageBubble,
 │   │   │   │                     # TaskPreview, StatusChangePreview,
-│   │   │   │                     # IssueRecommendationPreview, CommandAutocomplete
+│   │   │   │                     # IssueRecommendationPreview, CommandAutocomplete,
+│   │   │   │                     # ChatToolbar, VoiceInputButton
 │   │   │   ├── common/           # ErrorBoundary, CelestialCatalogHero,
 │   │   │   │                     # CelestialLoader, ThemedAgentIcon, agentIcons
 │   │   │   ├── agents/           # AgentsPanel, AgentCard, AgentAvatar,
