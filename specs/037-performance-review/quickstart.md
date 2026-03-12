@@ -5,14 +5,14 @@
 
 ## Prerequisites
 
-- Python 3.12+ (backend)
+- Python 3.13+ (backend)
 - Node.js 22+ (frontend)
 - Git
 
 ## Repository Setup
 
 ```bash
-cd /home/runner/work/github-workflows/github-workflows
+cd /path/to/github-workflows
 
 # Backend
 cd backend
