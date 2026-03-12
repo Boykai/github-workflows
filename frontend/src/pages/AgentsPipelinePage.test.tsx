@@ -31,7 +31,6 @@ const mockPipelineConfig = {
     ],
     is_preset: false,
     preset_id: '',
-    blocking: false,
     created_at: '2026-03-10T18:00:00Z',
     updated_at: '2026-03-10T18:00:00Z',
     project_id: 'project-1',
@@ -63,7 +62,6 @@ const mockPipelineConfig = {
   updateStage: vi.fn(),
   cloneAgentInStage: vi.fn(),
   reorderAgentsInStage: vi.fn(),
-  setPipelineBlocking: vi.fn(),
 };
 
 vi.mock('react-router-dom', async () => {
@@ -265,7 +263,6 @@ describe('AgentsPipelinePage', () => {
       total_tool_count: 0,
       is_preset: false,
       preset_id: '',
-      blocking: false,
       updated_at: '2026-03-10T18:00:00Z',
       stages: [],
     }));
@@ -289,7 +286,6 @@ describe('AgentsPipelinePage', () => {
       total_tool_count: 0,
       is_preset: false,
       preset_id: '',
-      blocking: false,
       updated_at: '2026-03-10T18:00:00Z',
       stages: [],
     }));

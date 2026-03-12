@@ -24,7 +24,7 @@ logger = get_logger(__name__)
 _CANONICAL_PROJECT_SETTINGS_USER = "__workflow__"
 
 # Column allowlist for dynamic SET clauses
-_PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at", "blocking"})
+_PIPELINE_COLUMNS = frozenset({"name", "description", "stages", "updated_at"})
 
 
 # ---------------------------------------------------------------------------
@@ -314,7 +314,6 @@ class PipelineService:
             stages=stages,
             is_preset=bool(row_dict.get("is_preset", 0)),
             preset_id=row_dict.get("preset_id", ""),
-            blocking=bool(row_dict.get("blocking", 0)),
             created_at=row_dict["created_at"],
             updated_at=row_dict["updated_at"],
         )
@@ -357,7 +356,6 @@ class PipelineService:
                     is_preset=bool(row_dict.get("is_preset", 0)),
                     preset_id=row_dict.get("preset_id", ""),
                     stages=parsed_stages,
-                    blocking=bool(row_dict.get("blocking", 0)),
                     updated_at=row_dict["updated_at"],
                 )
             )
@@ -402,8 +400,8 @@ class PipelineService:
         try:
             await self._db.execute(
                 """
-                INSERT INTO pipeline_configs (id, project_id, name, description, stages, blocking, created_at, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO pipeline_configs (id, project_id, name, description, stages, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     pipeline_id,
@@ -411,7 +409,6 @@ class PipelineService:
                     body.name,
                     body.description,
                     stages_json,
-                    int(body.blocking),
                     now,
                     now,
                 ),
@@ -467,9 +464,6 @@ class PipelineService:
             self._normalize_execution_modes(parsed)
             updates["stages"] = json.dumps([s.model_dump() for s in parsed])
 
-        if "blocking" in updates and updates["blocking"] is not None:
-            updates["blocking"] = int(bool(updates["blocking"]))
-
         # Validate columns against allowlist
         safe_updates = {k: v for k, v in updates.items() if k in _PIPELINE_COLUMNS}
         if not safe_updates:
@@ -520,7 +514,6 @@ class PipelineService:
 
         for preset in _PRESET_DEFINITIONS:
             preset_id = preset["preset_id"]
-            blocking = int(bool(preset.get("blocking", False)))
             # Check if already seeded
             cursor = await self._db.execute(
                 "SELECT id FROM pipeline_configs WHERE preset_id = ? AND project_id = ?",
@@ -537,8 +530,8 @@ class PipelineService:
                 await self._db.execute(
                     """
                     INSERT INTO pipeline_configs
-                        (id, project_id, name, description, stages, is_preset, preset_id, blocking, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?, ?)
+                        (id, project_id, name, description, stages, is_preset, preset_id, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, 1, ?, ?, ?)
                     """,
                     (
                         pipeline_id,
@@ -547,7 +540,6 @@ class PipelineService:
                         preset["description"],
                         stages_json,
                         preset_id,
-                        blocking,
                         now,
                         now,
                     ),
@@ -570,7 +562,7 @@ class PipelineService:
         """Get the current pipeline assignment for a project."""
         cursor = await self._db.execute(
             """
-            SELECT assigned_pipeline_id, pipeline_blocking_override
+            SELECT assigned_pipeline_id
             FROM project_settings
             WHERE github_user_id = ? AND project_id = ?
             LIMIT 1
@@ -581,17 +573,11 @@ class PipelineService:
         if row:
             row_dict = dict(row)
             pipeline_id = row_dict.get("assigned_pipeline_id", "") or ""
-            raw_override = row_dict.get("pipeline_blocking_override")
-            blocking_override: bool | None = (
-                bool(raw_override) if raw_override is not None else None
-            )
         else:
             pipeline_id = ""
-            blocking_override = None
         return ProjectPipelineAssignment(
             project_id=project_id,
             pipeline_id=pipeline_id,
-            blocking_override=blocking_override,
         )
 
     async def set_assignment(
@@ -602,7 +588,6 @@ class PipelineService:
         """Set the pipeline assignment for a project.
 
         Raises ValueError if pipeline_id is non-empty and doesn't exist.
-        Preserves any existing project-level blocking_override.
         """
         if pipeline_id:
             existing = await self.get_pipeline(project_id, pipeline_id)
@@ -624,29 +609,3 @@ class PipelineService:
 
         return await self.get_assignment(project_id)
 
-    async def set_blocking_override(
-        self,
-        project_id: str,
-        blocking_override: bool | None,
-    ) -> ProjectPipelineAssignment:
-        """Set the project-level blocking override for the assigned pipeline.
-
-        None   = inherit blocking behaviour from the assigned pipeline (no override).
-        True   = force blocking ON for all issues in this project.
-        False  = force blocking OFF for all issues in this project.
-        """
-        raw: int | None = int(blocking_override) if blocking_override is not None else None
-        now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-        await self._db.execute(
-            """
-            INSERT INTO project_settings (github_user_id, project_id, updated_at, pipeline_blocking_override)
-            VALUES (?, ?, ?, ?)
-            ON CONFLICT(github_user_id, project_id) DO UPDATE SET
-                pipeline_blocking_override = excluded.pipeline_blocking_override,
-                updated_at = excluded.updated_at
-            """,
-            (_CANONICAL_PROJECT_SETTINGS_USER, project_id, now, raw),
-        )
-        await self._db.commit()
-
-        return await self.get_assignment(project_id)

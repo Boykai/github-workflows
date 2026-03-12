@@ -4,7 +4,7 @@
  */
 
 import { memo, useState } from 'react';
-import { ChevronDown, ChevronRight, Circle, CircleCheckBig, Lock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Circle, CircleCheckBig } from 'lucide-react';
 import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
@@ -36,7 +36,6 @@ interface IssueCardProps {
   item: BoardItem;
   onClick: (item: BoardItem) => void;
   availableAgents?: AvailableAgent[];
-  isBlocking?: boolean;
 }
 
 function SubIssueStateIcon({ state }: { state: string }) {
@@ -110,7 +109,6 @@ export const IssueCard = memo(function IssueCard({
   item,
   onClick,
   availableAgents,
-  isBlocking = false,
 }: IssueCardProps) {
   const [isSubIssuesExpanded, setIsSubIssuesExpanded] = useState(false);
   const subIssues = item.sub_issues ?? [];
@@ -209,7 +207,7 @@ export const IssueCard = memo(function IssueCard({
       )}
 
       {/* Labels */}
-      {(labels.length > 0 || isBlocking) && (
+      {labels.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {labels.map((label) => {
             const safeColor = sanitizeHexColor(label.color);
@@ -228,12 +226,6 @@ export const IssueCard = memo(function IssueCard({
               </span>
             );
           })}
-          {isBlocking && (
-            <span className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
-              <Lock className="h-3 w-3" />
-              Blocking
-            </span>
-          )}
         </div>
       )}
 

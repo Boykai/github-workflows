@@ -40,7 +40,6 @@ export function computeSnapshot(p: PipelineConfig): string {
     name: p.name,
     description: p.description,
     stages: p.stages,
-    blocking: p.blocking,
   });
 }
 

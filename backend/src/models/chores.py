@@ -47,7 +47,6 @@ class Chore(BaseModel):
     execution_count: int = 0
     ai_enhance_enabled: bool = True
     agent_pipeline_id: str = ""
-    blocking: bool = False
     is_preset: bool = False
     preset_id: str = ""
     created_at: str
@@ -59,7 +58,6 @@ class ChoreCreate(BaseModel):
 
     name: str = Field(..., min_length=1, max_length=200)
     template_content: str = Field(..., min_length=1)
-    blocking: bool = False
 
 
 class ChoreUpdate(BaseModel):
@@ -70,7 +68,6 @@ class ChoreUpdate(BaseModel):
     status: ChoreStatus | None = None
     ai_enhance_enabled: bool | None = None
     agent_pipeline_id: str | None = None
-    blocking: bool | None = None
 
 
 # ── Trigger Models ──
@@ -158,7 +155,6 @@ class ChoreInlineUpdate(BaseModel):
     schedule_value: int | None = Field(default=None, gt=0)
     ai_enhance_enabled: bool | None = None
     agent_pipeline_id: str | None = None
-    blocking: bool | None = None
     expected_sha: str | None = None
 
 

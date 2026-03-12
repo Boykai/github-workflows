@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
-from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, build_pipeline_label, with_blocking_label
+from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, build_pipeline_label
 from src.exceptions import AppException, AuthorizationError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
 from src.models.pipeline import (
@@ -18,7 +18,6 @@ from src.models.pipeline import (
     PipelineConfigListResponse,
     PipelineConfigUpdate,
     PipelineIssueLaunchRequest,
-    ProjectAssignmentBlockingUpdate,
     ProjectPipelineAssignment,
     ProjectPipelineAssignmentUpdate,
 )
@@ -186,17 +185,6 @@ async def set_assignment(
         raise NotFoundError(str(exc)) from exc
 
 
-@router.patch("/{project_id}/assignment", response_model=ProjectPipelineAssignment)
-async def set_assignment_blocking(
-    project_id: str,
-    body: ProjectAssignmentBlockingUpdate,
-    session: Annotated[UserSession, Depends(get_session_dep)],
-) -> ProjectPipelineAssignment:
-    """Set the project-level blocking override for the assigned pipeline."""
-    service = _get_service()
-    return await service.set_blocking_override(project_id, body.blocking_override)
-
-
 @router.post("/{project_id}/launch", response_model=WorkflowResult)
 async def launch_pipeline_issue(
     project_id: str,
@@ -204,7 +192,6 @@ async def launch_pipeline_issue(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> WorkflowResult:
     """Create a project issue from raw issue text and launch the selected agent pipeline."""
-    from src.services import blocking_queue as blocking_queue_service
     from src.services.copilot_polling import ensure_polling_started
     from src.services.workflow_orchestrator import PipelineState, find_next_actionable_status
 
@@ -237,12 +224,7 @@ async def launch_pipeline_issue(
                 f"Issue description is too large for GitHub's {GITHUB_ISSUE_BODY_MAX_LENGTH}-character limit"
             )
 
-        is_blocking = pipeline.blocking
-        assignment = await service.get_assignment(project_id)
-        if assignment.blocking_override is not None:
-            is_blocking = assignment.blocking_override
-
-        issue_labels = with_blocking_label(["ai-generated"], is_blocking)
+        issue_labels = ["ai-generated"]
         if _pipeline_name:
             issue_labels.append(build_pipeline_label(_pipeline_name))
 
@@ -288,36 +270,6 @@ async def launch_pipeline_issue(
                     started_at=utcnow(),
                 ),
             )
-
-        issue_activated = True
-        if ctx.issue_number is not None:
-            repo_key = f"{owner}/{repo}"
-            _entry, issue_activated = await blocking_queue_service.enqueue_issue(
-                repo_key,
-                ctx.issue_number,
-                project_id,
-                is_blocking,
-            )
-            if not issue_activated:
-                await ensure_polling_started(
-                    access_token=session.access_token,
-                    project_id=project_id,
-                    owner=owner,
-                    repo=repo,
-                    caller="pipeline_issue_launch_blocked",
-                )
-                return WorkflowResult(
-                    success=True,
-                    issue_id=ctx.issue_id,
-                    issue_number=ctx.issue_number,
-                    issue_url=ctx.issue_url,
-                    project_item_id=ctx.project_item_id,
-                    current_status="pending",
-                    message=(
-                        f"Issue #{ctx.issue_number} created and queued behind blocking work. "
-                        "It will activate automatically."
-                    ),
-                )
 
         if not get_agent_slugs(config, status_name):
             next_status = find_next_actionable_status(config, status_name)
