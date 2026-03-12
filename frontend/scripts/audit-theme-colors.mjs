@@ -12,8 +12,8 @@
  *   node frontend/scripts/audit-theme-colors.mjs
  */
 
-import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { join, relative, extname } from 'node:path';
+import { readFileSync, readdirSync } from 'node:fs';
+import { join, relative, extname, sep } from 'node:path';
 
 /* ── Configuration ── */
 
@@ -63,14 +63,23 @@ let exceptionHits = 0;
 
 for (const dir of SCAN_DIRS) {
   for (const file of collectFiles(dir)) {
-    const rel = relative(ROOT, file);
+    const rel = relative(ROOT, file).split(sep).join('/');
     const isException = APPROVED_EXCEPTIONS.has(rel);
     const lines = readFileSync(file, 'utf8').split('\n');
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
+      // Determine whether this line contains any hardcoded colour pattern.
+      let hasHardcodedColour = false;
+      for (const { re } of COLOUR_PATTERNS) {
+        re.lastIndex = 0;
+        if (re.exec(line)) {
+          hasHardcodedColour = true;
+          break;
+        }
+      }
       // Skip lines that only reference CSS custom properties (valid usage)
-      if (/hsl\(\s*var\(--/.test(line) && !/rgba?\(\s*\d/.test(line) && !/#[0-9a-fA-F]{3,8}\b/.test(line)) continue;
+      if (/hsl\(\s*var\(--/.test(line) && !hasHardcodedColour) continue;
 
       for (const { re, label } of COLOUR_PATTERNS) {
         re.lastIndex = 0;

@@ -34,4 +34,5 @@
 - All checklist items pass validation. The specification is ready for `/speckit.clarify` or `/speckit.plan`.
 - The spec references "Celestial design system" and "Project Solune style guide" by name (as established project conventions) without prescribing specific implementation technologies.
 - WCAG 2.1 AA is an external accessibility standard, not an implementation detail — it defines measurable contrast thresholds used in success criteria.
+- Tooling references in the Assumptions section (e.g., axe-core, Storybook a11y addon, Radix UI) are illustrative examples of how audit goals *may* be achieved, not mandated implementation choices.
 - Edge cases cover nine boundary conditions including third-party components, SVG inline attributes, skeleton loaders, scrollbar styling, syntax-highlighted code blocks, layered overlays, OS preference conflicts, transparent media, and unmapped new components.

@@ -3,7 +3,11 @@
  * check-theme-contrast.mjs
  *
  * Evaluates WCAG 2.1 AA contrast ratios for the Celestial design-system
- * token pairs defined in data-model.md.
+ * token pairs and token inventory derived from data-model.md and index.css.
+ *
+ * NOTE: The token pairs and inventory defined below are a snapshot generated
+ * from data-model.md and index.css. If those source files change, this
+ * script must be updated to keep the snapshot in sync.
  *
  * Exit 0 — all pairs pass
  * Exit 1 — one or more pairs fail
