@@ -10,7 +10,6 @@ from pathlib import Path
 
 import aiosqlite
 
-from src.constants import with_blocking_label
 from src.logging_utils import get_logger
 from src.models.chores import Chore, ChoreCreate, ChoreStatus, ChoreTriggerResult, ChoreUpdate
 
@@ -29,7 +28,6 @@ _CHORE_PRESET_DEFINITIONS = [
         "schedule_value": 10,
         "ai_enhance_enabled": True,
         "agent_pipeline_id": "",
-        "blocking": False,
     },
     {
         "preset_id": "performance-review",
@@ -40,7 +38,6 @@ _CHORE_PRESET_DEFINITIONS = [
         "schedule_value": 10,
         "ai_enhance_enabled": True,
         "agent_pipeline_id": "",
-        "blocking": False,
     },
     {
         "preset_id": "bug-basher",
@@ -51,7 +48,6 @@ _CHORE_PRESET_DEFINITIONS = [
         "schedule_value": 10,
         "ai_enhance_enabled": True,
         "agent_pipeline_id": "",
-        "blocking": True,
     },
 ]
 
@@ -75,7 +71,6 @@ _CHORE_UPDATABLE_COLUMNS = frozenset(
         "execution_count",
         "ai_enhance_enabled",
         "agent_pipeline_id",
-        "blocking",
         "updated_at",
     }
 )
@@ -99,10 +94,6 @@ class ChoreConflictError(RuntimeError):
         super().__init__(message)
         self.current_sha = current_sha
         self.current_content = current_content
-
-
-class _BlockedIssueSkip(Exception):
-    """Internal sentinel: issue is blocked in the blocking queue, skip agent assignment."""
 
 
 class ChoresService:
@@ -144,11 +135,11 @@ class ChoresService:
                 INSERT INTO chores (
                     id, project_id, name, template_path, template_content,
                     schedule_type, schedule_value,
-                    ai_enhance_enabled, agent_pipeline_id, blocking,
+                    ai_enhance_enabled, agent_pipeline_id,
                     is_preset, preset_id,
                     status, last_triggered_count, execution_count,
                     created_at, updated_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'active', 0, 0, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, 'active', 0, 0, ?, ?)
                 """,
                 (
                     chore_id,
@@ -160,7 +151,6 @@ class ChoresService:
                     defn["schedule_value"],
                     1 if defn["ai_enhance_enabled"] else 0,
                     defn["agent_pipeline_id"],
-                    1 if defn["blocking"] else 0,
                     preset_id,
                     now,
                     now,
@@ -177,7 +167,6 @@ class ChoresService:
                 schedule_value=defn["schedule_value"],
                 ai_enhance_enabled=defn["ai_enhance_enabled"],
                 agent_pipeline_id=defn["agent_pipeline_id"],
-                blocking=defn["blocking"],
                 is_preset=True,
                 preset_id=preset_id,
                 status=ChoreStatus.ACTIVE,
@@ -537,33 +526,13 @@ class ChoresService:
                 "Failed to append agent tracking table for chore %s: %s", chore.name, e
             )
 
-        # Resolve effective blocking flag before issue creation so the parent issue
-        # carries the same Blocking label that drives queue behavior.
-        is_blocking = chore.blocking
-        if not is_blocking:
-            try:
-                from src.services.pipelines.service import PipelineService
-
-                pipeline_svc = PipelineService(self._db)
-                assignment = await pipeline_svc.get_assignment(project_id)
-                if assignment.blocking_override is not None:
-                    is_blocking = assignment.blocking_override
-                elif chore.agent_pipeline_id:
-                    pipeline_cfg = await pipeline_svc.get_pipeline(
-                        project_id, chore.agent_pipeline_id
-                    )
-                    if pipeline_cfg and pipeline_cfg.blocking:
-                        is_blocking = True
-            except Exception as e:
-                logger.debug("Pipeline blocking check failed for chore %s: %s", chore.id, e)
-
         issue = await github_service.create_issue(
             access_token,
             owner,
             repo,
             title=chore.name,
             body=issue_body,
-            labels=with_blocking_label(["chore"], is_blocking),
+            labels=["chore"],
         )
 
         issue_number = issue["number"]
@@ -682,9 +651,7 @@ class ChoresService:
 
                 orchestrator = get_workflow_orchestrator()
 
-                # Create all sub-issues upfront immediately — before the blocking
-                # queue check so they exist even when the issue is queued behind a
-                # blocking issue.
+                # Create all sub-issues upfront.
                 agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
                 if agent_sub_issues:
                     backlog_agents = get_agent_slugs(config, backlog_status)
@@ -703,35 +670,6 @@ class ChoresService:
                         issue_number,
                     )
 
-                # Enqueue in blocking queue and check activation
-                issue_activated = True
-                try:
-                    from src.services import blocking_queue as bq_service
-
-                    repo_key = f"{owner}/{repo}"
-                    _bq_entry, issue_activated = await bq_service.enqueue_issue(
-                        repo_key, issue_number, project_id, is_blocking
-                    )
-                    if not issue_activated:
-                        logger.info(
-                            "Chore issue #%d pending in blocking queue — skipping agent assignment",
-                            issue_number,
-                        )
-                        # Skip agent assignment; issue will be activated by the queue later
-                        await ensure_polling_started(
-                            access_token=access_token,
-                            project_id=project_id,
-                            owner=owner,
-                            repo=repo,
-                            caller="chore_trigger_blocked",
-                        )
-                        # Fall through to CAS update below
-                        raise _BlockedIssueSkip()
-                except _BlockedIssueSkip:
-                    raise
-                except Exception as e:
-                    logger.debug("Blocking queue enqueue skipped in chore trigger: %s", e)
-
                 # Assign first Backlog agent
                 await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 
@@ -743,8 +681,6 @@ class ChoresService:
                     repo=repo,
                     caller="chore_trigger",
                 )
-        except _BlockedIssueSkip:
-            pass  # Issue is queued — skip agent assignment, continue to CAS update
         except Exception:
             logger.exception(
                 "Agent pipeline failed for chore %s (issue #%s)",

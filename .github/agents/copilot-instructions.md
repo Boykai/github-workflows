@@ -217,6 +217,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - TypeScript 5.x with React 19.2, TanStack React Query 5.90, Tailwind CSS v4 (via `@tailwindcss/vite`), Radix UI (Slot, Tooltip), Lucide React icons, class-variance-authority, tailwind-merge, react-router-dom 7.13, react-markdown 10.1, @dnd-kit (drag-and-drop), Vite 7.3 (frontend: 001-performance-review, 034-projects-page-audit)
 - Python ≥3.12 (backend), TypeScript (frontend) + FastAPI ≥0.135.0, Pydantic ≥2.12.0, githubkit ≥0.14.6, httpx ≥0.28.0 (backend); React, TanStack Query (frontend) (034-label-pipeline-state)
 - aiosqlite (pipeline configs, agent tracking); GitHub Issues API (labels as state markers) (034-label-pipeline-state)
+- Python ≥3.12 (backend), TypeScript (frontend) + FastAPI ≥0.135.0, Pydantic ≥2.12.0, githubkit ≥0.14.6, httpx ≥0.28.0 (backend); React 19, TanStack Query, Vitest (frontend) (035-remove-blocking-feature)
+- aiosqlite (blocking_queue table, blocking columns on pipeline_configs/chores/project_settings) (035-remove-blocking-feature)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16

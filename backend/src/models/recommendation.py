@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
-from src.constants import BLOCKING_LABEL, LABELS
+from src.constants import LABELS
 from src.utils import utcnow
 
 
@@ -36,10 +36,6 @@ class AITaskProposal(BaseModel):
     proposed_title: str = Field(..., max_length=256, description="AI-generated task title")
     proposed_description: str = Field(
         ..., max_length=65536, description="AI-generated task description"
-    )
-    is_blocking: bool = Field(
-        default=False,
-        description="Whether the confirmed issue should enter the blocking queue",
     )
     status: ProposalStatus = Field(default=ProposalStatus.PENDING, description="Proposal status")
     edited_title: str | None = Field(default=None, description="User-modified title")
@@ -83,7 +79,6 @@ class AITaskProposal(BaseModel):
                 "original_input": "Add authentication so users can log in with their GitHub accounts",
                 "proposed_title": "Add OAuth2 authentication flow",
                 "proposed_description": "## Overview\\nImplement GitHub OAuth2...",
-                "is_blocking": False,
                 "status": "pending",
                 "edited_title": None,
                 "edited_description": None,
@@ -149,7 +144,6 @@ class IssueLabel(StrEnum):
     # Status labels
     AI_GENERATED = "ai-generated"  # Created by AI
     SUB_ISSUE = "sub-issue"  # Agent sub-issue
-    BLOCKING = BLOCKING_LABEL  # Blocking parent issue
     GOOD_FIRST_ISSUE = "good first issue"  # Simple issue
     HELP_WANTED = "help wanted"  # Needs assistance
 
@@ -220,10 +214,6 @@ class IssueRecommendation(BaseModel):
         default=None,
         description="Optional saved pipeline selected when the recommendation was created",
     )
-    is_blocking: bool = Field(
-        default=False,
-        description="Whether the confirmed issue should enter the blocking queue",
-    )
     metadata: IssueMetadata = Field(
         default_factory=IssueMetadata,
         description="AI-generated issue metadata (priority, size, dates, labels)",
@@ -250,7 +240,6 @@ class IssueRecommendation(BaseModel):
                 ],
                 "technical_notes": "Use streaming CSV response for large datasets. Rate-limit exports to 5 per minute per user.",
                 "selected_pipeline_id": "pipeline-123",
-                "is_blocking": False,
                 "metadata": {
                     "priority": "P2",
                     "size": "M",

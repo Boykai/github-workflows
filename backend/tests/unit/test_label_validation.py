@@ -135,7 +135,7 @@ class TestValidatePipelineLabels:
         labels = [{"name": "pipeline:x", "color": "0052cc"}]
         steps = [FakeStep("speckit.specify", "✅ Done")]
 
-        corrections_made, descriptions = await validate_pipeline_labels(
+        corrections_made, _descriptions = await validate_pipeline_labels(
             access_token="tok",
             owner="owner",
             repo="repo",

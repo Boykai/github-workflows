@@ -8,9 +8,7 @@ from src.constants import (
     ACTIVE_LABEL,
     STALLED_LABEL,
     build_agent_label,
-    build_pipeline_label,
 )
-
 
 # ── _build_labels ────────────────────────────────────────────────────────────
 
@@ -18,7 +16,7 @@ from src.constants import (
 class TestBuildLabelsWithPipelineConfig:
     """Tests for _build_labels with optional pipeline_config_name parameter."""
 
-    def _make_recommendation(self, labels=None, is_blocking=False):
+    def _make_recommendation(self, labels=None):
         from uuid import uuid4
 
         from src.models.recommendation import IssueMetadata, IssueRecommendation
@@ -32,7 +30,6 @@ class TestBuildLabelsWithPipelineConfig:
             user_story="As a user...",
             ui_ux_description="UI description",
             functional_requirements=["Req 1"],
-            is_blocking=is_blocking,
             metadata=metadata,
         )
 
@@ -43,7 +40,7 @@ class TestBuildLabelsWithPipelineConfig:
         labels = WorkflowOrchestrator._build_labels(rec)
         assert "ai-generated" in labels
         assert "feature" in labels
-        assert not any(l.startswith("pipeline:") for l in labels)
+        assert not any(lbl.startswith("pipeline:") for lbl in labels)
 
     def test_with_pipeline_config_name(self):
         from src.services.workflow_orchestrator.orchestrator import WorkflowOrchestrator
@@ -57,7 +54,7 @@ class TestBuildLabelsWithPipelineConfig:
 
         rec = self._make_recommendation(labels=["bug"])
         labels = WorkflowOrchestrator._build_labels(rec, pipeline_config_name=None)
-        assert not any(l.startswith("pipeline:") for l in labels)
+        assert not any(lbl.startswith("pipeline:") for lbl in labels)
 
 
 # ── Agent label swap ─────────────────────────────────────────────────────────

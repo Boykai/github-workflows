@@ -145,14 +145,6 @@ describe('IssueCard', () => {
     });
   });
 
-  it('renders the blocking badge when blocking queue state marks the issue as blocking', () => {
-    const item = createBoardItem();
-
-    render(<IssueCard item={item} onClick={vi.fn()} isBlocking />);
-
-    expect(screen.getByText('Blocking')).toBeInTheDocument();
-  });
-
   it('sets aria-expanded on the sub-issues toggle button', async () => {
     const item = createBoardItem({
       sub_issues: [

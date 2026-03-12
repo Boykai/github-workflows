@@ -15,7 +15,7 @@ const errMsg = (e: unknown, fallback: string) =>
   e instanceof Error ? e.message : fallback;
 
 const buildPayload = (p: PipelineConfig) => ({
-  name: p.name, description: p.description, stages: p.stages, blocking: p.blocking,
+  name: p.name, description: p.description, stages: p.stages,
 });
 
 export const pipelineKeys = {
@@ -80,7 +80,7 @@ export function usePipelineConfig(projectId: string | null) {
     const stages = stageNames.map((n, i) => ({ id: generateId(), name: n, order: i, agents: [] }));
     const config: PipelineConfig = {
       id: '', project_id: projectId ?? '', name: '', description: '', stages,
-      is_preset: false, preset_id: '', blocking: false, created_at: now, updated_at: now,
+      is_preset: false, preset_id: '', created_at: now, updated_at: now,
     };
     dispatch({ type: 'NEW_PIPELINE', config });
     resetPending();

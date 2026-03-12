@@ -5,7 +5,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
-import { GitBranch, Layers, Lock, PencilLine } from 'lucide-react';
+import { GitBranch, Layers, PencilLine } from 'lucide-react';
 import { StageCard } from './StageCard';
 import { PipelineModelDropdown } from './PipelineModelDropdown';
 import { cn } from '@/lib/utils';
@@ -45,8 +45,6 @@ interface PipelineBoardProps {
   onUpdateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
   onCloneAgent?: (stageId: string, agentNodeId: string) => void;
   onReorderAgents: (stageId: string, newOrder: PipelineAgentNode[]) => void;
-  pipelineBlocking: boolean;
-  onBlockingChange: (blocking: boolean) => void;
 }
 
 export function PipelineBoard({
@@ -72,8 +70,6 @@ export function PipelineBoard({
   onUpdateStage,
   onCloneAgent,
   onReorderAgents,
-  pipelineBlocking,
-  onBlockingChange,
 }: PipelineBoardProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState(pipelineName);
@@ -175,26 +171,6 @@ export function PipelineBoard({
           onModelChange={onModelOverrideChange}
         />
 
-        {/* Blocking toggle */}
-        <div className="flex items-center gap-2 self-start">
-          <button
-            type="button"
-            role="switch"
-            aria-checked={pipelineBlocking}
-            aria-label="Blocking"
-            onClick={() => onBlockingChange(!pipelineBlocking)}
-            className={cn('relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60', pipelineBlocking ? 'bg-amber-500' : 'bg-muted')}
-          >
-            <span
-              className={cn('pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform', pipelineBlocking ? 'translate-x-4' : 'translate-x-0')}
-            />
-          </button>
-          <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-            <Lock className="h-3 w-3" />
-            Blocking
-          </span>
-        </div>
-
         {/* Empty board CTA */}
         <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 bg-background/24 p-8 text-center">
           <Layers className="h-8 w-8 text-muted-foreground/40" />
@@ -270,26 +246,6 @@ export function PipelineBoard({
         currentOverride={modelOverride}
         onModelChange={onModelOverrideChange}
       />
-
-      {/* Blocking toggle */}
-      <div className="flex items-center gap-2 self-start">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={pipelineBlocking}
-          aria-label="Blocking"
-          onClick={() => onBlockingChange(!pipelineBlocking)}
-          className={cn('relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60', pipelineBlocking ? 'bg-amber-500' : 'bg-muted')}
-        >
-          <span
-            className={cn('pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform', pipelineBlocking ? 'translate-x-4' : 'translate-x-0')}
-          />
-        </button>
-        <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-          <Lock className="h-3 w-3" />
-          Blocking
-        </span>
-      </div>
 
       {hasParallelStage && (
         <div className="flex flex-wrap items-center gap-2 rounded-[1rem] border border-primary/20 bg-primary/8 px-3 py-2 text-xs text-muted-foreground">

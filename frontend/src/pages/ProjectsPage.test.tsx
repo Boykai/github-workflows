@@ -25,7 +25,6 @@ const mocks = vi.hoisted(() => ({
   },
   pipelineAssignment: {
     pipeline_id: 'pipe-1',
-    blocking_override: true,
   },
   projects: [
     {
@@ -174,10 +173,6 @@ vi.mock('@/hooks/useBoardControls', () => ({
   useBoardControls: () => mocks.boardControls,
 }));
 
-vi.mock('@/hooks/useBlockingQueue', () => ({
-  useBlockingQueue: () => ({ data: [] }),
-}));
-
 vi.mock('@/components/common/CelestialCatalogHero', () => ({
   CelestialCatalogHero: ({
     title,
@@ -222,14 +217,6 @@ vi.mock('@/components/board/BoardToolbar', () => ({
   BoardToolbar: () => <div data-testid="board-toolbar" />,
 }));
 
-vi.mock('@/components/board/BlockingChainPanel', () => ({
-  BlockingChainPanel: () => null,
-}));
-
-vi.mock('@/components/board/BlockingIssuePill', () => ({
-  BlockingIssuePill: () => null,
-}));
-
 vi.mock('@/components/board/ProjectIssueLaunchPanel', () => ({
   ProjectIssueLaunchPanel: () => <div data-testid="launch-panel" />,
 }));
@@ -253,7 +240,6 @@ describe('ProjectsPage', () => {
     mocks.projectBoard.projectsLoading = false;
     mocks.projectBoard.selectedProjectId = 'PVT_1';
     mocks.projectBoard.selectProject = mocks.selectBoardProject;
-    mocks.pipelineAssignment.blocking_override = true;
     mocks.syncStatus = 'connected';
   });
 
@@ -262,8 +248,6 @@ describe('ProjectsPage', () => {
 
     expect(screen.getByText('Live sync')).toBeInTheDocument();
     expect(screen.getByText(/Updated /)).toBeInTheDocument();
-    expect(screen.getByText('Blocking on')).toBeInTheDocument();
-    expect(screen.getByText('Project override')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Clear all filters' }));
 
@@ -272,11 +256,9 @@ describe('ProjectsPage', () => {
 
   it('uses the scoped retry CTA for board failures', async () => {
     mocks.projectBoard.boardError = new Error('Board request failed');
-    mocks.pipelineAssignment.blocking_override = null;
 
     render(<ProjectsPage />);
 
-    expect(screen.getByText('Pipeline default')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Retry loading board data' }));
 
     expect(mocks.selectBoardProject).toHaveBeenCalledWith('PVT_1');
@@ -359,21 +341,6 @@ describe('ProjectsPage', () => {
     render(<ProjectsPage />);
 
     expect(screen.getByText('Connecting')).toBeInTheDocument();
-  });
-
-  it('shows the blocking label split into two lines with override info', () => {
-    render(<ProjectsPage />);
-
-    expect(screen.getByText('Blocking on')).toBeInTheDocument();
-    expect(screen.getByText('Project override')).toBeInTheDocument();
-  });
-
-  it('shows "Pipeline default" when there is no blocking override', () => {
-    mocks.pipelineAssignment.blocking_override = null;
-
-    render(<ProjectsPage />);
-
-    expect(screen.getByText('Pipeline default')).toBeInTheDocument();
   });
 
   it('fires the refresh callback when the refresh button is clicked', async () => {

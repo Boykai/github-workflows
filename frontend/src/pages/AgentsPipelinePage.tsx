@@ -283,8 +283,6 @@ export function AgentsPipelinePage() {
                   pipelineConfig.cloneAgentInStage(stageId, agentNodeId)
                 }
                 onReorderAgents={pipelineConfig.reorderAgentsInStage}
-                pipelineBlocking={pipelineConfig.pipeline?.blocking ?? false}
-                onBlockingChange={pipelineConfig.setPipelineBlocking}
               />
             )}
 

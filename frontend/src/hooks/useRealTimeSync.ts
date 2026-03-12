@@ -88,11 +88,7 @@ export function useRealTimeSync(
           markUpdated();
         }
 
-        // Handle blocking queue state changes
-        if (data.type === 'blocking_queue_updated') {
-          queryClient.invalidateQueries({ queryKey: ['blocking-queue', projectId] });
-          markUpdated();
-        }
+
       } catch (e) {
         console.error('Failed to parse WebSocket message:', e);
       }

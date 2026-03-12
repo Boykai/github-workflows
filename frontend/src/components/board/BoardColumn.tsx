@@ -14,7 +14,6 @@ interface BoardColumnProps {
   onCardClick: (item: BoardItem) => void;
   availableAgents?: AvailableAgent[];
   getGroups?: (items: BoardItem[]) => BoardGroup[] | null;
-  blockingIssueNumbers?: Set<number>;
 }
 
 export const BoardColumn = memo(function BoardColumn({
@@ -22,7 +21,6 @@ export const BoardColumn = memo(function BoardColumn({
   onCardClick,
   availableAgents,
   getGroups,
-  blockingIssueNumbers,
 }: BoardColumnProps) {
   const dotColor = statusColorToCSS(column.status.color);
   const groups = getGroups?.(column.items);
@@ -93,7 +91,6 @@ export const BoardColumn = memo(function BoardColumn({
                     item={item}
                     onClick={onCardClick}
                     availableAgents={availableAgents}
-                    isBlocking={item.number != null && !!blockingIssueNumbers?.has(item.number)}
                   />
                 ))}
               </div>
@@ -107,7 +104,6 @@ export const BoardColumn = memo(function BoardColumn({
               item={item}
               onClick={onCardClick}
               availableAgents={availableAgents}
-              isBlocking={item.number != null && !!blockingIssueNumbers?.has(item.number)}
             />
           ))
         )}

@@ -18,7 +18,6 @@ import type {
 export interface UsePipelineBoardMutationsReturn {
   setPipelineName: (name: string) => void;
   setPipelineDescription: (description: string) => void;
-  setPipelineBlocking: (blocking: boolean) => void;
   removeStage: (stageId: string) => void;
   updateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
   reorderStages: (newOrder: PipelineStage[]) => void;
@@ -50,13 +49,6 @@ export function usePipelineBoardMutations(
   const setPipelineDescription = useCallback(
     (description: string) => {
       setPipeline((prev) => (prev ? { ...prev, description } : null));
-    },
-    [setPipeline],
-  );
-
-  const setPipelineBlocking = useCallback(
-    (blocking: boolean) => {
-      setPipeline((prev) => (prev ? { ...prev, blocking } : null));
     },
     [setPipeline],
   );
@@ -237,7 +229,6 @@ export function usePipelineBoardMutations(
   return {
     setPipelineName,
     setPipelineDescription,
-    setPipelineBlocking,
     removeStage,
     updateStage,
     reorderStages,

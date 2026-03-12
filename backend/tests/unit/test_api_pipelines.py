@@ -41,7 +41,6 @@ async def _create_pipeline(mock_db, project_id: str = "PVT_1") -> str:
                     ],
                 )
             ],
-            blocking=False,
         ),
     )
     return pipeline.id
@@ -82,11 +81,6 @@ class TestLaunchPipelineIssue:
             ),
             patch("src.api.pipelines.set_workflow_config", new_callable=AsyncMock),
             patch("src.api.pipelines.get_workflow_orchestrator", return_value=mock_orchestrator),
-            patch(
-                "src.services.blocking_queue.enqueue_issue",
-                new_callable=AsyncMock,
-                return_value=({}, True),
-            ),
             patch("src.services.copilot_polling.ensure_polling_started", new_callable=AsyncMock),
             patch("src.api.pipelines.get_pipeline_state", return_value=None),
         ):

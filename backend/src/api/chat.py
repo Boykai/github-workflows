@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import re
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
@@ -17,7 +16,6 @@ from src.api.auth import get_session_dep
 from src.constants import (
     DEFAULT_STATUS_COLUMNS,
     GITHUB_ISSUE_BODY_MAX_LENGTH,
-    with_blocking_label,
 )
 from src.dependencies import get_connection_manager, get_github_service, require_selected_project
 from src.exceptions import NotFoundError, ValidationError
@@ -92,8 +90,6 @@ _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
 # In-memory storage for issue recommendations (T007 — lost on restart)
 _recommendations: dict[str, IssueRecommendation] = {}
-# Module-level compiled regex for #block detection (no \s* prefix — avoids ReDoS)
-_BLOCK_PATTERN = re.compile(r"#block\b", re.IGNORECASE)
 
 
 # ── Command dispatch helpers (extracted from send_message) ───────────────
@@ -151,51 +147,11 @@ async def _handle_agent_command(
     return agent_msg
 
 
-async def _resolve_blocking_status(
-    content: str,
-    selected_project_id: str,
-) -> tuple[bool, str]:
-    """Priority 0.5: Detect #block tag and resolve blocking status.
-
-    Returns (is_blocking, cleaned_content) where cleaned_content has the
-    #block tag stripped.
-    """
-    is_blocking = bool(_BLOCK_PATTERN.search(content))
-    if is_blocking:
-        cleaned = " ".join(_BLOCK_PATTERN.sub("", content).split())
-        logger.info("Detected #block in message — is_blocking=True, stripped content")
-        return True, cleaned
-
-    # Fall through to project-level override, then pipeline default
-    try:
-        from src.services.pipelines.service import PipelineService
-
-        _pipeline_svc = PipelineService(get_db())
-        _assignment = await _pipeline_svc.get_assignment(selected_project_id)
-        if _assignment.blocking_override is not None:
-            logger.debug(
-                "is_blocking resolved from project override: %s", _assignment.blocking_override
-            )
-            return _assignment.blocking_override, content
-        if _assignment.pipeline_id:
-            _pipeline_cfg = await _pipeline_svc.get_pipeline(
-                selected_project_id, _assignment.pipeline_id
-            )
-            if _pipeline_cfg and _pipeline_cfg.blocking:
-                logger.debug("is_blocking resolved from pipeline default: True")
-                return True, content
-    except Exception as e:
-        logger.debug("Pipeline blocking resolution failed for chat request: %s", e)
-
-    return False, content
-
-
 async def _handle_feature_request(
     session: UserSession,
     content: str,
     ai_service: AIAgentService,
     project_name: str,
-    is_blocking: bool,
     pipeline_id: str | None,
     ai_enhance: bool,
     file_urls: list[str] | None,
@@ -236,7 +192,6 @@ async def _handle_feature_request(
         )
 
         recommendation.selected_pipeline_id = pipeline_id or None
-        recommendation.is_blocking = is_blocking
 
         _recommendations[str(recommendation.recommendation_id)] = recommendation
 
@@ -277,7 +232,6 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 "status": RecommendationStatus.PENDING.value,
                 "ai_enhance": ai_enhance,
                 "file_urls": file_urls,
-                "is_blocking": is_blocking,
                 "pipeline_id": pipeline_id,
             },
         )
@@ -387,7 +341,6 @@ async def _handle_task_generation(
     content: str,
     ai_service: AIAgentService,
     project_name: str,
-    is_blocking: bool,
     ai_enhance: bool,
     pipeline_id: str | None,
 ) -> ChatMessage:
@@ -408,7 +361,6 @@ async def _handle_task_generation(
                 original_input=content,
                 proposed_title=title,
                 proposed_description=content,
-                is_blocking=is_blocking,
                 selected_pipeline_id=pipeline_id or None,
             )
             _proposals[str(proposal.proposal_id)] = proposal
@@ -427,7 +379,6 @@ async def _handle_task_generation(
                     "proposed_title": title,
                     "proposed_description": content,
                     "status": ProposalStatus.PENDING.value,
-                    "is_blocking": is_blocking,
                 },
             )
             add_message(session.session_id, assistant_message)
@@ -457,7 +408,6 @@ async def _handle_task_generation(
             original_input=content,
             proposed_title=generated.title,
             proposed_description=generated.description,
-            is_blocking=is_blocking,
             selected_pipeline_id=pipeline_id or None,
         )
         _proposals[str(proposal.proposal_id)] = proposal
@@ -477,7 +427,6 @@ async def _handle_task_generation(
                 "proposed_title": generated.title,
                 "proposed_description": generated.description,
                 "status": ProposalStatus.PENDING.value,
-                "is_blocking": is_blocking,
             },
         )
         add_message(session.session_id, assistant_message)
@@ -645,11 +594,7 @@ async def send_message(
     if agent_msg:
         return agent_msg
 
-    # ── Priority 0.5: #block detection ───────────────────────────────
-    is_blocking, content = await _resolve_blocking_status(
-        chat_request.content,
-        selected_project_id,
-    )
+    content = chat_request.content
 
     # ── Priority 1: Feature request → issue recommendation ───────────
     feature_msg = await _handle_feature_request(
@@ -657,7 +602,6 @@ async def send_message(
         content,
         ai_service,
         project_name,
-        is_blocking,
         chat_request.pipeline_id,
         chat_request.ai_enhance,
         chat_request.file_urls,
@@ -685,7 +629,6 @@ async def send_message(
         content,
         ai_service,
         project_name,
-        is_blocking,
         chat_request.ai_enhance,
         chat_request.pipeline_id,
     )
@@ -756,7 +699,7 @@ async def confirm_proposal(
             repo=repo,
             title=proposal.final_title,
             body=body,
-            labels=with_blocking_label([], proposal.is_blocking),
+            labels=[],
         )
 
         issue_number = issue["number"]
@@ -815,9 +758,6 @@ async def confirm_proposal(
 
         # Step 3: Set up workflow config and assign agent for Backlog status
         try:
-            # Resolve is_blocking from the proposal
-            proposal_is_blocking = proposal.is_blocking
-
             from src.config import get_settings
 
             settings = get_settings()
@@ -938,8 +878,6 @@ async def confirm_proposal(
             orchestrator = get_workflow_orchestrator()
 
             # Create all sub-issues upfront so the user can see the full pipeline.
-            # This must happen before the blocking queue check so that sub-issues
-            # are always created even when the issue enters the queue as pending.
             agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
             if agent_sub_issues:
                 from src.services.workflow_orchestrator import (
@@ -965,25 +903,6 @@ async def confirm_proposal(
                     len(agent_sub_issues),
                     issue_number,
                 )
-
-            # Blocking queue: enqueue issue and check if it should activate.
-            # Only gates agent assignment — sub-issues are already created above.
-            issue_activated = True
-            try:
-                from src.services import blocking_queue as bq_service
-
-                repo_key = f"{owner}/{repo}"
-                _bq_entry, issue_activated = await bq_service.enqueue_issue(
-                    repo_key, issue_number, project_id, proposal_is_blocking
-                )
-                if not issue_activated:
-                    logger.info(
-                        "Issue #%d is pending in blocking queue — skipping agent assignment",
-                        issue_number,
-                    )
-                    return proposal
-            except Exception as e:
-                logger.debug("Blocking queue enqueue skipped in confirm_proposal: %s", e)
 
             await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 

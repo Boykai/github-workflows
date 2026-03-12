@@ -74,7 +74,6 @@ import type {
   ToolChip,
   ToolDeleteResult,
   FileUploadResponse,
-  BlockingQueueEntry,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -369,33 +368,6 @@ export const boardApi = {
   getBoardData(projectId: string, refresh = false): Promise<BoardDataResponse> {
     const params = refresh ? '?refresh=true' : '';
     return request<BoardDataResponse>(`/board/projects/${projectId}${params}`);
-  },
-
-  /**
-   * Get active blocking queue entries for a project.
-   */
-  getBlockingQueue(projectId: string): Promise<BlockingQueueEntry[]> {
-    return request<BlockingQueueEntry[]>(`/board/projects/${projectId}/blocking-queue`);
-  },
-
-  /**
-   * Skip a blocking queue entry — marks it completed and advances the queue.
-   */
-  skipBlockingIssue(projectId: string, issueNumber: number): Promise<BlockingQueueEntry[]> {
-    return request<BlockingQueueEntry[]>(
-      `/board/projects/${projectId}/blocking-queue/${issueNumber}/skip`,
-      { method: 'POST' }
-    );
-  },
-
-  /**
-   * Close the GitHub issue and remove it from the blocking queue.
-   */
-  deleteBlockingIssue(projectId: string, issueNumber: number): Promise<BlockingQueueEntry[]> {
-    return request<BlockingQueueEntry[]>(
-      `/board/projects/${projectId}/blocking-queue/${issueNumber}`,
-      { method: 'DELETE' }
-    );
   },
 };
 
@@ -1023,16 +995,6 @@ export const pipelinesApi = {
     return request<ProjectPipelineAssignment>(`/pipelines/${projectId}/assignment`, {
       method: 'PUT',
       body: JSON.stringify({ pipeline_id: pipelineId }),
-    });
-  },
-
-  setBlockingOverride(
-    projectId: string,
-    blockingOverride: boolean | null
-  ): Promise<ProjectPipelineAssignment> {
-    return request<ProjectPipelineAssignment>(`/pipelines/${projectId}/assignment`, {
-      method: 'PATCH',
-      body: JSON.stringify({ blocking_override: blockingOverride }),
     });
   },
 
