@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { createTestQueryClient, render, screen } from '@/test/test-utils';
@@ -145,6 +146,8 @@ describe('StageCard', () => {
   });
 
   it('shows add group button when onAddGroup callback is provided', () => {
+    const onAddGroup = vi.fn();
+
     renderStageCard(
       <StageCard
         stage={createStage()}
@@ -156,10 +159,75 @@ describe('StageCard', () => {
         onRemoveAgent={vi.fn()}
         onUpdateAgent={vi.fn()}
         onReorderAgents={vi.fn()}
-        onAddGroup={vi.fn()}
+        onAddGroup={onAddGroup}
       />
     );
 
-    expect(screen.getByRole('button', { name: /add execution group/i })).toBeInTheDocument();
+    const button = screen.getByRole('button', { name: /add execution group/i });
+    expect(button).toBeInTheDocument();
+    button.click();
+    expect(onAddGroup).toHaveBeenCalledTimes(1);
+  });
+
+  it('routes per-group agent additions to the selected execution group', async () => {
+    const onAddAgent = vi.fn();
+
+    renderStageCard(
+      <StageCard
+        stage={createStage({
+          groups: [
+            createGroup({ id: 'group-1' }),
+            createGroup({ id: 'group-2', order: 1 }),
+          ],
+        })}
+        availableAgents={[createAvailableAgent()]}
+        projectId="project-1"
+        onUpdate={vi.fn()}
+        onRemove={vi.fn()}
+        onAddAgent={onAddAgent}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onReorderAgents={vi.fn()}
+      />
+    );
+
+    const user = userEvent.setup();
+    const secondGroup = screen.getByTestId('execution-group-group-2');
+
+    await user.click(within(secondGroup).getByRole('button', { name: /add agent/i }));
+    await user.click(screen.getByRole('button', { name: /github copilot \(copilot\)/i }));
+
+    expect(onAddAgent).toHaveBeenCalledWith('copilot', 'group-2');
+  });
+
+  it('forwards execution mode toggle events for the correct group', async () => {
+    const onToggleGroupMode = vi.fn();
+
+    renderStageCard(
+      <StageCard
+        stage={createStage({
+          groups: [
+            createGroup({ id: 'group-1', execution_mode: 'sequential' }),
+            createGroup({ id: 'group-2', order: 1, execution_mode: 'parallel' }),
+          ],
+        })}
+        availableAgents={[]}
+        projectId="project-1"
+        onUpdate={vi.fn()}
+        onRemove={vi.fn()}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onReorderAgents={vi.fn()}
+        onToggleGroupMode={onToggleGroupMode}
+      />
+    );
+
+    const user = userEvent.setup();
+    const firstGroup = screen.getByTestId('execution-group-group-1');
+
+    await user.click(within(firstGroup).getByRole('button', { name: /switch to parallel mode/i }));
+
+    expect(onToggleGroupMode).toHaveBeenCalledWith('group-1', 'parallel');
   });
 });
