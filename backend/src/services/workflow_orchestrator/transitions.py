@@ -5,7 +5,6 @@ via ``pipeline_state_store`` for durability across container restarts.
 """
 
 import asyncio
-from datetime import datetime
 
 from src.logging_utils import get_logger
 from src.services.pipeline_state_store import (
@@ -13,14 +12,32 @@ from src.services.pipeline_state_store import (
     _issue_main_branches,
     _issue_sub_issue_map,
     _pipeline_states,
+)
+from src.services.pipeline_state_store import (
     clear_all_trigger_inflights as _clear_all_trigger_inflights_async,
+)
+from src.services.pipeline_state_store import (
     delete_main_branch as _delete_main_branch_async,
+)
+from src.services.pipeline_state_store import (
     delete_pipeline_state as _delete_pipeline_state_async,
+)
+from src.services.pipeline_state_store import (
     delete_sub_issue_map as _delete_sub_issue_map_async,
+)
+from src.services.pipeline_state_store import (
     delete_trigger_inflight as _delete_trigger_inflight_async,
+)
+from src.services.pipeline_state_store import (
     set_main_branch as _set_main_branch_async,
+)
+from src.services.pipeline_state_store import (
     set_pipeline_state as _set_pipeline_state_async,
+)
+from src.services.pipeline_state_store import (
     set_sub_issue_map as _set_sub_issue_map_async,
+)
+from src.services.pipeline_state_store import (
     set_trigger_inflight as _set_trigger_inflight_async,
 )
 from src.utils import utcnow
@@ -245,9 +262,7 @@ def update_issue_main_branch_sha(issue_number: int, head_sha: str) -> None:
         return
     old_sha = _issue_main_branches[issue_number].get("head_sha", "")
     _issue_main_branches[issue_number]["head_sha"] = head_sha
-    _schedule_persist(
-        _set_main_branch_async(issue_number, _issue_main_branches[issue_number])
-    )
+    _schedule_persist(_set_main_branch_async(issue_number, _issue_main_branches[issue_number]))
     logger.info(
         "Updated HEAD SHA for issue #%d main branch '%s': %s → %s",
         issue_number,
