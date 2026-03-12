@@ -16,7 +16,7 @@ from src.constants import (
 class TestBuildLabelsWithPipelineConfig:
     """Tests for _build_labels with optional pipeline_config_name parameter."""
 
-    def _make_recommendation(self, labels=None, is_blocking=False):
+    def _make_recommendation(self, labels=None):
         from uuid import uuid4
 
         from src.models.recommendation import IssueMetadata, IssueRecommendation
@@ -30,7 +30,6 @@ class TestBuildLabelsWithPipelineConfig:
             user_story="As a user...",
             ui_ux_description="UI description",
             functional_requirements=["Req 1"],
-            is_blocking=is_blocking,
             metadata=metadata,
         )
 

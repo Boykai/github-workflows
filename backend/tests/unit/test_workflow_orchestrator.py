@@ -982,36 +982,6 @@ class TestCreateIssueFromRecommendation:
         mock_github_service.create_issue.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_create_issue_adds_blocking_label_when_recommendation_is_blocking(
-        self, orchestrator, workflow_context, mock_github_service
-    ):
-        from uuid import uuid4
-
-        from src.models.chat import IssueRecommendation
-
-        recommendation = IssueRecommendation(
-            recommendation_id=uuid4(),
-            session_id=uuid4(),
-            title="Test Issue",
-            original_input="User request",
-            user_story="As a user...",
-            ui_ux_description="UI description",
-            functional_requirements=["Req 1"],
-            is_blocking=True,
-        )
-
-        mock_github_service.create_issue.return_value = {
-            "node_id": "I_125",
-            "number": 44,
-            "html_url": "https://github.com/owner/repo/issues/44",
-        }
-
-        await orchestrator.create_issue_from_recommendation(workflow_context, recommendation)
-
-        labels = mock_github_service.create_issue.call_args.kwargs["labels"]
-        assert "blocking" in labels
-
-    @pytest.mark.asyncio
     async def test_rejects_oversized_body(
         self, orchestrator, workflow_context, mock_github_service
     ):
