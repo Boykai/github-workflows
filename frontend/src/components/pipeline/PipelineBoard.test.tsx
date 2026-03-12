@@ -62,8 +62,6 @@ describe('PipelineBoard', () => {
         onUpdateAgent={vi.fn()}
         onUpdateStage={vi.fn()}
         onReorderAgents={vi.fn()}
-        pipelineBlocking={false}
-        onBlockingChange={vi.fn()}
       />
     );
 
@@ -152,8 +150,6 @@ describe('PipelineBoard', () => {
         onUpdateAgent={vi.fn()}
         onUpdateStage={vi.fn()}
         onReorderAgents={vi.fn()}
-        pipelineBlocking={false}
-        onBlockingChange={vi.fn()}
       />
     );
 
@@ -187,8 +183,6 @@ describe('PipelineBoard', () => {
         onUpdateAgent={vi.fn()}
         onUpdateStage={vi.fn()}
         onReorderAgents={vi.fn()}
-        pipelineBlocking={false}
-        onBlockingChange={vi.fn()}
       />
     );
 

@@ -34,7 +34,6 @@ SESSION_COOKIE_NAME = "session_id"
 # ──────────────────────────────────────────────────────────────────────────────
 
 GITHUB_ISSUE_BODY_MAX_LENGTH = 65_536
-BLOCKING_LABEL = "blocking"
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Notification Event Types
@@ -127,7 +126,6 @@ LABELS: list[str] = [
     # Status labels
     "ai-generated",
     "sub-issue",
-    BLOCKING_LABEL,
     "good first issue",
     "help wanted",
     # Domain labels
@@ -139,14 +137,6 @@ LABELS: list[str] = [
     "active",
     "stalled",
 ]
-
-
-def with_blocking_label(labels: list[str] | None, is_blocking: bool) -> list[str]:
-    """Return labels with the canonical blocking label added when needed."""
-    result = list(labels or [])
-    if is_blocking and BLOCKING_LABEL not in result:
-        result.append(BLOCKING_LABEL)
-    return result
 
 
 # ──────────────────────────────────────────────────────────────────────────────

@@ -6,7 +6,6 @@
  */
 
 import type { ChoreInlineUpdate } from '@/types';
-import { cn } from '@/lib/utils';
 
 interface ChoreInlineEditorProps {
   choreId: string;
