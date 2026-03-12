@@ -195,9 +195,7 @@ async def _startup_agent_mcp_sync(db: object) -> None:
         return
 
     try:
-        owner, repo = await resolve_repository(
-            session.access_token, session.selected_project_id
-        )
+        owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
     except Exception as e:
         logger.debug("Could not resolve repo for startup MCP sync: %s", e)
         return

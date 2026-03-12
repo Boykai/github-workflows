@@ -730,9 +730,7 @@ class AgentsService:
                     db=self._db,
                 )
             except Exception as sync_exc:
-                logger.warning(
-                    "Agent MCP sync after create failed (non-fatal): %s", sync_exc
-                )
+                logger.warning("Agent MCP sync after create failed (non-fatal): %s", sync_exc)
 
         return AgentCreateResult(
             agent=agent,
@@ -1107,9 +1105,7 @@ class AgentsService:
                     db=self._db,
                 )
             except Exception as sync_exc:
-                logger.warning(
-                    "Agent MCP sync after update failed (non-fatal): %s", sync_exc
-                )
+                logger.warning("Agent MCP sync after update failed (non-fatal): %s", sync_exc)
 
         return AgentCreateResult(
             agent=updated_agent,

@@ -10,15 +10,12 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import aiosqlite
 
 from src.logging_utils import get_logger
 from src.utils import BoundedDict, utcnow
-
-if TYPE_CHECKING:
-    from .workflow_orchestrator.models import MainBranchInfo, PipelineState
 
 logger = get_logger(__name__)
 
@@ -59,7 +56,9 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
                 logger.error("Failed to load pipeline state row: %s", row, exc_info=True)
         logger.info("Loaded %d pipeline states from SQLite", len(rows))
     except aiosqlite.Error:
-        logger.warning("pipeline_states table not available; starting with empty cache", exc_info=True)
+        logger.warning(
+            "pipeline_states table not available; starting with empty cache", exc_info=True
+        )
 
     # Load main branches
     try:
@@ -73,7 +72,9 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
                 logger.error("Failed to load main branch row: %s", row, exc_info=True)
         logger.info("Loaded %d main branches from SQLite", len(rows))
     except aiosqlite.Error:
-        logger.warning("issue_main_branches table not available; starting with empty cache", exc_info=True)
+        logger.warning(
+            "issue_main_branches table not available; starting with empty cache", exc_info=True
+        )
 
     # Load sub-issue map
     try:
@@ -91,7 +92,9 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
                 logger.error("Failed to load sub-issue map row: %s", row, exc_info=True)
         logger.info("Loaded sub-issue maps for %d issues from SQLite", len(_issue_sub_issue_map))
     except aiosqlite.Error:
-        logger.warning("issue_sub_issue_map table not available; starting with empty cache", exc_info=True)
+        logger.warning(
+            "issue_sub_issue_map table not available; starting with empty cache", exc_info=True
+        )
 
     # Load trigger inflight markers
     try:
@@ -107,7 +110,9 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
                 logger.error("Failed to load trigger inflight row: %s", row, exc_info=True)
         logger.info("Loaded %d trigger inflight markers from SQLite", len(rows))
     except aiosqlite.Error:
-        logger.warning("agent_trigger_inflight table not available; starting with empty cache", exc_info=True)
+        logger.warning(
+            "agent_trigger_inflight table not available; starting with empty cache", exc_info=True
+        )
 
 
 # ── Row conversion helpers ──────────────────────────────────────
@@ -116,6 +121,7 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
 def _row_to_pipeline_state(row) -> Any:
     """Convert a database row to a PipelineState dataclass."""
     from .workflow_orchestrator.models import PipelineState
+
     if isinstance(row, tuple):
         # Positional: issue_number, project_id, status, agent_name, agent_instance_id,
         #             pr_number, pr_url, sub_issues, metadata, created_at, updated_at
@@ -154,7 +160,9 @@ def _row_to_pipeline_state(row) -> Any:
         agents=agents,
         current_agent_index=metadata.get("current_agent_index", 0),
         completed_agents=metadata.get("completed_agents", []),
-        started_at=datetime.fromisoformat(metadata["started_at"]) if metadata.get("started_at") else None,
+        started_at=datetime.fromisoformat(metadata["started_at"])
+        if metadata.get("started_at")
+        else None,
         error=metadata.get("error"),
         agent_assigned_sha=metadata.get("agent_assigned_sha", ""),
         agent_sub_issues=sub_issues,
@@ -254,7 +262,9 @@ async def set_pipeline_state(issue_number: int, state: Any) -> None:
                 )
                 await _db.commit()
             except aiosqlite.Error:
-                logger.error("Failed to persist pipeline state for issue %d", issue_number, exc_info=True)
+                logger.error(
+                    "Failed to persist pipeline state for issue %d", issue_number, exc_info=True
+                )
 
 
 async def delete_pipeline_state(issue_number: int) -> None:
@@ -263,10 +273,14 @@ async def delete_pipeline_state(issue_number: int) -> None:
         _pipeline_states.pop(issue_number, None)
         if _db is not None:
             try:
-                await _db.execute("DELETE FROM pipeline_states WHERE issue_number = ?", (issue_number,))
+                await _db.execute(
+                    "DELETE FROM pipeline_states WHERE issue_number = ?", (issue_number,)
+                )
                 await _db.commit()
             except aiosqlite.Error:
-                logger.error("Failed to delete pipeline state for issue %d", issue_number, exc_info=True)
+                logger.error(
+                    "Failed to delete pipeline state for issue %d", issue_number, exc_info=True
+                )
 
 
 # ── Issue Main Branches ─────────────────────────────────────────
@@ -290,7 +304,9 @@ async def set_main_branch(issue_number: int, info: Any) -> None:
                 )
                 await _db.commit()
             except aiosqlite.Error:
-                logger.error("Failed to persist main branch for issue %d", issue_number, exc_info=True)
+                logger.error(
+                    "Failed to persist main branch for issue %d", issue_number, exc_info=True
+                )
 
 
 async def delete_main_branch(issue_number: int) -> None:
@@ -299,10 +315,14 @@ async def delete_main_branch(issue_number: int) -> None:
         _issue_main_branches.pop(issue_number, None)
         if _db is not None:
             try:
-                await _db.execute("DELETE FROM issue_main_branches WHERE issue_number = ?", (issue_number,))
+                await _db.execute(
+                    "DELETE FROM issue_main_branches WHERE issue_number = ?", (issue_number,)
+                )
                 await _db.commit()
             except aiosqlite.Error:
-                logger.error("Failed to delete main branch for issue %d", issue_number, exc_info=True)
+                logger.error(
+                    "Failed to delete main branch for issue %d", issue_number, exc_info=True
+                )
 
 
 # ── Sub-Issue Map ────────────────────────────────────────────────
@@ -338,7 +358,9 @@ async def set_sub_issue_map(issue_number: int, mappings: dict[str, dict]) -> Non
                     )
                 await _db.commit()
             except aiosqlite.Error:
-                logger.error("Failed to persist sub-issue map for issue %d", issue_number, exc_info=True)
+                logger.error(
+                    "Failed to persist sub-issue map for issue %d", issue_number, exc_info=True
+                )
 
 
 async def delete_sub_issue_map(issue_number: int) -> None:
@@ -347,10 +369,14 @@ async def delete_sub_issue_map(issue_number: int) -> None:
         _issue_sub_issue_map.pop(issue_number, None)
         if _db is not None:
             try:
-                await _db.execute("DELETE FROM issue_sub_issue_map WHERE issue_number = ?", (issue_number,))
+                await _db.execute(
+                    "DELETE FROM issue_sub_issue_map WHERE issue_number = ?", (issue_number,)
+                )
                 await _db.commit()
             except aiosqlite.Error:
-                logger.error("Failed to delete sub-issue map for issue %d", issue_number, exc_info=True)
+                logger.error(
+                    "Failed to delete sub-issue map for issue %d", issue_number, exc_info=True
+                )
 
 
 # ── Trigger Inflight Guard ──────────────────────────────────────
@@ -382,7 +408,9 @@ async def delete_trigger_inflight(trigger_key: str) -> None:
         _agent_trigger_inflight.pop(trigger_key, None)
         if _db is not None:
             try:
-                await _db.execute("DELETE FROM agent_trigger_inflight WHERE trigger_key = ?", (trigger_key,))
+                await _db.execute(
+                    "DELETE FROM agent_trigger_inflight WHERE trigger_key = ?", (trigger_key,)
+                )
                 await _db.commit()
             except aiosqlite.Error:
                 logger.error("Failed to delete trigger inflight: %s", trigger_key, exc_info=True)
