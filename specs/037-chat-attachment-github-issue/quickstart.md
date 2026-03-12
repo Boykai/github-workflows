@@ -23,7 +23,7 @@ The file upload infrastructure is already implemented end-to-end:
 
 ### 1. New Utility: `format_attachments_markdown()`
 
-**File**: `backend/src/utils/attachment_formatter.py` (NEW)
+**File**: `backend/src/attachment_formatter.py` (NEW)
 
 Converts a list of file URLs into a formatted markdown section for the GitHub issue body.
 

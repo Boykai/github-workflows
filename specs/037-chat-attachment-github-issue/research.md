@@ -37,14 +37,14 @@ The missing piece is the final connection: file URLs are stored in `action_data`
 
 ## R3: Model Persistence — File URLs in Proposals and Recommendations
 
-**Decision**: Add a `file_urls: list[str]` field (default empty list) to both `AITaskProposal` and `IssueRecommendation` Pydantic models. Store file URLs as a JSON-serialized string in the existing `action_data` column for proposals (via `chat_proposals` table) and in a new `file_urls TEXT` column for recommendations (via `chat_recommendations` table). No new database migration is needed for proposals since `action_data` already stores JSON; a migration is needed for recommendations.
+**Decision**: Add a `file_urls: list[str]` field (default empty list) to both `AITaskProposal` and `IssueRecommendation` Pydantic models, and persist it in new `file_urls TEXT` columns on both the `chat_proposals` and `chat_recommendations` tables (added in migration 022). This keeps file URLs first-class and queryable for both proposals and recommendations.
 
-**Rationale**: File URLs must survive the gap between message creation (when files are uploaded) and issue confirmation (when the user clicks "Confirm"). Currently, `_handle_feature_request()` stores `file_urls` in the chat message's `action_data`, but this data is not carried forward to the proposal/recommendation models that are used during confirmation. Adding the field to the Pydantic models ensures type safety and makes the data accessible during the `confirm_proposal()` and `confirm_recommendation()` flows.
+**Rationale**: File URLs must survive the gap between message creation (when files are uploaded) and issue confirmation (when the user clicks "Confirm"). Currently, `_handle_feature_request()` stores `file_urls` in the chat message's `action_data`, but this data is not carried forward to the proposal/recommendation models that are used during confirmation. Adding the field to the Pydantic models and backing columns ensures type safety and makes the data accessible during the `confirm_proposal()` and `confirm_recommendation()` flows.
 
 **Alternatives considered**:
 - Looking up `file_urls` from the original chat message at confirmation time (rejected: requires correlating messages to proposals, adds query complexity, and the message might be cleared by then)
 - Storing file URLs only in a separate attachment table (rejected: adds unnecessary complexity; the URLs are small strings that belong logically with the proposal/recommendation)
-- Using the existing `action_data` JSON column for both models (rejected: recommendations don't have an `action_data` column, and using an untyped JSON blob loses the benefits of Pydantic validation)
+- Reusing the existing `action_data` JSON blob to store file URLs (rejected: mixes concerns, makes querying harder, and loses the benefits of having a dedicated, validated field for attachments)
 
 ## R4: File URL to Markdown Conversion — Formatting Strategy
 
