@@ -63,7 +63,9 @@ function pipelineConfigToMappings(
   for (const stage of config.stages) {
     const matchedCol = lowerMap.get(stage.name.toLowerCase());
     if (matchedCol) {
-      result[matchedCol] = stage.agents.map((agent) =>
+      const stageAgents = (stage.groups ?? []).flatMap((g) => g.agents);
+      const agents = stageAgents.length > 0 ? stageAgents : stage.agents;
+      result[matchedCol] = agents.map((agent) =>
         makeAssignment(
           agent.agent_slug,
           formatAgentName(agent.agent_slug, agent.agent_display_name)

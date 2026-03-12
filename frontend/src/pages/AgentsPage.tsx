@@ -75,7 +75,9 @@ export function AgentsPage() {
     for (const stage of assignedPipeline?.stages ?? []) {
       const key = stage.name.toLowerCase();
       map[key] = {};
-      for (const node of stage.agents) {
+      const stageAgents = (stage.groups ?? []).flatMap((g) => g.agents);
+      const agents = stageAgents.length > 0 ? stageAgents : stage.agents;
+      for (const node of agents) {
         map[key][node.agent_slug] = {
           model: node.model_name,
           toolCount: node.tool_count,
@@ -103,7 +105,11 @@ export function AgentsPage() {
   const pipelineConfigCounts = (pipelineList?.pipelines ?? []).reduce<Record<string, number>>(
     (counts, pipeline) => {
       const pipelineAgentSlugs = new Set(
-        pipeline.stages.flatMap((stage) => stage.agents.map((agent) => agent.agent_slug))
+        pipeline.stages.flatMap((stage) => {
+          const fromGroups = (stage.groups ?? []).flatMap((g) => g.agents);
+          const agents = fromGroups.length > 0 ? fromGroups : stage.agents;
+          return agents.map((agent) => agent.agent_slug);
+        })
       );
       pipelineAgentSlugs.forEach((slug) => {
         counts[slug] = (counts[slug] ?? 0) + 1;

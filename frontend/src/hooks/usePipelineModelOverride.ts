@@ -11,7 +11,11 @@ function deriveModelOverride(config: PipelineConfig | null): PipelineModelOverri
     return { mode: 'auto', modelId: '', modelName: '' };
   }
 
-  const agents = config.stages.flatMap((stage) => stage.agents);
+  // Collect agents from groups (preferred) with fallback to legacy agents field
+  const agents = config.stages.flatMap((stage) => {
+    const fromGroups = (stage.groups ?? []).flatMap((g) => g.agents);
+    return fromGroups.length > 0 ? fromGroups : stage.agents;
+  });
   if (agents.length === 0) {
     return { mode: 'auto', modelId: '', modelName: '' };
   }
@@ -48,7 +52,11 @@ export function usePipelineModelOverride(
   );
 
   const hasAnyAgents = useMemo(
-    () => pipeline?.stages.some((stage) => stage.agents.length > 0) ?? false,
+    () =>
+      pipeline?.stages.some((stage) => {
+        const fromGroups = (stage.groups ?? []).flatMap((g) => g.agents);
+        return fromGroups.length > 0 || stage.agents.length > 0;
+      }) ?? false,
     [pipeline],
   );
 
@@ -63,13 +71,18 @@ export function usePipelineModelOverride(
       setPendingModelOverride(override);
       setPipeline((prev) => {
         if (!prev) return null;
+        const applyOverride = (agent: typeof prev.stages[0]['agents'][0]) => ({
+          ...agent,
+          model_id: override.mode === 'specific' ? override.modelId : '',
+          model_name: override.mode === 'specific' ? override.modelName : '',
+        });
         const updatedStages = prev.stages.map((stage) => ({
           ...stage,
-          agents: stage.agents.map((agent) => ({
-            ...agent,
-            model_id: override.mode === 'specific' ? override.modelId : '',
-            model_name: override.mode === 'specific' ? override.modelName : '',
+          groups: (stage.groups ?? []).map((group) => ({
+            ...group,
+            agents: group.agents.map(applyOverride),
           })),
+          agents: stage.agents.map(applyOverride),
         }));
         return { ...prev, stages: updatedStages };
       });

@@ -10,6 +10,7 @@ import aiosqlite
 
 from src.logging_utils import get_logger
 from src.models.pipeline import (
+    ExecutionGroup,
     PipelineConfig,
     PipelineConfigCreate,
     PipelineConfigListResponse,
@@ -43,6 +44,31 @@ def _agent(aid: str, slug: str, display: str) -> dict:
     }
 
 
+def _group(gid: str, order: int, agents: list[dict], mode: str = "sequential") -> dict:
+    """Build an execution group dict for preset definitions."""
+    return {
+        "id": gid,
+        "order": order,
+        "execution_mode": mode,
+        "agents": agents,
+    }
+
+
+def _grouped_stage(
+    sid: str, name: str, order: int, gid: str, agents: list[dict], mode: str = "sequential",
+) -> dict:
+    """Build a stage dict with a single execution group."""
+    return {
+        "id": sid,
+        "name": name,
+        "order": order,
+        "groups": [_group(gid, 0, agents, mode)],
+        # For backward compatibility, expose a flattened list of agents at the stage level.
+        "agents": agents,
+        "execution_mode": "sequential",
+    }
+
+
 # Preset pipeline definitions
 _PRESET_DEFINITIONS = [
     # ── Spec Kit ──────────────────────────────────────────────────────
@@ -51,36 +77,16 @@ _PRESET_DEFINITIONS = [
         "name": "Spec Kit",
         "description": "Full specification workflow: specify → plan → tasks → implement → analyze",
         "stages": [
-            {
-                "id": "preset-sk-stage-1",
-                "name": "Specify",
-                "order": 0,
-                "agents": [_agent("preset-sk-agent-1", "speckit.specify", "Spec Writer")],
-            },
-            {
-                "id": "preset-sk-stage-2",
-                "name": "Plan",
-                "order": 1,
-                "agents": [_agent("preset-sk-agent-2", "speckit.plan", "Planner")],
-            },
-            {
-                "id": "preset-sk-stage-3",
-                "name": "Tasks",
-                "order": 2,
-                "agents": [_agent("preset-sk-agent-3", "speckit.tasks", "Task Generator")],
-            },
-            {
-                "id": "preset-sk-stage-4",
-                "name": "Implement",
-                "order": 3,
-                "agents": [_agent("preset-sk-agent-4", "speckit.implement", "Implementer")],
-            },
-            {
-                "id": "preset-sk-stage-5",
-                "name": "Analyze",
-                "order": 4,
-                "agents": [_agent("preset-sk-agent-5", "speckit.analyze", "Analyzer")],
-            },
+            _grouped_stage("preset-sk-stage-1", "Specify", 0, "preset-sk-group-1",
+                           [_agent("preset-sk-agent-1", "speckit.specify", "Spec Writer")]),
+            _grouped_stage("preset-sk-stage-2", "Plan", 1, "preset-sk-group-2",
+                           [_agent("preset-sk-agent-2", "speckit.plan", "Planner")]),
+            _grouped_stage("preset-sk-stage-3", "Tasks", 2, "preset-sk-group-3",
+                           [_agent("preset-sk-agent-3", "speckit.tasks", "Task Generator")]),
+            _grouped_stage("preset-sk-stage-4", "Implement", 3, "preset-sk-group-4",
+                           [_agent("preset-sk-agent-4", "speckit.implement", "Implementer")]),
+            _grouped_stage("preset-sk-stage-5", "Analyze", 4, "preset-sk-group-5",
+                           [_agent("preset-sk-agent-5", "speckit.analyze", "Analyzer")]),
         ],
     },
     # ── GitHub Copilot ────────────────────────────────────────────────
@@ -89,12 +95,8 @@ _PRESET_DEFINITIONS = [
         "name": "GitHub Copilot",
         "description": "Single-stage pipeline powered by GitHub Copilot",
         "stages": [
-            {
-                "id": "preset-gc-stage-1",
-                "name": "Execute",
-                "order": 0,
-                "agents": [_agent("preset-gc-agent-1", "copilot", "GitHub Copilot")],
-            },
+            _grouped_stage("preset-gc-stage-1", "Execute", 0, "preset-gc-group-1",
+                           [_agent("preset-gc-agent-1", "copilot", "GitHub Copilot")]),
         ],
     },
     # ── Easy ──────────────────────────────────────────────────────────
@@ -103,28 +105,17 @@ _PRESET_DEFINITIONS = [
         "name": "Easy",
         "description": "Lightweight pipeline: Copilot implements, review agents check quality",
         "stages": [
-            {"id": "preset-easy-stage-0", "name": "Backlog", "order": 0, "agents": []},
-            {"id": "preset-easy-stage-1", "name": "Ready", "order": 1, "agents": []},
-            {
-                "id": "preset-easy-stage-2",
-                "name": "In progress",
-                "order": 2,
-                "agents": [
-                    _agent("preset-easy-agent-1", "copilot", "GitHub Copilot"),
-                    _agent("preset-easy-agent-2", "copilot-review", "Copilot Review"),
-                    _agent("preset-easy-agent-3", "judge", "judge"),
-                    _agent("preset-easy-agent-4", "linter", "linter"),
-                ],
-            },
-            {
-                "id": "preset-easy-stage-3",
-                "name": "In review",
-                "order": 3,
-                "agents": [
-                    _agent("preset-easy-agent-5", "human", "Human"),
-                ],
-            },
-            {"id": "preset-easy-stage-4", "name": "Done", "order": 4, "agents": []},
+            _grouped_stage("preset-easy-stage-0", "Backlog", 0, "preset-easy-group-0", []),
+            _grouped_stage("preset-easy-stage-1", "Ready", 1, "preset-easy-group-1", []),
+            _grouped_stage("preset-easy-stage-2", "In progress", 2, "preset-easy-group-2", [
+                _agent("preset-easy-agent-1", "copilot", "GitHub Copilot"),
+                _agent("preset-easy-agent-2", "copilot-review", "Copilot Review"),
+                _agent("preset-easy-agent-3", "judge", "judge"),
+                _agent("preset-easy-agent-4", "linter", "linter"),
+            ]),
+            _grouped_stage("preset-easy-stage-3", "In review", 3, "preset-easy-group-3",
+                           [_agent("preset-easy-agent-5", "human", "Human")]),
+            _grouped_stage("preset-easy-stage-4", "Done", 4, "preset-easy-group-4", []),
         ],
     },
     # ── Medium ────────────────────────────────────────────────────────
@@ -133,43 +124,21 @@ _PRESET_DEFINITIONS = [
         "name": "Medium",
         "description": "Balanced pipeline: Spec Kit plans, Copilot implements, review agents verify",
         "stages": [
-            {
-                "id": "preset-med-stage-0",
-                "name": "Backlog",
-                "order": 0,
-                "agents": [
-                    _agent("preset-med-agent-1", "speckit.specify", "Spec Kit - Specify"),
-                ],
-            },
-            {
-                "id": "preset-med-stage-1",
-                "name": "Ready",
-                "order": 1,
-                "agents": [
-                    _agent("preset-med-agent-2", "speckit.plan", "Spec Kit - Plan"),
-                    _agent("preset-med-agent-3", "speckit.tasks", "Spec Kit - Tasks"),
-                ],
-            },
-            {
-                "id": "preset-med-stage-2",
-                "name": "In progress",
-                "order": 2,
-                "agents": [
-                    _agent("preset-med-agent-4", "speckit.implement", "Spec Kit - Implement"),
-                    _agent("preset-med-agent-5", "copilot-review", "Copilot Review"),
-                    _agent("preset-med-agent-6", "judge", "judge"),
-                    _agent("preset-med-agent-7", "linter", "linter"),
-                ],
-            },
-            {
-                "id": "preset-med-stage-3",
-                "name": "In review",
-                "order": 3,
-                "agents": [
-                    _agent("preset-med-agent-8", "human", "Human"),
-                ],
-            },
-            {"id": "preset-med-stage-4", "name": "Done", "order": 4, "agents": []},
+            _grouped_stage("preset-med-stage-0", "Backlog", 0, "preset-med-group-0",
+                           [_agent("preset-med-agent-1", "speckit.specify", "Spec Kit - Specify")]),
+            _grouped_stage("preset-med-stage-1", "Ready", 1, "preset-med-group-1", [
+                _agent("preset-med-agent-2", "speckit.plan", "Spec Kit - Plan"),
+                _agent("preset-med-agent-3", "speckit.tasks", "Spec Kit - Tasks"),
+            ]),
+            _grouped_stage("preset-med-stage-2", "In progress", 2, "preset-med-group-2", [
+                _agent("preset-med-agent-4", "speckit.implement", "Spec Kit - Implement"),
+                _agent("preset-med-agent-5", "copilot-review", "Copilot Review"),
+                _agent("preset-med-agent-6", "judge", "judge"),
+                _agent("preset-med-agent-7", "linter", "linter"),
+            ]),
+            _grouped_stage("preset-med-stage-3", "In review", 3, "preset-med-group-3",
+                           [_agent("preset-med-agent-8", "human", "Human")]),
+            _grouped_stage("preset-med-stage-4", "Done", 4, "preset-med-group-4", []),
         ],
     },
     # ── Hard ──────────────────────────────────────────────────────────
@@ -178,43 +147,21 @@ _PRESET_DEFINITIONS = [
         "name": "Hard",
         "description": "Thorough pipeline: Spec Kit specifies & plans, full implementation and review",
         "stages": [
-            {
-                "id": "preset-hard-stage-0",
-                "name": "Backlog",
-                "order": 0,
-                "agents": [
-                    _agent("preset-hard-agent-1", "speckit.specify", "Spec Kit - Specify"),
-                ],
-            },
-            {
-                "id": "preset-hard-stage-1",
-                "name": "Ready",
-                "order": 1,
-                "agents": [
-                    _agent("preset-hard-agent-2", "speckit.plan", "Spec Kit - Plan"),
-                    _agent("preset-hard-agent-3", "speckit.tasks", "Spec Kit - Tasks"),
-                ],
-            },
-            {
-                "id": "preset-hard-stage-2",
-                "name": "In progress",
-                "order": 2,
-                "agents": [
-                    _agent("preset-hard-agent-4", "speckit.implement", "Spec Kit - Implement"),
-                    _agent("preset-hard-agent-5", "copilot-review", "Copilot Review"),
-                    _agent("preset-hard-agent-6", "judge", "judge"),
-                    _agent("preset-hard-agent-7", "linter", "linter"),
-                ],
-            },
-            {
-                "id": "preset-hard-stage-3",
-                "name": "In review",
-                "order": 3,
-                "agents": [
-                    _agent("preset-hard-agent-8", "human", "Human"),
-                ],
-            },
-            {"id": "preset-hard-stage-4", "name": "Done", "order": 4, "agents": []},
+            _grouped_stage("preset-hard-stage-0", "Backlog", 0, "preset-hard-group-0",
+                           [_agent("preset-hard-agent-1", "speckit.specify", "Spec Kit - Specify")]),
+            _grouped_stage("preset-hard-stage-1", "Ready", 1, "preset-hard-group-1", [
+                _agent("preset-hard-agent-2", "speckit.plan", "Spec Kit - Plan"),
+                _agent("preset-hard-agent-3", "speckit.tasks", "Spec Kit - Tasks"),
+            ]),
+            _grouped_stage("preset-hard-stage-2", "In progress", 2, "preset-hard-group-2", [
+                _agent("preset-hard-agent-4", "speckit.implement", "Spec Kit - Implement"),
+                _agent("preset-hard-agent-5", "copilot-review", "Copilot Review"),
+                _agent("preset-hard-agent-6", "judge", "judge"),
+                _agent("preset-hard-agent-7", "linter", "linter"),
+            ]),
+            _grouped_stage("preset-hard-stage-3", "In review", 3, "preset-hard-group-3",
+                           [_agent("preset-hard-agent-8", "human", "Human")]),
+            _grouped_stage("preset-hard-stage-4", "Done", 4, "preset-hard-group-4", []),
         ],
     },
     # ── Expert ────────────────────────────────────────────────────────
@@ -223,49 +170,28 @@ _PRESET_DEFINITIONS = [
         "name": "Expert",
         "description": "Comprehensive pipeline: full Spec Kit, Designer, QA, Tester, Archivist, dual review",
         "stages": [
-            {
-                "id": "preset-exp-stage-0",
-                "name": "Backlog",
-                "order": 0,
-                "agents": [
-                    _agent("preset-exp-agent-1", "speckit.specify", "Spec Kit - Specify"),
-                    _agent("preset-exp-agent-2", "designer", "designer"),
-                ],
-            },
-            {
-                "id": "preset-exp-stage-1",
-                "name": "Ready",
-                "order": 1,
-                "agents": [
-                    _agent("preset-exp-agent-3", "speckit.plan", "Spec Kit - Plan"),
-                    _agent("preset-exp-agent-4", "speckit.tasks", "Spec Kit - Tasks"),
-                ],
-            },
-            {
-                "id": "preset-exp-stage-2",
-                "name": "In progress",
-                "order": 2,
-                "agents": [
-                    _agent("preset-exp-agent-5", "speckit.implement", "Spec Kit - Implement"),
-                    _agent("preset-exp-agent-6", "copilot-review", "Copilot Review"),
-                    _agent("preset-exp-agent-7", "judge", "judge"),
-                    _agent("preset-exp-agent-8", "quality-assurance", "quality-assurance"),
-                    _agent("preset-exp-agent-9", "tester", "tester"),
-                    _agent("preset-exp-agent-10", "copilot-review", "Copilot Review"),
-                    _agent("preset-exp-agent-11", "judge", "judge"),
-                    _agent("preset-exp-agent-12", "archivist", "archivist"),
-                    _agent("preset-exp-agent-13", "linter", "linter"),
-                ],
-            },
-            {
-                "id": "preset-exp-stage-3",
-                "name": "In review",
-                "order": 3,
-                "agents": [
-                    _agent("preset-exp-agent-14", "human", "Human"),
-                ],
-            },
-            {"id": "preset-exp-stage-4", "name": "Done", "order": 4, "agents": []},
+            _grouped_stage("preset-exp-stage-0", "Backlog", 0, "preset-exp-group-0", [
+                _agent("preset-exp-agent-1", "speckit.specify", "Spec Kit - Specify"),
+                _agent("preset-exp-agent-2", "designer", "designer"),
+            ]),
+            _grouped_stage("preset-exp-stage-1", "Ready", 1, "preset-exp-group-1", [
+                _agent("preset-exp-agent-3", "speckit.plan", "Spec Kit - Plan"),
+                _agent("preset-exp-agent-4", "speckit.tasks", "Spec Kit - Tasks"),
+            ]),
+            _grouped_stage("preset-exp-stage-2", "In progress", 2, "preset-exp-group-2", [
+                _agent("preset-exp-agent-5", "speckit.implement", "Spec Kit - Implement"),
+                _agent("preset-exp-agent-6", "copilot-review", "Copilot Review"),
+                _agent("preset-exp-agent-7", "judge", "judge"),
+                _agent("preset-exp-agent-8", "quality-assurance", "quality-assurance"),
+                _agent("preset-exp-agent-9", "tester", "tester"),
+                _agent("preset-exp-agent-10", "copilot-review", "Copilot Review"),
+                _agent("preset-exp-agent-11", "judge", "judge"),
+                _agent("preset-exp-agent-12", "archivist", "archivist"),
+                _agent("preset-exp-agent-13", "linter", "linter"),
+            ]),
+            _grouped_stage("preset-exp-stage-3", "In review", 3, "preset-exp-group-3",
+                           [_agent("preset-exp-agent-14", "human", "Human")]),
+            _grouped_stage("preset-exp-stage-4", "Done", 4, "preset-exp-group-4", []),
         ],
     },
 ]
@@ -283,22 +209,50 @@ class PipelineService:
     def _normalize_tool_counts(stages: list[PipelineStage]) -> list[PipelineStage]:
         """Ensure tool_count matches len(tool_ids) for every agent node."""
         for stage in stages:
+            for group in stage.groups:
+                for agent in group.agents:
+                    agent.tool_count = len(agent.tool_ids)
+            # Also normalize legacy agents field for backward compat
             for agent in stage.agents:
                 agent.tool_count = len(agent.tool_ids)
         return stages
 
     @staticmethod
     def _normalize_execution_modes(stages: list[PipelineStage]) -> list[PipelineStage]:
-        """Ensure execution_mode is consistent with the agent count.
+        """Ensure execution_mode is valid for every group.
 
-        A parallel stage with fewer than 2 agents reverts to sequential.
-        Missing or invalid values are corrected to "sequential".
+        Per-group mode is preserved regardless of agent count (user intent).
+        Invalid values are corrected to "sequential".
         """
         for stage in stages:
+            for group in stage.groups:
+                if group.execution_mode not in ("sequential", "parallel"):
+                    group.execution_mode = "sequential"
+            # Also normalize stage-level mode for backward compat
             if stage.execution_mode not in ("sequential", "parallel"):
                 stage.execution_mode = "sequential"
-            if stage.execution_mode == "parallel" and len(stage.agents) < 2:
-                stage.execution_mode = "sequential"
+        return stages
+
+    @staticmethod
+    def _normalize_groups(stages: list[PipelineStage]) -> list[PipelineStage]:
+        """Ensure every stage has groups populated (migrate legacy format on write).
+
+        If a stage has no groups but has agents, wrap agents in a single group.
+        Also sync stage.agents as a flattened view of group agents for backward compat.
+        """
+        for stage in stages:
+            if not stage.groups and stage.agents:
+                stage.groups = [
+                    ExecutionGroup(
+                        id=str(uuid.uuid4()),
+                        order=0,
+                        execution_mode=stage.execution_mode or "sequential",
+                        agents=list(stage.agents),
+                    )
+                ]
+            # Sync stage.agents from groups for backward-compat consumers
+            if stage.groups:
+                stage.agents = [a for g in stage.groups if g.agents for a in g.agents]
         return stages
 
     @staticmethod
@@ -343,8 +297,22 @@ class PipelineService:
             row_dict = dict(row)
             stages = json.loads(row_dict.get("stages", "[]"))
             parsed_stages = [PipelineStage(**s) for s in stages]
-            agent_count = sum(len(s.agents) for s in parsed_stages)
-            total_tool_count = sum(a.tool_count for s in parsed_stages for a in s.agents)
+            # Count agents from groups (preferred) or fallback to legacy agents field
+            agent_count = sum(
+                sum(len(g.agents) for g in s.groups) if s.groups else len(s.agents)
+                for s in parsed_stages
+            )
+            total_tool_count = sum(
+                a.tool_count
+                for s in parsed_stages
+                for g in (s.groups or [])
+                for a in g.agents
+            ) + sum(
+                a.tool_count
+                for s in parsed_stages
+                if not s.groups
+                for a in s.agents
+            )
             summaries.append(
                 PipelineConfigSummary(
                     id=row_dict["id"],
@@ -393,7 +361,9 @@ class PipelineService:
         """
         pipeline_id = str(uuid.uuid4())
         now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-        normalized_stages = self._normalize_tool_counts(list(body.stages))
+        normalized_stages = list(body.stages)
+        self._normalize_groups(normalized_stages)
+        self._normalize_tool_counts(normalized_stages)
         self._normalize_execution_modes(normalized_stages)
         stages_json = json.dumps([s.model_dump() for s in normalized_stages])
 
@@ -460,6 +430,7 @@ class PipelineService:
                 PipelineStage(**(s.model_dump() if hasattr(s, "model_dump") else s))
                 for s in raw_stages
             ]
+            self._normalize_groups(parsed)
             self._normalize_tool_counts(parsed)
             self._normalize_execution_modes(parsed)
             updates["stages"] = json.dumps([s.model_dump() for s in parsed])

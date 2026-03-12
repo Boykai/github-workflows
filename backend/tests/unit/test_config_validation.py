@@ -1,4 +1,4 @@
-"""Tests for security-related startup configuration validation (US2 — FR-004–FR-008).
+"""Tests for security-related startup configuration validation (US2 - FR-004-FR-008).
 
 T014:
 - Missing ENCRYPTION_KEY fails startup in production mode
@@ -122,12 +122,12 @@ class TestCorsOriginsValidation:
     def test_malformed_origin_no_scheme_raises(self):
         s = _make_debug(cors_origins="localhost:5173")
         with pytest.raises(ValueError, match="Malformed CORS origin"):
-            s.cors_origins_list
+            _ = s.cors_origins_list
 
     def test_malformed_origin_no_hostname_raises(self):
         s = _make_debug(cors_origins="http://")
         with pytest.raises(ValueError, match="Malformed CORS origin"):
-            s.cors_origins_list
+            _ = s.cors_origins_list
 
     def test_empty_origin_ignored(self):
         s = _make_debug(cors_origins="http://localhost:5173,,")

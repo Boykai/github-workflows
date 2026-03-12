@@ -4,6 +4,7 @@
 
 import type { PipelineConfig, PipelineBoardState } from '@/types';
 import type { SetStateAction } from 'react';
+import { ensureDefaultGroups } from '@/lib/pipelineMigration';
 
 export interface PipelineState {
   boardState: PipelineBoardState;
@@ -45,36 +46,42 @@ export function computeSnapshot(p: PipelineConfig): string {
 
 export function pipelineReducer(state: PipelineState, action: PipelineAction): PipelineState {
   switch (action.type) {
-    case 'NEW_PIPELINE':
+    case 'NEW_PIPELINE': {
+      const migrated = ensureDefaultGroups(action.config);
       return {
         ...state,
         boardState: 'creating',
-        pipeline: action.config,
+        pipeline: migrated,
         editingPipelineId: null,
         isSaving: false,
         saveError: null,
-        savedSnapshot: computeSnapshot(action.config),
+        savedSnapshot: computeSnapshot(migrated),
       };
-    case 'LOAD_SUCCESS':
+    }
+    case 'LOAD_SUCCESS': {
+      const migrated = ensureDefaultGroups(action.config);
       return {
         ...state,
         boardState: 'editing',
-        pipeline: action.config,
+        pipeline: migrated,
         editingPipelineId: action.id,
         saveError: null,
-        savedSnapshot: computeSnapshot(action.config),
+        savedSnapshot: computeSnapshot(migrated),
       };
+    }
     case 'SAVE_START':
       return { ...state, isSaving: true, saveError: null };
-    case 'SAVE_SUCCESS':
+    case 'SAVE_SUCCESS': {
+      const migrated = ensureDefaultGroups(action.config);
       return {
         ...state,
-        pipeline: action.config,
-        editingPipelineId: action.config.id,
+        pipeline: migrated,
+        editingPipelineId: migrated.id,
         boardState: 'editing',
         isSaving: false,
-        savedSnapshot: computeSnapshot(action.config),
+        savedSnapshot: computeSnapshot(migrated),
       };
+    }
     case 'SAVE_FAILURE':
       return { ...state, isSaving: false, saveError: action.error };
     case 'DELETE_SUCCESS':

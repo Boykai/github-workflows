@@ -219,6 +219,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - aiosqlite (pipeline configs, agent tracking); GitHub Issues API (labels as state markers) (034-label-pipeline-state)
 - Python ≥3.12 (backend), TypeScript (frontend) + FastAPI ≥0.135.0, Pydantic ≥2.12.0, githubkit ≥0.14.6, httpx ≥0.28.0 (backend); React 19, TanStack Query, Vitest (frontend) (035-remove-blocking-feature)
 - aiosqlite (blocking_queue table, blocking columns on pipeline_configs/chores/project_settings) (035-remove-blocking-feature)
+- TypeScript ~5.9.0 (frontend), Python ≥3.12 (backend) + React 19.2, @dnd-kit/core 6.3 + @dnd-kit/sortable 10.0, Tailwind CSS 4.2, Radix UI, TanStack React Query 5.90, FastAPI ≥0.135, Pydantic v2, aiosqlite (037-pipeline-builder-ux)
+- SQLite via aiosqlite with JSON-serialised pipeline stages (existing pattern) (037-pipeline-builder-ux)
 - Python 3.12+ (backend), TypeScript 5.9 / React 19.2 (frontend) + FastAPI, aiosqlite, githubkit, httpx, websockets (backend); TanStack React Query v5.90, @dnd-kit v6.3, Vite 7.3 (frontend) (037-performance-review)
 - SQLite via aiosqlite (session/settings); InMemoryCache for board/sub-issue/project data (037-performance-review)
 - Python 3.13 (backend, floor ≥3.12), TypeScript 5.9 (frontend) + FastAPI, aiosqlite, httpx, slowapi (backend); React 19.2, TanStack React Query 5.90 (frontend); nginx (reverse proxy) (037-security-review)

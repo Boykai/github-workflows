@@ -67,7 +67,12 @@ export const PipelineFlowGraph = memo(function PipelineFlowGraph({
     }
 
     const paddingX = Math.max(16, Math.round(graphWidth * 0.07));
-    const maxAgentsInStage = Math.max(...stages.map((stage) => stage.agents.length), 1);
+    // Collect agents from groups (preferred) with fallback to legacy agents field
+    const agentsPerStage = stages.map((stage) => {
+      const fromGroups = (stage.groups ?? []).flatMap((g) => g.agents);
+      return fromGroups.length > 0 ? fromGroups : stage.agents;
+    });
+    const maxAgentsInStage = Math.max(...agentsPerStage.map((a) => a.length), 1);
     const iconSize: FlowGraphIconSize =
       graphWidth >= 220 && height >= 112 && maxAgentsInStage <= 2 ? 'md' : 'sm';
     const nodeDiameter = iconSize === 'md' ? 36 : 28;
@@ -91,18 +96,19 @@ export const PipelineFlowGraph = memo(function PipelineFlowGraph({
     });
 
     const nodes = stages.flatMap((stage, stageIndex) => {
-      if (stage.agents.length === 0) {
+      const stageAgents = agentsPerStage[stageIndex];
+      if (stageAgents.length === 0) {
         return [];
       }
 
       const rowPositions =
-        stage.agents.length === 1
+        stageAgents.length === 1
           ? [topInset + usableHeight / 2]
-          : stage.agents.map(
-              (_, agentIndex) => topInset + (agentIndex * usableHeight) / (stage.agents.length - 1)
+          : stageAgents.map(
+              (_, agentIndex) => topInset + (agentIndex * usableHeight) / (stageAgents.length - 1)
             );
 
-      return stage.agents.map((agent, agentIndex) => ({
+      return stageAgents.map((agent, agentIndex) => ({
         id: agent.id,
         slug: agent.agent_slug,
         displayName: formatAgentName(agent.agent_slug, agent.agent_display_name),

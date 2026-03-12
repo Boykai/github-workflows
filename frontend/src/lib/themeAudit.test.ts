@@ -32,7 +32,7 @@ describe('themeAudit', () => {
     });
 
     it('converts a warm gold HSL value', () => {
-      const [r, g, b] = hslToRgb(42, 90, 48);
+      const [r, , b] = hslToRgb(42, 90, 48);
       // Gold-like colour — mostly in the warm range
       expect(r).toBeGreaterThan(200);
       expect(b).toBeLessThan(50);

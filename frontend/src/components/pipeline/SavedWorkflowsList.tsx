@@ -167,7 +167,7 @@ export function SavedWorkflowsList({
                       >
                         {stage.name}
                         <span className="font-medium text-foreground/70">
-                          ({stage.agents.length})
+                          ({((stage.groups ?? []).flatMap((g) => g.agents).length) || stage.agents.length})
                         </span>
                       </span>
                     ))}
