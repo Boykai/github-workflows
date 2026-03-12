@@ -206,7 +206,7 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - **Always use Code Graph Context MCP when exploring the codebase.** Before making changes, use Code Graph Context to understand call chains, code relationships, and dependency graphs. This prevents unintended side effects and ensures changes are consistent with the existing architecture.
 
 ## Active Technologies
-- Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16 (001-performance-review)
+- Python 3.12+ backend with FastAPI ≥0.135 and websockets 16 (001-performance-review)
 - SQLite via aiosqlite (session/settings); in-memory TTL cache (`backend/src/services/cache.py`) (001-performance-review)
 - Python ≥3.12 (backend), TypeScript (frontend) + FastAPI ≥0.135.0, Pydantic ≥2.12.0, githubkit ≥0.14.6, httpx ≥0.28.0 (backend); React, TanStack Query (frontend) (034-label-pipeline-state)
 - aiosqlite (pipeline configs, agent tracking); GitHub Issues API (labels as state markers) (034-label-pipeline-state)
@@ -214,6 +214,9 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite (async), with write-through in-memory `BoundedDict` cache (035-best-practices-overhaul)
 - Python 3.12+ (backend), TypeScript 5.9 (frontend) + FastAPI, aiosqlite, httpx, PyYAML (backend); React 19.2, TanStack React Query 5.90 (frontend) (036-agent-mcp-sync)
 - aiosqlite (`mcp_configurations` table) + GitHub repository files (agent `.agent.md` files, `mcp.json`) (036-agent-mcp-sync)
+- TypeScript 5.x with React 19.2, TanStack React Query 5.90, Tailwind CSS v4 (via `@tailwindcss/vite`), Radix UI (Slot, Tooltip), Lucide React icons, class-variance-authority, tailwind-merge, react-router-dom 7.13, react-markdown 10.1, @dnd-kit (drag-and-drop), Vite 7.3 (frontend: 001-performance-review, 034-projects-page-audit)
+- Python ≥3.12 (backend), TypeScript (frontend) + FastAPI ≥0.135.0, Pydantic ≥2.12.0, githubkit ≥0.14.6, httpx ≥0.28.0 (backend); React, TanStack Query (frontend) (034-label-pipeline-state)
+- aiosqlite (pipeline configs, agent tracking); GitHub Issues API (labels as state markers) (034-label-pipeline-state)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16

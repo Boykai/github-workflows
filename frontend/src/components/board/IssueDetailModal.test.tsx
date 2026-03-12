@@ -60,7 +60,10 @@ describe('IssueDetailModal', () => {
 
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
-    expect(dialog).toHaveAttribute('aria-label', 'Test Issue Title');
+    expect(dialog).toHaveAttribute('aria-labelledby', 'issue-detail-modal-title');
+
+    const heading = screen.getByRole('heading', { name: 'Test Issue Title' });
+    expect(heading).toHaveAttribute('id', 'issue-detail-modal-title');
   });
 
   it('renders repository info', () => {
@@ -102,5 +105,39 @@ describe('IssueDetailModal', () => {
     const link = screen.getByRole('link', { name: /Open in GitHub/i });
     expect(link).toHaveAttribute('href', 'https://github.com/testorg/testrepo/issues/42');
     expect(link).toHaveAttribute('target', '_blank');
+  });
+
+  it('traps focus within the dialog on Tab', () => {
+    render(<IssueDetailModal item={createBoardItem()} onClose={vi.fn()} />);
+
+    const dialog = screen.getByRole('dialog');
+    const focusableElements = dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href]'
+    );
+    expect(focusableElements.length).toBeGreaterThanOrEqual(2);
+
+    const last = focusableElements[focusableElements.length - 1];
+    last.focus();
+
+    // Tab from last element should wrap to first
+    fireEvent.keyDown(document, { key: 'Tab' });
+    expect(document.activeElement).toBe(focusableElements[0]);
+  });
+
+  it('traps focus within the dialog on Shift+Tab', () => {
+    render(<IssueDetailModal item={createBoardItem()} onClose={vi.fn()} />);
+
+    const dialog = screen.getByRole('dialog');
+    const focusableElements = dialog.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href]'
+    );
+    expect(focusableElements.length).toBeGreaterThanOrEqual(2);
+
+    const first = focusableElements[0];
+    first.focus();
+
+    // Shift+Tab from first element should wrap to last
+    fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
+    expect(document.activeElement).toBe(focusableElements[focusableElements.length - 1]);
   });
 });

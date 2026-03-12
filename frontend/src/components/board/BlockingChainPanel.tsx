@@ -55,6 +55,7 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
             : 'border-border/70 bg-background/50 hover:bg-accent/45')}
         type="button"
         title="View blocking queue status"
+        aria-expanded={isExpanded}
       >
         <Lock className="h-3.5 w-3.5" />
         Queue
@@ -72,6 +73,7 @@ export function BlockingChainPanel({ entries }: BlockingChainPanelProps) {
               onClick={() => setIsExpanded(false)}
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               type="button"
+              aria-label="Close blocking queue panel"
             >
               <X className="h-3.5 w-3.5" />
             </button>
