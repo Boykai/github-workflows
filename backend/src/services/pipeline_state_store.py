@@ -309,7 +309,9 @@ async def set_pipeline_state(issue_number: int, state: Any) -> None:
                 )
                 await _db.commit()
             except aiosqlite.Error:
-                logger.error("Failed to persist pipeline state for issue %d", issue_number, exc_info=True)
+                logger.error(
+                    "Failed to persist pipeline state for issue %d", issue_number, exc_info=True
+                )
                 return  # Don't update L1 if SQLite write failed
         _pipeline_states[issue_number] = state
 

@@ -539,9 +539,10 @@ class WorkflowOrchestrator:
         pipeline_config_name: str | None = None
         if ctx.selected_pipeline_id:
             try:
+                from src.services.database import get_db
                 from src.services.pipelines.service import PipelineService
 
-                _svc = PipelineService()
+                _svc = PipelineService(get_db())
                 _pc = await _svc.get_pipeline(ctx.project_id, ctx.selected_pipeline_id)
                 if _pc:
                     pipeline_config_name = _pc.name
