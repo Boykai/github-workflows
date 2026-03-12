@@ -161,12 +161,13 @@ export function AddAgentPopover({
             className="celestial-fade-in z-50 flex max-h-80 w-64 flex-col overflow-hidden rounded-[1rem] border border-border bg-popover shadow-lg backdrop-blur-sm"
             role="listbox"
             aria-label={`Add agent to ${status}`}
+            aria-busy={isLoading}
           >
             {/* Search filter */}
             <div className="border-b border-border bg-background/40 p-2">
               <input
                 type="text"
-                className="w-full rounded-md border border-input bg-background/72 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+                className="celestial-focus w-full rounded-md border border-input bg-background/72 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
                 placeholder="Filter agents..."
                 value={filter}
                 onChange={(e) => setFilter(e.target.value)}
