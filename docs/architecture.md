@@ -99,7 +99,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `services/copilot_polling/` | Background polling loop: `state`, `helpers`, `polling_loop`, `agent_output`, `pipeline`, `recovery`, `completion` |
 | `services/workflow_orchestrator/` | Pipeline orchestration: `models` (contexts/state), `config` (async load/persist), `transitions`, `orchestrator` |
 | `services/chores/` | Chore templates, scheduler, counter, chat, template builder, service |
-| `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) |
+| `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) + Agent MCP Sync (`agent_mcp_sync.py`) — keeps `mcp-servers` and `tools: ["*"]` in sync across all `.agent.md` files |
 | `migrations/` | SQL migration files `001` through `020` (23 files; prefixes 013–015 have two files each) |
 | `prompts/` | AI prompt templates for issue and task generation |
 | `middleware/` | `RequestIDMiddleware` |
@@ -128,7 +128,8 @@ Set via `AI_PROVIDER` env var (`copilot` or `azure_openai`).
 5. Start periodic session cleanup loop (exponential backoff on failures)
 6. Start Signal WebSocket listener for inbound messages
 7. Auto-resume Copilot polling from the most recent session with a selected project
-8. On shutdown: stop Signal listener → cancel cleanup task → stop polling → close database
+8. Run Agent MCP Sync in background — reconciles `mcp-servers` field and enforces `tools: ["*"]` across all `.github/agents/*.agent.md` files
+9. On shutdown: stop Signal listener → cancel cleanup task → stop polling → close database
 
 ### nginx Reverse Proxy
 
