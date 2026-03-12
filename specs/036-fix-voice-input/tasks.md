@@ -22,8 +22,8 @@
 
 **Purpose**: CSS animation, tooltip content, and foundational styling required by multiple user stories
 
-- [ ] T001 Add `mic-recording-pulse` keyframes animation and `--animate-mic-recording` custom property to `frontend/src/index.css`
-- [ ] T002 [P] Add voice button tooltip content entry (`chat.toolbar.voiceButton`: "Use your microphone to dictate a message instead of typing.") to `frontend/src/constants/tooltip-content.ts`
+- [x] T001 Add `mic-recording-pulse` keyframes animation and `--animate-mic-recording` custom property to `frontend/src/index.css`
+- [x] T002 [P] Add voice button tooltip content entry (`chat.toolbar.voiceButton`: "Use your microphone to dictate a message instead of typing.") to `frontend/src/constants/tooltip-content.ts`
 
 ---
 
@@ -33,8 +33,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Create `frontend/src/hooks/useVoiceInput.ts` with Web Speech API TypeScript type definitions (`SpeechRecognitionEvent`, `SpeechRecognitionErrorEvent`, `SpeechRecognitionInstance`, `UseVoiceInputReturn`) and `getSpeechRecognitionConstructor()` utility that checks `window.SpeechRecognition || window.webkitSpeechRecognition || null`
-- [ ] T004 [P] Create `frontend/src/components/chat/VoiceInputButton.tsx` with three visual states: disabled (`MicOff` icon, `text-muted-foreground/50`, `cursor-not-allowed`), ready (`Mic` icon, `text-muted-foreground`), and recording (`Square` icon, `bg-destructive/10 text-destructive`, `mic-recording-pulse` animation) — include `celestial-focus` class and appropriate `aria-label` per contract
+- [x] T003 Create `frontend/src/hooks/useVoiceInput.ts` with Web Speech API TypeScript type definitions (`SpeechRecognitionEvent`, `SpeechRecognitionErrorEvent`, `SpeechRecognitionInstance`, `UseVoiceInputReturn`) and `getSpeechRecognitionConstructor()` utility that checks `window.SpeechRecognition || window.webkitSpeechRecognition || null`
+- [x] T004 [P] Create `frontend/src/components/chat/VoiceInputButton.tsx` with three visual states: disabled (`MicOff` icon, `text-muted-foreground/50`, `cursor-not-allowed`), ready (`Mic` icon, `text-muted-foreground`), and recording (`Square` icon, `bg-destructive/10 text-destructive`, `mic-recording-pulse` animation) — include `celestial-focus` class and appropriate `aria-label` per contract
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -48,10 +48,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Implement `isSupported` state initialization using `getSpeechRecognitionConstructor() !== null` in the `useVoiceInput` hook in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T006 [US1] Export the `useVoiceInput` hook with initial return shape (`isSupported`, `isRecording: false`, `interimTranscript: ''`, `error: null`, `startRecording`, `stopRecording`, `cancelRecording` stubs) in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T007 [US1] Integrate `VoiceInputButton` into `ChatToolbar` with tooltip wiring — show "Voice input is not supported in this browser." tooltip when `isVoiceSupported` is false, dynamic tooltip content for recording/error states, and `contentKey='chat.toolbar.voiceButton'` for idle state in `frontend/src/components/chat/ChatToolbar.tsx`
-- [ ] T008 [US1] Wire `useVoiceInput` hook into `ChatInterface` — create `handleVoiceTranscript` callback (appends text to input, clears tokens), create `handleVoiceToggle` toggle handler, pass `isRecording`, `isVoiceSupported`, `onVoiceToggle`, and `voiceError` props to `ChatToolbar` in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T005 [US1] Implement `isSupported` state initialization using `getSpeechRecognitionConstructor() !== null` in the `useVoiceInput` hook in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T006 [US1] Export the `useVoiceInput` hook with initial return shape (`isSupported`, `isRecording: false`, `interimTranscript: ''`, `error: null`, `startRecording`, `stopRecording`, `cancelRecording` stubs) in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T007 [US1] Integrate `VoiceInputButton` into `ChatToolbar` with tooltip wiring — show "Voice input is not supported in this browser." tooltip when `isVoiceSupported` is false, dynamic tooltip content for recording/error states, and `contentKey='chat.toolbar.voiceButton'` for idle state in `frontend/src/components/chat/ChatToolbar.tsx`
+- [x] T008 [US1] Wire `useVoiceInput` hook into `ChatInterface` — create `handleVoiceTranscript` callback (appends text to input, clears tokens), create `handleVoiceToggle` toggle handler, pass `isRecording`, `isVoiceSupported`, `onVoiceToggle`, and `voiceError` props to `ChatToolbar` in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: At this point, the microphone button should be correctly enabled/disabled based on actual browser support. Firefox, Chrome, Edge, and Safari users see an enabled mic button. Unsupported browsers see a disabled button with correct tooltip.
 
@@ -65,12 +65,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [US2] Implement `startRecording()` — create new `SpeechRecognition` instance via `getSpeechRecognitionConstructor()`, configure `continuous: true` and `interimResults: true`, set `lang` to `navigator.language`, call `recognition.start()`, set `isRecording: true`, clear previous error, store instance in `recognitionRef` in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T010 [US2] Implement `stopRecording()` — call `recognitionRef.current.stop()` (waits for final result) in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T011 [US2] Implement `cancelRecording()` — call `recognitionRef.current.abort()`, clear `interimTranscript`, null the ref in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T012 [US2] Implement `onresult` handler — iterate from `event.resultIndex` to `event.results.length`, accumulate non-final results into `interimTranscript` state, invoke `onTranscript(finalText)` callback for final results, clear interim on finalization in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T013 [US2] Implement `onend` handler — set `isRecording: false`, clear `interimTranscript`, null `recognitionRef` in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T014 [US2] Wire `interimTranscript` display into `ChatInterface` — show partial transcription as visual preview in or near the chat input field while recording is active in `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T009 [US2] Implement `startRecording()` — create new `SpeechRecognition` instance via `getSpeechRecognitionConstructor()`, configure `continuous: true` and `interimResults: true`, set `lang` to `navigator.language`, call `recognition.start()`, set `isRecording: true`, clear previous error, store instance in `recognitionRef` in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T010 [US2] Implement `stopRecording()` — call `recognitionRef.current.stop()` (waits for final result) in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T011 [US2] Implement `cancelRecording()` — call `recognitionRef.current.abort()`, clear `interimTranscript`, null the ref in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T012 [US2] Implement `onresult` handler — iterate from `event.resultIndex` to `event.results.length`, accumulate non-final results into `interimTranscript` state, invoke `onTranscript(finalText)` callback for final results, clear interim on finalization in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T013 [US2] Implement `onend` handler — set `isRecording: false`, clear `interimTranscript`, null `recognitionRef` in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T014 [US2] Wire `interimTranscript` display into `ChatInterface` — show partial transcription as visual preview in or near the chat input field while recording is active in `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: At this point, the full voice-to-text flow should work — click mic, speak, see interim text, final text appears in input, user can send message.
 
@@ -84,9 +84,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Add `getUserMedia` pre-flight permission check in `startRecording()` — call `navigator.mediaDevices.getUserMedia({ audio: true })` before creating `SpeechRecognition` instance, immediately release obtained stream (`stream.getTracks().forEach(t => t.stop())`), guard against missing `navigator.mediaDevices` in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T016 [US3] Handle `getUserMedia` rejection — catch `NotAllowedError` and set error to "Microphone access is required for voice input. Please allow microphone access in your browser settings.", catch `NotFoundError` and other errors with appropriate messages, set error when `navigator.mediaDevices` is unavailable ("Microphone access is not available in this browser.") in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T017 [US3] Handle `SpeechRecognition` `onerror` event — catch `not-allowed` / `permission-denied` errors with permission-specific message, ignore `aborted` errors (intentional cancel), set descriptive error for all other error types in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T015 [US3] Add `getUserMedia` pre-flight permission check in `startRecording()` — call `navigator.mediaDevices.getUserMedia({ audio: true })` before creating `SpeechRecognition` instance, immediately release obtained stream (`stream.getTracks().forEach(t => t.stop())`), guard against missing `navigator.mediaDevices` in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T016 [US3] Handle `getUserMedia` rejection — catch `NotAllowedError` and set error to "Microphone access is required for voice input. Please allow microphone access in your browser settings.", catch `NotFoundError` and other errors with appropriate messages, set error when `navigator.mediaDevices` is unavailable ("Microphone access is not available in this browser.") in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T017 [US3] Handle `SpeechRecognition` `onerror` event — catch `not-allowed` / `permission-denied` errors with permission-specific message, ignore `aborted` errors (intentional cancel), set descriptive error for all other error types in `frontend/src/hooks/useVoiceInput.ts`
 
 **Checkpoint**: Permission denial and missing hardware scenarios now show clear, actionable messages. Users understand what to do to enable voice input.
 
@@ -100,8 +100,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T018 [US4] Verify all error messages use correct grammar — confirm "Voice input is not supported in this browser." (not "not support") in disabled button tooltip, `aria-label` value "Voice input not supported", and any other user-facing strings in `frontend/src/hooks/useVoiceInput.ts` and `frontend/src/components/chat/VoiceInputButton.tsx`
-- [ ] T019 [US4] Verify unsupported message only displays when `isSupported` is `false` (both `SpeechRecognition` and `webkitSpeechRecognition` absent) — confirm no false-negative messages in `frontend/src/components/chat/ChatToolbar.tsx`
+- [x] T018 [US4] Verify all error messages use correct grammar — confirm "Voice input is not supported in this browser." (not "not support") in disabled button tooltip, `aria-label` value "Voice input not supported", and any other user-facing strings in `frontend/src/hooks/useVoiceInput.ts` and `frontend/src/components/chat/VoiceInputButton.tsx`
+- [x] T019 [US4] Verify unsupported message only displays when `isSupported` is `false` (both `SpeechRecognition` and `webkitSpeechRecognition` absent) — confirm no false-negative messages in `frontend/src/components/chat/ChatToolbar.tsx`
 
 **Checkpoint**: Error messages are grammatically correct and accurately reflect browser capabilities.
 
@@ -111,9 +111,9 @@
 
 **Purpose**: Resource cleanup, edge case handling, and final validation across all user stories
 
-- [ ] T020 Add `useEffect` cleanup function in `useVoiceInput` hook to call `recognitionRef.current.abort()` and null the ref on component unmount — ensures zero orphaned audio capture sessions on navigation in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T021 Handle speech recognition runtime errors (network failures, service unavailability) with descriptive fallback messages in `onerror` handler in `frontend/src/hooks/useVoiceInput.ts`
-- [ ] T022 Run quickstart.md validation scenarios — verify all 7 error handling conditions, all 3 visual states, and the full voice-to-message flow across Firefox, Chrome, Edge, and Safari
+- [x] T020 Add `useEffect` cleanup function in `useVoiceInput` hook to call `recognitionRef.current.abort()` and null the ref on component unmount — ensures zero orphaned audio capture sessions on navigation in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T021 Handle speech recognition runtime errors (network failures, service unavailability) with descriptive fallback messages in `onerror` handler in `frontend/src/hooks/useVoiceInput.ts`
+- [x] T022 Run quickstart.md validation scenarios — verify all 7 error handling conditions, all 3 visual states, and the full voice-to-message flow across Firefox, Chrome, Edge, and Safari
 
 ---
 
