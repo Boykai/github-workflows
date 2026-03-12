@@ -579,4 +579,3 @@ class PipelineService:
         await self._db.commit()
 
         return await self.get_assignment(project_id)
-

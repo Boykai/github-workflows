@@ -168,7 +168,7 @@ export function StageCard({
               onChange={(e) => setEditName(e.target.value)}
               onBlur={handleRenameConfirm}
               onKeyDown={handleKeyDown}
-              className="w-full rounded-md border border-primary/30 bg-background/72 px-2 py-0.5 text-sm font-medium outline-none"
+              className="celestial-focus w-full rounded-md border border-primary/30 bg-background/72 px-2 py-0.5 text-sm font-medium focus-visible:outline-none"
               maxLength={100}
             />
           ) : (
@@ -178,7 +178,7 @@ export function StageCard({
                 setEditName(stage.name);
                 setIsEditing(true);
               }}
-              className="w-full truncate text-left text-sm font-medium text-foreground transition-colors hover:text-primary"
+              className="celestial-focus w-full truncate text-left text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none"
               title="Click to rename"
             >
               {stage.name}
@@ -199,7 +199,7 @@ export function StageCard({
             type="button"
             onClick={onRemove}
             aria-label="Remove stage"
-            className="shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive"
+            className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none"
           >
             <Trash2 className="h-3.5 w-3.5" />
           </button>
@@ -296,7 +296,7 @@ export function StageCard({
                       {onRetryAgents && (
                         <button
                           type="button"
-                          className="rounded-md border border-destructive/20 bg-background px-2 py-1 text-[11px] hover:bg-destructive/10"
+                          className="celestial-focus rounded-md border border-destructive/20 bg-background px-2 py-1 text-[11px] hover:bg-destructive/10 focus-visible:outline-none"
                           onClick={onRetryAgents}
                         >
                           Retry
@@ -322,7 +322,7 @@ export function StageCard({
                             onAddAgent(agent.slug, agentPickerGroupId ?? undefined);
                             setShowAgentPicker(false);
                           }}
-                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10"
+                          className="celestial-focus flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10 focus-visible:outline-none"
                         >
                           <ThemedAgentIcon
                             slug={agent.slug}

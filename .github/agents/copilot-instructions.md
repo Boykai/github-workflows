@@ -221,6 +221,16 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - aiosqlite (blocking_queue table, blocking columns on pipeline_configs/chores/project_settings) (035-remove-blocking-feature)
 - TypeScript ~5.9.0 (frontend), Python ≥3.12 (backend) + React 19.2, @dnd-kit/core 6.3 + @dnd-kit/sortable 10.0, Tailwind CSS 4.2, Radix UI, TanStack React Query 5.90, FastAPI ≥0.135, Pydantic v2, aiosqlite (037-pipeline-builder-ux)
 - SQLite via aiosqlite with JSON-serialised pipeline stages (existing pattern) (037-pipeline-builder-ux)
+- Python 3.12+ (backend), TypeScript 5.9 / React 19.2 (frontend) + FastAPI, aiosqlite, githubkit, httpx, websockets (backend); TanStack React Query v5.90, @dnd-kit v6.3, Vite 7.3 (frontend) (037-performance-review)
+- SQLite via aiosqlite (session/settings); InMemoryCache for board/sub-issue/project data (037-performance-review)
+- Python 3.13 (backend, floor ≥3.12), TypeScript 5.9 (frontend) + FastAPI, aiosqlite, httpx, slowapi (backend); React 19.2, TanStack React Query 5.90 (frontend); nginx (reverse proxy) (037-security-review)
+- aiosqlite (SQLite with application-level encryption via `encryption.py`) (037-security-review)
+- Python ≥3.12 (target 3.13) for backend; TypeScript 5.x for frontend + FastAPI, aiosqlite, httpx, PyYAML (backend); React 19.2, TanStack React Query 5.90, Vitest 4.0 (frontend) (037-bug-basher)
+- aiosqlite (SQLite) with custom migration runner; GitHub API for repository file operations (037-bug-basher)
+- TypeScript 5.x, React 19.2.0, Node.js + Tailwind CSS v4.2.0 (with `@tailwindcss/vite`), Radix UI (tooltip, slot), Class Variance Authority (CVA), clsx, tailwind-merge, lucide-react icons (037-theme-contrast-audit)
+- N/A (frontend-only audit; no persistence changes) (037-theme-contrast-audit)
+- Python 3.13 (backend, floor ≥3.12), TypeScript 5.9 (frontend) + FastAPI, aiosqlite, httpx, Pydantic (backend); React 19.2, TanStack React Query 5.90 (frontend) (037-chat-attachment-github-issue)
+- aiosqlite (chat_proposals, chat_recommendations tables) + GitHub Issues (final attachment destination) (037-chat-attachment-github-issue)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16

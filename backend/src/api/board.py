@@ -24,6 +24,7 @@ from src.models.project import GitHubProject
 from src.models.user import UserSession
 from src.services.cache import (
     cache,
+    compute_data_hash,
     get_cache_key,
     get_sub_issues_cache_key,
     get_user_projects_cache_key,
@@ -358,5 +359,8 @@ async def get_board_data(
     # Cache board data — 300 seconds aligns with frontend's 5-minute auto-refresh.
     # Manual refresh (refresh=true) bypasses cache reads but still populates the
     # cache so subsequent non-refresh requests benefit from the fresh data.
-    cache.set(cache_key, board_data, ttl_seconds=300)
+    # Compute a content hash for change detection (FR-004) so consumers that read
+    # cache entries can compare hashes to suppress unchanged refreshes.
+    board_hash = compute_data_hash(board_data.model_dump(mode="json", exclude={"rate_limit"}))
+    cache.set(cache_key, board_data, ttl_seconds=300, data_hash=board_hash)
     return board_data

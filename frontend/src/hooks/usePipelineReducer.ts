@@ -95,7 +95,12 @@ export function pipelineReducer(state: PipelineState, action: PipelineAction): P
       return { ...state, saveError: action.error };
     case 'DISCARD_EDITING': {
       if (!state.savedSnapshot) return state;
-      const saved = JSON.parse(state.savedSnapshot) as Record<string, unknown>;
+      let saved: Record<string, unknown>;
+      try {
+        saved = JSON.parse(state.savedSnapshot) as Record<string, unknown>;
+      } catch {
+        return { ...state, saveError: 'Failed to restore saved pipeline state' };
+      }
       return {
         ...state,
         pipeline: state.pipeline ? { ...state.pipeline, ...saved } : null,
