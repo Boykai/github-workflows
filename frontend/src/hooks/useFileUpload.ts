@@ -3,7 +3,7 @@
  * upload state, and preview data.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { FileAttachment } from '@/types';
 import { FILE_VALIDATION, ALLOWED_TYPES } from '@/types';
 import { chatApi } from '@/services/api';
@@ -34,6 +34,14 @@ export function useFileUpload(): UseFileUploadReturn {
   const [files, setFiles] = useState<FileAttachment[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Clean up error-clear timer on unmount
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+    };
+  }, []);
 
   const addFiles = useCallback(
     (fileList: FileList) => {
@@ -80,8 +88,12 @@ export function useFileUpload(): UseFileUploadReturn {
       }
       if (newErrors.length > 0) {
         setErrors(newErrors);
-        // Clear errors after a few seconds
-        setTimeout(() => setErrors([]), 5000);
+        // Clear any previous error-clear timer before setting a new one
+        if (errorTimerRef.current) clearTimeout(errorTimerRef.current);
+        errorTimerRef.current = setTimeout(() => {
+          errorTimerRef.current = null;
+          setErrors([]);
+        }, 5000);
       }
     },
     [files.length]
