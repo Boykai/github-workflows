@@ -140,6 +140,24 @@ export const tooltipContent: Record<string, TooltipEntry> = {
     summary:
       'Assign an agent to this pipeline stage. Adding another agent to a populated stage groups them together into a coordinated group.',
   },
+  'pipeline.stage.addGroupButton': {
+    summary:
+      'Add another execution group to this stage so you can mix series and parallel work within the same column.',
+  },
+  'pipeline.group.sequential': {
+    title: 'Series Group',
+    summary:
+      'Agents in this group run one after another in the order shown, before the stage advances to the next group.',
+  },
+  'pipeline.group.parallel': {
+    title: 'Parallel Group',
+    summary:
+      'Agents in this group run concurrently. The stage continues only after every agent in the group finishes.',
+  },
+  'pipeline.group.deleteButton': {
+    summary:
+      'Remove this empty execution group from the stage. Groups that still contain agents must be cleared first.',
+  },
   'pipeline.agent.parallelHint': {
     summary: 'These agents are grouped in the same stage.',
   },
