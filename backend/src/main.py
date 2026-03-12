@@ -392,10 +392,14 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 
         # Agent MCP sync on startup — reconcile any drift between Tools page
         # state and agent files (FR-009).  Uses the most recent user session.
-        try:
-            await _startup_agent_mcp_sync(db)
-        except Exception as e:
-            logger.warning("Startup agent MCP sync failed (non-fatal): %s", e)
+        # Run as a background task so it does not block app startup.
+        async def _run_startup_agent_mcp_sync_background() -> None:
+            try:
+                await _startup_agent_mcp_sync(db)
+            except Exception as e:
+                logger.warning("Startup agent MCP sync failed (non-fatal): %s", e)
+
+        asyncio.create_task(_run_startup_agent_mcp_sync_background())
 
         # Start polling watchdog — restarts polling if it stops unexpectedly.
         # This is the primary guarantee that the agent pipeline "always recovers".

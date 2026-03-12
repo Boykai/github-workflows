@@ -212,7 +212,7 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - aiosqlite (pipeline configs, agent tracking); GitHub Issues API (labels as state markers) (034-label-pipeline-state)
 - Python 3.13 (backend), TypeScript / ES2022 (frontend) + FastAPI 0.135+, Pydantic 2.12+, aiosqlite, githubkit, React 19, TanStack Query v5, Vite 7.3, Tailwind v4, Zod v4 (035-best-practices-overhaul)
 - SQLite via aiosqlite (async), with write-through in-memory `BoundedDict` cache (035-best-practices-overhaul)
-- Python 3.11 (backend), TypeScript 5.9 (frontend) + FastAPI, aiosqlite, httpx, PyYAML (backend); React 19.2, TanStack React Query 5.90 (frontend) (036-agent-mcp-sync)
+- Python 3.12+ (backend), TypeScript 5.9 (frontend) + FastAPI, aiosqlite, httpx, PyYAML (backend); React 19.2, TanStack React Query 5.90 (frontend) (036-agent-mcp-sync)
 - aiosqlite (`mcp_configurations` table) + GitHub repository files (agent `.agent.md` files, `mcp.json`) (036-agent-mcp-sync)
 
 ## Recent Changes
