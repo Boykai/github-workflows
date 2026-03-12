@@ -6,7 +6,6 @@
  */
 
 import type { ChoreInlineUpdate } from '@/types';
-import { Lock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ChoreInlineEditorProps {
@@ -15,7 +14,6 @@ interface ChoreInlineEditorProps {
   templateContent: string;
   scheduleType: ChoreInlineUpdate['schedule_type'];
   scheduleValue: number | null | undefined;
-  blocking: boolean;
   disabled?: boolean;
   onChange: (updates: Partial<ChoreInlineUpdate>) => void;
 }
@@ -26,7 +24,6 @@ export function ChoreInlineEditor({
   templateContent,
   scheduleType,
   scheduleValue,
-  blocking,
   disabled = false,
   onChange,
 }: ChoreInlineEditorProps) {
@@ -113,27 +110,6 @@ export function ChoreInlineEditor({
             className="celestial-focus flex h-8 w-full rounded-md border border-input bg-background px-3 py-1.5 text-sm shadow-sm focus:outline-none disabled:opacity-50"
           />
         </div>
-      </div>
-      <div className="flex flex-col gap-1.5">
-        <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-          Execution Mode
-        </span>
-        <button
-          type="button"
-          onClick={() => onChange({ blocking: !blocking })}
-          disabled={disabled}
-          className={cn(
-            'flex w-fit cursor-pointer items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-            blocking
-              ? 'border-amber-500/30 bg-amber-500/10 text-amber-600 hover:border-amber-500/50 hover:bg-amber-500/18 dark:text-amber-400'
-              : 'border-border/60 bg-muted/40 text-muted-foreground hover:border-border/80 hover:bg-muted/60 hover:text-foreground'
-          )}
-          aria-label={blocking ? 'Blocking' : 'Non-blocking'}
-          title={`Blocking: ${blocking ? 'ON — issues serialize activation' : 'OFF'}`}
-        >
-          <Lock className="h-3 w-3" />
-          {blocking ? 'Blocking' : 'Non-blocking'}
-        </button>
       </div>
     </div>
   );

@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Pencil, X, Save, Lock, Check, ChevronDown, Workflow } from 'lucide-react';
+import { Sparkles, Pencil, X, Save, Check, ChevronDown, Workflow } from 'lucide-react';
 import type { Chore, ChoreEditState, ChoreInlineUpdate } from '@/types';
 import { formatMsRemaining, computeCountRemaining, computeTimeProgress } from '@/lib/time-utils';
 import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
@@ -155,18 +155,6 @@ export function ChoreCard({
     updateMutation.mutate({
       choreId: chore.id,
       data: { ai_enhance_enabled: !chore.ai_enhance_enabled },
-    });
-  };
-
-  const currentBlocking = editState?.current.blocking ?? chore.blocking;
-  const handleToggleBlocking = () => {
-    if (isEditing && onEditChange) {
-      onEditChange({ blocking: !currentBlocking });
-      return;
-    }
-    updateMutation.mutate({
-      choreId: chore.id,
-      data: { blocking: !chore.blocking },
     });
   };
 
@@ -350,36 +338,6 @@ export function ChoreCard({
             <Sparkles className="h-3 w-3" />
             AI {currentAiEnhance ? 'ON' : 'OFF'}
           </button>
-          <button
-            type="button"
-            onClick={handleToggleBlocking}
-            disabled={updateMutation.isPending || isSaving}
-            aria-pressed={currentBlocking}
-            className={cn(
-              'flex cursor-pointer items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.14em] transition-colors disabled:cursor-not-allowed disabled:opacity-50',
-              currentBlocking
-                ? 'border-amber-500/35 bg-amber-500/12 text-amber-700 hover:border-amber-500/60 hover:bg-amber-500/20 dark:text-amber-300'
-                : 'border-border/60 bg-muted/40 text-muted-foreground hover:border-border/80 hover:bg-muted/60 hover:text-foreground'
-            )}
-            title={
-              currentBlocking
-                ? 'Blocking ON — click to set non-blocking'
-                : 'Non-blocking — click to enable blocking'
-            }
-          >
-            <span
-              className={cn(
-                'flex h-4 w-4 items-center justify-center rounded-full border transition-colors',
-                currentBlocking
-                  ? 'border-amber-500/40 bg-amber-500/18 text-amber-700 dark:text-amber-300'
-                  : 'border-border/60 bg-background/70 text-muted-foreground'
-              )}
-              aria-hidden="true"
-            >
-              <Lock className="h-2.5 w-2.5" />
-            </span>
-            {currentBlocking ? 'Blocking' : 'Non-blocking'}
-          </button>
           <div className="relative">
             <button
               ref={pipelineTriggerRef}
@@ -509,7 +467,6 @@ export function ChoreCard({
               templateContent={currentContent}
               scheduleType={currentScheduleType}
               scheduleValue={currentScheduleValue}
-              blocking={currentBlocking}
               disabled={isSaving}
               onChange={onEditChange}
             />

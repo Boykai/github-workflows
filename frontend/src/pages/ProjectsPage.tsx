@@ -6,7 +6,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
-import { ChevronDown, Inbox, Lock, Search, TriangleAlert } from 'lucide-react';
+import { ChevronDown, Inbox, Search, TriangleAlert } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -17,8 +17,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
-import { BlockingChainPanel } from '@/components/board/BlockingChainPanel';
-import { BlockingIssuePill } from '@/components/board/BlockingIssuePill';
 import { ProjectIssueLaunchPanel } from '@/components/board/ProjectIssueLaunchPanel';
 import { RefreshButton } from '@/components/board/RefreshButton';
 import { statusColorToCSS } from '@/components/board/colorUtils';
@@ -26,7 +24,6 @@ import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelection
 import { ProjectSelector } from '@/layout/ProjectSelector';
 import { useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useBoardControls } from '@/hooks/useBoardControls';
-import { useBlockingQueue } from '@/hooks/useBlockingQueue';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import { formatAgentName } from '@/utils/formatAgentName';
@@ -87,13 +84,6 @@ export function ProjectsPage() {
   const boardControls = useBoardControls(selectedProjectId, boardData ?? undefined);
   const transformedBoardData = boardControls.transformedData;
 
-  // Blocking queue state for the blocking chain panel
-  const { data: blockingQueueEntries } = useBlockingQueue(selectedProjectId ?? undefined);
-  const blockingIssueNumbers = useMemo(
-    () => new Set((blockingQueueEntries ?? []).map((entry) => entry.issue_number)),
-    [blockingQueueEntries]
-  );
-
   const {
     data: savedPipelines,
     isLoading: savedPipelinesLoading,
@@ -122,15 +112,6 @@ export function ProjectsPage() {
     },
   });
 
-  const setBlockingOverrideMutation = useMutation({
-    mutationFn: (blockingOverride: boolean | null) =>
-      pipelinesApi.setBlockingOverride(selectedProjectId!, blockingOverride),
-    onSuccess: (assignment) => {
-      if (!selectedProjectId) return;
-      queryClient.setQueryData(['pipelines', 'assignment', selectedProjectId], assignment);
-    },
-  });
-
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
   const pipelineColumnCount = Math.max(transformedBoardData?.columns.length ?? 0, 1);
@@ -150,11 +131,6 @@ export function ProjectsPage() {
       new Map((assignedPipeline?.stages ?? []).map((stage) => [stage.name.toLowerCase(), stage])),
     [assignedPipeline]
   );
-
-  // Effective blocking = project override (if set) otherwise pipeline default
-  const effectiveBlocking =
-    pipelineAssignment?.blocking_override ?? assignedPipeline?.blocking ?? false;
-  const hasBlockingOverride = pipelineAssignment?.blocking_override != null;
 
   const projectsRateLimitError = isRateLimitApiError(projectsError);
   const boardRateLimitError = isRateLimitApiError(boardError);
@@ -248,7 +224,7 @@ export function ProjectsPage() {
             ? `${selectedProject.owner_login}/${selectedProject.name}`
             : 'Awaiting project'
         }
-        note="Use the board to triage work, assign blocking chains, and queue items for the active agent pipeline — all without leaving the project view."
+        note="Use the board to triage work and queue items for the active agent pipeline — all without leaving the project view."
         stats={[
           { label: 'Board columns', value: String(transformedBoardData?.columns.length ?? 0) },
           {
@@ -365,12 +341,6 @@ export function ProjectsPage() {
             hasActiveGroup={boardControls.hasActiveGroup}
             hasActiveControls={boardControls.hasActiveControls}
           />
-          {blockingQueueEntries && blockingQueueEntries.length > 0 && selectedProjectId && (
-            <>
-              <BlockingIssuePill entries={blockingQueueEntries} projectId={selectedProjectId} />
-              <BlockingChainPanel entries={blockingQueueEntries} />
-            </>
-          )}
         </div>
       )}
 
@@ -592,53 +562,6 @@ export function ProjectsPage() {
                         )}
                       </div>
                     </div>
-                    {pipelineAssignment !== undefined && (
-                      <label className="flex cursor-pointer items-center gap-2">
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={effectiveBlocking}
-                          disabled={setBlockingOverrideMutation.isPending}
-                          onClick={() =>
-                            setBlockingOverrideMutation.mutate(
-                              hasBlockingOverride ? null : !effectiveBlocking
-                            )
-                          }
-                          title={
-                            hasBlockingOverride
-                              ? `Project override is forcing blocking ${effectiveBlocking ? 'on' : 'off'} — click to return to the pipeline default`
-                              : effectiveBlocking
-                                ? 'Blocking is currently on from the assigned pipeline — click to force this project off'
-                                : 'Blocking is currently off from the assigned pipeline — click to force this project on'
-                          }
-                          className={cn(
-                            'relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:opacity-50',
-                            effectiveBlocking ? 'bg-gold' : 'bg-muted'
-                          )}
-                        >
-                          <span
-                            className={cn(
-                              'pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition-transform',
-                              effectiveBlocking ? 'translate-x-4' : 'translate-x-0'
-                            )}
-                          />
-                        </button>
-                        <span className="flex min-w-0 flex-col leading-none">
-                          <span
-                            className={cn(
-                              'flex items-center gap-1 text-[11px] font-semibold uppercase tracking-[0.16em]',
-                              effectiveBlocking ? 'text-gold' : 'text-muted-foreground'
-                            )}
-                          >
-                            <Lock className="h-3 w-3" />
-                            {effectiveBlocking ? 'Blocking on' : 'Blocking off'}
-                          </span>
-                          <span className="mt-1 text-[10px] text-muted-foreground/75">
-                            {hasBlockingOverride ? 'Project override' : 'Pipeline default'}
-                          </span>
-                        </span>
-                      </label>
-                    )}
                   </div>
                 ) : (
                   <Link
@@ -737,7 +660,6 @@ export function ProjectsPage() {
                 onCardClick={handleCardClick}
                 availableAgents={availableAgents}
                 getGroups={boardControls.getGroups}
-                blockingIssueNumbers={blockingIssueNumbers}
               />
             )}
           </div>
