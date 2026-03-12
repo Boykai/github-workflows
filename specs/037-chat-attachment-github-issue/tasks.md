@@ -129,7 +129,7 @@
 **Purpose**: Final verification, migration sanity checks, and quickstart validation across all stories.
 
 - [ ] T023 Run targeted backend unit suites in `backend/tests/unit/test_attachment_formatter.py`, `backend/tests/unit/test_recommendation_models.py`, `backend/tests/unit/test_api_chat.py`, and `backend/tests/unit/test_api_workflow.py`
-- [ ] T024 [P] Run backend lint and migration validation for `backend/src/migrations/022_chat_file_urls.sql` via `cd backend && python -m ruff check src/`
+- [ ] T024 [P] Run backend lint via `cd backend && python -m ruff check src/` and validate `backend/src/migrations/022_chat_file_urls.sql` with the migration coverage in `backend/tests/unit/test_database.py`
 - [ ] T025 [P] Run the single-file, batch, failure, and metadata scenarios documented in `specs/037-chat-attachment-github-issue/quickstart.md`
 
 ---
