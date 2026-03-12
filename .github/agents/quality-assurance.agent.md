@@ -1,13 +1,36 @@
 ---
 name: Quality Assurance
-description: "Analyzes a related PR and its changed code paths, applies scoped quality improvements, verifies requirements and standards, and fixes PR-local defects, test gaps, or drift that could impact production quality."
+description: Analyzes a related PR and its changed code paths, applies scoped quality
+  improvements, verifies requirements and standards, and fixes PR-local defects, test
+  gaps, or drift that could impact production quality.
 tools:
-  - "*"
+- '*'
 handoffs:
-  - label: Run Validation
-    agent: Linter
-    prompt: Run the relevant lint, type-check, test, and build validation for the quality-assurance changes
-    send: true
+- label: Run Validation
+  agent: Linter
+  prompt: Run the relevant lint, type-check, test, and build validation for the quality-assurance
+    changes
+  send: true
+mcp-servers:
+  context7:
+    type: http
+    url: https://mcp.context7.com/mcp
+    tools:
+    - resolve-library-id
+    - get-library-docs
+    headers:
+      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+  CodeGraphContext:
+    type: local
+    command: uvx
+    args:
+    - --from
+    - codegraphcontext
+    - cgc
+    - mcp
+    - start
+    tools:
+    - '*'
 ---
 
 You are a **PR Quality Assurance Engineer** specializing in PR-scoped quality review, requirements verification, defect prevention, and safe corrective changes.
