@@ -55,6 +55,10 @@ class AITaskProposal(BaseModel):
         default=None,
         description="Optional saved pipeline selected when the task proposal was created",
     )
+    file_urls: list[str] = Field(
+        default_factory=list,
+        description="URLs of files to attach to GitHub issue",
+    )
 
     @property
     def is_expired(self) -> bool:
@@ -223,6 +227,10 @@ class IssueRecommendation(BaseModel):
     )
     created_at: datetime = Field(default_factory=utcnow, description="Creation timestamp")
     confirmed_at: datetime | None = Field(default=None, description="Confirmation timestamp")
+    file_urls: list[str] = Field(
+        default_factory=list,
+        description="URLs of files to attach to GitHub issue",
+    )
 
     model_config = {
         "json_schema_extra": {

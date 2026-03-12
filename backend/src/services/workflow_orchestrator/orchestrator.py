@@ -516,6 +516,11 @@ class WorkflowOrchestrator:
 
         body = self.format_issue_body(recommendation)
 
+        # Embed file attachments in issue body (before tracking table)
+        from src.attachment_formatter import format_attachments_markdown
+
+        body += format_attachments_markdown(recommendation.file_urls)
+
         # Append the agent pipeline tracking table to the issue body
         config = ctx.config or await get_workflow_config(ctx.project_id)
         if config and config.agent_mappings:

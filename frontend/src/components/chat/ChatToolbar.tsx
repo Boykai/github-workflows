@@ -52,7 +52,7 @@ export function ChatToolbar({
         <button
           type="button"
           onClick={() => onAiEnhanceChange(!aiEnhance)}
-          className={cn('flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-colors border', aiEnhance
+          className={cn('celestial-focus flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-full transition-colors border focus-visible:outline-none', aiEnhance
               ? 'bg-primary/10 text-primary border-primary/30 hover:bg-primary/20'
               : 'bg-background/72 text-muted-foreground border-border/50 hover:bg-primary/10 hover:border-primary/20 hover:text-foreground')}
           aria-pressed={aiEnhance}
@@ -77,7 +77,7 @@ export function ChatToolbar({
           <button
             type="button"
             onClick={handleFileClick}
-            className="relative flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground"
+            className="celestial-focus relative flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground focus-visible:outline-none"
             aria-label="Attach file"
           >
             <Paperclip className="w-4 h-4" />
