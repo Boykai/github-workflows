@@ -23,9 +23,9 @@
 
 **Purpose**: Create the new sync module and establish the BUILTIN_MCPS registry constant
 
-- [ ] T001 Create `backend/src/services/agents/agent_mcp_sync.py` module with module docstring, imports (`yaml`, `re`, `logging`, `httpx`, `typing`), and `BUILTIN_MCPS` constant mirroring `frontend/src/lib/buildGitHubMcpConfig.ts` (Context7 HTTP + CodeGraphContext local/uvx)
-- [ ] T002 [P] Define `AgentMcpSyncResult` dataclass in `backend/src/services/agents/agent_mcp_sync.py` with fields: `success`, `files_updated`, `files_skipped`, `files_unchanged`, `warnings`, `errors`, `synced_mcps` (matching contracts/agent-sync-api.yaml schema)
-- [ ] T003 [P] Add `_FRONTMATTER_RE` regex pattern in `backend/src/services/agents/agent_mcp_sync.py` for splitting YAML frontmatter from Markdown body (reuse pattern from existing `agent_creator.py`)
+- [x] T001 Create `backend/src/services/agents/agent_mcp_sync.py` module with module docstring, imports (`yaml`, `re`, `logging`, `httpx`, `typing`), and `BUILTIN_MCPS` constant mirroring `frontend/src/lib/buildGitHubMcpConfig.ts` (Context7 HTTP + CodeGraphContext local/uvx)
+- [x] T002 [P] Define `AgentMcpSyncResult` dataclass in `backend/src/services/agents/agent_mcp_sync.py` with fields: `success`, `files_updated`, `files_skipped`, `files_unchanged`, `warnings`, `errors`, `synced_mcps` (matching contracts/agent-sync-api.yaml schema)
+- [x] T003 [P] Add `_FRONTMATTER_RE` regex pattern in `backend/src/services/agents/agent_mcp_sync.py` for splitting YAML frontmatter from Markdown body (reuse pattern from existing `agent_creator.py`)
 
 ---
 
@@ -35,11 +35,11 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Implement `_parse_agent_file(content: str) -> tuple[dict, str]` helper in `backend/src/services/agents/agent_mcp_sync.py` — splits file content into (frontmatter dict, markdown body) using `_FRONTMATTER_RE` and `yaml.safe_load()`; returns `(None, content)` for unparseable files
-- [ ] T005 [P] Implement `_serialize_agent_file(frontmatter: dict, body: str) -> str` helper in `backend/src/services/agents/agent_mcp_sync.py` — re-serializes updated frontmatter with `yaml.dump(default_flow_style=False, sort_keys=False)` and concatenates with original Markdown body
-- [ ] T006 [P] Implement `_build_active_mcp_dict(db, project_id: str) -> dict[str, dict]` helper in `backend/src/services/agents/agent_mcp_sync.py` — queries `mcp_configurations` table for active MCPs (`is_active = 1`), merges with `BUILTIN_MCPS` (built-in takes precedence on key conflict), returns dict keyed by server key
-- [ ] T007 Implement `_discover_agent_files(owner, repo, token) -> list[dict]` helper in `backend/src/services/agents/agent_mcp_sync.py` — uses GitHub Contents API (`GET /repos/{owner}/{repo}/contents/.github/agents`) to list all `*.agent.md` files, returns list of `{path, sha, download_url}` dicts
-- [ ] T008 Implement `_merge_mcps_into_frontmatter(frontmatter: dict, active_mcps: dict[str, dict]) -> tuple[dict, list[str]]` helper in `backend/src/services/agents/agent_mcp_sync.py` — merges active MCPs into frontmatter `mcp-servers` field (initializing as empty dict if missing), deduplicates by server key (built-in precedence), enforces `tools: ["*"]`, returns (updated frontmatter, warnings list)
+- [x] T004 Implement `_parse_agent_file(content: str) -> tuple[dict, str]` helper in `backend/src/services/agents/agent_mcp_sync.py` — splits file content into (frontmatter dict, markdown body) using `_FRONTMATTER_RE` and `yaml.safe_load()`; returns `(None, content)` for unparseable files
+- [x] T005 [P] Implement `_serialize_agent_file(frontmatter: dict, body: str) -> str` helper in `backend/src/services/agents/agent_mcp_sync.py` — re-serializes updated frontmatter with `yaml.dump(default_flow_style=False, sort_keys=False)` and concatenates with original Markdown body
+- [x] T006 [P] Implement `_build_active_mcp_dict(db, project_id: str) -> dict[str, dict]` helper in `backend/src/services/agents/agent_mcp_sync.py` — queries `mcp_configurations` table for active MCPs (`is_active = 1`), merges with `BUILTIN_MCPS` (built-in takes precedence on key conflict), returns dict keyed by server key
+- [x] T007 Implement `_discover_agent_files(owner, repo, token) -> list[dict]` helper in `backend/src/services/agents/agent_mcp_sync.py` — uses GitHub Contents API (`GET /repos/{owner}/{repo}/contents/.github/agents`) to list all `*.agent.md` files, returns list of `{path, sha, download_url}` dicts
+- [x] T008 Implement `_merge_mcps_into_frontmatter(frontmatter: dict, active_mcps: dict[str, dict]) -> tuple[dict, list[str]]` helper in `backend/src/services/agents/agent_mcp_sync.py` — merges active MCPs into frontmatter `mcp-servers` field (initializing as empty dict if missing), deduplicates by server key (built-in precedence), enforces `tools: ["*"]`, returns (updated frontmatter, warnings list)
 
 **Checkpoint**: Core sync primitives ready — user story implementation can now begin
 
@@ -53,14 +53,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` sets `tools: ["*"]` when `tools` field is missing from frontmatter
-- [ ] T010 [P] [US1] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` replaces `tools: ["search", "edit"]` with `tools: ["*"]` and returns a warning string containing the original value
-- [ ] T011 [P] [US1] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` leaves `tools: ["*"]` unchanged and produces no warning (idempotent)
+- [x] T009 [P] [US1] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` sets `tools: ["*"]` when `tools` field is missing from frontmatter
+- [x] T010 [P] [US1] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` replaces `tools: ["search", "edit"]` with `tools: ["*"]` and returns a warning string containing the original value
+- [x] T011 [P] [US1] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` leaves `tools: ["*"]` unchanged and produces no warning (idempotent)
 
 ### Implementation for User Story 1
 
-- [ ] T012 [US1] Add `tools: ["*"]` enforcement logic in `_merge_mcps_into_frontmatter()` in `backend/src/services/agents/agent_mcp_sync.py` — check current `tools` value, replace if not `["*"]`, append warning with file path and original value to warnings list
-- [ ] T013 [US1] Add structured logging in `_merge_mcps_into_frontmatter()` in `backend/src/services/agents/agent_mcp_sync.py` — use `logging.warning()` when a non-`["*"]` tools value is overridden, include agent file path and original value (FR-010)
+- [x] T012 [US1] Add `tools: ["*"]` enforcement logic in `_merge_mcps_into_frontmatter()` in `backend/src/services/agents/agent_mcp_sync.py` — check current `tools` value, replace if not `["*"]`, append warning with file path and original value to warnings list
+- [x] T013 [US1] Add structured logging in `_merge_mcps_into_frontmatter()` in `backend/src/services/agents/agent_mcp_sync.py` — use `logging.warning()` when a non-`["*"]` tools value is overridden, include agent file path and original value (FR-010)
 
 **Checkpoint**: User Story 1 complete — all agent files get `tools: ["*"]` enforced, overrides are logged
 
@@ -74,19 +74,19 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` adds 3 active MCPs to an empty `mcp-servers` field
-- [ ] T015 [P] [US2] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` does not create duplicate entries when an MCP is already present in `mcp-servers`
-- [ ] T016 [P] [US2] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` removes a deactivated MCP (not in active dict) from `mcp-servers` while keeping remaining MCPs intact
-- [ ] T017 [P] [US2] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` with no active MCPs results in `mcp-servers` containing only built-in MCPs
+- [x] T014 [P] [US2] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` adds 3 active MCPs to an empty `mcp-servers` field
+- [x] T015 [P] [US2] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` does not create duplicate entries when an MCP is already present in `mcp-servers`
+- [x] T016 [P] [US2] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` removes a deactivated MCP (not in active dict) from `mcp-servers` while keeping remaining MCPs intact
+- [x] T017 [P] [US2] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` with no active MCPs results in `mcp-servers` containing only built-in MCPs
 
 ### Implementation for User Story 2
 
-- [ ] T018 [US2] Implement MCP merge logic in `_merge_mcps_into_frontmatter()` in `backend/src/services/agents/agent_mcp_sync.py` — replace `mcp-servers` with exact set from `active_mcps` dict (built-in + user-activated), ensuring no extra keys remain from previously deactivated MCPs (FR-002, FR-004, FR-005)
-- [ ] T019 [US2] Implement the main `sync_agent_mcps(owner, repo, project_id, access_token, trigger, db) -> AgentMcpSyncResult` function in `backend/src/services/agents/agent_mcp_sync.py` — orchestrates: build active MCP dict → discover agent files → for each file: fetch content → parse → merge → compare → write if changed → return result summary
-- [ ] T020 [US2] Wire sync trigger in `backend/src/services/tools/service.py` — call `sync_agent_mcps()` after `sync_tool_to_github()` completes for tool activation/deactivation operations (FR-007)
-- [ ] T021 [US2] Add `POST /agents/{project_id}/sync-mcps` endpoint in `backend/src/api/agents.py` — accepts optional `trigger` body param, calls `sync_agent_mcps()`, returns `AgentMcpSyncResult` JSON (per contracts/agent-sync-api.yaml)
-- [ ] T022 [US2] Add `syncAgentMcps(projectId: string, trigger?: string)` API function in `frontend/src/services/api.ts` — POST to `/agents/{project_id}/sync-mcps`
-- [ ] T023 [US2] Update `frontend/src/hooks/useTools.ts` — after tool toggle mutation succeeds, call `syncAgentMcps()` and invalidate agent query cache with `queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) })`
+- [x] T018 [US2] Implement MCP merge logic in `_merge_mcps_into_frontmatter()` in `backend/src/services/agents/agent_mcp_sync.py` — replace `mcp-servers` with exact set from `active_mcps` dict (built-in + user-activated), ensuring no extra keys remain from previously deactivated MCPs (FR-002, FR-004, FR-005)
+- [x] T019 [US2] Implement the main `sync_agent_mcps(owner, repo, project_id, access_token, trigger, db) -> AgentMcpSyncResult` function in `backend/src/services/agents/agent_mcp_sync.py` — orchestrates: build active MCP dict → discover agent files → for each file: fetch content → parse → merge → compare → write if changed → return result summary
+- [x] T020 [US2] Wire sync trigger in `backend/src/services/tools/service.py` — call `sync_agent_mcps()` after `sync_tool_to_github()` completes for tool activation/deactivation operations (FR-007)
+- [x] T021 [US2] Add `POST /agents/{project_id}/sync-mcps` endpoint in `backend/src/api/agents.py` — accepts optional `trigger` body param, calls `sync_agent_mcps()`, returns `AgentMcpSyncResult` JSON (per contracts/agent-sync-api.yaml)
+- [x] T022 [US2] Add `syncAgentMcps(projectId: string, trigger?: string)` API function in `frontend/src/services/api.ts` — POST to `/agents/{project_id}/sync-mcps`
+- [x] T023 [US2] Update `frontend/src/hooks/useTools.ts` — after tool toggle mutation succeeds, call `syncAgentMcps()` and invalidate agent query cache with `queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) })`
 
 **Checkpoint**: User Story 2 complete — MCP activation/deactivation on Tools page propagates to all agent files
 
@@ -100,15 +100,15 @@
 
 ### Tests for User Story 3
 
-- [ ] T024 [P] [US3] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `BUILTIN_MCPS` constant contains entries for `context7` and `CodeGraphContext` with correct types (`http` and `local`/`stdio` respectively)
-- [ ] T025 [P] [US3] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` always includes built-in MCPs even when agent file had them manually removed
-- [ ] T026 [P] [US3] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_build_active_mcp_dict` gives built-in MCPs precedence over user-activated MCPs with the same server key (FR-014)
+- [x] T024 [P] [US3] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `BUILTIN_MCPS` constant contains entries for `context7` and `CodeGraphContext` with correct types (`http` and `local`/`stdio` respectively)
+- [x] T025 [P] [US3] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_merge_mcps_into_frontmatter` always includes built-in MCPs even when agent file had them manually removed
+- [x] T026 [P] [US3] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_build_active_mcp_dict` gives built-in MCPs precedence over user-activated MCPs with the same server key (FR-014)
 
 ### Implementation for User Story 3
 
-- [ ] T027 [US3] Ensure `_build_active_mcp_dict()` in `backend/src/services/agents/agent_mcp_sync.py` merges `BUILTIN_MCPS` after user MCPs so built-in entries take precedence on key conflicts (FR-013, FR-014), and log warning on conflict
-- [ ] T028 [US3] Wire sync trigger in `backend/src/services/agents/service.py` — call `sync_agent_mcps()` after `create_agent()` completes to ensure new agent files include built-in MCPs from creation (FR-003, FR-008)
-- [ ] T029 [US3] Wire sync trigger in `backend/src/services/agents/service.py` — call `sync_agent_mcps()` after `update_agent()` completes to re-enforce built-in MCPs on any agent update (FR-003)
+- [x] T027 [US3] Ensure `_build_active_mcp_dict()` in `backend/src/services/agents/agent_mcp_sync.py` merges `BUILTIN_MCPS` after user MCPs so built-in entries take precedence on key conflicts (FR-013, FR-014), and log warning on conflict
+- [x] T028 [US3] Wire sync trigger in `backend/src/services/agents/service.py` — call `sync_agent_mcps()` after `create_agent()` completes to ensure new agent files include built-in MCPs from creation (FR-003, FR-008)
+- [x] T029 [US3] Wire sync trigger in `backend/src/services/agents/service.py` — call `sync_agent_mcps()` after `update_agent()` completes to re-enforce built-in MCPs on any agent update (FR-003)
 
 **Checkpoint**: User Story 3 complete — built-in MCPs are guaranteed present in all agent files
 
@@ -122,14 +122,14 @@
 
 ### Tests for User Story 4
 
-- [ ] T030 [P] [US4] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test full `sync_agent_mcps()` function with mocked GitHub API — verify correct number of files_updated, files_unchanged, files_skipped in result
-- [ ] T031 [P] [US4] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `sync_agent_mcps()` idempotency — running sync twice with same state produces `files_updated=0` on second run (SC-004)
+- [x] T030 [P] [US4] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test full `sync_agent_mcps()` function with mocked GitHub API — verify correct number of files_updated, files_unchanged, files_skipped in result
+- [x] T031 [P] [US4] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `sync_agent_mcps()` idempotency — running sync twice with same state produces `files_updated=0` on second run (SC-004)
 
 ### Implementation for User Story 4
 
-- [ ] T032 [US4] Add idempotency check in `sync_agent_mcps()` in `backend/src/services/agents/agent_mcp_sync.py` — compare serialized new content with fetched current content; only PUT if content differs (SC-004, SC-007)
-- [ ] T033 [US4] Wire startup sync trigger in `backend/src/startup.py` — call `sync_agent_mcps()` as a background task during application initialization to reconcile any drift (FR-009)
-- [ ] T034 [US4] Ensure `frontend/src/hooks/useTools.ts` invalidates agent-related queries after sync mutation completes, so agent preview/editor views reflect updated `mcp-servers` and `tools` fields immediately
+- [x] T032 [US4] Add idempotency check in `sync_agent_mcps()` in `backend/src/services/agents/agent_mcp_sync.py` — compare serialized new content with fetched current content; only PUT if content differs (SC-004, SC-007)
+- [x] T033 [US4] Wire startup sync trigger in `backend/src/startup.py` — call `sync_agent_mcps()` as a background task during application initialization to reconcile any drift (FR-009)
+- [x] T034 [US4] Ensure `frontend/src/hooks/useTools.ts` invalidates agent-related queries after sync mutation completes, so agent preview/editor views reflect updated `mcp-servers` and `tools` fields immediately
 
 **Checkpoint**: User Story 4 complete — real-time sync works across all trigger points (toggle, create, update, startup)
 
@@ -143,15 +143,15 @@
 
 ### Tests for User Story 5
 
-- [ ] T035 [P] [US5] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_validate_agent_frontmatter()` returns success for valid frontmatter with `tools: ["*"]` and well-formed `mcp-servers` dict
-- [ ] T036 [P] [US5] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_validate_agent_frontmatter()` returns error for frontmatter with invalid `mcp-servers` entry (missing `type` field)
-- [ ] T037 [P] [US5] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `sync_agent_mcps()` skips files with unparseable frontmatter and includes file path in `errors` list (FR-012)
+- [x] T035 [P] [US5] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_validate_agent_frontmatter()` returns success for valid frontmatter with `tools: ["*"]` and well-formed `mcp-servers` dict
+- [x] T036 [P] [US5] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `_validate_agent_frontmatter()` returns error for frontmatter with invalid `mcp-servers` entry (missing `type` field)
+- [x] T037 [P] [US5] Unit test in `backend/tests/unit/test_agent_mcp_sync.py`: test `sync_agent_mcps()` skips files with unparseable frontmatter and includes file path in `errors` list (FR-012)
 
 ### Implementation for User Story 5
 
-- [ ] T038 [US5] Implement `_validate_agent_frontmatter(frontmatter: dict, file_path: str) -> list[str]` helper in `backend/src/services/agents/agent_mcp_sync.py` — validates: YAML parses, `tools` is `["*"]`, `mcp-servers` is dict, each server has `type` and either `url` or `command`; returns list of error strings (R7)
-- [ ] T039 [US5] Integrate `_validate_agent_frontmatter()` call in `sync_agent_mcps()` in `backend/src/services/agents/agent_mcp_sync.py` — validate after merge, before write; skip write and append errors to result if validation fails (FR-011)
-- [ ] T040 [US5] Handle edge case in `sync_agent_mcps()` in `backend/src/services/agents/agent_mcp_sync.py` — files without parseable frontmatter are skipped, logged as warning with file path, and counted in `files_skipped` (FR-012, R8)
+- [x] T038 [US5] Implement `_validate_agent_frontmatter(frontmatter: dict, file_path: str) -> list[str]` helper in `backend/src/services/agents/agent_mcp_sync.py` — validates: YAML parses, `tools` is `["*"]`, `mcp-servers` is dict, each server has `type` and either `url` or `command`; returns list of error strings (R7)
+- [x] T039 [US5] Integrate `_validate_agent_frontmatter()` call in `sync_agent_mcps()` in `backend/src/services/agents/agent_mcp_sync.py` — validate after merge, before write; skip write and append errors to result if validation fails (FR-011)
+- [x] T040 [US5] Handle edge case in `sync_agent_mcps()` in `backend/src/services/agents/agent_mcp_sync.py` — files without parseable frontmatter are skipped, logged as warning with file path, and counted in `files_skipped` (FR-012, R8)
 
 **Checkpoint**: User Story 5 complete — all synced files pass validation before persisting
 
@@ -161,12 +161,12 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T041 [P] Add comprehensive docstrings to all public functions in `backend/src/services/agents/agent_mcp_sync.py`
-- [ ] T042 [P] Add type hints to all functions in `backend/src/services/agents/agent_mcp_sync.py` for mypy compliance
-- [ ] T043 [P] Verify `BUILTIN_MCPS` constant in `backend/src/services/agents/agent_mcp_sync.py` matches `frontend/src/lib/buildGitHubMcpConfig.ts` `BUILTIN_MCPS` — add inline comment referencing the frontend constant for future maintainers
-- [ ] T044 Run `backend/tests/unit/test_agent_mcp_sync.py` full test suite and ensure all tests pass
-- [ ] T045 Run `specs/036-agent-mcp-sync/quickstart.md` validation scenarios manually — verify end-to-end sync for each trigger point
-- [ ] T046 Review all agent files in `.github/agents/` to confirm `tools: ["*"]` and `mcp-servers` fields are correctly populated after a full sync
+- [x] T041 [P] Add comprehensive docstrings to all public functions in `backend/src/services/agents/agent_mcp_sync.py`
+- [x] T042 [P] Add type hints to all functions in `backend/src/services/agents/agent_mcp_sync.py` for mypy compliance
+- [x] T043 [P] Verify `BUILTIN_MCPS` constant in `backend/src/services/agents/agent_mcp_sync.py` matches `frontend/src/lib/buildGitHubMcpConfig.ts` `BUILTIN_MCPS` — add inline comment referencing the frontend constant for future maintainers
+- [x] T044 Run `backend/tests/unit/test_agent_mcp_sync.py` full test suite and ensure all tests pass
+- [x] T045 Run `specs/036-agent-mcp-sync/quickstart.md` validation scenarios manually — verify end-to-end sync for each trigger point
+- [x] T046 Review all agent files in `.github/agents/` to confirm `tools: ["*"]` and `mcp-servers` fields are correctly populated after a full sync
 
 ---
 
