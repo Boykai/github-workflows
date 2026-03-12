@@ -35,7 +35,7 @@ interface PipelineBoardProps {
   onModelOverrideChange: (override: PipelineModelOverride) => void;
   onClearValidationError: (field: string) => void;
   onRemoveStage: (stageId: string) => void;
-  onAddAgent: (stageId: string, agentSlug: string) => void;
+  onAddAgent: (stageId: string, agentSlug: string, groupId?: string) => void;
   onRemoveAgent: (stageId: string, agentNodeId: string) => void;
   onUpdateAgent: (
     stageId: string,
@@ -45,6 +45,10 @@ interface PipelineBoardProps {
   onUpdateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
   onCloneAgent?: (stageId: string, agentNodeId: string) => void;
   onReorderAgents: (stageId: string, newOrder: PipelineAgentNode[]) => void;
+  onAddGroup?: (stageId: string) => void;
+  onRemoveGroup?: (stageId: string, groupId: string) => void;
+  onToggleGroupMode?: (stageId: string, groupId: string, mode: 'sequential' | 'parallel') => void;
+  onReorderAgentsInGroup?: (stageId: string, groupId: string, newOrder: PipelineAgentNode[]) => void;
 }
 
 export function PipelineBoard({
@@ -70,15 +74,19 @@ export function PipelineBoard({
   onUpdateStage,
   onCloneAgent,
   onReorderAgents,
+  onAddGroup,
+  onRemoveGroup,
+  onToggleGroupMode,
+  onReorderAgentsInGroup,
 }: PipelineBoardProps) {
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState(pipelineName);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const showInlineNameInput = isEditMode || isEditingName;
-  const hasParallelStage = stages.some(
-    (stage) => stage.execution_mode === 'parallel' && stage.agents.length > 1
+  const hasParallelGroup = stages.some(
+    (stage) => (stage.groups ?? []).some((g) => g.execution_mode === 'parallel' && g.agents.length > 1)
   );
-  const minStageWidthRem = hasParallelStage ? 20 : 14;
+  const minStageWidthRem = hasParallelGroup ? 20 : 14;
 
   const gridStyle: CSSProperties = {
     gridTemplateColumns: `repeat(${Math.max(columnCount, 1)}, minmax(${minStageWidthRem}rem, 1fr))`,
@@ -247,15 +255,14 @@ export function PipelineBoard({
         onModelChange={onModelOverrideChange}
       />
 
-      {hasParallelStage && (
+      {hasParallelGroup && (
         <div className="flex flex-wrap items-center gap-2 rounded-[1rem] border border-primary/20 bg-primary/8 px-3 py-2 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-1.5 font-semibold text-primary">
             <GitBranch className="h-3.5 w-3.5" />
-            Grouped stage
+            Parallel groups
           </span>
           <span>
-            Agents placed in the same stage are grouped, and the pipeline advances only after
-            the full group finishes.
+            Agents in a parallel group run concurrently. Each stage completes when all its groups finish.
           </span>
         </div>
       )}
@@ -274,11 +281,15 @@ export function PipelineBoard({
               projectId={projectId}
               onUpdate={(updated) => onUpdateStage(stage.id, updated)}
               onRemove={() => onRemoveStage(stage.id)}
-              onAddAgent={(slug) => onAddAgent(stage.id, slug)}
+              onAddAgent={(slug, groupId) => onAddAgent(stage.id, slug, groupId)}
               onRemoveAgent={(nodeId) => onRemoveAgent(stage.id, nodeId)}
               onUpdateAgent={(nodeId, updates) => onUpdateAgent(stage.id, nodeId, updates)}
               onCloneAgent={onCloneAgent ? (nodeId) => onCloneAgent(stage.id, nodeId) : undefined}
               onReorderAgents={(newOrder) => onReorderAgents(stage.id, newOrder)}
+              onAddGroup={onAddGroup ? () => onAddGroup(stage.id) : undefined}
+              onRemoveGroup={onRemoveGroup ? (groupId) => onRemoveGroup(stage.id, groupId) : undefined}
+              onToggleGroupMode={onToggleGroupMode ? (groupId, mode) => onToggleGroupMode(stage.id, groupId, mode) : undefined}
+              onReorderAgentsInGroup={onReorderAgentsInGroup ? (groupId, newOrder) => onReorderAgentsInGroup(stage.id, groupId, newOrder) : undefined}
             />
           ))}
         </div>

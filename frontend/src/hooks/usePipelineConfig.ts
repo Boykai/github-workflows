@@ -77,7 +77,13 @@ export function usePipelineConfig(projectId: string | null) {
 
   const newPipeline = useCallback((stageNames: string[] = []) => {
     const now = new Date().toISOString();
-    const stages = stageNames.map((n, i) => ({ id: generateId(), name: n, order: i, agents: [] }));
+    const stages = stageNames.map((n, i) => ({
+      id: generateId(),
+      name: n,
+      order: i,
+      groups: [{ id: generateId(), order: 0, execution_mode: 'sequential' as const, agents: [] }],
+      agents: [],
+    }));
     const config: PipelineConfig = {
       id: '', project_id: projectId ?? '', name: '', description: '', stages,
       is_preset: false, preset_id: '', created_at: now, updated_at: now,

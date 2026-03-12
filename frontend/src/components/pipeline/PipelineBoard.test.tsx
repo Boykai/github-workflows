@@ -162,11 +162,19 @@ describe('PipelineBoard', () => {
     expect(onNameChange).toHaveBeenCalledWith('Renamed Pipeline');
   });
 
-  it('shows the grouped stage helper and widens the stage grid when a stage has multiple agents', () => {
+  it('shows the parallel groups helper and widens the stage grid when a group has multiple agents', () => {
     renderPipelineBoard(
       <PipelineBoard
         columnCount={1}
-        stages={[createStage({ execution_mode: 'parallel', agents: [createAgentNode(), createAgentNode({ id: 'agent-2' })] })]}
+        stages={[createStage({
+          groups: [{
+            id: 'g1',
+            order: 0,
+            execution_mode: 'parallel',
+            agents: [createAgentNode(), createAgentNode({ id: 'agent-2' })],
+          }],
+          agents: [],
+        })]}
         availableAgents={[]}
         availableModels={[]}
         isEditMode={true}
@@ -186,7 +194,7 @@ describe('PipelineBoard', () => {
       />
     );
 
-    expect(screen.getByText('Grouped stage')).toBeInTheDocument();
+    expect(screen.getByText('Parallel groups')).toBeInTheDocument();
     expect(screen.getByTestId('pipeline-stage-grid')).toHaveStyle({
       gridTemplateColumns: 'repeat(1, minmax(20rem, 1fr))',
     });

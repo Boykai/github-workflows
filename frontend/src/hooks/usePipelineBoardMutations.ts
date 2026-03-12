@@ -1,8 +1,8 @@
 /**
  * usePipelineBoardMutations — board-level mutations for pipeline stages and agents.
  *
- * Pure state-update callbacks extracted from usePipelineConfig to keep
- * each hook under 200 lines.
+ * All agent operations now work through groups rather than directly on stage.agents.
+ * The deprecated stage.agents field is kept in sync for backward compatibility.
  */
 
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
@@ -13,7 +13,14 @@ import type {
   PipelineAgentNode,
   PipelineModelOverride,
   AvailableAgent,
+  ExecutionGroup,
 } from '@/types';
+
+/** Sync the deprecated stage.agents from groups for backward compat. */
+function syncLegacyAgents(stage: PipelineStage): PipelineStage {
+  const allAgents = (stage.groups ?? []).flatMap((g) => g.agents);
+  return { ...stage, agents: allAgents };
+}
 
 export interface UsePipelineBoardMutationsReturn {
   setPipelineName: (name: string) => void;
@@ -21,7 +28,7 @@ export interface UsePipelineBoardMutationsReturn {
   removeStage: (stageId: string) => void;
   updateStage: (stageId: string, updates: Partial<PipelineStage>) => void;
   reorderStages: (newOrder: PipelineStage[]) => void;
-  addAgentToStage: (stageId: string, agent: AvailableAgent) => void;
+  addAgentToStage: (stageId: string, agent: AvailableAgent, groupId?: string) => void;
   removeAgentFromStage: (stageId: string, agentNodeId: string) => void;
   updateAgentInStage: (
     stageId: string,
@@ -31,6 +38,17 @@ export interface UsePipelineBoardMutationsReturn {
   updateAgentTools: (stageId: string, agentNodeId: string, toolIds: string[]) => void;
   cloneAgentInStage: (stageId: string, agentNodeId: string) => void;
   reorderAgentsInStage: (stageId: string, newOrder: PipelineAgentNode[]) => void;
+  addGroupToStage: (stageId: string) => void;
+  removeGroupFromStage: (stageId: string, groupId: string) => void;
+  updateGroupExecutionMode: (stageId: string, groupId: string, mode: 'sequential' | 'parallel') => void;
+  moveAgentToGroup: (
+    fromStageId: string,
+    toStageId: string,
+    agentNodeId: string,
+    toGroupId: string,
+    toIndex?: number,
+  ) => void;
+  reorderAgentsInGroup: (stageId: string, groupId: string, newOrder: PipelineAgentNode[]) => void;
 }
 
 export function usePipelineBoardMutations(
@@ -90,7 +108,7 @@ export function usePipelineBoardMutations(
   );
 
   const addAgentToStage = useCallback(
-    (stageId: string, agent: AvailableAgent) => {
+    (stageId: string, agent: AvailableAgent, groupId?: string) => {
       setPipeline((prev) => {
         if (!prev) return null;
         const newAgent: PipelineAgentNode = {
@@ -113,12 +131,13 @@ export function usePipelineBoardMutations(
           ...prev,
           stages: prev.stages.map((s) => {
             if (s.id !== stageId) return s;
-            const updatedAgents = [...s.agents, newAgent];
-            return {
-              ...s,
-              agents: updatedAgents,
-              execution_mode: updatedAgents.length >= 2 ? 'parallel' : s.execution_mode,
-            };
+            const groups = s.groups ?? [];
+            const targetGroupId = groupId ?? groups[0]?.id;
+            const updatedGroups = groups.map((g) => {
+              if (g.id !== targetGroupId) return g;
+              return { ...g, agents: [...g.agents, newAgent] };
+            });
+            return syncLegacyAgents({ ...s, groups: updatedGroups });
           }),
         };
       });
@@ -134,12 +153,11 @@ export function usePipelineBoardMutations(
           ...prev,
           stages: prev.stages.map((s) => {
             if (s.id !== stageId) return s;
-            const remaining = s.agents.filter((a) => a.id !== agentNodeId);
-            return {
-              ...s,
-              agents: remaining,
-              execution_mode: remaining.length < 2 ? 'sequential' : s.execution_mode,
-            };
+            const updatedGroups = (s.groups ?? []).map((g) => ({
+              ...g,
+              agents: g.agents.filter((a) => a.id !== agentNodeId),
+            }));
+            return syncLegacyAgents({ ...s, groups: updatedGroups });
           }),
         };
       });
@@ -153,14 +171,14 @@ export function usePipelineBoardMutations(
         if (!prev) return null;
         return {
           ...prev,
-          stages: prev.stages.map((s) =>
-            s.id === stageId
-              ? {
-                  ...s,
-                  agents: s.agents.map((a) => (a.id === agentNodeId ? { ...a, ...updates } : a)),
-                }
-              : s,
-          ),
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const updatedGroups = (s.groups ?? []).map((g) => ({
+              ...g,
+              agents: g.agents.map((a) => (a.id === agentNodeId ? { ...a, ...updates } : a)),
+            }));
+            return syncLegacyAgents({ ...s, groups: updatedGroups });
+          }),
         };
       });
     },
@@ -173,18 +191,18 @@ export function usePipelineBoardMutations(
         if (!prev) return null;
         return {
           ...prev,
-          stages: prev.stages.map((s) =>
-            s.id === stageId
-              ? {
-                  ...s,
-                  agents: s.agents.map((a) =>
-                    a.id === agentNodeId
-                      ? { ...a, tool_ids: toolIds, tool_count: toolIds.length }
-                      : a,
-                  ),
-                }
-              : s,
-          ),
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const updatedGroups = (s.groups ?? []).map((g) => ({
+              ...g,
+              agents: g.agents.map((a) =>
+                a.id === agentNodeId
+                  ? { ...a, tool_ids: toolIds, tool_count: toolIds.length }
+                  : a,
+              ),
+            }));
+            return syncLegacyAgents({ ...s, groups: updatedGroups });
+          }),
         };
       });
     },
@@ -199,13 +217,16 @@ export function usePipelineBoardMutations(
           ...prev,
           stages: prev.stages.map((s) => {
             if (s.id !== stageId) return s;
-            const sourceAgent = s.agents.find((a) => a.id === agentNodeId);
-            if (!sourceAgent) return s;
-            const cloned: PipelineAgentNode = {
-              ...structuredClone(sourceAgent),
-              id: generateId(),
-            };
-            return { ...s, agents: [...s.agents, cloned] };
+            const updatedGroups = (s.groups ?? []).map((g) => {
+              const sourceAgent = g.agents.find((a) => a.id === agentNodeId);
+              if (!sourceAgent) return g;
+              const cloned: PipelineAgentNode = {
+                ...structuredClone(sourceAgent),
+                id: generateId(),
+              };
+              return { ...g, agents: [...g.agents, cloned] };
+            });
+            return syncLegacyAgents({ ...s, groups: updatedGroups });
           }),
         };
       });
@@ -213,13 +234,139 @@ export function usePipelineBoardMutations(
     [setPipeline],
   );
 
+  /** @deprecated — use reorderAgentsInGroup. Falls back to reordering in first group. */
   const reorderAgentsInStage = useCallback(
     (stageId: string, newOrder: PipelineAgentNode[]) => {
       setPipeline((prev) => {
         if (!prev) return null;
         return {
           ...prev,
-          stages: prev.stages.map((s) => (s.id === stageId ? { ...s, agents: newOrder } : s)),
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const groups = s.groups ?? [];
+            if (groups.length === 0) return s;
+            const updatedGroups = [{ ...groups[0], agents: newOrder }, ...groups.slice(1)];
+            return syncLegacyAgents({ ...s, groups: updatedGroups });
+          }),
+        };
+      });
+    },
+    [setPipeline],
+  );
+
+  const addGroupToStage = useCallback(
+    (stageId: string) => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const groups = s.groups ?? [];
+            const newGroup: ExecutionGroup = {
+              id: generateId(),
+              order: groups.length,
+              execution_mode: 'sequential',
+              agents: [],
+            };
+            return { ...s, groups: [...groups, newGroup] };
+          }),
+        };
+      });
+    },
+    [setPipeline],
+  );
+
+  const removeGroupFromStage = useCallback(
+    (stageId: string, groupId: string) => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const filtered = (s.groups ?? []).filter((g) => g.id !== groupId);
+            const reordered = filtered.map((g, idx) => ({ ...g, order: idx }));
+            return syncLegacyAgents({ ...s, groups: reordered });
+          }),
+        };
+      });
+    },
+    [setPipeline],
+  );
+
+  const updateGroupExecutionMode = useCallback(
+    (stageId: string, groupId: string, mode: 'sequential' | 'parallel') => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const updatedGroups = (s.groups ?? []).map((g) =>
+              g.id === groupId ? { ...g, execution_mode: mode } : g,
+            );
+            return { ...s, groups: updatedGroups };
+          }),
+        };
+      });
+    },
+    [setPipeline],
+  );
+
+  const moveAgentToGroup = useCallback(
+    (
+      fromStageId: string,
+      toStageId: string,
+      agentNodeId: string,
+      toGroupId: string,
+      toIndex?: number,
+    ) => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        // Find and remove agent from source
+        let movedAgent: PipelineAgentNode | null = null;
+        let stages = prev.stages.map((s) => {
+          if (s.id !== fromStageId) return s;
+          const updatedGroups = (s.groups ?? []).map((g) => {
+            const agent = g.agents.find((a) => a.id === agentNodeId);
+            if (agent) movedAgent = agent;
+            return { ...g, agents: g.agents.filter((a) => a.id !== agentNodeId) };
+          });
+          return syncLegacyAgents({ ...s, groups: updatedGroups });
+        });
+        if (!movedAgent) return prev;
+        // Add agent to target
+        stages = stages.map((s) => {
+          if (s.id !== toStageId) return s;
+          const updatedGroups = (s.groups ?? []).map((g) => {
+            if (g.id !== toGroupId) return g;
+            const agents = [...g.agents];
+            const idx = toIndex !== undefined ? Math.min(toIndex, agents.length) : agents.length;
+            agents.splice(idx, 0, movedAgent!);
+            return { ...g, agents };
+          });
+          return syncLegacyAgents({ ...s, groups: updatedGroups });
+        });
+        return { ...prev, stages };
+      });
+    },
+    [setPipeline],
+  );
+
+  const reorderAgentsInGroup = useCallback(
+    (stageId: string, groupId: string, newOrder: PipelineAgentNode[]) => {
+      setPipeline((prev) => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          stages: prev.stages.map((s) => {
+            if (s.id !== stageId) return s;
+            const updatedGroups = (s.groups ?? []).map((g) =>
+              g.id === groupId ? { ...g, agents: newOrder } : g,
+            );
+            return syncLegacyAgents({ ...s, groups: updatedGroups });
+          }),
         };
       });
     },
@@ -238,5 +385,10 @@ export function usePipelineBoardMutations(
     updateAgentTools,
     cloneAgentInStage,
     reorderAgentsInStage,
+    addGroupToStage,
+    removeGroupFromStage,
+    updateGroupExecutionMode,
+    moveAgentToGroup,
+    reorderAgentsInGroup,
   };
 }

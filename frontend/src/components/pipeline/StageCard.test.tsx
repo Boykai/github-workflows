@@ -4,17 +4,7 @@ import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { createTestQueryClient, render, screen } from '@/test/test-utils';
 import { StageCard } from './StageCard';
-import type { PipelineStage, AvailableAgent, PipelineAgentNode } from '@/types';
-
-function createStage(overrides: Partial<PipelineStage> = {}): PipelineStage {
-  return {
-    id: 'stage-1',
-    name: 'Ready',
-    order: 0,
-    agents: [],
-    ...overrides,
-  };
-}
+import type { PipelineStage, AvailableAgent, PipelineAgentNode, ExecutionGroup } from '@/types';
 
 function createAgentNode(overrides: Partial<PipelineAgentNode> = {}): PipelineAgentNode {
   return {
@@ -26,6 +16,27 @@ function createAgentNode(overrides: Partial<PipelineAgentNode> = {}): PipelineAg
     tool_ids: [],
     tool_count: 0,
     config: {},
+    ...overrides,
+  };
+}
+
+function createGroup(overrides: Partial<ExecutionGroup> = {}): ExecutionGroup {
+  return {
+    id: 'group-1',
+    order: 0,
+    execution_mode: 'sequential',
+    agents: [],
+    ...overrides,
+  };
+}
+
+function createStage(overrides: Partial<PipelineStage> = {}): PipelineStage {
+  return {
+    id: 'stage-1',
+    name: 'Ready',
+    order: 0,
+    agents: [],
+    groups: [createGroup()],
     ...overrides,
   };
 }
@@ -100,17 +111,22 @@ describe('StageCard', () => {
     expect(screen.getByText('(copilot)')).toBeInTheDocument();
   });
 
-  it('highlights stages with multiple agents as a grouped stage', () => {
+  it('renders execution groups within a stage', () => {
     renderStageCard(
       <StageCard
         stage={createStage({
-          execution_mode: 'parallel',
-          agents: [
-            createAgentNode(),
-            createAgentNode({
-              id: 'agent-2',
-              agent_slug: 'reviewer',
-              agent_display_name: 'Reviewer',
+          groups: [
+            createGroup({
+              id: 'g1',
+              execution_mode: 'parallel',
+              agents: [
+                createAgentNode(),
+                createAgentNode({
+                  id: 'agent-2',
+                  agent_slug: 'reviewer',
+                  agent_display_name: 'Reviewer',
+                }),
+              ],
             }),
           ],
         })}
@@ -125,10 +141,25 @@ describe('StageCard', () => {
       />
     );
 
-    expect(screen.getByText('Grouped Stage')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Agents in this stage are grouped/i)
-    ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /add agent to group/i })).toBeInTheDocument();
+    expect(screen.getByText('Parallel')).toBeInTheDocument();
+  });
+
+  it('shows add group button when onAddGroup callback is provided', () => {
+    renderStageCard(
+      <StageCard
+        stage={createStage()}
+        availableAgents={[]}
+        projectId="project-1"
+        onUpdate={vi.fn()}
+        onRemove={vi.fn()}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onReorderAgents={vi.fn()}
+        onAddGroup={vi.fn()}
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /add execution group/i })).toBeInTheDocument();
   });
 });

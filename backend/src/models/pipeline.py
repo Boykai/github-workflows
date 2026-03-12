@@ -18,12 +18,30 @@ class PipelineAgentNode(BaseModel):
     config: dict = Field(default_factory=dict)
 
 
+class ExecutionGroup(BaseModel):
+    """A group of agents within a stage sharing an execution mode."""
+
+    id: str
+    order: int = 0
+    execution_mode: str = Field(default="sequential")
+    agents: list[PipelineAgentNode] = Field(default_factory=list)
+
+    @field_validator("execution_mode")
+    @classmethod
+    def validate_execution_mode(cls, v: str) -> str:
+        if v not in ("sequential", "parallel"):
+            raise ValueError("execution_mode must be 'sequential' or 'parallel'")
+        return v
+
+
 class PipelineStage(BaseModel):
-    """A named step within a pipeline containing agents."""
+    """A named step within a pipeline containing execution groups."""
 
     id: str
     name: str = Field(..., min_length=1, max_length=100)
     order: int
+    groups: list[ExecutionGroup] = Field(default_factory=list)
+    # Deprecated — retained for backward compatibility
     agents: list[PipelineAgentNode] = Field(default_factory=list)
     execution_mode: str = Field(default="sequential")
 

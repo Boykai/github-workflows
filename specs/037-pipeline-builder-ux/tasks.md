@@ -26,9 +26,9 @@
 
 **Purpose**: Establish the shared grouped-pipeline contract and seed data that every story depends on.
 
-- [ ] T001 Add the `ExecutionGroup` schema and grouped `PipelineStage` fields in `/home/runner/work/github-workflows/github-workflows/backend/src/models/pipeline.py`
-- [ ] T002 [P] Mirror `ExecutionGroup` and grouped `PipelineStage` TypeScript types in `/home/runner/work/github-workflows/github-workflows/frontend/src/types/index.ts`
-- [ ] T003 [P] Update preset pipeline fixtures to the grouped shape in `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py` and `/home/runner/work/github-workflows/github-workflows/frontend/src/data/preset-pipelines.ts`
+- [x] T001 Add the `ExecutionGroup` schema and grouped `PipelineStage` fields in `/home/runner/work/github-workflows/github-workflows/backend/src/models/pipeline.py`
+- [x] T002 [P] Mirror `ExecutionGroup` and grouped `PipelineStage` TypeScript types in `/home/runner/work/github-workflows/github-workflows/frontend/src/types/index.ts`
+- [x] T003 [P] Update preset pipeline fixtures to the grouped shape in `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py` and `/home/runner/work/github-workflows/github-workflows/frontend/src/data/preset-pipelines.ts`
 
 **Checkpoint**: Backend models, frontend types, and preset data all share the same group-based pipeline vocabulary.
 
@@ -40,10 +40,10 @@
 
 **⚠️ CRITICAL**: No user story work should start until grouped pipeline data can be loaded, mutated, and saved consistently.
 
-- [ ] T004 Create the legacy-to-group migration utility in `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.ts`
-- [ ] T005 [P] Apply load/save migration plumbing in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineMigration.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T006 [P] Normalize grouped and legacy pipeline payloads on backend write paths in `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/api/pipelines.py`
-- [ ] T007 [P] Extend board mutation APIs for group CRUD, agent moves, and order reindexing in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts`
+- [x] T004 Create the legacy-to-group migration utility in `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.ts`
+- [x] T005 [P] Apply load/save migration plumbing in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineMigration.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`
+- [x] T006 [P] Normalize grouped and legacy pipeline payloads on backend write paths in `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/api/pipelines.py`
+- [x] T007 [P] Extend board mutation APIs for group CRUD, agent moves, and order reindexing in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts`
 
 **Checkpoint**: The application can ingest old and new pipeline shapes, expose group-level mutations, and persist grouped data without user-facing UX changes yet.
 
@@ -57,15 +57,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Add grouped-stage migration and persistence tests in `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.test.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.test.tsx`
-- [ ] T009 [P] [US1] Add grouped-stage model and API regression tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_models.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_api_pipelines.py`
+- [x] T008 [P] [US1] Add grouped-stage migration and persistence tests in `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.test.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.test.tsx`
+- [x] T009 [P] [US1] Add grouped-stage model and API regression tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_models.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_api_pipelines.py`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Create the execution-group container component in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
-- [ ] T011 [US1] Render multiple ordered groups and the “Add Group” affordance inside `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.tsx`
-- [ ] T012 [P] [US1] Add group create/remove/reorder mutations and default empty-group behavior in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T013 [US1] Persist ordered group structures through the editor flow in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/AgentsPipelinePage.tsx` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py`
+- [x] T010 [US1] Create the execution-group container component in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
+- [x] T011 [US1] Render multiple ordered groups and the “Add Group” affordance inside `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.tsx`
+- [x] T012 [P] [US1] Add group create/remove/reorder mutations and default empty-group behavior in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`
+- [x] T013 [US1] Persist ordered group structures through the editor flow in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/AgentsPipelinePage.tsx` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py`
 
 **Checkpoint**: A single stage can contain multiple vertically ordered execution groups, and that structure survives save/reload.
 
@@ -79,15 +79,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Add cross-stage drag-and-drop coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.test.tsx`
-- [ ] T015 [P] [US2] Add drag-cancel, drop-indicator, and preserved-agent-settings coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.test.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/AgentNode.test.tsx`
+- [x] T014 [P] [US2] Add cross-stage drag-and-drop coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.test.tsx`
+- [x] T015 [P] [US2] Add drag-cancel, drop-indicator, and preserved-agent-settings coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.test.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/AgentNode.test.tsx`
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Lift drag-and-drop orchestration to a board-level `DndContext` in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`
-- [ ] T017 [P] [US2] Register each execution group as a drop target and render hover feedback in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`
-- [ ] T018 [US2] Move agents across groups and stages without losing model or tool data in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T019 [US2] Add drag-cancel recovery, empty-source-group prompts, and keyboard-sensor support in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/AgentNode.tsx`
+- [x] T016 [US2] Lift drag-and-drop orchestration to a board-level `DndContext` in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T017 [P] [US2] Register each execution group as a drop target and render hover feedback in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T018 [US2] Move agents across groups and stages without losing model or tool data in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`
+- [x] T019 [US2] Add drag-cancel recovery, empty-source-group prompts, and keyboard-sensor support in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/AgentNode.tsx`
 
 **Checkpoint**: Agents can move across stage columns in one gesture, valid drop targets are visible, invalid drops revert cleanly, and keyboard drag support remains intact.
 
@@ -101,14 +101,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Add intra-group and inter-group reorder tests in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.test.tsx`
-- [ ] T021 [P] [US3] Add group-mutation ordering coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.test.tsx`
+- [x] T020 [P] [US3] Add intra-group and inter-group reorder tests in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.test.tsx`
+- [x] T021 [P] [US3] Add group-mutation ordering coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] Support series and parallel sortable strategies per group in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
-- [ ] T023 [US3] Implement within-stage moves, insertion indexes, and stable order reindexing in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts`
-- [ ] T024 [US3] Add execution-group reorder controls and stage-level sequencing updates in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`
+- [x] T022 [US3] Support series and parallel sortable strategies per group in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
+- [x] T023 [US3] Implement within-stage moves, insertion indexes, and stable order reindexing in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts`
+- [x] T024 [US3] Add execution-group reorder controls and stage-level sequencing updates in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`
 
 **Checkpoint**: Authors can reorder agents within a group, move agents between groups in the same stage, and reorder the groups themselves to change top-to-bottom execution.
 
@@ -122,14 +122,14 @@
 
 ### Tests for User Story 4
 
-- [ ] T025 [P] [US4] Add execution-mode toggle and layout tests in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.test.tsx`
-- [ ] T026 [P] [US4] Add grouped execution-mode validation coverage in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_models.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_api_pipelines.py`
+- [x] T025 [P] [US4] Add execution-mode toggle and layout tests in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.test.tsx`
+- [x] T026 [P] [US4] Add grouped execution-mode validation coverage in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_models.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_api_pipelines.py`
 
 ### Implementation for User Story 4
 
-- [ ] T027 [US4] Add the single-interaction series/parallel toggle and mode badge in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
-- [ ] T028 [P] [US4] Switch group rendering between vertical-list and side-by-side-grid layouts in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/AgentNode.tsx`
-- [ ] T029 [US4] Persist per-group `execution_mode` updates through `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py`
+- [x] T027 [US4] Add the single-interaction series/parallel toggle and mode badge in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
+- [x] T028 [P] [US4] Switch group rendering between vertical-list and side-by-side-grid layouts in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/AgentNode.tsx`
+- [x] T029 [US4] Persist per-group `execution_mode` updates through `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py`
 
 **Checkpoint**: Each execution group exposes its own mode toggle, visual indicator, responsive layout, and durable saved mode.
 
@@ -143,14 +143,14 @@
 
 ### Tests for User Story 5
 
-- [ ] T030 [P] [US5] Add grouped stage CRUD and confirmation-dialog coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/AgentsPipelinePage.test.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.test.tsx`
-- [ ] T031 [P] [US5] Add default-empty-group stage lifecycle coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.test.tsx`
+- [x] T030 [P] [US5] Add grouped stage CRUD and confirmation-dialog coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/AgentsPipelinePage.test.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.test.tsx`
+- [x] T031 [P] [US5] Add default-empty-group stage lifecycle coverage in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.test.tsx`
 
 ### Implementation for User Story 5
 
-- [ ] T032 [US5] Ensure every newly added stage starts with one empty execution group in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts`
-- [ ] T033 [US5] Add populated-stage removal confirmation with agent summaries in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/AgentsPipelinePage.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/ui/confirmation-dialog.tsx`
-- [ ] T034 [US5] Preserve grouped agent assignments during stage reorder and removal flows in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts`
+- [x] T032 [US5] Ensure every newly added stage starts with one empty execution group in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts`
+- [x] T033 [US5] Add populated-stage removal confirmation with agent summaries in `/home/runner/work/github-workflows/github-workflows/frontend/src/pages/AgentsPipelinePage.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/ui/confirmation-dialog.tsx`
+- [x] T034 [US5] Preserve grouped agent assignments during stage reorder and removal flows in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineBoardMutations.ts`
 
 **Checkpoint**: Stage columns remain fully manageable without silently dropping grouped agent assignments or leaving invalid empty-stage structures.
 
@@ -164,15 +164,15 @@
 
 ### Tests for User Story 6
 
-- [ ] T035 [P] [US6] Add legacy-pipeline migration unit tests in `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.test.ts`
-- [ ] T036 [P] [US6] Add legacy payload normalization regression tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_api_pipelines.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_pipeline_groups.py`
+- [x] T035 [P] [US6] Add legacy-pipeline migration unit tests in `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.test.ts`
+- [x] T036 [P] [US6] Add legacy payload normalization regression tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_api_pipelines.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_pipeline_groups.py`
 
 ### Implementation for User Story 6
 
-- [ ] T037 [US6] Finalize `migratePipelineToGroupFormat` edge cases for empty stages and preserved agent metadata in `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.ts`
-- [ ] T038 [P] [US6] Apply migration on pipeline load and save hydration in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineMigration.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T039 [US6] Persist legacy payloads in grouped form on backend create/update flows in `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/models/pipeline.py`
-- [ ] T040 [US6] Keep migrated presets and loaded pipelines visually consistent in `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py` and `/home/runner/work/github-workflows/github-workflows/frontend/src/data/preset-pipelines.ts`
+- [x] T037 [US6] Finalize `migratePipelineToGroupFormat` edge cases for empty stages and preserved agent metadata in `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.ts`
+- [x] T038 [P] [US6] Apply migration on pipeline load and save hydration in `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineMigration.ts` and `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`
+- [x] T039 [US6] Persist legacy payloads in grouped form on backend create/update flows in `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/models/pipeline.py`
+- [x] T040 [US6] Keep migrated presets and loaded pipelines visually consistent in `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py` and `/home/runner/work/github-workflows/github-workflows/frontend/src/data/preset-pipelines.ts`
 
 **Checkpoint**: Existing saved pipelines open without data loss, render in the new grouped UI, and save back using the canonical grouped structure.
 
@@ -182,10 +182,10 @@
 
 **Purpose**: Validate the full workflow, cover accessibility/performance checks, and run the existing project quality gates after implementation.
 
-- [ ] T041 [P] Validate the scenarios in `/home/runner/work/github-workflows/github-workflows/specs/037-pipeline-builder-ux/quickstart.md` against `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
-- [ ] T042 [P] Run frontend validation commands from `/home/runner/work/github-workflows/github-workflows/frontend/package.json` against `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/`, `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.ts`
-- [ ] T043 [P] Run backend validation commands from `/home/runner/work/github-workflows/github-workflows/backend/pyproject.toml` against `/home/runner/work/github-workflows/github-workflows/backend/src/models/pipeline.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py`, and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_pipeline_groups.py`
-- [ ] T044 [P] Verify keyboard-only drag-and-drop and empty-state accessibility behaviors in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
+- [x] T041 [P] Validate the scenarios in `/home/runner/work/github-workflows/github-workflows/specs/037-pipeline-builder-ux/quickstart.md` against `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx` and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
+- [x] T042 [P] Run frontend validation commands from `/home/runner/work/github-workflows/github-workflows/frontend/package.json` against `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/`, `/home/runner/work/github-workflows/github-workflows/frontend/src/hooks/usePipelineConfig.ts`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/lib/pipelineMigration.ts`
+- [x] T043 [P] Run backend validation commands from `/home/runner/work/github-workflows/github-workflows/backend/pyproject.toml` against `/home/runner/work/github-workflows/github-workflows/backend/src/models/pipeline.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/pipelines/service.py`, and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_pipeline_groups.py`
+- [x] T044 [P] Verify keyboard-only drag-and-drop and empty-state accessibility behaviors in `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/PipelineBoard.tsx`, `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/StageCard.tsx`, and `/home/runner/work/github-workflows/github-workflows/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
 
 ---
 
