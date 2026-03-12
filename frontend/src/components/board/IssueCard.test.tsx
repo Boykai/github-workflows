@@ -171,7 +171,7 @@ describe('IssueCard', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
   });
 
-  describe('avatar URL validation (T050/T051)', () => {
+  describe('avatar URL validation (T050/T052)', () => {
     const PLACEHOLDER_SVG_PREFIX = 'data:image/svg+xml,';
 
     it('renders valid GitHub avatar URLs as-is', () => {

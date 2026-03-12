@@ -16,12 +16,12 @@ Replace URL-based session token delivery with secure cookies on the OAuth callba
 # In api/auth.py — OAuth callback handler
 from fastapi.responses import RedirectResponse
 
-@router.get("/auth/callback")
+@router.get("/github/callback")
 async def oauth_callback(code: str, state: str):
     session = await github_auth.exchange_code(code, state)
     response = RedirectResponse(url=settings.frontend_url)
     response.set_cookie(
-        key="session_token",
+        key="session_id",
         value=session.token,
         httponly=True,
         samesite="strict",

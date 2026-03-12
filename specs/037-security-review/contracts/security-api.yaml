@@ -7,7 +7,7 @@ info:
     These are modifications to existing endpoints and new behaviors, not a standalone API.
 
 paths:
-  /auth/callback:
+  /api/v1/auth/github/callback:
     get:
       operationId: oauthCallback
       summary: OAuth callback — now sets HttpOnly cookie instead of URL redirect with token
@@ -36,7 +36,7 @@ paths:
               schema:
                 type: string
               description: |
-                session_token=<token>; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age=<ttl>
+                session_id=<token>; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age=<ttl>
             Location:
               schema:
                 type: string
@@ -44,7 +44,7 @@ paths:
         '400':
           description: Invalid OAuth state or code
 
-  /auth/dev-login:
+  /api/v1/auth/dev-login:
     post:
       operationId: devLogin
       summary: Dev login — credential now in POST body instead of URL query parameter
@@ -58,9 +58,9 @@ paths:
             schema:
               type: object
               required:
-                - token
+                - github_token
               properties:
-                token:
+                github_token:
                   type: string
                   description: GitHub Personal Access Token
       responses:
@@ -76,7 +76,7 @@ paths:
         '404':
           description: Endpoint disabled in non-debug mode
 
-  /auth/me:
+  /api/v1/auth/me:
     get:
       operationId: getCurrentUser
       summary: Get current authenticated user from session cookie
@@ -142,7 +142,7 @@ components:
     cookieAuth:
       type: apiKey
       in: cookie
-      name: session_token
+      name: session_id
       description: |
         HttpOnly; SameSite=Strict; Secure session cookie set by the OAuth callback
         or dev-login endpoint. Not accessible to JavaScript.

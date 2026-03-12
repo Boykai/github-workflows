@@ -1,7 +1,7 @@
 # Tasks: Security, Privacy & Vulnerability Audit
 
-**Input**: Design documents from `/home/runner/work/github-workflows/github-workflows/specs/037-security-review/`
-**Prerequisites**: `/home/runner/work/github-workflows/github-workflows/specs/037-security-review/plan.md`, `/home/runner/work/github-workflows/github-workflows/specs/037-security-review/spec.md`, `/home/runner/work/github-workflows/github-workflows/specs/037-security-review/research.md`, `/home/runner/work/github-workflows/github-workflows/specs/037-security-review/data-model.md`, `/home/runner/work/github-workflows/github-workflows/specs/037-security-review/quickstart.md`, `/home/runner/work/github-workflows/github-workflows/specs/037-security-review/contracts/security-api.yaml`
+**Input**: Design documents from `specs/037-security-review/`
+**Prerequisites**: `specs/037-security-review/plan.md`, `specs/037-security-review/spec.md`, `specs/037-security-review/research.md`, `specs/037-security-review/data-model.md`, `specs/037-security-review/quickstart.md`, `specs/037-security-review/contracts/security-api.yaml`
 
 **Tests**: Include automated tests where the spec/plan call for regression coverage; retain manual verification for container, nginx, compose, and workflow-only hardening.
 
@@ -11,9 +11,9 @@
 
 **Purpose**: Prepare shared configuration, environment wiring, and migration scaffolding used by multiple security stories.
 
-- [ ] T001 Add shared security settings fields, startup validation entrypoints, and rate-limit defaults in /home/runner/work/github-workflows/github-workflows/backend/src/config.py
-- [ ] T002 [P] Wire the new security environment variables and localhost-safe defaults in /home/runner/work/github-workflows/github-workflows/docker-compose.yml
-- [ ] T003 [P] Create the token re-encryption migration scaffold in /home/runner/work/github-workflows/github-workflows/backend/src/migrations/022_encrypt_existing_tokens.sql
+- [ ] T001 Add shared security settings fields, startup validation entrypoints, and rate-limit defaults in backend/src/config.py
+- [ ] T002 [P] Wire the new security environment variables and localhost-safe defaults in docker-compose.yml
+- [ ] T003 [P] Create the token re-encryption migration scaffold in backend/src/migrations/022_encrypt_existing_tokens.sql
 
 ---
 
@@ -23,10 +23,10 @@
 
 **⚠️ CRITICAL**: Complete this phase before starting user-story implementation.
 
-- [ ] T004 Extract reusable session-cookie issuance and current-session plumbing in /home/runner/work/github-workflows/github-workflows/backend/src/api/auth.py
-- [ ] T005 [P] Create a centralized verify_project_ownership dependency for project-scoped routes in /home/runner/work/github-workflows/github-workflows/backend/src/dependencies.py
-- [ ] T006 [P] Add shared per-user and per-IP limiter key helpers with configurable defaults in /home/runner/work/github-workflows/github-workflows/backend/src/middleware/rate_limit.py
-- [ ] T007 Wire ENABLE_DOCS handling and shared rate-limit exception handling into /home/runner/work/github-workflows/github-workflows/backend/src/main.py
+- [ ] T004 Extract reusable session-cookie issuance and current-session plumbing in backend/src/api/auth.py
+- [ ] T005 [P] Create a centralized verify_project_access dependency for project-scoped routes in backend/src/dependencies.py
+- [ ] T006 [P] Add shared per-user and per-IP limiter key helpers with configurable defaults in backend/src/middleware/rate_limit.py
+- [ ] T007 Wire ENABLE_DOCS handling and shared rate-limit exception handling into backend/src/main.py
 
 **Checkpoint**: Shared security infrastructure is ready; user stories can now proceed in priority order.
 
@@ -40,15 +40,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T008 [P] [US1] Add backend auth regression tests for cookie-based OAuth callback and POST-body dev login in /home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_api_auth.py
-- [ ] T009 [P] [US1] Add frontend auth-hook regression tests proving session tokens are never read from URLs in /home/runner/work/github-workflows/github-workflows/frontend/src/hooks/useAuth.test.tsx
+- [ ] T008 [P] [US1] Add backend auth regression tests for cookie-based OAuth callback and POST-body dev login in backend/tests/unit/test_api_auth.py
+- [ ] T009 [P] [US1] Add frontend auth-hook regression tests proving session tokens are never read from URLs in frontend/src/hooks/useAuth.test.tsx
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] Update OAuth callback and dev-login handlers to deliver credentials only via HttpOnly cookies in /home/runner/work/github-workflows/github-workflows/backend/src/api/auth.py
-- [ ] T011 [P] [US1] Remove query-string session exchange APIs and rely on cookie-backed current-user reads in /home/runner/work/github-workflows/github-workflows/frontend/src/services/api.ts
-- [ ] T012 [US1] Update callback cleanup and authenticated state refresh behavior in /home/runner/work/github-workflows/github-workflows/frontend/src/hooks/useAuth.ts
-- [ ] T013 [P] [US1] Synchronize cookie-auth and POST-body login contract details in /home/runner/work/github-workflows/github-workflows/specs/037-security-review/contracts/security-api.yaml
+- [ ] T010 [P] [US1] Update OAuth callback and dev-login handlers to deliver credentials only via HttpOnly cookies in backend/src/api/auth.py
+- [ ] T011 [P] [US1] Remove query-string session exchange APIs and rely on cookie-backed current-user reads in frontend/src/services/api.ts
+- [ ] T012 [US1] Update callback cleanup and authenticated state refresh behavior in frontend/src/hooks/useAuth.ts
+- [ ] T013 [P] [US1] Synchronize cookie-auth and POST-body login contract details in specs/037-security-review/contracts/security-api.yaml
 
 **Checkpoint**: OAuth and dev login flows no longer leak credentials through URLs and remain independently testable.
 
@@ -62,13 +62,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Add startup validation tests for missing secrets, weak session keys, insecure cookies, and malformed CORS origins in /home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_config_validation.py
+- [ ] T014 [P] [US2] Add startup validation tests for missing secrets, weak session keys, insecure cookies, and malformed CORS origins in backend/tests/unit/test_config_validation.py
 
 ### Implementation for User Story 2
 
-- [ ] T015 [P] [US2] Enforce mandatory ENCRYPTION_KEY, GITHUB_WEBHOOK_SECRET, SESSION_SECRET_KEY, COOKIE_SECURE, and CORS validation in /home/runner/work/github-workflows/github-workflows/backend/src/config.py
-- [ ] T016 [US2] Make encryption fail closed outside debug mode and surface clear operator errors in /home/runner/work/github-workflows/github-workflows/backend/src/services/encryption.py
-- [ ] T017 [US2] Implement legacy token backfill SQL for existing plaintext rows in /home/runner/work/github-workflows/github-workflows/backend/src/migrations/022_encrypt_existing_tokens.sql
+- [ ] T015 [P] [US2] Enforce mandatory ENCRYPTION_KEY, GITHUB_WEBHOOK_SECRET, SESSION_SECRET_KEY, COOKIE_SECURE, and CORS validation in backend/src/config.py
+- [ ] T016 [US2] Make encryption fail closed outside debug mode and surface clear operator errors in backend/src/services/encryption.py
+- [ ] T017 [US2] Implement legacy token backfill SQL for existing plaintext rows in backend/src/migrations/022_encrypt_existing_tokens.sql
 
 **Checkpoint**: The backend refuses insecure production startup and can safely migrate persisted tokens.
 
@@ -82,17 +82,17 @@
 
 ### Tests for User Story 3
 
-- [ ] T018 [P] [US3] Add ownership regression tests for REST endpoints and WebSocket subscriptions in /home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_project_ownership.py
+- [ ] T018 [P] [US3] Add ownership regression tests for REST endpoints and WebSocket subscriptions in backend/tests/unit/test_project_ownership.py
 
 ### Implementation for User Story 3
 
-- [ ] T019 [P] [US3] Implement verify_project_ownership against persisted project ownership data in /home/runner/work/github-workflows/github-workflows/backend/src/dependencies.py
-- [ ] T020 [P] [US3] Gate project task creation and mutation flows with ownership checks in /home/runner/work/github-workflows/github-workflows/backend/src/api/tasks.py
-- [ ] T021 [P] [US3] Gate project fetch, selection, event stream, and WebSocket handshake routes with ownership checks in /home/runner/work/github-workflows/github-workflows/backend/src/api/projects.py
-- [ ] T022 [P] [US3] Gate project settings endpoints with ownership checks in /home/runner/work/github-workflows/github-workflows/backend/src/api/settings.py
-- [ ] T023 [P] [US3] Gate workflow endpoints that accept project identifiers with ownership checks in /home/runner/work/github-workflows/github-workflows/backend/src/api/workflow.py
-- [ ] T024 [P] [US3] Gate project-scoped agent endpoints with ownership checks in /home/runner/work/github-workflows/github-workflows/backend/src/api/agents.py
-- [ ] T025 [US3] Gate project-scoped tool endpoints with ownership checks in /home/runner/work/github-workflows/github-workflows/backend/src/api/tools.py
+- [ ] T019 [P] [US3] Implement verify_project_access against persisted project ownership data in backend/src/dependencies.py
+- [ ] T020 [P] [US3] Gate project task creation and mutation flows with ownership checks in backend/src/api/tasks.py
+- [ ] T021 [P] [US3] Gate project fetch, selection, event stream, and WebSocket handshake routes with ownership checks in backend/src/api/projects.py
+- [ ] T022 [P] [US3] Gate project settings endpoints with ownership checks in backend/src/api/settings.py
+- [ ] T023 [P] [US3] Gate workflow endpoints that accept project identifiers with ownership checks in backend/src/api/workflow.py
+- [ ] T024 [P] [US3] Gate project-scoped agent endpoints with ownership checks in backend/src/api/agents.py
+- [ ] T025 [US3] Gate project-scoped tool endpoints with ownership checks in backend/src/api/tools.py
 
 **Checkpoint**: Project ownership is centrally enforced across the full authenticated surface.
 
@@ -106,8 +106,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T026 [P] [US4] Run nginx as a dedicated non-root user with writable runtime paths in /home/runner/work/github-workflows/github-workflows/frontend/Dockerfile
-- [ ] T027 [US4] Restrict service exposure to localhost and move persistent data outside the application tree in /home/runner/work/github-workflows/github-workflows/docker-compose.yml
+- [ ] T026 [P] [US4] Run nginx as a dedicated non-root user with writable runtime paths in frontend/Dockerfile
+- [ ] T027 [US4] Restrict service exposure to localhost and move persistent data outside the application tree in docker-compose.yml
 
 **Checkpoint**: Container and compose hardening can be validated without depending on later stories.
 
@@ -121,9 +121,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T028 [P] [US5] Add CSP, HSTS, Referrer-Policy, Permissions-Policy, and version-suppression headers in /home/runner/work/github-workflows/github-workflows/frontend/nginx.conf
-- [ ] T029 [P] [US5] Replace remaining timing-vulnerable secret comparisons with hmac.compare_digest in /home/runner/work/github-workflows/github-workflows/backend/src/api/signal.py
-- [ ] T030 [US5] Audit webhook secret verification paths for constant-time comparison consistency in /home/runner/work/github-workflows/github-workflows/backend/src/api/webhooks.py
+- [ ] T028 [P] [US5] Add CSP, HSTS, Referrer-Policy, Permissions-Policy, and version-suppression headers in frontend/nginx.conf
+- [ ] T029 [P] [US5] Replace remaining timing-vulnerable secret comparisons with hmac.compare_digest in backend/src/api/signal.py
+- [ ] T030 [US5] Audit webhook secret verification paths for constant-time comparison consistency in backend/src/api/webhooks.py
 
 **Checkpoint**: Browser-facing hardening and secret-comparison safety are complete and manually verifiable.
 
@@ -137,11 +137,11 @@
 
 ### Tests for User Story 6
 
-- [ ] T031 [P] [US6] Add authorization URL regression tests for minimized OAuth scopes in /home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_github_auth.py
+- [ ] T031 [P] [US6] Add authorization URL regression tests for minimized OAuth scopes in backend/tests/unit/test_github_auth.py
 
 ### Implementation for User Story 6
 
-- [ ] T032 [US6] Narrow requested GitHub OAuth scopes and document reauthorization expectations in /home/runner/work/github-workflows/github-workflows/backend/src/services/github_auth.py
+- [ ] T032 [US6] Narrow requested GitHub OAuth scopes and document reauthorization expectations in backend/src/services/github_auth.py
 
 **Checkpoint**: OAuth scope requests are minimized and covered by focused regression tests.
 
@@ -155,15 +155,15 @@
 
 ### Tests for User Story 7
 
-- [ ] T033 [P] [US7] Add threshold and fail-open rate-limit tests for user and IP keyed limits in /home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_rate_limiting.py
+- [ ] T033 [P] [US7] Add threshold and fail-open rate-limit tests for user and IP keyed limits in backend/tests/unit/test_rate_limiting.py
 
 ### Implementation for User Story 7
 
-- [ ] T034 [P] [US7] Finalize limiter configuration, retry-after behavior, and fail-open warnings in /home/runner/work/github-workflows/github-workflows/backend/src/middleware/rate_limit.py
-- [ ] T035 [P] [US7] Apply per-user throttles to chat send and upload endpoints in /home/runner/work/github-workflows/github-workflows/backend/src/api/chat.py
-- [ ] T036 [P] [US7] Apply per-user throttles to workflow confirmation and mutation endpoints in /home/runner/work/github-workflows/github-workflows/backend/src/api/workflow.py
-- [ ] T037 [P] [US7] Apply per-user throttles to agent execution endpoints in /home/runner/work/github-workflows/github-workflows/backend/src/api/agents.py
-- [ ] T038 [US7] Apply per-IP throttling to OAuth callback and related unauthenticated auth entrypoints in /home/runner/work/github-workflows/github-workflows/backend/src/api/auth.py
+- [ ] T034 [P] [US7] Finalize limiter configuration, retry-after behavior, and fail-open warnings in backend/src/middleware/rate_limit.py
+- [ ] T035 [P] [US7] Apply per-user throttles to chat send and upload endpoints in backend/src/api/chat.py
+- [ ] T036 [P] [US7] Apply per-user throttles to workflow confirmation and mutation endpoints in backend/src/api/workflow.py
+- [ ] T037 [P] [US7] Apply per-user throttles to agent execution endpoints in backend/src/api/agents.py
+- [ ] T038 [US7] Apply per-IP throttling to OAuth callback and related unauthenticated auth entrypoints in backend/src/api/auth.py
 
 **Checkpoint**: Sensitive endpoints enforce rate limits without blocking unrelated feature work.
 
@@ -177,14 +177,14 @@
 
 ### Tests for User Story 8
 
-- [ ] T039 [P] [US8] Add chat-history TTL and logout cleanup tests in /home/runner/work/github-workflows/github-workflows/frontend/src/hooks/useChatHistory.test.ts
-- [ ] T040 [P] [US8] Add sanitized third-party error response tests in /home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_error_responses.py
+- [ ] T039 [P] [US8] Add chat-history TTL and logout cleanup tests in frontend/src/hooks/useChatHistory.test.ts
+- [ ] T040 [P] [US8] Add sanitized third-party error response tests in backend/tests/unit/test_error_responses.py
 
 ### Implementation for User Story 8
 
-- [ ] T041 [P] [US8] Refactor chat history persistence to message references with TTL and legacy-data migration in /home/runner/work/github-workflows/github-workflows/frontend/src/hooks/useChatHistory.ts
-- [ ] T042 [US8] Clear chat reference storage on logout and session expiry in /home/runner/work/github-workflows/github-workflows/frontend/src/hooks/useAuth.ts
-- [ ] T043 [US8] Sanitize GitHub GraphQL and API failures before surfacing responses in /home/runner/work/github-workflows/github-workflows/backend/src/services/github_projects/service.py
+- [ ] T041 [P] [US8] Refactor chat history persistence to message references with TTL and legacy-data migration in frontend/src/hooks/useChatHistory.ts
+- [ ] T042 [US8] Clear chat reference storage on logout and session expiry in frontend/src/hooks/useAuth.ts
+- [ ] T043 [US8] Sanitize GitHub GraphQL and API failures before surfacing responses in backend/src/services/github_projects/service.py
 
 **Checkpoint**: Browser persistence and backend error exposure are both reduced without depending on lower-priority stories.
 
@@ -198,15 +198,15 @@
 
 ### Tests for User Story 9
 
-- [ ] T044 [P] [US9] Add startup and docs-toggle regression tests in /home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_main.py
-- [ ] T045 [P] [US9] Add webhook debug-isolation regression tests in /home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_webhooks.py
-- [ ] T046 [P] [US9] Add filesystem permission regression tests for SQLite initialization in /home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_database.py
+- [ ] T044 [P] [US9] Add startup and docs-toggle regression tests in backend/tests/unit/test_main.py
+- [ ] T045 [P] [US9] Add webhook debug-isolation regression tests in backend/tests/unit/test_webhooks.py
+- [ ] T046 [P] [US9] Add filesystem permission regression tests for SQLite initialization in backend/tests/unit/test_database.py
 
 ### Implementation for User Story 9
 
-- [ ] T047 [P] [US9] Gate Swagger and ReDoc exposure on ENABLE_DOCS instead of DEBUG in /home/runner/work/github-workflows/github-workflows/backend/src/main.py
-- [ ] T048 [P] [US9] Remove debug-mode webhook verification bypasses and require configured local test secrets in /home/runner/work/github-workflows/github-workflows/backend/src/api/webhooks.py
-- [ ] T049 [US9] Enforce 0700 directory and 0600 database file permissions during SQLite setup in /home/runner/work/github-workflows/github-workflows/backend/src/services/database.py
+- [ ] T047 [P] [US9] Gate Swagger and ReDoc exposure on ENABLE_DOCS instead of DEBUG in backend/src/main.py
+- [ ] T048 [P] [US9] Remove debug-mode webhook verification bypasses and require configured local test secrets in backend/src/api/webhooks.py
+- [ ] T049 [US9] Enforce 0700 directory and 0600 database file permissions during SQLite setup in backend/src/services/database.py
 
 **Checkpoint**: Debug mode no longer weakens security controls and startup behavior is explicitly hardened.
 
@@ -220,12 +220,12 @@
 
 ### Tests for User Story 10
 
-- [ ] T050 [P] [US10] Add invalid-avatar fallback tests for issue cards in /home/runner/work/github-workflows/github-workflows/frontend/src/components/board/IssueCard.test.tsx
+- [ ] T050 [P] [US10] Add invalid-avatar fallback tests for issue cards in frontend/src/components/board/IssueCard.test.tsx
 
 ### Implementation for User Story 10
 
-- [ ] T051 [P] [US10] Minimize job permissions and justify required issue-comment access in /home/runner/work/github-workflows/github-workflows/.github/workflows/branch-issue-link.yml
-- [ ] T052 [US10] Validate GitHub avatar domains and fallback rendering in /home/runner/work/github-workflows/github-workflows/frontend/src/components/board/IssueCard.tsx
+- [ ] T051 [P] [US10] Minimize job permissions and justify required issue-comment access in .github/workflows/branch-issue-link.yml
+- [ ] T052 [US10] Validate GitHub avatar domains and fallback rendering in frontend/src/components/board/IssueCard.tsx
 
 **Checkpoint**: CI permissions and avatar rendering are both least-privilege / safe-by-default.
 
@@ -235,10 +235,10 @@
 
 **Purpose**: Finish cross-story documentation and validation updates needed to roll the hardening out safely.
 
-- [ ] T053 [P] Update operator security configuration guidance for new env vars and secrets in /home/runner/work/github-workflows/github-workflows/docs/configuration.md
-- [ ] T054 [P] Update deployment and reverse-proxy hardening notes for localhost binding and non-root containers in /home/runner/work/github-workflows/github-workflows/docs/setup.md
-- [ ] T055 [P] Update API and architecture references for cookie auth, ownership checks, and rate limiting in /home/runner/work/github-workflows/github-workflows/docs/api-reference.md
-- [ ] T056 Validate and refresh manual verification steps against implemented security hardening in /home/runner/work/github-workflows/github-workflows/specs/037-security-review/quickstart.md
+- [ ] T053 [P] Update operator security configuration guidance for new env vars and secrets in docs/configuration.md
+- [ ] T054 [P] Update deployment and reverse-proxy hardening notes for localhost binding and non-root containers in docs/setup.md
+- [ ] T055 [P] Update API and architecture references for cookie auth, ownership checks, and rate limiting in docs/api-reference.md
+- [ ] T056 Validate and refresh manual verification steps against implemented security hardening in specs/037-security-review/quickstart.md
 
 ---
 

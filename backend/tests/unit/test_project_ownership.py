@@ -1,4 +1,4 @@
-"""Tests for project-level access control (US3 — FR-009, FR-010).
+"""Tests for project-level access control (US3 — FR-006, FR-007).
 
 T018:
 - Authenticated request with unowned project_id returns 403
@@ -126,23 +126,30 @@ class TestAgentEndpointOwnershipCheck:
         """GET /agents/{project_id} returns 403 when ownership fails."""
         from src.dependencies import verify_project_access
 
-        # Re-enable the real ownership check that raises 403
-        client._transport.app.dependency_overrides[verify_project_access] = None
-        del client._transport.app.dependency_overrides[verify_project_access]
+        overrides = client._transport.app.dependency_overrides
+        original_override = overrides.get(verify_project_access)
 
-        with pytest.MonkeyPatch.context() as mp:
-            from unittest.mock import AsyncMock
+        try:
+            # Re-enable the real ownership check that raises 403
+            if verify_project_access in overrides:
+                del overrides[verify_project_access]
 
-            mock_svc = AsyncMock()
-            mock_svc.list_user_projects.return_value = []  # no projects
+            with pytest.MonkeyPatch.context() as mp:
+                from unittest.mock import AsyncMock
 
-            mp.setattr(
-                "src.dependencies.get_github_service",
-                lambda req: mock_svc,
-            )
-            response = await client.get("/api/v1/agents/PVT_test123")
+                mock_svc = AsyncMock()
+                mock_svc.list_user_projects.return_value = []  # no projects
 
-        # Restore the override for subsequent tests
-        client._transport.app.dependency_overrides[verify_project_access] = lambda: None
+                mp.setattr(
+                    "src.dependencies.get_github_service",
+                    lambda req: mock_svc,
+                )
+                response = await client.get("/api/v1/agents/PVT_test123")
 
-        assert response.status_code == 403
+            assert response.status_code == 403
+        finally:
+            # Restore the original override for subsequent tests
+            if original_override is not None:
+                overrides[verify_project_access] = original_override
+            else:
+                overrides[verify_project_access] = lambda: None
