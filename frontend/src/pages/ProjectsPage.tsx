@@ -66,11 +66,11 @@ export function ProjectsPage() {
     error: refreshError,
     rateLimitInfo,
     isRateLimitLow,
-    resetTimer,
+    requestBoardReload,
   } = useBoardRefresh({ projectId: selectedProjectId, boardData });
 
   const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId, {
-    onRefreshTriggered: resetTimer,
+    onRefreshTriggered: requestBoardReload,
   });
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
@@ -130,6 +130,21 @@ export function ProjectsPage() {
     () =>
       new Map((assignedPipeline?.stages ?? []).map((stage) => [stage.name.toLowerCase(), stage])),
     [assignedPipeline]
+  );
+
+  const heroStats = useMemo(
+    () => [
+      { label: 'Board columns', value: String(transformedBoardData?.columns.length ?? 0) },
+      {
+        label: 'Total items',
+        value: String(
+          transformedBoardData?.columns.reduce((sum, c) => sum + c.items.length, 0) ?? 0
+        ),
+      },
+      { label: 'Pipeline', value: assignedPipeline?.name ?? 'None assigned' },
+      { label: 'Project', value: selectedProject?.name ?? 'Unselected' },
+    ],
+    [transformedBoardData?.columns, assignedPipeline?.name, selectedProject?.name]
   );
 
   const projectsRateLimitError = isRateLimitApiError(projectsError);
@@ -225,17 +240,7 @@ export function ProjectsPage() {
             : 'Awaiting project'
         }
         note="Use the board to triage work and queue items for the active agent pipeline — all without leaving the project view."
-        stats={[
-          { label: 'Board columns', value: String(transformedBoardData?.columns.length ?? 0) },
-          {
-            label: 'Total items',
-            value: String(
-              transformedBoardData?.columns.reduce((sum, c) => sum + c.items.length, 0) ?? 0
-            ),
-          },
-          { label: 'Pipeline', value: assignedPipeline?.name ?? 'None assigned' },
-          { label: 'Project', value: selectedProject?.name ?? 'Unselected' },
-        ]}
+        stats={heroStats}
         actions={
           <>
             <Button variant="default" size="lg" asChild>

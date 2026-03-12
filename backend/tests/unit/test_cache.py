@@ -166,6 +166,62 @@ class TestComputeDataHash:
         assert len(h) == 64  # SHA-256 hex length
 
 
+class TestCacheEntryDataHash:
+    """Tests for CacheEntry data_hash field (FR-004 change detection)."""
+
+    def test_data_hash_defaults_to_none(self):
+        """CacheEntry should default data_hash to None when not provided."""
+        entry = CacheEntry("value", ttl_seconds=60)
+        assert entry.data_hash is None
+
+    def test_data_hash_stored_on_entry(self):
+        """CacheEntry should store the provided data_hash."""
+        entry = CacheEntry("value", ttl_seconds=60, data_hash="abc123")
+        assert entry.data_hash == "abc123"
+
+    @patch("src.services.cache.get_settings")
+    def test_set_with_data_hash(self, mock_settings):
+        """InMemoryCache.set should forward data_hash to CacheEntry."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+        c.set("k", "v", data_hash="hash1")
+        entry = c.get_entry("k")
+        assert entry is not None
+        assert entry.data_hash == "hash1"
+
+    @patch("src.services.cache.get_settings")
+    def test_set_without_data_hash(self, mock_settings):
+        """InMemoryCache.set without data_hash should store None."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+        c.set("k", "v")
+        entry = c.get_entry("k")
+        assert entry is not None
+        assert entry.data_hash is None
+
+    @patch("src.services.cache.get_settings")
+    def test_overwrite_preserves_new_hash(self, mock_settings):
+        """Overwriting a cache key should update the data_hash."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+        c.set("k", "v1", data_hash="old_hash")
+        c.set("k", "v2", data_hash="new_hash")
+        entry = c.get_entry("k")
+        assert entry is not None
+        assert entry.data_hash == "new_hash"
+
+    @patch("src.services.cache.get_settings")
+    def test_get_entry_returns_data_hash(self, mock_settings):
+        """get_entry should expose data_hash for change-detection consumers."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+        h = compute_data_hash({"columns": [{"name": "Todo"}]})
+        c.set("board:1", {"columns": [{"name": "Todo"}]}, data_hash=h)
+        entry = c.get_entry("board:1")
+        assert entry is not None
+        assert entry.data_hash == h
+
+
 class TestCacheClearExpiredSafety:
     """Regression test: clear_expired must not raise KeyError when entries
     are concurrently removed (bug-bash fix)."""
