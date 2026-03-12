@@ -63,7 +63,8 @@ def _grouped_stage(
         "name": name,
         "order": order,
         "groups": [_group(gid, 0, agents, mode)],
-        "agents": [],
+        # For backward compatibility, expose a flattened list of agents at the stage level.
+        "agents": agents,
         "execution_mode": "sequential",
     }
 
@@ -237,6 +238,7 @@ class PipelineService:
         """Ensure every stage has groups populated (migrate legacy format on write).
 
         If a stage has no groups but has agents, wrap agents in a single group.
+        Also sync stage.agents as a flattened view of group agents for backward compat.
         """
         for stage in stages:
             if not stage.groups and stage.agents:
@@ -248,6 +250,9 @@ class PipelineService:
                         agents=list(stage.agents),
                     )
                 ]
+            # Sync stage.agents from groups for backward-compat consumers
+            if stage.groups:
+                stage.agents = [a for g in stage.groups if g.agents for a in g.agents]
         return stages
 
     @staticmethod

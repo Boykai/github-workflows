@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { GitBranch, Trash2, ArrowDownUp } from 'lucide-react';
+import { GitBranch, Trash2, ArrowDownUp, Plus } from 'lucide-react';
 import {
   DndContext,
   closestCenter,
@@ -78,6 +78,7 @@ interface ExecutionGroupCardProps {
   onCloneAgent?: (agentNodeId: string) => void;
   onReorderAgents: (newOrder: PipelineAgentNode[]) => void;
   onToolsClick: (agentNodeId: string) => void;
+  onAddAgent?: () => void;
 }
 
 export function ExecutionGroupCard({
@@ -90,6 +91,7 @@ export function ExecutionGroupCard({
   onCloneAgent,
   onReorderAgents,
   onToolsClick,
+  onAddAgent,
 }: ExecutionGroupCardProps) {
   const isParallel = group.execution_mode === 'parallel';
   const hasAgents = group.agents.length > 0;
@@ -204,6 +206,18 @@ export function ExecutionGroupCard({
           )}
         </SortableContext>
       </DndContext>
+
+      {/* Per-group add agent affordance */}
+      {onAddAgent && (
+        <button
+          type="button"
+          onClick={onAddAgent}
+          className="mt-1 flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border/40 py-1 text-[10px] text-muted-foreground/70 transition-colors hover:border-primary/30 hover:text-primary"
+        >
+          <Plus className="h-2.5 w-2.5" />
+          Add Agent
+        </button>
+      )}
     </div>
   );
 }

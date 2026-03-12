@@ -225,6 +225,7 @@ export function StageCard({
                 : onReorderAgents(newOrder)
             }
             onToolsClick={(agentId) => setToolModalAgent(agentId)}
+            onAddAgent={hasMultipleGroups ? () => openAgentPicker(group.id) : undefined}
           />
         ))}
       </div>
