@@ -1,0 +1,162 @@
+# Bug Report Output Schema
+# Defines the structure of the bug bash summary table output
+# Used by the implementation agent to produce consistent, machine-parseable results
+
+openapi: 3.0.3
+info:
+  title: Bug Bash Summary Report Schema
+  version: 1.0.0
+  description: |
+    Schema for the bug bash summary table output. This is not an API —
+    it defines the data structure of the Markdown summary table produced
+    at the end of the bug bash review process.
+
+components:
+  schemas:
+    BugReportEntry:
+      type: object
+      required:
+        - number
+        - file_path
+        - line_range
+        - category
+        - description
+        - status
+      properties:
+        number:
+          type: integer
+          minimum: 1
+          description: Sequential bug identifier
+        file_path:
+          type: string
+          description: Relative path from repository root
+          example: "backend/src/services/database.py"
+        line_range:
+          type: string
+          description: Line number or range
+          pattern: "^\\d+(-\\d+)?$"
+          example: "42-45"
+        category:
+          type: string
+          enum:
+            - Security
+            - Runtime
+            - Logic
+            - Test Quality
+            - Code Quality
+          description: Bug category, ordered by priority
+        description:
+          type: string
+          description: Clear description of what the bug is and why it matters
+        status:
+          type: string
+          enum:
+            - "✅ Fixed"
+            - "⚠️ Flagged (TODO)"
+          description: |
+            Resolution status:
+            - "✅ Fixed" — bug was resolved, regression test added, all tests passing
+            - "⚠️ Flagged (TODO)" — ambiguous issue left as TODO(bug-bash) comment
+        commit_ref:
+          type: string
+          nullable: true
+          description: Git commit reference for the fix (null for flagged items)
+        regression_test:
+          type: string
+          nullable: true
+          description: Test function name that guards this fix (null for flagged items)
+
+    RegressionTest:
+      type: object
+      required:
+        - test_file
+        - test_name
+        - bug_entry_number
+        - framework
+        - validates
+      properties:
+        test_file:
+          type: string
+          description: Path to the test file
+          example: "backend/tests/unit/test_database.py"
+        test_name:
+          type: string
+          description: Full test function name
+          example: "test_sql_injection_in_query_param"
+        bug_entry_number:
+          type: integer
+          description: Reference to the BugReportEntry this test guards
+        framework:
+          type: string
+          enum:
+            - pytest
+            - vitest
+          description: Testing framework used
+        validates:
+          type: string
+          description: What failure mode this test catches
+
+    TodoComment:
+      type: object
+      required:
+        - file_path
+        - line_number
+        - issue_description
+        - options
+        - rationale
+      properties:
+        file_path:
+          type: string
+          description: Path to file containing the TODO comment
+        line_number:
+          type: integer
+          description: Line number of the TODO comment
+        issue_description:
+          type: string
+          description: What the potential bug or concern is
+        options:
+          type: array
+          items:
+            type: string
+          minItems: 2
+          description: Available resolution approaches
+        rationale:
+          type: string
+          description: Why this needs human decision
+
+    SummaryReport:
+      type: object
+      required:
+        - entries
+        - total_fixed
+        - total_flagged
+        - files_reviewed
+        - files_with_bugs
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: '#/components/schemas/BugReportEntry'
+          description: All discovered bugs, ordered by number
+        total_fixed:
+          type: integer
+          description: Count of entries with status Fixed
+        total_flagged:
+          type: integer
+          description: Count of entries with status Flagged
+        files_reviewed:
+          type: integer
+          description: Total files audited
+        files_with_bugs:
+          type: integer
+          description: Files where at least one bug was found
+        regression_tests:
+          type: array
+          items:
+            $ref: '#/components/schemas/RegressionTest'
+          description: All regression tests added
+        todo_comments:
+          type: array
+          items:
+            $ref: '#/components/schemas/TodoComment'
+          description: All TODO(bug-bash) comments added
