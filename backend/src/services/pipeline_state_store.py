@@ -10,12 +10,15 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import aiosqlite
 
 from src.logging_utils import get_logger
 from src.utils import BoundedDict, utcnow
+
+if TYPE_CHECKING:
+    from .workflow_orchestrator.models import MainBranchInfo
 
 logger = get_logger(__name__)
 
@@ -46,7 +49,7 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
     # Load pipeline states
     try:
         cursor = await db.execute("SELECT * FROM pipeline_states")
-        rows = await cursor.fetchall()
+        rows = list(await cursor.fetchall())
         for row in rows:
             try:
                 issue_number = row[0] if isinstance(row, tuple) else row["issue_number"]
@@ -63,7 +66,7 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
     # Load main branches
     try:
         cursor = await db.execute("SELECT * FROM issue_main_branches")
-        rows = await cursor.fetchall()
+        rows = list(await cursor.fetchall())
         for row in rows:
             try:
                 issue_number = row[0] if isinstance(row, tuple) else row["issue_number"]
@@ -99,7 +102,7 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
     # Load trigger inflight markers
     try:
         cursor = await db.execute("SELECT * FROM agent_trigger_inflight")
-        rows = await cursor.fetchall()
+        rows = list(await cursor.fetchall())
         for row in rows:
             try:
                 key = row[0] if isinstance(row, tuple) else row["trigger_key"]
@@ -205,7 +208,7 @@ def _pipeline_state_to_row(issue_number: int, state: Any) -> tuple:
     )
 
 
-def _row_to_main_branch(row) -> dict:
+def _row_to_main_branch(row) -> MainBranchInfo:
     """Convert a database row to a MainBranchInfo TypedDict."""
     from .workflow_orchestrator.models import MainBranchInfo
 
