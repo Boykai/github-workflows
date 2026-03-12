@@ -1,0 +1,316 @@
+# Chat Attachment to GitHub Issue — API Contracts
+#
+# This contract documents the existing and modified API endpoints involved
+# in the chat attachment → GitHub issue flow. Most endpoints are UNCHANGED;
+# modifications are limited to how file_urls are propagated through
+# confirmation endpoints.
+
+openapi: "3.1.0"
+info:
+  title: Chat Attachment to GitHub Issue API
+  version: "1.0.0"
+  description: |
+    API contracts for attaching files uploaded in the chat interface
+    to GitHub Parent Issues. Covers file upload, message sending,
+    proposal/recommendation confirmation, and the resulting GitHub issue body.
+
+paths:
+  /chat/upload:
+    post:
+      summary: Upload a file for attachment to a future GitHub Issue
+      description: |
+        **Status: EXISTING — NO CHANGES**
+        Validates file size and type, stores temporarily, returns URL.
+        The returned file_url is collected by the frontend and included
+        in subsequent ChatMessageRequest.file_urls.
+      operationId: uploadFile
+      tags: [Chat, Upload]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to upload
+      responses:
+        "200":
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileUploadResponse"
+        "400":
+          description: No file provided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileUploadError"
+        "413":
+          description: File exceeds 10 MB size limit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileUploadError"
+        "415":
+          description: Unsupported file type
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileUploadError"
+
+  /chat/messages:
+    post:
+      summary: Send a chat message with optional file attachments
+      description: |
+        **Status: EXISTING — NO CHANGES TO ENDPOINT**
+        Already accepts file_urls in the request body. The file_urls
+        are stored in the chat message's action_data and propagated
+        to the resulting AITaskProposal or IssueRecommendation.
+        
+        **Change**: The downstream handler `_handle_feature_request()`
+        now propagates file_urls to the AITaskProposal/IssueRecommendation
+        model instead of only storing them in action_data.
+      operationId: sendMessage
+      tags: [Chat]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageRequest"
+      responses:
+        "200":
+          description: Message processed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+
+  /chat/proposals/{proposal_id}/confirm:
+    post:
+      summary: Confirm an AI-generated task proposal and create GitHub issue
+      description: |
+        **Status: MODIFIED**
+        Now embeds file_urls from the AITaskProposal into the GitHub
+        issue body as a formatted markdown attachments section before
+        calling create_issue(). The file URLs are converted to markdown
+        links (inline images for image files, standard links for others).
+      operationId: confirmProposal
+      tags: [Chat, Proposals]
+      parameters:
+        - name: proposal_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProposalConfirmRequest"
+      responses:
+        "200":
+          description: Proposal confirmed, GitHub issue created with attachments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AITaskProposal"
+        "404":
+          description: Proposal not found
+        "422":
+          description: Validation error (body too long, issue unavailable)
+
+  /workflow/recommendations/{recommendation_id}/confirm:
+    post:
+      summary: Confirm an AI-generated recommendation and execute workflow
+      description: |
+        **Status: MODIFIED**
+        Now extracts file_urls from the IssueRecommendation and passes
+        them through the workflow orchestrator to embed in the GitHub
+        issue body. The attachment formatting is identical to the
+        proposal confirmation flow.
+      operationId: confirmRecommendation
+      tags: [Workflow, Recommendations]
+      parameters:
+        - name: recommendation_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Recommendation confirmed, workflow executed with attachments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowResult"
+        "404":
+          description: Recommendation not found
+        "422":
+          description: Validation error
+
+components:
+  schemas:
+    FileUploadResponse:
+      type: object
+      required: [filename, file_url, file_size, content_type]
+      properties:
+        filename:
+          type: string
+          description: Original filename
+          example: "screenshot.png"
+        file_url:
+          type: string
+          description: URL path to access the uploaded file
+          example: "/chat/uploads/abc123-screenshot.png"
+        file_size:
+          type: integer
+          description: File size in bytes
+          example: 2457600
+        content_type:
+          type: string
+          description: MIME type of the file
+          example: "image/png"
+
+    FileUploadError:
+      type: object
+      required: [filename, error, error_code]
+      properties:
+        filename:
+          type: string
+          description: Original filename (may be empty)
+        error:
+          type: string
+          description: Human-readable error message
+          example: "File exceeds the 10 MB size limit"
+        error_code:
+          type: string
+          description: Machine-readable error code
+          enum: [no_file, unsupported_type, file_too_large, empty_file]
+
+    ChatMessageRequest:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+          description: Message text
+        ai_enhance:
+          type: boolean
+          default: true
+        file_urls:
+          type: array
+          items:
+            type: string
+          default: []
+          description: URLs of uploaded files to attach to the resulting GitHub issue
+        pipeline_id:
+          type: string
+          nullable: true
+          description: Optional pipeline ID
+
+    ChatMessage:
+      type: object
+      description: Existing ChatMessage model (unchanged)
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        sender_type:
+          type: string
+          enum: [USER, ASSISTANT, SYSTEM]
+        content:
+          type: string
+        action_type:
+          type: string
+          nullable: true
+        action_data:
+          type: object
+          nullable: true
+          description: JSON dict that may include file_urls key
+        timestamp:
+          type: string
+          format: date-time
+
+    AITaskProposal:
+      type: object
+      description: "Modified: now includes file_urls field"
+      properties:
+        proposal_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        proposed_title:
+          type: string
+        proposed_description:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, expired, cancelled]
+        file_urls:
+          type: array
+          items:
+            type: string
+          default: []
+          description: "NEW — URLs of files to embed in GitHub issue body on confirmation"
+
+    IssueRecommendation:
+      type: object
+      description: "Modified: now includes file_urls field"
+      properties:
+        recommendation_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        user_story:
+          type: string
+        functional_requirements:
+          type: array
+          items:
+            type: string
+        status:
+          type: string
+          enum: [pending, confirmed, expired, cancelled]
+        file_urls:
+          type: array
+          items:
+            type: string
+          default: []
+          description: "NEW — URLs of files to embed in GitHub issue body on confirmation"
+
+    ProposalConfirmRequest:
+      type: object
+      nullable: true
+      properties:
+        edited_title:
+          type: string
+          nullable: true
+        edited_description:
+          type: string
+          nullable: true
+
+    WorkflowResult:
+      type: object
+      description: Existing WorkflowResult model (unchanged)
+      properties:
+        status:
+          type: string
+        issue_number:
+          type: integer
+        issue_url:
+          type: string
