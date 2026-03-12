@@ -43,7 +43,7 @@ agent: my-agent-name
 | `tools` | list of strings | No | Tools the agent can use. Omit to enable all tools. |
 | `target` | string | No | Target environment: `vscode` or `github-copilot`. Defaults to both. |
 | `model` | string | No | AI model to use (IDE agents only). |
-| `mcp-servers` | object | No | Additional MCP server configurations. |
+| `mcp-servers` | object | No | MCP server configurations. Auto-synced by the Agent MCP Sync service (see below). |
 | `disable-model-invocation` | boolean | No | If `true`, agent must be manually selected (not auto-invoked). |
 | `user-invocable` | boolean | No | If `false`, agent can only be accessed programmatically. |
 | `metadata` | object | No | Key-value annotation data. |
@@ -71,9 +71,38 @@ tools: ["read", "edit", "github/get_issue", "playwright/*"]
 
 ### Tool Configuration Strategies
 
-- **All tools (default)**: Omit `tools` or use `tools: ["*"]`
-- **Specific tools**: `tools: ["read", "edit", "search"]`
-- **No tools**: `tools: []`
+- **All tools (enforced)**: `tools: ["*"]` — this is the only value permitted in this project. The Agent MCP Sync service automatically overwrites any other value.
+- **Reference examples** (used in general GitHub Copilot docs, not in this project): `tools: ["read", "edit", "search"]` or `tools: []`
+
+> **Note:** The Agent MCP Sync service enforces `tools: ["*"]` on every agent file. See [Automatic MCP Sync](#automatic-mcp-sync) below.
+
+## Automatic MCP Sync
+
+The backend `agent_mcp_sync` service keeps every `.github/agents/*.agent.md` file's `mcp-servers` field and `tools` value in sync automatically. This means:
+
+- **Built-in MCPs** (defined in `.github/agents/mcp.json` and mirrored in `backend/src/services/agents/agent_mcp_sync.py`) are merged into every agent file's `mcp-servers` field.
+- **User-activated MCPs** from the Tools page are added to agent files when activated and removed when deactivated.
+- **`tools: ["*"]`** is unconditionally enforced on every agent definition — any pre-existing restrictive `tools` list is overwritten.
+- Duplicate MCP entries are prevented; the sync is idempotent.
+
+### Sync Triggers
+
+The sync runs automatically on:
+
+1. **Application startup** — reconciles drift for the most recent active session.
+2. **MCP activation/deactivation** — when a tool is toggled or deleted on the Tools page.
+3. **Agent file creation/update** — when an agent is created or updated via the Agents service.
+
+### Built-in MCPs
+
+The following MCP servers are built-in and always present in every agent file:
+
+| Server | Type | Purpose |
+|--------|------|---------|
+| `context7` | HTTP | Library resolution and documentation lookup |
+| `CodeGraphContext` | Local (uvx) | Code graph analysis and navigation |
+
+These are defined in `.github/agents/mcp.json` and must stay in sync with the `BUILTIN_MCPS` constants in both `backend/src/services/agents/agent_mcp_sync.py` and `frontend/src/lib/buildGitHubMcpConfig.ts`. The backend test suite (`test_agent_mcp_sync.py`) validates the shape and contents of `BUILTIN_MCPS` — if you add or change a built-in MCP, update all three locations and run the tests to catch drift.
 
 ## Prompt Writing Guidelines
 
