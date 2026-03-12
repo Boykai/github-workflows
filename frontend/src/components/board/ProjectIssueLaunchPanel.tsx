@@ -1,7 +1,8 @@
-import { useId, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { useCallback, useId, useMemo, useRef, useState, type ChangeEvent } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import {
   CheckCircle2,
+  ChevronDown,
   FileUp,
   LoaderCircle,
   Orbit,
@@ -17,6 +18,18 @@ import type {
   PipelineIssueLaunchRequest,
   WorkflowResult,
 } from '@/types';
+
+const STORAGE_KEY = 'parentIssueIntake_expanded';
+
+function loadExpanded(): boolean {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === null) return false;
+    return stored === 'true';
+  } catch {
+    return false;
+  }
+}
 
 const MAX_ISSUE_DESCRIPTION_LENGTH = 65_536;
 const MAX_PREVIEW_TITLE_LENGTH = 120;
@@ -81,6 +94,19 @@ export function ProjectIssueLaunchPanel({
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   const [submissionResult, setSubmissionResult] = useState<WorkflowResult | null>(null);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [isExpanded, setIsExpanded] = useState(loadExpanded);
+
+  const toggleExpanded = useCallback(() => {
+    setIsExpanded((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(STORAGE_KEY, String(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  }, []);
 
   const selectedPipeline = useMemo(
     () => pipelines.find((pipeline) => pipeline.id === pipelineId) ?? null,
@@ -215,23 +241,47 @@ export function ProjectIssueLaunchPanel({
   const hasPipelineOptions = pipelines.length > 0;
 
   return (
-    <section className="celestial-panel relative overflow-hidden rounded-[1.45rem] border border-border/80 bg-background/34 p-5 shadow-sm sm:p-6">
+    <section className="celestial-panel relative overflow-hidden rounded-[1.45rem] border border-border/80 bg-background/34 shadow-sm">
       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-primary/45 to-transparent" />
+
+      {/* Collapsible header — always visible */}
+      <button
+        type="button"
+        aria-expanded={isExpanded}
+        onClick={toggleExpanded}
+        className="flex w-full items-center gap-3 p-5 text-left transition-colors hover:bg-background/28 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary sm:p-6"
+      >
+        <ChevronDown
+          className={cn(
+            'h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200',
+            !isExpanded && '-rotate-90'
+          )}
+        />
+        <div className="flex flex-1 flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
+            <Orbit className="h-3.5 w-3.5" />
+            Parent issue intake
+          </span>
+          {projectName ? (
+            <span className="rounded-full border border-border/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+              {projectName}
+            </span>
+          ) : null}
+        </div>
+      </button>
+
+      {/* Collapsible body */}
+      <div
+        className={cn(
+          'grid transition-[grid-template-rows] duration-200 ease-in-out',
+          isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="px-5 pb-5 sm:px-6 sm:pb-6">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_20rem]">
         <div className="space-y-4">
           <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-primary">
-                <Orbit className="h-3.5 w-3.5" />
-                Parent issue intake
-              </span>
-              {projectName ? (
-                <span className="rounded-full border border-border/70 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-                  {projectName}
-                </span>
-              ) : null}
-            </div>
-            <div className="space-y-2">
               <h3 className="text-lg font-semibold text-foreground">
                 Launch an agent pipeline from existing GitHub issue context
               </h3>
@@ -240,7 +290,6 @@ export function ProjectIssueLaunchPanel({
                 saved Agent Pipeline Config. This launch also keeps the project&apos;s active
                 pipeline in sync so downstream agents continue with the same configuration.
               </p>
-            </div>
           </div>
 
           <div className="rounded-[1.25rem] border border-border/75 bg-background/58 p-4 backdrop-blur-sm">
@@ -484,6 +533,9 @@ export function ProjectIssueLaunchPanel({
               'Launch pipeline'
             )}
           </Button>
+        </div>
+        </div>
+          </div>
         </div>
       </div>
     </section>
