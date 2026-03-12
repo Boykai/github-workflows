@@ -18,9 +18,9 @@ function getRateLimitUsagePercent(limit?: number, remaining?: number): number {
 }
 
 function getRateLimitFillClass(usagePercent: number): string {
-  if (usagePercent >= 90) return 'bg-destructive shadow-[0_0_16px_rgba(224,98,98,0.45)]';
-  if (usagePercent >= 70) return 'bg-accent shadow-[0_0_14px_rgba(227,179,92,0.35)]';
-  return 'bg-primary shadow-[0_0_14px_rgba(194,166,98,0.28)]';
+  if (usagePercent >= 90) return 'bg-destructive shadow-[0_0_16px_hsl(var(--destructive)/0.45)]';
+  if (usagePercent >= 70) return 'bg-accent shadow-[0_0_14px_hsl(var(--gold)/0.35)]';
+  return 'bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.28)]';
 }
 
 export function RateLimitBar() {

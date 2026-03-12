@@ -6,6 +6,8 @@ persistence using the tables created by ``012_chat_persistence.sql``.
 
 from __future__ import annotations
 
+import json
+
 import aiosqlite
 
 from src.logging_utils import get_logger
@@ -85,13 +87,15 @@ async def save_proposal(
     original_input: str,
     proposed_title: str,
     proposed_description: str,
+    file_urls: list[str] | None = None,
 ) -> None:
     """Persist a chat proposal to SQLite."""
+    file_urls_json = json.dumps(file_urls) if file_urls else None
     await db.execute(
         """INSERT OR REPLACE INTO chat_proposals
-           (proposal_id, session_id, original_input, proposed_title, proposed_description)
-           VALUES (?, ?, ?, ?, ?)""",
-        (proposal_id, session_id, original_input, proposed_title, proposed_description),
+           (proposal_id, session_id, original_input, proposed_title, proposed_description, file_urls)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (proposal_id, session_id, original_input, proposed_title, proposed_description, file_urls_json),
     )
     await db.commit()
 
@@ -104,7 +108,7 @@ async def get_proposals(
     cursor = await db.execute(
         """SELECT proposal_id, session_id, original_input, proposed_title,
                   proposed_description, status, edited_title, edited_description,
-                  created_at, expires_at
+                  created_at, expires_at, file_urls
            FROM chat_proposals WHERE session_id = ? ORDER BY created_at""",
         (session_id,),
     )
@@ -112,6 +116,8 @@ async def get_proposals(
     result = []
     for row in rows:
         if isinstance(row, tuple):
+            raw_file_urls = row[10]
+            file_urls = json.loads(raw_file_urls) if raw_file_urls else []
             result.append(
                 {
                     "proposal_id": row[0],
@@ -124,10 +130,14 @@ async def get_proposals(
                     "edited_description": row[7],
                     "created_at": row[8],
                     "expires_at": row[9],
+                    "file_urls": file_urls,
                 }
             )
         else:
-            result.append(dict(row))
+            d = dict(row)
+            raw = d.get("file_urls")
+            d["file_urls"] = json.loads(raw) if raw else []
+            result.append(d)
     return result
 
 
@@ -162,13 +172,15 @@ async def save_recommendation(
     session_id: str,
     recommendation_id: str,
     data: str,
+    file_urls: list[str] | None = None,
 ) -> None:
     """Persist a chat recommendation to SQLite."""
+    file_urls_json = json.dumps(file_urls) if file_urls else None
     await db.execute(
         """INSERT OR REPLACE INTO chat_recommendations
-           (recommendation_id, session_id, data)
-           VALUES (?, ?, ?)""",
-        (recommendation_id, session_id, data),
+           (recommendation_id, session_id, data, file_urls)
+           VALUES (?, ?, ?, ?)""",
+        (recommendation_id, session_id, data, file_urls_json),
     )
     await db.commit()
 
@@ -179,7 +191,7 @@ async def get_recommendations(
 ) -> list[dict]:
     """Retrieve all recommendations for a session."""
     cursor = await db.execute(
-        """SELECT recommendation_id, session_id, data, status, created_at
+        """SELECT recommendation_id, session_id, data, status, created_at, file_urls
            FROM chat_recommendations WHERE session_id = ? ORDER BY created_at""",
         (session_id,),
     )
@@ -187,6 +199,8 @@ async def get_recommendations(
     result = []
     for row in rows:
         if isinstance(row, tuple):
+            raw_file_urls = row[5]
+            file_urls = json.loads(raw_file_urls) if raw_file_urls else []
             result.append(
                 {
                     "recommendation_id": row[0],
@@ -194,10 +208,14 @@ async def get_recommendations(
                     "data": row[2],
                     "status": row[3],
                     "created_at": row[4],
+                    "file_urls": file_urls,
                 }
             )
         else:
-            result.append(dict(row))
+            d = dict(row)
+            raw = d.get("file_urls")
+            d["file_urls"] = json.loads(raw) if raw else []
+            result.append(d)
     return result
 
 

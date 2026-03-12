@@ -37,7 +37,12 @@ class TestConstants:
         assert STALLED_LABEL == "stalled"
 
     def test_color_constants_are_hex_without_hash(self):
-        for color in (PIPELINE_LABEL_COLOR, AGENT_LABEL_COLOR, ACTIVE_LABEL_COLOR, STALLED_LABEL_COLOR):
+        for color in (
+            PIPELINE_LABEL_COLOR,
+            AGENT_LABEL_COLOR,
+            ACTIVE_LABEL_COLOR,
+            STALLED_LABEL_COLOR,
+        ):
             assert "#" not in color
             assert len(color) == 6
             int(color, 16)  # must be valid hex
@@ -115,6 +120,7 @@ class TestFindPipelineLabel:
         class FakeLabel:
             def __init__(self, name):
                 self.name = name
+
         labels = [FakeLabel("bug"), FakeLabel("pipeline:custom")]
         assert find_pipeline_label(labels) == "custom"
 
@@ -161,5 +167,6 @@ class TestHasStalledLabel:
         class FakeLabel:
             def __init__(self, name):
                 self.name = name
+
         assert has_stalled_label([FakeLabel("stalled")]) is True
         assert has_stalled_label([FakeLabel("bug")]) is False
