@@ -1,0 +1,591 @@
+# Component Interface Contracts: Agents Page Audit
+# These contracts define the expected props, behavior, and accessibility
+# requirements for each component on the Agents page.
+# Used during the audit to verify compliance.
+
+components:
+
+  # ─── Page-Level ───
+
+  AgentsPage:
+    path: frontend/src/pages/AgentsPage.tsx
+    description: >
+      Top-level page component for the Agents view. Composes the Agent Catalog
+      (left panel) and Column Assignments / Orbital Map (right panel) in a
+      responsive two-column grid layout.
+    states:
+      - name: no-project-selected
+        condition: "!selectedProject && !loading"
+        renders: ProjectSelectionEmptyState
+      - name: loading-board
+        condition: "selectedProject && boardLoading"
+        renders: CelestialLoader in assignments section
+      - name: populated
+        condition: "selectedProject && !boardLoading && boardData"
+        renders: AgentsPanel + Column Assignments grid
+      - name: no-columns
+        condition: "selectedProject && !boardLoading && no columns"
+        renders: "Dashed border 'No board columns available' message"
+    accessibility:
+      - "Page shell uses semantic HTML structure with heading hierarchy"
+      - "id='agent-assignments' anchor for assignments section"
+      - "All section headings use proper h2/h3 hierarchy"
+    design_tokens:
+      - "celestial-fade-in for page entrance"
+      - "xl:grid-cols-[minmax(0,1fr)_22rem] for two-panel layout"
+      - "bg-background/42, backdrop-blur-sm, border-border/70"
+    audit_requirements:
+      - "Pipeline query errors must be handled (currently no error state for pipelineList/pipelineAssignment failures)"
+      - "All design tokens verified — no hardcoded colors"
+      - "Responsive: stacks to single column below xl breakpoint"
+
+  # ─── Agent Catalog Components ───
+
+  AgentsPanel:
+    path: frontend/src/components/agents/AgentsPanel.tsx
+    description: >
+      Main agents catalog container. Displays featured (spotlight) agents,
+      full searchable/sortable catalog grid, and pending agents section.
+    props:
+      - { name: projectId, type: string, required: true }
+      - { name: owner, type: string, required: false }
+      - { name: repo, type: string, required: false }
+      - { name: agentUsageCounts, type: "Record<string, number>", required: false }
+      - { name: pipelineConfigCounts, type: "Record<string, number>", required: false }
+      - { name: pendingSubIssueCounts, type: "Record<string, number>", required: false }
+    states:
+      - name: loading
+        condition: "isLoading from useAgentsList"
+        renders: "Grid of 3 animated skeleton cards"
+      - name: error
+        condition: "error from useAgentsList"
+        renders: "Red error box with error message"
+      - name: empty
+        condition: "!isLoading && agents.length === 0"
+        renders: "Centered empty state with constellation icon and 'Create the first agent' CTA"
+      - name: populated
+        condition: "agents.length > 0"
+        renders: "Spotlight section + full catalog grid + pending section"
+      - name: search-no-results
+        condition: "search active && filtered.length === 0"
+        renders: "'No matching agents' message"
+    accessibility:
+      - "aria-label='Search agents catalog' on search input"
+      - "aria-label='Sort agents' on sort dropdown"
+      - "Semantic heading hierarchy (h3, h4)"
+      - "id='agents-catalog' for anchor links"
+    design_tokens:
+      - "ritual-stage, constellation-grid, moonwell"
+      - "solar-chip, solar-chip-soft for badges"
+      - "solar-action, solar-action-danger for icon buttons"
+    audit_requirements:
+      - "Replace hardcoded border-emerald-300/40, bg-emerald-50/80 with design token equivalents"
+      - "Verify spotlight algorithm correctness (top 3 by usage, fallback to recent)"
+      - "Focus indicators on all interactive elements (search, sort, add button)"
+      - "WCAG AA contrast on muted/reduced-opacity text"
+
+  AgentCard:
+    path: frontend/src/components/agents/AgentCard.tsx
+    description: >
+      Individual agent card displaying name, description, status badge,
+      source badge, tools count, icon, and action controls (edit, delete).
+    props:
+      - { name: agent, type: AgentConfig, required: true }
+      - { name: projectId, type: string, required: true }
+      - { name: usageCount, type: number, required: false }
+      - { name: pipelineConfigCount, type: number, required: false }
+      - { name: pendingSubIssueCount, type: number, required: false }
+      - { name: onEdit, type: "(agent: AgentConfig) => void", required: false }
+      - { name: variant, type: "'default' | 'spotlight'", required: false }
+    states:
+      - name: default
+        renders: "Card with agent info, badges, action buttons"
+      - name: spotlight
+        renders: "Larger card with gradient overlay, more tools shown"
+      - name: pending-deletion
+        renders: "Card with 'Deletion pending' text, disabled actions"
+      - name: pending-creation
+        renders: "Card with 'Awaiting merge' text"
+      - name: delete-error
+        renders: "Red error message below card"
+      - name: delete-success
+        renders: "Green success message with PR number"
+    accessibility:
+      - "aria-label='Choose icon' on icon button"
+      - "Tooltip contentKey for edit/delete buttons"
+      - "title={displayName} for truncated name"
+      - "NEEDS: Card-level accessible description for screen readers"
+    design_tokens:
+      - "celestial-panel for card container"
+      - "solar-chip-neutral, solar-chip-success, solar-chip-violet, solar-chip-danger for badges"
+      - "moonwell for status panel grid"
+    audit_requirements:
+      - "Replace hardcoded text-green-700 dark:text-green-400 success colors with design tokens"
+      - "Verify status badge enum is exhaustive (no undefined for unknown status)"
+      - "Focus indicators on icon, edit, delete buttons"
+      - "Loading state for icon update mutation"
+
+  AgentAvatar:
+    path: frontend/src/components/agents/AgentAvatar.tsx
+    description: >
+      Agent avatar component with themed icon fallback. Displays custom avatar
+      image or falls back to celestial-themed icon based on agent slug.
+    props:
+      - { name: slug, type: "string | null", required: false }
+      - { name: agentName, type: string, required: true }
+      - { name: iconName, type: "string | null", required: false }
+      - { name: avatarUrl, type: "string | null", required: false }
+      - { name: size, type: "'sm' | 'md' | 'lg'", required: false }
+    states:
+      - name: custom-avatar
+        renders: "Image element with avatarUrl"
+      - name: themed-icon
+        renders: "ThemedAgentIcon based on slug/iconName"
+      - name: fallback
+        renders: "First letter of agentName"
+    audit_requirements:
+      - "alt text on avatar images"
+      - "Consistent sizing across all usage contexts"
+
+  AddAgentModal:
+    path: frontend/src/components/agents/AddAgentModal.tsx
+    description: >
+      Modal for creating or editing agents. Multi-step form with name, system
+      prompt, tools selection, icon selection, and AI enhancement toggle.
+    props:
+      - { name: projectId, type: string, required: true }
+      - { name: isOpen, type: boolean, required: true }
+      - { name: onClose, type: "() => void", required: true }
+      - { name: editAgent, type: "AgentConfig | null", required: false }
+    states:
+      - name: closed
+        condition: "!isOpen"
+        renders: "null"
+      - name: create-form
+        condition: "isOpen && !editAgent"
+        renders: "Full creation form with AI enhance toggle"
+      - name: edit-form
+        condition: "isOpen && editAgent"
+        renders: "Edit form without AI enhance toggle"
+      - name: unsaved-confirmation
+        condition: "showCloseConfirm"
+        renders: "Amber confirmation dialog"
+      - name: saving
+        condition: "isPending"
+        renders: "Spinner + status text, disabled submit"
+      - name: success
+        condition: "successPrUrl"
+        renders: "Success dialog with PR link"
+    accessibility:
+      - "role='dialog' on overlay"
+      - "aria-modal='true' on confirmation dialog"
+      - "aria-label='Unsaved changes confirmation'"
+      - "aria-label='Close' on close button"
+      - "htmlFor bindings on form labels"
+      - "role='switch' with aria-checked on AI enhance toggle"
+      - "Escape key closes modal (with nested modal prevention)"
+    design_tokens:
+      - "celestial-panel for modal containers"
+      - "z-[120] for overlay"
+      - "border-amber-300/60, bg-amber-50/80 for unsaved warning"
+    audit_requirements:
+      - "Focus trap must be complete (Tab cannot escape modal)"
+      - "Focus restored to triggering element on close"
+      - "Tool list async loading state must be visible"
+      - "Z-index conflicts with other modals must be verified"
+      - "Hardcoded amber colors should use design tokens if available"
+
+  AgentInlineEditor:
+    path: frontend/src/components/agents/AgentInlineEditor.tsx
+    description: >
+      Inline editor for agent configuration with imperative save/discard
+      interface via forwardRef.
+    props:
+      - { name: agent, type: AgentConfig, required: true }
+      - { name: projectId, type: string, required: true }
+      - { name: onDirtyChange, type: "(isDirty: boolean) => void", required: true }
+      - { name: onCancel, type: "() => void", required: true }
+      - { name: onSaved, type: "(prUrl: string, agentName: string) => void", required: true }
+    states:
+      - name: editing
+        renders: "Form with name, system prompt, tools editor"
+      - name: unsaved-changes
+        renders: "Amber badge indicator in header"
+      - name: saving
+        renders: "Spinner + 'Creating a pull request...' text"
+      - name: validation-error
+        renders: "Red error box"
+    accessibility:
+      - "id='inline-agent-name' and id='inline-agent-system-prompt' for inputs"
+      - "htmlFor bindings on labels"
+      - "NEEDS: Focus moves to editor when opened"
+      - "NEEDS: Focus restored to agent card on close"
+    design_tokens:
+      - "ritual-stage for container"
+      - "celestial-focus on inputs"
+      - "border-amber-300/60 for unsaved badge"
+    audit_requirements:
+      - "Focus management on open and close"
+      - "Dirty state notification should not fire on every keystroke (performance)"
+      - "Form submission pattern should use <form onSubmit> for Enter key support"
+
+  AgentIconPickerModal:
+    path: frontend/src/components/agents/AgentIconPickerModal.tsx
+    description: >
+      Modal for selecting a celestial icon for an agent. Wraps AgentIconCatalog
+      in a portal-rendered overlay.
+    props:
+      - { name: isOpen, type: boolean, required: true }
+      - { name: agentName, type: string, required: true }
+      - { name: slug, type: "string | null", required: false }
+      - { name: currentIconName, type: "string | null", required: false }
+      - { name: isSaving, type: boolean, required: false }
+      - { name: onClose, type: "() => void", required: true }
+      - { name: onSave, type: "(iconName: CelestialIconName | null) => Promise<void> | void", required: true }
+    states:
+      - name: open
+        renders: "Modal with icon catalog grid"
+      - name: saving
+        renders: "Save button disabled with 'Saving...' text"
+    accessibility:
+      - "aria-label='Close icon picker' on close button"
+      - "NEEDS: role='dialog' and aria-modal='true' on modal content (currently role='presentation')"
+      - "NEEDS: Focus trap within modal"
+      - "NEEDS: Focus restoration to trigger on close"
+    design_tokens:
+      - "celestial-panel for modal"
+      - "z-[140] for overlay"
+      - "solar-action for close button"
+    audit_requirements:
+      - "Fix role='presentation' to role='dialog' with aria-modal='true'"
+      - "Implement focus trap"
+      - "Add error handling for failed icon save"
+
+  AgentIconCatalog:
+    path: frontend/src/components/agents/AgentIconCatalog.tsx
+    description: >
+      Reusable icon selection grid showing automatic icon + all celestial
+      icon options. Pure presentational component.
+    props:
+      - { name: slug, type: "string | null", required: false }
+      - { name: agentName, type: string, required: true }
+      - { name: selectedIconName, type: "string | null", required: false }
+      - { name: onSelect, type: "(iconName: CelestialIconName | null) => void", required: true }
+    accessibility:
+      - "NEEDS: role='radiogroup' or role='listbox' on grid"
+      - "NEEDS: role='radio' or role='option' on each icon button"
+      - "NEEDS: aria-selected on selected icon"
+    design_tokens:
+      - "moonwell for icon buttons"
+      - "border-primary/40 + ring-1 ring-primary/20 for selected state"
+    audit_requirements:
+      - "Add semantic roles for icon selection grid"
+      - "Responsive grid: grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 — verify at all breakpoints"
+
+  BulkModelUpdateDialog:
+    path: frontend/src/components/agents/BulkModelUpdateDialog.tsx
+    description: >
+      Two-step confirmation dialog for bulk model updates across agents.
+      Step 1: select target model. Step 2: review and confirm.
+    props:
+      - { name: open, type: boolean, required: true }
+      - { name: onOpenChange, type: "(open: boolean) => void", required: true }
+      - { name: agents, type: "AgentConfig[]", required: true }
+      - { name: projectId, type: string, required: true }
+      - { name: onSuccess, type: "() => void", required: true }
+    states:
+      - name: step-1
+        renders: "Model selector with available models"
+      - name: step-2
+        renders: "Affected agents list with current→new model mapping"
+      - name: saving
+        renders: "Loading state during bulk update mutation"
+      - name: error
+        renders: "Error message on mutation failure"
+    audit_requirements:
+      - "Focus trap in dialog"
+      - "Error dismissal mechanism"
+      - "Empty state when no agents would be affected"
+
+  ToolsEditor:
+    path: frontend/src/components/agents/ToolsEditor.tsx
+    description: >
+      Ordered tool list with reorder, remove, and add capabilities.
+    props:
+      - { name: tools, type: "string[]", required: true }
+      - { name: onToolsChange, type: "(tools: string[]) => void", required: true }
+      - { name: error, type: string, required: false }
+      - { name: projectId, type: string, required: true }
+      - { name: onSelectorOpenChange, type: "(open: boolean) => void", required: false }
+    states:
+      - name: empty
+        renders: "Empty state message"
+      - name: populated
+        renders: "Ordered list with move up/down, remove buttons"
+      - name: error
+        renders: "Error message display"
+    audit_requirements:
+      - "Keyboard accessibility for reorder operations"
+      - "Focus indicators on all buttons"
+      - "aria-label on move up/down buttons"
+
+  # ─── Orbital Map / Column Assignment Components ───
+
+  AgentConfigRow:
+    path: frontend/src/components/board/AgentConfigRow.tsx
+    description: >
+      Top-level orchestrator for the column assignments grid. Wraps DndContext
+      for cross-column drag-and-drop. Renders column headers, agent cells,
+      preset selector, add-agent buttons, save bar, and compact constellation SVG.
+    props:
+      - { name: columnCount, type: number, required: true }
+      - { name: columns, type: "BoardColumn[]", required: true }
+      - { name: agentConfig, type: "ReturnType<typeof useAgentConfig>", required: true }
+      - { name: availableAgents, type: "AvailableAgent[]", required: false }
+      - { name: renderPresetSelector, type: callback, required: false }
+      - { name: renderAddButton, type: callback, required: false }
+      - { name: variant, type: "'default' | 'compact'", required: false }
+      - { name: title, type: string, required: false }
+      - { name: workflowEnabled, type: "boolean | null", required: false }
+    states:
+      - name: loading
+        renders: "Animated skeleton placeholder grid"
+      - name: default-expanded
+        renders: "Full grid with column headers + agent cells + controls"
+      - name: default-collapsed
+        renders: "Collapsed header only"
+      - name: compact-expanded
+        renders: "Compact constellation SVG + pipeline column grid"
+      - name: compact-collapsed
+        renders: "Compact header with constellation preview"
+    accessibility:
+      - "NEEDS: role='region' aria-label='Agent column assignments'"
+      - "NEEDS: Focus ring on expand toggle"
+      - "KeyboardSensor already configured for DnD"
+    design_tokens:
+      - "celestial-panel for container"
+      - "border-border/60 for wrapper border"
+      - "bg-background/38 for header"
+    audit_requirements:
+      - "Add region role and aria-label"
+      - "Fix expand toggle focus indicator"
+      - "Add error fallback if agentConfig fails"
+      - "Hardcoded SVG star coordinates acceptable (decorative)"
+
+  AgentColumnCell:
+    path: frontend/src/components/board/AgentColumnCell.tsx
+    description: >
+      Vertical stack container for agents in one status column. Registers
+      as a droppable zone for @dnd-kit.
+    props:
+      - { name: status, type: string, required: true }
+      - { name: agents, type: "AgentAssignment[]", required: true }
+      - { name: isModified, type: boolean, required: true }
+      - { name: onRemoveAgent, type: callback, required: true }
+      - { name: onCloneAgent, type: callback, required: true }
+      - { name: onReorderAgents, type: callback, required: true }
+      - { name: renderAddButton, type: "React.ReactNode", required: false }
+      - { name: availableAgents, type: "AvailableAgent[]", required: false }
+      - { name: variant, type: "'default' | 'compact'", required: false }
+    states:
+      - name: empty
+        renders: "Drop zone with no tiles (accepts drops)"
+      - name: populated
+        renders: "Sortable agent tiles"
+      - name: modified
+        renders: "Primary border highlight (border-primary/50 bg-primary/5)"
+      - name: drop-active
+        renders: "Ring highlight (ring-2 ring-primary/30)"
+      - name: over-limit
+        renders: "Amber warning banner (>10 agents)"
+    accessibility:
+      - "NEEDS: role='list' on agents container"
+      - "NEEDS: Focus indicator on drop zone"
+      - "NEEDS: Empty state announcement for screen readers"
+    audit_requirements:
+      - "Add role='list' semantic"
+      - "Add focus indicator for keyboard navigation"
+      - "Over-limit warning shown in both default and compact variants"
+
+  AgentTile:
+    path: frontend/src/components/board/AgentTile.tsx
+    description: >
+      Card-style tile representing a single agent assignment within a column.
+      Supports default and compact variants with expand/collapse.
+    props:
+      - { name: agent, type: AgentAssignment, required: true }
+      - { name: onRemove, type: "(agentInstanceId: string) => void", required: false }
+      - { name: onClone, type: "(agentInstanceId: string) => void", required: false }
+      - { name: sortableProps, type: "DnD props object", required: false }
+      - { name: availableAgents, type: "AvailableAgent[]", required: false }
+      - { name: isWarning, type: boolean, required: false }
+      - { name: variant, type: "'default' | 'compact'", required: false }
+      - { name: compactIndex, type: number, required: false }
+      - { name: compactCount, type: number, required: false }
+    states:
+      - name: default-collapsed
+        renders: "Agent name + model + drag handle + action buttons"
+      - name: default-expanded
+        renders: "Full details with slug, model, source, description"
+      - name: compact
+        renders: "Minimal tile with gradient connector lines"
+      - name: warning
+        renders: "Amber border + background (unrecognized agent)"
+      - name: dragging
+        renders: "Opacity reduced, placeholder shown"
+    accessibility:
+      - "NEEDS: role='listitem' within parent role='list'"
+      - "NEEDS: Focus ring (celestial-focus) on container"
+      - "NEEDS: aria-disabled on buttons during drag"
+    design_tokens:
+      - "celestial-panel for default variant"
+      - "border-amber-400/45 bg-amber-500/8 for warning state"
+      - "from-primary/10 via-primary/35 to-primary/55 for compact gradient"
+    audit_requirements:
+      - "Replace hardcoded SVG inline colors with CSS custom properties"
+      - "Add focus indicator"
+      - "Disable action buttons during drag state"
+
+  AgentPresetSelector:
+    path: frontend/src/components/board/AgentPresetSelector.tsx
+    description: >
+      Preset toggle buttons (Clear, GitHub Copilot, Spec Kit) plus a
+      saved pipelines dropdown with confirmation dialogs.
+    props:
+      - { name: columnNames, type: "string[]", required: true }
+      - { name: currentMappings, type: "Record<string, { slug: string }[]>", required: true }
+      - { name: onApplyPreset, type: "(mappings) => void", required: true }
+      - { name: projectId, type: "string | null", required: false }
+      - { name: dropdownOnly, type: boolean, required: false }
+    states:
+      - name: idle
+        renders: "Preset buttons + saved dropdown trigger"
+      - name: confirm-preset
+        renders: "Confirmation dialog for preset application"
+      - name: confirm-pipeline
+        renders: "Confirmation dialog for saved pipeline restore"
+      - name: dropdown-open
+        renders: "Saved pipelines list"
+      - name: error
+        renders: "Error message after apply failure"
+    accessibility:
+      - "NEEDS: Focus trap in confirmation dialogs"
+      - "NEEDS: Focus restored to trigger on dialog close"
+      - "NEEDS: Keyboard navigation in saved pipelines dropdown (arrow keys)"
+      - "NEEDS: aria-expanded on dropdown trigger"
+      - "NEEDS: Loading indicator for savedPipelines query"
+    design_tokens:
+      - "solar-chip-soft for active preset"
+      - "celestial-panel for confirmation dialogs"
+      - "bg-popover shadow-lg for dropdown"
+    audit_requirements:
+      - "Implement focus trap in confirmation dialogs"
+      - "Add aria-expanded to dropdown trigger"
+      - "Show loading state for saved pipelines query"
+      - "Add dismiss mechanism for error messages"
+
+  AddAgentPopover:
+    path: frontend/src/components/board/AddAgentPopover.tsx
+    description: >
+      Dropdown for selecting agents to add to a specific column. Portal-rendered
+      with position auto-detection (above/below trigger).
+    props:
+      - { name: status, type: string, required: true }
+      - { name: availableAgents, type: "AvailableAgent[]", required: true }
+      - { name: assignedAgents, type: "AgentAssignment[]", required: true }
+      - { name: isLoading, type: boolean, required: true }
+      - { name: error, type: "string | null", required: true }
+      - { name: onRetry, type: "() => void", required: true }
+      - { name: onAddAgent, type: "(status: string, agent: AvailableAgent) => void", required: true }
+      - { name: compact, type: boolean, required: false }
+    states:
+      - name: closed
+        renders: "Trigger button only"
+      - name: loading
+        renders: "Spinner + 'Loading agents...' in dropdown"
+      - name: error
+        renders: "Alert with retry button"
+      - name: empty
+        renders: "'No agents available' or 'No matching agents'"
+      - name: populated
+        renders: "Filtered list of available agents"
+      - name: duplicate
+        renders: "Already-assigned agents at opacity-70 with tooltip"
+    accessibility:
+      - "NEEDS: role='listbox' on option container"
+      - "NEEDS: role='option' on each agent item"
+      - "NEEDS: Focus trap within dropdown"
+      - "NEEDS: Keyboard arrow navigation"
+      - "NEEDS: aria-busy during loading"
+      - "NEEDS: aria-expanded on trigger"
+    design_tokens:
+      - "celestial-fade-in for entrance"
+      - "bg-popover shadow-lg for dropdown"
+      - "z-[9999] for portal positioning"
+    audit_requirements:
+      - "Replace hardcoded source badge colors (bg-blue-100, bg-green-100) with design tokens"
+      - "Add ARIA roles to option list"
+      - "Add focus trap"
+      - "Verify z-index doesn't conflict with modals"
+
+  AgentDragOverlay:
+    path: frontend/src/components/board/AgentDragOverlay.tsx
+    description: >
+      Floating preview of a dragged agent rendered in DragOverlay portal.
+    props:
+      - { name: agent, type: AgentAssignment, required: true }
+      - { name: availableAgents, type: "AvailableAgent[]", required: false }
+      - { name: width, type: "number | null", required: false }
+    accessibility:
+      - "NEEDS: Drag handle braille character should be aria-hidden='true'"
+    design_tokens:
+      - "border-primary/50 bg-card shadow-lg"
+      - "min-w-[280px] max-w-[340px] hardcoded"
+    audit_requirements:
+      - "Add aria-hidden to decorative drag handle"
+      - "Verify hardcoded width constraints match design scale"
+
+  AgentSaveBar:
+    path: frontend/src/components/board/AgentSaveBar.tsx
+    description: >
+      Floating action bar displayed when column assignments have unsaved changes.
+      Shows Save and Discard buttons with error display.
+    props:
+      - { name: onSave, type: "() => void", required: true }
+      - { name: onDiscard, type: "() => void", required: true }
+      - { name: isSaving, type: boolean, required: true }
+      - { name: error, type: "string | null", required: true }
+    states:
+      - name: idle
+        renders: "Save + Discard buttons with 'Unsaved changes' text"
+      - name: saving
+        renders: "Buttons disabled, 'Saving...' text"
+      - name: error
+        renders: "Error badge displayed inline"
+    accessibility:
+      - "NEEDS: role='status' aria-live='polite' on container"
+      - "NEEDS: Keyboard shortcut hint (e.g., Ctrl+S)"
+    design_tokens:
+      - "celestial-panel for container"
+      - "animate-in slide-in-from-bottom-4 for entrance"
+      - "text-destructive bg-destructive/10 for error badge"
+    audit_requirements:
+      - "Add role='status' and aria-live='polite'"
+      - "Consider adding Ctrl+S keyboard shortcut"
+      - "Error dismissal after timeout or manual action"
+
+  # ─── Shared Components ───
+
+  ThemedAgentIcon:
+    path: frontend/src/components/common/ThemedAgentIcon.tsx
+    description: >
+      Renders a celestial-themed icon for an agent based on slug mapping
+      or explicit icon name override. Falls back to initial letter.
+    props:
+      - { name: slug, type: "string | null", required: false }
+      - { name: agentName, type: string, required: true }
+      - { name: iconName, type: "string | null", required: false }
+      - { name: size, type: "'sm' | 'md' | 'lg'", required: false }
+    audit_requirements:
+      - "Verify slug-to-icon mapping covers all known agent types"
+      - "Fallback chain: explicit iconName → slug mapping → initial letter"

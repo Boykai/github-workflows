@@ -4,11 +4,25 @@
       "type": "http",
       "url": "https://mcp.context7.com/mcp",
       "headers": {
-        "CONTEXT7_API_KEY": "$CONTEXT7_API_KEY"
+        "CONTEXT7_API_KEY": "$COPILOT_MCP_CONTEXT7_API_KEY"
       },
       "tools": [
         "resolve-library-id",
         "get-library-docs"
+      ]
+    },
+    "CodeGraphContext": {
+      "type": "local",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "codegraphcontext",
+        "cgc",
+        "mcp",
+        "start"
+      ],
+      "tools": [
+        "*"
       ]
     }
   }

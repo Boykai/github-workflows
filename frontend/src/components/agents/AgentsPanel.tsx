@@ -239,7 +239,7 @@ export function AgentsPanel({
       </div>
 
       {saveResult && (
-        <div className="rounded-[1.25rem] border border-emerald-300/40 bg-emerald-50/80 p-4 text-sm text-emerald-900 dark:border-emerald-700/40 dark:bg-emerald-950/20 dark:text-emerald-200">
+        <div className="solar-chip-success rounded-[1.25rem] p-4 text-sm">
           Saved changes for <span className="font-semibold">{saveResult.agentName}</span>. A pull
           request was opened with the updated agent files.{' '}
           <a

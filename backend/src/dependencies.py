@@ -99,6 +99,32 @@ async def require_admin(
     admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
     if admin_user_id is None:
+        from src.config import get_settings
+
+        settings = get_settings()
+        if settings.admin_github_user_id:
+            # Explicit admin designation via ADMIN_GITHUB_USER_ID env var
+            if session.github_user_id != settings.admin_github_user_id:
+                raise AuthorizationError("Admin access required")
+            # Set the configured user as admin in the database
+            await db.execute(
+                "UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1",
+                (settings.admin_github_user_id,),
+            )
+            await db.commit()
+            logger.info(
+                "Set configured admin user %s (%s) from ADMIN_GITHUB_USER_ID env var",
+                session.github_username,
+                session.github_user_id,
+            )
+            return session
+        # Fallback: auto-promote first user (with warning for production)
+        logger.warning(
+            "ADMIN_GITHUB_USER_ID not set — auto-promoting first user %s (%s). "
+            "Set ADMIN_GITHUB_USER_ID in environment for production.",
+            session.github_username,
+            session.github_user_id,
+        )
         # Auto-promote first authenticated user atomically to prevent race conditions
         cursor = await db.execute(
             "UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1 AND admin_github_user_id IS NULL",

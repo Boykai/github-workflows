@@ -91,3 +91,12 @@ class McpLimitExceededError(AppException):
 
     def __init__(self, message: str):
         super().__init__(message, status_code=status.HTTP_409_CONFLICT)
+
+
+class DatabaseError(AppException):
+    """Database or persistence error."""
+
+    def __init__(self, message: str = "Database error", details: dict | None = None):
+        super().__init__(
+            message, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details=details
+        )

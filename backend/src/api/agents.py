@@ -53,9 +53,10 @@ async def list_agents(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     return await service.list_agents(
         project_id=project_id,
@@ -75,9 +76,10 @@ async def list_pending_agents(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     return await service.list_pending_agents(
         project_id=project_id,
@@ -97,9 +99,10 @@ async def purge_pending_agents(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     logger.info(
         "Purging stale pending agents for project %s (%s/%s)",
@@ -128,9 +131,10 @@ async def bulk_update_models(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     return await service.bulk_update_models(
         project_id=project_id,
@@ -161,9 +165,10 @@ async def create_agent(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     try:
         return await service.create_agent(
@@ -199,9 +204,10 @@ async def update_agent(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     try:
         return await service.update_agent(
@@ -237,9 +243,10 @@ async def delete_agent(
 
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s: %s", project_id, exc)
-        raise ValidationError("Could not resolve repository for this project") from exc
+        handle_service_error(exc, "resolve repository", ValidationError)
 
     try:
         return await service.delete_agent(
@@ -288,6 +295,50 @@ async def agent_chat(
 
 
 # ── Agent-Tool Associations ──
+
+
+# ── Sync MCPs ──
+
+
+@router.post(
+    "/{project_id}/sync-mcps",
+    dependencies=[Depends(verify_project_access)],
+)
+async def sync_agent_mcps_endpoint(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Synchronize MCP configurations across all agent files in the repository."""
+    from src.services.agents.agent_mcp_sync import sync_agent_mcps
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
+    except Exception as exc:
+        handle_service_error(exc, "resolve repository", ValidationError)
+
+    result = await sync_agent_mcps(
+        owner=owner,
+        repo=repo,
+        project_id=project_id,
+        access_token=session.access_token,
+        trigger="manual",
+        db=get_db(),
+    )
+
+    return {
+        "success": result.success,
+        "files_updated": result.files_updated,
+        "files_skipped": result.files_skipped,
+        "files_unchanged": result.files_unchanged,
+        "warnings": result.warnings,
+        "errors": result.errors,
+        "synced_mcps": result.synced_mcps,
+    }
+
+
+# ── Agent-Tool Associations (endpoints below) ──
 
 
 @router.get(

@@ -4,6 +4,7 @@
  */
 
 import { useMemo } from 'react';
+import { TriangleAlert } from 'lucide-react';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
@@ -51,14 +52,14 @@ export function AgentsPage() {
 
   const { boardData, boardLoading } = useProjectBoard({ selectedProjectId: projectId });
   const agentConfig = useAgentConfig(projectId);
-  const { data: pipelineList } = useQuery({
+  const { data: pipelineList, isError: pipelineListError } = useQuery({
     queryKey: ['pipelines', 'list', projectId ?? ''],
     queryFn: () => pipelinesApi.list(projectId!),
     enabled: !!projectId,
     staleTime: 30_000,
   });
 
-  const { data: pipelineAssignment } = useQuery({
+  const { data: pipelineAssignment, isError: pipelineAssignmentError } = useQuery({
     queryKey: ['pipelines', 'assignment', projectId ?? ''],
     queryFn: () => pipelinesApi.getAssignment(projectId!),
     enabled: !!projectId,
@@ -174,6 +175,12 @@ export function AgentsPage() {
                 rather than improvised.
               </p>
             </div>
+            {(pipelineListError || pipelineAssignmentError) && (
+              <div className="flex items-center gap-2 rounded-[1.25rem] border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
+                <TriangleAlert className="h-4 w-4 shrink-0" />
+                <span>Failed to load pipeline data. Assignment details may be incomplete.</span>
+              </div>
+            )}
             {boardLoading ? (
               <div className="celestial-panel flex items-center justify-center rounded-[1.3rem] border border-border/70 p-6 sm:rounded-[1.4rem] sm:p-8">
                 <CelestialLoader size="sm" label="Loading agents…" />

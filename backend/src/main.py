@@ -5,6 +5,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import aiosqlite
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -167,6 +168,54 @@ async def _auto_start_copilot_polling() -> bool:
         request_id_var.reset(correlation_token)
 
 
+async def _startup_agent_mcp_sync(db: aiosqlite.Connection) -> None:
+    """Run agent MCP sync on startup to reconcile drift (FR-009).
+
+    Uses the most recent user session to obtain credentials and project
+    context.  If no session is available, the sync is silently skipped.
+    """
+    from src.services.agents.agent_mcp_sync import sync_agent_mcps
+    from src.services.session_store import get_session
+    from src.utils import resolve_repository
+
+    cursor = await db.execute(
+        """
+        SELECT session_id FROM user_sessions
+        WHERE selected_project_id IS NOT NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+        """,
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        logger.debug("No user session found — skipping startup agent MCP sync")
+        return
+
+    session = await get_session(db, row["session_id"])
+    if not session or not session.selected_project_id:
+        return
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
+    except Exception as e:
+        logger.debug("Could not resolve repo for startup MCP sync: %s", e)
+        return
+
+    await sync_agent_mcps(
+        owner=owner,
+        repo=repo,
+        project_id=session.selected_project_id,
+        access_token=session.access_token,
+        trigger="startup",
+        db=db,
+    )
+    logger.info(
+        "Startup agent MCP sync completed for %s/%s",
+        owner,
+        repo,
+    )
+
+
 async def _polling_watchdog_loop() -> None:
     """Watchdog task: restart the Copilot polling loop if it stops unexpectedly.
 
@@ -315,6 +364,11 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         await seed_global_settings(db)
         _app.state.db = db
 
+        # Load persisted pipeline state from SQLite into L1 caches
+        from src.services.pipeline_state_store import init_pipeline_state_store
+
+        await init_pipeline_state_store(db)
+
         # Register singleton services on app.state for DI (see dependencies.py)
         from src.services.github_projects import github_projects_service
         from src.services.websocket import connection_manager
@@ -334,6 +388,17 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
             await _auto_start_copilot_polling()
         except Exception as e:
             logger.exception("Failed to auto-start Copilot polling (non-fatal): %s", e)
+
+        # Agent MCP sync on startup — reconcile any drift between Tools page
+        # state and agent files (FR-009).  Uses the most recent user session.
+        # Run as a background task so it does not block app startup.
+        async def _run_startup_agent_mcp_sync_background() -> None:
+            try:
+                await _startup_agent_mcp_sync(db)
+            except Exception as e:
+                logger.warning("Startup agent MCP sync failed (non-fatal): %s", e)
+
+        asyncio.create_task(_run_startup_agent_mcp_sync_background())
 
         # Start polling watchdog — restarts polling if it stops unexpectedly.
         # This is the primary guarantee that the agent pipeline "always recovers".
@@ -387,19 +452,30 @@ def create_app() -> FastAPI:
         redoc_url="/api/redoc" if settings.enable_docs else None,
     )
 
-    # CORS middleware — explicit methods reduce attack surface.
+    # CORS middleware — explicit methods and headers reduce attack surface.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins_list,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-        allow_headers=["*"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "Accept",
+            "X-Request-ID",
+            "X-Requested-With",
+        ],
     )
 
     # Request-ID middleware (must be added after CORS — Starlette LIFO order)
     from src.middleware.request_id import RequestIDMiddleware
 
     app.add_middleware(RequestIDMiddleware)
+
+    # Content Security Policy middleware
+    from src.middleware.csp import CSPMiddleware
+
+    app.add_middleware(CSPMiddleware)
 
     # Rate limiting — slowapi state + exception handler
     from slowapi import _rate_limit_exceeded_handler

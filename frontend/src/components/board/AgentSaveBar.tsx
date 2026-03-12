@@ -14,7 +14,11 @@ interface AgentSaveBarProps {
 
 export function AgentSaveBar({ onSave, onDiscard, isSaving, error }: AgentSaveBarProps) {
   return (
-    <div className="celestial-panel absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full border border-border px-4 py-2 shadow-lg animate-in slide-in-from-bottom-4 fade-in duration-200">
+    <div
+      className="celestial-panel absolute bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-full border border-border px-4 py-2 shadow-lg animate-in slide-in-from-bottom-4 fade-in duration-200"
+      role="status"
+      aria-live="polite"
+    >
       <div className="flex items-center gap-4">
         <span className="text-sm font-medium text-foreground">You have unsaved changes</span>
 
@@ -27,18 +31,20 @@ export function AgentSaveBar({ onSave, onDiscard, isSaving, error }: AgentSaveBa
 
         <div className="flex items-center gap-2">
           <button
-            className="solar-action rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            className="celestial-focus solar-action rounded-full px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={onDiscard}
             disabled={isSaving}
             type="button"
+            aria-label="Discard unsaved changes"
           >
             Discard
           </button>
           <button
-            className="px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="celestial-focus px-3 py-1.5 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={onSave}
             disabled={isSaving}
             type="button"
+            aria-label={isSaving ? 'Saving changes' : 'Save changes'}
           >
             {isSaving ? 'Saving...' : 'Save'}
           </button>

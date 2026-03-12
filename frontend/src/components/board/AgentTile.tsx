@@ -105,6 +105,7 @@ export function AgentTile({
     return (
       <div
         ref={sortableProps?.setNodeRef}
+        role="listitem"
         className={cn('group relative flex items-center gap-2 overflow-hidden rounded-[0.95rem] border px-2 py-1.5 shadow-sm transition-all', isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border/55 bg-[radial-gradient(circle_at_18%_24%,hsl(var(--glow)/0.18),transparent_32%),linear-gradient(180deg,hsl(var(--background)/0.82),hsl(var(--background)/0.92))]', sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : 'hover:border-primary/35 hover:bg-primary/8', sortableProps ? ' cursor-grab active:cursor-grabbing touch-none' : '')}
         style={tileStyle}
         {...(sortableProps?.attributes ?? {})}
@@ -160,10 +161,11 @@ export function AgentTile({
 
         {onClone && (
           <button
-            className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
+            className="celestial-focus flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
             onClick={handleClone}
             onPointerDown={stopDragPointerPropagation}
             title="Clone agent into this pipeline"
+            aria-label={`Clone ${displayName}`}
             type="button"
           >
             <DoubleMoonIcon />
@@ -172,10 +174,11 @@ export function AgentTile({
 
         {onRemove && (
           <button
-            className="flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+            className="celestial-focus flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
             onClick={handleRemove}
             onPointerDown={stopDragPointerPropagation}
             title="Remove agent"
+            aria-label={`Remove ${displayName}`}
             type="button"
           >
             <X className="h-3.5 w-3.5" />
@@ -188,6 +191,7 @@ export function AgentTile({
   return (
     <div
       ref={sortableProps?.setNodeRef}
+      role="listitem"
       className={cn('celestial-panel flex flex-col rounded-md border bg-card shadow-sm', isWarning ? 'border-amber-400/45 bg-amber-500/8' : 'border-border', sortableProps?.isDragging ? 'border-dashed opacity-30 shadow-none' : '', sortableProps ? ' cursor-grab active:cursor-grabbing touch-none' : '')}
       style={tileStyle}
       {...(sortableProps?.attributes ?? {})}
@@ -228,10 +232,11 @@ export function AgentTile({
 
         {/* Expand toggle (T029) */}
         <button
-          className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+          className="celestial-focus solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setIsExpanded(!isExpanded)}
           onPointerDown={stopDragPointerPropagation}
           title={isExpanded ? 'Collapse' : 'Expand'}
+          aria-label={isExpanded ? `Collapse ${displayName} details` : `Expand ${displayName} details`}
           type="button"
         >
           {isExpanded ? '▾' : '▸'}
@@ -239,10 +244,11 @@ export function AgentTile({
 
         {onClone && (
           <button
-            className="solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-primary"
+            className="celestial-focus solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-primary"
             onClick={handleClone}
             onPointerDown={stopDragPointerPropagation}
             title="Clone agent into this pipeline"
+            aria-label={`Clone ${displayName}`}
             type="button"
           >
             <DoubleMoonIcon />
@@ -252,10 +258,11 @@ export function AgentTile({
         {/* Remove button */}
         {onRemove && (
           <button
-            className="w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+            className="celestial-focus w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
             onClick={handleRemove}
             onPointerDown={stopDragPointerPropagation}
             title="Remove agent"
+            aria-label={`Remove ${displayName}`}
             type="button"
           >
             <X className="h-3.5 w-3.5" />
