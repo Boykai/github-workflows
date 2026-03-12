@@ -52,9 +52,7 @@ class TestValidatePipelineLabels:
             FakeStep("speckit.tasks", "🔄 Active"),
         ]
 
-        with patch(
-            "src.services.copilot_polling.state_validation._cp"
-        ) as mock_cp:
+        with patch("src.services.copilot_polling.state_validation._cp") as mock_cp:
             mock_cp.github_projects_service = AsyncMock()
             mock_cp.github_projects_service.update_issue_state = AsyncMock(return_value=True)
 
@@ -80,9 +78,7 @@ class TestValidatePipelineLabels:
         labels = [{"name": "pipeline:speckit-full", "color": "0052cc"}]
         steps = [FakeStep("speckit.specify", "🔄 Active")]
 
-        with patch(
-            "src.services.copilot_polling.state_validation._cp"
-        ) as mock_cp:
+        with patch("src.services.copilot_polling.state_validation._cp") as mock_cp:
             mock_cp.github_projects_service = AsyncMock()
             mock_cp.github_projects_service.update_issue_state = AsyncMock(return_value=True)
 
@@ -109,9 +105,7 @@ class TestValidatePipelineLabels:
             FakeStep("speckit.plan", "✅ Done"),
         ]
 
-        with patch(
-            "src.services.copilot_polling.state_validation._cp"
-        ) as mock_cp:
+        with patch("src.services.copilot_polling.state_validation._cp") as mock_cp:
             mock_cp.github_projects_service = AsyncMock()
             mock_cp.github_projects_service.update_issue_state = AsyncMock(return_value=True)
 

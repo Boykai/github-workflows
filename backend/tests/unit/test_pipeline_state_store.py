@@ -108,7 +108,12 @@ CREATE TABLE IF NOT EXISTS agent_trigger_inflight (
 
 async def _create_tables(db: aiosqlite.Connection) -> None:
     """Create all pipeline state store tables."""
-    for ddl in (_PIPELINE_STATES_DDL, _MAIN_BRANCHES_DDL, _SUB_ISSUE_MAP_DDL, _TRIGGER_INFLIGHT_DDL):
+    for ddl in (
+        _PIPELINE_STATES_DDL,
+        _MAIN_BRANCHES_DDL,
+        _SUB_ISSUE_MAP_DDL,
+        _TRIGGER_INFLIGHT_DDL,
+    ):
         await db.executescript(ddl)
     await db.commit()
 
@@ -154,25 +159,39 @@ class TestInitPipelineStateStore:
     async def test_init_loads_pipeline_states(self, db):
         """Pipeline states pre-seeded in SQLite are loaded into L1."""
         now = datetime(2026, 3, 12, 9, 0, 0, tzinfo=UTC).isoformat()
-        metadata = json.dumps({
-            "agents": ["speckit.specify"],
-            "current_agent_index": 0,
-            "completed_agents": [],
-            "started_at": now,
-            "error": None,
-            "agent_assigned_sha": "sha1",
-            "original_status": None,
-            "target_status": None,
-            "execution_mode": "sequential",
-            "parallel_agent_statuses": {},
-            "failed_agents": [],
-        })
+        metadata = json.dumps(
+            {
+                "agents": ["speckit.specify"],
+                "current_agent_index": 0,
+                "completed_agents": [],
+                "started_at": now,
+                "error": None,
+                "agent_assigned_sha": "sha1",
+                "original_status": None,
+                "target_status": None,
+                "execution_mode": "sequential",
+                "parallel_agent_statuses": {},
+                "failed_agents": [],
+            }
+        )
         await db.execute(
             """INSERT INTO pipeline_states
                (issue_number, project_id, status, agent_name, agent_instance_id,
                 pr_number, pr_url, sub_issues, metadata, created_at, updated_at)
                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-            (100, "PVT_proj1", "In Progress", "speckit.specify", None, None, None, None, metadata, now, now),
+            (
+                100,
+                "PVT_proj1",
+                "In Progress",
+                "speckit.specify",
+                None,
+                None,
+                None,
+                None,
+                metadata,
+                now,
+                now,
+            ),
         )
         await db.commit()
 
@@ -336,7 +355,9 @@ class TestPipelineStateCRUD:
         cached = store.get_pipeline_state(100)
         assert cached.status == "In Review"
 
-        cursor = await db.execute("SELECT COUNT(*) FROM pipeline_states WHERE issue_number = ?", (100,))
+        cursor = await db.execute(
+            "SELECT COUNT(*) FROM pipeline_states WHERE issue_number = ?", (100,)
+        )
         row = await cursor.fetchone()
         assert row[0] == 1  # Only one row — upsert, not insert
 
@@ -354,7 +375,9 @@ class TestPipelineStateCRUD:
         await store.init_pipeline_state_store(db)
         state = _make_pipeline_state(
             issue_number=100,
-            agent_sub_issues={"tester": {"number": 101, "node_id": "SI_abc", "url": "https://example.com"}},
+            agent_sub_issues={
+                "tester": {"number": 101, "node_id": "SI_abc", "url": "https://example.com"}
+            },
         )
         await store.set_pipeline_state(100, state)
 
@@ -417,7 +440,9 @@ class TestMainBranchCRUD:
         await store.delete_main_branch(100)
 
         assert store.get_main_branch(100) is None
-        cursor = await db.execute("SELECT * FROM issue_main_branches WHERE issue_number = ?", (100,))
+        cursor = await db.execute(
+            "SELECT * FROM issue_main_branches WHERE issue_number = ?", (100,)
+        )
         assert await cursor.fetchone() is None
 
     async def test_async_get_falls_back_to_sqlite(self, db):
@@ -470,8 +495,12 @@ class TestSubIssueMapCRUD:
     async def test_set_merges_new_agents(self, db):
         """Second call to set_sub_issue_map merges into existing mappings."""
         await store.init_pipeline_state_store(db)
-        await store.set_sub_issue_map(100, {"tester": {"number": 101, "node_id": "SI_a", "url": ""}})
-        await store.set_sub_issue_map(100, {"linter": {"number": 102, "node_id": "SI_b", "url": ""}})
+        await store.set_sub_issue_map(
+            100, {"tester": {"number": 101, "node_id": "SI_a", "url": ""}}
+        )
+        await store.set_sub_issue_map(
+            100, {"linter": {"number": 102, "node_id": "SI_b", "url": ""}}
+        )
 
         result = store.get_sub_issue_map(100)
         assert "tester" in result
@@ -479,20 +508,28 @@ class TestSubIssueMapCRUD:
 
     async def test_delete_clears_both_layers(self, db):
         await store.init_pipeline_state_store(db)
-        await store.set_sub_issue_map(100, {"tester": {"number": 101, "node_id": "SI_a", "url": ""}})
+        await store.set_sub_issue_map(
+            100, {"tester": {"number": 101, "node_id": "SI_a", "url": ""}}
+        )
 
         await store.delete_sub_issue_map(100)
 
         assert store.get_sub_issue_map(100) == {}
-        cursor = await db.execute("SELECT * FROM issue_sub_issue_map WHERE issue_number = ?", (100,))
+        cursor = await db.execute(
+            "SELECT * FROM issue_sub_issue_map WHERE issue_number = ?", (100,)
+        )
         assert await cursor.fetchone() is None
 
     async def test_sqlite_persistence(self, db):
         """Sub-issue mappings are persisted to SQLite."""
         await store.init_pipeline_state_store(db)
-        await store.set_sub_issue_map(100, {"tester": {"number": 101, "node_id": "SI_a", "url": "http://ex.com"}})
+        await store.set_sub_issue_map(
+            100, {"tester": {"number": 101, "node_id": "SI_a", "url": "http://ex.com"}}
+        )
 
-        cursor = await db.execute("SELECT * FROM issue_sub_issue_map WHERE issue_number = ?", (100,))
+        cursor = await db.execute(
+            "SELECT * FROM issue_sub_issue_map WHERE issue_number = ?", (100,)
+        )
         row = await cursor.fetchone()
         assert row is not None
         assert row["agent_name"] == "tester"
@@ -527,7 +564,9 @@ class TestTriggerInflight:
         await store.delete_trigger_inflight("100:tester")
 
         assert store.get_trigger_inflight("100:tester") is None
-        cursor = await db.execute("SELECT * FROM agent_trigger_inflight WHERE trigger_key = ?", ("100:tester",))
+        cursor = await db.execute(
+            "SELECT * FROM agent_trigger_inflight WHERE trigger_key = ?", ("100:tester",)
+        )
         assert await cursor.fetchone() is None
 
     async def test_clear_all_removes_everything(self, db):
@@ -547,7 +586,9 @@ class TestTriggerInflight:
         ts = datetime(2026, 3, 12, 10, 0, 0, tzinfo=UTC)
         await store.set_trigger_inflight("100:tester", ts)
 
-        cursor = await db.execute("SELECT * FROM agent_trigger_inflight WHERE trigger_key = ?", ("100:tester",))
+        cursor = await db.execute(
+            "SELECT * FROM agent_trigger_inflight WHERE trigger_key = ?", ("100:tester",)
+        )
         row = await cursor.fetchone()
         assert row is not None
         assert row["started_at"] == ts.isoformat()
@@ -567,7 +608,9 @@ class TestErrorHandling:
         state = _make_pipeline_state(issue_number=100)
 
         # Simulate SQLite write failure
-        with patch.object(store._db, "execute", new_callable=AsyncMock, side_effect=aiosqlite.Error("disk full")):
+        with patch.object(
+            store._db, "execute", new_callable=AsyncMock, side_effect=aiosqlite.Error("disk full")
+        ):
             await store.set_pipeline_state(100, state)
 
         # L1 should NOT be populated due to write failure
@@ -577,7 +620,9 @@ class TestErrorHandling:
         """If SQLite read fails during async fallback, returns None gracefully."""
         await store.init_pipeline_state_store(db)
 
-        with patch.object(store._db, "execute", new_callable=AsyncMock, side_effect=aiosqlite.Error("read error")):
+        with patch.object(
+            store._db, "execute", new_callable=AsyncMock, side_effect=aiosqlite.Error("read error")
+        ):
             result = await store.get_pipeline_state_async(100)
 
         assert result is None
@@ -588,7 +633,9 @@ class TestErrorHandling:
         state = _make_pipeline_state(issue_number=100)
         await store.set_pipeline_state(100, state)
 
-        with patch.object(store._db, "execute", new_callable=AsyncMock, side_effect=aiosqlite.Error("write error")):
+        with patch.object(
+            store._db, "execute", new_callable=AsyncMock, side_effect=aiosqlite.Error("write error")
+        ):
             await store.delete_pipeline_state(100)
 
         # L1 is cleared regardless
