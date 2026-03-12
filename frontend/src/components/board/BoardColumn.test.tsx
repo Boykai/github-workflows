@@ -73,4 +73,12 @@ describe('BoardColumn', () => {
     await userEvent.setup().click(screen.getByText('Clickable Issue'));
     expect(onCardClick).toHaveBeenCalledWith(item);
   });
+
+  it('renders the "Coming soon" button as disabled with aria-disabled', () => {
+    render(<BoardColumn column={createColumn()} onCardClick={vi.fn()} />);
+
+    const btn = screen.getByTitle('Coming soon');
+    expect(btn).toBeDisabled();
+    expect(btn).toHaveAttribute('aria-disabled', 'true');
+  });
 });

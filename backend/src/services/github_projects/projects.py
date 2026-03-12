@@ -196,6 +196,16 @@ class ProjectsMixin:
                 repo_owner = repo_info.get("owner", {}).get("login") if repo_info else None
                 repo_name = repo_info.get("name") if repo_info else None
 
+                # Extract labels if available
+                labels_data = content.get("labels")
+                label_list = None
+                if labels_data:
+                    label_list = [
+                        {"name": ln.get("name", ""), "color": ln.get("color", "")}
+                        for ln in labels_data.get("nodes", [])
+                        if ln
+                    ]
+
                 all_tasks.append(
                     Task(
                         project_id=project_id,
@@ -209,6 +219,7 @@ class ProjectsMixin:
                         description=content.get("body"),
                         status=(status_value.get("name", "Todo") if status_value else "Todo"),
                         status_option_id=(status_value.get("optionId", "") if status_value else ""),
+                        labels=label_list,
                     )
                 )
 

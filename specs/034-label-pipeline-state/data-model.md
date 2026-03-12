@@ -237,11 +237,9 @@ def _build_labels(
 async def assign_agent_for_status(
     self,
     ctx: WorkflowContext,
-    issue_number: int,
     status: str,
-    agents: list[str],
-    ...
-) -> dict[str, Any] | None:
+    agent_index: int = 0,
+) -> bool:
 ```
 
 **New behavior**: After assigning the new agent:

@@ -144,7 +144,7 @@ The recovery subsystem uses labels to reduce API call overhead during self-heali
 ### Assumptions
 
 - The existing `update_issue_state()` function in `issues.py` supports `labels_add` and `labels_remove` parameters and will be used for all label operations (no new GitHub API integration needed).
-- The GraphQL board query already fetches `labels(first: 20)` with `id`, `name`, and `color` fields — no changes to the query are needed.
+- The `BOARD_GET_PROJECT_ITEMS_QUERY` already fetches `labels(first: 20)` for the board view. The `GET_PROJECT_ITEMS_QUERY` used by `get_project_items()` for polling must be extended with the same `labels(first: 20)` selection to propagate label data to `Task` objects.
 - Pipeline configuration names and agent slugs are stable identifiers that do not change during a pipeline's lifecycle.
 - The repository has the `repo` scope required to create and manage labels.
 - Label creation at project connect time is preferred over lazy creation to ensure consistent colors and descriptions.
@@ -154,7 +154,7 @@ The recovery subsystem uses labels to reduce API call overhead during self-heali
 ### Dependencies
 
 - Existing `update_issue_state()` function in `backend/src/services/github_projects/issues.py` for label add/remove operations.
-- Existing GraphQL board query in `backend/src/services/github_projects/board.py` that already fetches labels.
+- `GET_PROJECT_ITEMS_QUERY` in `backend/src/services/github_projects/graphql.py` extended with `labels(first: 20)` to propagate label data through the polling path.
 - Existing `PipelineState` model and pipeline configuration system.
 - Existing agent tracking table parsing utilities in `backend/src/services/agent_tracking.py`.
 

@@ -230,6 +230,11 @@
     --priority-p1: 25 95% 53%;
     --priority-p2: 217 91% 60%;
     --priority-p3: 142 71% 45%;
+
+    --sync-connected: 160 84% 39%;
+    --sync-polling: 38 92% 50%;
+    --sync-connecting: 199 89% 48%;
+    --sync-disconnected: 0 84% 60%;
   }
 
   .dark {
@@ -273,6 +278,11 @@
     --priority-p1: 25 95% 53%;
     --priority-p2: 217 91% 60%;
     --priority-p3: 142 71% 45%;
+
+    --sync-connected: 160 84% 47%;
+    --sync-polling: 38 92% 56%;
+    --sync-connecting: 199 89% 56%;
+    --sync-disconnected: 0 84% 65%;
   }
 }
 
@@ -1013,6 +1023,10 @@
       0 10px 20px rgb(139 92 246 / 0.12);
   }
 
+  .solar-text-success {
+    color: rgb(4 120 87);
+  }
+
   .solar-action {
     border: 1px solid hsl(var(--border) / 0.88);
     background: linear-gradient(
@@ -1391,6 +1405,10 @@
   }
 
   .dark .solar-chip-success {
+    color: rgb(110 231 183);
+  }
+
+  .dark .solar-text-success {
     color: rgb(110 231 183);
   }
 

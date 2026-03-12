@@ -262,21 +262,21 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
           <div className="mt-6 flex justify-end gap-2">
             <button
               type="button"
-              className="solar-action rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="celestial-focus solar-action rounded-full px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
               onClick={() => setShowCloseConfirm(false)}
             >
               Cancel
             </button>
             <button
               type="button"
-              className="rounded-full bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
+              className="celestial-focus rounded-full bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive transition-colors hover:bg-destructive/20"
               onClick={resetAndClose}
             >
               Discard
             </button>
             <button
               type="button"
-              className="rounded-full bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="celestial-focus rounded-full bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               onClick={async () => {
                 setShowCloseConfirm(false);
                 await handleSave();
@@ -321,7 +321,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             </a>
             <button
               type="button"
-              className="mt-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+              className="celestial-focus mt-2 rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
               onClick={resetAndClose}
             >
               Close
@@ -360,7 +360,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             <button
               type="button"
               onClick={handleRequestClose}
-              className="rounded-full border border-border/70 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              className="celestial-focus rounded-full border border-border/70 px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
               aria-label="Close"
             >
               Close
@@ -370,7 +370,7 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
 
         <div className="overflow-y-auto px-6 py-5">
           {isDirty && (
-            <div className="mb-4 rounded-[1rem] border border-amber-300/60 bg-amber-50/80 p-3 text-sm text-amber-900 dark:border-amber-600/50 dark:bg-amber-950/30 dark:text-amber-200">
+            <div className="solar-chip-warning mb-4 rounded-[1rem] p-3 text-sm">
               You have unsaved changes.
             </div>
           )}
@@ -489,14 +489,14 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
-                className="solar-action rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                className="celestial-focus solar-action rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
                 onClick={handleRequestClose}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                className="celestial-focus rounded-full bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
                 disabled={isPending}
               >
                 {isPending ? 'Saving…' : isEditMode ? 'Update Agent' : 'Create Agent'}

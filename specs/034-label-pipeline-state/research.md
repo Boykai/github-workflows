@@ -14,9 +14,9 @@
 - `backend/src/services/github_projects/issues.py` provides `update_issue_state()` with `labels_add` and `labels_remove` parameters — this is the only label write API.
 - `backend/src/models/board.py` defines `Label(BaseModel)` with `id`, `name`, `color` fields. `BoardItem` has `labels: list[Label]`.
 - `backend/src/models/task.py` defines `Task(BaseModel)` with NO labels field. `get_project_items()` in `projects.py` creates `Task` objects without mapping labels from the underlying GraphQL data.
-- The GraphQL board query already fetches `labels(first: 20) { nodes { id name color } }` for each issue — data is available but not propagated to `Task`.
+- `BOARD_GET_PROJECT_ITEMS_QUERY` (used for the board view) already fetches `labels(first: 20) { nodes { id name color } }` for each issue. However, `GET_PROJECT_ITEMS_QUERY` (used by `get_project_items()` for polling) does not currently include labels — it must be extended with the same `labels(first: 20)` selection to propagate label data to `Task` objects.
 
-**Decision**: Add pipeline label constants (`PIPELINE_LABEL_PREFIX`, `AGENT_LABEL_PREFIX`, `ACTIVE_LABEL`, `STALLED_LABEL`) and pure-function utilities (`extract_pipeline_label()`, `extract_agent_label()`, `build_agent_label()`, `build_pipeline_label()`) to `constants.py`. This keeps label logic centralized alongside existing constants.
+**Decision**: Add pipeline label constants (`PIPELINE_LABEL_PREFIX`, `AGENT_LABEL_PREFIX`, `ACTIVE_LABEL`, `STALLED_LABEL`) and pure-function utilities (`extract_pipeline_config()`, `extract_agent_slug()`, `build_agent_label()`, `build_pipeline_label()`) to `constants.py`. This keeps label logic centralized alongside existing constants.
 
 **Rationale**: 
 1. `constants.py` already houses `BLOCKING_LABEL`, `LABELS`, and `with_blocking_label()` — pipeline labels are the same category.
@@ -44,7 +44,7 @@
 **Rationale**:
 1. The existing function already handles the two-step GitHub API limitation.
 2. Polling cycle ensures eventual consistency within 60 seconds.
-3. The fast-path reader should handle the edge case of multiple `agent:` labels by selecting the most recently added one (last in list).
+3. The fast-path reader should handle the edge case of multiple `agent:` labels by selecting the first match (consistent with contracts/label-fast-path.md and the `find_agent_label()` implementation).
 4. Building a custom atomic swap would require the GraphQL mutations API, adding complexity without meaningful benefit.
 
 **Alternatives Considered**:

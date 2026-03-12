@@ -73,7 +73,7 @@ export function ToolsEditor({
               <span className="flex-1 truncate text-sm">{tool}</span>
               <button
                 type="button"
-                className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                className="celestial-focus p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
                 onClick={() => moveUp(index)}
                 disabled={index === 0}
                 aria-label={`Move ${tool} up`}
@@ -82,7 +82,7 @@ export function ToolsEditor({
               </button>
               <button
                 type="button"
-                className="p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                className="celestial-focus p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
                 onClick={() => moveDown(index)}
                 disabled={index === tools.length - 1}
                 aria-label={`Move ${tool} down`}
@@ -91,7 +91,7 @@ export function ToolsEditor({
               </button>
               <button
                 type="button"
-                className="p-0.5 text-muted-foreground hover:text-destructive"
+                className="celestial-focus p-0.5 text-muted-foreground hover:text-destructive"
                 onClick={() => remove(index)}
                 aria-label={`Remove ${tool}`}
               >
@@ -106,7 +106,7 @@ export function ToolsEditor({
 
       <button
         type="button"
-        className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50"
+        className="celestial-focus mt-2 inline-flex items-center gap-1.5 rounded-md border border-border/60 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50"
         onClick={() => setShowSelector(true)}
       >
         <Plus className="h-4 w-4" />

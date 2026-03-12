@@ -161,7 +161,7 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {isDirty && (
-              <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-900 dark:border-amber-600/50 dark:bg-amber-950/30 dark:text-amber-200">
+              <span className="solar-chip-warning rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
                 Unsaved changes
               </span>
             )}

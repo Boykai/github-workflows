@@ -28,7 +28,7 @@ export function AgentIconCatalog({
           type="button"
           onClick={() => onSelect(null)}
           className={cn(
-            'moonwell flex min-h-28 flex-col items-center justify-center gap-2 rounded-[1rem] border px-3 py-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/35',
+            'celestial-focus moonwell flex min-h-28 flex-col items-center justify-center gap-2 rounded-[1rem] border px-3 py-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/35',
             !selectedIconName ? 'border-primary/40 ring-1 ring-primary/20' : 'border-border/70'
           )}
         >
@@ -49,7 +49,7 @@ export function AgentIconCatalog({
             type="button"
             onClick={() => onSelect(icon.id)}
             className={cn(
-              'moonwell flex min-h-28 flex-col items-center justify-center gap-2 rounded-[1rem] border px-3 py-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/35',
+              'celestial-focus moonwell flex min-h-28 flex-col items-center justify-center gap-2 rounded-[1rem] border px-3 py-3 text-center transition-all hover:-translate-y-0.5 hover:border-primary/35',
               selectedIconName === icon.id
                 ? 'border-primary/40 ring-1 ring-primary/20'
                 : 'border-border/70'

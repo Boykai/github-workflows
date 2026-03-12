@@ -54,7 +54,7 @@ function SubIssueStateIcon({ state }: { state: string }) {
   );
 }
 
-function SubIssueRow({
+const SubIssueRow = memo(function SubIssueRow({
   subIssue,
   availableAgents,
 }: {
@@ -89,7 +89,7 @@ function SubIssueRow({
       <span className="text-muted-foreground ml-auto">#{subIssue.number}</span>
     </a>
   );
-}
+});
 
 const FALLBACK_LABEL_COLOR = 'd1d5db';
 
@@ -117,6 +117,13 @@ export const IssueCard = memo(function IssueCard({
   const labels = item.labels ?? [];
   const priorityName = item.priority?.name ?? '';
   const priorityConfig = PRIORITY_COLORS[priorityName] ?? PRIORITY_COLORS.P2;
+
+  // Parse pipeline-specific labels
+  const agentLabel = labels.find((l) => l.name.startsWith('agent:'));
+  const pipelineLabel = labels.find((l) => l.name.startsWith('pipeline:'));
+  const isStalled = labels.some((l) => l.name === 'stalled');
+  const agentSlug = agentLabel ? agentLabel.name.slice('agent:'.length) : null;
+  const pipelineConfig = pipelineLabel ? pipelineLabel.name.slice('pipeline:'.length) : null;
 
   // Truncate body to ~80 chars for description snippet
   const snippet = item.body
@@ -155,6 +162,46 @@ export const IssueCard = memo(function IssueCard({
 
       {/* Title */}
       <div className="text-sm font-semibold leading-snug text-foreground">{item.title}</div>
+
+      {/* Pipeline Status Badges */}
+      {(agentSlug || pipelineConfig || isStalled) && (
+        <div className="flex flex-wrap items-center gap-1">
+          {pipelineConfig && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px] font-semibold truncate max-w-[120px]"
+              style={{
+                backgroundColor: '#0052cc18',
+                color: '#0052cc',
+                boxShadow: 'inset 0 0 0 1px #0052cc40',
+              }}
+              title={`Pipeline: ${pipelineConfig}`}
+            >
+              {pipelineConfig}
+            </span>
+          )}
+          {agentSlug && (
+            <span
+              className="rounded-full px-2 py-0.5 text-[10px] font-semibold truncate max-w-[120px]"
+              style={{
+                backgroundColor: '#7057ff18',
+                color: '#7057ff',
+                boxShadow: 'inset 0 0 0 1px #7057ff40',
+              }}
+              title={`Active agent: ${agentSlug}`}
+            >
+              🤖 {agentSlug}
+            </span>
+          )}
+          {isStalled && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full border border-red-500/30 bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400"
+              title="Pipeline is stalled"
+            >
+              ⚠ Stalled
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Description snippet */}
       {snippet && (
@@ -200,6 +247,7 @@ export const IssueCard = memo(function IssueCard({
               setIsSubIssuesExpanded(!isSubIssuesExpanded);
             }}
             type="button"
+            aria-expanded={isSubIssuesExpanded}
           >
             {isSubIssuesExpanded ? (
               <ChevronDown className="h-3.5 w-3.5" />

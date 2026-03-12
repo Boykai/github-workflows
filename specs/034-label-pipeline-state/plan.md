@@ -89,8 +89,9 @@ backend/
 │   │   ├── github_projects/
 │   │   │   ├── issues.py                         # update_issue_state() (existing, no changes)
 │   │   │   ├── board.py                          # Label parsing (existing, no changes)
-│   │   │   └── projects.py                       # Pass labels from BoardItem to Task
-│   │   └── agent_tracking.py                     # Simplified self-heal with pipeline: label
+│   │   │   ├── graphql.py                        # GET_PROJECT_ITEMS_QUERY extended with labels(first: 20)
+│   │   │   └── projects.py                       # Pass labels from GraphQL response to Task
+│   │   └── copilot_polling/pipeline.py           # _self_heal_tracking_table() simplified with pipeline: label
 │   └── api/
 │       └── projects.py                           # Expose labels in task API responses
 └── tests/
@@ -105,7 +106,7 @@ frontend/
 │   ├── components/
 │   │   └── board/
 │   │       ├── BoardToolbar.tsx                  # Pipeline config filter
-│   │       └── BoardCard.tsx                     # Agent badge, pipeline tag, stalled indicator
+│   │       └── IssueCard.tsx                     # Agent badge, pipeline tag, stalled indicator
 │   └── services/
 │       └── api.ts                                # Updated response types with labels
 └── tests/

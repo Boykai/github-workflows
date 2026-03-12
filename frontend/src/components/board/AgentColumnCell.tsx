@@ -135,7 +135,7 @@ export function AgentColumnCell({
         </div>
       )}
       <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
-        <div className={cn('flex min-h-[2px] flex-col', isCompact ? 'gap-1.5' : 'gap-2')}>
+        <div role="list" aria-label={`Agents in ${status}`} className={cn('flex min-h-[2px] flex-col', isCompact ? 'gap-1.5' : 'gap-2')}>
           {agents.map((agent, index) => (
             <SortableAgentTile
               key={agent.id}
