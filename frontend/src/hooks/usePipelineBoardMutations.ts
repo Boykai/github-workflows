@@ -345,6 +345,9 @@ export function usePipelineBoardMutations(
     ) => {
       setPipeline((prev) => {
         if (!prev) return null;
+        const targetStage = prev.stages.find((s) => s.id === toStageId);
+        const hasTargetGroup = (targetStage?.groups ?? []).some((g) => g.id === toGroupId);
+        if (!hasTargetGroup) return prev;
         // Find and remove agent from source
         let movedAgent: PipelineAgentNode | null = null;
         let stages = prev.stages.map((s) => {

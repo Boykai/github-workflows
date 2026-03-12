@@ -77,6 +77,14 @@ describe('usePipelineConfig', () => {
     expect(
       result.current.pipeline?.stages.every((stage: PipelineStage) => stage.agents.length === 0)
     ).toBe(true);
+    expect(
+      result.current.pipeline?.stages.every(
+        (stage: PipelineStage) =>
+          stage.groups?.length === 1 &&
+          stage.groups[0]?.execution_mode === 'sequential' &&
+          stage.groups[0]?.agents.length === 0
+      )
+    ).toBe(true);
   });
 
   it('creates an empty new pipeline when no stage names are provided', async () => {
@@ -181,5 +189,102 @@ describe('usePipelineConfig', () => {
       modelId: 'gpt-5.4',
       modelName: 'GPT-5.4',
     });
+  });
+
+  it('moves an agent into another group without losing its configuration', async () => {
+    const { result } = renderHook(() => usePipelineConfig('PVT_123'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.pipelinesLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.newPipeline(['Inbox']);
+    });
+
+    const stageId = result.current.pipeline?.stages[0]?.id;
+    const sourceGroupId = result.current.pipeline?.stages[0]?.groups?.[0]?.id;
+
+    expect(stageId).toBeTruthy();
+    expect(sourceGroupId).toBeTruthy();
+
+    const agent: AvailableAgent = {
+      slug: 'security-reviewer',
+      display_name: 'Security Reviewer',
+      source: 'repository',
+      default_model_id: 'gpt-5.4-mini',
+      default_model_name: 'GPT-5.4 Mini',
+    };
+
+    act(() => {
+      result.current.addAgentToStage(stageId!, agent, sourceGroupId);
+      result.current.addGroupToStage(stageId!);
+    });
+
+    const targetGroupId = result.current.pipeline?.stages[0]?.groups?.[1]?.id;
+    const agentId = result.current.pipeline?.stages[0]?.groups?.[0]?.agents[0]?.id;
+
+    expect(targetGroupId).toBeTruthy();
+    expect(agentId).toBeTruthy();
+
+    act(() => {
+      result.current.updateAgentTools(stageId!, agentId!, ['tool-a', 'tool-b']);
+      result.current.moveAgentToGroup(stageId!, stageId!, agentId!, targetGroupId!);
+    });
+
+    const stage = result.current.pipeline?.stages[0];
+    expect(stage?.groups?.[0]?.agents).toEqual([]);
+    expect(stage?.groups?.[1]?.agents).toHaveLength(1);
+    expect(stage?.groups?.[1]?.agents[0]).toMatchObject({
+      id: agentId,
+      model_id: 'gpt-5.4-mini',
+      model_name: 'GPT-5.4 Mini',
+      tool_ids: ['tool-a', 'tool-b'],
+      tool_count: 2,
+    });
+    expect(stage?.agents).toHaveLength(1);
+    expect(stage?.agents[0]?.id).toBe(agentId);
+  });
+
+  it('does not remove an agent when the target group does not exist', async () => {
+    const { result } = renderHook(() => usePipelineConfig('PVT_123'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => {
+      expect(result.current.pipelinesLoading).toBe(false);
+    });
+
+    act(() => {
+      result.current.newPipeline(['Inbox']);
+    });
+
+    const stageId = result.current.pipeline?.stages[0]?.id;
+    const sourceGroupId = result.current.pipeline?.stages[0]?.groups?.[0]?.id;
+
+    expect(stageId).toBeTruthy();
+    expect(sourceGroupId).toBeTruthy();
+
+    act(() => {
+      result.current.addAgentToStage(stageId!, {
+        slug: 'copilot',
+        display_name: 'GitHub Copilot',
+        source: 'builtin',
+      }, sourceGroupId);
+    });
+
+    const beforeMove = result.current.pipeline?.stages[0]?.groups?.[0]?.agents[0];
+    expect(beforeMove).toBeTruthy();
+
+    act(() => {
+      result.current.moveAgentToGroup(stageId!, stageId!, beforeMove!.id, 'missing-group');
+    });
+
+    const stage = result.current.pipeline?.stages[0];
+    expect(stage?.groups?.[0]?.agents).toHaveLength(1);
+    expect(stage?.groups?.[0]?.agents[0]).toEqual(beforeMove);
+    expect(stage?.agents).toHaveLength(1);
   });
 });
