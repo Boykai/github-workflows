@@ -21,7 +21,7 @@ A user opens the chat interface in Firefox (version 85 or later) and sees the mi
 2. **Given** a user opens the chat in Chrome, **When** the page loads, **Then** the microphone button is enabled and no "not supported" message is shown.
 3. **Given** a user opens the chat in Edge, **When** the page loads, **Then** the microphone button is enabled and no "not supported" message is shown.
 4. **Given** a user opens the chat in Safari (14.1+), **When** the page loads, **Then** the microphone button is enabled and no "not supported" message is shown.
-5. **Given** a user opens the chat in a browser that genuinely lacks speech recognition support, **When** the page loads, **Then** the microphone button is disabled and displays "Voice input not supported in this browser."
+5. **Given** a user opens the chat in a browser that genuinely lacks speech recognition support, **When** the page loads, **Then** the microphone button is disabled and displays "Voice input is not supported in this browser."
 
 ---
 
@@ -61,15 +61,15 @@ A user clicks the microphone button for the first time. The browser prompts for 
 
 ### User Story 4 — Grammatically Correct Error Message (Priority: P2)
 
-Today, the error message reads "Voice input not support in this browser" — a grammatical error ("not support" instead of "not supported"). After the fix, the error message is corrected to "Voice input not supported in this browser" and is only shown when the browser genuinely lacks voice input capability.
+Today, the error message reads "Voice input not support in this browser" — a grammatical error ("not support" instead of "not supported"). After the fix, the error message is corrected to "Voice input is not supported in this browser." and is only shown when the browser genuinely lacks voice input capability.
 
 **Why this priority**: This is a low-effort, high-visibility fix that improves the perceived quality of the application. It ships alongside the detection fix but is tracked separately because it is independently testable and valuable.
 
-**Independent Test**: Open the chat in a browser that genuinely lacks speech recognition support (or simulate by overriding the API objects). Confirm the displayed error reads "Voice input not supported in this browser" (with correct grammar).
+**Independent Test**: Open the chat in a browser that genuinely lacks speech recognition support (or simulate by overriding the API objects). Confirm the displayed error reads "Voice input is not supported in this browser." (with correct grammar).
 
 **Acceptance Scenarios**:
 
-1. **Given** a user opens the chat in an unsupported browser, **When** the page loads, **Then** the error message reads "Voice input not supported in this browser."
+1. **Given** a user opens the chat in an unsupported browser, **When** the page loads, **Then** the error message reads "Voice input is not supported in this browser."
 2. **Given** a user opens the chat in a supported browser, **When** the page loads, **Then** no error message is displayed at all.
 
 ---
@@ -87,8 +87,8 @@ Today, the error message reads "Voice input not support in this browser" — a g
 ### Functional Requirements
 
 - **FR-001**: System MUST detect voice input support by checking for both the standard unprefixed `SpeechRecognition` and the vendor-prefixed `webkitSpeechRecognition` on the window object, enabling the microphone button when either is present.
-- **FR-002**: System MUST NOT display "Voice input not supported in this browser" in any browser where speech recognition capability is available, including Firefox 85+, Chrome, Edge, and Safari 14.1+.
-- **FR-003**: System MUST correct the existing error message from "Voice input not support in this browser" to "Voice input not supported in this browser."
+- **FR-002**: System MUST NOT display "Voice input is not supported in this browser" in any browser where speech recognition capability is available, including Firefox 85+, Chrome, Edge, and Safari 14.1+.
+- **FR-003**: System MUST correct the existing error message from "Voice input not support in this browser" to "Voice input is not supported in this browser."
 - **FR-004**: System MUST initiate voice capture and speech recognition when the user clicks the microphone button in a supported browser.
 - **FR-005**: System MUST display a visible recording/active state on the microphone button (e.g., pulsing animation, color change, or animated icon) while voice capture is in progress.
 - **FR-006**: System MUST populate the chat input field with transcribed text from the speech recognition results.

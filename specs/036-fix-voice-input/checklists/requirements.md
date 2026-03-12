@@ -6,9 +6,9 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [ ] No implementation details (languages, frameworks, APIs)
 - [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
+- [ ] Written for non-technical stakeholders
 - [x] All mandatory sections completed
 
 ## Requirement Completeness
@@ -31,6 +31,6 @@
 
 ## Notes
 
-- All items pass validation. Spec is ready for `/speckit.clarify` or `/speckit.plan`.
+- Spec references specific browser APIs (`SpeechRecognition`, `webkitSpeechRecognition`, `getUserMedia`) and version thresholds (Firefox 85+, Safari 14.1+) because the feature is inherently about browser API detection. These are intentional and necessary for the spec to be actionable.
 - No [NEEDS CLARIFICATION] markers were needed — the issue description provided sufficient detail to make informed decisions for all requirements.
 - Assumptions section documents reasonable defaults for browser version thresholds and HTTPS requirements.
