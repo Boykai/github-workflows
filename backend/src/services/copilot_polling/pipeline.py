@@ -241,8 +241,7 @@ async def _get_or_reconstruct_pipeline(
         if fast_path is not None:
             _cp.set_pipeline_state(issue_number, fast_path)
             logger.info(
-                "Fast-path: built pipeline for issue #%d from labels "
-                "(agent=%s, index=%d)",
+                "Fast-path: built pipeline for issue #%d from labels (agent=%s, index=%d)",
                 issue_number,
                 fast_path.current_agent,
                 fast_path.current_agent_index,

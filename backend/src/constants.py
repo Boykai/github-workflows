@@ -163,14 +163,14 @@ STALLED_LABEL_COLOR: str = "d73a4a"
 def extract_pipeline_config(label_name: str) -> str | None:
     """Return the config name from a ``pipeline:<config>`` label, or None."""
     if label_name.startswith(PIPELINE_LABEL_PREFIX):
-        return label_name[len(PIPELINE_LABEL_PREFIX):]
+        return label_name[len(PIPELINE_LABEL_PREFIX) :]
     return None
 
 
 def extract_agent_slug(label_name: str) -> str | None:
     """Return the agent slug from an ``agent:<slug>`` label, or None."""
     if label_name.startswith(AGENT_LABEL_PREFIX):
-        return label_name[len(AGENT_LABEL_PREFIX):]
+        return label_name[len(AGENT_LABEL_PREFIX) :]
     return None
 
 
@@ -278,4 +278,6 @@ async def ensure_pipeline_labels_exist(
     except Exception:
         from src.logging_utils import get_logger
 
-        get_logger(__name__).warning("Failed to create httpx client for label pre-creation", exc_info=True)
+        get_logger(__name__).warning(
+            "Failed to create httpx client for label pre-creation", exc_info=True
+        )
