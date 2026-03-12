@@ -192,6 +192,7 @@ async def _handle_feature_request(
         )
 
         recommendation.selected_pipeline_id = pipeline_id or None
+        recommendation.file_urls = file_urls or []
 
         _recommendations[str(recommendation.recommendation_id)] = recommendation
 
@@ -679,6 +680,12 @@ async def confirm_proposal(
     # caught by the broad ``except Exception`` handler and re-wrapped — which
     # would drop the ``details`` payload and return a misleading error message.
     body = proposal.final_description or ""
+
+    # Embed file attachments in issue body
+    from src.attachment_formatter import format_attachments_markdown
+
+    body += format_attachments_markdown(proposal.file_urls)
+
     if len(body) > GITHUB_ISSUE_BODY_MAX_LENGTH:
         raise ValidationError(
             f"Issue body is {len(body)} characters, which exceeds the "
@@ -1013,6 +1020,15 @@ async def upload_file(
 
     # Read file content and validate size
     content = await file.read()
+    if len(content) == 0:
+        return JSONResponse(
+            status_code=400,
+            content={
+                "filename": file.filename,
+                "error": "Empty file — cannot attach a file with no content",
+                "error_code": "empty_file",
+            },
+        )
     if len(content) > MAX_FILE_SIZE_BYTES:
         return JSONResponse(
             status_code=413,

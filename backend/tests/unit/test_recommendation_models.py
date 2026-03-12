@@ -4,6 +4,7 @@ Covers:
 - AITaskProposal max_length boundary for proposed_description
 - ProposalConfirmRequest max_length boundary for edited_description
 - Unicode and special character preservation
+- file_urls field defaults and serialization
 """
 
 from uuid import uuid4
@@ -12,7 +13,7 @@ import pytest
 from pydantic import ValidationError
 
 from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH
-from src.models.recommendation import AITaskProposal, ProposalConfirmRequest
+from src.models.recommendation import AITaskProposal, IssueRecommendation, ProposalConfirmRequest
 
 # ── AITaskProposal ──────────────────────────────────────────────────────────
 
@@ -108,3 +109,88 @@ class TestDescriptionFormattingPreservation:
             proposed_description=desc,
         )
         assert proposal.proposed_description == desc
+
+
+# ── File URLs ───────────────────────────────────────────────────────────────
+
+
+class TestFileUrlsField:
+    """file_urls field defaults, serialization, and round-trip behavior."""
+
+    def test_proposal_file_urls_default(self):
+        """New AITaskProposal has empty file_urls list."""
+        proposal = AITaskProposal(
+            session_id=uuid4(),
+            original_input="test",
+            proposed_title="Test",
+            proposed_description="Desc",
+        )
+        assert proposal.file_urls == []
+
+    def test_proposal_file_urls_set(self):
+        """AITaskProposal accepts file_urls at construction."""
+        urls = ["/chat/uploads/abc-screenshot.png", "/chat/uploads/def-report.pdf"]
+        proposal = AITaskProposal(
+            session_id=uuid4(),
+            original_input="test",
+            proposed_title="Test",
+            proposed_description="Desc",
+            file_urls=urls,
+        )
+        assert proposal.file_urls == urls
+
+    def test_proposal_file_urls_serialization(self):
+        """file_urls round-trips through JSON serialization."""
+        urls = ["/chat/uploads/abc-screenshot.png"]
+        proposal = AITaskProposal(
+            session_id=uuid4(),
+            original_input="test",
+            proposed_title="Test",
+            proposed_description="Desc",
+            file_urls=urls,
+        )
+        data = proposal.model_dump()
+        restored = AITaskProposal(**data)
+        assert restored.file_urls == urls
+
+    def test_recommendation_file_urls_default(self):
+        """New IssueRecommendation has empty file_urls list."""
+        rec = IssueRecommendation(
+            session_id=uuid4(),
+            original_input="test",
+            title="Test",
+            user_story="As a user...",
+            ui_ux_description="Button on page",
+            functional_requirements=["FR-001"],
+        )
+        assert rec.file_urls == []
+
+    def test_recommendation_file_urls_set(self):
+        """IssueRecommendation accepts file_urls at construction."""
+        urls = ["/chat/uploads/abc-img.png"]
+        rec = IssueRecommendation(
+            session_id=uuid4(),
+            original_input="test",
+            title="Test",
+            user_story="As a user...",
+            ui_ux_description="Button on page",
+            functional_requirements=["FR-001"],
+            file_urls=urls,
+        )
+        assert rec.file_urls == urls
+
+    def test_recommendation_file_urls_serialization(self):
+        """file_urls round-trips through JSON serialization on IssueRecommendation."""
+        urls = ["/chat/uploads/abc-img.png", "/chat/uploads/def-doc.pdf"]
+        rec = IssueRecommendation(
+            session_id=uuid4(),
+            original_input="test",
+            title="Test",
+            user_story="As a user...",
+            ui_ux_description="Button on page",
+            functional_requirements=["FR-001"],
+            file_urls=urls,
+        )
+        data = rec.model_dump()
+        restored = IssueRecommendation(**data)
+        assert restored.file_urls == urls
