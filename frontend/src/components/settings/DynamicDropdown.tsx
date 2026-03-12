@@ -174,7 +174,7 @@ export function DynamicDropdown({
           <span>{message || 'Failed to fetch models'}</span>
           <button
             type="button"
-            className="shrink-0 px-3 py-1 text-xs font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors"
+            className="celestial-focus shrink-0 px-3 py-1 text-xs font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors focus-visible:outline-none"
             onClick={onRetry}
           >
             Retry

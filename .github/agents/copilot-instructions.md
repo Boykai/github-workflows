@@ -219,6 +219,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - aiosqlite (pipeline configs, agent tracking); GitHub Issues API (labels as state markers) (034-label-pipeline-state)
 - Python ≥3.12 (backend), TypeScript (frontend) + FastAPI ≥0.135.0, Pydantic ≥2.12.0, githubkit ≥0.14.6, httpx ≥0.28.0 (backend); React 19, TanStack Query, Vitest (frontend) (035-remove-blocking-feature)
 - aiosqlite (blocking_queue table, blocking columns on pipeline_configs/chores/project_settings) (035-remove-blocking-feature)
+- TypeScript 5.x, React 19.2.0, Node.js + Tailwind CSS v4.2.0 (with `@tailwindcss/vite`), Radix UI (tooltip, slot), Class Variance Authority (CVA), clsx, tailwind-merge, lucide-react icons (037-theme-contrast-audit)
+- N/A (frontend-only audit; no persistence changes) (037-theme-contrast-audit)
 - Python 3.13 (backend, floor ≥3.12), TypeScript 5.9 (frontend) + FastAPI, aiosqlite, httpx, Pydantic (backend); React 19.2, TanStack React Query 5.90 (frontend) (037-chat-attachment-github-issue)
 - aiosqlite (chat_proposals, chat_recommendations tables) + GitHub Issues (final attachment destination) (037-chat-attachment-github-issue)
 
