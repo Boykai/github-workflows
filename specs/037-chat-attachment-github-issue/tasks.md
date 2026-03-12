@@ -33,10 +33,10 @@
 
 **⚠️ CRITICAL**: No user story work should begin until attachment data can be stored and formatted consistently.
 
-- [ ] T001 Create migration `backend/src/migrations/022_chat_file_urls.sql` to add `file_urls` storage for `chat_proposals` and `chat_recommendations`
-- [ ] T002 [P] Add `file_urls` fields, defaults, and schema examples to `backend/src/models/recommendation.py`
-- [ ] T003 [P] Update SQLite proposal/recommendation save-load helpers in `backend/src/services/chat_store.py` to persist and hydrate `file_urls`
-- [ ] T004 Create shared markdown attachment formatter `backend/src/utils/attachment_formatter.py` with image-vs-link classification and chat-session reference output
+- [x] T001 Create migration `backend/src/migrations/022_chat_file_urls.sql` to add `file_urls` storage for `chat_proposals` and `chat_recommendations`
+- [x] T002 [P] Add `file_urls` fields, defaults, and schema examples to `backend/src/models/recommendation.py`
+- [x] T003 [P] Update SQLite proposal/recommendation save-load helpers in `backend/src/services/chat_store.py` to persist and hydrate `file_urls`
+- [x] T004 Create shared markdown attachment formatter `backend/src/attachment_formatter.py` with image-vs-link classification and chat-session reference output
 
 **Checkpoint**: Attachment URLs can now survive persistence boundaries and be rendered into a reusable GitHub markdown section.
 
@@ -50,15 +50,15 @@
 
 ### Tests for User Story 1
 
-- [ ] T005 [P] [US1] Add formatter unit tests for empty input, one image, one document, and chat-session reference output in `backend/tests/unit/test_attachment_formatter.py`
-- [ ] T006 [P] [US1] Extend proposal/recommendation model tests for default and serialized `file_urls` behavior in `backend/tests/unit/test_recommendation_models.py`
+- [x] T005 [P] [US1] Add formatter unit tests for empty input, one image, one document, and chat-session reference output in `backend/tests/unit/test_attachment_formatter.py`
+- [x] T006 [P] [US1] Extend proposal/recommendation model tests for default and serialized `file_urls` behavior in `backend/tests/unit/test_recommendation_models.py`
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Propagate `file_urls` through feature-request and task-proposal creation paths in `backend/src/api/chat.py`
-- [ ] T008 [US1] Append formatted attachments to confirmed proposal issue bodies and re-run the GitHub body-length validation after attachment expansion in `backend/src/api/chat.py`
-- [ ] T009 [US1] Append formatted attachments when the workflow orchestrator builds recommendation issue bodies in `backend/src/services/workflow_orchestrator/orchestrator.py`
-- [ ] T010 [US1] Preserve attachment-aware confirmation, error handling, and issue creation flow in `backend/src/api/workflow.py`
+- [x] T007 [US1] Propagate `file_urls` through feature-request and task-proposal creation paths in `backend/src/api/chat.py`
+- [x] T008 [US1] Append formatted attachments to confirmed proposal issue bodies and re-run the GitHub body-length validation after attachment expansion in `backend/src/api/chat.py`
+- [x] T009 [US1] Append formatted attachments when the workflow orchestrator builds recommendation issue bodies in `backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T010 [US1] Preserve attachment-aware confirmation, error handling, and issue creation flow in `backend/src/api/workflow.py`
 
 **Checkpoint**: Single-file proposal and recommendation confirmations create GitHub issues whose bodies contain the uploaded file reference and chat provenance.
 
@@ -72,14 +72,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T011 [P] [US2] Add multi-file formatter regression coverage for ordering and mixed file types in `backend/tests/unit/test_attachment_formatter.py`
-- [ ] T012 [P] [US2] Add proposal confirmation tests that assert multiple `file_urls` are embedded in the created issue body in `backend/tests/unit/test_api_chat.py`
-- [ ] T013 [P] [US2] Add recommendation confirmation tests that assert multiple `file_urls` flow through workflow execution in `backend/tests/unit/test_api_workflow.py`
+- [x] T011 [P] [US2] Add multi-file formatter regression coverage for ordering and mixed file types in `backend/tests/unit/test_attachment_formatter.py`
+- [x] T012 [P] [US2] Add proposal confirmation tests that assert multiple `file_urls` are embedded in the created issue body in `backend/tests/unit/test_api_chat.py`
+- [x] T013 [P] [US2] Add recommendation confirmation tests that assert multiple `file_urls` flow through workflow execution in `backend/tests/unit/test_api_workflow.py`
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Ensure batched `file_urls` round-trip through proposal/recommendation persistence in `backend/src/services/chat_store.py`
-- [ ] T015 [US2] Verify and adjust multi-file handoff so `frontend/src/hooks/useFileUpload.ts` and `frontend/src/components/chat/ChatInterface.tsx` submit every successful upload URL in a single chat action
+- [x] T014 [US2] Ensure batched `file_urls` round-trip through proposal/recommendation persistence in `backend/src/services/chat_store.py`
+- [x] T015 [US2] Verify and adjust multi-file handoff so `frontend/src/hooks/useFileUpload.ts` and `frontend/src/components/chat/ChatInterface.tsx` submit every successful upload URL in a single chat action
 
 **Checkpoint**: Multi-file uploads remain independently tracked in chat and all successful files are attached to the GitHub issue body together.
 
@@ -93,13 +93,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T016 [P] [US3] Add upload endpoint regression tests for zero-byte files and structured attachment error responses in `backend/tests/unit/test_api_chat.py`
+- [x] T016 [P] [US3] Add upload endpoint regression tests for zero-byte files and structured attachment error responses in `backend/tests/unit/test_api_chat.py`
 
 ### Implementation for User Story 3
 
-- [ ] T017 [US3] Reject zero-byte uploads with an `empty_file` error response in `backend/src/api/chat.py`
-- [ ] T018 [US3] Preserve retryable confirmation behavior and unavailable-issue error reporting in `backend/src/api/chat.py` and `backend/src/api/workflow.py`
-- [ ] T019 [US3] Verify and adjust failed-file messaging and retry affordances in `frontend/src/hooks/useFileUpload.ts` and `frontend/src/components/chat/FilePreviewChips.tsx`
+- [x] T017 [US3] Reject zero-byte uploads with an `empty_file` error response in `backend/src/api/chat.py`
+- [x] T018 [US3] Preserve retryable confirmation behavior and unavailable-issue error reporting in `backend/src/api/chat.py` and `backend/src/api/workflow.py`
+- [x] T019 [US3] Verify and adjust failed-file messaging and retry affordances in `frontend/src/hooks/useFileUpload.ts` and `frontend/src/components/chat/FilePreviewChips.tsx`
 
 **Checkpoint**: Invalid files fail early, confirmation failures stay recoverable, and the UI continues to show per-file retryable error states.
 
@@ -113,12 +113,12 @@
 
 ### Tests for User Story 4
 
-- [ ] T020 [P] [US4] Add formatter regression tests for filename prefix stripping and metadata-friendly markdown output in `backend/tests/unit/test_attachment_formatter.py`
+- [x] T020 [P] [US4] Add formatter regression tests for filename prefix stripping and metadata-friendly markdown output in `backend/tests/unit/test_attachment_formatter.py`
 
 ### Implementation for User Story 4
 
-- [ ] T021 [US4] Render human-readable filenames and chat-session reference text in `backend/src/utils/attachment_formatter.py`
-- [ ] T022 [US4] Verify and adjust filename, file-type icon, size, and attached-state presentation in `frontend/src/components/chat/FilePreviewChips.tsx` and `frontend/src/components/chat/ChatInterface.tsx`
+- [x] T021 [US4] Render human-readable filenames and chat-session reference text in `backend/src/attachment_formatter.py`
+- [x] T022 [US4] Verify and adjust filename, file-type icon, size, and attached-state presentation in `frontend/src/components/chat/FilePreviewChips.tsx` and `frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: Attachment metadata stays readable in both chat and GitHub, completing the end-user experience.
 
@@ -128,9 +128,9 @@
 
 **Purpose**: Final verification, migration sanity checks, and quickstart validation across all stories.
 
-- [ ] T023 Run targeted backend unit suites in `backend/tests/unit/test_attachment_formatter.py`, `backend/tests/unit/test_recommendation_models.py`, `backend/tests/unit/test_api_chat.py`, and `backend/tests/unit/test_api_workflow.py`
-- [ ] T024 [P] Run backend lint via `cd backend && python -m ruff check src/` and validate `backend/src/migrations/022_chat_file_urls.sql` with the migration coverage in `backend/tests/unit/test_database.py`
-- [ ] T025 [P] Run the single-file, batch, failure, and metadata scenarios documented in `specs/037-chat-attachment-github-issue/quickstart.md`
+- [x] T023 Run targeted backend unit suites in `backend/tests/unit/test_attachment_formatter.py`, `backend/tests/unit/test_recommendation_models.py`, `backend/tests/unit/test_api_chat.py`, and `backend/tests/unit/test_api_workflow.py`
+- [x] T024 [P] Run backend lint via `cd backend && python -m ruff check src/` and validate `backend/src/migrations/022_chat_file_urls.sql` with the migration coverage in `backend/tests/unit/test_database.py`
+- [x] T025 [P] Run the single-file, batch, failure, and metadata scenarios documented in `specs/037-chat-attachment-github-issue/quickstart.md`
 
 ---
 
