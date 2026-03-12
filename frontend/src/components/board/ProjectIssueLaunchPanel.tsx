@@ -80,6 +80,7 @@ export function ProjectIssueLaunchPanel({
   onRetryPipelines,
   onLaunched,
 }: ProjectIssueLaunchPanelProps) {
+  const collapsibleBodyId = useId();
   const fileInputId = useId();
   const pipelineSelectId = useId();
   const issueDescriptionId = useId();
@@ -244,6 +245,7 @@ export function ProjectIssueLaunchPanel({
       <button
         type="button"
         aria-expanded={isExpanded}
+        aria-controls={collapsibleBodyId}
         onClick={toggleExpanded}
         className="flex w-full items-center gap-3 p-5 text-left transition-colors hover:bg-background/28 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary sm:p-6"
       >
@@ -268,6 +270,8 @@ export function ProjectIssueLaunchPanel({
 
       {/* Collapsible body */}
       <div
+        id={collapsibleBodyId}
+        inert={!isExpanded || undefined}
         className={cn(
           'grid transition-[grid-template-rows] duration-200 ease-in-out',
           isExpanded ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
