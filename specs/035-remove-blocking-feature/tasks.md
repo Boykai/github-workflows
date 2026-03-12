@@ -34,10 +34,10 @@
 
 **⚠️ CRITICAL**: Test files must be cleaned before service code to maintain a buildable codebase at each step.
 
-- [ ] T001 Delete entire test file `backend/tests/unit/test_chat_block.py` — this file tests `#block` detection in chat which is part of the blocking feature being removed
-- [ ] T002 [P] Remove `TestSkipBlockingIssue` and `TestDeleteBlockingIssue` test classes from `backend/tests/unit/test_api_board.py` — these test unimplemented blocking queue endpoints (POST skip and DELETE per contracts/blocking-queue-removal.md)
-- [ ] T003 [P] Remove blocking queue mock patches and references from `backend/tests/unit/test_copilot_polling.py` — clean up mock patches for `blocking_queue` service calls that were never implemented
-- [ ] T004 [P] Remove blocking mock references from `backend/tests/unit/test_api_pipelines.py` — clean up `blocking: false` and blocking-related mock data in pipeline test fixtures
+- [x] T001 Delete entire test file `backend/tests/unit/test_chat_block.py` — this file tests `#block` detection in chat which is part of the blocking feature being removed
+- [x] T002 [P] Remove `TestSkipBlockingIssue` and `TestDeleteBlockingIssue` test classes from `backend/tests/unit/test_api_board.py` — these test unimplemented blocking queue endpoints (POST skip and DELETE per contracts/blocking-queue-removal.md)
+- [x] T003 [P] Remove blocking queue mock patches and references from `backend/tests/unit/test_copilot_polling.py` — clean up mock patches for `blocking_queue` service calls that were never implemented
+- [x] T004 [P] Remove blocking mock references from `backend/tests/unit/test_api_pipelines.py` — clean up `blocking: false` and blocking-related mock data in pipeline test fixtures
 
 **Checkpoint**: All backend tests that reference blocking are cleaned. `python -m pytest tests/unit/` should pass without blocking import errors.
 
@@ -53,27 +53,27 @@
 
 #### Copilot Polling Services (leaf dependencies — remove first)
 
-- [ ] T005 [US2] Remove `_step_sweep_blocking_queue()` function and its Step 4c registration from `_POLL_STEPS` list in `backend/src/services/copilot_polling/polling_loop.py`
-- [ ] T006 [P] [US2] Remove `BlockingQueueStatus` import and blocking queue guard block (lines ~110, 124–139, 338) from `backend/src/services/copilot_polling/recovery.py`
-- [ ] T007 [P] [US2] Remove `mark_completed`/`mark_in_review` blocking queue calls and `_activate_queued_issue()` function from `backend/src/services/copilot_polling/pipeline.py` — preserve all "non-blocking" I/O comments (per R-003)
+- [x] T005 [US2] Remove `_step_sweep_blocking_queue()` function and its Step 4c registration from `_POLL_STEPS` list in `backend/src/services/copilot_polling/polling_loop.py`
+- [x] T006 [P] [US2] Remove `BlockingQueueStatus` import and blocking queue guard block (lines ~110, 124–139, 338) from `backend/src/services/copilot_polling/recovery.py`
+- [x] T007 [P] [US2] Remove `mark_completed`/`mark_in_review` blocking queue calls and `_activate_queued_issue()` function from `backend/src/services/copilot_polling/pipeline.py` — preserve all "non-blocking" I/O comments (per R-003)
 
 #### Signal Chat and Chores Services
 
-- [ ] T008 [P] [US2] Remove `with_blocking_label` import and replace `with_blocking_label([], ...)` calls with plain `[]` in `backend/src/services/signal_chat.py` — remove lines accessing `proposal.is_blocking` and `rec.is_blocking`
-- [ ] T009 [US2] Remove all blocking references from `backend/src/services/chores/service.py`: remove `"blocking"` key from preset dictionaries (security-review, performance-review, bug-basher), remove `"blocking"` from `_CHORE_UPDATABLE_COLUMNS` set, remove blocking flag resolution logic block, and remove blocking_queue enqueue try/except block
+- [x] T008 [P] [US2] Remove `with_blocking_label` import and replace `with_blocking_label([], ...)` calls with plain `[]` in `backend/src/services/signal_chat.py` — remove lines accessing `proposal.is_blocking` and `rec.is_blocking`
+- [x] T009 [US2] Remove all blocking references from `backend/src/services/chores/service.py`: remove `"blocking"` key from preset dictionaries (security-review, performance-review, bug-basher), remove `"blocking"` from `_CHORE_UPDATABLE_COLUMNS` set, remove blocking flag resolution logic block, and remove blocking_queue enqueue try/except block
 
 #### Workflow Orchestrator
 
-- [ ] T010 [US2] Remove blocking references from `backend/src/services/workflow_orchestrator/orchestrator.py`: remove `with_blocking_label` import from constants, remove blocking_queue import and enqueue logic, remove `is_blocking` parameter from `execute_full_workflow`, and replace `with_blocking_label(labels, ...)` calls with plain `labels`
+- [x] T010 [US2] Remove blocking references from `backend/src/services/workflow_orchestrator/orchestrator.py`: remove `with_blocking_label` import from constants, remove blocking_queue import and enqueue logic, remove `is_blocking` parameter from `execute_full_workflow`, and replace `with_blocking_label(labels, ...)` calls with plain `labels`
 
 #### API Layer
 
-- [ ] T011 [US2] Remove blocking references from `backend/src/api/chat.py`: remove `proposal_is_blocking` variable, remove all blocking queue enqueue code (lines ~885–887, 913–928), and remove blocking-related comments
-- [ ] T012 [P] [US2] Remove `is_blocking=recommendation.is_blocking` parameter from `backend/src/api/workflow.py` (line ~269)
+- [x] T011 [US2] Remove blocking references from `backend/src/api/chat.py`: remove `proposal_is_blocking` variable, remove all blocking queue enqueue code (lines ~885–887, 913–928), and remove blocking-related comments
+- [x] T012 [P] [US2] Remove `is_blocking=recommendation.is_blocking` parameter from `backend/src/api/workflow.py` (line ~269)
 
 #### Constants Cleanup
 
-- [ ] T013 [P] [US2] Remove `with_blocking_label()` function and any blocking-related constants from `backend/src/constants.py` if present — research confirms the function was never defined, but verify and remove any stub or import reference
+- [x] T013 [P] [US2] Remove `with_blocking_label()` function and any blocking-related constants from `backend/src/constants.py` if present — research confirms the function was never defined, but verify and remove any stub or import reference
 
 **Checkpoint**: Backend runs with zero blocking logic. `python -m pytest tests/unit/ -v` passes. `python -m ruff check src/` produces no blocking-related lint errors. Application starts without import errors.
 
@@ -87,7 +87,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Create rollback migration `backend/src/migrations/019_remove_blocking.sql` that drops `blocking_queue` table, drops `blocking` column from `pipeline_configs`, drops `blocking` column from `chores`, and drops `pipeline_blocking_override` column from `project_settings` — per data-model.md and R-002
+- [x] T014 [US3] Create rollback migration `backend/src/migrations/019_remove_blocking.sql` that drops `blocking_queue` table, drops `blocking` column from `pipeline_configs`, drops `blocking` column from `chores`, and drops `pipeline_blocking_override` column from `project_settings` — per data-model.md and R-002
 
 **Checkpoint**: Migration 019 exists and is syntactically correct. Schema changes are reversible via the migration history.
 
@@ -101,9 +101,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T015 [P] [US1] Remove `blocking: false` field from mock pipeline config objects in `frontend/src/components/board/ProjectIssueLaunchPanel.test.tsx`
-- [ ] T016 [P] [US1] Remove `blocking: false` field from mock pipeline config objects in `frontend/src/components/pipeline/SavedWorkflowsList.test.tsx`
-- [ ] T017 [P] [US1] Remove `blocking_override` mock references from `frontend/src/pages/ProjectsPage.test.tsx`
+- [x] T015 [P] [US1] Remove `blocking: false` field from mock pipeline config objects in `frontend/src/components/board/ProjectIssueLaunchPanel.test.tsx`
+- [x] T016 [P] [US1] Remove `blocking: false` field from mock pipeline config objects in `frontend/src/components/pipeline/SavedWorkflowsList.test.tsx`
+- [x] T017 [P] [US1] Remove `blocking_override` mock references from `frontend/src/pages/ProjectsPage.test.tsx`
 
 **Checkpoint**: All frontend tests pass with zero blocking references in mock data. `npm run type-check` and `npm run lint` produce no errors.
 
@@ -117,8 +117,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T018 [US4] Run comprehensive codebase grep for blocking feature identifiers across `backend/src/` and `frontend/src/` — fix any residual references missed in earlier phases
-- [ ] T019 [P] [US4] Review and update documentation, comments, or inline notes that reference the Blocking feature in `backend/src/` and `frontend/src/` — ensure no blocking feature documentation remains (FR-013)
+- [x] T018 [US4] Run comprehensive codebase grep for blocking feature identifiers across `backend/src/` and `frontend/src/` — fix any residual references missed in earlier phases
+- [x] T019 [P] [US4] Review and update documentation, comments, or inline notes that reference the Blocking feature in `backend/src/` and `frontend/src/` — ensure no blocking feature documentation remains (FR-013)
 
 **Checkpoint**: Zero blocking feature identifiers found in application source code. Only generic "non-blocking" I/O comments remain (per R-003 allowlist: pipeline.py:454, pipeline.py:486, pipeline.py:1237, recovery.py:189, recovery.py:200).
 
@@ -128,12 +128,12 @@
 
 **Purpose**: Final verification across all modified files and full test suite execution.
 
-- [ ] T020 Run all backend unit tests via `cd backend && python -m pytest tests/unit/ -v` to confirm zero failures and zero blocking-related errors
-- [ ] T021 [P] Run all frontend tests via `cd frontend && npx vitest run` to confirm zero failures
-- [ ] T022 [P] Run backend linter via `cd backend && python -m ruff check src/` to confirm no lint errors
-- [ ] T023 [P] Run frontend type-check and linter via `cd frontend && npm run type-check && npm run lint` to confirm no errors
-- [ ] T024 Run comprehensive verification grep per quickstart.md checklist — confirm `grep -ri "blocking_queue\|BlockingQueue\|is_blocked\|is_blocking\|with_blocking_label\|blocking_override" backend/src/ frontend/src/` returns zero matches
-- [ ] T025 Verify application starts without import errors — confirm zero runtime exceptions related to blocking modules
+- [x] T020 Run all backend unit tests via `cd backend && python -m pytest tests/unit/ -v` to confirm zero failures and zero blocking-related errors
+- [x] T021 [P] Run all frontend tests via `cd frontend && npx vitest run` to confirm zero failures
+- [x] T022 [P] Run backend linter via `cd backend && python -m ruff check src/` to confirm no lint errors
+- [x] T023 [P] Run frontend type-check and linter via `cd frontend && npm run type-check && npm run lint` to confirm no errors
+- [x] T024 Run comprehensive verification grep per quickstart.md checklist — confirm `grep -ri "blocking_queue\|BlockingQueue\|is_blocked\|is_blocking\|with_blocking_label\|blocking_override" backend/src/ frontend/src/` returns zero matches
+- [x] T025 Verify application starts without import errors — confirm zero runtime exceptions related to blocking modules
 
 ---
 
