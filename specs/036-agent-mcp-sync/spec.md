@@ -109,7 +109,7 @@ After the sync process updates agent files, the system validates each file again
 - **FR-003**: System MUST add all built-in MCPs to the `mcp-servers` field of every agent file at creation time and on every sync.
 - **FR-004**: System MUST remove an MCP from all agent files' `mcp-servers` fields when that MCP is deactivated on the Tools page.
 - **FR-005**: System MUST NOT create duplicate MCP entries in an agent file's `mcp-servers` field if the MCP is already present.
-- **FR-006**: System MUST initialize the `mcp-servers` field as an empty list when an agent file does not yet have one, before appending entries.
+- **FR-006**: System MUST initialize the `mcp-servers` field as an empty dict when an agent file does not yet have one, before merging entries.
 - **FR-007**: System MUST trigger agent file sync whenever an MCP activation state changes on the Tools page (activate or deactivate).
 - **FR-008**: System MUST trigger agent file sync when a new agent file is created.
 - **FR-009**: System MUST trigger agent file sync on application startup to reconcile any drift between Tools page state and agent files.
@@ -145,7 +145,7 @@ After the sync process updates agent files, the system validates each file again
 
 - Agent configuration files use YAML frontmatter for structured fields (`tools`, `mcp-servers`) and a Markdown body for the system prompt. Files without parseable frontmatter are skipped.
 - The built-in MCP registry is a fixed, known list maintained by the system. Adding or removing built-in MCPs requires a system update, not user action.
-- The `mcp-servers` field in agent files follows the schema documented in the custom agents configuration reference — an array of server configuration objects with unique server keys.
+- The `mcp-servers` field in agent files follows the schema documented in the custom agents configuration reference — a YAML mapping of server keys to server configuration objects.
 - The Tools page maintains a source-of-truth list of user-activated MCPs with their full configuration (server key, type, endpoint, authentication).
 - The sync process operates on all agent files in the repository's agents directory. Files outside this directory are not affected.
 - The `tools: ["*"]` enforcement is unconditional — there is no use case where an agent should have restricted tool access. If such a use case arises in the future, it would be handled by a separate opt-out mechanism.
