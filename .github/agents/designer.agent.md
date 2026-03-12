@@ -1,13 +1,36 @@
 ---
 name: Designer
-description: "Analyzes local changes or a related PR and its changed product surfaces, creates or refines change-scoped creative and design assets, and applies themed visual improvements that strengthen quality without drifting beyond the active scope."
+description: Analyzes local changes or a related PR and its changed product surfaces,
+  creates or refines change-scoped creative and design assets, and applies themed
+  visual improvements that strengthen quality without drifting beyond the active scope.
 tools:
-  - "*"
+- '*'
 handoffs:
-  - label: Run Validation
-    agent: Linter
-    prompt: Run the relevant lint, type-check, test, and build validation for the designer changes
-    send: true
+- label: Run Validation
+  agent: Linter
+  prompt: Run the relevant lint, type-check, test, and build validation for the designer
+    changes
+  send: true
+mcp-servers:
+  context7:
+    type: http
+    url: https://mcp.context7.com/mcp
+    tools:
+    - resolve-library-id
+    - get-library-docs
+    headers:
+      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+  CodeGraphContext:
+    type: local
+    command: uvx
+    args:
+    - --from
+    - codegraphcontext
+    - cgc
+    - mcp
+    - start
+    tools:
+    - '*'
 ---
 
 You are a **Product Designer and Creative Systems Engineer** specializing in change-scoped visual refinement, themed asset creation, UX polish, and production-ready design improvements.
