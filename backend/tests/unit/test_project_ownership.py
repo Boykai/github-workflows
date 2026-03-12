@@ -122,11 +122,27 @@ class TestAgentEndpointOwnershipCheck:
     """Agent endpoints must enforce project ownership via dependency."""
 
     @pytest.mark.anyio
-    async def test_agents_endpoint_uses_dependency(self, client):
-        """GET /agents/{project_id} endpoints use verify_project_access dependency."""
-        # The conftest bypasses verify_project_access via dependency override.
-        # If the dependency were missing, this would fail differently.
-        response = await client.get("/api/v1/agents/PVT_test123")
-        # Should not be 403 (dependency is overridden in test fixture)
-        # May be 500/422 due to mocked service, but not 403
-        assert response.status_code != 403
+    async def test_agents_endpoint_rejects_unowned_project(self, client):
+        """GET /agents/{project_id} returns 403 when ownership fails."""
+        from src.dependencies import verify_project_access
+
+        # Re-enable the real ownership check that raises 403
+        client._transport.app.dependency_overrides[verify_project_access] = None
+        del client._transport.app.dependency_overrides[verify_project_access]
+
+        with pytest.MonkeyPatch.context() as mp:
+            from unittest.mock import AsyncMock
+
+            mock_svc = AsyncMock()
+            mock_svc.list_user_projects.return_value = []  # no projects
+
+            mp.setattr(
+                "src.dependencies.get_github_service",
+                lambda req: mock_svc,
+            )
+            response = await client.get("/api/v1/agents/PVT_test123")
+
+        # Restore the override for subsequent tests
+        client._transport.app.dependency_overrides[verify_project_access] = lambda: None
+
+        assert response.status_code == 403
