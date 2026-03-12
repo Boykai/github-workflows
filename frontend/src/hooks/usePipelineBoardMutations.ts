@@ -132,11 +132,26 @@ export function usePipelineBoardMutations(
           stages: prev.stages.map((s) => {
             if (s.id !== stageId) return s;
             const groups = s.groups ?? [];
-            const targetGroupId = groupId ?? groups[0]?.id;
-            const updatedGroups = groups.map((g) => {
-              if (g.id !== targetGroupId) return g;
-              return { ...g, agents: [...g.agents, newAgent] };
-            });
+            // Resolve a valid target group: prefer the requested groupId, then fall back to the first group.
+            const existingTargetGroup =
+              groupId != null ? groups.find((g) => g.id === groupId) : groups[0];
+            let updatedGroups;
+            if (existingTargetGroup) {
+              const targetGroupId = existingTargetGroup.id;
+              updatedGroups = groups.map((g) => {
+                if (g.id !== targetGroupId) return g;
+                return { ...g, agents: [...g.agents, newAgent] };
+              });
+            } else {
+              // No groups exist yet: create a default group to hold the new agent.
+              const newGroup: ExecutionGroup = {
+                id: generateId(),
+                order: 0,
+                execution_mode: 'sequential',
+                agents: [newAgent],
+              };
+              updatedGroups = [newGroup];
+            }
             return syncLegacyAgents({ ...s, groups: updatedGroups });
           }),
         };
@@ -285,7 +300,13 @@ export function usePipelineBoardMutations(
           ...prev,
           stages: prev.stages.map((s) => {
             if (s.id !== stageId) return s;
-            const filtered = (s.groups ?? []).filter((g) => g.id !== groupId);
+            const groups = s.groups ?? [];
+            const targetGroup = groups.find((g) => g.id === groupId);
+            // Prevent destructive removal of a populated group.
+            if (targetGroup && targetGroup.agents && targetGroup.agents.length > 0) {
+              return s;
+            }
+            const filtered = groups.filter((g) => g.id !== groupId);
             const reordered = filtered.map((g, idx) => ({ ...g, order: idx }));
             return syncLegacyAgents({ ...s, groups: reordered });
           }),
