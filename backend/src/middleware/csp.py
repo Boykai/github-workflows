@@ -14,17 +14,19 @@ class CSPMiddleware(BaseHTTPMiddleware):
 
     @staticmethod
     def default_policy() -> str:
-        return "; ".join([
-            "default-src 'self'",
-            "script-src 'self'",
-            "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: https:",
-            "font-src 'self'",
-            "connect-src 'self' wss:",
-            "frame-ancestors 'none'",
-            "base-uri 'self'",
-            "form-action 'self'",
-        ])
+        return "; ".join(
+            [
+                "default-src 'self'",
+                "script-src 'self'",
+                "style-src 'self' 'unsafe-inline'",
+                "img-src 'self' data: https:",
+                "font-src 'self'",
+                "connect-src 'self' wss:",
+                "frame-ancestors 'none'",
+                "base-uri 'self'",
+                "form-action 'self'",
+            ]
+        )
 
     async def dispatch(self, request: Request, call_next) -> Response:
         response = await call_next(request)
