@@ -99,6 +99,24 @@ describe('useVoiceInput', () => {
       const { result } = renderHook(() => useVoiceInput(vi.fn()));
       expect(result.current.isSupported).toBe(false);
     });
+
+    it('prefers SpeechRecognition over webkitSpeechRecognition when both exist', async () => {
+      const { Ctor: unprefixedCtor } = createMockSpeechRecognition();
+      const { Ctor: webkitCtor } = createMockSpeechRecognition();
+      (window as Record<string, unknown>).SpeechRecognition = unprefixedCtor;
+      (window as Record<string, unknown>).webkitSpeechRecognition = webkitCtor;
+      mockMediaDevices();
+
+      const { result } = renderHook(() => useVoiceInput(vi.fn()));
+
+      await act(async () => {
+        result.current.startRecording();
+        await flushPromises();
+      });
+
+      expect(unprefixedCtor).toHaveBeenCalled();
+      expect(webkitCtor).not.toHaveBeenCalled();
+    });
   });
 
   // ── Initial state ──
@@ -172,6 +190,73 @@ describe('useVoiceInput', () => {
       expect(result.current.isRecording).toBe(true);
     });
 
+    it('configures recognition with continuous, interimResults, and lang', async () => {
+      const { Ctor, getInstance } = createMockSpeechRecognition();
+      (window as Record<string, unknown>).SpeechRecognition = Ctor;
+      mockMediaDevices();
+
+      const { result } = renderHook(() => useVoiceInput(vi.fn()));
+
+      await act(async () => {
+        result.current.startRecording();
+        await flushPromises();
+      });
+
+      const instance = getInstance()!;
+      expect(instance.continuous).toBe(true);
+      expect(instance.interimResults).toBe(true);
+      expect(instance.lang).toBe('en-US');
+    });
+
+    it('stops stream tracks immediately after getUserMedia succeeds', async () => {
+      const stopFn = vi.fn();
+      const { Ctor } = createMockSpeechRecognition();
+      (window as Record<string, unknown>).SpeechRecognition = Ctor;
+      mockMediaDevices({
+        getUserMedia: vi.fn().mockResolvedValue({ getTracks: () => [{ stop: stopFn }] }),
+      } as unknown as MediaDevices);
+
+      const { result } = renderHook(() => useVoiceInput(vi.fn()));
+
+      await act(async () => {
+        result.current.startRecording();
+        await flushPromises();
+      });
+
+      expect(stopFn).toHaveBeenCalled();
+    });
+
+    it('clears previous error when starting a new recording', async () => {
+      (window as Record<string, unknown>).SpeechRecognition = createSimpleSpeechRecognition();
+      Object.defineProperty(navigator, 'mediaDevices', {
+        value: undefined,
+        writable: true,
+        configurable: true,
+      });
+
+      const { result } = renderHook(() => useVoiceInput(vi.fn()));
+
+      // Trigger an error first
+      act(() => {
+        result.current.startRecording();
+      });
+      expect(result.current.error).toBe('Microphone access is not available in this browser.');
+
+      // Now restore mediaDevices and try again
+      const { Ctor } = createMockSpeechRecognition();
+      (window as Record<string, unknown>).SpeechRecognition = Ctor;
+      mockMediaDevices();
+
+      await act(async () => {
+        result.current.startRecording();
+        await flushPromises();
+      });
+
+      // Error should be cleared even though we're in the same hook instance
+      // Note: The error from the first attempt gets cleared by setError(null) at start
+      expect(result.current.error).toBeNull();
+    });
+
     it('sets permission error when getUserMedia is denied', async () => {
       (window as Record<string, unknown>).SpeechRecognition = createSimpleSpeechRecognition();
       mockMediaDevices({
@@ -216,6 +301,19 @@ describe('useVoiceInput', () => {
       expect(getInstance()!.stop).toHaveBeenCalled();
       expect(result.current.isRecording).toBe(false);
     });
+
+    it('is a no-op when not currently recording', () => {
+      (window as Record<string, unknown>).SpeechRecognition = createSimpleSpeechRecognition();
+
+      const { result } = renderHook(() => useVoiceInput(vi.fn()));
+
+      // Should not throw
+      act(() => {
+        result.current.stopRecording();
+      });
+
+      expect(result.current.isRecording).toBe(false);
+    });
   });
 
   // ── cancelRecording ──
@@ -241,6 +339,20 @@ describe('useVoiceInput', () => {
       expect(result.current.isRecording).toBe(false);
       expect(result.current.interimTranscript).toBe('');
     });
+
+    it('is a no-op when not currently recording', () => {
+      (window as Record<string, unknown>).SpeechRecognition = createSimpleSpeechRecognition();
+
+      const { result } = renderHook(() => useVoiceInput(vi.fn()));
+
+      // Should not throw
+      act(() => {
+        result.current.cancelRecording();
+      });
+
+      expect(result.current.isRecording).toBe(false);
+      expect(result.current.interimTranscript).toBe('');
+    });
   });
 
   // ── Error handling ──
@@ -261,6 +373,29 @@ describe('useVoiceInput', () => {
       act(() => {
         const instance = getInstance()!;
         (instance.onerror as (event: { error: string }) => void)({ error: 'not-allowed' });
+      });
+
+      expect(result.current.error).toBe(
+        'Microphone access is required for voice input. Please allow microphone access in your browser settings.'
+      );
+      expect(result.current.isRecording).toBe(false);
+    });
+
+    it('sets permission error on permission-denied recognition error', async () => {
+      const { Ctor, getInstance } = createMockSpeechRecognition();
+      (window as Record<string, unknown>).SpeechRecognition = Ctor;
+      mockMediaDevices();
+
+      const { result } = renderHook(() => useVoiceInput(vi.fn()));
+
+      await act(async () => {
+        result.current.startRecording();
+        await flushPromises();
+      });
+
+      act(() => {
+        const instance = getInstance()!;
+        (instance.onerror as (event: { error: string }) => void)({ error: 'permission-denied' });
       });
 
       expect(result.current.error).toBe(
@@ -307,6 +442,42 @@ describe('useVoiceInput', () => {
       });
 
       expect(result.current.error).toBeNull();
+    });
+
+    it('resets isRecording and interimTranscript when onend fires', async () => {
+      const { Ctor, getInstance } = createMockSpeechRecognition();
+      (window as Record<string, unknown>).SpeechRecognition = Ctor;
+      mockMediaDevices();
+
+      const { result } = renderHook(() => useVoiceInput(vi.fn()));
+
+      await act(async () => {
+        result.current.startRecording();
+        await flushPromises();
+      });
+
+      expect(result.current.isRecording).toBe(true);
+
+      // Simulate an interim result to verify it gets cleared
+      act(() => {
+        const mockEvent = {
+          resultIndex: 0,
+          results: { length: 1, 0: { 0: { transcript: 'partial' }, isFinal: false, length: 1 } },
+        };
+        const instance = getInstance()!;
+        (instance.onresult as (event: unknown) => void)(mockEvent);
+      });
+
+      expect(result.current.interimTranscript).toBe('partial');
+
+      // Trigger onend
+      act(() => {
+        const instance = getInstance()!;
+        (instance.onend as () => void)();
+      });
+
+      expect(result.current.isRecording).toBe(false);
+      expect(result.current.interimTranscript).toBe('');
     });
   });
 
@@ -360,6 +531,63 @@ describe('useVoiceInput', () => {
       });
 
       expect(result.current.interimTranscript).toBe('hello');
+    });
+
+    it('handles multiple results in a single onresult event', async () => {
+      const { Ctor, getInstance } = createMockSpeechRecognition();
+      (window as Record<string, unknown>).SpeechRecognition = Ctor;
+      mockMediaDevices();
+
+      const onTranscript = vi.fn();
+      const { result } = renderHook(() => useVoiceInput(onTranscript));
+
+      await act(async () => {
+        result.current.startRecording();
+        await flushPromises();
+      });
+
+      act(() => {
+        const mockEvent = {
+          resultIndex: 0,
+          results: {
+            length: 3,
+            0: { 0: { transcript: 'hello ' }, isFinal: true, length: 1 },
+            1: { 0: { transcript: 'world ' }, isFinal: true, length: 1 },
+            2: { 0: { transcript: 'partial' }, isFinal: false, length: 1 },
+          },
+        };
+        const instance = getInstance()!;
+        (instance.onresult as (event: unknown) => void)(mockEvent);
+      });
+
+      expect(onTranscript).toHaveBeenCalledWith('hello world ');
+      expect(result.current.interimTranscript).toBe('partial');
+    });
+
+    it('does not call onTranscript when there are only interim results', async () => {
+      const { Ctor, getInstance } = createMockSpeechRecognition();
+      (window as Record<string, unknown>).SpeechRecognition = Ctor;
+      mockMediaDevices();
+
+      const onTranscript = vi.fn();
+      const { result } = renderHook(() => useVoiceInput(onTranscript));
+
+      await act(async () => {
+        result.current.startRecording();
+        await flushPromises();
+      });
+
+      act(() => {
+        const mockEvent = {
+          resultIndex: 0,
+          results: { length: 1, 0: { 0: { transcript: 'typing...' }, isFinal: false, length: 1 } },
+        };
+        const instance = getInstance()!;
+        (instance.onresult as (event: unknown) => void)(mockEvent);
+      });
+
+      expect(onTranscript).not.toHaveBeenCalled();
+      expect(result.current.interimTranscript).toBe('typing...');
     });
   });
 
