@@ -20,7 +20,6 @@ from src.constants import (
     has_stalled_label,
 )
 
-
 # ── Constants ────────────────────────────────────────────────────────────────
 
 

@@ -2,15 +2,13 @@
 
 from __future__ import annotations
 
-import asyncio
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_session_dep
-from src.dependencies import verify_project_access
 from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
 from src.logging_utils import get_logger
 from src.models.board import (
