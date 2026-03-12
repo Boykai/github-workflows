@@ -10,7 +10,7 @@ Represents an authenticated user's login state. Delivered via a secure cookie in
 
 | Field | Type | Description | Validation |
 |-------|------|-------------|------------|
-| `session_token` | `str` | Opaque session identifier | Generated via `secrets.token_urlsafe(32)` |
+| `session_id` | `str` | Opaque session identifier | Generated via `secrets.token_urlsafe(32)` |
 | `user_id` | `int` | GitHub user ID | Required, from OAuth exchange |
 | `username` | `str` | GitHub login name | Required, from OAuth exchange |
 | `access_token` | `str` | Encrypted GitHub OAuth token | Encrypted at rest via `encryption.py` |

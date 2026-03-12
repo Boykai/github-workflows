@@ -9,7 +9,7 @@ Remediate 21 security findings (3 Critical, 8 High, 9 Medium, 2 Low) across the 
 
 ## Technical Context
 
-**Language/Version**: Python 3.13 (backend, floor ≥3.12), TypeScript 5.9 (frontend)
+**Language/Version**: Python ≥3.12 (backend; primary/dev target 3.13), TypeScript 5.9 (frontend)
 **Primary Dependencies**: FastAPI, aiosqlite, httpx, slowapi (backend); React 19.2, TanStack React Query 5.90 (frontend); nginx (reverse proxy)
 **Storage**: aiosqlite (SQLite with application-level encryption via `encryption.py`)
 **Testing**: pytest (backend, 1736+ unit tests), Vitest 4.0 (frontend, 644+ tests)

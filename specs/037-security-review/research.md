@@ -164,7 +164,7 @@
 
 ## R16: Avatar URL Domain Validation
 
-**Decision**: In `IssueCard.tsx`, validate that avatar URLs use the `https:` protocol and originate from a known GitHub avatar domain (`avatars.githubusercontent.com` or `github.com`). URLs that fail validation fall back to a placeholder avatar image.
+**Decision**: In `IssueCard.tsx`, validate that avatar URLs use the `https:` protocol and originate from the known GitHub avatar domain `avatars.githubusercontent.com`. URLs that fail validation fall back to a placeholder avatar image.
 
 **Rationale**: External avatar URLs from the GitHub API could theoretically be manipulated if the API response is tampered with (e.g., via a MITM on the GitHub API, which is unlikely but a defense-in-depth measure). Validating the domain prevents loading images from arbitrary external sources, which could be used for tracking or phishing.
 

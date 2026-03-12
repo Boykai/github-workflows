@@ -1,4 +1,4 @@
-"""Tests for rate limiting configuration and behavior (US7 — FR-015, FR-016).
+"""Tests for rate limiting configuration and behavior (US7 — FR-015).
 
 T033:
 - Rate limiter is configured with per-user and per-IP key helpers
