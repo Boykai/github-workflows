@@ -19,8 +19,8 @@
 
 **Purpose**: Create the feature-local artifacts needed to capture measurements and run the performance pass consistently.
 
-- [x] T001 Create the before/after measurement workbook in `specs/001-performance-review/baseline.md`
-- [x] T002 Update the execution checklist and local verification commands in `specs/001-performance-review/quickstart.md`
+- [X] T001 [P] Create the before/after measurement workbook in `specs/001-performance-review/baseline.md`
+- [ ] T002 [P] Update the execution checklist and local verification commands in `specs/001-performance-review/quickstart.md`
 
 **Checkpoint**: The feature has a dedicated baseline artifact and an executable quickstart for local verification.
 
@@ -32,8 +32,8 @@
 
 **⚠️ CRITICAL**: No user story implementation should start until these guardrails are explicit.
 
-- [x] T003 Align refresh-source, scope, deduplication, and warm-state rules across `specs/001-performance-review/contracts/refresh-contract.md` and `specs/001-performance-review/data-model.md`
-- [x] T004 Document the already-correct protections to preserve (300s TTL, stale fallback, sub-issue invalidation, manual refresh bypass) in `specs/001-performance-review/research.md` and `specs/001-performance-review/baseline.md`
+- [ ] T003 [P] Align refresh-source, scope, deduplication, and warm-state rules across `specs/001-performance-review/contracts/refresh-contract.md` and `specs/001-performance-review/data-model.md`
+- [X] T004 [P] Document the already-correct protections to preserve (300s TTL, stale fallback, sub-issue invalidation, manual refresh bypass) in `specs/001-performance-review/research.md` and `specs/001-performance-review/baseline.md`
 
 **Checkpoint**: The refresh contract and preservation rules are frozen, so implementation can focus on measured gaps only.
 
@@ -47,12 +47,12 @@
 
 ### Tests for User Story 1
 
-- [x] T005 [P] [US1] Add the backend/frontend guardrail checklist in `specs/001-performance-review/baseline.md` for `backend/tests/unit/test_cache.py`, `backend/tests/unit/test_api_board.py`, `backend/tests/unit/test_copilot_polling.py`, `frontend/src/hooks/useRealTimeSync.test.tsx`, and `frontend/src/hooks/useBoardRefresh.test.tsx`
-- [x] T006 [P] [US1] Add the manual network/profiler verification steps in `specs/001-performance-review/quickstart.md` for `frontend/src/pages/ProjectsPage.tsx`, `frontend/src/components/chat/ChatPopup.tsx`, and `frontend/src/components/board/AddAgentPopover.tsx`
+- [X] T005 [P] [US1] Add the backend/frontend guardrail checklist in `specs/001-performance-review/baseline.md` for `backend/tests/unit/test_cache.py`, `backend/tests/unit/test_api_board.py`, `backend/tests/unit/test_copilot_polling.py`, `frontend/src/hooks/useRealTimeSync.test.tsx`, and `frontend/src/hooks/useBoardRefresh.test.tsx`
+- [ ] T006 [P] [US1] Add the manual network/profiler verification steps in `specs/001-performance-review/quickstart.md` for `frontend/src/pages/ProjectsPage.tsx`, `frontend/src/components/chat/ChatPopup.tsx`, and `frontend/src/components/board/AddAgentPopover.tsx`
 
 ### Implementation for User Story 1
 
-- [x] T007 [US1] Record the before/after measurement table, success-criteria rubric, and follow-on recommendation gate in `specs/001-performance-review/baseline.md`
+- [X] T007 [US1] Record the before/after measurement table, success-criteria rubric, and follow-on recommendation gate in `specs/001-performance-review/baseline.md`
 
 **Checkpoint**: Baseline capture is reproducible, guardrails are explicit, and optimization work is blocked until the baseline artifact exists.
 
@@ -66,14 +66,14 @@
 
 ### Tests for User Story 2
 
-- [x] T008 [P] [US2] Extend unchanged-refresh and manual-refresh regression coverage in `backend/tests/unit/test_api_board.py`
-- [x] T009 [P] [US2] Extend WebSocket refresh-suppression and polling guard coverage in `backend/tests/unit/test_api_projects.py` and `backend/tests/unit/test_copilot_polling.py`
+- [X] T008 [P] [US2] Extend unchanged-refresh and manual-refresh regression coverage in `backend/tests/unit/test_api_board.py`
+- [ ] T009 [P] [US2] Extend WebSocket refresh-suppression and polling guard coverage in `backend/tests/unit/test_api_projects.py` and `backend/tests/unit/test_copilot_polling.py`
 
 ### Implementation for User Story 2
 
-- [x] T010 [US2] Add board cache hash and warm-state metadata handling in `backend/src/services/cache.py` and `backend/src/api/board.py`
-- [x] T011 [US2] Suppress unchanged-state WebSocket `refresh` broadcasts and keep canonical repository-resolution usage in `backend/src/api/projects.py` and `backend/src/utils.py`
-- [x] T012 [US2] Reuse warm board and sub-issue cache paths during repeated board refreshes in `backend/src/api/board.py` and `backend/src/services/github_projects/service.py`
+- [X] T010 [US2] Add board cache hash and warm-state metadata handling in `backend/src/services/cache.py` and `backend/src/api/board.py`
+- [ ] T011 [US2] Suppress unchanged-state WebSocket `refresh` broadcasts and keep canonical repository-resolution usage in `backend/src/api/projects.py` and `backend/src/utils.py`
+- [ ] T012 [US2] Reuse warm board and sub-issue cache paths during repeated board refreshes in `backend/src/api/board.py` and `backend/src/services/github_projects/service.py`
 
 **Checkpoint**: Idle unchanged viewing stops triggering repeated full refreshes, warm refreshes are cheaper, and manual refresh remains a forced full reload.
 
@@ -87,14 +87,14 @@
 
 ### Tests for User Story 3
 
-- [x] T013 [P] [US3] Extend live-update and fallback polling contract coverage in `frontend/src/hooks/useRealTimeSync.test.tsx`
-- [x] T014 [P] [US3] Extend board-reload deduplication and manual-refresh precedence coverage in `frontend/src/hooks/useBoardRefresh.test.tsx` and `frontend/src/hooks/useProjectBoard.test.tsx`
+- [ ] T013 [P] [US3] Extend live-update and fallback polling contract coverage in `frontend/src/hooks/useRealTimeSync.test.tsx`
+- [ ] T014 [P] [US3] Extend board-reload deduplication and manual-refresh precedence coverage in `frontend/src/hooks/useBoardRefresh.test.tsx` and `frontend/src/hooks/useProjectBoard.test.tsx`
 
 ### Implementation for User Story 3
 
-- [x] T015 [US3] Encode lightweight-vs-full refresh handling and fallback coordination in `frontend/src/hooks/useRealTimeSync.ts`
-- [x] T016 [US3] Add full-board reload debouncing, manual-refresh precedence, and fallback-aware timer resets in `frontend/src/hooks/useBoardRefresh.ts`
-- [x] T017 [US3] Align board query ownership and contract-driven reload triggers in `frontend/src/hooks/useProjectBoard.ts` and `frontend/src/pages/ProjectsPage.tsx`
+- [ ] T015 [US3] Encode lightweight-vs-full refresh handling and fallback coordination in `frontend/src/hooks/useRealTimeSync.ts`
+- [ ] T016 [US3] Add full-board reload debouncing, manual-refresh precedence, and fallback-aware timer resets in `frontend/src/hooks/useBoardRefresh.ts`
+- [X] T017 [US3] Align board query ownership and contract-driven reload triggers in `frontend/src/hooks/useProjectBoard.ts` and `frontend/src/pages/ProjectsPage.tsx`
 
 **Checkpoint**: Live updates remain fast, fallback stays lightweight, and all board reload paths follow one documented policy.
 
@@ -108,14 +108,14 @@
 
 ### Tests for User Story 4
 
-- [x] T018 [P] [US4] Add representative board interaction regression assertions in `frontend/src/pages/ProjectsPage.test.tsx`
-- [x] T019 [P] [US4] Add render-stability and listener-bounding coverage in `frontend/src/hooks/useBoardControls.test.tsx` and `frontend/src/hooks/useProjectBoard.test.tsx`
+- [ ] T018 [P] [US4] Add representative board interaction regression assertions in `frontend/src/pages/ProjectsPage.test.tsx`
+- [ ] T019 [P] [US4] Add render-stability and listener-bounding coverage in `frontend/src/hooks/useBoardControls.test.tsx` and `frontend/src/hooks/useProjectBoard.test.tsx`
 
 ### Implementation for User Story 4
 
-- [x] T020 [US4] Stabilize memo-sensitive derived state and callback props in `frontend/src/pages/ProjectsPage.tsx`, `frontend/src/components/board/BoardColumn.tsx`, and `frontend/src/components/board/IssueCard.tsx`
-- [x] T021 [US4] Bound drag-resize update frequency in `frontend/src/components/chat/ChatPopup.tsx`
-- [x] T022 [US4] Bound popover reposition work in `frontend/src/components/board/AddAgentPopover.tsx`
+- [X] T020 [US4] Stabilize memo-sensitive derived state and callback props in `frontend/src/pages/ProjectsPage.tsx`, `frontend/src/components/board/BoardColumn.tsx`, and `frontend/src/components/board/IssueCard.tsx`
+- [X] T021 [US4] Bound drag-resize update frequency in `frontend/src/components/chat/ChatPopup.tsx`
+- [X] T022 [US4] Bound popover reposition work in `frontend/src/components/board/AddAgentPopover.tsx`
 
 **Checkpoint**: In-scope board and chat interactions are smoother without broad rerender storms or unbounded continuous listeners.
 
@@ -125,10 +125,10 @@
 
 **Purpose**: Re-run the documented guardrails, compare results against the baseline, and either defer broader work or record the next structural step.
 
-- [x] T023 [P] Re-run backend regression suites in `backend/tests/unit/test_cache.py`, `backend/tests/unit/test_api_board.py`, `backend/tests/unit/test_api_projects.py`, and `backend/tests/unit/test_copilot_polling.py`; record results in `specs/001-performance-review/baseline.md`
-- [x] T024 [P] Re-run frontend regression suites in `frontend/src/hooks/useRealTimeSync.test.tsx`, `frontend/src/hooks/useBoardRefresh.test.tsx`, `frontend/src/hooks/useProjectBoard.test.tsx`, and `frontend/src/pages/ProjectsPage.test.tsx`; record results in `specs/001-performance-review/baseline.md`
-- [x] T025 Perform the final before/after network-and-profiler comparison and update `specs/001-performance-review/baseline.md` with SC-001 through SC-007 results
-- [x] T026 Document the explicit defer/follow-on decision for broader structural work in `specs/001-performance-review/research.md` using the measured outcome recorded in `specs/001-performance-review/baseline.md`
+- [X] T023 [P] Re-run backend regression suites in `backend/tests/unit/test_cache.py`, `backend/tests/unit/test_api_board.py`, `backend/tests/unit/test_api_projects.py`, and `backend/tests/unit/test_copilot_polling.py`; record results in `specs/001-performance-review/baseline.md`
+- [X] T024 [P] Re-run frontend regression suites in `frontend/src/hooks/useRealTimeSync.test.tsx`, `frontend/src/hooks/useBoardRefresh.test.tsx`, `frontend/src/hooks/useProjectBoard.test.tsx`, and `frontend/src/pages/ProjectsPage.test.tsx`; record results in `specs/001-performance-review/baseline.md`
+- [X] T025 Perform the final before/after network-and-profiler comparison and update `specs/001-performance-review/baseline.md` with SC-001 through SC-007 results
+- [ ] T026 Document the explicit defer/follow-on decision for broader structural work in `specs/001-performance-review/research.md` using the measured outcome recorded in `specs/001-performance-review/baseline.md`
 
 ---
 

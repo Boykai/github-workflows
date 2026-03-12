@@ -185,8 +185,20 @@ class TestGetBoardData:
             resp = await client.get("/api/v1/board/projects/PVT_abc")
             assert resp.status_code == 200
 
-            # Verify cache.set was called
+            # Verify cache.set was called with a data_hash keyword argument
             assert mock_cache.set.called
+            # Search call_args_list for the board cache set call with data_hash,
+            # so the test remains robust if the endpoint adds more cache writes.
+            data_hash = None
+            for call in mock_cache.set.call_args_list:
+                h = call.kwargs.get("data_hash")
+                if h is not None:
+                    data_hash = h
+                    break
+            assert data_hash is not None
+            # The data_hash should be a 64-char hex SHA-256 string
+            assert isinstance(data_hash, str)
+            assert len(data_hash) == 64
 
     async def test_manual_refresh_clears_sub_issue_caches(self, client, mock_github_service):
         """Manual refresh (refresh=true) must clear sub-issue caches before fetching."""
@@ -228,6 +240,55 @@ class TestGetBoardData:
             resp2 = await client.get("/api/v1/board/projects/PVT_abc")
             assert resp2.status_code == 200
             mock_cache.get.assert_called_once()
+
+    async def test_board_data_hash_excludes_rate_limit(self, client, mock_github_service):
+        """Board data hash should exclude rate_limit so same board content gets same hash."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        hashes = []
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = None
+            mock_cache.get_stale.return_value = None
+
+            # First request
+            resp1 = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp1.status_code == 200
+            h1 = None
+            for call in mock_cache.set.call_args_list:
+                h = call.kwargs.get("data_hash")
+                if h is not None:
+                    h1 = h
+                    break
+            hashes.append(h1)
+
+        # Change rate limit info but keep board data identical
+        mock_github_service.get_last_rate_limit.return_value = {
+            "limit": 5000,
+            "remaining": 4900,
+            "reset_at": 1_700_000_000,
+            "used": 100,
+        }
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = None
+            mock_cache.get_stale.return_value = None
+
+            # Second request — same board data, different rate_limit
+            resp2 = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp2.status_code == 200
+            h2 = None
+            for call in mock_cache.set.call_args_list:
+                h = call.kwargs.get("data_hash")
+                if h is not None:
+                    h2 = h
+                    break
+            hashes.append(h2)
+
+        # Hashes should match because rate_limit is excluded
+        assert hashes[0] is not None
+        assert hashes[0] == hashes[1]
 
 
 # ── Regression: board error responses must NOT leak internal details ────────
