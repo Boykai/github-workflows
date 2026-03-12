@@ -869,6 +869,16 @@ export interface BulkModelUpdateResult {
   target_model_name: string;
 }
 
+export interface AgentMcpSyncResult {
+  success: boolean;
+  files_updated: number;
+  files_skipped: number;
+  files_unchanged: number;
+  warnings: string[];
+  errors: string[];
+  synced_mcps: string[];
+}
+
 export const agentsApi = {
   list(projectId: string): Promise<AgentConfig[]> {
     return request<AgentConfig[]>(`/agents/${projectId}`);
@@ -919,6 +929,12 @@ export const agentsApi = {
     return request<BulkModelUpdateResult>(`/agents/${projectId}/bulk-model`, {
       method: 'PATCH',
       body: JSON.stringify({ target_model_id: targetModelId, target_model_name: targetModelName }),
+    });
+  },
+
+  syncMcps(projectId: string): Promise<AgentMcpSyncResult> {
+    return request<AgentMcpSyncResult>(`/agents/${projectId}/sync-mcps`, {
+      method: 'POST',
     });
   },
 };

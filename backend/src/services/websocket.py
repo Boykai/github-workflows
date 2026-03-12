@@ -1,10 +1,15 @@
 """WebSocket connection manager for real-time updates."""
 
+import asyncio
+
 from fastapi import WebSocket
 
 from src.logging_utils import get_logger
 
 logger = get_logger(__name__)
+
+# Module-level lock for connection mutations
+_ws_lock = asyncio.Lock()
 
 
 class ConnectionManager:
@@ -26,16 +31,17 @@ class ConnectionManager:
         """
         await websocket.accept()
 
-        if project_id not in self._connections:
-            self._connections[project_id] = set()
+        async with _ws_lock:
+            if project_id not in self._connections:
+                self._connections[project_id] = set()
 
-        self._connections[project_id].add(websocket)
-        self._socket_projects[websocket] = project_id
+            self._connections[project_id].add(websocket)
+            self._socket_projects[websocket] = project_id
 
         logger.info(
             "WebSocket connected for project %s (total: %d)",
             project_id,
-            len(self._connections[project_id]),
+            len(self._connections.get(project_id, set())),
         )
 
     def disconnect(self, websocket: WebSocket) -> None:

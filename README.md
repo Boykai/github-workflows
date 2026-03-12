@@ -16,6 +16,7 @@
 - **Automated agent pipeline** → `specify` → `plan` → `tasks` → `implement` → `review`
 - **Each agent gets a sub-issue** for per-agent visibility, with child PRs merged into a single main branch
 - **Real-time board** → Kanban view with drag-and-drop agent configuration
+- **Voice input** → Dictate chat messages via microphone with real-time transcription (Firefox, Chrome, Edge, Safari)
 - **Signal messaging** → Receive notifications and reply from your phone
 - **Custom agent creation** → Type `#agent <description> #<status>` in chat to create agents
 - **Import parent issues** → Paste or upload a GitHub Issue description on the Projects page and launch an agent pipeline directly

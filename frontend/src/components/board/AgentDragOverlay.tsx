@@ -43,7 +43,7 @@ export function AgentDragOverlay({ agent, availableAgents, width }: AgentDragOve
       style={width != null ? { width } : undefined}
     >
       {/* Drag handle (decorative) */}
-      <span className="text-muted-foreground/50 px-1">⠿</span>
+      <span className="text-muted-foreground/50 px-1" aria-hidden="true">⠿</span>
 
       {/* Avatar */}
       <ThemedAgentIcon

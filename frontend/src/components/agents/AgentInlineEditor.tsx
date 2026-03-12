@@ -1,4 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
+import { Info } from 'lucide-react';
 import type { AgentConfig } from '@/services/api';
 import { useUpdateAgent } from '@/hooks/useAgents';
 import { AgentIconCatalog } from '@/components/agents/AgentIconCatalog';
@@ -160,7 +161,7 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {isDirty && (
-              <span className="rounded-full border border-amber-300/60 bg-amber-50/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-900 dark:border-amber-600/50 dark:bg-amber-950/30 dark:text-amber-200">
+              <span className="solar-chip-warning rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]">
                 Unsaved changes
               </span>
             )}
@@ -225,6 +226,16 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
                 error={toolsError ?? undefined}
                 projectId={projectId}
               />
+              <div className="mt-2 flex items-start gap-1.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-3 py-2">
+                <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+                <p className="text-[11px] leading-4 text-muted-foreground">
+                  This agent enforces{' '}
+                  <code className="rounded bg-emerald-500/10 px-1 py-0.5 font-mono text-[10px] font-medium text-emerald-700 dark:text-emerald-300">
+                    tools: [&quot;*&quot;]
+                  </code>{' '}
+                  — all activated and built-in MCPs are available.
+                </p>
+              </div>
             </div>
 
             {updateMutation.isPending && (

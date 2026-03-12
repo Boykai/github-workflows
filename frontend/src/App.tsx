@@ -12,6 +12,7 @@ import {
   createRoutesFromElements,
 } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { ApiError } from '@/services/api';
@@ -48,8 +49,8 @@ const NotFoundPage = lazy(() =>
 
 function RouteFallback() {
   return (
-    <div className="flex min-h-[40vh] items-center justify-center px-6 py-10 text-sm text-muted-foreground">
-      Loading page...
+    <div className="flex min-h-[40vh] items-center justify-center px-6 py-10">
+      <CelestialLoader size="md" label="Loading page…" />
     </div>
   );
 }

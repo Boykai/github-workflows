@@ -95,14 +95,14 @@ export function BulkModelUpdateDialog({
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className="px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
+                className="celestial-focus px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                 onClick={handleClose}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="celestial-focus px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 disabled={!selectedModelId}
                 onClick={() => setStep(2)}
               >
@@ -143,14 +143,14 @@ export function BulkModelUpdateDialog({
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className="px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
+                className="celestial-focus px-4 py-2 text-sm font-medium rounded-md bg-muted hover:bg-muted/80 text-muted-foreground"
                 onClick={() => setStep(1)}
               >
                 Back
               </button>
               <button
                 type="button"
-                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+                className="celestial-focus px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
                 disabled={mutation.isPending}
                 onClick={handleConfirm}
               >

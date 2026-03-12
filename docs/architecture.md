@@ -70,13 +70,13 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 |-----------|----------|
 | `components/auth/` | `LoginButton` — GitHub OAuth login |
 | `components/board/` | `ProjectBoard`, `BoardColumn`, `IssueCard`, `IssueDetailModal`, `ProjectIssueLaunchPanel`, agent config UI (`AgentPresetSelector`, `AgentConfigRow`, `AgentTile`, `AgentSaveBar`, `AddAgentPopover`) |
-| `components/chat/` | `ChatInterface`, `ChatPopup`, `MessageBubble`, `TaskPreview`, `StatusChangePreview`, `IssueRecommendationPreview`, `CommandAutocomplete`, `SystemMessage` |
+| `components/chat/` | `ChatInterface`, `ChatPopup`, `MessageBubble`, `TaskPreview`, `StatusChangePreview`, `IssueRecommendationPreview`, `CommandAutocomplete`, `SystemMessage`, `ChatToolbar`, `VoiceInputButton` |
 | `components/settings/` | `AIPreferences`, `DisplayPreferences`, `WorkflowDefaults`, `NotificationPreferences`, `ProjectSettings`, `GlobalSettings`, `SignalConnection`, `McpSettings` |
 | `components/common/` | `ErrorBoundary`, `CelestialCatalogHero` (reusable hero with celestial animations), `CelestialLoader` (orbital loading indicator), `ThemedAgentIcon`, `ProjectSelectionEmptyState`, `agentIcons` |
 | `components/agents/` | `AgentsPanel`, `AgentCard`, `AgentAvatar`, `AgentChatFlow`, `AgentInlineEditor`, `AddAgentModal`, `AgentIconPickerModal`, `BulkModelUpdateDialog` |
 | `components/pipeline/` | `PipelineBoard`, `PipelineFlowGraph`, `AgentNode`, `StageCard`, `ModelSelector`, `PipelineModelDropdown`, `PipelineToolbar`, `SavedWorkflowsList`, `UnsavedChangesDialog` |
 | `components/tools/` | `ToolsPanel`, `ToolSelectorModal`, `ToolCard`, `McpPresetsGallery`, `EditRepoMcpModal`, `UploadMcpModal`, `RepoConfigPanel`, `GitHubMcpConfigGenerator` |
-| `hooks/` | `useAuth`, `useChat`, `useChatHistory`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useAgents`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useChores`, `useMcpSettings`, `useMetadata`, `useSidebarState`, `useMediaQuery`, `usePipelineConfig`, `useTools`, `useNotifications` |
+| `hooks/` | `useAuth`, `useChat`, `useChatHistory`, `useProjects`, `useWorkflow`, `useRealTimeSync`, `useProjectBoard`, `useAppTheme`, `useAgentConfig`, `useAgents`, `useSettings`, `useSettingsForm`, `useBoardRefresh`, `useCommands`, `useCleanup`, `useChores`, `useMcpSettings`, `useMetadata`, `useSidebarState`, `useMediaQuery`, `usePipelineConfig`, `useTools`, `useNotifications`, `useVoiceInput` |
 | `pages/` | `AgentsPage`, `AgentsPipelinePage`, `AppPage`, `ChoresPage`, `LoginPage`, `NotFoundPage`, `ProjectsPage`, `SettingsPage`, `ToolsPage` |
 | `services/` | `api.ts` — centralized HTTP/WS client for all backend endpoints |
 
@@ -99,7 +99,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `services/copilot_polling/` | Background polling loop: `state`, `helpers`, `polling_loop`, `agent_output`, `pipeline`, `recovery`, `completion` |
 | `services/workflow_orchestrator/` | Pipeline orchestration: `models` (contexts/state), `config` (async load/persist), `transitions`, `orchestrator` |
 | `services/chores/` | Chore templates, scheduler, counter, chat, template builder, service |
-| `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) |
+| `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) + Agent MCP Sync (`agent_mcp_sync.py`) — keeps `mcp-servers` and `tools: ["*"]` in sync across all `.agent.md` files |
 | `migrations/` | SQL migration files `001` through `020` (23 files; prefixes 013–015 have two files each) |
 | `prompts/` | AI prompt templates for issue and task generation |
 | `middleware/` | `RequestIDMiddleware` |
@@ -128,7 +128,8 @@ Set via `AI_PROVIDER` env var (`copilot` or `azure_openai`).
 5. Start periodic session cleanup loop (exponential backoff on failures)
 6. Start Signal WebSocket listener for inbound messages
 7. Auto-resume Copilot polling from the most recent session with a selected project
-8. On shutdown: stop Signal listener → cancel cleanup task → stop polling → close database
+8. Run Agent MCP Sync in background — reconciles `mcp-servers` field and enforces `tools: ["*"]` across all `.github/agents/*.agent.md` files
+9. On shutdown: stop Signal listener → cancel cleanup task → stop polling → close database
 
 ### nginx Reverse Proxy
 

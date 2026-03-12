@@ -1,6 +1,8 @@
 ---
 name: Archivist
 description: "Analyzes local changes or a related PR, updates the affected documentation and README content to keep docs accurate, current, and aligned with the live codebase, and fixes documentation drift based on findings."
+tools:
+  - "*"
 handoffs:
   - label: Run Validation
     agent: Linter

@@ -33,8 +33,8 @@ async def _check_database() -> dict:
         elapsed = round((time.monotonic() - t0) * 1000)
         return {"status": "pass", "time": f"{elapsed}ms"}
     except Exception as exc:
-        logger.warning("Health check: database failed — %s", exc)
-        return {"status": "fail", "output": str(exc)}
+        logger.warning("Health check: database failed — %s", exc, exc_info=True)
+        return {"status": "fail", "output": "database connectivity"}
 
 
 async def _check_github_api() -> dict:
@@ -50,8 +50,8 @@ async def _check_github_api() -> dict:
             return {"status": "pass", "time": f"{elapsed}ms"}
         return {"status": "fail", "output": f"HTTP {resp.status_code}"}
     except Exception as exc:
-        logger.warning("Health check: github_api failed — %s", exc)
-        return {"status": "fail", "output": str(exc)}
+        logger.warning("Health check: github_api failed — %s", exc, exc_info=True)
+        return {"status": "fail", "output": "GitHub API connectivity"}
 
 
 def _check_polling_loop() -> dict:
@@ -66,8 +66,8 @@ def _check_polling_loop() -> dict:
             return {"status": "pass", "observed_value": "running"}
         return {"status": "warn", "observed_value": "stopped"}
     except Exception as exc:
-        logger.warning("Health check: polling_loop failed — %s", exc)
-        return {"status": "warn", "observed_value": f"error: {exc}"}
+        logger.warning("Health check: polling_loop failed — %s", exc, exc_info=True)
+        return {"status": "warn", "observed_value": "error"}
 
 
 @router.get("/health", tags=["health"])
