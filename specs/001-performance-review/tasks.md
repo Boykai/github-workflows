@@ -19,8 +19,8 @@
 
 **Purpose**: Create the feature-local artifacts needed to capture measurements and run the performance pass consistently.
 
-- [ ] T001 Create the before/after measurement workbook in `specs/001-performance-review/baseline.md`
-- [ ] T002 Update the execution checklist and local verification commands in `specs/001-performance-review/quickstart.md`
+- [ ] T001 [P] Create the before/after measurement workbook in `specs/001-performance-review/baseline.md`
+- [ ] T002 [P] Update the execution checklist and local verification commands in `specs/001-performance-review/quickstart.md`
 
 **Checkpoint**: The feature has a dedicated baseline artifact and an executable quickstart for local verification.
 
@@ -32,8 +32,8 @@
 
 **⚠️ CRITICAL**: No user story implementation should start until these guardrails are explicit.
 
-- [ ] T003 Align refresh-source, scope, deduplication, and warm-state rules across `specs/001-performance-review/contracts/refresh-contract.md` and `specs/001-performance-review/data-model.md`
-- [ ] T004 Document the already-correct protections to preserve (300s TTL, stale fallback, sub-issue invalidation, manual refresh bypass) in `specs/001-performance-review/research.md` and `specs/001-performance-review/baseline.md`
+- [ ] T003 [P] Align refresh-source, scope, deduplication, and warm-state rules across `specs/001-performance-review/contracts/refresh-contract.md` and `specs/001-performance-review/data-model.md`
+- [ ] T004 [P] Document the already-correct protections to preserve (300s TTL, stale fallback, sub-issue invalidation, manual refresh bypass) in `specs/001-performance-review/research.md` and `specs/001-performance-review/baseline.md`
 
 **Checkpoint**: The refresh contract and preservation rules are frozen, so implementation can focus on measured gaps only.
 
