@@ -152,6 +152,7 @@ Manage custom GitHub Agent configurations stored per-project.
 | GET | `/agents/{project_id}/{agent_id}/tools` | Get MCP tool assignments for an agent |
 | PUT | `/agents/{project_id}/{agent_id}/tools` | Update MCP tool assignments for an agent |
 | POST | `/agents/{project_id}/chat` | Conversational refinement of an agent definition |
+| POST | `/agents/{project_id}/sync-mcps` | Synchronize MCP tool configurations across agent files |
 
 ## Pipelines
 

@@ -7,7 +7,7 @@ This guide walks through every supported way to run Agent Projects locally: GitH
 - [Fork the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
 - [Create a GitHub Project (Kanban)](https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/creating-a-project) with columns: **Backlog**, **Ready**, **In Progress**, **In Review**, **Done**
 - [GitHub Copilot subscription](https://github.com/features/copilot) (required for agent pipeline and default AI provider)
-- Docker and Docker Compose (recommended), OR Node.js 22+ and Python 3.13+ for bare-metal/local installs
+- Docker and Docker Compose (recommended), OR Node.js 22+ and Python 3.12+ for bare-metal/local installs
 - GitHub OAuth App credentials
 
 ## Quick Start: GitHub Codespaces (Easiest)
