@@ -28,9 +28,9 @@
 
 **Purpose**: Establish audit baseline — verify existing tests pass and no pre-existing regressions
 
-- [ ] T001 Run existing test suite (`npx vitest run`) and document any pre-existing failures in frontend/
-- [ ] T002 Run type-check (`npm run type-check`) and lint (`npm run lint`) to establish baseline in frontend/
-- [ ] T003 Review design token reference in frontend/src/index.css — document the full Celestial token set (colors, custom classes, focus styles) for use during audit
+- [x] T001 Run existing test suite (`npx vitest run`) and document any pre-existing failures in frontend/
+- [x] T002 Run type-check (`npm run type-check`) and lint (`npm run lint`) to establish baseline in frontend/
+- [x] T003 Review design token reference in frontend/src/index.css — document the full Celestial token set (colors, custom classes, focus styles) for use during audit
 
 ---
 
@@ -40,10 +40,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this inventory phase is complete
 
-- [ ] T004 Audit all agent components for hardcoded color values (hex, rgb, hsl, named Tailwind colors not in design system) across frontend/src/components/agents/ and frontend/src/components/board/
-- [ ] T005 [P] Audit z-index usage across all Agents page components — document all z-[120], z-[140], z-[9999], z-50 values in frontend/src/components/agents/ and frontend/src/components/board/
-- [ ] T006 [P] Audit all interactive elements for missing `.celestial-focus` or equivalent `focus-visible:ring-*` classes across frontend/src/components/agents/ and frontend/src/components/board/
-- [ ] T007 [P] Audit all ARIA attributes — document missing roles, labels, and live regions across all Agents page components per contracts/component-contracts.yaml
+- [x] T004 Audit all agent components for hardcoded color values (hex, rgb, hsl, named Tailwind colors not in design system) across frontend/src/components/agents/ and frontend/src/components/board/
+- [x] T005 [P] Audit z-index usage across all Agents page components — document all z-[120], z-[140], z-[9999], z-50 values in frontend/src/components/agents/ and frontend/src/components/board/
+- [x] T006 [P] Audit all interactive elements for missing `.celestial-focus` or equivalent `focus-visible:ring-*` classes across frontend/src/components/agents/ and frontend/src/components/board/
+- [x] T007 [P] Audit all ARIA attributes — document missing roles, labels, and live regions across all Agents page components per contracts/component-contracts.yaml
 
 **Checkpoint**: Audit inventory complete — story-specific implementation can begin
 
@@ -57,18 +57,18 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [P] [US1] Replace hardcoded `border-emerald-300/40`, `bg-emerald-50/80` badge colors with `solar-chip-success` design tokens in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T009 [P] [US1] Replace hardcoded `text-green-700 dark:text-green-400` success message colors with design-token equivalents in frontend/src/components/agents/AgentCard.tsx
-- [ ] T010 [P] [US1] Replace hardcoded source badge colors (`bg-blue-100 dark:bg-blue-900/30`, `bg-green-100 dark:bg-green-900/30`) with design-token badges in frontend/src/components/board/AddAgentPopover.tsx
-- [ ] T011 [P] [US1] Replace hardcoded inline SVG colors (inline `hsl(var(--gold))`, `hsl(var(--glow))` with magic opacity) with CSS custom property references via Tailwind in frontend/src/components/board/AgentTile.tsx
-- [ ] T012 [P] [US1] Audit and normalize hardcoded amber colors (`border-amber-300/60`, `bg-amber-50/80`) in unsaved-change indicators in frontend/src/components/agents/AddAgentModal.tsx and frontend/src/components/agents/AgentInlineEditor.tsx
-- [ ] T013 [P] [US1] Verify status badge colors (Active → `solar-chip-success`, Pending Creation → `solar-chip-violet`, Pending Deletion → `solar-chip-danger`) are consistent across all card variants in frontend/src/components/agents/AgentCard.tsx
-- [ ] T014 [P] [US1] Verify source badge colors (builtin → `solar-chip-neutral`, repository → `solar-chip-success`, shared → `solar-chip-violet`, local → `solar-chip`) are consistent across AgentCard and AddAgentPopover in frontend/src/components/agents/AgentCard.tsx and frontend/src/components/board/AddAgentPopover.tsx
-- [ ] T015 [P] [US1] Verify all icons across agent cards, action buttons, and Orbital Map come from Lucide React and are consistently sized (16px in compact, 18–20px in default) in frontend/src/components/agents/ and frontend/src/components/board/
-- [ ] T016 [P] [US1] Verify radial gradient overlays, border radii, and shadow values in agent cards and panels align with Celestial design system tokens in frontend/src/components/agents/AgentsPanel.tsx and frontend/src/components/agents/AgentCard.tsx
-- [ ] T017 [P] [US1] Verify `font-display` and `font-sans` usage in headings and body text matches other pages (Projects, Settings) in frontend/src/pages/AgentsPage.tsx
-- [ ] T018 [US1] Test light mode and dark mode switching — verify all elements render correctly with no visual artifacts, unreadable text, or missing styles across all Agents page components
-- [ ] T019 [US1] Run existing tests (`npx vitest run`) to verify no regressions from US1 changes
+- [x] T008 [P] [US1] Replace hardcoded `border-emerald-300/40`, `bg-emerald-50/80` badge colors with `solar-chip-success` design tokens in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T009 [P] [US1] Replace hardcoded `text-green-700 dark:text-green-400` success message colors with design-token equivalents in frontend/src/components/agents/AgentCard.tsx
+- [x] T010 [P] [US1] Replace hardcoded source badge colors (`bg-blue-100 dark:bg-blue-900/30`, `bg-green-100 dark:bg-green-900/30`) with design-token badges in frontend/src/components/board/AddAgentPopover.tsx
+- [x] T011 [P] [US1] Replace hardcoded inline SVG colors (inline `hsl(var(--gold))`, `hsl(var(--glow))` with magic opacity) with CSS custom property references via Tailwind in frontend/src/components/board/AgentTile.tsx
+- [x] T012 [P] [US1] Audit and normalize hardcoded amber colors (`border-amber-300/60`, `bg-amber-50/80`) in unsaved-change indicators in frontend/src/components/agents/AddAgentModal.tsx and frontend/src/components/agents/AgentInlineEditor.tsx
+- [x] T013 [P] [US1] Verify status badge colors (Active → `solar-chip-success`, Pending Creation → `solar-chip-violet`, Pending Deletion → `solar-chip-danger`) are consistent across all card variants in frontend/src/components/agents/AgentCard.tsx
+- [x] T014 [P] [US1] Verify source badge colors (builtin → `solar-chip-neutral`, repository → `solar-chip-success`, shared → `solar-chip-violet`, local → `solar-chip`) are consistent across AgentCard and AddAgentPopover in frontend/src/components/agents/AgentCard.tsx and frontend/src/components/board/AddAgentPopover.tsx
+- [x] T015 [P] [US1] Verify all icons across agent cards, action buttons, and Orbital Map come from Lucide React and are consistently sized (16px in compact, 18–20px in default) in frontend/src/components/agents/ and frontend/src/components/board/
+- [x] T016 [P] [US1] Verify radial gradient overlays, border radii, and shadow values in agent cards and panels align with Celestial design system tokens in frontend/src/components/agents/AgentsPanel.tsx and frontend/src/components/agents/AgentCard.tsx
+- [x] T017 [P] [US1] Verify `font-display` and `font-sans` usage in headings and body text matches other pages (Projects, Settings) in frontend/src/pages/AgentsPage.tsx
+- [x] T018 [US1] Test light mode and dark mode switching — verify all elements render correctly with no visual artifacts, unreadable text, or missing styles across all Agents page components
+- [x] T019 [US1] Run existing tests (`npx vitest run`) to verify no regressions from US1 changes
 
 **Checkpoint**: User Story 1 complete — Agents page is visually consistent with the rest of Project Solune
 
@@ -82,20 +82,20 @@
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Add error handling for `pipelineList` query failure — show error state or graceful fallback in frontend/src/pages/AgentsPage.tsx
-- [ ] T021 [P] [US2] Add error handling for `pipelineAssignment` query failure — show error state or graceful fallback in frontend/src/pages/AgentsPage.tsx
-- [ ] T022 [P] [US2] Verify loading skeleton (animated placeholder cards) displays correctly and is visually consistent with loading states on other pages in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T023 [P] [US2] Verify `ProjectSelectionEmptyState` renders correctly with no layout breaks when no project is selected in frontend/src/pages/AgentsPage.tsx
-- [ ] T024 [P] [US2] Verify empty agent catalog state displays "Create the first agent" prompt with no visual glitches in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T025 [P] [US2] Verify pending agents section renders with correct status badges ("Pending PR", "Pending Deletion") and no layout collisions in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T026 [P] [US2] Verify error state displays red error box with clear description in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T027 [P] [US2] Verify featured agents algorithm (top 3 by usage, supplemented by recent) works correctly and catalog grid displays without overflow in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T028 [P] [US2] Verify "No board columns available" dashed border message renders correctly when no columns exist in frontend/src/pages/AgentsPage.tsx
-- [ ] T029 [P] [US2] Verify AgentPresetSelector handles `savedPipelines` query loading state — add loading indicator if missing in frontend/src/components/board/AgentPresetSelector.tsx
-- [ ] T030 [P] [US2] Add error dismissal mechanism for persistent error messages in AgentPresetSelector in frontend/src/components/board/AgentPresetSelector.tsx
-- [ ] T031 [P] [US2] Verify BulkModelUpdateDialog handles mutation failure with visible error and dismissal in frontend/src/components/agents/BulkModelUpdateDialog.tsx
-- [ ] T032 [P] [US2] Add error handling for failed icon save in AgentIconPickerModal in frontend/src/components/agents/AgentIconPickerModal.tsx
-- [ ] T033 [US2] Run existing tests (`npx vitest run`) to verify no regressions from US2 changes
+- [x] T020 [P] [US2] Add error handling for `pipelineList` query failure — show error state or graceful fallback in frontend/src/pages/AgentsPage.tsx
+- [x] T021 [P] [US2] Add error handling for `pipelineAssignment` query failure — show error state or graceful fallback in frontend/src/pages/AgentsPage.tsx
+- [x] T022 [P] [US2] Verify loading skeleton (animated placeholder cards) displays correctly and is visually consistent with loading states on other pages in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T023 [P] [US2] Verify `ProjectSelectionEmptyState` renders correctly with no layout breaks when no project is selected in frontend/src/pages/AgentsPage.tsx
+- [x] T024 [P] [US2] Verify empty agent catalog state displays "Create the first agent" prompt with no visual glitches in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T025 [P] [US2] Verify pending agents section renders with correct status badges ("Pending PR", "Pending Deletion") and no layout collisions in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T026 [P] [US2] Verify error state displays red error box with clear description in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T027 [P] [US2] Verify featured agents algorithm (top 3 by usage, supplemented by recent) works correctly and catalog grid displays without overflow in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T028 [P] [US2] Verify "No board columns available" dashed border message renders correctly when no columns exist in frontend/src/pages/AgentsPage.tsx
+- [x] T029 [P] [US2] Verify AgentPresetSelector handles `savedPipelines` query loading state — add loading indicator if missing in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T030 [P] [US2] Add error dismissal mechanism for persistent error messages in AgentPresetSelector in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T031 [P] [US2] Verify BulkModelUpdateDialog handles mutation failure with visible error and dismissal in frontend/src/components/agents/BulkModelUpdateDialog.tsx
+- [x] T032 [P] [US2] Add error handling for failed icon save in AgentIconPickerModal in frontend/src/components/agents/AgentIconPickerModal.tsx
+- [x] T033 [US2] Run existing tests (`npx vitest run`) to verify no regressions from US2 changes
 
 **Checkpoint**: User Story 2 complete — all page states render correctly with no broken or confusing views
 
@@ -111,45 +111,45 @@
 
 #### Focus Indicators
 
-- [ ] T034 [P] [US3] Add `celestial-focus` class to all interactive elements (buttons, links, toggles) missing focus indicators in frontend/src/components/agents/AgentCard.tsx (icon, edit, delete buttons)
-- [ ] T035 [P] [US3] Add `celestial-focus` class to interactive elements in frontend/src/components/agents/AgentsPanel.tsx (search input, sort toggle, add button)
-- [ ] T036 [P] [US3] Add `celestial-focus` class to interactive elements in frontend/src/components/board/AgentTile.tsx (tile container, action buttons)
-- [ ] T037 [P] [US3] Add `celestial-focus` class to expand toggle in frontend/src/components/board/AgentConfigRow.tsx
-- [ ] T038 [P] [US3] Add focus indicators to reorder/remove buttons in frontend/src/components/agents/ToolsEditor.tsx
-- [ ] T039 [P] [US3] Add focus indicators to icon selection buttons in frontend/src/components/agents/AgentIconCatalog.tsx
+- [x] T034 [P] [US3] Add `celestial-focus` class to all interactive elements (buttons, links, toggles) missing focus indicators in frontend/src/components/agents/AgentCard.tsx (icon, edit, delete buttons)
+- [x] T035 [P] [US3] Add `celestial-focus` class to interactive elements in frontend/src/components/agents/AgentsPanel.tsx (search input, sort toggle, add button)
+- [x] T036 [P] [US3] Add `celestial-focus` class to interactive elements in frontend/src/components/board/AgentTile.tsx (tile container, action buttons)
+- [x] T037 [P] [US3] Add `celestial-focus` class to expand toggle in frontend/src/components/board/AgentConfigRow.tsx
+- [x] T038 [P] [US3] Add focus indicators to reorder/remove buttons in frontend/src/components/agents/ToolsEditor.tsx
+- [x] T039 [P] [US3] Add focus indicators to icon selection buttons in frontend/src/components/agents/AgentIconCatalog.tsx
 
 #### ARIA Roles and Labels
 
-- [ ] T040 [P] [US3] Fix `role="presentation"` to `role="dialog"` with `aria-modal="true"` on modal content in frontend/src/components/agents/AgentIconPickerModal.tsx
-- [ ] T041 [P] [US3] Add `role="status"` and `aria-live="polite"` to save bar container in frontend/src/components/board/AgentSaveBar.tsx
-- [ ] T042 [P] [US3] Add `role="region"` and `aria-label="Agent column assignments"` to container in frontend/src/components/board/AgentConfigRow.tsx
-- [ ] T043 [P] [US3] Add `role="list"` to agents container in frontend/src/components/board/AgentColumnCell.tsx
-- [ ] T044 [P] [US3] Add `role="listitem"` to tile wrapper in frontend/src/components/board/AgentTile.tsx
-- [ ] T045 [P] [US3] Add `aria-expanded` attribute to dropdown trigger in frontend/src/components/board/AddAgentPopover.tsx
-- [ ] T046 [P] [US3] Add `aria-expanded` attribute to saved pipelines dropdown trigger in frontend/src/components/board/AgentPresetSelector.tsx
-- [ ] T047 [P] [US3] Add `role="listbox"` on option container and `role="option"` on each agent item in frontend/src/components/board/AddAgentPopover.tsx
-- [ ] T048 [P] [US3] Add `role="radiogroup"` on icon grid and `role="radio"` with `aria-checked` on each icon button in frontend/src/components/agents/AgentIconCatalog.tsx
-- [ ] T049 [P] [US3] Add `aria-hidden="true"` to decorative drag handle braille character in frontend/src/components/board/AgentDragOverlay.tsx
-- [ ] T050 [P] [US3] Add card-level accessible description for screen readers in frontend/src/components/agents/AgentCard.tsx
-- [ ] T051 [P] [US3] Add `aria-label` on move up/down/remove buttons in frontend/src/components/agents/ToolsEditor.tsx
-- [ ] T052 [P] [US3] Add `aria-busy="true"` during loading state in frontend/src/components/board/AddAgentPopover.tsx
+- [x] T040 [P] [US3] Fix `role="presentation"` to `role="dialog"` with `aria-modal="true"` on modal content in frontend/src/components/agents/AgentIconPickerModal.tsx
+- [x] T041 [P] [US3] Add `role="status"` and `aria-live="polite"` to save bar container in frontend/src/components/board/AgentSaveBar.tsx
+- [x] T042 [P] [US3] Add `role="region"` and `aria-label="Agent column assignments"` to container in frontend/src/components/board/AgentConfigRow.tsx
+- [x] T043 [P] [US3] Add `role="list"` to agents container in frontend/src/components/board/AgentColumnCell.tsx
+- [x] T044 [P] [US3] Add `role="listitem"` to tile wrapper in frontend/src/components/board/AgentTile.tsx
+- [x] T045 [P] [US3] Add `aria-expanded` attribute to dropdown trigger in frontend/src/components/board/AddAgentPopover.tsx
+- [x] T046 [P] [US3] Add `aria-expanded` attribute to saved pipelines dropdown trigger in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T047 [P] [US3] Add `role="listbox"` on option container and `role="option"` on each agent item in frontend/src/components/board/AddAgentPopover.tsx
+- [x] T048 [P] [US3] Add `role="radiogroup"` on icon grid and `role="radio"` with `aria-checked` on each icon button in frontend/src/components/agents/AgentIconCatalog.tsx
+- [x] T049 [P] [US3] Add `aria-hidden="true"` to decorative drag handle braille character in frontend/src/components/board/AgentDragOverlay.tsx
+- [x] T050 [P] [US3] Add card-level accessible description for screen readers in frontend/src/components/agents/AgentCard.tsx
+- [x] T051 [P] [US3] Add `aria-label` on move up/down/remove buttons in frontend/src/components/agents/ToolsEditor.tsx
+- [x] T052 [P] [US3] Add `aria-busy="true"` during loading state in frontend/src/components/board/AddAgentPopover.tsx
 
 #### Focus Management
 
-- [ ] T053 [P] [US3] Verify focus trap completeness in AddAgentModal — Tab cannot escape modal in frontend/src/components/agents/AddAgentModal.tsx
-- [ ] T054 [P] [US3] Implement focus trap in AgentIconPickerModal in frontend/src/components/agents/AgentIconPickerModal.tsx
-- [ ] T055 [P] [US3] Verify focus trap in BulkModelUpdateDialog in frontend/src/components/agents/BulkModelUpdateDialog.tsx
-- [ ] T056 [P] [US3] Implement focus trap in AgentPresetSelector confirmation dialogs in frontend/src/components/board/AgentPresetSelector.tsx
-- [ ] T057 [P] [US3] Implement focus trap in AddAgentPopover dropdown in frontend/src/components/board/AddAgentPopover.tsx
-- [ ] T058 [P] [US3] Add focus-move-to-editor on open and focus-restore-to-card on close in frontend/src/components/agents/AgentInlineEditor.tsx
-- [ ] T059 [P] [US3] Verify focus restoration to triggering element on close for AddAgentModal in frontend/src/components/agents/AddAgentModal.tsx
-- [ ] T060 [P] [US3] Verify focus restoration to triggering element on close for AgentIconPickerModal in frontend/src/components/agents/AgentIconPickerModal.tsx
+- [x] T053 [P] [US3] Verify focus trap completeness in AddAgentModal — Tab cannot escape modal in frontend/src/components/agents/AddAgentModal.tsx
+- [x] T054 [P] [US3] Implement focus trap in AgentIconPickerModal in frontend/src/components/agents/AgentIconPickerModal.tsx
+- [x] T055 [P] [US3] Verify focus trap in BulkModelUpdateDialog in frontend/src/components/agents/BulkModelUpdateDialog.tsx
+- [x] T056 [P] [US3] Implement focus trap in AgentPresetSelector confirmation dialogs in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T057 [P] [US3] Implement focus trap in AddAgentPopover dropdown in frontend/src/components/board/AddAgentPopover.tsx
+- [x] T058 [P] [US3] Add focus-move-to-editor on open and focus-restore-to-card on close in frontend/src/components/agents/AgentInlineEditor.tsx
+- [x] T059 [P] [US3] Verify focus restoration to triggering element on close for AddAgentModal in frontend/src/components/agents/AddAgentModal.tsx
+- [x] T060 [P] [US3] Verify focus restoration to triggering element on close for AgentIconPickerModal in frontend/src/components/agents/AgentIconPickerModal.tsx
 
 #### Contrast and Keyboard
 
-- [ ] T061 [US3] Verify all `text-muted-foreground` and opacity-reduced text meets WCAG AA 4.5:1 contrast ratio against backgrounds across all Agents page components
-- [ ] T062 [US3] Verify Escape key closes all dropdowns and modals (AddAgentPopover, AgentPresetSelector dropdown, AddAgentModal, AgentIconPickerModal, BulkModelUpdateDialog)
-- [ ] T063 [US3] Run existing tests (`npx vitest run`) to verify no regressions from US3 changes
+- [x] T061 [US3] Verify all `text-muted-foreground` and opacity-reduced text meets WCAG AA 4.5:1 contrast ratio against backgrounds across all Agents page components
+- [x] T062 [US3] Verify Escape key closes all dropdowns and modals (AddAgentPopover, AgentPresetSelector dropdown, AddAgentModal, AgentIconPickerModal, BulkModelUpdateDialog)
+- [x] T063 [US3] Run existing tests (`npx vitest run`) to verify no regressions from US3 changes
 
 **Checkpoint**: User Story 3 complete — Agents page meets WCAG AA accessibility standards
 
@@ -163,18 +163,18 @@
 
 ### Implementation for User Story 4
 
-- [ ] T064 [P] [US4] Verify two-panel grid layout (`xl:grid-cols-[minmax(0,1fr)_22rem]`) stacks correctly below xl breakpoint in frontend/src/pages/AgentsPage.tsx
-- [ ] T065 [P] [US4] Verify agent card grid (`md:grid-cols-2 xl:grid-cols-3`) has no overflow at each breakpoint in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T066 [P] [US4] Add `overflow-x-auto` wrapper to Orbital Map dynamic grid (`gridTemplateColumns: repeat(...)`) for small screens in frontend/src/components/board/AgentConfigRow.tsx
-- [ ] T067 [P] [US4] Verify inline editor grid (`xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]`) collapses correctly on smaller screens in frontend/src/components/agents/AgentInlineEditor.tsx
-- [ ] T068 [P] [US4] Verify modals (AddAgentModal, AgentIconPickerModal, BulkModelUpdateDialog) display full-width on mobile screens in frontend/src/components/agents/
-- [ ] T069 [P] [US4] Verify icon selection grid (`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`) renders correctly at all breakpoints in frontend/src/components/agents/AgentIconCatalog.tsx
-- [ ] T070 [P] [US4] Verify touch targets are minimum 44×44px on interactive elements on mobile — audit buttons, icon selectors, and tile controls in frontend/src/components/agents/ and frontend/src/components/board/
-- [ ] T071 [P] [US4] Verify AgentPresetSelector dropdown positioning doesn't go off-screen on narrow viewports in frontend/src/components/board/AgentPresetSelector.tsx
-- [ ] T072 [P] [US4] Verify AddAgentPopover portal positioning doesn't overflow viewport on narrow screens in frontend/src/components/board/AddAgentPopover.tsx
-- [ ] T073 [US4] Verify smooth layout transitions when resizing browser across breakpoints — no broken intermediate states
-- [ ] T074 [US4] Verify content remains readable and usable at 200% browser zoom with no horizontal scroll
-- [ ] T075 [US4] Run existing tests (`npx vitest run`) to verify no regressions from US4 changes
+- [x] T064 [P] [US4] Verify two-panel grid layout (`xl:grid-cols-[minmax(0,1fr)_22rem]`) stacks correctly below xl breakpoint in frontend/src/pages/AgentsPage.tsx
+- [x] T065 [P] [US4] Verify agent card grid (`md:grid-cols-2 xl:grid-cols-3`) has no overflow at each breakpoint in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T066 [P] [US4] Add `overflow-x-auto` wrapper to Orbital Map dynamic grid (`gridTemplateColumns: repeat(...)`) for small screens in frontend/src/components/board/AgentConfigRow.tsx
+- [x] T067 [P] [US4] Verify inline editor grid (`xl:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.8fr)]`) collapses correctly on smaller screens in frontend/src/components/agents/AgentInlineEditor.tsx
+- [x] T068 [P] [US4] Verify modals (AddAgentModal, AgentIconPickerModal, BulkModelUpdateDialog) display full-width on mobile screens in frontend/src/components/agents/
+- [x] T069 [P] [US4] Verify icon selection grid (`grid-cols-2 sm:grid-cols-3 lg:grid-cols-4`) renders correctly at all breakpoints in frontend/src/components/agents/AgentIconCatalog.tsx
+- [x] T070 [P] [US4] Verify touch targets are minimum 44×44px on interactive elements on mobile — audit buttons, icon selectors, and tile controls in frontend/src/components/agents/ and frontend/src/components/board/
+- [x] T071 [P] [US4] Verify AgentPresetSelector dropdown positioning doesn't go off-screen on narrow viewports in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T072 [P] [US4] Verify AddAgentPopover portal positioning doesn't overflow viewport on narrow screens in frontend/src/components/board/AddAgentPopover.tsx
+- [x] T073 [US4] Verify smooth layout transitions when resizing browser across breakpoints — no broken intermediate states
+- [x] T074 [US4] Verify content remains readable and usable at 200% browser zoom with no horizontal scroll
+- [x] T075 [US4] Run existing tests (`npx vitest run`) to verify no regressions from US4 changes
 
 **Checkpoint**: User Story 4 complete — Agents page is fully responsive across desktop, tablet, and mobile
 
@@ -188,20 +188,20 @@
 
 ### Implementation for User Story 5
 
-- [ ] T076 [P] [US5] Verify Add Agent button → modal open → form validation → save → success flow with loading spinner during processing in frontend/src/components/agents/AddAgentModal.tsx
-- [ ] T077 [P] [US5] Verify edit button → inline editor opens → save/discard controls → success feedback flow in frontend/src/components/agents/AgentInlineEditor.tsx
-- [ ] T078 [P] [US5] Verify delete button → confirmation dialog → confirm/cancel → success/error feedback flow in frontend/src/components/agents/AgentCard.tsx
-- [ ] T079 [P] [US5] Verify search field filters agents in real time with no lag or layout shift (useDeferredValue) in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T080 [P] [US5] Verify sort toggle (name/usage) works correctly in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T081 [P] [US5] Verify icon picker modal → select icon → save flow with loading state in frontend/src/components/agents/AgentIconPickerModal.tsx
-- [ ] T082 [P] [US5] Verify bulk model update dialog → select model → review affected agents → confirm flow in frontend/src/components/agents/BulkModelUpdateDialog.tsx
-- [ ] T083 [P] [US5] Verify column assignments — add agent via popover → drag reorder → clone → remove → save/discard flow in frontend/src/components/board/AgentConfigRow.tsx
-- [ ] T084 [P] [US5] Verify preset selector — apply preset → confirmation → apply with dirty state tracking in frontend/src/components/board/AgentPresetSelector.tsx
-- [ ] T085 [P] [US5] Verify saved pipelines dropdown — open → select → confirmation → apply flow in frontend/src/components/board/AgentPresetSelector.tsx
-- [ ] T086 [P] [US5] Verify all buttons show hover states and loading spinners during async processing across all Agents page components
-- [ ] T087 [P] [US5] Verify unsaved changes mechanism blocks navigation with confirmation prompt when inline editor has pending changes in frontend/src/components/agents/AgentInlineEditor.tsx via useUnsavedChanges hook
-- [ ] T088 [P] [US5] Verify unsaved column assignment changes trigger warning before project switching in frontend/src/pages/AgentsPage.tsx
-- [ ] T089 [US5] Run existing tests (`npx vitest run`) to verify no regressions from US5 changes
+- [x] T076 [P] [US5] Verify Add Agent button → modal open → form validation → save → success flow with loading spinner during processing in frontend/src/components/agents/AddAgentModal.tsx
+- [x] T077 [P] [US5] Verify edit button → inline editor opens → save/discard controls → success feedback flow in frontend/src/components/agents/AgentInlineEditor.tsx
+- [x] T078 [P] [US5] Verify delete button → confirmation dialog → confirm/cancel → success/error feedback flow in frontend/src/components/agents/AgentCard.tsx
+- [x] T079 [P] [US5] Verify search field filters agents in real time with no lag or layout shift (useDeferredValue) in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T080 [P] [US5] Verify sort toggle (name/usage) works correctly in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T081 [P] [US5] Verify icon picker modal → select icon → save flow with loading state in frontend/src/components/agents/AgentIconPickerModal.tsx
+- [x] T082 [P] [US5] Verify bulk model update dialog → select model → review affected agents → confirm flow in frontend/src/components/agents/BulkModelUpdateDialog.tsx
+- [x] T083 [P] [US5] Verify column assignments — add agent via popover → drag reorder → clone → remove → save/discard flow in frontend/src/components/board/AgentConfigRow.tsx
+- [x] T084 [P] [US5] Verify preset selector — apply preset → confirmation → apply with dirty state tracking in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T085 [P] [US5] Verify saved pipelines dropdown — open → select → confirmation → apply flow in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T086 [P] [US5] Verify all buttons show hover states and loading spinners during async processing across all Agents page components
+- [x] T087 [P] [US5] Verify unsaved changes mechanism blocks navigation with confirmation prompt when inline editor has pending changes in frontend/src/components/agents/AgentInlineEditor.tsx via useUnsavedChanges hook
+- [x] T088 [P] [US5] Verify unsaved column assignment changes trigger warning before project switching in frontend/src/pages/AgentsPage.tsx
+- [x] T089 [US5] Run existing tests (`npx vitest run`) to verify no regressions from US5 changes
 
 **Checkpoint**: User Story 5 complete — all interactive elements function correctly with proper feedback
 
@@ -215,16 +215,16 @@
 
 ### Implementation for User Story 6
 
-- [ ] T090 [P] [US6] Review component boundaries in AgentsPanel for single responsibility — verify child components don't have overlapping concerns in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T091 [P] [US6] Verify AgentCard does not re-render when sibling cards change (stable references, memoization) in frontend/src/components/agents/AgentCard.tsx
-- [ ] T092 [P] [US6] Verify `useMemo` dependency arrays are correct in AgentConfigRow constellation SVG computation in frontend/src/components/board/AgentConfigRow.tsx
-- [ ] T093 [P] [US6] Verify AgentPresetSelector dropdown state changes don't trigger grid re-renders in frontend/src/components/board/AgentPresetSelector.tsx
-- [ ] T094 [P] [US6] Verify `useDeferredValue` prevents layout shift during search in frontend/src/components/agents/AgentsPanel.tsx
-- [ ] T095 [P] [US6] Verify no duplicate API requests during normal navigation — check `staleTime` values on TanStack Query hooks in frontend/src/hooks/useAgents.ts and frontend/src/hooks/useAgentConfig.ts
-- [ ] T096 [P] [US6] Verify data fetching handles rapid project switching via TanStack Query request cancellation in frontend/src/pages/AgentsPage.tsx
-- [ ] T097 [P] [US6] Review AgentInlineEditor for form submission pattern — consider adding `<form onSubmit>` for Enter key support in frontend/src/components/agents/AgentInlineEditor.tsx
-- [ ] T098 [P] [US6] Verify AgentDragOverlay width constraints (`min-w-[280px] max-w-[340px]`) are consistent with design scale in frontend/src/components/board/AgentDragOverlay.tsx
-- [ ] T099 [US6] Run existing tests (`npx vitest run`) to verify no regressions from US6 changes
+- [x] T090 [P] [US6] Review component boundaries in AgentsPanel for single responsibility — verify child components don't have overlapping concerns in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T091 [P] [US6] Verify AgentCard does not re-render when sibling cards change (stable references, memoization) in frontend/src/components/agents/AgentCard.tsx
+- [x] T092 [P] [US6] Verify `useMemo` dependency arrays are correct in AgentConfigRow constellation SVG computation in frontend/src/components/board/AgentConfigRow.tsx
+- [x] T093 [P] [US6] Verify AgentPresetSelector dropdown state changes don't trigger grid re-renders in frontend/src/components/board/AgentPresetSelector.tsx
+- [x] T094 [P] [US6] Verify `useDeferredValue` prevents layout shift during search in frontend/src/components/agents/AgentsPanel.tsx
+- [x] T095 [P] [US6] Verify no duplicate API requests during normal navigation — check `staleTime` values on TanStack Query hooks in frontend/src/hooks/useAgents.ts and frontend/src/hooks/useAgentConfig.ts
+- [x] T096 [P] [US6] Verify data fetching handles rapid project switching via TanStack Query request cancellation in frontend/src/pages/AgentsPage.tsx
+- [x] T097 [P] [US6] Review AgentInlineEditor for form submission pattern — consider adding `<form onSubmit>` for Enter key support in frontend/src/components/agents/AgentInlineEditor.tsx
+- [x] T098 [P] [US6] Verify AgentDragOverlay width constraints (`min-w-[280px] max-w-[340px]`) are consistent with design scale in frontend/src/components/board/AgentDragOverlay.tsx
+- [x] T099 [US6] Run existing tests (`npx vitest run`) to verify no regressions from US6 changes
 
 **Checkpoint**: User Story 6 complete — code quality and performance meet project standards
 
@@ -234,10 +234,10 @@
 
 **Purpose**: Final validation, audit summary, and deferred improvements documentation
 
-- [ ] T100 [P] Run full test suite (`npx vitest run`), type-check (`npm run type-check`), and lint (`npm run lint`) to confirm zero regressions in frontend/
-- [ ] T101 [P] Verify all changes work correctly in both light and dark modes across all modified components
-- [ ] T102 Produce audit summary document listing all findings, changes made, and deferred improvements per FR-014 in spec.md
-- [ ] T103 Run quickstart.md validation — verify all checklist items from specs/035-audit-agents-page/quickstart.md are addressed
+- [x] T100 [P] Run full test suite (`npx vitest run`), type-check (`npm run type-check`), and lint (`npm run lint`) to confirm zero regressions in frontend/
+- [x] T101 [P] Verify all changes work correctly in both light and dark modes across all modified components
+- [x] T102 Produce audit summary document listing all findings, changes made, and deferred improvements per FR-014 in spec.md
+- [x] T103 Run quickstart.md validation — verify all checklist items from specs/035-audit-agents-page/quickstart.md are addressed
 
 ---
 

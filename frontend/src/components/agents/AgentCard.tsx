@@ -109,7 +109,7 @@ export function AgentCard({
             <Tooltip contentKey="agents.card.iconButton">
               <button
                 type="button"
-                className="rounded-[1rem] transition-transform hover:-translate-y-0.5"
+                className="celestial-focus rounded-[1rem] transition-transform hover:-translate-y-0.5"
                 onClick={() => setIsIconPickerOpen(true)}
                 aria-label="Choose icon"
               >
@@ -226,7 +226,7 @@ export function AgentCard({
         </div>
 
         {deleteMutation.isSuccess && deleteMutation.data && (
-          <div className="text-xs text-green-700 dark:text-green-400">
+          <div className="text-xs text-emerald-700 dark:text-emerald-400">
             Deletion PR #{deleteMutation.data.pr_number} opened. Catalog updates after merge to
             main.
           </div>

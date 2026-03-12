@@ -366,7 +366,7 @@ export function AgentPresetSelector({
             return (
               <button
                 key={preset.id}
-                className={cn('rounded-md px-3 py-1 text-xs font-semibold transition-colors', isActive ? 'solar-chip-soft' : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground')}
+                className={cn('celestial-focus rounded-md px-3 py-1 text-xs font-semibold transition-colors', isActive ? 'solar-chip-soft' : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground')}
                 onClick={() => handlePresetClick(preset)}
                 title={preset.description}
                 type="button"
@@ -380,10 +380,11 @@ export function AgentPresetSelector({
         {hasSavedPipelines && (
           <div className="relative">
             <button
-              className={cn('rounded-md px-3 py-1 text-xs font-semibold transition-colors', activePipelineName
+              className={cn('celestial-focus rounded-md px-3 py-1 text-xs font-semibold transition-colors', activePipelineName
                   ? 'solar-chip-soft'
                   : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground')}
               onClick={() => setShowDropdown(!showDropdown)}
+              aria-expanded={showDropdown}
               title={
                 activePipelineName
                   ? `Active saved pipeline: ${activePipelineName}`
@@ -452,14 +453,14 @@ export function AgentPresetSelector({
             </p>
             <div className="flex justify-end gap-3 mt-2">
               <button
-                className="solar-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
+                className="celestial-focus solar-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
                 onClick={handleCancel}
                 type="button"
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="celestial-focus px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 onClick={handleConfirmPreset}
                 type="button"
               >
@@ -505,14 +506,14 @@ export function AgentPresetSelector({
             )}
             <div className="flex justify-end gap-3 mt-2">
               <button
-                className="solar-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
+                className="celestial-focus solar-action rounded-full px-4 py-2 text-sm font-medium transition-colors"
                 onClick={handleCancel}
                 type="button"
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="celestial-focus px-4 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                 onClick={handleConfirmPipeline}
                 type="button"
               >
