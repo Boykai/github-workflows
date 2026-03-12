@@ -59,8 +59,9 @@ export function useToolsList(projectId: string | null | undefined) {
         // Trigger agent MCP sync and invalidate agent queries (FR-007)
         try {
           await agentsApi.syncMcps(projectId);
-        } catch {
+        } catch (err) {
           // Non-fatal — agent sync failure shouldn't block tool sync UI
+          console.warn('[useTools] Agent MCP sync after tool sync failed:', err);
         }
         queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
       }

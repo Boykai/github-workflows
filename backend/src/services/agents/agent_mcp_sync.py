@@ -20,11 +20,15 @@ import base64
 import json
 import re
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import aiosqlite
 import yaml
 
 from src.logging_utils import get_logger
+
+if TYPE_CHECKING:
+    import httpx
 
 logger = get_logger(__name__)
 
@@ -352,7 +356,7 @@ async def sync_agent_mcps(
 
 async def _process_agent_file(
     *,
-    client: "httpx.AsyncClient",
+    client: httpx.AsyncClient,
     headers: dict[str, str],
     owner: str,
     repo: str,

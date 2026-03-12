@@ -167,7 +167,7 @@ async def _auto_start_copilot_polling() -> bool:
         request_id_var.reset(correlation_token)
 
 
-async def _startup_agent_mcp_sync(db: "aiosqlite.Connection") -> None:
+async def _startup_agent_mcp_sync(db: object) -> None:
     """Run agent MCP sync on startup to reconcile drift (FR-009).
 
     Uses the most recent user session to obtain credentials and project

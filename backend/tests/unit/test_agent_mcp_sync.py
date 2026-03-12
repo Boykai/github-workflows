@@ -10,7 +10,6 @@ import pytest
 
 from src.services.agents.agent_mcp_sync import (
     BUILTIN_MCPS,
-    AgentMcpSyncResult,
     _build_active_mcp_dict,
     _merge_mcps_into_frontmatter,
     _parse_agent_file,
