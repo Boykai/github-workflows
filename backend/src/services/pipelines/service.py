@@ -305,7 +305,7 @@ class PipelineService:
             total_tool_count = sum(
                 a.tool_count
                 for s in parsed_stages
-                for g in (s.groups if s.groups else [])
+                for g in (s.groups or [])
                 for a in g.agents
             ) + sum(
                 a.tool_count

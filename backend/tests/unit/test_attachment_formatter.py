@@ -14,6 +14,8 @@ Covers:
 - Markdown character escaping in filenames
 """
 
+import typing
+
 from src.attachment_formatter import format_attachments_markdown
 
 
@@ -25,7 +27,7 @@ class TestFormatAttachmentsMarkdownEmpty:
 
     def test_empty_list_constructor_returns_empty_string(self):
         """Passing an empty list via list() still returns empty."""
-        assert format_attachments_markdown(list()) == ""
+        assert format_attachments_markdown([]) == ""
 
 
 class TestFormatAttachmentsMarkdownSingleFile:
@@ -101,7 +103,7 @@ class TestFormatAttachmentsMarkdownPrefixStripping:
 class TestFormatAttachmentsMarkdownImageExtensions:
     """All image extensions use inline image syntax."""
 
-    IMAGE_EXTS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"]
+    IMAGE_EXTS: typing.ClassVar = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"]
 
     def test_all_image_extensions(self):
         for ext in self.IMAGE_EXTS:
