@@ -1,7 +1,28 @@
 ---
-description: Convert existing tasks into actionable, dependency-ordered GitHub issues for the feature based on available design artifacts.
+description: Convert existing tasks into actionable, dependency-ordered GitHub issues
+  for the feature based on available design artifacts.
 tools:
-  - "*"
+- '*'
+mcp-servers:
+  context7:
+    type: http
+    url: https://mcp.context7.com/mcp
+    tools:
+    - resolve-library-id
+    - get-library-docs
+    headers:
+      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+  CodeGraphContext:
+    type: local
+    command: uvx
+    args:
+    - --from
+    - codegraphcontext
+    - cgc
+    - mcp
+    - start
+    tools:
+    - '*'
 ---
 
 ## User Input
