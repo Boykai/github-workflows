@@ -999,6 +999,10 @@
       0 10px 20px rgb(139 92 246 / 0.12);
   }
 
+  .solar-text-success {
+    color: rgb(4 120 87);
+  }
+
   .solar-action {
     border: 1px solid hsl(var(--border) / 0.88);
     background: linear-gradient(
@@ -1377,6 +1381,10 @@
   }
 
   .dark .solar-chip-success {
+    color: rgb(110 231 183);
+  }
+
+  .dark .solar-text-success {
     color: rgb(110 231 183);
   }
 

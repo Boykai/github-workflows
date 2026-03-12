@@ -210,8 +210,6 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite (session/settings); in-memory TTL cache (`backend/src/services/cache.py`) (001-performance-review)
 - Python ≥3.12 (backend), TypeScript (frontend) + FastAPI ≥0.135.0, Pydantic ≥2.12.0, githubkit ≥0.14.6, httpx ≥0.28.0 (backend); React, TanStack Query (frontend) (034-label-pipeline-state)
 - aiosqlite (pipeline configs, agent tracking); GitHub Issues API (labels as state markers) (034-label-pipeline-state)
-- TypeScript 5.9 with React 19.2 + React 19, TanStack React Query 5.90, Tailwind CSS v4.2 (via `@tailwindcss/vite`), Radix UI (Slot 1.2, Tooltip 1.2), Lucide React 0.577, class-variance-authority 0.7, tailwind-merge 3.5, react-router-dom 7.13, @dnd-kit/core 6.3 + @dnd-kit/sortable 10.0 (035-audit-agents-page)
-- N/A (frontend-only; backend uses SQLite with FastAPI) (035-audit-agents-page)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16

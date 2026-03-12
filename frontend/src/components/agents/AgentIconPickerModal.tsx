@@ -34,6 +34,15 @@ export function AgentIconPickerModal({
 
   useScrollLock(isOpen);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return createPortal(
@@ -41,7 +50,6 @@ export function AgentIconPickerModal({
       className="fixed inset-0 z-[140] bg-black/55"
       role="presentation"
       onClick={onClose}
-      onKeyDown={(e) => { if (e.key === 'Escape') onClose(); }}
     >
       <div className="flex min-h-full items-start justify-center overflow-y-auto p-4 sm:p-6">
         {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}

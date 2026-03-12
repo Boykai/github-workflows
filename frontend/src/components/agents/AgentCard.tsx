@@ -226,7 +226,7 @@ export function AgentCard({
         </div>
 
         {deleteMutation.isSuccess && deleteMutation.data && (
-          <div className="text-xs text-emerald-700 dark:text-emerald-400">
+          <div className="text-xs solar-text-success">
             Deletion PR #{deleteMutation.data.pr_number} opened. Catalog updates after merge to
             main.
           </div>
