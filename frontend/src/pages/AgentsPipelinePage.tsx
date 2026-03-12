@@ -272,9 +272,9 @@ export function AgentsPipelinePage() {
                 onModelOverrideChange={pipelineConfig.setModelOverride}
                 onClearValidationError={pipelineConfig.clearValidationError}
                 onRemoveStage={pipelineConfig.removeStage}
-                onAddAgent={(stageId, slug) => {
+                onAddAgent={(stageId, slug, groupId) => {
                   const agent = availableAgents.find((a) => a.slug === slug);
-                  if (agent) pipelineConfig.addAgentToStage(stageId, agent);
+                  if (agent) pipelineConfig.addAgentToStage(stageId, agent, groupId);
                 }}
                 onRemoveAgent={pipelineConfig.removeAgentFromStage}
                 onUpdateAgent={pipelineConfig.updateAgentInStage}
@@ -283,6 +283,10 @@ export function AgentsPipelinePage() {
                   pipelineConfig.cloneAgentInStage(stageId, agentNodeId)
                 }
                 onReorderAgents={pipelineConfig.reorderAgentsInStage}
+                onAddGroup={pipelineConfig.addGroupToStage}
+                onRemoveGroup={pipelineConfig.removeGroupFromStage}
+                onToggleGroupMode={pipelineConfig.updateGroupExecutionMode}
+                onReorderAgentsInGroup={pipelineConfig.reorderAgentsInGroup}
               />
             )}
 

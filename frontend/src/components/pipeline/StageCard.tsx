@@ -1,36 +1,17 @@
 /**
  * StageCard — a named step within the pipeline board.
- * Contains agent nodes and supports inline renaming and tool selection.
+ * Contains execution groups, each with their own agent nodes.
+ * Supports inline renaming, tool selection, and add-group.
  */
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { GitBranch, Lock, Plus, Trash2 } from 'lucide-react';
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  KeyboardSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import type { DragEndEvent } from '@dnd-kit/core';
-import {
-  SortableContext,
-  rectSortingStrategy,
-  verticalListSortingStrategy,
-  useSortable,
-  sortableKeyboardCoordinates,
-  arrayMove,
-} from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { AgentNode } from './AgentNode';
-import { ParallelStageGroup } from './ParallelStageGroup';
+import { Lock, Plus, Trash2, Layers } from 'lucide-react';
+import { ExecutionGroupCard } from './ExecutionGroupCard';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import { Tooltip } from '@/components/ui/tooltip';
-import type { PipelineStage, PipelineAgentNode, AvailableAgent } from '@/types';
-import { cn } from '@/lib/utils';
+import type { PipelineStage, PipelineAgentNode, AvailableAgent, ExecutionGroup } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
 
 interface StageCardProps {
@@ -42,48 +23,15 @@ interface StageCardProps {
   projectId: string;
   onUpdate: (updatedStage: PipelineStage) => void;
   onRemove: () => void;
-  onAddAgent: (agentSlug: string) => void;
+  onAddAgent: (agentSlug: string, groupId?: string) => void;
   onRemoveAgent: (agentNodeId: string) => void;
   onUpdateAgent: (agentNodeId: string, updates: Partial<PipelineAgentNode>) => void;
   onCloneAgent?: (agentNodeId: string) => void;
   onReorderAgents: (newOrder: PipelineAgentNode[]) => void;
-}
-
-/** Thin sortable wrapper so each AgentNode participates in the DnD context. */
-function SortableAgentNode({
-  agent,
-  onModelSelect,
-  onRemove,
-  onToolsClick,
-  onClone,
-  isParallel,
-}: {
-  agent: PipelineAgentNode;
-  onModelSelect: (modelId: string, modelName: string) => void;
-  onRemove: () => void;
-  onToolsClick?: () => void;
-  onClone?: () => void;
-  isParallel?: boolean;
-}) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: agent.id,
-  });
-
-  return (
-    <AgentNode
-      agentNode={agent}
-      onModelSelect={onModelSelect}
-      onRemove={onRemove}
-      onToolsClick={onToolsClick}
-      onClone={onClone}
-      isParallel={isParallel}
-      setNodeRef={setNodeRef}
-      dragHandleListeners={listeners}
-      dragHandleAttributes={attributes}
-      dragStyle={{ transform: CSS.Transform.toString(transform), transition }}
-      isDragging={isDragging}
-    />
-  );
+  onAddGroup?: () => void;
+  onRemoveGroup?: (groupId: string) => void;
+  onToggleGroupMode?: (groupId: string, mode: 'sequential' | 'parallel') => void;
+  onReorderAgentsInGroup?: (groupId: string, newOrder: PipelineAgentNode[]) => void;
 }
 
 export function StageCard({
@@ -100,13 +48,20 @@ export function StageCard({
   onUpdateAgent,
   onCloneAgent,
   onReorderAgents,
+  onAddGroup,
+  onRemoveGroup,
+  onToggleGroupMode,
+  onReorderAgentsInGroup,
 }: StageCardProps) {
-  const hasAgents = stage.agents.length > 0;
-  const isParallelStage =
-    stage.execution_mode === 'parallel' && stage.agents.length > 1;
+  const groups: ExecutionGroup[] = stage.groups ?? [];
+  const totalAgents = groups.reduce((acc, g) => acc + g.agents.length, 0);
+  const hasAgents = totalAgents > 0;
+  const hasMultipleGroups = groups.length > 1;
+
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(stage.name);
   const [showAgentPicker, setShowAgentPicker] = useState(false);
+  const [agentPickerGroupId, setAgentPickerGroupId] = useState<string | null>(null);
   const [pickerPosition, setPickerPosition] = useState<{
     top: number;
     left: number;
@@ -115,20 +70,6 @@ export function StageCard({
   const [toolModalAgent, setToolModalAgent] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const addButtonRef = useRef<HTMLButtonElement>(null);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-  );
-
-  const handleAgentDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-    const oldIndex = stage.agents.findIndex((a) => a.id === active.id);
-    const newIndex = stage.agents.findIndex((a) => a.id === over.id);
-    if (oldIndex === -1 || newIndex === -1) return;
-    onReorderAgents(arrayMove(stage.agents, oldIndex, newIndex));
-  };
 
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -157,8 +98,6 @@ export function StageCard({
 
     updatePickerPosition();
 
-    // Throttle scroll/resize recalculations to once per animation frame to
-    // prevent layout thrashing from repeated getBoundingClientRect calls.
     let rafId = 0;
     const scheduleUpdate = () => {
       if (rafId) return;
@@ -194,6 +133,20 @@ export function StageCard({
       setEditName(stage.name);
       setIsEditing(false);
     }
+  };
+
+  // Find selected tool ids across all groups for the tool modal
+  const findAgentToolIds = (agentId: string): string[] => {
+    for (const g of groups) {
+      const agent = g.agents.find((a) => a.id === agentId);
+      if (agent) return agent.tool_ids ?? [];
+    }
+    return [];
+  };
+
+  const openAgentPicker = (groupId?: string) => {
+    setAgentPickerGroupId(groupId ?? groups[0]?.id ?? null);
+    setShowAgentPicker(true);
   };
 
   return (
@@ -233,26 +186,9 @@ export function StageCard({
           )}
 
           <div className="mt-1 flex flex-wrap items-center gap-1.5">
-            <Tooltip
-              contentKey={
-                isParallelStage ? 'pipeline.stage.parallelGroup' : 'pipeline.stage.sequentialGroup'
-              }
-            >
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em]',
-                  isParallelStage
-                    ? 'border-primary/30 bg-primary/10 text-primary'
-                    : 'border-border/60 bg-background/40 text-muted-foreground'
-                )}
-              >
-                {isParallelStage && <GitBranch className="h-3 w-3" />}
-                {isParallelStage ? 'Grouped Stage' : 'Sequential Stage'}
-              </span>
-            </Tooltip>
             <span className="text-[10px] text-muted-foreground">
               {hasAgents
-                ? `${stage.agents.length} agent${stage.agents.length === 1 ? '' : 's'} assigned`
+                ? `${totalAgents} agent${totalAgents === 1 ? '' : 's'} · ${groups.length} group${groups.length === 1 ? '' : 's'}`
                 : 'Add an agent to begin this stage'}
             </span>
           </div>
@@ -270,59 +206,28 @@ export function StageCard({
         </Tooltip>
       </div>
 
-      {/* Agent nodes */}
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragEnd={handleAgentDragEnd}
-      >
-        <SortableContext
-          items={stage.agents.map((a) => a.id)}
-          strategy={isParallelStage ? rectSortingStrategy : verticalListSortingStrategy}
-        >
-          {isParallelStage ? (
-              <ParallelStageGroup>
-                {stage.agents.map((agent) => (
-                  <SortableAgentNode
-                    key={agent.id}
-                    agent={agent}
-                    isParallel
-                    onModelSelect={(modelId, modelName) =>
-                      onUpdateAgent(agent.id, { model_id: modelId, model_name: modelName })
-                    }
-                    onRemove={() => onRemoveAgent(agent.id)}
-                    onToolsClick={() => setToolModalAgent(agent.id)}
-                    onClone={onCloneAgent ? () => onCloneAgent(agent.id) : undefined}
-                  />
-                ))}
-              </ParallelStageGroup>
-            ) : (
-              <div className="rounded-xl border border-border/50 bg-background/18 p-2">
-                {hasAgents ? (
-                  <div className="flex flex-col gap-1.5">
-                    {stage.agents.map((agent) => (
-                      <SortableAgentNode
-                        key={agent.id}
-                        agent={agent}
-                        onModelSelect={(modelId, modelName) =>
-                          onUpdateAgent(agent.id, { model_id: modelId, model_name: modelName })
-                        }
-                        onRemove={() => onRemoveAgent(agent.id)}
-                        onToolsClick={() => setToolModalAgent(agent.id)}
-                        onClone={onCloneAgent ? () => onCloneAgent(agent.id) : undefined}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <p className="rounded-lg border border-dashed border-border/60 bg-background/20 px-3 py-3 text-xs text-muted-foreground">
-                    Add your first agent here. Once a stage has multiple agents, they appear side by
-                    side so the stage reads as a coordinated group.
-                  </p>
-                )}
-              </div>
-            )}
-        </SortableContext>
-      </DndContext>
+      {/* Execution Groups */}
+      <div className="flex flex-col gap-2">
+        {groups.map((group) => (
+          <ExecutionGroupCard
+            key={group.id}
+            group={group}
+            stageId={stage.id}
+            canDelete={hasMultipleGroups}
+            onRemoveGroup={() => onRemoveGroup?.(group.id)}
+            onToggleMode={(mode) => onToggleGroupMode?.(group.id, mode)}
+            onRemoveAgent={onRemoveAgent}
+            onUpdateAgent={onUpdateAgent}
+            onCloneAgent={onCloneAgent}
+            onReorderAgents={(newOrder) =>
+              onReorderAgentsInGroup
+                ? onReorderAgentsInGroup(group.id, newOrder)
+                : onReorderAgents(newOrder)
+            }
+            onToolsClick={(agentId) => setToolModalAgent(agentId)}
+          />
+        ))}
+      </div>
 
       {/* Tool Selector Modal */}
       {toolModalAgent && (
@@ -336,22 +241,22 @@ export function StageCard({
             });
             setToolModalAgent(null);
           }}
-          initialSelectedIds={stage.agents.find((a) => a.id === toolModalAgent)?.tool_ids ?? []}
+          initialSelectedIds={findAgentToolIds(toolModalAgent)}
           projectId={projectId}
         />
       )}
 
-      {/* Add agent */}
+      {/* Add agent button */}
       <div className="relative">
         <Tooltip contentKey="pipeline.stage.addAgentButton">
           <button
             ref={addButtonRef}
             type="button"
-            onClick={() => setShowAgentPicker(!showAgentPicker)}
+            onClick={() => openAgentPicker()}
             className="pipeline-stage-add flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
           >
             <Plus className="h-3 w-3" />
-            {hasAgents ? 'Add Agent to Group' : 'Add Agent'}
+            {hasAgents ? 'Add Agent' : 'Add Agent'}
           </button>
         </Tooltip>
 
@@ -413,7 +318,7 @@ export function StageCard({
                           key={agent.slug}
                           type="button"
                           onClick={() => {
-                            onAddAgent(agent.slug);
+                            onAddAgent(agent.slug, agentPickerGroupId ?? undefined);
                             setShowAgentPicker(false);
                           }}
                           className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-xs transition-colors hover:bg-primary/10"
@@ -436,6 +341,20 @@ export function StageCard({
             document.body
           )}
       </div>
+
+      {/* Add group button */}
+      {onAddGroup && (
+        <Tooltip contentKey="pipeline.stage.addGroupButton">
+          <button
+            type="button"
+            onClick={onAddGroup}
+            className="flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 py-1 text-[10px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
+          >
+            <Layers className="h-3 w-3" />
+            Add Execution Group
+          </button>
+        </Tooltip>
+      )}
     </div>
   );
 }
