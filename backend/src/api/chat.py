@@ -1025,7 +1025,7 @@ async def upload_file(
             status_code=400,
             content={
                 "filename": file.filename,
-                "error": "Empty file — cannot attach a file with no content",
+                "error": "Empty file - cannot attach a file with no content",
                 "error_code": "empty_file",
             },
         )

@@ -7,9 +7,13 @@ is confirmed.
 
 from __future__ import annotations
 
+import re
 from pathlib import PurePosixPath
 
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
+
+# Matches the 8-char hex upload ID prefix added by upload_file() (e.g., "a1b2c3d4-")
+_UPLOAD_ID_PREFIX = re.compile(r"^[0-9a-f]{8}-")
 
 
 def format_attachments_markdown(file_urls: list[str]) -> str:
@@ -34,9 +38,8 @@ def format_attachments_markdown(file_urls: list[str]) -> str:
 
     for url in file_urls:
         filename = PurePosixPath(url).name
-        # Strip upload ID prefix (e.g., "abc123-screenshot.png" → "screenshot.png")
-        if "-" in filename:
-            filename = filename.split("-", 1)[1]
+        # Strip upload ID prefix (e.g., "a1b2c3d4-screenshot.png" → "screenshot.png")
+        filename = _UPLOAD_ID_PREFIX.sub("", filename)
         ext = PurePosixPath(filename).suffix.lower()
         if ext in IMAGE_EXTENSIONS:
             lines.append(f"![{filename}]({url})")

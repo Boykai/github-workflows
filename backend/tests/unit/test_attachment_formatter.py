@@ -30,12 +30,12 @@ class TestFormatAttachmentsMarkdownSingleFile:
     """Single-file formatting for images and documents."""
 
     def test_single_image_file(self):
-        result = format_attachments_markdown(["/chat/uploads/abc123-screenshot.png"])
-        assert "![screenshot.png](/chat/uploads/abc123-screenshot.png)" in result
+        result = format_attachments_markdown(["/chat/uploads/a1b2c3d4-screenshot.png"])
+        assert "![screenshot.png](/chat/uploads/a1b2c3d4-screenshot.png)" in result
 
     def test_single_document_file(self):
-        result = format_attachments_markdown(["/chat/uploads/def456-report.pdf"])
-        assert "[report.pdf](/chat/uploads/def456-report.pdf)" in result
+        result = format_attachments_markdown(["/chat/uploads/e5f6a7b8-report.pdf"])
+        assert "[report.pdf](/chat/uploads/e5f6a7b8-report.pdf)" in result
         assert "![" not in result  # should NOT be inline image
 
 
@@ -44,9 +44,9 @@ class TestFormatAttachmentsMarkdownMixedTypes:
 
     def test_mixed_file_types(self):
         urls = [
-            "/chat/uploads/aaa-screenshot.png",
-            "/chat/uploads/bbb-report.pdf",
-            "/chat/uploads/ccc-data.zip",
+            "/chat/uploads/a1a1a1a1-screenshot.png",
+            "/chat/uploads/b2b2b2b2-report.pdf",
+            "/chat/uploads/c3c3c3c3-data.zip",
         ]
         result = format_attachments_markdown(urls)
         assert "![screenshot.png]" in result
@@ -56,9 +56,9 @@ class TestFormatAttachmentsMarkdownMixedTypes:
     def test_ordering_preserved(self):
         """Multi-file entries appear in the same order as input."""
         urls = [
-            "/chat/uploads/001-first.png",
-            "/chat/uploads/002-second.pdf",
-            "/chat/uploads/003-third.csv",
+            "/chat/uploads/00000001-first.png",
+            "/chat/uploads/00000002-second.pdf",
+            "/chat/uploads/00000003-third.csv",
         ]
         result = format_attachments_markdown(urls)
         lines = result.strip().split("\n")
@@ -74,14 +74,18 @@ class TestFormatAttachmentsMarkdownPrefixStripping:
     """Upload ID prefix is stripped from displayed filenames."""
 
     def test_filename_prefix_stripping(self):
-        result = format_attachments_markdown(["/chat/uploads/abc123-my-document.txt"])
+        result = format_attachments_markdown(["/chat/uploads/a1b2c3d4-my-document.txt"])
         assert "[my-document.txt]" in result
-        assert "abc123-" not in result.split("](")[0]  # prefix not in display name
 
     def test_no_prefix_filename(self):
-        """Filename without a dash is rendered as-is."""
+        """Filename without an upload ID prefix is rendered as-is."""
         result = format_attachments_markdown(["/chat/uploads/nodash.png"])
         assert "![nodash.png]" in result
+
+    def test_natural_hyphen_preserved(self):
+        """Filenames with natural hyphens (not upload ID) are preserved."""
+        result = format_attachments_markdown(["/chat/uploads/my-feature-spec.pdf"])
+        assert "[my-feature-spec.pdf]" in result
 
 
 class TestFormatAttachmentsMarkdownImageExtensions:
@@ -91,7 +95,7 @@ class TestFormatAttachmentsMarkdownImageExtensions:
 
     def test_all_image_extensions(self):
         for ext in self.IMAGE_EXTS:
-            url = f"/chat/uploads/id-photo{ext}"
+            url = f"/chat/uploads/abcd1234-photo{ext}"
             result = format_attachments_markdown([url])
             assert f"![photo{ext}]" in result, f"Expected inline image for {ext}"
 
@@ -100,13 +104,13 @@ class TestFormatAttachmentsMarkdownStructure:
     """Structural elements: separator, header, chat reference."""
 
     def test_separator_present(self):
-        result = format_attachments_markdown(["/chat/uploads/id-file.png"])
+        result = format_attachments_markdown(["/chat/uploads/abcd1234-file.png"])
         assert "---" in result
 
     def test_header_present(self):
-        result = format_attachments_markdown(["/chat/uploads/id-file.png"])
+        result = format_attachments_markdown(["/chat/uploads/abcd1234-file.png"])
         assert "## Attachments" in result
 
     def test_chat_session_reference(self):
-        result = format_attachments_markdown(["/chat/uploads/id-file.png"])
+        result = format_attachments_markdown(["/chat/uploads/abcd1234-file.png"])
         assert "📎 Files shared from chat session" in result
