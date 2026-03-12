@@ -1,104 +1,114 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Performance Review
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `037-performance-review` | **Date**: 2026-03-12 | **Spec**: [spec.md](spec.md)  
+**Input**: Feature specification from `/specs/037-performance-review/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Deliver a balanced first-pass performance optimization across backend and frontend, targeting measurable reductions in idle API activity, sub-issue cache waste, unnecessary board refreshes, and frontend rerender volume. All changes are preceded by baseline measurement and validated against specific success criteria. Heavy architectural changes (virtualization, service decomposition, new dependencies) are explicitly deferred unless first-pass metrics prove them necessary. Research confirms that Spec 022 cache and refresh behaviors are substantially implemented; remaining work targets gaps in sub-issue cache reuse, fallback polling change detection, callback prop stability, and regression test coverage.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.12+ (backend), TypeScript 5.9 / React 19.2 (frontend)  
+**Primary Dependencies**: FastAPI, aiosqlite, githubkit, httpx, websockets (backend); TanStack React Query v5.90, @dnd-kit v6.3, Vite 7.3 (frontend)  
+**Storage**: SQLite via aiosqlite (session/settings); InMemoryCache for board/sub-issue/project data  
+**Testing**: pytest + pytest-asyncio (backend, 1736+ tests); Vitest + Testing Library (frontend, 644+ tests)  
+**Target Platform**: Web application — Docker (Nginx 1.27-alpine frontend, Python backend), SPA with WebSocket + polling fallback  
+**Project Type**: Web application (frontend + backend)  
+**Performance Goals**: ≥50% reduction in idle API calls (5 min window); ≥30% fewer outbound calls with warm sub-issue caches; single-task update <2s without full board reload; zero unnecessary full refreshes during fallback polling  
+**Constraints**: No new external dependencies; no board virtualization; no major service decomposition in first pass; all existing tests must continue to pass  
+**Scale/Scope**: Boards with 50–100 tasks across 4–8 columns (representative production usage); optimization targets this range with graceful degradation for larger boards
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### I. Specification-First Development ✅
+Feature spec (`spec.md`) includes 6 prioritized user stories (P1–P3) with independent testing criteria and Given-When-Then acceptance scenarios. Scope boundaries and out-of-scope declarations are explicit.
+
+### II. Template-Driven Workflow ✅
+All artifacts follow canonical templates: `plan.md` (this file), `research.md`, `data-model.md`, `quickstart.md`, and `contracts/`. No custom sections added without justification.
+
+### III. Agent-Orchestrated Execution ✅
+Plan phase produces well-defined outputs (research, data model, contracts, quickstart) that feed into the tasks phase. Each phase has clear inputs and outputs.
+
+### IV. Test Optionality with Clarity ✅
+Tests are included because:
+- Spec explicitly requires regression coverage (User Story 5, FR-011)
+- Extending existing test suites (not creating new infrastructure)
+- Test assertions validate the specific optimizations being delivered
+
+### V. Simplicity and DRY ✅
+All proposed changes are low-risk optimizations within existing code structure. No new abstractions, no new dependencies, no service decomposition. Changes reuse existing cache infrastructure, hash computation, and React memoization patterns already in the codebase. YAGNI is respected by deferring virtualization and heavier changes.
+
+**Gate Result**: PASS — all constitution principles satisfied. No violations requiring justification.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/037-performance-review/
+├── plan.md              # This file
+├── research.md          # Phase 0 output — resolved unknowns and best practices
+├── data-model.md        # Phase 1 output — entity definitions and state machines
+├── quickstart.md        # Phase 1 output — developer onboarding guide
+├── contracts/           # Phase 1 output — behavioral contracts
+│   ├── refresh-policy.md    # Board data refresh rules
+│   ├── cache-behavior.md    # Backend caching contracts
+│   └── render-behavior.md   # Frontend rendering rules
+└── tasks.md             # Phase 2 output (/speckit.tasks command)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
+│   ├── api/
+│   │   ├── board.py           # Board data endpoint — sub-issue cache reuse
+│   │   ├── projects.py        # WebSocket subscription — change detection
+│   │   └── workflow.py        # Duplicate repo resolution (review only)
 │   ├── services/
-│   └── api/
+│   │   ├── cache.py           # Cache infrastructure — TTL alignment
+│   │   ├── copilot_polling/
+│   │   │   └── polling_loop.py  # Polling hot path — idle behavior
+│   │   └── github_projects/
+│   │       └── service.py     # GitHub API client — inflight coalescing
+│   └── utils.py               # Shared utilities
 └── tests/
+    └── unit/
+        ├── test_cache.py          # Cache behavior regression
+        ├── test_api_board.py      # Board endpoint regression
+        └── test_copilot_polling.py  # Polling behavior regression
 
 frontend/
 ├── src/
+│   ├── hooks/
+│   │   ├── useRealTimeSync.ts      # WebSocket + polling — change detection
+│   │   ├── useBoardRefresh.ts      # Refresh orchestration — debounce
+│   │   ├── useProjectBoard.ts      # Board query — stale times
+│   │   ├── useRealTimeSync.test.tsx  # Sync hook tests
+│   │   └── useBoardRefresh.test.tsx  # Refresh hook tests
 │   ├── components/
-│   ├── pages/
-│   └── services/
+│   │   ├── board/
+│   │   │   ├── BoardColumn.tsx    # Column rendering — memo verification
+│   │   │   └── IssueCard.tsx      # Card rendering — memo verification
+│   │   ├── chat/
+│   │   │   └── ChatPopup.tsx      # Drag listener — already optimized
+│   │   └── agents/
+│   │       └── AddAgentPopover.tsx  # Positioning — already optimized
+│   └── pages/
+│       └── ProjectsPage.tsx       # Board page — callback stability
 └── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Existing web application structure (backend + frontend) is used as-is. No new directories or modules are introduced. All changes are within existing files.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations detected. This section is intentionally empty.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| *(none)* | — | — |
