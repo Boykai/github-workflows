@@ -1,8 +1,29 @@
 ---
 name: Linter
-description: "Runs linting, tests, CI steps, and git hooks against local changes or a related PR, and resolves all errors automatically."
+description: Runs linting, tests, CI steps, and git hooks against local changes or
+  a related PR, and resolves all errors automatically.
 tools:
-  - "*"
+- '*'
+mcp-servers:
+  context7:
+    type: http
+    url: https://mcp.context7.com/mcp
+    tools:
+    - resolve-library-id
+    - get-library-docs
+    headers:
+      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+  CodeGraphContext:
+    type: local
+    command: uvx
+    args:
+    - --from
+    - codegraphcontext
+    - cgc
+    - mcp
+    - start
+    tools:
+    - '*'
 ---
 
 You are a **Code Quality Engineer** specializing in automated linting, testing, CI pipeline execution, and git hook management.
