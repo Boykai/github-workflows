@@ -187,7 +187,14 @@ class TestGetBoardData:
 
             # Verify cache.set was called with a data_hash keyword argument
             assert mock_cache.set.called
-            data_hash = mock_cache.set.call_args.kwargs.get("data_hash")
+            # Search call_args_list for the board cache set call with data_hash,
+            # so the test remains robust if the endpoint adds more cache writes.
+            data_hash = None
+            for call in mock_cache.set.call_args_list:
+                h = call.kwargs.get("data_hash")
+                if h is not None:
+                    data_hash = h
+                    break
             assert data_hash is not None
             # The data_hash should be a 64-char hex SHA-256 string
             assert isinstance(data_hash, str)
@@ -248,7 +255,12 @@ class TestGetBoardData:
             # First request
             resp1 = await client.get("/api/v1/board/projects/PVT_abc")
             assert resp1.status_code == 200
-            h1 = mock_cache.set.call_args.kwargs.get("data_hash")
+            h1 = None
+            for call in mock_cache.set.call_args_list:
+                h = call.kwargs.get("data_hash")
+                if h is not None:
+                    h1 = h
+                    break
             hashes.append(h1)
 
         # Change rate limit info but keep board data identical
@@ -266,7 +278,12 @@ class TestGetBoardData:
             # Second request — same board data, different rate_limit
             resp2 = await client.get("/api/v1/board/projects/PVT_abc")
             assert resp2.status_code == 200
-            h2 = mock_cache.set.call_args.kwargs.get("data_hash")
+            h2 = None
+            for call in mock_cache.set.call_args_list:
+                h = call.kwargs.get("data_hash")
+                if h is not None:
+                    h2 = h
+                    break
             hashes.append(h2)
 
         # Hashes should match because rate_limit is excluded

@@ -92,12 +92,11 @@ frontend/
 │   │   └── useBoardRefresh.test.tsx  # Refresh hook tests
 │   ├── components/
 │   │   ├── board/
-│   │   │   ├── BoardColumn.tsx    # Column rendering — memo verification
-│   │   │   └── IssueCard.tsx      # Card rendering — memo verification
+│   │   │   ├── BoardColumn.tsx      # Column rendering — memo verification
+│   │   │   ├── IssueCard.tsx        # Card rendering — memo verification
+│   │   │   └── AddAgentPopover.tsx  # Positioning — already optimized
 │   │   ├── chat/
-│   │   │   └── ChatPopup.tsx      # Drag listener — already optimized
-│   │   └── agents/
-│   │       └── AddAgentPopover.tsx  # Positioning — already optimized
+│   │   │   └── ChatPopup.tsx        # Drag listener — already optimized
 │   └── pages/
 │       └── ProjectsPage.tsx       # Board page — callback stability
 └── tests/
