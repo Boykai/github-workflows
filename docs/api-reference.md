@@ -39,9 +39,6 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 |--------|------|-------------|
 | GET | `/board/projects` | List projects with status field configuration |
 | GET | `/board/projects/{project_id}` | Get board data (columns + items) |
-| GET | `/board/projects/{project_id}/blocking-queue` | Get items blocking the pipeline queue |
-| POST | `/board/projects/{project_id}/blocking-queue/{issue_number}/skip` | Skip a blocking-queue entry (mark completed, advance queue) |
-| DELETE | `/board/projects/{project_id}/blocking-queue/{issue_number}` | Close the GitHub issue and skip it in the blocking queue |
 
 ## Chat
 
@@ -167,7 +164,6 @@ Manage agent pipeline configurations and column-to-agent assignments per project
 | POST | `/pipelines/{project_id}/seed-presets` | Seed default pipeline presets for a project |
 | GET | `/pipelines/{project_id}/assignment` | Get the current column-to-pipeline assignment |
 | PUT | `/pipelines/{project_id}/assignment` | Set the column-to-pipeline assignment |
-| PATCH | `/pipelines/{project_id}/assignment` | Set project-level blocking override for the currently assigned pipeline |
 | GET | `/pipelines/{project_id}/{pipeline_id}` | Get a single pipeline configuration |
 | PUT | `/pipelines/{project_id}/{pipeline_id}` | Update a pipeline configuration |
 | DELETE | `/pipelines/{project_id}/{pipeline_id}` | Delete a pipeline configuration |
