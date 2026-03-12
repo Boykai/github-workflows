@@ -173,7 +173,7 @@ export function usePipelineConfig(projectId: string | null) {
         };
       });
     },
-    []
+    [setPipeline]
   );
 
   return {
