@@ -26,45 +26,45 @@ A developer managing agent configurations expects every agent to have unrestrict
 
 ### User Story 2 - Propagate Activated MCPs to Agent Files on Toggle (Priority: P1)
 
-A developer activates an MCP tool from the Tools page (e.g., a code search server). They expect this MCP to be immediately available to all agents without manually editing each agent file. The system reads the current list of activated MCPs and merges them into the `mcp` field of every agent configuration file. When the developer later deactivates that MCP, the system removes it from all agent files on the next sync.
+A developer activates an MCP tool from the Tools page (e.g., a code search server). They expect this MCP to be immediately available to all agents without manually editing each agent file. The system reads the current list of activated MCPs and merges them into the `mcp-servers` field of every agent configuration file. When the developer later deactivates that MCP, the system removes it from all agent files on the next sync.
 
 **Why this priority**: This is the core value proposition of the feature — keeping agent MCP configuration in sync with the Tools page without manual file edits. Manual edits are error-prone, especially when managing 10+ agent files.
 
-**Independent Test**: Can be tested by activating an MCP on the Tools page, triggering the sync, and verifying that all agent files now list the newly activated MCP in their `mcp` field. Then deactivate the MCP and verify it is removed from all agent files.
+**Independent Test**: Can be tested by activating an MCP on the Tools page, triggering the sync, and verifying that all agent files now list the newly activated MCP in their `mcp-servers` field. Then deactivate the MCP and verify it is removed from all agent files.
 
 **Acceptance Scenarios**:
 
-1. **Given** 3 active MCPs on the Tools page and 10 agent files with empty `mcp` fields, **When** the sync process runs, **Then** all 10 agent files have their `mcp` field populated with all 3 active MCPs.
-2. **Given** an agent file already listing MCP "context7" in its `mcp` field, **When** the sync process runs and "context7" is still active, **Then** no duplicate "context7" entry is created in the `mcp` field.
+1. **Given** 3 active MCPs on the Tools page and 10 agent files with empty `mcp-servers` fields, **When** the sync process runs, **Then** all 10 agent files have their `mcp-servers` field populated with all 3 active MCPs.
+2. **Given** an agent file already listing MCP "context7" in its `mcp-servers` field, **When** the sync process runs and "context7" is still active, **Then** no duplicate "context7" entry is created in the `mcp-servers` field.
 3. **Given** 3 active MCPs and 1 MCP is deactivated from the Tools page, **When** the sync process runs, **Then** the deactivated MCP is removed from all agent files while the remaining 2 MCPs stay intact.
-4. **Given** a Tools page with no active MCPs, **When** the sync process runs, **Then** the `mcp` field in agent files contains only built-in MCPs (no user-activated MCPs).
+4. **Given** a Tools page with no active MCPs, **When** the sync process runs, **Then** the `mcp-servers` field in agent files contains only built-in MCPs (no user-activated MCPs).
 
 ---
 
 ### User Story 3 - Include Built-in MCPs in All Agent Files (Priority: P2)
 
-The system ships with a set of built-in MCPs (e.g., Context7, Code Graph Context) that should always be available to every agent. When agent files are created or the sync process runs, these built-in MCPs are automatically included in each agent's `mcp` field alongside any user-activated MCPs. Built-in MCPs cannot be removed by users — they are always present.
+The system ships with a set of built-in MCPs (e.g., Context7, Code Graph Context) that should always be available to every agent. When agent files are created or the sync process runs, these built-in MCPs are automatically included in each agent's `mcp-servers` field alongside any user-activated MCPs. Built-in MCPs cannot be removed by users — they are always present.
 
 **Why this priority**: Built-in MCPs provide essential baseline capabilities. Without them, newly created agents lack core tool integrations. This is lower priority than Story 2 because built-in MCPs are a fixed set that can be manually configured once, whereas user-activated MCPs change frequently.
 
-**Independent Test**: Can be tested by creating a new agent file and verifying that all built-in MCPs appear in its `mcp` field without any user action on the Tools page.
+**Independent Test**: Can be tested by creating a new agent file and verifying that all built-in MCPs appear in its `mcp-servers` field without any user action on the Tools page.
 
 **Acceptance Scenarios**:
 
-1. **Given** a newly created agent file, **When** the agent creation process completes, **Then** the `mcp` field includes all built-in MCPs.
-2. **Given** an existing agent file missing built-in MCPs from its `mcp` field, **When** the sync process runs, **Then** the built-in MCPs are added to the `mcp` field without removing any user-activated MCPs.
+1. **Given** a newly created agent file, **When** the agent creation process completes, **Then** the `mcp-servers` field includes all built-in MCPs.
+2. **Given** an existing agent file missing built-in MCPs from its `mcp-servers` field, **When** the sync process runs, **Then** the built-in MCPs are added to the `mcp-servers` field without removing any user-activated MCPs.
 3. **Given** an agent file that already includes a built-in MCP, **When** the sync process runs, **Then** no duplicate entry is created for that built-in MCP.
-4. **Given** a user attempts to remove a built-in MCP from an agent file, **When** the sync process runs, **Then** the built-in MCP is re-added to the `mcp` field.
+4. **Given** a user attempts to remove a built-in MCP from an agent file, **When** the sync process runs, **Then** the built-in MCP is re-added to the `mcp-servers` field.
 
 ---
 
 ### User Story 4 - Real-Time Sync on MCP Activation Changes (Priority: P2)
 
-When a developer toggles an MCP's activation state on the Tools page, the corresponding agent files are updated immediately (or on save) without requiring the developer to manually trigger a sync or restart the application. If the developer is viewing an agent file preview or editor, the `mcp` field and `tools: ["*"]` setting are visibly reflected in the preview.
+When a developer toggles an MCP's activation state on the Tools page, the corresponding agent files are updated immediately (or on save) without requiring the developer to manually trigger a sync or restart the application. If the developer is viewing an agent file preview or editor, the `mcp-servers` field and `tools: ["*"]` setting are visibly reflected in the preview.
 
 **Why this priority**: Real-time sync eliminates the gap between user intent (activating an MCP) and system state (agent files reflecting that activation). Without it, developers must remember to manually trigger syncs, which defeats the purpose of automation.
 
-**Independent Test**: Can be tested by opening the Tools page, toggling an MCP on, and immediately checking agent file contents to verify the MCP appears in all agent `mcp` fields.
+**Independent Test**: Can be tested by opening the Tools page, toggling an MCP on, and immediately checking agent file contents to verify the MCP appears in all agent `mcp-servers` fields.
 
 **Acceptance Scenarios**:
 
@@ -76,7 +76,7 @@ When a developer toggles an MCP's activation state on the Tools page, the corres
 
 ### User Story 5 - Agent File Schema Validation After Sync (Priority: P3)
 
-After the sync process updates agent files, the system validates each file against the custom agents configuration schema to catch structural errors before they are persisted. If validation fails (e.g., malformed YAML frontmatter, invalid `mcp` entries), the system surfaces a clear error message and does not persist the invalid file.
+After the sync process updates agent files, the system validates each file against the custom agents configuration schema to catch structural errors before they are persisted. If validation fails (e.g., malformed YAML frontmatter, invalid `mcp-servers` entries), the system surfaces a clear error message and does not persist the invalid file.
 
 **Why this priority**: Validation is a safety net that prevents broken agent files from being committed. While important, agents can function without strict schema validation as long as the sync logic itself is correct.
 
@@ -92,7 +92,7 @@ After the sync process updates agent files, the system validates each file again
 
 ### Edge Cases
 
-- What happens when an agent file does not yet have an `mcp` field? The system initializes `mcp` as an empty list before appending MCP entries.
+- What happens when an agent file does not yet have an `mcp-servers` field? The system initializes `mcp-servers` as an empty dict before appending entries.
 - What happens when an agent file has no YAML frontmatter at all? The system treats it as a file that cannot be updated, logs a warning, and skips it.
 - What happens when two sync operations run concurrently (e.g., user rapidly toggles MCPs)? The sync process must be idempotent — the final state reflects the current activation list regardless of how many times sync runs.
 - What happens when a built-in MCP has the same server key as a user-activated MCP? The built-in MCP takes precedence; the user-activated entry is skipped to avoid conflicts, and a warning is surfaced.
@@ -105,11 +105,11 @@ After the sync process updates agent files, the system validates each file again
 ### Functional Requirements
 
 - **FR-001**: System MUST set `tools: ["*"]` on every agent file definition, replacing any pre-existing `tools` value.
-- **FR-002**: System MUST add every MCP activated on the Tools page to the `mcp` field of all agent configuration files.
-- **FR-003**: System MUST add all built-in MCPs to the `mcp` field of every agent file at creation time and on every sync.
-- **FR-004**: System MUST remove an MCP from all agent files' `mcp` fields when that MCP is deactivated on the Tools page.
-- **FR-005**: System MUST NOT create duplicate MCP entries in an agent file's `mcp` field if the MCP is already present.
-- **FR-006**: System MUST initialize the `mcp` field as an empty list when an agent file does not yet have one, before appending entries.
+- **FR-002**: System MUST add every MCP activated on the Tools page to the `mcp-servers` field of all agent configuration files.
+- **FR-003**: System MUST add all built-in MCPs to the `mcp-servers` field of every agent file at creation time and on every sync.
+- **FR-004**: System MUST remove an MCP from all agent files' `mcp-servers` fields when that MCP is deactivated on the Tools page.
+- **FR-005**: System MUST NOT create duplicate MCP entries in an agent file's `mcp-servers` field if the MCP is already present.
+- **FR-006**: System MUST initialize the `mcp-servers` field as an empty list when an agent file does not yet have one, before appending entries.
 - **FR-007**: System MUST trigger agent file sync whenever an MCP activation state changes on the Tools page (activate or deactivate).
 - **FR-008**: System MUST trigger agent file sync when a new agent file is created.
 - **FR-009**: System MUST trigger agent file sync on application startup to reconcile any drift between Tools page state and agent files.
@@ -122,19 +122,19 @@ After the sync process updates agent files, the system validates each file again
 
 ### Key Entities
 
-- **Agent Configuration File**: A file defining an agent's identity, capabilities, and tool access. Contains a name, description, optional handoffs, a `tools` field controlling tool access, and an `mcp` field listing available MCP servers. Lives in the repository's agents directory.
-- **MCP Entry**: A reference to an MCP server within an agent file's `mcp` field. Contains a server key (unique identifier) and server configuration (type, endpoint, authentication). Can originate from user activation on the Tools page or from the built-in MCP registry.
+- **Agent Configuration File**: A file defining an agent's identity, capabilities, and tool access. Contains a name, description, optional handoffs, a `tools` field controlling tool access, and an `mcp-servers` field listing available MCP servers. Lives in the repository's agents directory.
+- **MCP Entry**: A reference to an MCP server within an agent file's `mcp-servers` field. Contains a server key (unique identifier) and server configuration (type, endpoint, authentication). Can originate from user activation on the Tools page or from the built-in MCP registry.
 - **Built-in MCP**: An MCP server that ships with the system and is always included in every agent file. Cannot be deactivated by users. Examples include documentation search and code graph analysis tools.
 - **Activated MCP**: An MCP server that a user has explicitly enabled via the Tools page. Can be activated or deactivated at any time. When activated, it is added to all agent files; when deactivated, it is removed.
-- **Sync Operation**: The process of reconciling the current MCP activation state (built-in + user-activated) with the contents of all agent configuration files. Produces updated agent files with correct `mcp` and `tools` fields.
+- **Sync Operation**: The process of reconciling the current MCP activation state (built-in + user-activated) with the contents of all agent configuration files. Produces updated agent files with correct `mcp-servers` and `tools` fields.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
 - **SC-001**: After sync, 100% of agent files in the repository contain `tools: ["*"]` — verified by scanning all agent files.
-- **SC-002**: After activating an MCP on the Tools page, the MCP appears in the `mcp` field of every agent file within the same save/sync operation.
-- **SC-003**: After deactivating an MCP on the Tools page, the MCP is absent from the `mcp` field of every agent file within the same save/sync operation.
+- **SC-002**: After activating an MCP on the Tools page, the MCP appears in the `mcp-servers` field of every agent file within the same save/sync operation.
+- **SC-003**: After deactivating an MCP on the Tools page, the MCP is absent from the `mcp-servers` field of every agent file within the same save/sync operation.
 - **SC-004**: Running the sync process twice in succession on an unchanged activation state produces zero file modifications on the second run (idempotency).
 - **SC-005**: Built-in MCPs are present in 100% of agent files after every sync, regardless of user actions.
 - **SC-006**: No agent file contains duplicate MCP entries after sync — each MCP server key appears at most once per file.
@@ -143,9 +143,9 @@ After the sync process updates agent files, the system validates each file again
 
 ### Assumptions
 
-- Agent configuration files use YAML frontmatter for structured fields (`tools`, `mcp`) and a Markdown body for the system prompt. Files without parseable frontmatter are skipped.
+- Agent configuration files use YAML frontmatter for structured fields (`tools`, `mcp-servers`) and a Markdown body for the system prompt. Files without parseable frontmatter are skipped.
 - The built-in MCP registry is a fixed, known list maintained by the system. Adding or removing built-in MCPs requires a system update, not user action.
-- The `mcp` field in agent files follows the schema documented in the custom agents configuration reference — an array of server configuration objects with unique server keys.
+- The `mcp-servers` field in agent files follows the schema documented in the custom agents configuration reference — an array of server configuration objects with unique server keys.
 - The Tools page maintains a source-of-truth list of user-activated MCPs with their full configuration (server key, type, endpoint, authentication).
 - The sync process operates on all agent files in the repository's agents directory. Files outside this directory are not affected.
 - The `tools: ["*"]` enforcement is unconditional — there is no use case where an agent should have restricted tool access. If such a use case arises in the future, it would be handled by a separate opt-out mechanism.
@@ -154,7 +154,7 @@ After the sync process updates agent files, the system validates each file again
 ### Dependencies
 
 - Existing MCP activation state management on the Tools page (the source of truth for which MCPs are active).
-- Existing agent file creation pipeline (the entry point for initial `tools` and `mcp` field population).
+- Existing agent file creation pipeline (the entry point for initial `tools` and `mcp-servers` field population).
 - Existing built-in MCP registry (the authoritative list of MCPs that ship with the system).
 - Custom agents configuration schema reference for validation.
 
@@ -162,7 +162,7 @@ After the sync process updates agent files, the system validates each file again
 
 **In scope:**
 
-- Syncing `mcp` field contents across all agent files based on Tools page activation state and built-in MCP registry
+- Syncing `mcp-servers` field contents across all agent files based on Tools page activation state and built-in MCP registry
 - Enforcing `tools: ["*"]` on all agent file definitions
 - Triggering sync on MCP activation/deactivation, agent file creation, and application startup
 - Deduplication of MCP entries within agent files
@@ -175,5 +175,5 @@ After the sync process updates agent files, the system validates each file again
 - Changes to the MCP configuration schema or format
 - Per-agent MCP customization (all agents receive the same MCP set)
 - Selective `tools` restrictions for specific agents (all agents get `tools: ["*"]`)
-- Migration of MCP configs between `.copilot/mcp.json` and agent file `mcp` fields (these remain separate sync targets)
+- Migration of MCP configs between `.copilot/mcp.json` and agent file `mcp-servers` fields (these remain separate sync targets)
 - Changes to the built-in MCP registry itself (adding/removing built-in MCPs is out of scope)

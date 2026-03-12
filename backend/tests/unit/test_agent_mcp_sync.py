@@ -132,9 +132,10 @@ class TestMergeMcpServers:
         assert "server1" in updated["mcp-servers"]
         assert "removed_server" not in updated["mcp-servers"]
 
-    def test_no_active_mcps_yields_only_builtins(self):
-        """T017: with no active MCPs, result has only built-in MCPs."""
-        # When no active MCPs are passed, mcp-servers should be empty
+    def test_no_active_mcps_yields_empty_mcp_servers(self):
+        """T017: merge with empty active MCPs produces empty mcp-servers dict."""
+        # _merge_mcps_into_frontmatter sets mcp-servers to exactly what is passed;
+        # built-in MCPs are injected upstream by _build_active_mcp_dict, not here.
         fm = {"name": "Test", "tools": ["*"]}
         updated, _ = _merge_mcps_into_frontmatter(fm, {}, "agent.md")
         assert updated["mcp-servers"] == {}

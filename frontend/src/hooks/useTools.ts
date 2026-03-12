@@ -4,7 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { toolsApi, agentsApi, ApiError } from '@/services/api';
+import { toolsApi, ApiError } from '@/services/api';
 import { repoMcpKeys } from '@/hooks/useRepoMcpConfig';
 import { agentKeys } from '@/hooks/useAgents';
 import type {
@@ -56,13 +56,7 @@ export function useToolsList(projectId: string | null | undefined) {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
         queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
-        // Trigger agent MCP sync and invalidate agent queries (FR-007)
-        try {
-          await agentsApi.syncMcps(projectId);
-        } catch (err) {
-          // Non-fatal — agent sync failure shouldn't block tool sync UI
-          console.warn('[useTools] Agent MCP sync after tool sync failed:', err);
-        }
+        // Backend already triggers agent MCP sync; just invalidate agent queries
         queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
       }
     },
