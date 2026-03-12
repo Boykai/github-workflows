@@ -72,7 +72,7 @@ github-workflows/
 │   │   │   ├── chores.py         #   Chore models
 │   │   │   ├── cleanup.py        #   Cleanup models
 │   │   │   ├── mcp.py            #   MCP configuration models
-│   │   │   ├── pipeline.py       #   PipelineConfig, PipelineIssueLaunchRequest, assignments
+│   │   │   ├── pipeline.py       #   PipelineConfig, ExecutionGroup, PipelineIssueLaunchRequest, assignments
 │   │   │   ├── project.py        #   GitHubProject, StatusColumn
 │   │   │   ├── agents.py         #   AgentConfig list/CRUD models
 │   │   │   ├── recommendation.py #   AITaskProposal, IssueRecommendation, labels
@@ -168,7 +168,8 @@ github-workflows/
 │   │   │   ├── chores/           # ChoresPanel, AddChoreModal, ChoreCard,
 │   │   │   │                     # ChoreScheduleConfig, ChoreChatFlow
 │   │   │   ├── pipeline/         # PipelineBoard, PipelineFlowGraph, AgentNode,
-│   │   │   │                     # StageCard, ModelSelector, PipelineToolbar
+│   │   │   │                     # StageCard, ExecutionGroupCard, ModelSelector,
+│   │   │   │                     # PipelineToolbar
 │   │   │   ├── tools/            # ToolsPanel, ToolSelectorModal, ToolCard,
 │   │   │   │                     # McpPresetsGallery, EditRepoMcpModal,
 │   │   │   │                     # UploadMcpModal, RepoConfigPanel,
@@ -181,6 +182,7 @@ github-workflows/
 │   │   ├── lib/                 # Shared utilities and helpers
 │   │   │   ├── utils.ts         #   cn() class-name helper
 │   │   │   ├── buildGitHubMcpConfig.ts  # GitHub.com MCP config generator
+│   │   │   ├── pipelineMigration.ts  # Legacy-to-group pipeline format migration
 │   │   │   └── commands/        #   Chat command registry + handlers
 │   │   ├── pages/                # AgentsPage, AgentsPipelinePage, AppPage,
 │   │   │                         # ChoresPage, LoginPage, NotFoundPage,
