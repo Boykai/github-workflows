@@ -111,13 +111,6 @@ class ProjectPipelineAssignmentUpdate(BaseModel):
     pipeline_id: str = ""
 
 
-class ProjectAssignmentBlockingUpdate(BaseModel):
-    """Request body for setting the project-level blocking override."""
-
-    blocking_override: bool | None = None
-    """None = inherit from pipeline default; True/False = explicit override."""
-
-
 class PipelineIssueLaunchRequest(BaseModel):
     """Request body for launching a pipeline from pasted or uploaded issue text."""
 

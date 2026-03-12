@@ -6,7 +6,7 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field
 
-from src.constants import BLOCKING_LABEL, LABELS
+from src.constants import LABELS
 from src.utils import utcnow
 
 
@@ -144,7 +144,6 @@ class IssueLabel(StrEnum):
     # Status labels
     AI_GENERATED = "ai-generated"  # Created by AI
     SUB_ISSUE = "sub-issue"  # Agent sub-issue
-    BLOCKING = BLOCKING_LABEL  # Blocking parent issue
     GOOD_FIRST_ISSUE = "good first issue"  # Simple issue
     HELP_WANTED = "help wanted"  # Needs assistance
 

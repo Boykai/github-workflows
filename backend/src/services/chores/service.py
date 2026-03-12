@@ -10,7 +10,6 @@ from pathlib import Path
 
 import aiosqlite
 
-from src.constants import with_blocking_label
 from src.logging_utils import get_logger
 from src.models.chores import Chore, ChoreCreate, ChoreStatus, ChoreTriggerResult, ChoreUpdate
 
