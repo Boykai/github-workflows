@@ -1,16 +1,37 @@
 ---
-description: Generate an actionable, dependency-ordered tasks.md for the feature based on available design artifacts.
+description: Generate an actionable, dependency-ordered tasks.md for the feature based
+  on available design artifacts.
 tools:
-  - "*"
-handoffs: 
-  - label: Analyze For Consistency
-    agent: speckit.analyze
-    prompt: Run a project analysis for consistency
-    send: true
-  - label: Implement Project
-    agent: speckit.implement
-    prompt: Start the implementation in phases
-    send: true
+- '*'
+handoffs:
+- label: Analyze For Consistency
+  agent: speckit.analyze
+  prompt: Run a project analysis for consistency
+  send: true
+- label: Implement Project
+  agent: speckit.implement
+  prompt: Start the implementation in phases
+  send: true
+mcp-servers:
+  context7:
+    type: http
+    url: https://mcp.context7.com/mcp
+    tools:
+    - resolve-library-id
+    - get-library-docs
+    headers:
+      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+  CodeGraphContext:
+    type: local
+    command: uvx
+    args:
+    - --from
+    - codegraphcontext
+    - cgc
+    - mcp
+    - start
+    tools:
+    - '*'
 ---
 
 ## User Input
