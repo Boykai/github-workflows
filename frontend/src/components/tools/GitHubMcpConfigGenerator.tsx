@@ -7,7 +7,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ClipboardCopy, Info, Sparkles } from 'lucide-react';
+import { Check, ClipboardCopy, Info, RefreshCw, Sparkles } from 'lucide-react';
 import type { McpToolConfig } from '@/types';
 import { cn } from '@/lib/utils';
 import { buildGitHubMcpConfig, BUILTIN_MCPS } from '@/lib/buildGitHubMcpConfig';
@@ -207,6 +207,19 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
           This configuration is generated from your active project MCP tools and includes all
           Built-In MCPs. Paste it into your GitHub.com repository or organization settings to run
           remote Custom GitHub Agents.
+        </p>
+      </div>
+
+      {/* Agent sync status callout */}
+      <div className="mt-3 flex items-start gap-2 rounded-[1rem] border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
+        <RefreshCw className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
+        <p className="text-xs leading-5 text-muted-foreground">
+          All agent definitions enforce{' '}
+          <code className="rounded bg-emerald-500/10 px-1 py-0.5 text-[11px] font-mono font-medium text-emerald-700 dark:text-emerald-300">
+            tools: [&quot;*&quot;]
+          </code>{' '}
+          for full tool access. Activated MCPs and Built-In MCPs are automatically synced to the
+          agent MCP configuration file.
         </p>
       </div>
 

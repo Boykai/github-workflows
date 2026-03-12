@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { toolsApi, ApiError } from '@/services/api';
 import { repoMcpKeys } from '@/hooks/useRepoMcpConfig';
+import { agentKeys } from '@/hooks/useAgents';
 import type {
   McpToolConfig,
   McpToolConfigCreate,
@@ -51,10 +52,12 @@ export function useToolsList(projectId: string | null | undefined) {
       setSyncingId(toolId);
       return toolsApi.sync(projectId!, toolId);
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
         queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
+        // Backend already triggers agent MCP sync; just invalidate agent queries
+        queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
       }
     },
     onSettled: () => setSyncingId(null),
