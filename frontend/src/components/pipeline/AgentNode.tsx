@@ -105,7 +105,7 @@ export function AgentNode({
             type="button"
             onClick={onToolsClick}
             onPointerDown={stopDragPointerPropagation}
-            className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors hover:bg-primary/10"
+            className="celestial-focus inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors hover:bg-primary/10 focus-visible:outline-none"
             title="Select tools"
           >
             <Wrench className="h-3 w-3 text-muted-foreground" />
@@ -126,7 +126,7 @@ export function AgentNode({
           type="button"
           onClick={onClone}
           onPointerDown={stopDragPointerPropagation}
-          className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
+          className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none"
           title="Clone agent"
         >
           <Copy className="h-3.5 w-3.5" />
@@ -138,7 +138,7 @@ export function AgentNode({
         type="button"
         onClick={onRemove}
         onPointerDown={stopDragPointerPropagation}
-        className="shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+        className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none"
         title="Remove agent"
       >
         <X className="h-3.5 w-3.5" />

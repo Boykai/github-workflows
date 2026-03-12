@@ -233,7 +233,7 @@ export const IssueCard = memo(function IssueCard({
       {subIssues.length > 0 && (
         <div className="flex flex-col gap-1.5 mt-1">
           <button
-            className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            className="celestial-focus flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors focus-visible:outline-none"
             onClick={(e) => {
               e.stopPropagation();
               setIsSubIssuesExpanded(!isSubIssuesExpanded);
