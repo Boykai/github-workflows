@@ -176,6 +176,63 @@ describe('VoiceInputButton', () => {
     expect(button).toHaveAttribute('aria-label', 'Voice input error — click to retry');
   });
 
+  it('calls onToggle when error state button is clicked (retry)', () => {
+    const onToggle = vi.fn();
+    render(
+      <VoiceInputButton
+        isSupported={true}
+        isRecording={false}
+        onToggle={onToggle}
+        error="Microphone access denied"
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button'));
+    expect(onToggle).toHaveBeenCalledOnce();
+  });
+
+  it('does not have a title attribute on the disabled unsupported button', () => {
+    render(
+      <VoiceInputButton
+        isSupported={false}
+        isRecording={false}
+        onToggle={vi.fn()}
+        error={null}
+      />
+    );
+
+    const button = screen.getByRole('button');
+    expect(button).not.toHaveAttribute('title');
+  });
+
+  it('does not apply destructive styling in idle state without error', () => {
+    render(
+      <VoiceInputButton
+        isSupported={true}
+        isRecording={false}
+        onToggle={vi.fn()}
+        error={null}
+      />
+    );
+
+    const button = screen.getByRole('button');
+    expect(button.className).not.toContain('text-destructive');
+  });
+
+  it('does not apply mic-recording-pulse in idle state', () => {
+    render(
+      <VoiceInputButton
+        isSupported={true}
+        isRecording={false}
+        onToggle={vi.fn()}
+        error={null}
+      />
+    );
+
+    const button = screen.getByRole('button');
+    expect(button.className).not.toContain('mic-recording-pulse');
+  });
+
   // ── Accessibility ──
 
   it('applies celestial-focus class on recording button', () => {
