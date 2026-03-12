@@ -1056,11 +1056,22 @@ export interface PipelineAgentNode {
   config: Record<string, unknown>;
 }
 
+export interface ExecutionGroup {
+  id: string;
+  order: number;
+  execution_mode: 'sequential' | 'parallel';
+  agents: PipelineAgentNode[];
+}
+
 export interface PipelineStage {
   id: string;
   name: string;
   order: number;
+  /** Ordered execution groups within this stage. */
+  groups?: ExecutionGroup[];
+  /** @deprecated Use groups[].agents instead. Retained for backward compatibility. */
   agents: PipelineAgentNode[];
+  /** @deprecated Use groups[].execution_mode instead. Retained for backward compatibility. */
   execution_mode?: 'sequential' | 'parallel';
 }
 
