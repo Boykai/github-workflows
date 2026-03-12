@@ -25,14 +25,14 @@ Living reference of all Celestial design-system theme tokens. Updated during the
 
 | Token | Light Value (HSL) | Dark Value (HSL) | Category | Usage |
 |-------|-------------------|-------------------|----------|-------|
-| `--primary` | `42 90% 48%` | `45 90% 68%` | accent | Primary actions, links, highlights |
+| `--primary` | `42 90% 38%` | `45 90% 68%` | accent | Primary actions, links, highlights |
 | `--primary-foreground` | `32 36% 12%` | `236 28% 9%` | text | Text on primary surfaces |
 | `--secondary` | `38 52% 89%` | `237 14% 17%` | background | Secondary action backgrounds |
 | `--secondary-foreground` | `228 16% 24%` | `38 45% 89%` | text | Text on secondary surfaces |
 | `--accent` | `230 34% 40%` | `242 28% 25%` | accent | Accent highlights, active states |
 | `--accent-foreground` | `40 90% 97%` | `38 45% 89%` | text | Text on accent surfaces |
 | `--destructive` | `0 72% 51%` | `0 65% 53%` | status | Destructive/error actions |
-| `--destructive-foreground` | `0 0% 100%` | `240 10% 92%` | text | Text on destructive surfaces |
+| `--destructive-foreground` | `0 0% 100%` | `0 0% 98%` | text | Text on destructive surfaces |
 
 ## Utility Tokens
 
@@ -40,9 +40,9 @@ Living reference of all Celestial design-system theme tokens. Updated during the
 |-------|-------------------|-------------------|----------|-------|
 | `--muted` | `39 44% 90%` | `237 16% 13%` | background | Muted/subtle backgrounds |
 | `--muted-foreground` | `228 10% 40%` | `35 24% 72%` | text | Muted/placeholder text |
-| `--border` | `37 34% 78%` | `239 16% 24%` | border | Default borders |
+| `--border` | `37 36% 49%` | `239 18% 46%` | border | Default borders |
 | `--input` | `39 50% 93%` | `238 18% 15%` | background | Input field backgrounds |
-| `--ring` | `42 90% 48%` | `45 90% 68%` | interactive | Focus ring indicator |
+| `--ring` | `42 90% 38%` | `45 90% 68%` | interactive | Focus ring indicator |
 
 ## Celestial Tokens
 
@@ -59,10 +59,10 @@ Living reference of all Celestial design-system theme tokens. Updated during the
 | Token | Light Value (HSL) | Dark Value (HSL) | Category | Usage |
 |-------|-------------------|-------------------|----------|-------|
 | `--priority-p0` | `0 72% 51%` | `0 72% 51%` | status | Critical priority (red) |
-| `--priority-p1` | `25 95% 53%` | `25 95% 53%` | status | High priority (orange) |
+| `--priority-p1` | `25 95% 47%` | `25 95% 53%` | status | High priority (orange) |
 | `--priority-p2` | `217 91% 60%` | `217 91% 60%` | status | Medium priority (blue) |
-| `--priority-p3` | `142 71% 45%` | `142 71% 45%` | status | Low priority (green) |
-| `--sync-connected` | `160 84% 39%` | `160 84% 47%` | status | Connected (teal) |
+| `--priority-p3` | `142 71% 36%` | `142 71% 45%` | status | Low priority (green) |
+| `--sync-connected` | `160 84% 33%` | `160 84% 47%` | status | Connected (teal) |
 | `--sync-polling` | `38 92% 50%` | `38 92% 56%` | status | Polling (golden) |
 | `--sync-connecting` | `199 89% 48%` | `199 89% 56%` | status | Connecting (cyan) |
 | `--sync-disconnected` | `0 84% 60%` | `0 84% 65%` | status | Disconnected (red) |
@@ -75,12 +75,12 @@ Living reference of all Celestial design-system theme tokens. Updated during the
 
 ## Shadow Tokens (defined in `@theme` block)
 
-| Token | Value | Theme-Aware | Notes |
-|-------|-------|-------------|-------|
-| `--shadow-sm` | `0 10px 26px rgba(41, 29, 12, 0.08)` | ❌ No | Warm brown; needs dark-mode override |
-| `--shadow-default` | `0 18px 44px rgba(41, 29, 12, 0.12)` | ❌ No | Warm brown; needs dark-mode override |
-| `--shadow-md` | `0 26px 58px rgba(29, 21, 10, 0.16)` | ❌ No | Warm brown; needs dark-mode override |
-| `--shadow-lg` | `0 34px 84px rgba(9, 8, 18, 0.24)` | ❌ No | Cool dark; less impacted but should verify |
+| Token | Light Value | Dark Value (`.dark` override) | Theme-Aware | Notes |
+|-------|-------------|-------------------------------|-------------|-------|
+| `--shadow-sm` | `0 10px 26px rgba(41, 29, 12, 0.08)` | `0 10px 26px rgba(0, 0, 0, 0.18)` | ✅ Yes | Warm brown (light) → cool black (dark) |
+| `--shadow-default` | `0 18px 44px rgba(41, 29, 12, 0.12)` | `0 18px 44px rgba(0, 0, 0, 0.24)` | ✅ Yes | Warm brown (light) → cool black (dark) |
+| `--shadow-md` | `0 26px 58px rgba(29, 21, 10, 0.16)` | `0 26px 58px rgba(0, 0, 0, 0.32)` | ✅ Yes | Warm brown (light) → cool black (dark) |
+| `--shadow-lg` | `0 34px 84px rgba(9, 8, 18, 0.24)` | `0 34px 84px rgba(0, 0, 0, 0.48)` | ✅ Yes | Cool dark → deeper black |
 
 ## Tailwind @theme Mappings
 
@@ -131,4 +131,12 @@ Living reference of all Celestial design-system theme tokens. Updated during the
 
 | Date | Token | Change | Reason |
 |------|-------|--------|--------|
-| — | — | Initial audit baseline | Pre-audit documentation |
+| 2026-03-12 | `--primary` (light) | `42 90% 48%` → `42 90% 38%` | WCAG AA 3:1 contrast vs `--background` (was 1.97:1, now 3.08:1) |
+| 2026-03-12 | `--ring` (light) | `42 90% 48%` → `42 90% 38%` | Aligned with `--primary` for focus ring contrast |
+| 2026-03-12 | `--border` (light) | `37 34% 78%` → `37 36% 49%` | WCAG AA 3:1 vs `--background` and `--card` (was 1.48:1, now 3.10:1) |
+| 2026-03-12 | `--border` (dark) | `239 16% 24%` → `239 18% 46%` | WCAG AA 3:1 vs `--background` and `--card` (was 1.58:1, now 3.27:1) |
+| 2026-03-12 | `--destructive-foreground` (dark) | `240 10% 92%` → `0 0% 98%` | WCAG AA 4.5:1 vs `--destructive` (was 3.88:1, now 4.50:1) |
+| 2026-03-12 | `--priority-p1` (light) | `25 95% 53%` → `25 95% 47%` | WCAG AA 3:1 vs `--card` (was 2.67:1, now 3.17:1) |
+| 2026-03-12 | `--priority-p3` (light) | `142 71% 45%` → `142 71% 36%` | WCAG AA 3:1 vs `--card` (was 2.21:1, now 3.38:1) |
+| 2026-03-12 | `--sync-connected` (light) | `160 84% 39%` → `160 84% 33%` | WCAG AA 3:1 vs `--background` (was 2.41:1, now 3.30:1) |
+| 2026-03-12 | `--shadow-*` (dark) | Added `.dark` overrides | Theme-aware shadows: warm brown (light) → cooler black (dark) |

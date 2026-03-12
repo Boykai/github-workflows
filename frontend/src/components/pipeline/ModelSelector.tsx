@@ -236,7 +236,7 @@ export function ModelSelector({
                 <button
                   type="button"
                   onClick={() => void refreshModels()}
-                  className="rounded-md border border-border/60 px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                  className="celestial-focus rounded-md border border-border/60 px-2 py-1 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-primary/10 hover:text-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isRefreshing}
                 >
                   {isRefreshing ? 'Refreshing…' : 'Refresh'}
@@ -260,7 +260,7 @@ export function ModelSelector({
                         setSearch('');
                       }}
                       className={cn(
-                        'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10',
+                        'celestial-focus flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10 focus-visible:outline-none',
                         !selectedModelId ? 'bg-primary/10' : ''
                       )}
                     >
@@ -341,7 +341,7 @@ function ModelRow({
       type="button"
       onClick={() => onSelect(model)}
       className={cn(
-        'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10',
+        'celestial-focus flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs transition-colors hover:bg-primary/10 focus-visible:outline-none',
         isSelected ? 'bg-primary/10' : ''
       )}
     >
