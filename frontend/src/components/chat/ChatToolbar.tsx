@@ -115,12 +115,14 @@ export function ChatToolbar({
               : undefined
           }
         >
-          <VoiceInputButton
-            isSupported={isVoiceSupported}
-            isRecording={isRecording}
-            onToggle={onVoiceToggle}
-            error={voiceError}
-          />
+          <span className="inline-flex">
+            <VoiceInputButton
+              isSupported={isVoiceSupported}
+              isRecording={isRecording}
+              onToggle={onVoiceToggle}
+              error={voiceError}
+            />
+          </span>
         </Tooltip>
       </div>
     </div>
