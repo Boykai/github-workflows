@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import re
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
@@ -759,9 +758,6 @@ async def confirm_proposal(
 
         # Step 3: Set up workflow config and assign agent for Backlog status
         try:
-            # Resolve is_blocking from the proposal
-            proposal_is_blocking = proposal.is_blocking
-
             from src.config import get_settings
 
             settings = get_settings()
@@ -882,8 +878,6 @@ async def confirm_proposal(
             orchestrator = get_workflow_orchestrator()
 
             # Create all sub-issues upfront so the user can see the full pipeline.
-            # This must happen before the blocking queue check so that sub-issues
-            # are always created even when the issue enters the queue as pending.
             agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
             if agent_sub_issues:
                 from src.services.workflow_orchestrator import (
@@ -909,25 +903,6 @@ async def confirm_proposal(
                     len(agent_sub_issues),
                     issue_number,
                 )
-
-            # Blocking queue: enqueue issue and check if it should activate.
-            # Only gates agent assignment — sub-issues are already created above.
-            issue_activated = True
-            try:
-                from src.services import blocking_queue as bq_service
-
-                repo_key = f"{owner}/{repo}"
-                _bq_entry, issue_activated = await bq_service.enqueue_issue(
-                    repo_key, issue_number, project_id, proposal_is_blocking
-                )
-                if not issue_activated:
-                    logger.info(
-                        "Issue #%d is pending in blocking queue — skipping agent assignment",
-                        issue_number,
-                    )
-                    return proposal
-            except Exception as e:
-                logger.debug("Blocking queue enqueue skipped in confirm_proposal: %s", e)
 
             await orchestrator.assign_agent_for_status(ctx, backlog_status, agent_index=0)
 

@@ -14,7 +14,6 @@ function createPipeline(overrides: Partial<PipelineConfigSummary> = {}): Pipelin
     total_tool_count: 1,
     is_preset: false,
     preset_id: '',
-    blocking: false,
     updated_at: '2026-03-10T18:30:00Z',
     stages: [
       {

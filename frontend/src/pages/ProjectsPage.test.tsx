@@ -240,7 +240,6 @@ describe('ProjectsPage', () => {
     mocks.projectBoard.projectsLoading = false;
     mocks.projectBoard.selectedProjectId = 'PVT_1';
     mocks.projectBoard.selectProject = mocks.selectBoardProject;
-    mocks.pipelineAssignment.blocking_override = true;
     mocks.syncStatus = 'connected';
   });
 

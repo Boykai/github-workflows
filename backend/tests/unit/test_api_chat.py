@@ -103,26 +103,6 @@ class TestSendMessageFeatureRequest:
         assert data["action_type"] == "issue_create"
         assert "recommendation_id" in data["action_data"]
 
-    async def test_feature_request_persists_blocking_flag_on_recommendation(
-        self, client, mock_session, mock_ai_agent_service
-    ):
-        import src.api.chat as chat_mod
-
-        mock_session.selected_project_id = "PVT_1"
-        mock_ai_agent_service.detect_feature_request_intent.return_value = True
-
-        rec = _recommendation(mock_session.session_id)
-        mock_ai_agent_service.generate_issue_recommendation.return_value = rec
-
-        resp = await client.post(
-            "/api/v1/chat/messages", json={"content": "#block I want dark mode support"}
-        )
-
-        assert resp.status_code == 200
-        data = resp.json()
-        recommendation_id = data["action_data"]["recommendation_id"]
-        assert chat_mod._recommendations[recommendation_id].is_blocking is True
-
     async def test_feature_detection_fails_gracefully(
         self, client, mock_session, mock_ai_agent_service
     ):
@@ -766,42 +746,6 @@ class TestConfirmProposalPreservesFullDescription:
         # Verify the full body was passed to create_issue
         call_kwargs = mock_github_service.create_issue.call_args
         assert call_kwargs.kwargs["body"] == long_desc
-        chat_mod._proposals.pop(str(proposal.proposal_id), None)
-
-    async def test_blocking_proposal_adds_blocking_label(
-        self, client, mock_session, mock_github_service, mock_websocket_manager
-    ):
-        import src.api.chat as chat_mod
-
-        proposal = _proposal(mock_session.session_id, is_blocking=True)
-        chat_mod._proposals[str(proposal.proposal_id)] = proposal
-        mock_session.selected_project_id = "PVT_1"
-
-        mock_github_service.get_project_repository.return_value = ("owner", "repo")
-        mock_github_service.create_issue.return_value = {
-            "id": 100030,
-            "number": 30,
-            "node_id": "I_30",
-            "html_url": "https://github.com/owner/repo/issues/30",
-        }
-        mock_github_service.add_issue_to_project.return_value = "PVTI_30"
-
-        with (
-            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
-            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
-            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
-            patch("src.api.chat.get_agent_slugs", return_value=[]),
-        ):
-            mock_orch.return_value.assign_agent_for_status = AsyncMock()
-            mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
-            resp = await client.post(
-                f"/api/v1/chat/proposals/{proposal.proposal_id}/confirm",
-                json={},
-            )
-
-        assert resp.status_code == 200
-        call_kwargs = mock_github_service.create_issue.call_args
-        assert call_kwargs.kwargs["labels"] == ["blocking"]
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
     @pytest.mark.parametrize("length", [256, 1024, 4096, 32768, 65536])
