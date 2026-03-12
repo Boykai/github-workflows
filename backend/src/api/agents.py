@@ -297,6 +297,50 @@ async def agent_chat(
 # ── Agent-Tool Associations ──
 
 
+# ── Sync MCPs ──
+
+
+@router.post(
+    "/{project_id}/sync-mcps",
+    dependencies=[Depends(verify_project_access)],
+)
+async def sync_agent_mcps_endpoint(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Synchronize MCP configurations across all agent files in the repository."""
+    from src.services.agents.agent_mcp_sync import sync_agent_mcps
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
+    except Exception as exc:
+        handle_service_error(exc, "resolve repository", ValidationError)
+
+    result = await sync_agent_mcps(
+        owner=owner,
+        repo=repo,
+        project_id=project_id,
+        access_token=session.access_token,
+        trigger="manual",
+        db=get_db(),
+    )
+
+    return {
+        "success": result.success,
+        "files_updated": result.files_updated,
+        "files_skipped": result.files_skipped,
+        "files_unchanged": result.files_unchanged,
+        "warnings": result.warnings,
+        "errors": result.errors,
+        "synced_mcps": result.synced_mcps,
+    }
+
+
+# ── Agent-Tool Associations (endpoints below) ──
+
+
 @router.get(
     "/{project_id}/{agent_id}/tools",
     response_model=AgentToolsResponse,

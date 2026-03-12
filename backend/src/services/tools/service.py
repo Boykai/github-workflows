@@ -922,6 +922,24 @@ class ToolsService:
             await self.db.commit()
 
             logger.info("Synced MCP tool %s to GitHub %s/%s", tool_id, owner, repo)
+
+            # Trigger agent MCP sync to propagate changes to agent files (FR-007)
+            try:
+                from src.services.agents.agent_mcp_sync import sync_agent_mcps
+
+                await sync_agent_mcps(
+                    owner=owner,
+                    repo=repo,
+                    project_id=project_id,
+                    access_token=access_token,
+                    trigger="tool_toggle",
+                    db=self.db,
+                )
+            except Exception as sync_exc:
+                logger.warning(
+                    "Agent MCP sync after tool sync failed (non-fatal): %s", sync_exc
+                )
+
             return McpToolConfigSyncResult(
                 id=tool_id,
                 sync_status="synced",

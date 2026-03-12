@@ -714,6 +714,23 @@ class AgentsService:
             created_at=now,
         )
 
+        # Trigger agent MCP sync to ensure new agent file has correct MCPs (FR-008)
+        try:
+            from src.services.agents.agent_mcp_sync import sync_agent_mcps
+
+            await sync_agent_mcps(
+                owner=owner,
+                repo=repo,
+                project_id=project_id,
+                access_token=access_token,
+                trigger="agent_create",
+                db=self._db,
+            )
+        except Exception as sync_exc:
+            logger.warning(
+                "Agent MCP sync after create failed (non-fatal): %s", sync_exc
+            )
+
         return AgentCreateResult(
             agent=agent,
             pr_url=result.pr_url or "",
@@ -1070,6 +1087,23 @@ class AgentsService:
             source=agent.source if not agent.id.startswith("repo:") else AgentSource.LOCAL,
             created_at=agent.created_at if not agent.id.startswith("repo:") else created_at,
         )
+
+        # Trigger agent MCP sync to re-enforce MCPs after agent update (FR-003)
+        try:
+            from src.services.agents.agent_mcp_sync import sync_agent_mcps
+
+            await sync_agent_mcps(
+                owner=owner,
+                repo=repo,
+                project_id=project_id,
+                access_token=access_token,
+                trigger="agent_update",
+                db=self._db,
+            )
+        except Exception as sync_exc:
+            logger.warning(
+                "Agent MCP sync after update failed (non-fatal): %s", sync_exc
+            )
 
         return AgentCreateResult(
             agent=updated_agent,
