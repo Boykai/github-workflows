@@ -5,6 +5,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import aiosqlite
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -165,6 +166,54 @@ async def _auto_start_copilot_polling() -> bool:
         return started
     finally:
         request_id_var.reset(correlation_token)
+
+
+async def _startup_agent_mcp_sync(db: aiosqlite.Connection) -> None:
+    """Run agent MCP sync on startup to reconcile drift (FR-009).
+
+    Uses the most recent user session to obtain credentials and project
+    context.  If no session is available, the sync is silently skipped.
+    """
+    from src.services.agents.agent_mcp_sync import sync_agent_mcps
+    from src.services.session_store import get_session
+    from src.utils import resolve_repository
+
+    cursor = await db.execute(
+        """
+        SELECT session_id FROM user_sessions
+        WHERE selected_project_id IS NOT NULL
+        ORDER BY updated_at DESC
+        LIMIT 1
+        """,
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        logger.debug("No user session found — skipping startup agent MCP sync")
+        return
+
+    session = await get_session(db, row["session_id"])
+    if not session or not session.selected_project_id:
+        return
+
+    try:
+        owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
+    except Exception as e:
+        logger.debug("Could not resolve repo for startup MCP sync: %s", e)
+        return
+
+    await sync_agent_mcps(
+        owner=owner,
+        repo=repo,
+        project_id=session.selected_project_id,
+        access_token=session.access_token,
+        trigger="startup",
+        db=db,
+    )
+    logger.info(
+        "Startup agent MCP sync completed for %s/%s",
+        owner,
+        repo,
+    )
 
 
 async def _polling_watchdog_loop() -> None:
@@ -339,6 +388,17 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
             await _auto_start_copilot_polling()
         except Exception as e:
             logger.exception("Failed to auto-start Copilot polling (non-fatal): %s", e)
+
+        # Agent MCP sync on startup — reconcile any drift between Tools page
+        # state and agent files (FR-009).  Uses the most recent user session.
+        # Run as a background task so it does not block app startup.
+        async def _run_startup_agent_mcp_sync_background() -> None:
+            try:
+                await _startup_agent_mcp_sync(db)
+            except Exception as e:
+                logger.warning("Startup agent MCP sync failed (non-fatal): %s", e)
+
+        asyncio.create_task(_run_startup_agent_mcp_sync_background())
 
         # Start polling watchdog — restarts polling if it stops unexpectedly.
         # This is the primary guarantee that the agent pipeline "always recovers".

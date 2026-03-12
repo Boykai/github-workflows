@@ -6,7 +6,7 @@ survives a simulated container restart (store teardown → re-init from SQLite).
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import aiosqlite
 import pytest
@@ -244,7 +244,7 @@ class TestTriggerInflightLifecycle:
 
     async def test_trigger_inflight_survives_restart(self, db: aiosqlite.Connection):
         """Trigger inflight markers are recovered after restart."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
 
         await init_pipeline_state_store(db)
         await set_trigger_inflight("42:in progress:agent", now)
