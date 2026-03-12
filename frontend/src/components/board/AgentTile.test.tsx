@@ -71,7 +71,7 @@ describe('AgentTile', () => {
       />
     );
 
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove agent' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove Reviewer' }));
 
     expect(onPointerDown).not.toHaveBeenCalled();
   });
@@ -94,7 +94,7 @@ describe('AgentTile', () => {
       />
     );
 
-    fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove agent' }));
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove Reviewer' }));
 
     expect(onPointerDown).not.toHaveBeenCalled();
   });
