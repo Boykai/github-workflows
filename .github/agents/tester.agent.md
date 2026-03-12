@@ -1,13 +1,36 @@
 ---
 name: Tester
-description: "Analyzes local changes or a related PR and its code changes, adds meaningful tests for the changed behavior, fixes scoped quality gaps, and improves DRY/simplification where it strengthens correctness or testability."
+description: Analyzes local changes or a related PR and its code changes, adds meaningful
+  tests for the changed behavior, fixes scoped quality gaps, and improves DRY/simplification
+  where it strengthens correctness or testability.
 tools:
-  - "*"
+- '*'
 handoffs:
-  - label: Run Validation
-    agent: Linter
-    prompt: Run relevant lint, type-check, test, and build validation for the tester changes
-    send: true
+- label: Run Validation
+  agent: Linter
+  prompt: Run relevant lint, type-check, test, and build validation for the tester
+    changes
+  send: true
+mcp-servers:
+  context7:
+    type: http
+    url: https://mcp.context7.com/mcp
+    tools:
+    - resolve-library-id
+    - get-library-docs
+    headers:
+      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+  CodeGraphContext:
+    type: local
+    command: uvx
+    args:
+    - --from
+    - codegraphcontext
+    - cgc
+    - mcp
+    - start
+    tools:
+    - '*'
 ---
 
 You are a **Testing and Quality Engineer** specializing in change-scoped defect prevention, meaningful regression testing, and small corrective fixes that improve confidence in changed behavior.
