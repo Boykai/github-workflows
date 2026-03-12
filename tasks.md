@@ -15,6 +15,7 @@
 **Input**: Spec data-model.md § New Constants
 
 **Changes**:
+
 1. Add `PIPELINE_LABEL_PREFIX = "pipeline:"`
 2. Add `AGENT_LABEL_PREFIX = "agent:"`
 3. Add `ACTIVE_LABEL = "active"`
@@ -25,6 +26,7 @@
 **Output**: Four string constants, four color constants, one dict — all importable from `constants.py`.
 
 **Acceptance Criteria**:
+
 - Constants are defined at module level in `backend/src/constants.py` after the existing label definitions.
 - All values match the data-model.md exactly.
 - No existing constants or functions are modified.
@@ -41,12 +43,14 @@
 **Input**: Contract `label-utilities.md` § Interface — Parsing functions
 
 **Changes**:
+
 1. Add `extract_pipeline_config(label_name: str) -> str | None` — returns the config name after `pipeline:` prefix, or `None` if label doesn't match.
 2. Add `extract_agent_slug(label_name: str) -> str | None` — returns the agent slug after `agent:` prefix, or `None` if label doesn't match.
 
 **Output**: Two pure functions in `constants.py`.
 
 **Acceptance Criteria**:
+
 - `extract_pipeline_config("pipeline:speckit-full")` returns `"speckit-full"`.
 - `extract_pipeline_config("agent:speckit.plan")` returns `None`.
 - `extract_pipeline_config("")` returns `None`.
@@ -67,12 +71,14 @@
 **Input**: Contract `label-utilities.md` § Interface — Building functions
 
 **Changes**:
+
 1. Add `build_pipeline_label(config_name: str) -> str` — returns `f"{PIPELINE_LABEL_PREFIX}{config_name}"`.
 2. Add `build_agent_label(agent_slug: str) -> str` — returns `f"{AGENT_LABEL_PREFIX}{agent_slug}"`.
 
 **Output**: Two pure functions in `constants.py`.
 
 **Acceptance Criteria**:
+
 - `build_pipeline_label("speckit-full")` returns `"pipeline:speckit-full"`.
 - `build_agent_label("speckit.plan")` returns `"agent:speckit.plan"`.
 - Round-trip invariants hold: `extract_pipeline_config(build_pipeline_label("x")) == "x"` and `extract_agent_slug(build_agent_label("x")) == "x"`.
@@ -88,6 +94,7 @@
 **Input**: Contract `label-utilities.md` § Interface — Querying functions; data-model.md § Label Parsing Utilities
 
 **Changes**:
+
 1. Add `find_pipeline_label(labels: list[dict[str, str]] | list) -> str | None` — scans for first `pipeline:*` match, returns config name or `None`.
 2. Add `find_agent_label(labels: list[dict[str, str]] | list) -> str | None` — scans for first `agent:*` match, returns agent slug or `None`.
 3. Add `has_stalled_label(labels: list[dict[str, str]] | list) -> bool` — returns `True` if `stalled` label present.
@@ -95,6 +102,7 @@
 **Output**: Three functions in `constants.py`.
 
 **Acceptance Criteria**:
+
 - Functions accept both `list[dict]` (with `"name"` key) and objects with `.name` attribute (duck-typed via `isinstance` check).
 - `find_pipeline_label([{"name": "pipeline:speckit-full"}, {"name": "bug"}])` returns `"speckit-full"`.
 - `find_pipeline_label([{"name": "bug"}])` returns `None`.
@@ -115,12 +123,14 @@
 **Input**: Plan Step 3; contract `label-write-path.md` § Issue Creation
 
 **Changes**:
+
 1. Add optional `pipeline_config_name: str | None = None` parameter to the label builder.
 2. When `pipeline_config_name` is provided and non-empty, append `build_pipeline_label(pipeline_config_name)` to the returned label list.
 
 **Output**: Modified function signature with backward-compatible optional parameter.
 
 **Acceptance Criteria**:
+
 - Calling without `pipeline_config_name` produces identical output to the current behavior (backward compatible).
 - Calling with `pipeline_config_name="speckit-full"` includes `"pipeline:speckit-full"` in the returned labels.
 - Existing tests remain green.
@@ -136,6 +146,7 @@
 **Input**: Contract `label-write-path.md` § Label Pre-Creation; data-model.md § Pipeline Label Constants
 
 **Changes**:
+
 1. Add `async def ensure_pipeline_labels_exist(access_token: str, owner: str, repo: str) -> None`.
 2. For each label in `[ACTIVE_LABEL, STALLED_LABEL]`, call the GitHub REST API `POST /repos/{owner}/{repo}/labels` with name, color, and description.
 3. Handle 422 (already exists) gracefully — log info, do not raise.
@@ -144,6 +155,7 @@
 **Output**: One async function that idempotently creates labels.
 
 **Acceptance Criteria**:
+
 - Function creates `active` (color `0e8a16`) and `stalled` (color `d73a4a`) labels.
 - 422 response (label already exists) is handled silently — no error raised.
 - Network errors are logged at WARNING level — no error raised.
@@ -160,6 +172,7 @@
 **Input**: Contract `label-utilities.md` § Invariants; data-model.md § New Pure Functions
 
 **Changes**:
+
 1. Test `extract_pipeline_config()` — matching, non-matching, empty string, just-prefix cases.
 2. Test `extract_agent_slug()` — matching, non-matching, empty string, just-prefix cases.
 3. Test `build_pipeline_label()` — normal case, round-trip with `extract_*`.
@@ -171,6 +184,7 @@
 **Output**: Test file with ≥15 test cases covering all utility functions.
 
 **Acceptance Criteria**:
+
 - `cd backend && python -m pytest tests/unit/test_label_constants.py -x -q` passes.
 - All round-trip invariants from the contract are tested.
 - Both `dict` and object-with-attribute label formats are tested for `find_*` functions.
@@ -180,7 +194,7 @@
 
 ## Phase 2: Label Write Path
 
-*Depends on: Phase 1 (Tasks 1.1–1.6)*
+> Depends on: Phase 1 (Tasks 1.1–1.6)
 
 ### Task 2.1 — Apply `pipeline:<config>` Label at Issue Creation
 
@@ -191,6 +205,7 @@
 **Input**: Contract `label-write-path.md` § Issue Creation; Task 1.5 output
 
 **Changes**:
+
 1. Import `build_pipeline_label` from `constants.py`.
 2. In `create_issue_from_recommendation()` (or `_build_labels()`), determine the `pipeline_config_name` from the pipeline configuration context.
 3. Pass `pipeline_config_name` to the label builder so `pipeline:<config>` is included in the created issue's labels.
@@ -198,6 +213,7 @@
 **Output**: Issues created by the orchestrator now carry a `pipeline:<config>` label from creation.
 
 **Acceptance Criteria**:
+
 - A newly created pipeline issue has a `pipeline:<config>` label matching the pipeline configuration name.
 - The `pipeline:<config>` label is set once and never modified after creation.
 - Issues created without a pipeline configuration (e.g., standalone issues) do not receive a `pipeline:` label.
@@ -214,6 +230,7 @@
 **Input**: Contract `label-write-path.md` § Agent Assignment; existing `update_issue_state()` API
 
 **Changes**:
+
 1. Import `build_agent_label`, `find_agent_label` from `constants.py`.
 2. In `assign_agent_for_status()`, after determining the new agent slug:
    a. Read current labels from the task/issue to find existing `agent:*` label.
@@ -223,6 +240,7 @@
 **Output**: Parent issue always has exactly one `agent:<slug>` label reflecting the currently active agent.
 
 **Acceptance Criteria**:
+
 - After assignment, the parent issue has exactly one `agent:` label matching the new agent.
 - If no previous `agent:` label existed (first agent), only an add is performed.
 - If a previous `agent:` label existed, it is removed and the new one is added.
@@ -240,6 +258,7 @@
 **Input**: Contract `label-write-path.md` § Agent Assignment; `ACTIVE_LABEL` constant
 
 **Changes**:
+
 1. Import `ACTIVE_LABEL` from `constants.py`.
 2. In `assign_agent_for_status()`, after resolving the new sub-issue:
    a. Add `active` label to the new agent's sub-issue via `update_issue_state(labels_add=["active"])`.
@@ -249,6 +268,7 @@
 **Output**: At most one sub-issue has the `active` label at any time.
 
 **Acceptance Criteria**:
+
 - New sub-issue receives the `active` label.
 - Previous sub-issue has the `active` label removed (if known).
 - First agent assignment (no previous sub-issue) only adds — no removal attempted.
@@ -265,12 +285,14 @@
 **Input**: Contract `label-write-path.md` § Agent Assignment; `STALLED_LABEL` constant
 
 **Changes**:
+
 1. Import `STALLED_LABEL` from `constants.py`.
 2. In `assign_agent_for_status()`, include `STALLED_LABEL` in the `labels_remove` list of the `update_issue_state()` call (same call as the agent label swap from Task 2.2).
 
 **Output**: Stalled label is removed whenever a successful agent assignment occurs.
 
 **Acceptance Criteria**:
+
 - If `stalled` label was present, it is removed after successful assignment.
 - If `stalled` label was not present, removal is a no-op (handled gracefully by `update_issue_state()`).
 - Removal failure does not prevent agent assignment.
@@ -286,6 +308,7 @@
 **Input**: Contract `label-write-path.md` § Pipeline Completion; `_process_pipeline_completion()` function
 
 **Changes**:
+
 1. Import `find_agent_label`, `build_agent_label` from `constants.py`.
 2. In `_process_pipeline_completion()`, after marking the pipeline complete:
    a. Determine the last agent's label from the current labels or the pipeline state.
@@ -295,6 +318,7 @@
 **Output**: Completed pipeline issues have no `agent:*` label.
 
 **Acceptance Criteria**:
+
 - After pipeline completion, the parent issue has no `agent:` label.
 - If no `agent:` label existed at completion time, operation is a no-op.
 - Also removes `active` label from the last sub-issue.
@@ -311,6 +335,7 @@
 **Input**: Contract `label-write-path.md` § Stalled Detection; `STALLED_LABEL` constant
 
 **Changes**:
+
 1. Import `STALLED_LABEL` from `constants.py`.
 2. In `recover_stalled_issues()`, when a stalled issue is detected (before re-assignment attempt):
    a. Call `update_issue_state(labels_add=[STALLED_LABEL])` on the parent issue.
@@ -319,6 +344,7 @@
 **Output**: Stalled issues are visually marked with the `stalled` label on GitHub.
 
 **Acceptance Criteria**:
+
 - Issues detected as stalled receive the `stalled` label.
 - If `stalled` label already exists (re-detection), add is a no-op.
 - Stalled label is eventually removed by `assign_agent_for_status()` (Task 2.4) upon successful re-assignment.
@@ -335,6 +361,7 @@
 **Input**: Contract `label-write-path.md` § Invariants; Tasks 2.1–2.6 outputs
 
 **Changes**:
+
 1. Test issue creation includes `pipeline:<config>` label.
 2. Test agent swap: old `agent:*` removed, new `agent:*` added in same call.
 3. Test first agent (no old label): only add, no remove.
@@ -347,6 +374,7 @@
 **Output**: Test file with ≥10 test cases using mocked GitHub API calls.
 
 **Acceptance Criteria**:
+
 - `cd backend && python -m pytest tests/unit/test_label_write_path.py -x -q` passes.
 - All transition points (creation, assignment, completion, stalled) are covered.
 - Both success and failure (API error) paths are tested.
@@ -356,7 +384,7 @@
 
 ## Phase 3: Label Read Path — Fast-Path Detection
 
-*Depends on: Phase 2 (Tasks 2.1–2.6)*
+> Depends on: Phase 2 (Tasks 2.1–2.6)
 
 ### Task 3.1 — Add `labels` Field to Task Model
 
@@ -367,11 +395,13 @@
 **Input**: Data-model.md § Modified Models — Task Model Extension; contract `label-fast-path.md` § Task Model Extension
 
 **Changes**:
+
 1. Add `labels: list[dict[str, str]] | None = None` field to the `Task` class.
 
 **Output**: Task model accepts label data; serializes labels in API responses automatically.
 
 **Acceptance Criteria**:
+
 - `Task(labels=[{"name": "pipeline:speckit-full", "color": "0052cc"}], ...)` succeeds.
 - `Task(labels=None, ...)` succeeds (backward compatible).
 - `Task(...)` without labels argument defaults to `None`.
@@ -388,12 +418,14 @@
 **Input**: `board.py` already parses `labels(first: 20)` into `BoardItem.labels`; Task model now has `labels` field (Task 3.1)
 
 **Changes**:
+
 1. In the function that converts `BoardItem` to `Task`, map `BoardItem.labels` to `Task.labels`.
 2. Convert `Label` objects to `dict[str, str]` format: `{"name": label.name, "color": label.color}`.
 
 **Output**: `Task.labels` is populated from GraphQL data with zero additional API calls.
 
 **Acceptance Criteria**:
+
 - Tasks returned by `get_project_items()` have their `labels` field populated.
 - Label data includes at least `name` and `color` for each label.
 - Tasks for issues without labels have `labels` as empty list or `None`.
@@ -410,12 +442,14 @@
 **Input**: Contract `label-fast-path.md` § Polling Loop Integration; Tasks 3.1–3.2 outputs
 
 **Changes**:
+
 1. Where polling steps call `_get_or_reconstruct_pipeline()`, pass `task.labels` as the new `labels` parameter.
 2. Verify that parent task filtering and sub-issue detection can optionally use labels.
 
 **Output**: Pipeline reconstruction and polling steps have access to label data.
 
 **Acceptance Criteria**:
+
 - Polling steps that invoke pipeline reconstruction pass `task.labels` to `_get_or_reconstruct_pipeline()`.
 - Steps receiving tasks without labels (legacy) continue to work — `labels=None` triggers existing code paths.
 - No behavioral change for existing pipelines without labels.
@@ -431,6 +465,7 @@
 **Input**: Contract `label-fast-path.md` § Fast-Path Layer; data-model.md § Data Flow
 
 **Changes**:
+
 1. Add `labels: list[dict[str, str]] | None = None` parameter to `_get_or_reconstruct_pipeline()`.
 2. After cache hit check and before issue-body fetch, add fast-path:
    a. Call `find_pipeline_label(labels)` → `pipeline_config_name`.
@@ -444,6 +479,7 @@
 **Output**: New reconstruction path that builds `PipelineState` with zero GitHub API calls.
 
 **Acceptance Criteria**:
+
 - With both `pipeline:` and `agent:` labels present, `PipelineState` is built without issue-body or sub-issue API calls.
 - Fast-path produces identical `PipelineState` fields (`current_agent_index`, `agents`, `completed_agents`) as full reconstruction for the same state.
 - Fast-path failure (missing labels, unknown config/agent) gracefully falls through to existing reconstruction.
@@ -461,6 +497,7 @@
 **Input**: Contract `label-fast-path.md` § Fast-Path Builder
 
 **Changes**:
+
 1. Add `_build_pipeline_from_labels(issue_number, project_id, status, pipeline_config_name, agent_slug, pipeline_config) -> PipelineState | None`.
 2. Look up the agent slug in the pipeline config's agent list to determine the index.
 3. Build `PipelineState` with agents marked as DONE before the current index, ACTIVE at the current index, and PENDING after.
@@ -469,6 +506,7 @@
 **Output**: Internal helper function for fast-path construction.
 
 **Acceptance Criteria**:
+
 - Returns valid `PipelineState` when agent slug is found in config.
 - Returns `None` when agent slug is not in the config's agent list.
 - `current_agent_index` matches the agent's position in the config.
@@ -486,12 +524,14 @@
 **Input**: Plan Step 14; existing `is_sub_issue()` in helpers.py
 
 **Changes**:
+
 1. In `is_sub_issue()` or the polling loop's parent-task filter, check for the `sub-issue` label first (O(1) label scan) before falling back to title-pattern matching.
 2. Existing title-pattern matching remains as fallback for issues without labels.
 
 **Output**: Faster parent/sub-issue filtering using label data when available.
 
 **Acceptance Criteria**:
+
 - Issues with `sub-issue` label are correctly identified as sub-issues without title parsing.
 - Issues without labels fall through to existing title-pattern detection.
 - No false positives or false negatives compared to current detection.
@@ -507,6 +547,7 @@
 **Input**: Contract `label-fast-path.md` § Invariants; Tasks 3.4–3.5 outputs
 
 **Changes**:
+
 1. Test fast-path builds correct `PipelineState` from labels + config (zero API calls).
 2. Test fast-path fallthrough when `pipeline:` label missing.
 3. Test fast-path fallthrough when `agent:` label missing.
@@ -520,6 +561,7 @@
 **Output**: Test file with ≥10 test cases verifying fast-path behavior.
 
 **Acceptance Criteria**:
+
 - `cd backend && python -m pytest tests/unit/test_label_fast_path.py -x -q` passes.
 - Zero-API-call reconstruction is verified (mock API not called during fast-path).
 - All fallthrough scenarios tested.
@@ -529,7 +571,7 @@
 
 ## Phase 4: Recovery Consolidation
 
-*Depends on: Phase 3 (Tasks 3.1–3.6)*
+> Depends on: Phase 3 (Tasks 3.1–3.6)
 
 ### Task 4.1 — Create `state_validation.py` with `validate_pipeline_labels()`
 
@@ -540,6 +582,7 @@
 **Input**: Contract `label-validation.md` § Interface; data-model.md § New Module
 
 **Changes**:
+
 1. Create `state_validation.py` with `validate_pipeline_labels()`.
 2. Comparison logic:
    a. Extract `agent:<slug>` from labels → `label_agent`.
@@ -552,6 +595,7 @@
 **Output**: New module with a single public function for label/table cross-validation.
 
 **Acceptance Criteria**:
+
 - Function detects consistency between labels and tracking table.
 - When labels are stale, labels are updated via `update_issue_state()`.
 - When tracking table is stale, table is updated via `update_issue_body()`.
@@ -571,6 +615,7 @@
 **Input**: Plan Step 16; contract `label-validation.md` § Simplified Recovery Functions
 
 **Changes**:
+
 1. Accept optional `pipeline_config_name: str | None = None` parameter (or extract from labels).
 2. If `pipeline_config_name` is available, load the `PipelineConfig` from the database and get the agent list directly.
 3. Skip the `get_sub_issues()` API call when the config provides sufficient information.
@@ -579,6 +624,7 @@
 **Output**: Self-heal saves 1–2 API calls per invocation when `pipeline:` label exists.
 
 **Acceptance Criteria**:
+
 - When `pipeline:<config>` label is present, `get_sub_issues()` is not called.
 - Agent list derived from config matches what `get_sub_issues()` would return.
 - When `pipeline:<config>` label is absent, existing behavior is preserved.
@@ -595,6 +641,7 @@
 **Input**: Plan Step 17; contract `label-validation.md` § Simplified Recovery Functions
 
 **Changes**:
+
 1. Accept optional `agent_slug: str | None = None` parameter (or extract from labels).
 2. If `agent_slug` is available, find its index in the agent list.
 3. Skip "Done!" comment checks for agents before that index (they are already complete).
@@ -604,6 +651,7 @@
 **Output**: Reconciliation saves N-1 "Done!" checks for completed agents.
 
 **Acceptance Criteria**:
+
 - When `agent:<slug>` label is present, agents before that index are not validated.
 - Current agent and subsequent agents are still fully validated.
 - When `agent:<slug>` label is absent, existing full validation is preserved.
@@ -620,6 +668,7 @@
 **Input**: Plan Step 18; contract `label-validation.md` § Simplified Recovery Functions
 
 **Changes**:
+
 1. Accept optional label data in `_reconstruct_pipeline_state()`.
 2. If `agent:<slug>` label provides the current agent index, skip verification of agents before that index.
 3. Only verify the CURRENT agent's status (1 API call instead of N).
@@ -628,6 +677,7 @@
 **Output**: Reconstruction saves N-1 API calls for completed agents.
 
 **Acceptance Criteria**:
+
 - With `agent:` label, only 1 API call is made (current agent verification).
 - Without `agent:` label, existing N-call reconstruction is preserved.
 - Reconstructed state matches full reconstruction for consistent states.
@@ -643,6 +693,7 @@
 **Input**: Contract `label-validation.md` § Invariants; Task 4.1 output
 
 **Changes**:
+
 1. In the appropriate polling step (e.g., after successful pipeline state retrieval), call `validate_pipeline_labels()` with the current labels and tracking steps.
 2. Ensure it runs at most once per polling cycle per issue.
 3. Log any corrections made.
@@ -650,6 +701,7 @@
 **Output**: Label/table consistency is validated periodically.
 
 **Acceptance Criteria**:
+
 - Validation runs at most once per polling cycle per issue.
 - Corrections are applied and logged.
 - Validation failure does not block polling.
@@ -665,6 +717,7 @@
 **Input**: Contract `label-validation.md` § Invariants; Task 4.1 output
 
 **Changes**:
+
 1. Test consistent state (labels match tracking table) → no corrections.
 2. Test label is stale (label says agent A, table says agent B) → label updated.
 3. Test table is stale (table says agent A, label says agent B) → table updated.
@@ -677,6 +730,7 @@
 **Output**: Test file with ≥8 test cases covering validation logic.
 
 **Acceptance Criteria**:
+
 - `cd backend && python -m pytest tests/unit/test_label_validation.py -x -q` passes.
 - All mismatch scenarios and edge cases are covered.
 - Mock assertions verify correct label/table updates.
@@ -685,7 +739,7 @@
 
 ## Phase 5: Frontend Enhancements
 
-*Parallel with Phase 4; depends on Phases 2–3*
+> Parallel with Phase 4; depends on Phases 2–3
 
 ### Task 5.1 — Expose Labels in Task/Board API Responses
 
@@ -696,6 +750,7 @@
 **Input**: Plan Step 19; Task 3.1 (Task model has `labels` field)
 
 **Changes**:
+
 1. Verify that Pydantic serialization automatically includes `labels` in API responses.
 2. If any response model or serializer explicitly excludes fields, add `labels` to the included set.
 3. Verify with a test request that labels appear in the JSON response.
@@ -703,6 +758,7 @@
 **Output**: API responses include label data for board cards.
 
 **Acceptance Criteria**:
+
 - `GET /api/projects/{id}/board` response includes `labels` in each task item.
 - Labels include at least `name` and `color` for each label.
 - Tasks without labels return `labels: null` or `labels: []`.
@@ -719,6 +775,7 @@
 **Input**: Plan Step 20; `AGENT_LABEL_COLOR = "7057ff"` (purple)
 
 **Changes**:
+
 1. Extract agent slug from labels using a frontend utility: `labels.find(l => l.name.startsWith("agent:"))`.
 2. Display as a small purple badge showing the agent name (e.g., "speckit.plan").
 3. Only show when `agent:` label is present.
@@ -726,6 +783,7 @@
 **Output**: Board cards display the currently active agent as a badge.
 
 **Acceptance Criteria**:
+
 - Cards with `agent:` label show a purple badge with the agent slug.
 - Cards without `agent:` label show no badge.
 - Badge is styled consistently with existing card labels.
@@ -741,6 +799,7 @@
 **Input**: Plan Step 21; `PIPELINE_LABEL_COLOR = "0052cc"` (blue)
 
 **Changes**:
+
 1. Extract pipeline config name from labels: `labels.find(l => l.name.startsWith("pipeline:"))`.
 2. Display as a small blue tag showing the config name.
 3. Only show when `pipeline:` label is present.
@@ -748,6 +807,7 @@
 **Output**: Board cards show the pipeline configuration as a tag.
 
 **Acceptance Criteria**:
+
 - Cards with `pipeline:` label show a blue tag with the config name.
 - Cards without `pipeline:` label show no tag.
 
@@ -762,6 +822,7 @@
 **Input**: Plan Step 22; `STALLED_LABEL_COLOR = "d73a4a"` (red)
 
 **Changes**:
+
 1. Check `labels.some(l => l.name === "stalled")`.
 2. Display a red warning icon or border highlight when stalled.
 3. Optionally show tooltip: "This pipeline agent is stalled and may need recovery."
@@ -769,6 +830,7 @@
 **Output**: Stalled issues are visually distinct on the board.
 
 **Acceptance Criteria**:
+
 - Cards with `stalled` label show a red warning indicator.
 - Cards without `stalled` label show no indicator.
 - Warning is visually prominent but not disruptive.
@@ -784,6 +846,7 @@
 **Input**: Plan Step 23; existing filter infrastructure in `BoardToolbar.tsx`
 
 **Changes**:
+
 1. Extract unique pipeline config names from tasks' labels.
 2. Add a filter dropdown/checkbox list for pipeline configs (following existing filter patterns).
 3. Apply filter to board card display.
@@ -791,6 +854,7 @@
 **Output**: Users can filter the board by pipeline configuration.
 
 **Acceptance Criteria**:
+
 - Toolbar shows a "Pipeline" filter option when pipeline labels exist.
 - Selecting a pipeline config filters cards to only show matching issues.
 - Clearing the filter shows all issues again.
@@ -807,6 +871,7 @@
 **Command**: `cd backend && python -m pytest tests/unit/ -x -q`
 
 **Acceptance Criteria**:
+
 - All existing tests pass.
 - All new test files pass.
 - No test warnings related to label changes.
@@ -818,6 +883,7 @@
 **Description**: Create or extend an integration test that verifies labels at each pipeline transition point: issue creation → agent assignment → agent completion → next agent → pipeline completion.
 
 **Acceptance Criteria**:
+
 - Pipeline issue created with `pipeline:<config>` label.
 - First agent assigned → `agent:<slug>` label added, `active` label on sub-issue.
 - Agent completes → `agent:` label swapped to next agent, `active` label moved.
@@ -831,6 +897,7 @@
 **Description**: Verify that after a simulated container restart (cleared in-memory cache), the fast-path reconstructs pipeline state from labels without full reconstruction API calls.
 
 **Acceptance Criteria**:
+
 - Clear in-memory pipeline cache.
 - Call `_get_or_reconstruct_pipeline()` with labels containing `pipeline:` and `agent:`.
 - Verify `PipelineState` is built from labels (zero API calls for issue body / sub-issues).
@@ -843,6 +910,7 @@
 **Description**: Measure and document the reduction in API calls for stalled issue recovery: expected drop from ~15–25 calls to ~3–5.
 
 **Acceptance Criteria**:
+
 - Document before/after API call counts for: recovery of a stalled 5-agent pipeline.
 - Before: ~15–25 calls (fetch issue body + N sub-issue checks + N "Done!" comment checks).
 - After: ~3–5 calls (label read from board query + 1 current agent verification + label/tracking update).
@@ -852,7 +920,7 @@
 
 ## Dependency Graph
 
-```
+```text
 Phase 1 (Tasks 1.1–1.7)
   ↓
 Phase 2 (Tasks 2.1–2.7) — depends on Phase 1

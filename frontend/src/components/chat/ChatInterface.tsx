@@ -32,7 +32,7 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete';
 import type { CommandDefinition } from '@/lib/commands/types';
-import { History, Lock } from 'lucide-react';
+import { History, Lock, Mic } from 'lucide-react';
 
 interface ChatInterfaceProps {
   messages: ChatMessage[];
@@ -571,8 +571,9 @@ export function ChatInterface({
             </div>
           )}
           {interimTranscript && (
-            <div className="px-3 py-1 text-xs text-muted-foreground italic truncate">
-              {interimTranscript}
+            <div className="flex items-center gap-1.5 px-3 py-1 text-xs text-muted-foreground">
+              <Mic className="h-3 w-3 shrink-0 text-destructive mic-recording-pulse" />
+              <span className="italic truncate">{interimTranscript}</span>
             </div>
           )}
           <PipelineIndicator

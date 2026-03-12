@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 from datetime import datetime
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import aiosqlite
 
