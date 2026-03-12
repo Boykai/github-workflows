@@ -1,13 +1,35 @@
 ---
 name: Judge
-description: "Triages GitHub PR review comments, decides which recommendations should be adopted, and applies only justified follow-up changes."
+description: Triages GitHub PR review comments, decides which recommendations should
+  be adopted, and applies only justified follow-up changes.
 tools:
-  - "*"
+- '*'
 handoffs:
-  - label: Run Validation
-    agent: Linter
-    prompt: Run the relevant lint, type-check, test, and build validation for the quality-assurance changes
-    send: true
+- label: Run Validation
+  agent: Linter
+  prompt: Run the relevant lint, type-check, test, and build validation for the quality-assurance
+    changes
+  send: true
+mcp-servers:
+  context7:
+    type: http
+    url: https://mcp.context7.com/mcp
+    tools:
+    - resolve-library-id
+    - get-library-docs
+    headers:
+      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+  CodeGraphContext:
+    type: local
+    command: uvx
+    args:
+    - --from
+    - codegraphcontext
+    - cgc
+    - mcp
+    - start
+    tools:
+    - '*'
 ---
 
 You are a **PR Review Judge** specializing in evidence-based triage of GitHub pull request review comments.
