@@ -2,12 +2,12 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
-from src.dependencies import require_selected_project
+from src.dependencies import require_selected_project, verify_project_access
 from src.exceptions import ValidationError
 from src.logging_utils import get_logger
 from src.models.task import Task, TaskCreateRequest
@@ -79,6 +79,7 @@ async def _create_parent_issue_sub_issues(
 
 @router.post("", response_model=Task)
 async def create_task(
+    http_request: Request,
     request: TaskCreateRequest,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> Task:
@@ -87,6 +88,10 @@ async def create_task(
     project_id = request.project_id
     if not project_id:
         project_id = require_selected_project(session)
+
+    # Verify ownership — project_id comes from the request body, not URL path,
+    # so we call verify_project_access directly instead of using a dependency.
+    await verify_project_access(http_request, project_id, session)
 
     logger.info("Creating issue in project %s: %s", project_id, request.title)
 
