@@ -179,6 +179,87 @@ class TestBuiltinMcps:
         # Built-in should override user config
         assert result["context7"]["url"] == "https://mcp.context7.com/mcp"
 
+    @pytest.mark.asyncio
+    async def test_build_active_mcp_dict_invalid_json_skipped(self):
+        """Invalid JSON in config_content is skipped gracefully."""
+        db = AsyncMock()
+        cursor_mock = AsyncMock()
+        cursor_mock.fetchall.return_value = [
+            {
+                "name": "BadMCP",
+                "config_content": "{invalid json}",
+            },
+            {
+                "name": "GoodMCP",
+                "config_content": json.dumps(
+                    {"mcpServers": {"good_server": {"type": "http", "url": "https://good.com"}}}
+                ),
+            },
+        ]
+        db.execute.return_value = cursor_mock
+
+        result = await _build_active_mcp_dict(db, "project-1")
+        # Bad MCP skipped, good MCP + 2 built-ins present
+        assert "good_server" in result
+        assert "context7" in result
+        assert "CodeGraphContext" in result
+        assert len(result) == 3
+
+    @pytest.mark.asyncio
+    async def test_build_active_mcp_dict_multiple_user_mcps(self):
+        """Multiple user-activated MCPs from separate tools are merged."""
+        db = AsyncMock()
+        cursor_mock = AsyncMock()
+        cursor_mock.fetchall.return_value = [
+            {
+                "name": "UserMCP1",
+                "config_content": json.dumps(
+                    {"mcpServers": {
+                        "server1": {"type": "http", "url": "https://s1.com"},
+                        "server2": {"type": "http", "url": "https://s2.com"},
+                    }}
+                ),
+            },
+            {
+                "name": "UserMCP2",
+                "config_content": json.dumps(
+                    {"mcpServers": {
+                        "server3": {"type": "http", "url": "https://s3.com"},
+                    }}
+                ),
+            },
+        ]
+        db.execute.return_value = cursor_mock
+
+        result = await _build_active_mcp_dict(db, "project-1")
+        # 3 user servers + 2 built-ins = 5
+        assert len(result) == 5
+        assert all(k in result for k in ("server1", "server2", "server3", "context7", "CodeGraphContext"))
+
+    @pytest.mark.asyncio
+    async def test_build_active_mcp_dict_duplicate_user_key_first_wins(self):
+        """When two user tools define the same server key, the first one wins."""
+        db = AsyncMock()
+        cursor_mock = AsyncMock()
+        cursor_mock.fetchall.return_value = [
+            {
+                "name": "UserMCP1",
+                "config_content": json.dumps(
+                    {"mcpServers": {"dup": {"type": "http", "url": "https://first.com"}}}
+                ),
+            },
+            {
+                "name": "UserMCP2",
+                "config_content": json.dumps(
+                    {"mcpServers": {"dup": {"type": "http", "url": "https://second.com"}}}
+                ),
+            },
+        ]
+        db.execute.return_value = cursor_mock
+
+        result = await _build_active_mcp_dict(db, "project-1")
+        assert result["dup"]["url"] == "https://first.com"
+
 
 # ── T035-T037: Validation tests ─────────────────────────────────────────
 
