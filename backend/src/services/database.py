@@ -198,7 +198,9 @@ async def _table_exists(db: aiosqlite.Connection, table_name: str) -> bool:
 
 
 async def _column_exists(db: aiosqlite.Connection, table_name: str, column_name: str) -> bool:
-    cursor = await db.execute(f"PRAGMA table_info({table_name})")
+    if not table_name.replace("_", "").isalnum():
+        return False
+    cursor = await db.execute(f"PRAGMA table_info([{table_name}])")
     rows = await cursor.fetchall()
     return any(row[1] == column_name for row in rows)
 

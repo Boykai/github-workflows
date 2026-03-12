@@ -329,4 +329,3 @@ class TestBoardErrorSanitization:
         assert resp.status_code == 404
         body = resp.json()
         assert "ATTACKER_CONTROLLED_ID" not in str(body)
-

@@ -15,6 +15,7 @@ import aiosqlite
 import pytest
 
 from src.services.database import (
+    _column_exists,
     _discover_migrations,
     _run_migrations,
     close_database,
@@ -222,3 +223,36 @@ class TestInitDatabase:
                 import src.services.database as dbmod
 
                 dbmod._connection = None
+
+
+# =============================================================================
+# _column_exists — SQL injection guard regression tests
+# =============================================================================
+
+
+class TestColumnExistsSQLInjectionGuard:
+    """Regression tests for _column_exists input validation.
+
+    Bug: _column_exists previously interpolated table_name via f-string without
+    validation, allowing potential SQL injection through crafted table names.
+    Fix: validate table_name is alphanumeric + underscore only.
+    """
+
+    async def test_rejects_sql_injection_in_table_name(self, raw_db: aiosqlite.Connection):
+        """Malicious table names must be rejected (return False) instead of
+        being interpolated into the PRAGMA statement."""
+        result = await _column_exists(raw_db, "x); DROP TABLE user_sessions; --", "col")
+        assert result is False
+
+    async def test_rejects_parentheses_in_table_name(self, raw_db: aiosqlite.Connection):
+        result = await _column_exists(raw_db, "tbl(evil)", "col")
+        assert result is False
+
+    async def test_allows_valid_table_name(self, raw_db: aiosqlite.Connection):
+        await raw_db.execute("CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)")
+        assert await _column_exists(raw_db, "test_table", "name") is True
+        assert await _column_exists(raw_db, "test_table", "nonexistent") is False
+
+    async def test_allows_underscored_table_name(self, raw_db: aiosqlite.Connection):
+        await raw_db.execute("CREATE TABLE my_table_v2 (col_a TEXT)")
+        assert await _column_exists(raw_db, "my_table_v2", "col_a") is True

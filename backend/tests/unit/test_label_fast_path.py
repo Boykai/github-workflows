@@ -55,9 +55,7 @@ class TestBuildPipelineFromLabels:
     async def test_returns_none_when_config_not_found(self):
         from src.services.copilot_polling.pipeline import _build_pipeline_from_labels
 
-        with patch(
-            "src.services.pipelines.service.PipelineService"
-        ) as mock_svc_cls:
+        with patch("src.services.pipelines.service.PipelineService") as mock_svc_cls:
             mock_svc = AsyncMock()
             mock_svc.list_pipelines = AsyncMock(return_value=[])
             mock_svc_cls.return_value = mock_svc
@@ -82,9 +80,7 @@ class TestBuildPipelineFromLabels:
             [["speckit.specify"], ["speckit.plan", "speckit.tasks"], ["speckit.implement"]],
         )
 
-        with patch(
-            "src.services.pipelines.service.PipelineService"
-        ) as mock_svc_cls:
+        with patch("src.services.pipelines.service.PipelineService") as mock_svc_cls:
             mock_svc = AsyncMock()
             mock_svc.list_pipelines = AsyncMock(return_value=[config])
             mock_svc_cls.return_value = mock_svc
@@ -119,9 +115,7 @@ class TestBuildPipelineFromLabels:
 
         config = self._make_pipeline_config("test-pipe", [["speckit.specify"]])
 
-        with patch(
-            "src.services.pipelines.service.PipelineService"
-        ) as mock_svc_cls:
+        with patch("src.services.pipelines.service.PipelineService") as mock_svc_cls:
             mock_svc = AsyncMock()
             mock_svc.list_pipelines = AsyncMock(return_value=[config])
             mock_svc_cls.return_value = mock_svc
@@ -141,13 +135,9 @@ class TestBuildPipelineFromLabels:
     async def test_first_agent_has_no_completed(self):
         from src.services.copilot_polling.pipeline import _build_pipeline_from_labels
 
-        config = self._make_pipeline_config(
-            "simple", [["speckit.specify"], ["speckit.plan"]]
-        )
+        config = self._make_pipeline_config("simple", [["speckit.specify"], ["speckit.plan"]])
 
-        with patch(
-            "src.services.pipelines.service.PipelineService"
-        ) as mock_svc_cls:
+        with patch("src.services.pipelines.service.PipelineService") as mock_svc_cls:
             mock_svc = AsyncMock()
             mock_svc.list_pipelines = AsyncMock(return_value=[config])
             mock_svc_cls.return_value = mock_svc

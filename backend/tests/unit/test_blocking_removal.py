@@ -61,7 +61,9 @@ class TestBlockingSchemaRemoved:
         columns = [r[1] if isinstance(r, tuple) else r["name"] for r in await cursor.fetchall()]
         assert "blocking" not in columns, "chores table still has a 'blocking' column"
 
-    async def test_project_settings_no_blocking_override_column(self, mock_db: aiosqlite.Connection):
+    async def test_project_settings_no_blocking_override_column(
+        self, mock_db: aiosqlite.Connection
+    ):
         """project_settings.pipeline_blocking_override column must not exist."""
         cursor = await mock_db.execute("PRAGMA table_info(project_settings)")
         columns = [r[1] if isinstance(r, tuple) else r["name"] for r in await cursor.fetchall()]
@@ -168,7 +170,6 @@ class TestBlockingConstantsRemoved:
 
         # Check that none of the module-level names reference blocking
         blocking_names = [
-            name for name in dir(const)
-            if "blocking" in name.lower() and not name.startswith("_")
+            name for name in dir(const) if "blocking" in name.lower() and not name.startswith("_")
         ]
         assert blocking_names == [], f"Blocking constants still exist: {blocking_names}"

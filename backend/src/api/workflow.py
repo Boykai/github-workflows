@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
 from src.api.chat import _recommendations
-from src.dependencies import require_selected_project
+from src.dependencies import require_selected_project, verify_project_access
 from src.exceptions import AppException, NotFoundError, ValidationError
 from src.logging_utils import get_logger, handle_service_error
 from src.middleware.rate_limit import limiter
@@ -194,6 +194,9 @@ async def confirm_recommendation(
     # Require project selection
     project_id = require_selected_project(session)
 
+    # Verify ownership before proceeding
+    await verify_project_access(request, project_id, session)
+
     # Resolve repository info using shared 3-step fallback
     owner, repo = await resolve_repository(session.access_token, project_id)
 
@@ -361,6 +364,7 @@ async def reject_recommendation(
 
 @router.post("/pipeline/{issue_number}/retry")
 async def retry_pipeline(
+    request: Request,
     issue_number: int,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
@@ -374,6 +378,9 @@ async def retry_pipeline(
     - The user wants to manually kick off the next agent
     """
     project_id = require_selected_project(session)
+
+    # Verify ownership before proceeding
+    await verify_project_access(request, project_id, session)
 
     state = get_pipeline_state(issue_number)
     if not state:
@@ -496,12 +503,16 @@ async def retry_pipeline(
 
 @router.get("/config", response_model=WorkflowConfiguration)
 async def get_config(
+    request: Request,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> WorkflowConfiguration:
     """
     Get workflow configuration for the selected project (T039).
     """
     project_id = require_selected_project(session)
+
+    # Verify ownership before proceeding
+    await verify_project_access(request, project_id, session)
 
     config = await get_workflow_config(project_id)
     if not config:
@@ -523,6 +534,7 @@ async def get_config(
 
 @router.put("/config", response_model=WorkflowConfiguration)
 async def update_config(
+    request: Request,
     config_update: WorkflowConfiguration,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> WorkflowConfiguration:
@@ -530,6 +542,9 @@ async def update_config(
     Update workflow configuration (T040).
     """
     project_id = require_selected_project(session)
+
+    # Verify ownership before proceeding
+    await verify_project_access(request, project_id, session)
 
     # Ensure project_id matches
     config_update.project_id = project_id
@@ -553,6 +568,7 @@ async def update_config(
 
 @router.get("/agents", response_model=AvailableAgentsResponse)
 async def list_agents(
+    request: Request,
     session: Annotated[UserSession, Depends(get_session_dep)],
     owner: str | None = Query(None, description="Repository owner (default: config)"),
     repo: str | None = Query(None, description="Repository name (default: config)"),
@@ -564,6 +580,9 @@ async def list_agents(
     and combines them with built-in agents (GitHub Copilot, Copilot Review).
     """
     project_id = require_selected_project(session)
+
+    # Verify ownership before proceeding
+    await verify_project_access(request, project_id, session)
 
     # Resolve owner/repo using the same 3-step fallback as the Agents panel
     resolved_owner = owner
