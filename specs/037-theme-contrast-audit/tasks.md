@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/037-theme-contrast-audit/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/, quickstart.md
 
-**Tests**: No new product test suite is mandated by the specification. Use the existing frontend validation commands and the audit tooling created in this plan to verify token usage, contrast compliance, and theme behavior.
+**Tests**: No new product test suite is mandated by the specification. Use the existing frontend validation commands in `frontend/package.json` (`npm run type-check`, `npm run lint`, `npm run test:a11y`, `npx vitest run`) plus the audit tooling created in this plan to verify token usage, contrast compliance, and theme behavior.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story. This is a frontend-only audit across `frontend/src/` plus supporting audit documentation under `specs/037-theme-contrast-audit/`.
 
@@ -25,7 +25,7 @@
 
 **Purpose**: Establish the audit baseline, current token inventory, and documented exception scope before implementing theme fixes.
 
-- [ ] T001 Run the existing frontend baseline commands defined in `frontend/package.json` (`npm run type-check`, `npm run lint`, `npx vitest run`) and capture any unrelated pre-existing failures before audit changes begin
+- [ ] T001 Run the existing frontend baseline commands defined in `frontend/package.json` (`npm run type-check`, `npm run lint`, `npm run test:a11y`, `npx vitest run`) and capture any unrelated pre-existing failures before audit changes begin
 - [ ] T002 Review the current theme tokens, `@theme` mappings, shadow definitions, `solar-*` utilities, and existing `!important` overrides in `frontend/src/index.css` against `specs/037-theme-contrast-audit/contracts/token-registry.md`
 - [ ] T003 [P] Capture the initial approved-exception scope in `specs/037-theme-contrast-audit/contracts/audit-checklist.md` using `frontend/src/components/agents/AgentAvatar.tsx`, `frontend/src/components/board/colorUtils.ts`, and `frontend/src/components/board/IssueCard.tsx`
 
@@ -41,7 +41,11 @@
 - [ ] T005 [P] Create the WCAG contrast audit script in `frontend/scripts/check-theme-contrast.mjs` to evaluate the contrast pairs defined in `specs/037-theme-contrast-audit/data-model.md`
 - [ ] T006 [P] Add reusable token parsing and HSL/RGB contrast helpers in `frontend/src/lib/themeAudit.ts` for `frontend/scripts/audit-theme-colors.mjs` and `frontend/scripts/check-theme-contrast.mjs`
 - [ ] T007 [P] Add audit script entries (`audit:theme-colors`, `audit:theme-contrast`) to `frontend/package.json`
-- [ ] T008 Build the component/page/theme-scope coverage matrix in `specs/037-theme-contrast-audit/contracts/audit-checklist.md` using `frontend/src/pages/AppPage.tsx`, `frontend/src/pages/LoginPage.tsx`, `frontend/src/pages/ProjectsPage.tsx`, `frontend/src/pages/AgentsPage.tsx`, `frontend/src/pages/AgentsPipelinePage.tsx`, `frontend/src/pages/ToolsPage.tsx`, `frontend/src/pages/SettingsPage.tsx`, `frontend/src/pages/ChoresPage.tsx`, `frontend/src/pages/NotFoundPage.tsx`, `frontend/src/layout/AuthGate.tsx`, `frontend/src/layout/Sidebar.tsx`, `frontend/src/layout/TopBar.tsx`, `frontend/src/layout/RateLimitBar.tsx`, `frontend/src/layout/NotificationBell.tsx`, `frontend/src/components/board/AddAgentPopover.tsx`, `frontend/src/components/board/CleanUpSummary.tsx`, `frontend/src/components/board/CleanUpAuditHistory.tsx`, `frontend/src/components/board/CleanUpConfirmModal.tsx`, `frontend/src/components/pipeline/ModelSelector.tsx`, `frontend/src/components/pipeline/StageCard.tsx`, `frontend/src/components/agents/AgentIconPickerModal.tsx`, `frontend/src/components/chores/ChoreCard.tsx`, and a named "new component dark-mode token mapping required" rule in `specs/037-theme-contrast-audit/contracts/audit-checklist.md`
+- [ ] T008 Build the component/page/theme-scope coverage matrix in `specs/037-theme-contrast-audit/contracts/audit-checklist.md` for the audited route, layout, and portal surfaces listed below
+  - Routes: `frontend/src/pages/AppPage.tsx`, `frontend/src/pages/LoginPage.tsx`, `frontend/src/pages/ProjectsPage.tsx`, `frontend/src/pages/AgentsPage.tsx`, `frontend/src/pages/AgentsPipelinePage.tsx`, `frontend/src/pages/ToolsPage.tsx`, `frontend/src/pages/SettingsPage.tsx`, `frontend/src/pages/ChoresPage.tsx`, `frontend/src/pages/NotFoundPage.tsx`
+  - Layout shell: `frontend/src/layout/AuthGate.tsx`, `frontend/src/layout/Sidebar.tsx`, `frontend/src/layout/TopBar.tsx`, `frontend/src/layout/RateLimitBar.tsx`, `frontend/src/layout/NotificationBell.tsx`
+  - Portal and overlay surfaces: `frontend/src/components/board/AddAgentPopover.tsx`, `frontend/src/components/board/CleanUpSummary.tsx`, `frontend/src/components/board/CleanUpAuditHistory.tsx`, `frontend/src/components/board/CleanUpConfirmModal.tsx`, `frontend/src/components/pipeline/ModelSelector.tsx`, `frontend/src/components/pipeline/StageCard.tsx`, `frontend/src/components/agents/AgentIconPickerModal.tsx`, `frontend/src/components/chores/ChoreCard.tsx`
+  - Add the named rule `"new component dark-mode token mapping required"` in `specs/037-theme-contrast-audit/contracts/audit-checklist.md`
 
 **Checkpoint**: Audit tooling and coverage matrix are ready — user story implementation can now begin in parallel where dependencies allow
 
