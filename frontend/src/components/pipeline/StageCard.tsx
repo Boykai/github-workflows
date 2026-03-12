@@ -256,7 +256,7 @@ export function StageCard({
             className="pipeline-stage-add flex w-full items-center justify-center gap-1 rounded-lg border border-dashed border-border/50 py-1.5 text-[11px] text-muted-foreground transition-colors hover:border-primary/30 hover:text-primary"
           >
             <Plus className="h-3 w-3" />
-            {hasAgents ? 'Add Agent' : 'Add Agent'}
+            Add Agent
           </button>
         </Tooltip>
 

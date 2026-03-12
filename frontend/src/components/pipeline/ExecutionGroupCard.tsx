@@ -199,7 +199,7 @@ export function ExecutionGroupCard({
             </div>
           ) : (
             <p className="rounded-lg border border-dashed border-border/60 bg-background/20 px-3 py-2 text-[11px] text-muted-foreground">
-              Drop agents here or use the button below.
+              Drop agents here or use the Add Agent button.
             </p>
           )}
         </SortableContext>
