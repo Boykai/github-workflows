@@ -252,7 +252,7 @@ class PipelineService:
                 ]
             # Sync stage.agents from groups for backward-compat consumers
             if stage.groups:
-                stage.agents = [a for g in stage.groups for a in g.agents]
+                stage.agents = [a for g in stage.groups if g.agents for a in g.agents]
         return stages
 
     @staticmethod
