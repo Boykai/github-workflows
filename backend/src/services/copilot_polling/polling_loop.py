@@ -239,28 +239,6 @@ async def _step_review_completion(
     )
 
 
-async def _step_sweep_blocking_queue(
-    access_token: str,
-    project_id: str,
-    owner: str,
-    repo: str,
-    tasks: list,
-) -> list:
-    """Step 4c: Sweep stale entries from the blocking queue."""
-    try:
-        from src.services import blocking_queue as bq_service
-
-        swept = await bq_service.sweep_stale_entries(
-            access_token=access_token,
-            owner=owner,
-            repo=repo,
-        )
-        return list(swept) if swept else []
-    except Exception as e:
-        logger.debug("Blocking queue sweep skipped (not available): %s", e)
-        return []
-
-
 async def _step_recover_stalled(
     access_token: str,
     project_id: str,
@@ -288,7 +266,6 @@ POLL_STEPS: list[PollStep] = [
     PollStep(name="Step 3: in-progress", execute=_step_check_in_progress),
     PollStep(name="Step 4: copilot review requests", execute=_step_request_reviews),
     PollStep(name="Step 4b: review completion", execute=_step_review_completion),
-    PollStep(name="Step 4c: blocking queue", execute=_step_sweep_blocking_queue),
     PollStep(name="Step 5: stalled recovery", execute=_step_recover_stalled, is_expensive=True),
 ]
 
@@ -316,14 +293,6 @@ async def poll_for_copilot_completion(
     )
 
     _polling_state.is_running = True
-
-    # Blocking queue: startup recovery — activate any pending issues stuck during downtime
-    try:
-        from src.services import blocking_queue as bq_service
-
-        await bq_service.recover_all_repos()
-    except Exception as e:
-        logger.debug("Blocking queue startup recovery skipped (not available): %s", e)
 
     try:
         await _poll_loop(access_token, project_id, owner, repo, interval_seconds)

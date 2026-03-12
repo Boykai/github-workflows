@@ -107,7 +107,7 @@ async def _should_skip_recovery(
     task_repo: str,
     now: Any,
 ) -> bool:
-    """Check if recovery should be skipped for this issue (cooldown or blocking queue)."""
+    """Check if recovery should be skipped for this issue (cooldown)."""
     # Cooldown check
     last_attempt = _recovery_last_attempt.get(issue_number)
     if last_attempt:
@@ -120,27 +120,6 @@ async def _should_skip_recovery(
                 RECOVERY_COOLDOWN_SECONDS,
             )
             return True
-
-    # Blocking queue guard
-    try:
-        from src.models.blocking import BlockingQueueStatus
-        from src.services import blocking_queue as bq_service
-
-        repo_key = f"{task_owner}/{task_repo}"
-        bq_entry = await bq_service.get_entry(repo_key, issue_number)
-        if bq_entry and bq_entry.queue_status == BlockingQueueStatus.PENDING:
-            logger.debug(
-                "Recovery: issue #%d is pending in blocking queue — skipping recovery",
-                issue_number,
-            )
-            return True
-    except Exception as exc:
-        logger.debug(
-            "Recovery: blocking queue check failed for issue #%d: %s",
-            issue_number,
-            exc,
-            exc_info=True,
-        )
 
     return False
 
@@ -335,7 +314,7 @@ async def recover_stalled_issues(
             if not task_owner or not task_repo:
                 continue
 
-            # Cooldown + blocking queue guard (T038)
+            # Cooldown guard
             if await _should_skip_recovery(issue_number, task_owner, task_repo, now):
                 continue
 

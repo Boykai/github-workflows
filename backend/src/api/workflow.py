@@ -266,7 +266,6 @@ async def confirm_recommendation(
         result = await orchestrator.execute_full_workflow(
             ctx,
             recommendation,
-            is_blocking=recommendation.is_blocking,
         )
 
         if result.success:
