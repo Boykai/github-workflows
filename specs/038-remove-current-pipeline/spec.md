@@ -1,115 +1,71 @@
-# Feature Specification: [FEATURE NAME]
+# Feature Specification: Remove "Current Pipeline" Section from Pipeline Page
 
-**Feature Branch**: `[###-feature-name]`  
-**Created**: [DATE]  
+**Feature Branch**: `038-remove-current-pipeline`  
+**Created**: 2026-03-12  
 **Status**: Draft  
-**Input**: User description: "$ARGUMENTS"
+**Input**: User description: "Remove the 'Current Pipeline' section from the Pipeline page as part of a UI cleanup effort."
 
 ## User Scenarios & Testing *(mandatory)*
 
-<!--
-  IMPORTANT: User stories should be PRIORITIZED as user journeys ordered by importance.
-  Each user story/journey must be INDEPENDENTLY TESTABLE - meaning if you implement just ONE of them,
-  you should still have a viable MVP (Minimum Viable Product) that delivers value.
-  
-  Assign priorities (P1, P2, P3, etc.) to each story, where P1 is the most critical.
-  Think of each story as a standalone slice of functionality that can be:
-  - Developed independently
-  - Tested independently
-  - Deployed independently
-  - Demonstrated to users independently
--->
+### User Story 1 - Clean Pipeline Page View (Priority: P1)
 
-### User Story 1 - [Brief Title] (Priority: P1)
+As a user navigating to the Pipeline page, I see a streamlined layout that no longer includes the "Current Pipeline" section. The remaining sections of the Pipeline page display correctly and without visual gaps or layout shifts where the removed section used to be.
 
-[Describe this user journey in plain language]
+**Why this priority**: This is the core deliverable of the feature. Removing the section and preserving a clean, functional page layout is the primary user-facing outcome.
 
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently - e.g., "Can be fully tested by [specific action] and delivers [specific value]"]
+**Independent Test**: Can be fully tested by navigating to the Pipeline page and verifying the "Current Pipeline" section is absent while all other sections render correctly.
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-2. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** a user is on the Pipeline page, **When** the page finishes loading, **Then** the "Current Pipeline" section is not visible anywhere on the page.
+2. **Given** a user is on the Pipeline page, **When** they scroll through the entire page, **Then** all remaining sections render in their expected positions without layout gaps or visual artifacts.
+3. **Given** a user is on the Pipeline page, **When** the page loads, **Then** no console errors or warnings related to the removed section appear.
 
 ---
 
-### User Story 2 - [Brief Title] (Priority: P2)
+### User Story 2 - Codebase Hygiene After Removal (Priority: P2)
 
-[Describe this user journey in plain language]
+As a developer working on the codebase after this change, I find no orphaned code, imports, styles, or state management logic that was exclusively used by the now-removed "Current Pipeline" section. The codebase remains clean and maintainable.
 
-**Why this priority**: [Explain the value and why it has this priority level]
+**Why this priority**: Leaving dead code behind increases maintenance burden and confusion for future developers. This is essential for long-term code health but secondary to the visible UI change.
 
-**Independent Test**: [Describe how this can be tested independently]
+**Independent Test**: Can be verified by reviewing the changeset to confirm all exclusively-used code artifacts (components, styles, state variables, data-fetching logic) have been removed alongside the section.
 
 **Acceptance Scenarios**:
 
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
+1. **Given** the "Current Pipeline" section has been removed, **When** a developer inspects the Pipeline page source, **Then** no unused imports, variables, or style declarations related to the removed section remain.
+2. **Given** the "Current Pipeline" section has been removed, **When** the project is built, **Then** no build warnings about unused code related to the removed section are produced.
 
 ---
-
-### User Story 3 - [Brief Title] (Priority: P3)
-
-[Describe this user journey in plain language]
-
-**Why this priority**: [Explain the value and why it has this priority level]
-
-**Independent Test**: [Describe how this can be tested independently]
-
-**Acceptance Scenarios**:
-
-1. **Given** [initial state], **When** [action], **Then** [expected outcome]
-
----
-
-[Add more user stories as needed, each with an assigned priority]
 
 ### Edge Cases
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right edge cases.
--->
-
-- What happens when [boundary condition]?
-- How does system handle [error scenario]?
+- What happens if a user has bookmarked or deep-linked to an anchor within the "Current Pipeline" section? The page should still load without errors; the anchor simply resolves to the top of the page.
+- What happens if other sections on the Pipeline page previously depended on shared state or layout context provided by the "Current Pipeline" section? Those sections must continue to function independently.
+- What happens if the "Current Pipeline" section is conditionally rendered (e.g., behind a feature flag)? All conditional rendering paths for this section should be removed.
 
 ## Requirements *(mandatory)*
 
-<!--
-  ACTION REQUIRED: The content in this section represents placeholders.
-  Fill them out with the right functional requirements.
--->
-
 ### Functional Requirements
 
-- **FR-001**: System MUST [specific capability, e.g., "allow users to create accounts"]
-- **FR-002**: System MUST [specific capability, e.g., "validate email addresses"]  
-- **FR-003**: Users MUST be able to [key interaction, e.g., "reset their password"]
-- **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
-- **FR-005**: System MUST [behavior, e.g., "log all security events"]
-
-*Example of marking unclear requirements:*
-
-- **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]
-- **FR-007**: System MUST retain user data for [NEEDS CLARIFICATION: retention period not specified]
-
-### Key Entities *(include if feature involves data)*
-
-- **[Entity 1]**: [What it represents, key attributes without implementation]
-- **[Entity 2]**: [What it represents, relationships to other entities]
+- **FR-001**: The Pipeline page MUST NOT display the "Current Pipeline" section under any condition.
+- **FR-002**: The Pipeline page MUST render all remaining sections in their correct positions without layout gaps or visual shifts caused by the removal.
+- **FR-003**: The removal MUST NOT introduce any new console errors or warnings on the Pipeline page.
+- **FR-004**: All component markup, styling, state management, and data-fetching logic used exclusively by the "Current Pipeline" section MUST be removed from the codebase.
+- **FR-005**: Any feature flags or conditional rendering logic that controls the visibility of the "Current Pipeline" section MUST be removed.
+- **FR-006**: Shared code (utilities, styles, components) used by both the "Current Pipeline" section and other parts of the application MUST be preserved and must continue to function correctly.
 
 ## Success Criteria *(mandatory)*
 
-<!--
-  ACTION REQUIRED: Define measurable success criteria.
-  These must be technology-agnostic and measurable.
--->
-
 ### Measurable Outcomes
 
-- **SC-001**: [Measurable metric, e.g., "Users can complete account creation in under 2 minutes"]
-- **SC-002**: [Measurable metric, e.g., "System handles 1000 concurrent users without degradation"]
-- **SC-003**: [User satisfaction metric, e.g., "90% of users successfully complete primary task on first attempt"]
-- **SC-004**: [Business metric, e.g., "Reduce support tickets related to [X] by 50%"]
+- **SC-001**: 100% of users visiting the Pipeline page see no "Current Pipeline" section, regardless of their role or permissions.
+- **SC-002**: The Pipeline page loads and renders without any console errors or warnings introduced by this change.
+- **SC-003**: All existing automated tests for the Pipeline page pass after the removal, with only expected test modifications for the removed section.
+- **SC-004**: Zero lines of dead code (imports, variables, styles, components) exclusively tied to the "Current Pipeline" section remain in the codebase after the change.
+
+### Assumptions
+
+- The "Current Pipeline" section is a discrete, identifiable portion of the Pipeline page that can be removed without restructuring the overall page architecture.
+- Any data-fetching or state management logic shared with other sections will be identified and preserved during removal.
+- The removal is permanent and does not require a feature flag or rollback mechanism; the section will not be re-added later.
