@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactElement } from 'react';
 import { render, screen, userEvent, waitFor } from '@/test/test-utils';
@@ -52,6 +52,93 @@ function renderPanel(ui: ReactElement) {
 describe('ProjectIssueLaunchPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localStorage.removeItem('parentIssueIntake_expanded');
+  });
+
+  afterEach(() => {
+    localStorage.removeItem('parentIssueIntake_expanded');
+  });
+
+  /** Expand the collapsed-by-default panel so the form fields become accessible. */
+  async function expandPanel() {
+    await userEvent.click(screen.getByRole('button', { name: /parent issue intake/i }));
+  }
+
+  describe('collapse / expand', () => {
+    it('renders collapsed by default — header visible, form body hidden', () => {
+      renderPanel(
+        <ProjectIssueLaunchPanel
+          projectId="PVT_1"
+          pipelines={PIPELINES}
+          isLoadingPipelines={false}
+          pipelinesError={null}
+          onRetryPipelines={vi.fn()}
+        />
+      );
+
+      const toggle = screen.getByRole('button', { name: /parent issue intake/i });
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      expect(screen.getByText('Parent issue intake')).toBeInTheDocument();
+    });
+
+    it('expands when the header is clicked and collapses again on a second click', async () => {
+      renderPanel(
+        <ProjectIssueLaunchPanel
+          projectId="PVT_1"
+          pipelines={PIPELINES}
+          isLoadingPipelines={false}
+          pipelinesError={null}
+          onRetryPipelines={vi.fn()}
+        />
+      );
+
+      const toggle = screen.getByRole('button', { name: /parent issue intake/i });
+
+      await userEvent.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+      await userEvent.click(toggle);
+      expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    });
+
+    it('persists expanded state to localStorage', async () => {
+      renderPanel(
+        <ProjectIssueLaunchPanel
+          projectId="PVT_1"
+          pipelines={PIPELINES}
+          isLoadingPipelines={false}
+          pipelinesError={null}
+          onRetryPipelines={vi.fn()}
+        />
+      );
+
+      expect(localStorage.getItem('parentIssueIntake_expanded')).toBeNull();
+
+      await userEvent.click(screen.getByRole('button', { name: /parent issue intake/i }));
+      expect(localStorage.getItem('parentIssueIntake_expanded')).toBe('true');
+
+      await userEvent.click(screen.getByRole('button', { name: /parent issue intake/i }));
+      expect(localStorage.getItem('parentIssueIntake_expanded')).toBe('false');
+    });
+
+    it('restores expanded state from localStorage on mount', () => {
+      localStorage.setItem('parentIssueIntake_expanded', 'true');
+
+      renderPanel(
+        <ProjectIssueLaunchPanel
+          projectId="PVT_1"
+          pipelines={PIPELINES}
+          isLoadingPipelines={false}
+          pipelinesError={null}
+          onRetryPipelines={vi.fn()}
+        />
+      );
+
+      expect(screen.getByRole('button', { name: /parent issue intake/i })).toHaveAttribute(
+        'aria-expanded',
+        'true'
+      );
+    });
   });
 
   it('shows inline validation and launches the selected pipeline after correction', async () => {
@@ -74,6 +161,8 @@ describe('ProjectIssueLaunchPanel', () => {
         onLaunched={onLaunchedMock}
       />
     );
+
+    await expandPanel();
 
     await userEvent.click(screen.getByRole('button', { name: 'Launch pipeline' }));
 
@@ -117,6 +206,8 @@ describe('ProjectIssueLaunchPanel', () => {
       />
     );
 
+    await expandPanel();
+
     const descriptionField = screen.getByLabelText('GitHub Parent Issue Description');
     const pipelineSelect = screen.getByLabelText('Agent Pipeline Config');
 
@@ -150,6 +241,8 @@ describe('ProjectIssueLaunchPanel', () => {
       />
     );
 
+    await expandPanel();
+
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['# Imported issue\n\nLoaded from disk.'], 'issue.md', {
       type: 'text/markdown',
@@ -175,6 +268,8 @@ describe('ProjectIssueLaunchPanel', () => {
         onRetryPipelines={vi.fn()}
       />
     );
+
+    await expandPanel();
 
     const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement;
     const file = new File(['binary'], 'issue.png', { type: 'image/png' });
@@ -209,6 +304,8 @@ describe('ProjectIssueLaunchPanel', () => {
       />
     );
 
+    await expandPanel();
+
     await user.type(screen.getByLabelText('GitHub Parent Issue Description'), '# Retry me');
     await user.selectOptions(screen.getByLabelText('Agent Pipeline Config'), 'pipe-1');
     await user.click(screen.getByRole('button', { name: 'Launch pipeline' }));
@@ -237,6 +334,8 @@ describe('ProjectIssueLaunchPanel', () => {
         onRetryPipelines={onRetryPipelines}
       />
     );
+
+    await expandPanel();
 
     expect(screen.getByText('Could not load pipeline configs.')).toBeInTheDocument();
 
