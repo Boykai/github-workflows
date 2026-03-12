@@ -18,8 +18,9 @@ _UPLOAD_ID_PREFIX = re.compile(r"^[0-9a-f]{8}-")
 # Expected URL prefix for internally uploaded files.
 _ALLOWED_URL_PREFIX = "/api/v1/chat/uploads/"
 
-# Characters that break markdown link/image syntax.
-_MD_ESCAPE_RE = re.compile(r"([\[\]\(\)])")
+# Characters that break markdown link/image syntax (including backslash to
+# prevent escape-sequence injection).
+_MD_ESCAPE_RE = re.compile(r"([\[\]\(\)\\])")
 
 
 def _escape_markdown(text: str) -> str:
@@ -28,8 +29,16 @@ def _escape_markdown(text: str) -> str:
 
 
 def _is_valid_upload_url(url: str) -> bool:
-    """Return True if *url* matches the expected internal uploads prefix."""
-    return isinstance(url, str) and url.startswith(_ALLOWED_URL_PREFIX)
+    """Return True if *url* matches the expected internal uploads prefix.
+
+    Rejects URLs containing path-traversal sequences (``..``) even if the
+    prefix is correct.
+    """
+    return (
+        isinstance(url, str)
+        and url.startswith(_ALLOWED_URL_PREFIX)
+        and ".." not in url
+    )
 
 
 def format_attachments_markdown(file_urls: list[str]) -> str:

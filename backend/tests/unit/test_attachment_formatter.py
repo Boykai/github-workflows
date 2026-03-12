@@ -152,6 +152,10 @@ class TestFormatAttachmentsMarkdownUrlValidation:
         urls = ["https://a.com/x.png", "ftp://b.com/y.pdf"]
         assert format_attachments_markdown(urls) == ""
 
+    def test_path_traversal_rejected(self):
+        url = "/api/v1/chat/uploads/../../etc/passwd"
+        assert format_attachments_markdown([url]) == ""
+
 
 class TestFormatAttachmentsMarkdownEscaping:
     """Markdown-sensitive characters in filenames are escaped."""
@@ -167,3 +171,9 @@ class TestFormatAttachmentsMarkdownEscaping:
             ["/api/v1/chat/uploads/abcd1234-report(final).pdf"]
         )
         assert r"[report\(final\).pdf]" in result
+
+    def test_backslash_escaped(self):
+        result = format_attachments_markdown(
+            ["/api/v1/chat/uploads/abcd1234-back\\slash.txt"]
+        )
+        assert r"[back\\slash.txt]" in result
