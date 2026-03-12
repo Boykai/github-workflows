@@ -185,17 +185,13 @@ class TestGetBoardData:
             resp = await client.get("/api/v1/board/projects/PVT_abc")
             assert resp.status_code == 200
 
-            # Verify cache.set was called with data_hash keyword argument
+            # Verify cache.set was called with a data_hash keyword argument
             assert mock_cache.set.called
-            call_kwargs = mock_cache.set.call_args
-            assert "data_hash" in call_kwargs.kwargs or (
-                len(call_kwargs.args) > 3 and call_kwargs.args[3] is not None
-            )
+            data_hash = mock_cache.set.call_args.kwargs.get("data_hash")
+            assert data_hash is not None
             # The data_hash should be a 64-char hex SHA-256 string
-            data_hash = call_kwargs.kwargs.get("data_hash")
-            if data_hash is not None:
-                assert isinstance(data_hash, str)
-                assert len(data_hash) == 64
+            assert isinstance(data_hash, str)
+            assert len(data_hash) == 64
 
     async def test_manual_refresh_clears_sub_issue_caches(self, client, mock_github_service):
         """Manual refresh (refresh=true) must clear sub-issue caches before fetching."""

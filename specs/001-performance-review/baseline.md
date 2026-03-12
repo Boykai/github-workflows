@@ -21,8 +21,8 @@
 
 | Suite | File | Before (pass/total) | After (pass/total) |
 |-------|------|---------------------|--------------------|
-| Cache TTL & stale fallback | `backend/tests/unit/test_cache.py` | — | — |
-| Board endpoint behavior | `backend/tests/unit/test_api_board.py` | — | — |
+| Cache TTL & stale fallback | `backend/tests/unit/test_cache.py` | 18/18 | 24/24 |
+| Board endpoint behavior | `backend/tests/unit/test_api_board.py` | 16/16 | 17/17 |
 | Projects & WebSocket | `backend/tests/unit/test_api_projects.py` | — | — |
 | Polling & rate-limit logic | `backend/tests/unit/test_copilot_polling.py` | — | — |
 
@@ -30,8 +30,8 @@
 
 | Suite | File | Before (pass/total) | After (pass/total) |
 |-------|------|---------------------|--------------------|
-| WebSocket + fallback polling | `frontend/src/hooks/useRealTimeSync.test.tsx` | — | — |
-| Auto-refresh & manual refresh | `frontend/src/hooks/useBoardRefresh.test.tsx` | — | — |
+| WebSocket + fallback polling | `frontend/src/hooks/useRealTimeSync.test.tsx` | 33/33 | 33/33 |
+| Auto-refresh & manual refresh | `frontend/src/hooks/useBoardRefresh.test.tsx` | 22/22 | 22/22 |
 | Board query ownership | `frontend/src/hooks/useProjectBoard.test.tsx` | — | — |
 | Board interaction render | `frontend/src/pages/ProjectsPage.test.tsx` | — | — |
 
@@ -41,14 +41,14 @@
 
 ### Backend Test Results
 
-- `test_cache.py`: 304 passed (full backend unit suite)
-- `test_api_board.py`: included in above
-- `test_copilot_polling.py`: included in above
+- `test_cache.py`: 18 passed
+- `test_api_board.py`: 16 passed
+- `test_copilot_polling.py`: included in full suite
 
 ### Frontend Test Results
 
-- `useRealTimeSync.test.tsx`: 34 passed
-- `useBoardRefresh.test.tsx`: 17 passed
+- `useRealTimeSync.test.tsx`: 33 passed
+- `useBoardRefresh.test.tsx`: 22 passed
 
 ### Observed Behavior (Before)
 
@@ -73,29 +73,26 @@
 
 ### Backend Test Results
 
-- Full backend unit suite: 1719 passed (0 failures)
-- `test_cache.py`: 22 passed (was 14 before — 8 new tests for data_hash and compute_data_hash)
-- `test_api_board.py`: 24 passed (was 20 before — 4 new tests for hash storage, sub-issue invalidation, warm cache)
+- `test_cache.py`: 24 passed (was 18 before — 6 new tests for data_hash field on CacheEntry)
+- `test_api_board.py`: 17 passed (was 16 before — 1 new test for board hash exclusion of rate_limit)
 - `test_api_projects.py`: passes (compute_data_hash refactored in)
 - `test_copilot_polling.py`: passes (unchanged)
 
 ### Frontend Test Results
 
-- Full frontend suite: 600 passed (0 failures)
-- `useRealTimeSync.test.tsx`: 34 passed
-- `useBoardRefresh.test.tsx`: 21 passed (was 17 — 4 new tests for requestBoardReload debouncing)
-- Type-check: passes
-- Build: succeeds
-- ESLint: 0 errors (1 pre-existing warning in unrelated file)
+- `useRealTimeSync.test.tsx`: 33 passed (unchanged)
+- `useBoardRefresh.test.tsx`: 22 passed (unchanged — requestBoardReload tests already existed)
+- Type-check: passes (1 pre-existing warning in unrelated file)
+- ESLint: 0 errors
 
 ### Changes Made
 
-1. **Backend `cache.py`**: Added `data_hash` field to `CacheEntry`, `compute_data_hash()` helper.
-2. **Backend `board.py`**: Board data cached with `data_hash` for change detection (FR-004).
-3. **Backend `projects.py`**: WebSocket hash computation uses shared `compute_data_hash` helper.
-4. **Frontend `useBoardRefresh.ts`**: Added 2-second board-reload debouncing (`requestBoardReload`), manual refresh cancels pending debounce.
-5. **Frontend `useRealTimeSync.ts`**: `refresh` messages invalidate tasks query only; board data continues to refresh on its own 5-minute schedule.
-6. **Frontend `ProjectsPage.tsx`**: Wired `requestBoardReload` from `useBoardRefresh` into `useRealTimeSync`; memoized `pipelineGridStyle`.
+1. **Backend `cache.py`**: Added `data_hash` optional field to `CacheEntry` and `InMemoryCache.set()`, enabling consumers to store content hashes alongside cached values.
+2. **Backend `board.py`**: Board data cached with `data_hash` computed via `compute_data_hash()` (excludes `rate_limit` field) for change detection (FR-004).
+3. **Backend `projects.py`**: WebSocket hash computation already uses shared `compute_data_hash` helper (no change needed).
+4. **Frontend `useBoardRefresh.ts`**: 2-second board-reload debouncing (`requestBoardReload`) already existed (no change needed).
+5. **Frontend `useRealTimeSync.ts`**: `refresh` messages already invalidate tasks query only (no change needed).
+6. **Frontend `ProjectsPage.tsx`**: Wired `requestBoardReload` from `useBoardRefresh` into `useRealTimeSync` (replaces `resetTimer`); memoized `heroStats` array to avoid per-render re-allocation.
 7. **Frontend components**: ChatPopup and AddAgentPopover already have RAF throttling (no changes needed).
 
 ### Success Criteria Assessment
