@@ -20,7 +20,12 @@ class TestRetryAfterHeader:
         from src.exceptions import RateLimitError
 
         # Patch resolve_repository to raise RateLimitError with retry_after=45
+        # Also patch verify_project_access since it runs before resolve_repository
         with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(
+                "src.api.tasks.verify_project_access",
+                AsyncMock(return_value=None),
+            )
             mp.setattr(
                 "src.api.tasks.resolve_repository",
                 AsyncMock(side_effect=RateLimitError("Rate limit exceeded", retry_after=45)),
@@ -43,6 +48,10 @@ class TestRetryAfterHeader:
 
         with pytest.MonkeyPatch.context() as mp:
             mp.setattr(
+                "src.api.tasks.verify_project_access",
+                AsyncMock(return_value=None),
+            )
+            mp.setattr(
                 "src.api.tasks.resolve_repository",
                 AsyncMock(side_effect=RateLimitError()),
             )
@@ -62,6 +71,10 @@ class TestRetryAfterHeader:
         from src.exceptions import RateLimitError
 
         with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(
+                "src.api.tasks.verify_project_access",
+                AsyncMock(return_value=None),
+            )
             mp.setattr(
                 "src.api.tasks.resolve_repository",
                 AsyncMock(side_effect=RateLimitError("Rate limit exceeded", retry_after=30)),

@@ -210,7 +210,9 @@ async def client(
     # that need to verify authorization behavior can re-enable it.
     app.dependency_overrides[verify_project_access] = lambda: None
 
-    with (
+    import contextlib
+
+    patches = [
         patch("src.services.database.get_db", return_value=mock_db),
         patch("src.services.database._connection", mock_db),
         patch("src.config.get_settings", return_value=mock_settings),
@@ -231,11 +233,18 @@ async def client(
         patch("src.api.projects.connection_manager", mock_websocket_manager),
         patch("src.api.tasks.connection_manager", mock_websocket_manager),
         patch("src.api.workflow.connection_manager", mock_websocket_manager),
+        # verify_project_access — bypass direct calls (not just dependency overrides)
+        patch("src.api.tasks.verify_project_access", AsyncMock(return_value=None)),
+        patch("src.api.workflow.verify_project_access", AsyncMock(return_value=None)),
         # get_db — patched for settings and MCP routes (direct call, not Depends)
         patch("src.api.settings.get_db", return_value=mock_db),
         patch("src.api.mcp.get_db", return_value=mock_db),
         patch("src.api.tools.get_db", return_value=mock_db),
-    ):
+    ]
+
+    with contextlib.ExitStack() as stack:
+        for p in patches:
+            stack.enter_context(p)
         transport = ASGITransport(app=app)
         async with AsyncClient(
             transport=transport,

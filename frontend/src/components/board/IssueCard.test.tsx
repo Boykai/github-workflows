@@ -170,4 +170,69 @@ describe('IssueCard', () => {
     await userEvent.setup().click(toggle);
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
   });
+
+  describe('avatar URL validation (T050/T051)', () => {
+    const PLACEHOLDER_SVG_PREFIX = 'data:image/svg+xml,';
+
+    it('renders valid GitHub avatar URLs as-is', () => {
+      const item = createBoardItem({
+        assignees: [
+          {
+            login: 'ghuser',
+            avatar_url: 'https://avatars.githubusercontent.com/u/12345?v=4',
+          },
+        ],
+      });
+      render(<IssueCard item={item} onClick={vi.fn()} />);
+
+      const img = screen.getByAltText('ghuser') as HTMLImageElement;
+      expect(img.src).toBe(
+        'https://avatars.githubusercontent.com/u/12345?v=4',
+      );
+    });
+
+    it('replaces non-https avatar URLs with placeholder', () => {
+      const item = createBoardItem({
+        assignees: [
+          { login: 'httpuser', avatar_url: 'http://avatars.githubusercontent.com/u/1' },
+        ],
+      });
+      render(<IssueCard item={item} onClick={vi.fn()} />);
+
+      const img = screen.getByAltText('httpuser') as HTMLImageElement;
+      expect(img.src).toContain(PLACEHOLDER_SVG_PREFIX);
+    });
+
+    it('replaces non-GitHub domain avatar URLs with placeholder', () => {
+      const item = createBoardItem({
+        assignees: [
+          { login: 'external', avatar_url: 'https://evil.example.com/avatar.png' },
+        ],
+      });
+      render(<IssueCard item={item} onClick={vi.fn()} />);
+
+      const img = screen.getByAltText('external') as HTMLImageElement;
+      expect(img.src).toContain(PLACEHOLDER_SVG_PREFIX);
+    });
+
+    it('renders placeholder for malformed avatar URLs', () => {
+      const item = createBoardItem({
+        assignees: [{ login: 'badurl', avatar_url: 'not-a-url' }],
+      });
+      render(<IssueCard item={item} onClick={vi.fn()} />);
+
+      const img = screen.getByAltText('badurl') as HTMLImageElement;
+      expect(img.src).toContain(PLACEHOLDER_SVG_PREFIX);
+    });
+
+    it('renders placeholder for empty avatar URL', () => {
+      const item = createBoardItem({
+        assignees: [{ login: 'noavatar', avatar_url: '' }],
+      });
+      render(<IssueCard item={item} onClick={vi.fn()} />);
+
+      const img = screen.getByAltText('noavatar') as HTMLImageElement;
+      expect(img.src).toContain(PLACEHOLDER_SVG_PREFIX);
+    });
+  });
 });
