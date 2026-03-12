@@ -59,11 +59,12 @@ github-workflows/
 │   │   │   ├── tasks.py          #   Task CRUD
 │   │   │   ├── agents.py         #   Agent CRUD and configuration
 │   │   │   ├── metadata.py       #   Repository metadata (labels, branches, milestones)
+│   │   │   ├── tools.py          #   MCP tool CRUD and configuration
 │   │   │   ├── webhooks.py       #   GitHub webhook handler
 │   │   │   └── workflow.py       #   Workflow config, pipeline, polling control
 │   │   ├── middleware/
 │   │   │   └── request_id.py     #   RequestIDMiddleware for tracing
-│   │   ├── migrations/           # SQL schema migrations (23 SQL files, 001–020, auto-run)
+│   │   ├── migrations/           # SQL schema migrations (27 SQL files, 001–022, auto-run)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── agent_creator.py  #   CreationStep, AgentPreview, AgentCreationState
@@ -79,6 +80,7 @@ github-workflows/
 │   │   │   ├── settings.py       #   User preferences, global/project settings
 │   │   │   ├── signal.py         #   Signal connection, message, banner models
 │   │   │   ├── task.py           #   Task / project item
+│   │   │   ├── tools.py          #   MCP tool models
 │   │   │   ├── user.py           #   UserSession
 │   │   │   └── workflow.py       #   WorkflowConfiguration, WorkflowTransition
 │   │   ├── prompts/              # AI prompt templates
@@ -111,10 +113,16 @@ github-workflows/
 │   │       ├── agents/
 │   │       │   ├── service.py    #   Agent configuration CRUD (SQLite + GitHub repo merge)
 │   │       │   └── agent_mcp_sync.py  # MCP sync: enforces tools: ["*"] + mcp-servers on all agent files
+│   │       ├── pipelines/
+│   │       │   └── service.py    #   PipelineService CRUD and normalization
+│   │       ├── tools/
+│   │       │   ├── presets.py    #   Built-in MCP tool presets
+│   │       │   └── service.py    #   ToolsService CRUD
 │   │       ├── agent_creator.py  #   #agent command: guided agent creation flow
 │   │       ├── agent_tracking.py #   Agent pipeline tracking (issue body markdown)
 │   │       ├── ai_agent.py       #   AI issue generation (via CompletionProvider)
 │   │       ├── cache.py          #   In-memory TTL cache
+│   │       ├── chat_store.py     #   Chat message persistence (async SQLite)
 │   │       ├── cleanup_service.py  # Stale resource cleanup service
 │   │       ├── completion_providers.py  # Pluggable LLM: Copilot SDK / Azure OpenAI
 │   │       ├── database.py       #   aiosqlite connection, WAL mode, migrations
@@ -124,6 +132,7 @@ github-workflows/
 │   │       ├── mcp_store.py      #   MCP configuration persistence
 │   │       ├── metadata_service.py  # Repository metadata caching service
 │   │       ├── model_fetcher.py  #   AI model metadata fetching
+│   │       ├── pipeline_state_store.py  # Pipeline execution state persistence
 │   │       ├── session_store.py  #   Session CRUD (async SQLite)
 │   │       ├── settings_store.py #   Settings persistence (async SQLite)
 │   │       ├── signal_bridge.py  #   Signal HTTP client, DB helpers, WS listener
@@ -151,6 +160,10 @@ github-workflows/
 │   │   ├── main.tsx              # React entry point
 │   │   ├── constants.ts          # Named timing/polling/cache constants
 │   │   ├── types/index.ts        # TypeScript type definitions
+│   │   ├── context/               # React context providers
+│   │   │   └── RateLimitContext.tsx  # Rate limit status context
+│   │   ├── data/                  # Static data and presets
+│   │   │   └── preset-pipelines.ts  # Built-in pipeline preset definitions
 │   │   ├── components/
 │   │   │   ├── ThemeProvider.tsx  # Dark/light/system theme + cosmic transition overlay
 │   │   │   ├── auth/             # LoginButton
@@ -187,7 +200,12 @@ github-workflows/
 │   │   ├── pages/                # AgentsPage, AgentsPipelinePage, AppPage,
 │   │   │                         # ChoresPage, LoginPage, NotFoundPage,
 │   │   │                         # ProjectsPage, SettingsPage, ToolsPage
+│   │   ├── layout/               # App shell layout components
+│   │   │                         # AppLayout, AuthGate, TopBar, Sidebar,
+│   │   │                         # Breadcrumb, ProjectSelector, NotificationBell,
+│   │   │                         # RateLimitBar
 │   │   ├── services/api.ts       # Centralized HTTP/WS client
+│   │   ├── test/                  # Shared test utilities, factories, and setup
 │   │   └── utils/                # generateId, formatTime
 │   └── e2e/                      # Playwright E2E test specs
 │
