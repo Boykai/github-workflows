@@ -217,18 +217,22 @@ class TestBuiltinMcps:
             {
                 "name": "UserMCP1",
                 "config_content": json.dumps(
-                    {"mcpServers": {
-                        "server1": {"type": "http", "url": "https://s1.com"},
-                        "server2": {"type": "http", "url": "https://s2.com"},
-                    }}
+                    {
+                        "mcpServers": {
+                            "server1": {"type": "http", "url": "https://s1.com"},
+                            "server2": {"type": "http", "url": "https://s2.com"},
+                        }
+                    }
                 ),
             },
             {
                 "name": "UserMCP2",
                 "config_content": json.dumps(
-                    {"mcpServers": {
-                        "server3": {"type": "http", "url": "https://s3.com"},
-                    }}
+                    {
+                        "mcpServers": {
+                            "server3": {"type": "http", "url": "https://s3.com"},
+                        }
+                    }
                 ),
             },
         ]
@@ -237,7 +241,9 @@ class TestBuiltinMcps:
         result = await _build_active_mcp_dict(db, "project-1")
         # 3 user servers + 2 built-ins = 5
         assert len(result) == 5
-        assert all(k in result for k in ("server1", "server2", "server3", "context7", "CodeGraphContext"))
+        assert all(
+            k in result for k in ("server1", "server2", "server3", "context7", "CodeGraphContext")
+        )
 
     @pytest.mark.asyncio
     async def test_build_active_mcp_dict_duplicate_user_key_first_wins(self):
@@ -1073,10 +1079,12 @@ class TestBuildActiveMcpDictEdgeCases:
             {
                 "name": "MixedMCP",
                 "config_content": json.dumps(
-                    {"mcpServers": {
-                        "good": {"type": "http", "url": "https://good.com"},
-                        "bad": "not-a-dict",
-                    }}
+                    {
+                        "mcpServers": {
+                            "good": {"type": "http", "url": "https://good.com"},
+                            "bad": "not-a-dict",
+                        }
+                    }
                 ),
             }
         ]

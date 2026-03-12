@@ -5,6 +5,7 @@ import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
+import aiosqlite
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -167,7 +168,7 @@ async def _auto_start_copilot_polling() -> bool:
         request_id_var.reset(correlation_token)
 
 
-async def _startup_agent_mcp_sync(db: object) -> None:
+async def _startup_agent_mcp_sync(db: aiosqlite.Connection) -> None:
     """Run agent MCP sync on startup to reconcile drift (FR-009).
 
     Uses the most recent user session to obtain credentials and project
@@ -195,9 +196,7 @@ async def _startup_agent_mcp_sync(db: object) -> None:
         return
 
     try:
-        owner, repo = await resolve_repository(
-            session.access_token, session.selected_project_id
-        )
+        owner, repo = await resolve_repository(session.access_token, session.selected_project_id)
     except Exception as e:
         logger.debug("Could not resolve repo for startup MCP sync: %s", e)
         return

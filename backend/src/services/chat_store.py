@@ -50,15 +50,17 @@ async def get_messages(
     result = []
     for row in rows:
         if isinstance(row, tuple):
-            result.append({
-                "message_id": row[0],
-                "session_id": row[1],
-                "sender_type": row[2],
-                "content": row[3],
-                "action_type": row[4],
-                "action_data": row[5],
-                "timestamp": row[6],
-            })
+            result.append(
+                {
+                    "message_id": row[0],
+                    "session_id": row[1],
+                    "sender_type": row[2],
+                    "content": row[3],
+                    "action_type": row[4],
+                    "action_data": row[5],
+                    "timestamp": row[6],
+                }
+            )
         else:
             result.append(dict(row))
     return result
@@ -110,18 +112,20 @@ async def get_proposals(
     result = []
     for row in rows:
         if isinstance(row, tuple):
-            result.append({
-                "proposal_id": row[0],
-                "session_id": row[1],
-                "original_input": row[2],
-                "proposed_title": row[3],
-                "proposed_description": row[4],
-                "status": row[5],
-                "edited_title": row[6],
-                "edited_description": row[7],
-                "created_at": row[8],
-                "expires_at": row[9],
-            })
+            result.append(
+                {
+                    "proposal_id": row[0],
+                    "session_id": row[1],
+                    "original_input": row[2],
+                    "proposed_title": row[3],
+                    "proposed_description": row[4],
+                    "status": row[5],
+                    "edited_title": row[6],
+                    "edited_description": row[7],
+                    "created_at": row[8],
+                    "expires_at": row[9],
+                }
+            )
         else:
             result.append(dict(row))
     return result
@@ -183,13 +187,15 @@ async def get_recommendations(
     result = []
     for row in rows:
         if isinstance(row, tuple):
-            result.append({
-                "recommendation_id": row[0],
-                "session_id": row[1],
-                "data": row[2],
-                "status": row[3],
-                "created_at": row[4],
-            })
+            result.append(
+                {
+                    "recommendation_id": row[0],
+                    "session_id": row[1],
+                    "data": row[2],
+                    "status": row[3],
+                    "created_at": row[4],
+                }
+            )
         else:
             result.append(dict(row))
     return result

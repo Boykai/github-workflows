@@ -610,9 +610,7 @@ class ToolsService:
                 db=self.db,
             )
         except Exception as sync_exc:
-            logger.warning(
-                "Agent MCP sync after tool deletion failed (non-fatal): %s", sync_exc
-            )
+            logger.warning("Agent MCP sync after tool deletion failed (non-fatal): %s", sync_exc)
 
         return ToolDeleteResult(success=True, deleted_id=tool_id, affected_agents=[])
 
@@ -954,9 +952,7 @@ class ToolsService:
                     db=self.db,
                 )
             except Exception as sync_exc:
-                logger.warning(
-                    "Agent MCP sync after tool sync failed (non-fatal): %s", sync_exc
-                )
+                logger.warning("Agent MCP sync after tool sync failed (non-fatal): %s", sync_exc)
 
             return McpToolConfigSyncResult(
                 id=tool_id,

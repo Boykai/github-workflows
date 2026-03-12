@@ -102,9 +102,7 @@ def _serialize_agent_file(frontmatter: dict, body: str) -> str:
     return f"---\n{fm_yaml}\n---{separator}{body}"
 
 
-async def _build_active_mcp_dict(
-    db: aiosqlite.Connection, project_id: str
-) -> dict[str, dict]:
+async def _build_active_mcp_dict(db: aiosqlite.Connection, project_id: str) -> dict[str, dict]:
     """Build the merged MCP dict: user-activated MCPs + built-in MCPs.
 
     Built-in MCPs take precedence on server-key conflicts (FR-014).
@@ -128,25 +126,19 @@ async def _build_active_mcp_dict(
                     if isinstance(server_config, dict) and key not in mcps:
                         mcps[key] = dict(server_config)
         except (json.JSONDecodeError, TypeError):
-            logger.warning(
-                "Skipping MCP '%s' — invalid config_content JSON", row["name"]
-            )
+            logger.warning("Skipping MCP '%s' — invalid config_content JSON", row["name"])
             continue
 
     # 2. Merge built-in MCPs (override user MCPs on key conflict)
     for key, config in BUILTIN_MCPS.items():
         if key in mcps:
-            logger.warning(
-                "Built-in MCP '%s' overrides user-activated MCP with same key", key
-            )
+            logger.warning("Built-in MCP '%s' overrides user-activated MCP with same key", key)
         mcps[key] = dict(config)
 
     return mcps
 
 
-async def _discover_agent_files(
-    owner: str, repo: str, token: str
-) -> list[dict]:
+async def _discover_agent_files(owner: str, repo: str, token: str) -> list[dict]:
     """Discover all ``*.agent.md`` files in ``.github/agents/`` via GitHub API.
 
     Returns a list of dicts with keys: ``path``, ``sha``, ``download_url``.
@@ -204,9 +196,7 @@ def _merge_mcps_into_frontmatter(
     current_tools = frontmatter.get("tools")
     if current_tools != ["*"]:
         if current_tools is not None:
-            warnings.append(
-                f"{file_path}: tools overridden from {current_tools!r} to ['*']"
-            )
+            warnings.append(f"{file_path}: tools overridden from {current_tools!r} to ['*']")
             logger.warning(
                 "Agent file %s: tools overridden from %r to ['*']",
                 file_path,
@@ -215,16 +205,12 @@ def _merge_mcps_into_frontmatter(
         frontmatter["tools"] = ["*"]
 
     # ── Replace mcp-servers with the authoritative active MCP set (FR-002, FR-004) ──
-    frontmatter["mcp-servers"] = {
-        key: dict(config) for key, config in active_mcps.items()
-    }
+    frontmatter["mcp-servers"] = {key: dict(config) for key, config in active_mcps.items()}
 
     return frontmatter, warnings
 
 
-def _validate_agent_frontmatter(
-    frontmatter: dict, file_path: str
-) -> list[str]:
+def _validate_agent_frontmatter(frontmatter: dict, file_path: str) -> list[str]:
     """Lightweight schema validation for agent frontmatter after sync.
 
     Returns a list of error strings (empty if valid).
@@ -255,9 +241,7 @@ def _validate_agent_frontmatter(
         if server_type in ("http", "sse") and "url" not in server:
             errors.append(f"{file_path}: mcp-servers.{key} (type={server_type}) missing 'url'")
         if server_type in ("stdio", "local") and "command" not in server:
-            errors.append(
-                f"{file_path}: mcp-servers.{key} (type={server_type}) missing 'command'"
-            )
+            errors.append(f"{file_path}: mcp-servers.{key} (type={server_type}) missing 'command'")
 
     return errors
 
@@ -369,9 +353,7 @@ async def _process_agent_file(
     get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}"
     resp = await client.get(get_url, headers=headers)
     if resp.status_code != 200:
-        result.errors.append(
-            f"{file_path}: GitHub API GET failed ({resp.status_code})"
-        )
+        result.errors.append(f"{file_path}: GitHub API GET failed ({resp.status_code})")
         result.files_skipped += 1
         return
 
@@ -388,9 +370,7 @@ async def _process_agent_file(
         return
 
     # Merge MCPs and enforce tools: ["*"]
-    updated_fm, merge_warnings = _merge_mcps_into_frontmatter(
-        frontmatter, active_mcps, file_path
-    )
+    updated_fm, merge_warnings = _merge_mcps_into_frontmatter(frontmatter, active_mcps, file_path)
     result.warnings.extend(merge_warnings)
 
     # Validate
@@ -418,9 +398,7 @@ async def _process_agent_file(
 
     put_resp = await client.put(get_url, headers=headers, json=put_body)
     if put_resp.status_code not in (200, 201):
-        result.errors.append(
-            f"{file_path}: GitHub API PUT failed ({put_resp.status_code})"
-        )
+        result.errors.append(f"{file_path}: GitHub API PUT failed ({put_resp.status_code})")
         result.files_skipped += 1
         return
 
