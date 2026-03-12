@@ -240,8 +240,38 @@ def _row_to_sub_issue_entry(row) -> dict:
 
 
 def get_pipeline_state(issue_number: int) -> Any:
-    """Read pipeline state — L1 cache only (populated at startup)."""
+    """Read pipeline state from L1 cache.
+
+    Returns ``None`` on L1 miss.  Callers in async contexts should prefer
+    ``get_pipeline_state_async()`` which falls back to SQLite on cache miss.
+    """
     return _pipeline_states.get(issue_number)
+
+
+async def get_pipeline_state_async(issue_number: int) -> Any:
+    """Read pipeline state with async SQLite fallback on L1 miss."""
+    state = _pipeline_states.get(issue_number)
+    if state is not None:
+        return state
+    # L1 miss (eviction or cold start) — fall back to SQLite
+    if _db is not None:
+        try:
+            cursor = await _db.execute(
+                "SELECT * FROM pipeline_states WHERE issue_number = ?",
+                (issue_number,),
+            )
+            row = await cursor.fetchone()
+            if row is not None:
+                state = _row_to_pipeline_state(row)
+                _pipeline_states[issue_number] = state  # repopulate L1
+                return state
+        except aiosqlite.Error:
+            logger.error(
+                "Failed to read pipeline state from SQLite for issue %d",
+                issue_number,
+                exc_info=True,
+            )
+    return None
 
 
 def get_all_pipeline_states() -> dict[int, Any]:
@@ -250,24 +280,38 @@ def get_all_pipeline_states() -> dict[int, Any]:
 
 
 async def set_pipeline_state(issue_number: int, state: Any) -> None:
-    """Write-through: update L1 cache AND SQLite atomically."""
+    """Write-through: persist to SQLite first, then update L1 cache.
+
+    SQLite is written first so that L1 only reflects successfully persisted
+    state.  Uses ``ON CONFLICT … DO UPDATE`` to preserve the original
+    ``created_at`` timestamp on updates.
+    """
     async with _store_lock:
-        _pipeline_states[issue_number] = state
         if _db is not None:
             try:
                 row = _pipeline_state_to_row(issue_number, state)
                 await _db.execute(
-                    """INSERT OR REPLACE INTO pipeline_states
+                    """INSERT INTO pipeline_states
                        (issue_number, project_id, status, agent_name, agent_instance_id,
                         pr_number, pr_url, sub_issues, metadata, created_at, updated_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(issue_number) DO UPDATE SET
+                         project_id = excluded.project_id,
+                         status = excluded.status,
+                         agent_name = excluded.agent_name,
+                         agent_instance_id = excluded.agent_instance_id,
+                         pr_number = excluded.pr_number,
+                         pr_url = excluded.pr_url,
+                         sub_issues = excluded.sub_issues,
+                         metadata = excluded.metadata,
+                         updated_at = excluded.updated_at""",
                     row,
                 )
                 await _db.commit()
             except aiosqlite.Error:
-                logger.error(
-                    "Failed to persist pipeline state for issue %d", issue_number, exc_info=True
-                )
+                logger.error("Failed to persist pipeline state for issue %d", issue_number, exc_info=True)
+                return  # Don't update L1 if SQLite write failed
+        _pipeline_states[issue_number] = state
 
 
 async def delete_pipeline_state(issue_number: int) -> None:
@@ -290,8 +334,33 @@ async def delete_pipeline_state(issue_number: int) -> None:
 
 
 def get_main_branch(issue_number: int) -> Any:
-    """Read main branch info from L1 cache."""
+    """Read main branch info — L1 cache with SQLite fallback via async variant."""
     return _issue_main_branches.get(issue_number)
+
+
+async def get_main_branch_async(issue_number: int) -> Any:
+    """Read main branch info with async SQLite fallback on L1 miss."""
+    info = _issue_main_branches.get(issue_number)
+    if info is not None:
+        return info
+    if _db is not None:
+        try:
+            cursor = await _db.execute(
+                "SELECT * FROM issue_main_branches WHERE issue_number = ?",
+                (issue_number,),
+            )
+            row = await cursor.fetchone()
+            if row is not None:
+                info = _row_to_main_branch(row)
+                _issue_main_branches[issue_number] = info
+                return info
+        except aiosqlite.Error:
+            logger.error(
+                "Failed to read main branch from SQLite for issue %d",
+                issue_number,
+                exc_info=True,
+            )
+    return None
 
 
 async def set_main_branch(issue_number: int, info: Any) -> None:
