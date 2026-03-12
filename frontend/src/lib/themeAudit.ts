@@ -2,9 +2,9 @@
  * Theme audit helpers — WCAG 2.1 AA contrast-ratio utilities
  * and HSL/RGB conversion functions for the Celestial design system.
  *
- * Used by:
- *   - frontend/scripts/audit-theme-colors.mjs
- *   - frontend/scripts/check-theme-contrast.mjs
+ * Note: The audit scripts under frontend/scripts/ embed equivalent logic
+ * directly because they run as plain ESM and cannot import this TypeScript
+ * helper. Keep those inline copies in sync manually if this module changes.
  */
 
 /* ── Colour-space conversions ── */
