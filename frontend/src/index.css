@@ -283,6 +283,12 @@
     --sync-polling: 38 92% 56%;
     --sync-connecting: 199 89% 56%;
     --sync-disconnected: 0 84% 65%;
+
+    /* Dark mode: deeper, cooler shadows matching night palette */
+    --shadow-sm: 0 10px 26px rgba(0, 0, 0, 0.18);
+    --shadow-default: 0 18px 44px rgba(0, 0, 0, 0.24);
+    --shadow-md: 0 26px 58px rgba(0, 0, 0, 0.32);
+    --shadow-lg: 0 34px 84px rgba(0, 0, 0, 0.48);
   }
 }
 
