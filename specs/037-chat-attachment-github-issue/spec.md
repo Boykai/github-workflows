@@ -92,7 +92,7 @@ When files are uploaded or attached, the chat UI displays rich metadata for each
 - **FR-005**: System MUST display a descriptive error message when an attachment fails, indicating the reason for failure (e.g., file too large, network error, unsupported file type).
 - **FR-006**: System MUST provide a per-file retry mechanism for failed attachments, allowing re-upload without re-selecting the file.
 - **FR-007**: System MUST display metadata for each attachment in the chat UI: filename, file type icon, and file size.
-- **FR-008**: System MUST post each attachment to the GitHub Parent Issue as a comment that includes the file and a reference to the originating chat session.
+- **FR-008**: System MUST embed each attachment in the GitHub Parent Issue body as a formatted markdown section that includes the file link and a reference to the originating chat session.
 - **FR-009**: System MUST validate file size against the maximum allowed limit before initiating upload, rejecting oversized files immediately with a clear error message.
 - **FR-010**: System MUST validate file type against the set of supported attachment formats before initiating upload, rejecting unsupported types with a clear error message.
 - **FR-011**: System MUST reject zero-byte (empty) files with a validation error message.
@@ -113,7 +113,7 @@ When files are uploaded or attached, the chat UI displays rich metadata for each
 ### Measurable Outcomes
 
 - **SC-001**: Users can upload a single file from chat and see it attached to the linked GitHub issue within 10 seconds for files under 5 MB.
-- **SC-002**: Users can upload up to 10 files simultaneously in a single batch, with each file independently tracked and attached.
+- **SC-002**: Users can upload up to 5 files simultaneously in a single batch, with each file independently tracked and attached.
 - **SC-003**: 100% of successfully uploaded files appear as comments on the linked GitHub issue with the correct filename and chat session reference.
 - **SC-004**: Failed attachments display a descriptive error message and a retry option within 3 seconds of failure detection.
 - **SC-005**: 95% of users successfully attach a file on their first attempt without encountering errors (excluding intentionally invalid files).

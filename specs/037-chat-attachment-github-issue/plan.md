@@ -73,14 +73,13 @@ backend/
 │   ├── api/
 │   │   ├── chat.py                 # MODIFIED: embed file_urls in issue body during confirm_proposal()
 │   │   └── workflow.py             # MODIFIED: embed file_urls in issue body during confirm_recommendation()
-│   ├── utils/
-│   │   └── attachment_formatter.py # NEW: format_attachments_markdown() utility
+│   ├── attachment_formatter.py     # NEW: format_attachments_markdown() utility
 │   └── migrations/
 │       └── 022_chat_file_urls.sql  # NEW: add file_urls column to chat_proposals and chat_recommendations
 └── tests/
     └── unit/
-        ├── test_attachment_formatter.py  # NEW: unit tests for markdown formatting
-        └── test_recommendation.py        # MODIFIED: test file_urls serialization
+        ├── test_attachment_formatter.py        # NEW: unit tests for markdown formatting
+        └── test_recommendation_models.py       # MODIFIED: test file_urls serialization
 
 frontend/
 ├── src/
