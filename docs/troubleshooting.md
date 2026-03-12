@@ -116,6 +116,27 @@
 - Ensure webhook is configured for "Pull requests" events
 - Check delivery logs: Repository → Settings → Webhooks → Recent Deliveries
 
+## Voice Input
+
+**Microphone button shows "Voice input is not supported in this browser":**
+
+- The Web Speech API (`SpeechRecognition` / `webkitSpeechRecognition`) must be available. Supported browsers: Firefox 85+, Chrome, Edge, Safari 14.1+
+- Older browsers or restrictive environments (e.g., embedded webviews) may not support the API
+- Verify your browser version is up to date
+
+**Microphone button shows permission error:**
+
+- The app requests microphone access via `getUserMedia` before starting speech recognition
+- If you denied permission, open your browser's site settings and allow microphone access for the app's URL
+- In Chrome: click the lock icon in the address bar → Site settings → Microphone → Allow
+- In Firefox: click the lock icon → Connection secure → More information → Permissions → Use the Microphone → Allow
+
+**Voice input stops unexpectedly:**
+
+- Speech recognition may time out after a period of silence — click the mic button again to restart
+- Network-dependent speech services (used by some browsers) require an active internet connection
+- If recording was interrupted by navigation or a page refresh, simply click the mic button to start a new session
+
 ## General
 
 **Projects not showing:**
