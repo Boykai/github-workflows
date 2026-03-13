@@ -232,7 +232,11 @@ export function AgentsPanel({
           >
             {isRefreshingModels ? 'Refreshing models…' : 'Refresh models'}
           </Button>
-          <Button onClick={handleOpenAddModal} size="lg">
+          <Button
+            onClick={handleOpenAddModal}
+            size="lg"
+            className="!bg-primary !text-primary-foreground !border-primary/60 hover:!bg-primary/90"
+          >
             + Add Agent
           </Button>
         </div>

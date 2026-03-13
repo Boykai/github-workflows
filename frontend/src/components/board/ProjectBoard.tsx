@@ -27,7 +27,7 @@ export function ProjectBoard({
     <div className="celestial-fade-in w-full overflow-x-auto overflow-y-visible pb-6" role="region" aria-label="Project board">
       <div
         className="grid min-h-[56rem] min-w-full items-start gap-5 pb-2"
-        style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(min(14rem, 85vw), 1fr))` }}
+        style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(min(16rem, 85vw), 1fr))` }}
       >
         {boardData.columns.map((column) => (
           <BoardColumn

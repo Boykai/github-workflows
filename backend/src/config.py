@@ -4,7 +4,7 @@ import logging
 from functools import lru_cache
 from urllib.parse import urlparse
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -20,7 +20,7 @@ class Settings(BaseSettings):
 
     # GitHub OAuth
     github_client_id: str
-    github_client_secret: str
+    github_client_secret: str = Field(repr=False)
     github_redirect_uri: str = "http://localhost:8000/api/v1/auth/github/callback"
 
     # AI Provider selection: "copilot" (default) or "azure_openai"
@@ -31,11 +31,11 @@ class Settings(BaseSettings):
 
     # Azure OpenAI settings (used when ai_provider="azure_openai", optional)
     azure_openai_endpoint: str | None = None
-    azure_openai_key: str | None = None
+    azure_openai_key: str | None = Field(default=None, repr=False)
     azure_openai_deployment: str = "gpt-4"
 
     # Session
-    session_secret_key: str
+    session_secret_key: str = Field(repr=False)
     session_expire_hours: int = 8
 
     # Server
@@ -63,17 +63,17 @@ class Settings(BaseSettings):
     default_assignee: str = ""
 
     # GitHub Webhook secret for verifying webhook payloads
-    github_webhook_secret: str | None = None
+    github_webhook_secret: str | None = Field(default=None, repr=False)
 
     # GitHub Personal Access Token for webhook operations (service account)
     # This token is used when webhooks trigger actions that need GitHub API access
-    github_webhook_token: str | None = None
+    github_webhook_token: str | None = Field(default=None, repr=False)
 
     # Copilot PR polling interval in seconds (0 to disable polling)
     copilot_polling_interval: int = 60
 
     # Encryption — Fernet key for token-at-rest encryption
-    encryption_key: str | None = None
+    encryption_key: str | None = Field(default=None, repr=False)
 
     # Database
     database_path: str = "/var/lib/ghchat/data/settings.db"
@@ -81,7 +81,7 @@ class Settings(BaseSettings):
     # Signal integration
     signal_api_url: str = "http://signal-api:8080"
     signal_phone_number: str | None = None
-    signal_webhook_secret: str | None = None
+    signal_webhook_secret: str | None = Field(default=None, repr=False)
 
     # Cookie
     cookie_secure: bool = False  # Set True in production (HTTPS)

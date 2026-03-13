@@ -46,8 +46,8 @@ export function Sidebar({
       <div className="pointer-events-none absolute right-4 top-24 h-24 w-24 rounded-full border border-border/20 celestial-orbit-spin" />
 
       {/* Brand */}
-      <div className="relative flex items-center justify-between border-b border-border/70 px-4 py-4">
-        <div className="flex items-center gap-3">
+      <div className={cn('relative flex border-b border-border/70 px-4 py-4', isCollapsed ? 'flex-col items-center gap-3' : 'items-center justify-between')}>
+        <div className={cn('flex items-center gap-3', isCollapsed && 'justify-center')}>
           <button
             type="button"
             onClick={onToggleTheme}

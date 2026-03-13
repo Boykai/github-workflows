@@ -11,8 +11,17 @@ target/
 *.egg-info/
 
 # Tests (Optional - if you only want source code)
-tests/
-spec/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+coverage/
+test-results/
+e2e-report/
+frontend/test-results/
+frontend/e2e-report/
+<MagicMock *>
+/spec
 **/*_test.py
 **/*.test.js
 
@@ -24,3 +33,12 @@ secrets.json
 # Documentation
 docs/
 *.md
+
+# SQLite database files
+*.db
+*.db-wal
+*.db-shm
+
+# Misc
+*.tmp
+*.bak

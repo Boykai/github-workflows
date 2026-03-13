@@ -143,6 +143,38 @@ npx playwright test             # E2E
 - Agent `.agent.md` files live in `.github/agents/`; corresponding `.prompt.md` shortcuts live in `.github/prompts/`.
 - `.github/agents/mcp.json` declares MCP servers for remote GitHub Custom Agents (currently Context7). Do not confuse with `.vscode/mcp.json` (local IDE MCP servers).
 
+## CHANGELOG
+
+**All agents must update `CHANGELOG.md`** (repo root) when implementing changes that affect user-facing behavior, APIs, configuration, or infrastructure.
+
+### When to update
+- Adding new features, pages, components, or API endpoints
+- Fixing bugs or correcting behavior
+- Removing or deprecating existing functionality
+- Changing configuration, environment variables, or infrastructure
+- Security fixes or dependency updates with user impact
+
+### When NOT to update
+- Internal refactors with no user-visible effect
+- Test-only changes
+- Documentation-only changes (unless they reflect a product change)
+- Spec/plan/task file creation (spec work is not a shipped change)
+
+### Format
+Follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions. Add entries under the `[Unreleased]` section using these categories:
+- **Added** — new features or capabilities
+- **Changed** — modifications to existing behavior
+- **Deprecated** — features marked for future removal
+- **Removed** — features that have been deleted
+- **Fixed** — bug fixes
+- **Security** — vulnerability or security-related changes
+
+Each entry should be a single concise line describing the change from a user's perspective. Example:
+```markdown
+### Added
+- Pipeline Analytics dashboard on the Agents Pipelines page showing agent frequency and model distribution
+```
+
 ## Validation Expectations
 
 - **Backend changes:** validate with `ruff check`, `ruff format --check`, `pyright`, and relevant `pytest` coverage.

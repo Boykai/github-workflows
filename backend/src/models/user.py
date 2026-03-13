@@ -13,8 +13,10 @@ class UserSession(BaseModel):
     github_user_id: str = Field(..., description="GitHub user ID from OAuth")
     github_username: str = Field(..., description="GitHub username for display")
     github_avatar_url: str | None = Field(default=None, description="User's avatar URL")
-    access_token: str = Field(..., description="Encrypted GitHub OAuth access token")
-    refresh_token: str | None = Field(default=None, description="Encrypted OAuth refresh token")
+    access_token: str = Field(..., description="Encrypted GitHub OAuth access token", repr=False)
+    refresh_token: str | None = Field(
+        default=None, description="Encrypted OAuth refresh token", repr=False
+    )
     token_expires_at: datetime | None = Field(
         default=None, description="Token expiration timestamp"
     )

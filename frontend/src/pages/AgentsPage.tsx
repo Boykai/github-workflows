@@ -3,7 +3,6 @@
  * Composes AgentsPanel (catalog), useAgentConfig (assignments), and board columns.
  */
 
-import { useMemo } from 'react';
 import { TriangleAlert } from 'lucide-react';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,22 +21,12 @@ import { formatAgentName } from '@/utils/formatAgentName';
 import { countPendingAssignedSubIssues } from '@/utils/agentCardMeta';
 import type { AgentAssignment } from '@/types';
 
-function buildAgentTooltip(
-  agent: AgentAssignment,
-  pipelineInfo?: { model: string; toolCount: number }
-): string {
-  const parts: string[] = [];
-  if (pipelineInfo?.model) parts.push(`Model: ${pipelineInfo.model}`);
-  if (pipelineInfo?.toolCount) parts.push(`Tools: ${pipelineInfo.toolCount}`);
-  const config = agent.config;
-  if (config) {
-    const configParts = Object.entries(config)
-      .filter(([, v]) => v != null && v !== '')
-      .map(([k, v]) => `${k}: ${String(v)}`);
-    parts.push(...configParts);
-  }
-  if (parts.length === 0) parts.push(`Slug: ${agent.slug}`);
-  return parts.join(' · ');
+function buildAgentTooltip(agent: AgentAssignment): string {
+  const modelName =
+    agent.config && typeof agent.config === 'object' && typeof agent.config.model_name === 'string'
+      ? agent.config.model_name
+      : '';
+  return modelName || agent.slug;
 }
 
 export function AgentsPage() {
@@ -59,33 +48,12 @@ export function AgentsPage() {
     staleTime: 30_000,
   });
 
-  const { data: pipelineAssignment, isError: pipelineAssignmentError } = useQuery({
+  const { isError: pipelineAssignmentError } = useQuery({
     queryKey: ['pipelines', 'assignment', projectId ?? ''],
     queryFn: () => pipelinesApi.getAssignment(projectId!),
     enabled: !!projectId,
     staleTime: 30_000,
   });
-
-  // Map: lowercase column name → agent slug → { model, toolCount } from the assigned pipeline
-  const stageAgentInfoMap = useMemo(() => {
-    const assignedPipeline = (pipelineList?.pipelines ?? []).find(
-      (p) => p.id === (pipelineAssignment?.pipeline_id ?? '')
-    );
-    const map: Record<string, Record<string, { model: string; toolCount: number }>> = {};
-    for (const stage of assignedPipeline?.stages ?? []) {
-      const key = stage.name.toLowerCase();
-      map[key] = {};
-      const stageAgents = (stage.groups ?? []).flatMap((g) => g.agents);
-      const agents = stageAgents.length > 0 ? stageAgents : stage.agents;
-      for (const node of agents) {
-        map[key][node.agent_slug] = {
-          model: node.model_name,
-          toolCount: node.tool_count,
-        };
-      }
-    }
-    return map;
-  }, [pipelineList, pipelineAssignment]);
 
   const columns = boardData?.columns ?? [];
   const repo = boardData?.columns.flatMap((c) => c.items).find((i) => i.repository)?.repository;
@@ -219,13 +187,11 @@ export function AgentsPage() {
                         {assigned.length > 0 ? (
                           <div className="flex flex-wrap gap-1 mt-1.5">
                             {assigned.map((a) => {
-                              const pipelineInfo =
-                                stageAgentInfoMap[col.status.name.toLowerCase()]?.[a.slug];
                               return (
                                 <Tooltip
                                   key={a.id}
                                   title={formatAgentName(a.slug, a.display_name)}
-                                  content={buildAgentTooltip(a, pipelineInfo)}
+                                  content={buildAgentTooltip(a)}
                                   side="top"
                                 >
                                   <span className="solar-chip cursor-default rounded-[0.65rem] px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em]">

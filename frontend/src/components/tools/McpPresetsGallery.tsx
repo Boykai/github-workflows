@@ -47,9 +47,6 @@ export function McpPresetsGallery({
                   </p>
                   <h5 className="mt-2 text-base font-medium text-foreground">{preset.name}</h5>
                 </div>
-                <span className="rounded-full border border-border/60 px-2 py-1 text-xs text-muted-foreground">
-                  {preset.icon}
-                </span>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">{preset.description}</p>
               <button
