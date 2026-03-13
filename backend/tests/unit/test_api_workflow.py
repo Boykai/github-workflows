@@ -103,7 +103,7 @@ class TestRejectRecommendation:
     async def test_reject_pending(self, client, mock_session):
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
-        with patch(f"{WF}._recommendations", {rec_id: rec}):
+        with patch("src.api.chat._recommendations", {rec_id: rec}):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/reject")
         assert resp.status_code == 200
         assert resp.json()["recommendation_id"] == rec_id
@@ -119,7 +119,7 @@ class TestRejectRecommendation:
             status=RecommendationStatus.REJECTED,
         )
         rec_id = str(rec.recommendation_id)
-        with patch(f"{WF}._recommendations", {rec_id: rec}):
+        with patch("src.api.chat._recommendations", {rec_id: rec}):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/reject")
         assert resp.status_code == 422  # ValidationError
 
@@ -358,7 +358,7 @@ class TestConfirmRecommendation:
             status=RecommendationStatus.CONFIRMED,
         )
         rec_id = str(rec.recommendation_id)
-        with patch(f"{WF}._recommendations", {rec_id: rec}):
+        with patch("src.api.chat._recommendations", {rec_id: rec}):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
         assert resp.status_code == 422
 
@@ -366,7 +366,7 @@ class TestConfirmRecommendation:
         mock_session.selected_project_id = None
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
-        with patch(f"{WF}._recommendations", {rec_id: rec}):
+        with patch("src.api.chat._recommendations", {rec_id: rec}):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
         assert resp.status_code == 422
 
@@ -395,7 +395,7 @@ class TestConfirmRecommendation:
         mock_orchestrator.execute_full_workflow.return_value = wf_result
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
@@ -432,7 +432,7 @@ class TestConfirmRecommendation:
         mock_orchestrator.execute_full_workflow.side_effect = Exception("boom")
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(
                 f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
@@ -520,7 +520,7 @@ class TestConfirmRecommendation:
         mock_pipeline_service.get_pipeline = AsyncMock(return_value=selected_pipeline)
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(
                 f"{WF}.get_workflow_config",
@@ -568,7 +568,7 @@ class TestConfirmRecommendation:
         fake_recent = {input_hash: (utcnow(), "other-rec-id")}
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", fake_recent),
         ):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
@@ -854,7 +854,7 @@ class TestConfirmRecommendationPreservesFullDescription:
         mock_orchestrator.execute_full_workflow.return_value = wf_result
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
@@ -909,7 +909,7 @@ class TestConfirmRecommendationPreservesFullDescription:
         mock_orchestrator.execute_full_workflow.return_value = wf_result
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
@@ -969,7 +969,7 @@ class TestConfirmRecommendationPreservesFullDescription:
         mock_orchestrator.execute_full_workflow.return_value = wf_result
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
@@ -1032,7 +1032,7 @@ class TestConfirmRecommendationPreservesFullDescription:
         )
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),

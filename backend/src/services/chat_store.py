@@ -88,13 +88,15 @@ async def save_proposal(
     proposed_title: str,
     proposed_description: str,
     file_urls: list[str] | None = None,
+    selected_pipeline_id: str | None = None,
 ) -> None:
     """Persist a chat proposal to SQLite."""
     file_urls_json = json.dumps(file_urls) if file_urls else None
     await db.execute(
         """INSERT OR REPLACE INTO chat_proposals
-           (proposal_id, session_id, original_input, proposed_title, proposed_description, file_urls)
-           VALUES (?, ?, ?, ?, ?, ?)""",
+           (proposal_id, session_id, original_input, proposed_title,
+            proposed_description, file_urls, selected_pipeline_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?)""",
         (
             proposal_id,
             session_id,
@@ -102,6 +104,7 @@ async def save_proposal(
             proposed_title,
             proposed_description,
             file_urls_json,
+            selected_pipeline_id,
         ),
     )
     await db.commit()
@@ -171,6 +174,43 @@ async def update_proposal_status(
     await db.commit()
 
 
+async def get_proposal_by_id(
+    db: aiosqlite.Connection,
+    proposal_id: str,
+) -> dict | None:
+    """Retrieve a single proposal by its ID."""
+    cursor = await db.execute(
+        """SELECT proposal_id, session_id, original_input, proposed_title,
+                  proposed_description, status, edited_title, edited_description,
+                  created_at, expires_at, file_urls, selected_pipeline_id
+           FROM chat_proposals WHERE proposal_id = ?""",
+        (proposal_id,),
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    if isinstance(row, tuple):
+        raw_file_urls = row[10]
+        return {
+            "proposal_id": row[0],
+            "session_id": row[1],
+            "original_input": row[2],
+            "proposed_title": row[3],
+            "proposed_description": row[4],
+            "status": row[5],
+            "edited_title": row[6],
+            "edited_description": row[7],
+            "created_at": row[8],
+            "expires_at": row[9],
+            "file_urls": json.loads(raw_file_urls) if raw_file_urls else [],
+            "selected_pipeline_id": row[11],
+        }
+    d = dict(row)
+    raw = d.get("file_urls")
+    d["file_urls"] = json.loads(raw) if raw else []
+    return d
+
+
 # ── Recommendations ──────────────────────────────────────────────
 
 
@@ -237,3 +277,32 @@ async def update_recommendation_status(
         (status, recommendation_id),
     )
     await db.commit()
+
+
+async def get_recommendation_by_id(
+    db: aiosqlite.Connection,
+    recommendation_id: str,
+) -> dict | None:
+    """Retrieve a single recommendation by its ID."""
+    cursor = await db.execute(
+        """SELECT recommendation_id, session_id, data, status, created_at, file_urls
+           FROM chat_recommendations WHERE recommendation_id = ?""",
+        (recommendation_id,),
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    if isinstance(row, tuple):
+        raw_file_urls = row[5]
+        return {
+            "recommendation_id": row[0],
+            "session_id": row[1],
+            "data": row[2],
+            "status": row[3],
+            "created_at": row[4],
+            "file_urls": json.loads(raw_file_urls) if raw_file_urls else [],
+        }
+    d = dict(row)
+    raw = d.get("file_urls")
+    d["file_urls"] = json.loads(raw) if raw else []
+    return d

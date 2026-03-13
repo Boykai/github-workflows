@@ -408,7 +408,7 @@ async def store_inbound_message(
         sender_type=SenderType.USER,
         content=message_text,
     )
-    add_message(signal_session_id, user_message)
+    await add_message(signal_session_id, user_message)
 
     chat_message_id = str(user_message.message_id)
 

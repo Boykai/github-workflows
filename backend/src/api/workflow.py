@@ -7,7 +7,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
-from src.api.chat import _recommendations
+from src.api.chat import get_recommendation
 from src.dependencies import require_selected_project, verify_project_access
 from src.exceptions import AppException, NotFoundError, ValidationError
 from src.logging_utils import get_logger, handle_service_error
@@ -175,7 +175,7 @@ async def confirm_recommendation(
     4. Auto-transition to "Ready"
     """
     # Get recommendation
-    recommendation = _recommendations.get(recommendation_id)
+    recommendation = await get_recommendation(recommendation_id)
     if not recommendation:
         raise NotFoundError(f"Recommendation not found: {recommendation_id}")
 
@@ -343,7 +343,7 @@ async def reject_recommendation(
     """
     Reject an AI-generated issue recommendation (T026).
     """
-    recommendation = _recommendations.get(recommendation_id)
+    recommendation = await get_recommendation(recommendation_id)
     if not recommendation:
         raise NotFoundError(f"Recommendation not found: {recommendation_id}")
 
