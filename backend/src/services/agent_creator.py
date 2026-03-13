@@ -35,9 +35,9 @@ logger = get_logger(__name__)
 async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
     """Check whether *github_user_id* matches the admin in global_settings.
 
-    If no admin has been set yet (``admin_github_user_id`` is NULL), the
-    first caller is auto-promoted — mirroring the behaviour of the
-    ``require_admin`` FastAPI dependency in ``dependencies.py``.
+    If no admin has been set yet (``admin_github_user_id`` is NULL) and the
+    application is running in debug mode, the first caller is auto-promoted.
+    In production mode, a missing admin always denies access.
     """
     try:
         cursor = await db.execute("SELECT admin_github_user_id FROM global_settings WHERE id = 1")
@@ -47,7 +47,17 @@ async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
         admin_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
         if admin_id is None:
-            # Auto-promote the first authenticated user (atomic CAS).
+            # Check if auto-promotion is allowed (debug mode only).
+            from src.config import get_settings
+
+            settings = get_settings()
+            if not settings.debug:
+                logger.error(
+                    "ADMIN_GITHUB_USER_ID not set in production — denying admin access for user %s",
+                    github_user_id,
+                )
+                return False
+            # Debug mode only: auto-promote the first authenticated user (atomic CAS).
             cursor = await db.execute(
                 "UPDATE global_settings SET admin_github_user_id = ? "
                 "WHERE id = 1 AND admin_github_user_id IS NULL",
@@ -55,7 +65,9 @@ async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
             )
             await db.commit()
             if cursor.rowcount > 0:
-                logger.info("Auto-promoted user %s as admin via #agent command", github_user_id)
+                logger.info(
+                    "Auto-promoted user %s as admin via #agent command (debug mode)", github_user_id
+                )
                 return True
             # Another user won the race — re-read.
             cursor = await db.execute(

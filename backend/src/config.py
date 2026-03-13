@@ -94,7 +94,7 @@ class Settings(BaseSettings):
     enable_docs: bool = False
 
     # Explicit admin designation via environment variable (numeric GitHub user ID).
-    # When set, only this user can be promoted to admin.  When unset, the first
+    # Required in production mode.  In debug mode, when unset, the first
     # authenticated user is auto-promoted (with a warning).
     admin_github_user_id: int | None = None
 
@@ -131,6 +131,11 @@ class Settings(BaseSettings):
                     "Cookies must use the Secure flag in production mode. "
                     "Set COOKIE_SECURE=true or use an https:// FRONTEND_URL."
                 )
+            if not self.admin_github_user_id:
+                errors.append(
+                    "ADMIN_GITHUB_USER_ID is required in production mode. "
+                    "Set it to the numeric GitHub user ID of the admin account."
+                )
             if errors:
                 raise ValueError("Production configuration errors:\n  - " + "\n  - ".join(errors))
         else:
@@ -142,6 +147,11 @@ class Settings(BaseSettings):
                 )
             if len(self.session_secret_key) < 64:
                 _logger.warning("SESSION_SECRET_KEY is shorter than 64 characters (debug mode)")
+            if not self.admin_github_user_id:
+                _logger.warning(
+                    "ADMIN_GITHUB_USER_ID not set — first user to hit an admin endpoint "
+                    "will be auto-promoted (debug mode only)"
+                )
 
         return self
 

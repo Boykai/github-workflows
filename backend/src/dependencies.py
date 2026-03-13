@@ -118,10 +118,18 @@ async def require_admin(
                 session.github_user_id,
             )
             return session
-        # Fallback: auto-promote first user (with warning for production)
+        # No ADMIN_GITHUB_USER_ID configured
+        if not settings.debug:
+            # Production: refuse to auto-promote — config validator should
+            # have caught this at startup, but defend in depth.
+            raise AppException(
+                message="ADMIN_GITHUB_USER_ID must be set in production mode.",
+                status_code=500,
+            )
+        # Debug mode only: auto-promote first user
         logger.warning(
             "ADMIN_GITHUB_USER_ID not set — auto-promoting first user %s (%s). "
-            "Set ADMIN_GITHUB_USER_ID in environment for production.",
+            "This is only allowed in debug mode.",
             session.github_username,
             session.github_user_id,
         )
