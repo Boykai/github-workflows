@@ -60,31 +60,31 @@ You are a code reviewer without frontmatter.
 """
 
 
-# ── T009: _merge_mcps_into_frontmatter sets tools: ["*"] when missing ───
+# ── T009: _merge_mcps_into_frontmatter removes legacy tools ─────────
 
 
-class TestMergeToolsEnforcement:
-    def test_sets_tools_star_when_missing(self):
-        """T009: tools field is added as ['*'] when absent."""
-        fm = {"name": "Test", "description": "desc"}
+class TestMergeToolsRemoval:
+    def test_removes_legacy_tools_field(self):
+        """T009: legacy tools field is removed when present."""
+        fm = {"name": "Test", "description": "desc", "tools": ["*"]}
         updated, warnings = _merge_mcps_into_frontmatter(fm, {}, "test.md")
-        assert updated["tools"] == ["*"]
-        assert len(warnings) == 0  # no override warning when field was absent
+        assert "tools" not in updated
+        assert len(warnings) == 1
+        assert "removed legacy" in warnings[0]
 
-    def test_replaces_restrictive_tools_with_star(self):
-        """T010: restrictive tools replaced, warning returned."""
+    def test_removes_restrictive_tools(self):
+        """T010: restrictive tools list is removed with warning."""
         fm = {"name": "Test", "tools": ["search", "edit"]}
         updated, warnings = _merge_mcps_into_frontmatter(fm, {}, "agent.md")
-        assert updated["tools"] == ["*"]
+        assert "tools" not in updated
         assert len(warnings) == 1
-        assert "['search', 'edit']" in warnings[0]
         assert "agent.md" in warnings[0]
 
-    def test_leaves_tools_star_unchanged(self):
-        """T011: already ['*'] → no change, no warning (idempotent)."""
-        fm = {"name": "Test", "tools": ["*"]}
+    def test_no_tools_field_no_warning(self):
+        """T011: no tools field → no change, no warning."""
+        fm = {"name": "Test"}
         updated, warnings = _merge_mcps_into_frontmatter(fm, {}, "agent.md")
-        assert updated["tools"] == ["*"]
+        assert "tools" not in updated
         assert len(warnings) == 0
 
 
@@ -99,7 +99,7 @@ class TestMergeMcpServers:
             "server2": {"type": "http", "url": "https://s2.com"},
             "server3": {"type": "stdio", "command": "npx", "args": ["s3"]},
         }
-        fm = {"name": "Test", "tools": ["*"]}
+        fm = {"name": "Test"}
         updated, _ = _merge_mcps_into_frontmatter(fm, active, "agent.md")
         assert len(updated["mcp-servers"]) == 3
         assert "server1" in updated["mcp-servers"]
@@ -111,7 +111,6 @@ class TestMergeMcpServers:
         active = {"context7": {"type": "http", "url": "https://mcp.context7.com/mcp"}}
         fm = {
             "name": "Test",
-            "tools": ["*"],
             "mcp-servers": {"context7": {"type": "http", "url": "https://mcp.context7.com/mcp"}},
         }
         updated, _ = _merge_mcps_into_frontmatter(fm, active, "agent.md")
@@ -125,7 +124,6 @@ class TestMergeMcpServers:
         }
         fm = {
             "name": "Test",
-            "tools": ["*"],
             "mcp-servers": {
                 "server1": {"type": "http", "url": "https://s1.com"},
                 "removed_server": {"type": "http", "url": "https://old.com"},
@@ -139,7 +137,7 @@ class TestMergeMcpServers:
         """T017: merge with empty active MCPs produces empty mcp-servers dict."""
         # _merge_mcps_into_frontmatter sets mcp-servers to exactly what is passed;
         # built-in MCPs are injected upstream by _build_active_mcp_dict, not here.
-        fm = {"name": "Test", "tools": ["*"]}
+        fm = {"name": "Test"}
         updated, _ = _merge_mcps_into_frontmatter(fm, {}, "agent.md")
         assert updated["mcp-servers"] == {}
 
@@ -158,7 +156,7 @@ class TestBuiltinMcps:
     def test_merge_always_includes_builtins(self):
         """T025: built-in MCPs always included even if removed from file."""
         active = dict(BUILTIN_MCPS)  # only built-ins
-        fm = {"name": "Test", "tools": ["*"], "mcp-servers": {}}
+        fm = {"name": "Test", "mcp-servers": {}}
         updated, _ = _merge_mcps_into_frontmatter(fm, active, "agent.md")
         assert "context7" in updated["mcp-servers"]
         assert "CodeGraphContext" in updated["mcp-servers"]
@@ -277,7 +275,6 @@ class TestValidation:
     def test_valid_frontmatter_passes(self):
         """T035: valid frontmatter returns no errors."""
         fm = {
-            "tools": ["*"],
             "mcp-servers": {
                 "context7": {
                     "type": "http",
@@ -291,7 +288,6 @@ class TestValidation:
     def test_missing_type_field_fails(self):
         """T036: missing 'type' field produces error."""
         fm = {
-            "tools": ["*"],
             "mcp-servers": {
                 "bad_server": {"url": "https://example.com"},
             },
@@ -391,12 +387,12 @@ class TestSyncAgentMcps:
         cursor_mock.fetchall.return_value = []
         db.execute.return_value = cursor_mock
 
-        # Build content that already has tools: ["*"] and mcp-servers matching
-        # the built-in MCPs (since _build_active_mcp_dict always includes them).
+        # Build content that already has mcp-servers matching the built-in MCPs
+        # (since _build_active_mcp_dict always includes them).
+        # No tools field — sync no longer manages it.
         fm = {
             "name": "Reviewer",
             "description": "Reviews pull requests",
-            "tools": ["*"],
             "mcp-servers": {k: dict(v) for k, v in BUILTIN_MCPS.items()},
         }
         body = "\nYou are a code reviewer.\n"
@@ -511,11 +507,10 @@ class TestSyncAgentMcps:
         content1 = SAMPLE_AGENT_CONTENT
         encoded1 = base64.b64encode(content1.encode()).decode()
 
-        # File 2: already synced (tools: ["*"] + built-in MCPs)
+        # File 2: already synced (built-in MCPs, no tools field)
         fm2 = {
             "name": "Linter",
             "description": "Lints code",
-            "tools": ["*"],
             "mcp-servers": {k: dict(v) for k, v in BUILTIN_MCPS.items()},
         }
         body2 = "\nYou are a linter.\n"
@@ -870,8 +865,8 @@ class TestProcessAgentFile:
         assert body["sha"] == "sha1"
 
     @pytest.mark.asyncio
-    async def test_records_tools_override_warning(self):
-        """Warning is recorded when restrictive tools are overridden."""
+    async def test_records_tools_removal_warning(self):
+        """Warning is recorded when legacy tools field is removed."""
         encoded = base64.b64encode(SAMPLE_AGENT_CONTENT.encode()).decode()
         mock_get_resp = MagicMock()
         mock_get_resp.status_code = 200
@@ -895,7 +890,7 @@ class TestProcessAgentFile:
             result=result,
         )
 
-        assert any("tools overridden" in w for w in result.warnings)
+        assert any("removed legacy" in w for w in result.warnings)
 
 
 # ── Additional parse/serialize tests ─────────────────────────────────────
@@ -923,14 +918,14 @@ class TestParseSerializeEdgeCases:
 
     def test_serialize_body_starting_with_newline(self):
         """Body starting with newline uses single \\n separator."""
-        fm = {"name": "Test", "tools": ["*"]}
+        fm = {"name": "Test"}
         body = "\nBody starts with newline.\n"
         result = _serialize_agent_file(fm, body)
         assert "---\n\nBody starts with newline." in result
 
     def test_serialize_body_without_leading_newline(self):
         """Body not starting with newline gets extra \\n separator."""
-        fm = {"name": "Test", "tools": ["*"]}
+        fm = {"name": "Test"}
         body = "Body without leading newline.\n"
         result = _serialize_agent_file(fm, body)
         assert "---\n\nBody without leading newline." in result
@@ -947,7 +942,6 @@ class TestParseSerializeEdgeCases:
         fm = {
             "name": "Agent",
             "description": "Test agent",
-            "tools": ["*"],
             "mcp-servers": {"s1": {"type": "http", "url": "https://s1.com"}},
         }
         result = _serialize_agent_file(fm, "\nBody\n")
@@ -960,25 +954,24 @@ class TestParseSerializeEdgeCases:
 
 
 class TestValidationEdgeCases:
-    def test_tools_not_star_reports_error(self):
-        """Frontmatter with tools != ['*'] reports validation error."""
+    def test_tools_field_ignored_by_validation(self):
+        """Frontmatter with or without tools passes — validation no longer checks tools."""
         fm = {
             "tools": ["search"],
             "mcp-servers": {"s": {"type": "http", "url": "https://s.com"}},
         }
         errors = _validate_agent_frontmatter(fm, "agent.md")
-        assert any("not ['*']" in e for e in errors)
+        assert errors == []
 
     def test_mcp_servers_not_dict_reports_error(self):
         """Non-dict mcp-servers reports error and short-circuits."""
-        fm = {"tools": ["*"], "mcp-servers": ["not", "a", "dict"]}
+        fm = {"mcp-servers": ["not", "a", "dict"]}
         errors = _validate_agent_frontmatter(fm, "agent.md")
         assert any("not a dict" in e for e in errors)
 
     def test_non_dict_server_entry_reports_error(self):
         """Non-dict server entry within mcp-servers reports error."""
         fm = {
-            "tools": ["*"],
             "mcp-servers": {"bad": "not-a-dict"},
         }
         errors = _validate_agent_frontmatter(fm, "agent.md")
@@ -987,7 +980,6 @@ class TestValidationEdgeCases:
     def test_http_missing_url_reports_error(self):
         """HTTP server without url field reports error."""
         fm = {
-            "tools": ["*"],
             "mcp-servers": {"s": {"type": "http"}},
         }
         errors = _validate_agent_frontmatter(fm, "agent.md")
@@ -996,7 +988,6 @@ class TestValidationEdgeCases:
     def test_sse_missing_url_reports_error(self):
         """SSE server without url field reports error."""
         fm = {
-            "tools": ["*"],
             "mcp-servers": {"s": {"type": "sse"}},
         }
         errors = _validate_agent_frontmatter(fm, "agent.md")
@@ -1005,7 +996,6 @@ class TestValidationEdgeCases:
     def test_local_missing_command_reports_error(self):
         """Local server without command field reports error."""
         fm = {
-            "tools": ["*"],
             "mcp-servers": {"s": {"type": "local"}},
         }
         errors = _validate_agent_frontmatter(fm, "agent.md")
@@ -1014,7 +1004,6 @@ class TestValidationEdgeCases:
     def test_stdio_missing_command_reports_error(self):
         """stdio server without command field reports error."""
         fm = {
-            "tools": ["*"],
             "mcp-servers": {"s": {"type": "stdio"}},
         }
         errors = _validate_agent_frontmatter(fm, "agent.md")
@@ -1023,7 +1012,6 @@ class TestValidationEdgeCases:
     def test_valid_local_server_passes(self):
         """Local server with command passes validation."""
         fm = {
-            "tools": ["*"],
             "mcp-servers": {"s": {"type": "local", "command": "npx"}},
         }
         errors = _validate_agent_frontmatter(fm, "agent.md")
@@ -1032,7 +1020,6 @@ class TestValidationEdgeCases:
     def test_multiple_errors_reported(self):
         """Multiple servers with issues produce multiple errors."""
         fm = {
-            "tools": ["*"],
             "mcp-servers": {
                 "s1": {"type": "http"},  # missing url
                 "s2": {"type": "local"},  # missing command
@@ -1044,7 +1031,7 @@ class TestValidationEdgeCases:
 
     def test_mcp_servers_missing_entirely(self):
         """Frontmatter without mcp-servers field reports error."""
-        fm = {"tools": ["*"]}
+        fm = {}
         errors = _validate_agent_frontmatter(fm, "agent.md")
         assert any("not a dict" in e for e in errors)
 
@@ -1132,7 +1119,6 @@ class TestMergeMcpServersEdgeCases:
         active = {"new_server": {"type": "http", "url": "https://new.com"}}
         fm = {
             "name": "Test",
-            "tools": ["*"],
             "mcp-servers": {"old_server": {"type": "http", "url": "https://old.com"}},
         }
         updated, _ = _merge_mcps_into_frontmatter(fm, active, "agent.md")
@@ -1142,29 +1128,27 @@ class TestMergeMcpServersEdgeCases:
     def test_merge_deep_copies_config(self):
         """Config dicts are copied, not shared by reference with active_mcps."""
         active = {"s": {"type": "http", "url": "https://s.com"}}
-        fm = {"name": "Test", "tools": ["*"]}
+        fm = {"name": "Test"}
         updated, _ = _merge_mcps_into_frontmatter(fm, active, "agent.md")
         # Mutating the result should not affect the input
         updated["mcp-servers"]["s"]["url"] = "https://changed.com"
         assert active["s"]["url"] == "https://s.com"
 
-    def test_merge_with_tools_set_to_none_no_warning(self):
-        """tools=None is treated as absent (no override warning)."""
+    def test_merge_removes_legacy_tools_none(self):
+        """tools=None is removed (legacy field cleanup)."""
         fm = {"name": "Test", "tools": None}
         updated, warnings = _merge_mcps_into_frontmatter(fm, {}, "agent.md")
-        assert updated["tools"] == ["*"]
-        # tools was None (not a real restrictive value), so the warning behavior
-        # depends on the code — but the key thing is tools is enforced
-        # The code does: if current_tools is not None → warns
-        # Here tools is None so no warning
-        assert len(warnings) == 0
+        assert "tools" not in updated
+        assert len(warnings) == 1
+        assert "removed legacy" in warnings[0]
 
-    def test_merge_with_empty_tools_list_warns(self):
-        """Empty tools list is overridden with warning."""
+    def test_merge_removes_legacy_tools_empty_list(self):
+        """Empty tools list is removed (legacy field cleanup)."""
         fm = {"name": "Test", "tools": []}
         updated, warnings = _merge_mcps_into_frontmatter(fm, {}, "agent.md")
-        assert updated["tools"] == ["*"]
+        assert "tools" not in updated
         assert len(warnings) == 1
+        assert "removed legacy" in warnings[0]
 
 
 # ── AgentMcpSyncResult dataclass tests ───────────────────────────────────

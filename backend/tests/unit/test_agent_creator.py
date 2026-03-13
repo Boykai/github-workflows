@@ -183,11 +183,10 @@ class TestGenerateConfigFiles:
         content = files[0]["content"]
         assert "description: Reviews PRs for security vulnerabilities" in content
 
-    def test_agent_file_has_tools_in_frontmatter(self, preview: AgentPreview):
+    def test_agent_file_omits_tools_from_frontmatter(self, preview: AgentPreview):
         files = generate_config_files(preview)
         content = files[0]["content"]
-        assert "- search_code" in content
-        assert "- create_issue" in content
+        assert "tools:" not in content
 
     def test_agent_file_has_system_prompt_body(self, preview: AgentPreview):
         files = generate_config_files(preview)

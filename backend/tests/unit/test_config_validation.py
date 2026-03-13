@@ -178,6 +178,11 @@ class TestDebugModeDegradedGracefully:
         assert s.debug is True
         assert "ADMIN_GITHUB_USER_ID not set" in caplog.text
 
+    def test_negative_admin_user_id_warns_in_debug(self, caplog):
+        s = _make_debug(admin_github_user_id=-1)
+        assert s.debug is True
+        assert "not a valid GitHub user ID" in caplog.text
+
     def test_all_valid_in_debug_no_errors(self):
         """Even with full production-grade config, debug mode shouldn't fail."""
         s = _make_debug(

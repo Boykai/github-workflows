@@ -168,7 +168,7 @@ async def require_admin(
         admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
     if str(session.github_user_id) != str(admin_user_id):
-        raise AuthorizationError("Only the session owner can modify settings")
+        raise AuthorizationError("Admin access required")
 
     return session
 

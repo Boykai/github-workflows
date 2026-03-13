@@ -147,10 +147,15 @@ class Settings(BaseSettings):
                 )
             if len(self.session_secret_key) < 64:
                 _logger.warning("SESSION_SECRET_KEY is shorter than 64 characters (debug mode)")
-            if not self.admin_github_user_id:
+            if self.admin_github_user_id is None:
                 _logger.warning(
                     "ADMIN_GITHUB_USER_ID not set — first user to hit an admin endpoint "
                     "will be auto-promoted (debug mode only)"
+                )
+            elif self.admin_github_user_id <= 0:
+                _logger.warning(
+                    "ADMIN_GITHUB_USER_ID is %d which is not a valid GitHub user ID (debug mode)",
+                    self.admin_github_user_id,
                 )
 
         return self
