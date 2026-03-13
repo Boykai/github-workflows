@@ -24,6 +24,7 @@ from src.utils import BoundedDict, utcnow
 
 from .config import _transitions, get_workflow_config
 from .models import (
+    PipelineGroupInfo,
     PipelineState,
     WorkflowContext,
     WorkflowState,
@@ -2325,6 +2326,20 @@ class WorkflowOrchestrator:
                 # doesn't see an empty list and immediately consider the
                 # pipeline "complete" (is_complete = 0 >= len([]) = True).
                 initial_agents = get_agent_slugs(config, status_name) if config else []
+
+                # Build group info from config.group_mappings if available
+                initial_groups: list[PipelineGroupInfo] = []
+                if config and getattr(config, "group_mappings", None):
+                    status_groups = config.group_mappings.get(status_name, [])
+                    for gm in sorted(status_groups, key=lambda g: g.order):
+                        initial_groups.append(
+                            PipelineGroupInfo(
+                                group_id=gm.group_id,
+                                execution_mode=gm.execution_mode,
+                                agents=[a.slug for a in gm.agents],
+                            )
+                        )
+
                 pipeline_state = PipelineState(
                     issue_number=ctx.issue_number,
                     project_id=ctx.project_id,
@@ -2332,6 +2347,7 @@ class WorkflowOrchestrator:
                     agents=initial_agents,
                     agent_sub_issues=agent_sub_issues,
                     started_at=utcnow(),
+                    groups=initial_groups,
                 )
                 set_pipeline_state(ctx.issue_number, pipeline_state)
                 logger.info(
