@@ -53,7 +53,7 @@
 ### Implementation for User Story 1
 
 - [ ] T006 [US1] Remove gitignored build artifact directories from working tree: backend/htmlcov/, frontend/coverage/, frontend/e2e-report/, frontend/test-results/ (skip any that do not exist — cleanup must be idempotent)
-- [ ] T007 [US1] Replace local formatTimeAgo function with import from @/utils/formatTime in frontend/src/components/settings/DynamicDropdown.tsx, adding `new Date(isoString)` conversion at the call site to adapt for the string-to-Date signature difference
+- [ ] T007 [US1] Replace local formatTimeAgo function with import from the existing shared `formatTimeAgo` in frontend/src/utils/formatTime.ts (confirmed in plan.md as canonical import target) in frontend/src/components/settings/DynamicDropdown.tsx, adding `new Date(isoString)` conversion at each call site to adapt for the string-to-Date signature difference
 - [ ] T008 [US1] Run frontend test suite (`npx vitest run`) to verify zero regressions after DynamicDropdown.tsx change
 
 **Checkpoint**: User Story 1 complete — build artifacts removed and duplicate function eliminated
@@ -68,8 +68,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [P] [US2] Add `DEPRECATED(v2.0): Remove after all tracked issues use 5-column format. See issue #XXXX` annotation to `_ROW_RE_OLD` regex (L61–62) and its fallback usage (L206) in backend/src/services/agent_tracking.py
-- [ ] T010 [P] [US2] Add `DEPRECATED(v2.0)` annotations with linked tracking issues to all legacy pipeline references at L2075+ in backend/src/services/copilot_polling/pipeline.py
+- [ ] T009 [P] [US2] Add `DEPRECATED(v2.0): Remove after all tracked issues use 5-column format` annotation to `_ROW_RE_OLD` regex (L61–62) and its fallback usage (L206) in backend/src/services/agent_tracking.py — create a GitHub tracking issue for the deprecation or link to an existing one, replacing the `#XXXX` placeholder in the annotation with the actual issue number
+- [ ] T010 [P] [US2] Add `DEPRECATED(v2.0)` annotations to all legacy pipeline references at L2075+ in backend/src/services/copilot_polling/pipeline.py — create or link a GitHub tracking issue for each deprecation group and include the issue number in the annotation
 - [ ] T011 [P] [US2] Add deprecation timeline annotations to `agents` field (L44) and `execution_mode` field (L46) in backend/src/models/pipeline.py with removal condition: "Remove once all pipelines use groups-based format"
 - [ ] T012 [P] [US2] Add legacy format encounter logging (`logger.info("legacy_format_encountered", extra={"format_type": ..., "context": ..., "issue_number": ...})`) at normalization points L215, L238, L300 in backend/src/services/pipelines/service.py
 - [ ] T013 [P] [US2] Add `@deprecated` JSDoc annotations to `old_status` (L97), `agents` (L1072), and `execution_mode` (L1075) fields in frontend/src/types/index.ts; audit `old_status` in StatusUpdateActionData and confirm whether any backend code sends it
