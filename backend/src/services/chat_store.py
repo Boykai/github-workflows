@@ -96,7 +96,15 @@ async def save_proposal(
     selected_pipeline_id: str | None = None,
 ) -> None:
     """Persist a chat proposal to SQLite."""
+    from src.utils import utcnow
+
     file_urls_json = json.dumps(file_urls) if file_urls else None
+    if created_at is None:
+        created_at = utcnow().isoformat()
+    if expires_at is None:
+        from datetime import timedelta
+
+        expires_at = (utcnow() + timedelta(minutes=10)).isoformat()
     await db.execute(
         """INSERT OR REPLACE INTO chat_proposals
            (proposal_id, session_id, original_input, proposed_title,
@@ -334,7 +342,7 @@ async def get_recommendation_by_id(
     return d
 
 
-def _recommendation_status_from_db(status: str) -> str:
+def recommendation_status_from_db(status: str) -> str:
     """Normalize stored recommendation status values to model enum values."""
     return "confirmed" if status == "accepted" else status
 

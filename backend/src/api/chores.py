@@ -88,7 +88,7 @@ async def evaluate_triggers(
     except AppException:
         raise
     except Exception as e:
-        handle_service_error(e, "resolve repository for chore triggers", ValidationError)
+        handle_service_error(e, "resolve repository for chore triggers")
 
     result = await service.evaluate_triggers(
         github_service=github_projects_service,

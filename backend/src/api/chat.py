@@ -194,7 +194,7 @@ async def get_proposal(proposal_id: str) -> AITaskProposal | None:
             file_urls=row.get("file_urls", []),
             selected_pipeline_id=row.get("selected_pipeline_id"),
             created_at=row["created_at"],
-            expires_at=row["expires_at"] or row["created_at"],
+            expires_at=row["expires_at"] or _default_expires_at(row["created_at"]),
         )
         _proposals[proposal_id] = proposal
         return proposal
@@ -220,12 +220,23 @@ async def get_recommendation(recommendation_id: str) -> IssueRecommendation | No
             return None
         data = json.loads(row["data"]) if isinstance(row["data"], str) else row["data"]
         rec = IssueRecommendation.model_validate(data)
-        rec.status = RecommendationStatus(chat_store._recommendation_status_from_db(row["status"]))
+        rec.status = RecommendationStatus(chat_store.recommendation_status_from_db(row["status"]))
         _recommendations[str(rec.recommendation_id)] = rec
         return rec
     except Exception:
         logger.warning("Failed to load recommendation from SQLite", exc_info=True)
         return None
+
+
+def _default_expires_at(created_at_str: str) -> str:
+    """Compute a fallback expires_at when the stored value is NULL."""
+    from datetime import datetime, timedelta
+
+    try:
+        created = datetime.fromisoformat(created_at_str)
+        return (created + timedelta(minutes=10)).isoformat()
+    except (ValueError, TypeError):
+        return created_at_str
 
 
 # ── Command dispatch helpers (extracted from send_message) ───────────────
@@ -718,7 +729,7 @@ async def send_message(
         except ValidationError:
             raise
         except Exception as exc:
-            handle_service_error(exc, "validate pipeline", ValidationError)
+            handle_service_error(exc, "validate pipeline")
 
     # Try to get AI service (optional)
     try:

@@ -218,7 +218,11 @@ class ProjectsMixin:
                         repository_name=repo_name,
                         title=content.get("title", "Untitled"),
                         description=content.get("body"),
-                        status=(status_value.get("name", DEFAULT_STATUS_BACKLOG) if status_value else DEFAULT_STATUS_BACKLOG),
+                        status=(
+                            status_value.get("name", DEFAULT_STATUS_BACKLOG)
+                            if status_value
+                            else DEFAULT_STATUS_BACKLOG
+                        ),
                         status_option_id=(status_value.get("optionId", "") if status_value else ""),
                         labels=label_list,
                     )
