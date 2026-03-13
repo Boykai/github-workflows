@@ -125,6 +125,11 @@ async def _persist_proposal(proposal: AITaskProposal) -> None:
             original_input=proposal.original_input,
             proposed_title=proposal.proposed_title,
             proposed_description=proposal.proposed_description,
+            status=proposal.status.value,
+            edited_title=proposal.edited_title,
+            edited_description=proposal.edited_description,
+            created_at=proposal.created_at.isoformat(),
+            expires_at=proposal.expires_at.isoformat(),
             file_urls=proposal.file_urls or None,
             selected_pipeline_id=proposal.selected_pipeline_id,
         )
@@ -143,6 +148,7 @@ async def _persist_recommendation(recommendation: IssueRecommendation) -> None:
             session_id=str(recommendation.session_id),
             recommendation_id=str(recommendation.recommendation_id),
             data=json.dumps(recommendation.model_dump(mode="json")),
+            status=recommendation.status.value,
             file_urls=recommendation.file_urls or None,
         )
     except Exception:
@@ -187,6 +193,8 @@ async def get_proposal(proposal_id: str) -> AITaskProposal | None:
             edited_description=row.get("edited_description"),
             file_urls=row.get("file_urls", []),
             selected_pipeline_id=row.get("selected_pipeline_id"),
+            created_at=row["created_at"],
+            expires_at=row["expires_at"] or row["created_at"],
         )
         _proposals[proposal_id] = proposal
         return proposal
@@ -212,6 +220,7 @@ async def get_recommendation(recommendation_id: str) -> IssueRecommendation | No
             return None
         data = json.loads(row["data"]) if isinstance(row["data"], str) else row["data"]
         rec = IssueRecommendation.model_validate(data)
+        rec.status = RecommendationStatus(chat_store.recommendation_status_from_db(row["status"]))
         _recommendations[str(rec.recommendation_id)] = rec
         return rec
     except Exception:
@@ -818,6 +827,13 @@ async def confirm_proposal(
 
     if proposal.is_expired:
         proposal.status = ProposalStatus.CANCELLED
+        try:
+            from src.services import chat_store
+
+            db = get_db()
+            await chat_store.update_proposal_status(db, proposal_id, ProposalStatus.CANCELLED.value)
+        except Exception:
+            logger.warning("Failed to update expired proposal status in SQLite", exc_info=True)
         raise ValidationError("Proposal has expired")
 
     if proposal.status != ProposalStatus.PENDING:
@@ -887,6 +903,19 @@ async def confirm_proposal(
         )
 
         proposal.status = ProposalStatus.CONFIRMED
+        try:
+            from src.services import chat_store
+
+            db = get_db()
+            await chat_store.update_proposal_status(
+                db,
+                proposal_id,
+                ProposalStatus.CONFIRMED.value,
+                edited_title=proposal.edited_title,
+                edited_description=proposal.edited_description,
+            )
+        except Exception:
+            logger.warning("Failed to update proposal status in SQLite", exc_info=True)
 
         # Invalidate cache
         cache.delete(get_project_items_cache_key(project_id))

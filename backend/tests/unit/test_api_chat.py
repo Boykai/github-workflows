@@ -519,11 +519,16 @@ class TestCancelProposalDirect:
         import src.api.chat as chat_mod
 
         proposal = _proposal(mock_session.session_id)
+        await chat_mod.store_proposal(proposal)
         chat_mod._proposals[str(proposal.proposal_id)] = proposal
 
         resp = await client.delete(f"/api/v1/chat/proposals/{proposal.proposal_id}")
         assert resp.status_code == 200
         assert proposal.status == ProposalStatus.CANCELLED
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)
+        reloaded = await chat_mod.get_proposal(str(proposal.proposal_id))
+        assert reloaded is not None
+        assert reloaded.status == ProposalStatus.CANCELLED
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
 
@@ -553,6 +558,35 @@ class TestConfirmProposalEdgeCases:
         assert resp.status_code == 422
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
+    async def test_get_proposal_loads_persisted_timestamps_and_edits(self, client, mock_session):
+        """SQLite reload should preserve proposal lifecycle fields."""
+        from datetime import timedelta
+
+        import src.api.chat as chat_mod
+        from src.utils import utcnow
+
+        created_at = utcnow()
+        proposal = _proposal(
+            mock_session.session_id,
+            status=ProposalStatus.EDITED,
+            edited_title="Edited title",
+            edited_description="Edited description",
+            created_at=created_at,
+            expires_at=created_at + timedelta(minutes=5),
+        )
+
+        await chat_mod.store_proposal(proposal)
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)
+
+        loaded = await chat_mod.get_proposal(str(proposal.proposal_id))
+
+        assert loaded is not None
+        assert loaded.status == ProposalStatus.EDITED
+        assert loaded.edited_title == "Edited title"
+        assert loaded.edited_description == "Edited description"
+        assert loaded.created_at == proposal.created_at
+        assert loaded.expires_at == proposal.expires_at
+
     async def test_confirm_with_edited_title(
         self, client, mock_session, mock_github_service, mock_websocket_manager
     ):
@@ -560,6 +594,7 @@ class TestConfirmProposalEdgeCases:
         import src.api.chat as chat_mod
 
         proposal = _proposal(mock_session.session_id)
+        await chat_mod.store_proposal(proposal)
         chat_mod._proposals[str(proposal.proposal_id)] = proposal
         mock_session.selected_project_id = "PVT_1"
 
@@ -589,6 +624,11 @@ class TestConfirmProposalEdgeCases:
         data = resp.json()
         assert data["status"] in ("edited", "confirmed")
         assert proposal.edited_title == "Better Title"
+        chat_mod._proposals.pop(str(proposal.proposal_id), None)
+        reloaded = await chat_mod.get_proposal(str(proposal.proposal_id))
+        assert reloaded is not None
+        assert reloaded.status == ProposalStatus.CONFIRMED
+        assert reloaded.edited_title == "Better Title"
         chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
     async def test_confirm_with_edited_description(
