@@ -135,8 +135,6 @@ async def _persist_proposal(proposal: AITaskProposal) -> None:
 async def _persist_recommendation(recommendation: IssueRecommendation) -> None:
     """Persist a recommendation to SQLite."""
     try:
-        import json as _json
-
         from src.services import chat_store
 
         db = get_db()
@@ -144,7 +142,7 @@ async def _persist_recommendation(recommendation: IssueRecommendation) -> None:
             db,
             session_id=str(recommendation.session_id),
             recommendation_id=str(recommendation.recommendation_id),
-            data=_json.dumps(recommendation.model_dump(mode="json")),
+            data=json.dumps(recommendation.model_dump(mode="json")),
             file_urls=recommendation.file_urls or None,
         )
     except Exception:
