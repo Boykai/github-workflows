@@ -26,19 +26,25 @@ mkdir -p "$OUT_DIR"
 write_if_changed() {
     local target="$1"
     local content="$2"
+    local tmpfile
 
-    if [[ -f "$target" ]] && [[ "$(cat "$target")" == "$content" ]]; then
+    tmpfile=$(mktemp)
+    printf '%s\n' "$content" > "$tmpfile"
+
+    if [[ -f "$target" ]] && cmp -s "$target" "$tmpfile"; then
         echo "  ✓ $(basename "$target") — unchanged"
+        rm -f "$tmpfile"
         return
     fi
 
     if $CHECK_MODE; then
         echo "  ✗ $(basename "$target") — out of date"
+        rm -f "$tmpfile"
         CHANGED=1
         return
     fi
 
-    printf '%s\n' "$content" > "$target"
+    mv "$tmpfile" "$target"
     echo "  ↻ $(basename "$target") — updated"
 }
 
