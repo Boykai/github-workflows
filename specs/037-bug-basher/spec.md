@@ -2,7 +2,8 @@
 
 **Feature Branch**: `037-bug-basher`  
 **Created**: 2026-03-12  
-**Status**: Draft  
+**Status**: Validated  
+**Last Validated**: 2026-03-13  
 **Input**: User description: "Bug Bash: Full Codebase Review & Fix — Perform a comprehensive bug bash code review of the entire codebase. Identify bugs, fix them, and ensure fixes are validated by tests."
 
 ## User Scenarios & Testing *(mandatory)*
@@ -98,6 +99,8 @@ As a **developer**, I want dead code, unreachable branches, duplicated logic, an
 - What happens when a fix would require adding a new dependency? The fix is flagged with a `TODO(bug-bash)` comment, since adding new dependencies is out of scope.
 - What happens when a potential bug is ambiguous or involves trade-offs? A `TODO(bug-bash)` comment is added describing the issue, the options, and why it needs a human decision. No code change is made.
 - What happens when a file contains no bugs? The file is skipped entirely and not mentioned in the summary output.
+- What happens when fixing a bug would introduce a different bug or regression? The fix must be revised until it resolves the original issue without introducing new failures. If no clean fix exists, the issue is flagged with a `TODO(bug-bash)` comment.
+- What happens when a test file itself contains bugs (e.g., incorrect assertions)? The test is fixed as part of the Test Quality Improvement category (P4), with a clear explanation of what the test was supposed to validate.
 
 ## Requirements *(mandatory)*
 
