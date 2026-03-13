@@ -563,9 +563,7 @@ def _make_group_mappings(
             agent_assignments = []
             for a in agents:
                 if isinstance(a, tuple):
-                    agent_assignments.append(
-                        AgentAssignment(slug=a[0], config=a[1])
-                    )
+                    agent_assignments.append(AgentAssignment(slug=a[0], config=a[1]))
                 else:
                     agent_assignments.append(AgentAssignment(slug=a))
             egm_list.append(
@@ -585,9 +583,11 @@ class TestBuildAgentPipelineStepsWithGroups:
 
     def test_single_sequential_group(self):
         mappings = _make_mappings({"Ready": ["a1", "a2"]})
-        group_mappings = _make_group_mappings({
-            "Ready": [("g1", "sequential", ["a1", "a2"])],
-        })
+        group_mappings = _make_group_mappings(
+            {
+                "Ready": [("g1", "sequential", ["a1", "a2"])],
+            }
+        )
         steps = build_agent_pipeline_steps(mappings, ["Ready"], group_mappings)
         assert len(steps) == 2
         assert steps[0].group_label == "G1 (series)"
@@ -596,9 +596,11 @@ class TestBuildAgentPipelineStepsWithGroups:
 
     def test_single_parallel_group(self):
         mappings = _make_mappings({"Ready": ["a1", "a2", "a3"]})
-        group_mappings = _make_group_mappings({
-            "Ready": [("g1", "parallel", ["a1", "a2", "a3"])],
-        })
+        group_mappings = _make_group_mappings(
+            {
+                "Ready": [("g1", "parallel", ["a1", "a2", "a3"])],
+            }
+        )
         steps = build_agent_pipeline_steps(mappings, ["Ready"], group_mappings)
         assert len(steps) == 3
         assert steps[0].group_label == "G1 (parallel)"
@@ -606,12 +608,14 @@ class TestBuildAgentPipelineStepsWithGroups:
 
     def test_mixed_groups_in_one_status(self):
         mappings = _make_mappings({"Ready": ["a1", "a2", "a3", "a4"]})
-        group_mappings = _make_group_mappings({
-            "Ready": [
-                ("g1", "sequential", ["a1", "a2"]),
-                ("g2", "parallel", ["a3", "a4"]),
-            ],
-        })
+        group_mappings = _make_group_mappings(
+            {
+                "Ready": [
+                    ("g1", "sequential", ["a1", "a2"]),
+                    ("g2", "parallel", ["a3", "a4"]),
+                ],
+            }
+        )
         steps = build_agent_pipeline_steps(mappings, ["Ready"], group_mappings)
         assert len(steps) == 4
         assert steps[0].group_label == "G1 (series)"
@@ -621,20 +625,22 @@ class TestBuildAgentPipelineStepsWithGroups:
 
     def test_group_numbering_resets_per_status(self):
         """Group numbering G1, G2... resets for each status."""
-        mappings = _make_mappings({
-            "Backlog": ["a1"],
-            "Ready": ["a2", "a3"],
-        })
-        group_mappings = _make_group_mappings({
-            "Backlog": [("bg1", "sequential", ["a1"])],
-            "Ready": [
-                ("rg1", "sequential", ["a2"]),
-                ("rg2", "parallel", ["a3"]),
-            ],
-        })
-        steps = build_agent_pipeline_steps(
-            mappings, ["Backlog", "Ready"], group_mappings
+        mappings = _make_mappings(
+            {
+                "Backlog": ["a1"],
+                "Ready": ["a2", "a3"],
+            }
         )
+        group_mappings = _make_group_mappings(
+            {
+                "Backlog": [("bg1", "sequential", ["a1"])],
+                "Ready": [
+                    ("rg1", "sequential", ["a2"]),
+                    ("rg2", "parallel", ["a3"]),
+                ],
+            }
+        )
+        steps = build_agent_pipeline_steps(mappings, ["Backlog", "Ready"], group_mappings)
         assert steps[0].group_label == "G1 (series)"  # Backlog group
         assert steps[1].group_label == "G1 (series)"  # Ready group 1
         assert steps[2].group_label == "G2 (parallel)"  # Ready group 2
@@ -649,25 +655,29 @@ class TestBuildAgentPipelineStepsWithGroups:
 
     def test_flat_fallback_for_status_without_groups(self):
         """Status without groups in group_mappings uses flat fallback."""
-        mappings = _make_mappings({
-            "Backlog": ["a1"],
-            "Ready": ["a2"],
-        })
-        group_mappings = _make_group_mappings({
-            "Backlog": [("g1", "sequential", ["a1"])],
-            # Ready has no groups
-        })
-        steps = build_agent_pipeline_steps(
-            mappings, ["Backlog", "Ready"], group_mappings
+        mappings = _make_mappings(
+            {
+                "Backlog": ["a1"],
+                "Ready": ["a2"],
+            }
         )
+        group_mappings = _make_group_mappings(
+            {
+                "Backlog": [("g1", "sequential", ["a1"])],
+                # Ready has no groups
+            }
+        )
+        steps = build_agent_pipeline_steps(mappings, ["Backlog", "Ready"], group_mappings)
         assert steps[0].group_label == "G1 (series)"  # Backlog has groups
         assert steps[1].group_label == ""  # Ready falls back to flat
 
     def test_model_extracted_in_group_path(self):
         mappings = _make_mappings({"Ready": [("a1", {"model_name": "gpt-4o"})]})
-        group_mappings = _make_group_mappings({
-            "Ready": [("g1", "sequential", [("a1", {"model_name": "gpt-4o"})])],
-        })
+        group_mappings = _make_group_mappings(
+            {
+                "Ready": [("g1", "sequential", [("a1", {"model_name": "gpt-4o"})])],
+            }
+        )
         steps = build_agent_pipeline_steps(mappings, ["Ready"], group_mappings)
         assert steps[0].model == "gpt-4o"
 
@@ -678,8 +688,11 @@ class TestRenderTrackingMarkdown6Col:
     def test_renders_6col_header(self):
         steps = [
             AgentStep(
-                index=1, status="Ready", agent_name="a1",
-                group_label="G1 (series)", group_execution_mode="sequential",
+                index=1,
+                status="Ready",
+                agent_name="a1",
+                group_label="G1 (series)",
+                group_execution_mode="sequential",
             ),
         ]
         md = render_tracking_markdown(steps)
@@ -688,8 +701,11 @@ class TestRenderTrackingMarkdown6Col:
     def test_renders_group_label_in_row(self):
         steps = [
             AgentStep(
-                index=1, status="Ready", agent_name="a1",
-                group_label="G1 (series)", group_execution_mode="sequential",
+                index=1,
+                status="Ready",
+                agent_name="a1",
+                group_label="G1 (series)",
+                group_execution_mode="sequential",
             ),
         ]
         md = render_tracking_markdown(steps)
@@ -708,7 +724,9 @@ class TestRenderTrackingMarkdown6Col:
         """When any step has group_label, all steps rendered with 6-col format."""
         steps = [
             AgentStep(
-                index=1, status="Backlog", agent_name="a1",
+                index=1,
+                status="Backlog",
+                agent_name="a1",
                 group_label="G1 (series)",
             ),
             AgentStep(index=2, status="Ready", agent_name="a2"),
@@ -806,12 +824,12 @@ class TestAppendTrackingWithGroups:
 
     def test_append_with_groups_produces_6col(self):
         mappings = _make_mappings({"Ready": ["a1", "a2"]})
-        group_mappings = _make_group_mappings({
-            "Ready": [("g1", "sequential", ["a1", "a2"])],
-        })
-        result = append_tracking_to_body(
-            "body", mappings, ["Ready"], group_mappings=group_mappings
+        group_mappings = _make_group_mappings(
+            {
+                "Ready": [("g1", "sequential", ["a1", "a2"])],
+            }
         )
+        result = append_tracking_to_body("body", mappings, ["Ready"], group_mappings=group_mappings)
         assert "| # | Status | Group | Agent | Model | State |" in result
         assert "G1 (series)" in result
 
@@ -823,14 +841,12 @@ class TestAppendTrackingWithGroups:
 
     def test_append_idempotent_with_groups(self):
         mappings = _make_mappings({"Ready": ["a1", "a2"]})
-        group_mappings = _make_group_mappings({
-            "Ready": [("g1", "sequential", ["a1", "a2"])],
-        })
-        first = append_tracking_to_body(
-            "body", mappings, ["Ready"], group_mappings=group_mappings
+        group_mappings = _make_group_mappings(
+            {
+                "Ready": [("g1", "sequential", ["a1", "a2"])],
+            }
         )
-        second = append_tracking_to_body(
-            first, mappings, ["Ready"], group_mappings=group_mappings
-        )
+        first = append_tracking_to_body("body", mappings, ["Ready"], group_mappings=group_mappings)
+        second = append_tracking_to_body(first, mappings, ["Ready"], group_mappings=group_mappings)
         assert first == second
         assert first.count(TRACKING_HEADER) == 1

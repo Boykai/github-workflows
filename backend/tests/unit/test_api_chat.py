@@ -663,7 +663,7 @@ class TestConfirmProposalEdgeCases:
             patch(
                 "src.services.workflow_orchestrator.config.load_pipeline_as_agent_mappings",
                 new_callable=AsyncMock,
-                return_value=(selected_mappings, "Easy", {}),
+                return_value=(selected_mappings, "Easy", {}, {}),
             ) as mock_load_selected,
             patch(
                 "src.services.workflow_orchestrator.config.resolve_project_pipeline_mappings",

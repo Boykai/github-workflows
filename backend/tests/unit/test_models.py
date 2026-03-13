@@ -263,9 +263,7 @@ class TestExecutionGroupMapping:
     def test_create_parallel_group(self):
         from src.models.workflow import ExecutionGroupMapping
 
-        egm = ExecutionGroupMapping(
-            group_id="g2", order=1, execution_mode="parallel"
-        )
+        egm = ExecutionGroupMapping(group_id="g2", order=1, execution_mode="parallel")
         assert egm.execution_mode == "parallel"
         assert egm.agents == []
 
@@ -273,9 +271,7 @@ class TestExecutionGroupMapping:
         from src.models.workflow import ExecutionGroupMapping
 
         with pytest.raises(ValueError, match="execution_mode"):
-            ExecutionGroupMapping(
-                group_id="g1", order=0, execution_mode="invalid"
-            )
+            ExecutionGroupMapping(group_id="g1", order=0, execution_mode="invalid")
 
     def test_default_values(self):
         from src.models.workflow import ExecutionGroupMapping
@@ -327,13 +323,14 @@ class TestPipelineStateGroupProperties:
         from src.services.workflow_orchestrator.models import PipelineGroupInfo, PipelineState
 
         groups = [
-            PipelineGroupInfo(
-                group_id="g1", execution_mode="sequential", agents=["a1", "a2"]
-            ),
+            PipelineGroupInfo(group_id="g1", execution_mode="sequential", agents=["a1", "a2"]),
         ]
         ps = PipelineState(
-            issue_number=1, project_id="p1", status="Ready",
-            agents=["a1", "a2"], groups=groups,
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2"],
+            groups=groups,
         )
         assert ps.current_agent == "a1"
 
@@ -341,7 +338,9 @@ class TestPipelineStateGroupProperties:
         from src.services.workflow_orchestrator.models import PipelineState
 
         ps = PipelineState(
-            issue_number=1, project_id="p1", status="Ready",
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
             agents=["a1", "a2"],
         )
         assert ps.current_agent == "a1"
@@ -353,8 +352,12 @@ class TestPipelineStateGroupProperties:
             PipelineGroupInfo(group_id="g1", execution_mode="sequential", agents=["a1"]),
         ]
         ps = PipelineState(
-            issue_number=1, project_id="p1", status="Ready",
-            agents=["a1"], groups=groups, current_group_index=1,
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1"],
+            groups=groups,
+            current_group_index=1,
         )
         assert ps.is_complete is True
 
@@ -365,8 +368,11 @@ class TestPipelineStateGroupProperties:
             PipelineGroupInfo(group_id="g1", execution_mode="sequential", agents=["a1", "a2"]),
         ]
         ps = PipelineState(
-            issue_number=1, project_id="p1", status="Ready",
-            agents=["a1", "a2"], groups=groups,
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2"],
+            groups=groups,
         )
         assert ps.is_complete is False
 
@@ -375,13 +381,18 @@ class TestPipelineStateGroupProperties:
 
         groups = [
             PipelineGroupInfo(
-                group_id="g1", execution_mode="parallel", agents=["a1", "a2"],
+                group_id="g1",
+                execution_mode="parallel",
+                agents=["a1", "a2"],
                 agent_statuses={"a1": "completed", "a2": "failed"},
             ),
         ]
         ps = PipelineState(
-            issue_number=1, project_id="p1", status="Ready",
-            agents=["a1", "a2"], groups=groups,
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2"],
+            groups=groups,
         )
         # All agents terminal but group index hasn't advanced yet
         assert ps.is_complete is True  # All agents in group are terminal
@@ -391,13 +402,18 @@ class TestPipelineStateGroupProperties:
 
         groups = [
             PipelineGroupInfo(
-                group_id="g1", execution_mode="parallel", agents=["a1", "a2"],
+                group_id="g1",
+                execution_mode="parallel",
+                agents=["a1", "a2"],
                 agent_statuses={"a1": "completed", "a2": "active"},
             ),
         ]
         ps = PipelineState(
-            issue_number=1, project_id="p1", status="Ready",
-            agents=["a1", "a2"], groups=groups,
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2"],
+            groups=groups,
         )
         assert ps.is_complete is False
 
@@ -409,9 +425,13 @@ class TestPipelineStateGroupProperties:
             PipelineGroupInfo(group_id="g2", execution_mode="parallel", agents=["a2", "a3"]),
         ]
         ps = PipelineState(
-            issue_number=1, project_id="p1", status="Ready",
-            agents=["a1", "a2", "a3"], groups=groups,
-            current_group_index=1, current_agent_index_in_group=0,
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2", "a3"],
+            groups=groups,
+            current_group_index=1,
+            current_agent_index_in_group=0,
         )
         assert ps.current_agent == "a2"
 
@@ -422,8 +442,11 @@ class TestPipelineStateGroupProperties:
             PipelineGroupInfo(group_id="g1", execution_mode="sequential", agents=["a1"]),
         ]
         ps = PipelineState(
-            issue_number=1, project_id="p1", status="Ready",
-            agents=["a1"], groups=groups,
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1"],
+            groups=groups,
             current_group_index=1,
         )
         assert ps.current_agent is None

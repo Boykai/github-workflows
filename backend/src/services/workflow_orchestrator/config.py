@@ -330,7 +330,15 @@ async def _persist_workflow_config_to_db(
 async def load_pipeline_as_agent_mappings(
     project_id: str,
     pipeline_id: str,
-) -> tuple[dict[str, list[AgentAssignment]], str, dict[str, str], dict[str, list[ExecutionGroupMapping]]] | None:
+) -> (
+    tuple[
+        dict[str, list[AgentAssignment]],
+        str,
+        dict[str, str],
+        dict[str, list[ExecutionGroupMapping]],
+    ]
+    | None
+):
     """Load a pipeline config and convert its stages to agent_mappings.
 
     Returns ``(agent_mappings, pipeline_name, stage_execution_modes,

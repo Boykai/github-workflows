@@ -169,10 +169,15 @@ class PipelineState:
     def current_agent(self) -> str | None:
         """Get the currently active agent, or None if pipeline is complete."""
         if self.groups:
-            if self.current_group_index < len(self.groups):
-                group = self.groups[self.current_group_index]
-                if self.current_agent_index_in_group < len(group.agents):
-                    return group.agents[self.current_agent_index_in_group]
+            # Skip empty groups to avoid stalling the pipeline
+            idx = self.current_group_index
+            while idx < len(self.groups):
+                group = self.groups[idx]
+                if group.agents:
+                    if self.current_agent_index_in_group < len(group.agents):
+                        return group.agents[self.current_agent_index_in_group]
+                    break
+                idx += 1
             return None
         # Flat fallback (existing behavior)
         if self.current_agent_index < len(self.agents):
@@ -183,14 +188,18 @@ class PipelineState:
     def is_complete(self) -> bool:
         """Check if all agents in the pipeline have completed."""
         if self.groups:
-            if self.current_group_index >= len(self.groups):
+            # Skip empty groups
+            idx = self.current_group_index
+            while idx < len(self.groups) and not self.groups[idx].agents:
+                idx += 1
+            if idx >= len(self.groups):
                 return True
-            group = self.groups[self.current_group_index]
-            if group.execution_mode == "parallel" and group.agent_statuses:
-                return all(
-                    s in ("completed", "failed")
-                    for s in group.agent_statuses.values()
-                )
+            group = self.groups[idx]
+            if group.execution_mode == "parallel":
+                # Ensure all agents in the group are accounted for
+                if len(group.agent_statuses) < len(group.agents):
+                    return False
+                return all(s in ("completed", "failed") for s in group.agent_statuses.values())
             return False
         # Flat fallback (existing behavior)
         if self.execution_mode == "parallel" and self.parallel_agent_statuses:

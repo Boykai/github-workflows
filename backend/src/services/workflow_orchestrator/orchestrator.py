@@ -527,7 +527,9 @@ class WorkflowOrchestrator:
         if config and config.agent_mappings:
             status_order = get_status_order(config)
             body = append_tracking_to_body(
-                body, config.agent_mappings, status_order,
+                body,
+                config.agent_mappings,
+                status_order,
                 group_mappings=config.group_mappings or None,
             )
             logger.info("Appended agent pipeline tracking to issue body")
@@ -1247,6 +1249,13 @@ class WorkflowOrchestrator:
         if sub_issue_info:
             agent_sub_issues["human"] = sub_issue_info
 
+        # Preserve group-aware execution state from existing pipeline
+        existing_groups = existing_pipeline.groups if existing_pipeline else []
+        existing_group_idx = existing_pipeline.current_group_index if existing_pipeline else 0
+        existing_agent_idx_in_group = (
+            existing_pipeline.current_agent_index_in_group if existing_pipeline else 0
+        )
+
         set_pipeline_state(
             ctx.issue_number,
             PipelineState(
@@ -1260,6 +1269,9 @@ class WorkflowOrchestrator:
                 error=None,
                 agent_assigned_sha="",
                 agent_sub_issues=agent_sub_issues,
+                groups=existing_groups,
+                current_group_index=existing_group_idx,
+                current_agent_index_in_group=existing_agent_idx_in_group,
             ),
         )
 
@@ -1464,6 +1476,15 @@ class WorkflowOrchestrator:
         if sub_issue_info:
             _agent_sub_issues_cr["copilot-review"] = sub_issue_info
 
+        # Preserve group-aware execution state from existing pipeline
+        _existing_groups_cr = _existing_pipeline_cr.groups if _existing_pipeline_cr else []
+        _existing_group_idx_cr = (
+            _existing_pipeline_cr.current_group_index if _existing_pipeline_cr else 0
+        )
+        _existing_agent_idx_in_group_cr = (
+            _existing_pipeline_cr.current_agent_index_in_group if _existing_pipeline_cr else 0
+        )
+
         set_pipeline_state(
             ctx.issue_number,
             PipelineState(
@@ -1477,6 +1498,9 @@ class WorkflowOrchestrator:
                 error=None,
                 agent_assigned_sha="",
                 agent_sub_issues=_agent_sub_issues_cr,
+                groups=_existing_groups_cr,
+                current_group_index=_existing_group_idx_cr,
+                current_agent_index_in_group=_existing_agent_idx_in_group_cr,
             ),
         )
 
@@ -1718,6 +1742,13 @@ class WorkflowOrchestrator:
             if sub_issue_info:
                 agent_sub_issues[agent_name] = sub_issue_info
 
+            # Preserve group-aware execution state from existing pipeline
+            existing_groups = existing_pipeline.groups if existing_pipeline else []
+            existing_group_idx = existing_pipeline.current_group_index if existing_pipeline else 0
+            existing_agent_idx_in_group = (
+                existing_pipeline.current_agent_index_in_group if existing_pipeline else 0
+            )
+
             set_pipeline_state(
                 ctx.issue_number,
                 PipelineState(
@@ -1731,6 +1762,9 @@ class WorkflowOrchestrator:
                     error=None if success else f"Failed to assign agent '{agent_name}'",
                     agent_assigned_sha=assigned_sha,
                     agent_sub_issues=agent_sub_issues,
+                    groups=existing_groups,
+                    current_group_index=existing_group_idx,
+                    current_agent_index_in_group=existing_agent_idx_in_group,
                 ),
             )
 
