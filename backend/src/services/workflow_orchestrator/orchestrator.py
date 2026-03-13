@@ -525,7 +525,10 @@ class WorkflowOrchestrator:
         config = ctx.config or await get_workflow_config(ctx.project_id)
         if config and config.agent_mappings:
             status_order = get_status_order(config)
-            body = append_tracking_to_body(body, config.agent_mappings, status_order)
+            body = append_tracking_to_body(
+                body, config.agent_mappings, status_order,
+                group_mappings=config.group_mappings or None,
+            )
             logger.info("Appended agent pipeline tracking to issue body")
 
         # Validate assembled body does not exceed GitHub API limit
