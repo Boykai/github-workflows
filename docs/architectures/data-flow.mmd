@@ -25,7 +25,7 @@ graph LR
     UI -- "REST requests" --> TQ
     TQ -- "HTTP" --> Router
     UI -- "WS connect" --> WS_C
-    WS_C <-- "real-time updates" --> WS_S
+    WS_C <--> |"real-time updates"| WS_S
     Router --> GHSvc
     Router --> Orch
     Orch --> Poll
