@@ -736,6 +736,7 @@ export interface BoardItem {
   linked_prs: LinkedPR[];
   sub_issues: SubIssue[];
   labels: BoardLabel[];
+  issue_type?: string;
   created_at?: string;
   updated_at?: string;
   milestone?: string;

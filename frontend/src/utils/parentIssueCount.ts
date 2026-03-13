@@ -1,6 +1,9 @@
 import type { BoardDataResponse, BoardItem } from '@/types';
 
 function isChoreIssue(item: BoardItem): boolean {
+  if (item.issue_type && item.issue_type.trim().toLowerCase() === 'chore') {
+    return true;
+  }
   return item.labels.some((label) => label.name.trim().toLowerCase() === 'chore');
 }
 

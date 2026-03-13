@@ -145,6 +145,10 @@ class BoardItem(BaseModel):
         default_factory=list, description="Sub-issues for agent work"
     )
     labels: list[Label] = Field(default_factory=list, description="GitHub issue labels")
+    issue_type: str | None = Field(
+        default=None,
+        description="GitHub Issue Type name (e.g. 'Bug', 'Feature', 'Chore')",
+    )
     created_at: str | None = Field(default=None, description="ISO 8601 creation timestamp")
     updated_at: str | None = Field(default=None, description="ISO 8601 last update timestamp")
     milestone: str | None = Field(default=None, description="Milestone name")
