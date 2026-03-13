@@ -5,10 +5,6 @@ from datetime import timedelta
 from src.constants import LABELS
 from src.utils import utcnow
 
-# Deprecated: prefer ``LABELS`` from ``src.constants`` for new code.
-# Retained because ``tests/unit/test_prompts.py`` still references it.
-PREDEFINED_LABELS = LABELS
-
 ISSUE_GENERATION_SYSTEM_PROMPT = """You are an expert product manager helping structure feature requests into well-organized GitHub issues.
 
 Your #1 PRIORITY is to CAPTURE AND PRESERVE EVERY DETAIL the user provides. The user's original input is the most important source of truth. Do NOT summarize, condense, or drop any information the user mentioned.

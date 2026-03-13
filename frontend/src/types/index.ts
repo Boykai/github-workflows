@@ -94,8 +94,6 @@ export interface TaskCreateActionData {
 
 export interface StatusUpdateActionData {
   task_id: string;
-  /** @deprecated Use current_status / target_status instead. Retained for backward compatibility. */
-  old_status?: string;
   new_status?: string;
   confirmed?: boolean;
   proposal_id?: string;
@@ -1071,9 +1069,7 @@ export interface PipelineStage {
   order: number;
   /** Ordered execution groups within this stage. */
   groups?: ExecutionGroup[];
-  /** @deprecated Use groups[].agents instead. Retained for backward compatibility. */
   agents: PipelineAgentNode[];
-  /** @deprecated Use groups[].execution_mode instead. Retained for backward compatibility. */
   execution_mode?: 'sequential' | 'parallel';
 }
 

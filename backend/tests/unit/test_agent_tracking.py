@@ -78,19 +78,6 @@ Issue description here.
 """
 
 # Legacy markdown body with old 4-column tracking section (no Model column)
-SAMPLE_BODY_LEGACY = """\
-Issue description here.
-
----
-
-## 🤖 Agent Pipeline
-
-| # | Status | Agent | State |
-|---|--------|-------|-------|
-| 1 | Backlog | `speckit.specify` | ✅ Done |
-| 2 | Ready | `speckit.plan` | 🔄 Active |
-| 3 | In Progress | `speckit.implement` | ⏳ Pending |
-"""
 
 
 # =============================================================================
@@ -275,20 +262,6 @@ class TestParseTrackingFromBody:
     def test_empty_body(self):
         assert parse_tracking_from_body("") is None
 
-    def test_parse_legacy_4_column_body(self):
-        """Old 4-column tables parse with model defaulting to empty string."""
-        steps = parse_tracking_from_body(SAMPLE_BODY_LEGACY)
-        assert steps is not None
-        assert len(steps) == 3
-        assert steps[0].agent_name == "speckit.specify"
-        assert steps[0].model == ""
-        assert STATE_DONE in steps[0].state
-        assert steps[1].agent_name == "speckit.plan"
-        assert steps[1].model == ""
-        assert STATE_ACTIVE in steps[1].state
-        assert steps[2].agent_name == "speckit.implement"
-        assert steps[2].model == ""
-        assert STATE_PENDING in steps[2].state
 
 
 # =============================================================================
@@ -497,19 +470,6 @@ class TestModelPreservation:
         assert plan.model == "claude-3-5-sonnet"
         assert impl.model == ""
         assert STATE_ACTIVE in impl.state
-
-    def test_legacy_table_migrates_on_state_update(self):
-        """Old 4-column tables are naturally migrated to 5-column on state update."""
-        new_body = update_agent_state(SAMPLE_BODY_LEGACY, "speckit.implement", STATE_ACTIVE)
-        steps = parse_tracking_from_body(new_body)
-        assert steps is not None
-        # All models should be "" after migration (empty string → renders as "TBD")
-        for step in steps:
-            assert step.model == ""
-        # Verify TBD appears in the rendered markdown
-        assert "| TBD |" in new_body
-        # Verify the table now has the Model column header
-        assert "| # | Status | Agent | Model | State |" in new_body
 
     def test_append_tracking_idempotent_with_model(self):
         """append_tracking_to_body is idempotent with 5-column tracking tables."""
@@ -765,14 +725,6 @@ class TestParseTrackingFromBody6Col:
         steps = parse_tracking_from_body(SAMPLE_BODY)
         assert steps is not None
         assert len(steps) == 3
-        assert steps[0].group_label == ""
-
-    def test_parse_4col_legacy_fallback(self):
-        """4-column legacy format still works."""
-        steps = parse_tracking_from_body(SAMPLE_BODY_LEGACY)
-        assert steps is not None
-        assert len(steps) == 3
-        assert steps[0].model == ""
         assert steps[0].group_label == ""
 
     def test_group_metadata_parsed_from_label(self):

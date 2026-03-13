@@ -19,6 +19,10 @@ class StatusNames:
 # Default status columns for projects without custom columns
 DEFAULT_STATUS_COLUMNS = [StatusNames.BACKLOG, StatusNames.IN_PROGRESS, StatusNames.DONE]
 
+# Default status name assigned to newly created items in GitHub Projects.
+# GitHub Projects uses "Todo" as the initial status column name.
+DEFAULT_STATUS_BACKLOG = "Todo"
+
 # Cache key prefixes
 CACHE_PREFIX_PROJECTS = "projects:user"
 CACHE_PREFIX_PROJECT_ITEMS = "project:items"
