@@ -11,13 +11,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
-import { useWorkflow } from '@/hooks/useWorkflow';
 import { usePipelineConfig, pipelineKeys } from '@/hooks/usePipelineConfig';
 import { useModels } from '@/hooks/useModels';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { pipelinesApi } from '@/services/api';
-import { AgentConfigRow } from '@/components/board/AgentConfigRow';
-import { AddAgentPopover } from '@/components/board/AddAgentPopover';
+
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import { PipelineBoard } from '@/components/pipeline/PipelineBoard';
 import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
@@ -50,7 +48,6 @@ export function AgentsPipelinePage() {
     error: agentsError,
     refetch: refetchAgents,
   } = useAvailableAgents(projectId);
-  const { config: workflowConfig } = useWorkflow();
   const pipelineConfig = usePipelineConfig(projectId);
   const { models: availableModels } = useModels();
   const { confirm } = useConfirmation();
@@ -328,29 +325,6 @@ export function AgentsPipelinePage() {
               {pipelineConfig.saveError}
             </div>
           )}
-
-          {/* Agent Config Row — drag-and-drop assignment */}
-          <AgentConfigRow
-            columnCount={alignedColumnCount}
-            columns={columns}
-            agentConfig={agentConfig}
-            availableAgents={availableAgents}
-            variant="compact"
-            title="Current Pipeline"
-            workflowEnabled={workflowConfig?.enabled ?? null}
-            renderAddButton={(status: string) => (
-              <AddAgentPopover
-                status={status}
-                availableAgents={availableAgents}
-                assignedAgents={agentConfig.localMappings[status] ?? []}
-                isLoading={agentsLoading}
-                error={agentsError}
-                onRetry={refetchAgents}
-                onAddAgent={agentConfig.addAgent}
-                compact={true}
-              />
-            )}
-          />
 
           {/* Pipeline Stages Visualization */}
           <div>

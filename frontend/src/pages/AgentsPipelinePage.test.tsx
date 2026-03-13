@@ -135,14 +135,6 @@ vi.mock('@/hooks/useAgentConfig', () => ({
   }),
 }));
 
-vi.mock('@/hooks/useWorkflow', () => ({
-  useWorkflow: () => ({
-    config: {
-      enabled: true,
-    },
-  }),
-}));
-
 vi.mock('@/hooks/usePipelineConfig', () => ({
   usePipelineConfig: () => mockPipelineConfig,
   pipelineKeys: {
@@ -170,14 +162,6 @@ vi.mock('@/services/api', () => ({
 
 vi.mock('@/components/common/CelestialLoader', () => ({
   CelestialLoader: ({ label }: { label: string }) => <div>{label}</div>,
-}));
-
-vi.mock('@/components/board/AgentConfigRow', () => ({
-  AgentConfigRow: () => <div>Agent Config Row</div>,
-}));
-
-vi.mock('@/components/board/AddAgentPopover', () => ({
-  AddAgentPopover: () => <div>Add Agent</div>,
 }));
 
 vi.mock('@/components/pipeline/PipelineBoard', () => ({
@@ -238,6 +222,12 @@ describe('AgentsPipelinePage', () => {
     vi.clearAllMocks();
     mockPipelineConfig.isDirty = true;
     mockPipelineConfig.boardState = 'editing';
+  });
+
+  it('does not render a Current Pipeline section', () => {
+    render(<AgentsPipelinePage />);
+
+    expect(screen.queryByText('Current Pipeline')).not.toBeInTheDocument();
   });
 
   it('guards the hero new pipeline action when there are unsaved changes', async () => {
