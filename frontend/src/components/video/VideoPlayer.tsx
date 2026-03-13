@@ -317,16 +317,19 @@ export function VideoPlayer({
   }
 
   return (
+    // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
     <div
       ref={containerRef}
       className={cn('group relative overflow-hidden rounded-lg bg-black', className)}
       onMouseMove={resetHideTimer}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onKeyDown={handleKeyDown}
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
       tabIndex={0}
       role="application"
       aria-label={title ? `Video player: ${title}` : 'Video player'}
     >
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption -- captions provided via tracks prop when available */}
       <video
         ref={videoRef}
         src={src}
@@ -369,6 +372,17 @@ export function VideoPlayer({
           ref={progressRef}
           className="group/seek relative h-1.5 w-full cursor-pointer rounded-full bg-white/30 hover:h-2.5 transition-all"
           onClick={handleSeek}
+          onKeyDown={(e) => {
+            const video = videoRef.current;
+            if (!video || !duration) return;
+            if (e.key === 'ArrowLeft') {
+              e.preventDefault();
+              video.currentTime = Math.max(0, video.currentTime - 5);
+            } else if (e.key === 'ArrowRight') {
+              e.preventDefault();
+              video.currentTime = Math.min(duration, video.currentTime + 5);
+            }
+          }}
           role="slider"
           aria-label="Seek"
           aria-valuemin={0}

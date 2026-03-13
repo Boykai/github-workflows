@@ -126,7 +126,7 @@ async def upload_video(
         )
 
     # Write file
-    with open(file_path, "wb") as f:
+    with file_path.open("wb") as f:
         for chunk in chunks:
             f.write(chunk)
 
