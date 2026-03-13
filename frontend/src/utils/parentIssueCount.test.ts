@@ -136,11 +136,17 @@ describe('countParentIssues', () => {
   it('counts issues when issue_type is undefined or null', () => {
     const withoutType = createItem({ item_id: 'p1', number: 101 });
     const withBugType = createItem({ item_id: 'p2', number: 102, issue_type: 'Bug' });
-    const withNullType = createItem({ item_id: 'p3', number: 103, issue_type: undefined });
+    const withUndefinedType = createItem({ item_id: 'p3', number: 103, issue_type: undefined });
+    // Backend sends JSON null for missing issue_type; cast to exercise that runtime path
+    const withNullType = createItem({
+      item_id: 'p4',
+      number: 104,
+      issue_type: null as unknown as string | undefined,
+    });
 
-    const boardData = createBoardData([withoutType, withBugType, withNullType]);
+    const boardData = createBoardData([withoutType, withBugType, withUndefinedType, withNullType]);
 
-    expect(countParentIssues(boardData)).toBe(3);
+    expect(countParentIssues(boardData)).toBe(4);
   });
 
   it('returns zero when all issues are chore type', () => {
