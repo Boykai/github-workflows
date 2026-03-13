@@ -99,7 +99,8 @@ async def initiate_signal_link(
     try:
         qr_base64 = await request_qr_code_base64(body.device_name)
     except Exception as e:
-        handle_service_error(e, "request QR code from Signal service", AppException)
+        # Signal service is an upstream dependency — 502 Bad Gateway is appropriate
+        handle_service_error(e, "request QR code from Signal service")
 
     return SignalLinkResponse(
         qr_code_base64=qr_base64,
