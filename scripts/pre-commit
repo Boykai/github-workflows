@@ -164,15 +164,18 @@ if [ -n "$STAGED_ARCH_FILES" ]; then
     echo "📊 Architecture diagrams..."
 
     echo -n "  🔄 Regenerating diagrams... "
-    if "$REPO_ROOT/scripts/generate-diagrams.sh" > /dev/null 2>&1; then
+    diag_err=$(mktemp)
+    if "$REPO_ROOT/scripts/generate-diagrams.sh" > /dev/null 2>"$diag_err"; then
         echo -e "${GREEN}✓${NC}"
         # Stage any updated diagram files
         git add "$REPO_ROOT/docs/architectures/" 2>/dev/null || true
     else
         echo -e "${RED}✗${NC}"
         echo -e "${YELLOW}    Diagram generation failed${NC}"
+        cat "$diag_err" >&2
         FAILED=1
     fi
+    rm -f "$diag_err"
 fi
 
 # ============================================

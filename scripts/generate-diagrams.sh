@@ -90,7 +90,6 @@ generate_backend_components() {
     local api_dir="$REPO_ROOT/backend/src/api"
 
     # Discover service modules (directories and top-level .py files)
-    local service_nodes=""
     local service_defs=""
     local idx=0
 
@@ -102,23 +101,21 @@ generate_backend_components() {
             [[ "$name" == "__pycache__" || "$name" == "__init__.py" ]] && continue
 
             local label
-            label=$(echo "$name" | sed 's/\.py$//' | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g')
+            label=$(echo "$name" | sed 's/\.py$//' | sed 's/_/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
             local node_id="SVC_${idx}"
 
             if [[ -d "$entry" ]]; then
                 local count
-                count=$(find "$entry" -maxdepth 1 -name '*.py' ! -name '__init__.py' | wc -l)
+                count=$(find "$entry" -maxdepth 1 -name '*.py' ! -name '__init__.py' | wc -l | tr -d ' ')
                 service_defs="${service_defs}        ${node_id}[\"${label}<br/>(${count} modules)\"]"$'\n'
             else
                 service_defs="${service_defs}        ${node_id}[\"${label}\"]"$'\n'
             fi
-            service_nodes="${service_nodes} ${node_id}"
             idx=$((idx + 1))
         done
     fi
 
     # Discover API route modules
-    local api_nodes=""
     local api_defs=""
     local aidx=0
 
@@ -128,10 +125,9 @@ generate_backend_components() {
             name=$(basename "$entry" .py)
             [[ "$name" == "__init__" ]] && continue
             local label
-            label=$(echo "$name" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g')
+            label=$(echo "$name" | sed 's/_/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
             local node_id="API_${aidx}"
             api_defs="${api_defs}        ${node_id}[\"${label}\"]"$'\n'
-            api_nodes="${api_nodes} ${node_id}"
             aidx=$((aidx + 1))
         done
     fi
@@ -177,9 +173,9 @@ generate_frontend_components() {
             local name
             name=$(basename "$entry")
             local label
-            label=$(echo "$name" | sed 's/_/ /g' | sed 's/\b\(.\)/\u\1/g')
+            label=$(echo "$name" | sed 's/_/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) substr($i,2)}1')
             local count
-            count=$(find "$entry" -maxdepth 1 \( -name '*.tsx' -o -name '*.ts' \) ! -name '*.test.*' ! -name '*.spec.*' | wc -l)
+            count=$(find "$entry" -maxdepth 1 \( -name '*.tsx' -o -name '*.ts' \) ! -name '*.test.*' ! -name '*.spec.*' | wc -l | tr -d ' ')
             comp_defs="${comp_defs}        C_${cidx}[\"${label}<br/>(${count} files)\"]"$'\n'
             cidx=$((cidx + 1))
         done
@@ -206,7 +202,7 @@ generate_frontend_components() {
     local hooks_dir="$src_dir/hooks"
     local hook_count=0
     if [[ -d "$hooks_dir" ]]; then
-        hook_count=$(find "$hooks_dir" -maxdepth 1 \( -name '*.ts' -o -name '*.tsx' \) ! -name '*.test.*' ! -name '*.spec.*' | wc -l)
+        hook_count=$(find "$hooks_dir" -maxdepth 1 \( -name '*.ts' -o -name '*.tsx' \) ! -name '*.test.*' ! -name '*.spec.*' | wc -l | tr -d ' ')
     fi
 
     local diagram
@@ -274,7 +270,7 @@ graph LR
     UI -- "REST requests" --> TQ
     TQ -- "HTTP" --> Router
     UI -- "WS connect" --> WS_C
-    WS_C <-- "real-time updates" --> WS_S
+    WS_C <--> |"real-time updates"| WS_S
     Router --> GHSvc
     Router --> Orch
     Orch --> Poll
