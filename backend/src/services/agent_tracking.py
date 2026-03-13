@@ -65,6 +65,7 @@ _ROW_RE = re.compile(
     r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]+?)\s*\|"
 )
 
+# DEPRECATED(v2.0): Remove after all tracked issues use 5-column format. See issue #3779.
 # Legacy regex for old 4-column format: | 1 | Backlog | `speckit.specify` | ⏳ Pending |
 _ROW_RE_OLD = re.compile(r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|")
 
@@ -322,7 +323,8 @@ def parse_tracking_from_body(body: str) -> list[AgentStep] | None:
             AgentStep(index=idx, status=status, agent_name=agent_name, model=model, state=state)
         )
 
-    # Fallback: try legacy 4-column format if no rows matched with 5-column regex
+    # DEPRECATED(v2.0): Fallback to legacy 4-column format — remove after all
+    # tracked issues use 5-column format. See issue #3779.
     if not steps:
         for row_match in _ROW_RE_OLD.finditer(section):
             idx = int(row_match.group(1))

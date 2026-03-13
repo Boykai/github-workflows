@@ -355,6 +355,12 @@ class PipelineService:
         """
         for stage in stages:
             if not stage.groups and stage.agents:
+                logger.info(
+                    "legacy_format_encountered: format_type=%s context=%s stage_id=%s",
+                    "stage_without_groups",
+                    "normalize_groups",
+                    stage.id,
+                )
                 stage.groups = [
                     ExecutionGroup(
                         id=str(uuid.uuid4()),

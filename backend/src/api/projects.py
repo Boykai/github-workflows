@@ -19,6 +19,7 @@ from src.models.task import TaskListResponse
 from src.models.user import UserResponse, UserSession
 from src.services.cache import (
     cache,
+    cached_fetch,
     compute_data_hash,
     get_project_items_cache_key,
     get_user_projects_cache_key,
@@ -182,20 +183,11 @@ async def get_project_tasks(
     """Get tasks/items for a project."""
     cache_key = get_project_items_cache_key(project_id)
 
-    # Check cache unless refresh requested
-    if not refresh:
-        cached = cache.get(cache_key)
-        if cached:
-            logger.info("Returning cached tasks for project %s", project_id)
-            return TaskListResponse(tasks=cached)
+    async def _fetch():
+        logger.info("Fetching tasks for project %s", project_id)
+        return await github_projects_service.get_project_items(session.access_token, project_id)
 
-    # Fetch from GitHub
-    logger.info("Fetching tasks for project %s", project_id)
-    tasks = await github_projects_service.get_project_items(session.access_token, project_id)
-
-    # Cache results
-    cache.set(cache_key, tasks)
-
+    tasks = await cached_fetch(cache, cache_key, _fetch, refresh=refresh)
     return TaskListResponse(tasks=tasks)
 
 

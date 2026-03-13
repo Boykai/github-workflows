@@ -225,6 +225,130 @@ async def _attempt_reassignment(
         return None
 
 
+async def _detect_stalled_issue(
+    access_token: str,
+    task_owner: str,
+    task_repo: str,
+    issue_number: int,
+    agent_name: str,
+    recovery_pipeline: Any,
+) -> tuple[bool, bool, int | None]:
+    """Check if a coding agent is stalled (missing assignment or WIP PR).
+
+    Returns:
+        (copilot_assigned, has_wip_pr, wip_pr_number)
+    """
+    copilot_assigned = False
+
+    # Try sub-issue first
+    sub_issue_number = _get_sub_issue_number(recovery_pipeline, agent_name, issue_number)
+    if sub_issue_number != issue_number:
+        copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
+            access_token=access_token,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=sub_issue_number,
+        )
+
+    # Fallback: check parent issue
+    if not copilot_assigned:
+        copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
+            access_token=access_token,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=issue_number,
+        )
+
+    # Check condition B: WIP (draft) PR exists
+    has_wip_pr = False
+    wip_pr_number = None
+
+    main_branch_info = _cp.get_issue_main_branch(issue_number)
+
+    linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
+        access_token=access_token,
+        owner=task_owner,
+        repo=task_repo,
+        issue_number=issue_number,
+    )
+
+    if linked_prs:
+        for pr in linked_prs:
+            pr_num = pr.get("number")
+            pr_state = (pr.get("state") or "").upper()
+            pr_author = (pr.get("author") or "").lower()
+
+            if pr_state != "OPEN" or not is_copilot_author(pr_author):
+                continue
+
+            if not isinstance(pr_num, int):
+                continue
+
+            pr_details = await _cp.github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                pr_number=pr_num,
+            )
+            if not pr_details:
+                continue
+
+            is_draft = pr_details.get("is_draft", False)
+            pr_base = pr_details.get("base_ref", "")
+
+            if main_branch_info:
+                main_branch = main_branch_info["branch"]
+                main_pr = main_branch_info["pr_number"]
+
+                if pr_num == main_pr:
+                    if is_draft and not main_branch_info.get("head_sha"):
+                        has_wip_pr = True
+                        wip_pr_number = pr_num
+                        break
+                    continue
+
+                if pr_base == main_branch or pr_base == "main":
+                    has_wip_pr = True
+                    wip_pr_number = pr_num
+                    break
+            else:
+                has_wip_pr = True
+                wip_pr_number = pr_num
+                break
+
+    return copilot_assigned, has_wip_pr, wip_pr_number
+
+
+async def _check_copilot_session_health(
+    access_token: str,
+    task_owner: str,
+    task_repo: str,
+    issue_number: int,
+    agent_name: str,
+    wip_pr_number: int | None,
+) -> bool:
+    """Return True if the WIP PR has a healthy Copilot session (not errored/stopped)."""
+    if not wip_pr_number:
+        return True
+    try:
+        errored = await _cp.github_projects_service.check_copilot_session_error(
+            access_token=access_token,
+            owner=task_owner,
+            repo=task_repo,
+            pr_number=wip_pr_number,
+        )
+        return not errored
+    except Exception as err:
+        logger.debug(
+            "Recovery: could not check Copilot session error "
+            "on PR #%s for issue #%d: %s",
+            wip_pr_number,
+            issue_number,
+            err,
+        )
+        return True
+
+
 async def recover_stalled_issues(
     access_token: str,
     project_id: str,
@@ -544,123 +668,29 @@ async def recover_stalled_issues(
                 continue
 
             # ── Check condition A: Copilot is assigned ────────────────────
-            # With the sub-issue-per-agent model, Copilot is assigned to the
-            # *sub-issue*, not the parent.  Check the sub-issue first to avoid
-            # false "Copilot NOT assigned" reports that trigger needless
-            # re-assignment (which can duplicate the agent session).
-            copilot_assigned = False
-
-            # Try sub-issue first
-            sub_issue_number = _get_sub_issue_number(recovery_pipeline, agent_name, issue_number)
-            if sub_issue_number != issue_number:
-                copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=sub_issue_number,
-                )
-
-            # Fallback: check parent issue
-            if not copilot_assigned:
-                copilot_assigned = await _cp.github_projects_service.is_copilot_assigned_to_issue(
-                    access_token=access_token,
-                    owner=task_owner,
-                    repo=task_repo,
-                    issue_number=issue_number,
-                )
-
             # ── Check condition B: WIP (draft) PR exists ─────────────────
-            has_wip_pr = False
-            wip_pr_number = None
-
-            # For the first agent, look for any open Copilot draft PR linked to issue
-            # For subsequent agents, look for a child PR targeting the main branch
-            main_branch_info = _cp.get_issue_main_branch(issue_number)
-
-            linked_prs = await _cp.github_projects_service.get_linked_pull_requests(
+            copilot_assigned, has_wip_pr, wip_pr_number = await _detect_stalled_issue(
                 access_token=access_token,
-                owner=task_owner,
-                repo=task_repo,
+                task_owner=task_owner,
+                task_repo=task_repo,
                 issue_number=issue_number,
+                agent_name=agent_name,
+                recovery_pipeline=recovery_pipeline,
             )
-
-            if linked_prs:
-                for pr in linked_prs:
-                    pr_number = pr.get("number")
-                    pr_state = (pr.get("state") or "").upper()
-                    pr_author = (pr.get("author") or "").lower()
-
-                    if pr_state != "OPEN" or not is_copilot_author(pr_author):
-                        continue
-
-                    if not isinstance(pr_number, int):
-                        continue
-
-                    # Get full details to check draft status
-                    pr_details = await _cp.github_projects_service.get_pull_request(
-                        access_token=access_token,
-                        owner=task_owner,
-                        repo=task_repo,
-                        pr_number=pr_number,
-                    )
-                    if not pr_details:
-                        continue
-
-                    is_draft = pr_details.get("is_draft", False)
-                    pr_base = pr_details.get("base_ref", "")
-
-                    if main_branch_info:
-                        # Subsequent agent — WIP PR must be a draft child PR
-                        # targeting the main branch (or "main")
-                        main_branch = main_branch_info["branch"]
-                        main_pr = main_branch_info["pr_number"]
-
-                        if pr_number == main_pr:
-                            # This is the main PR, not a child — check if it's
-                            # still draft (first agent may still be working)
-                            if is_draft and not main_branch_info.get("head_sha"):
-                                has_wip_pr = True
-                                wip_pr_number = pr_number
-                                break
-                            continue
-
-                        # Child PR: must target main branch or "main"
-                        if pr_base == main_branch or pr_base == "main":
-                            has_wip_pr = True
-                            wip_pr_number = pr_number
-                            break
-                    else:
-                        # First agent — any open Copilot PR counts
-                        has_wip_pr = True
-                        wip_pr_number = pr_number
-                        break
 
             # ── Evaluate whether recovery is needed ───────────────────────
             if copilot_assigned and has_wip_pr:
                 # Both conditions met — but Copilot may have errored/stopped.
-                # Check the WIP PR for session errors (e.g. "Copilot stopped
-                # work … due to an error") before declaring the agent OK.
-                copilot_errored = False
-                if wip_pr_number:
-                    try:
-                        copilot_errored = (
-                            await _cp.github_projects_service.check_copilot_session_error(
-                                access_token=access_token,
-                                owner=task_owner,
-                                repo=task_repo,
-                                pr_number=wip_pr_number,
-                            )
-                        )
-                    except Exception as err:
-                        logger.debug(
-                            "Recovery: could not check Copilot session error "
-                            "on PR #%s for issue #%d: %s",
-                            wip_pr_number,
-                            issue_number,
-                            err,
-                        )
+                session_healthy = await _check_copilot_session_health(
+                    access_token=access_token,
+                    task_owner=task_owner,
+                    task_repo=task_repo,
+                    issue_number=issue_number,
+                    agent_name=agent_name,
+                    wip_pr_number=wip_pr_number,
+                )
 
-                if not copilot_errored:
+                if session_healthy:
                     logger.debug(
                         "Recovery: issue #%d OK — agent '%s' assigned and WIP PR #%s exists",
                         issue_number,

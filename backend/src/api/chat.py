@@ -19,7 +19,7 @@ from src.constants import (
 )
 from src.dependencies import get_connection_manager, get_github_service, require_selected_project
 from src.exceptions import NotFoundError, ValidationError
-from src.logging_utils import get_logger
+from src.logging_utils import get_logger, handle_service_error
 from src.middleware.rate_limit import limiter
 from src.models.chat import (
     ActionType,
@@ -954,8 +954,7 @@ async def confirm_proposal(
     except ValidationError:
         raise
     except Exception as e:
-        logger.error("Failed to create issue from proposal: %s", e)
-        raise ValidationError("Failed to create issue") from e
+        handle_service_error(e, "create issue from proposal", ValidationError)
 
 
 @router.delete("/proposals/{proposal_id}")
@@ -1043,8 +1042,12 @@ async def upload_file(
             },
         )
 
-    # For now, store files in a temporary upload directory and serve via a local URL.
-    # In production, these would be uploaded to GitHub's CDN or a cloud storage service.
+    # Store files in a temporary upload directory and serve via a local URL.
+    # This is intentional for self-hosted single-instance deployments where
+    # simplicity outweighs cloud storage benefits.  Files reside in the OS
+    # temp directory and are cleaned up automatically on system restart.
+    # For multi-instance or cloud deployments, migrate to object storage
+    # (e.g. S3 / GCS) in a dedicated specification.
     upload_id = str(uuid4())[:8]
     # Sanitise the original filename to prevent path-traversal attacks:
     # strip null bytes first (could confuse Path parsing on some platforms),

@@ -1800,6 +1800,75 @@ class WorkflowOrchestrator:
             release_agent_trigger(ctx.issue_number, status, agent_name)
         return success
 
+    async def _update_pipeline_labels(
+        self,
+        ctx: WorkflowContext,
+        agent_name: str,
+        agent_slugs: list[str],
+        agent_index: int,
+        sub_issue_number: int | None,
+    ) -> None:
+        """Swap agent and active labels on parent/sub-issues (non-blocking).
+
+        Failures are logged but never block pipeline progression (FR-017).
+        """
+        # Swap agent:<old> → agent:<new> on the parent issue
+        try:
+            old_agent_label = (
+                build_agent_label(agent_slugs[agent_index - 1]) if agent_index > 0 else None
+            )
+            labels_to_remove: list[str] = [STALLED_LABEL]
+            if old_agent_label:
+                labels_to_remove.append(old_agent_label)
+            await self.github.update_issue_state(
+                access_token=ctx.access_token,
+                owner=ctx.repository_owner,
+                repo=ctx.repository_name,
+                issue_number=ctx.issue_number,
+                labels_add=[build_agent_label(agent_name)],
+                labels_remove=labels_to_remove,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Non-blocking: failed to swap agent label on issue #%s: %s",
+                ctx.issue_number,
+                exc,
+            )
+
+        # Move "active" label to the current sub-issue (T014)
+        if sub_issue_number:
+            try:
+                await self.github.update_issue_state(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=sub_issue_number,
+                    labels_add=[ACTIVE_LABEL],
+                )
+                # Remove active from previous sub-issue (if any)
+                if agent_index > 0:
+                    prev_agent = agent_slugs[agent_index - 1]
+                    pipeline = get_pipeline_state(ctx.issue_number)
+                    prev_sub = (
+                        pipeline.agent_sub_issues.get(prev_agent, {}).get("number")
+                        if pipeline
+                        else None
+                    )
+                    if prev_sub and prev_sub != sub_issue_number:
+                        await self.github.update_issue_state(
+                            access_token=ctx.access_token,
+                            owner=ctx.repository_owner,
+                            repo=ctx.repository_name,
+                            issue_number=prev_sub,
+                            labels_remove=[ACTIVE_LABEL],
+                        )
+            except Exception as exc:
+                logger.warning(
+                    "Non-blocking: failed to move active label for issue #%s: %s",
+                    ctx.issue_number,
+                    exc,
+                )
+
     # ──────────────────────────────────────────────────────────────────
     # HELPER: Assign Agent for Status
     # ──────────────────────────────────────────────────────────────────
@@ -1879,65 +1948,13 @@ class WorkflowOrchestrator:
         )
 
         # ── Pipeline label updates (non-blocking) ────────────────────────
-        # Swap agent:<old> → agent:<new> on the parent issue and move the
-        # "active" label to the new sub-issue.  Failures are logged but
-        # never block pipeline progression (FR-017).
-        try:
-            old_agent_label = (
-                build_agent_label(agent_slugs[agent_index - 1]) if agent_index > 0 else None
-            )
-            labels_to_remove: list[str] = [STALLED_LABEL]
-            if old_agent_label:
-                labels_to_remove.append(old_agent_label)
-            await self.github.update_issue_state(
-                access_token=ctx.access_token,
-                owner=ctx.repository_owner,
-                repo=ctx.repository_name,
-                issue_number=ctx.issue_number,
-                labels_add=[build_agent_label(agent_name)],
-                labels_remove=labels_to_remove,
-            )
-        except Exception as exc:
-            logger.warning(
-                "Non-blocking: failed to swap agent label on issue #%s: %s",
-                ctx.issue_number,
-                exc,
-            )
-
-        # Move "active" label to the current sub-issue (T014)
-        if sub_issue_number:
-            try:
-                # Add active to new sub-issue
-                await self.github.update_issue_state(
-                    access_token=ctx.access_token,
-                    owner=ctx.repository_owner,
-                    repo=ctx.repository_name,
-                    issue_number=sub_issue_number,
-                    labels_add=[ACTIVE_LABEL],
-                )
-                # Remove active from previous sub-issue (if any)
-                if agent_index > 0:
-                    prev_agent = agent_slugs[agent_index - 1]
-                    pipeline = get_pipeline_state(ctx.issue_number)
-                    prev_sub = (
-                        pipeline.agent_sub_issues.get(prev_agent, {}).get("number")
-                        if pipeline
-                        else None
-                    )
-                    if prev_sub and prev_sub != sub_issue_number:
-                        await self.github.update_issue_state(
-                            access_token=ctx.access_token,
-                            owner=ctx.repository_owner,
-                            repo=ctx.repository_name,
-                            issue_number=prev_sub,
-                            labels_remove=[ACTIVE_LABEL],
-                        )
-            except Exception as exc:
-                logger.warning(
-                    "Non-blocking: failed to move active label for issue #%s: %s",
-                    ctx.issue_number,
-                    exc,
-                )
+        await self._update_pipeline_labels(
+            ctx=ctx,
+            agent_name=agent_name,
+            agent_slugs=agent_slugs,
+            agent_index=agent_index,
+            sub_issue_number=sub_issue_number,
+        )
 
         # Special agent handlers (early return)
         if agent_name == "human":

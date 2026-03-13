@@ -108,7 +108,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 ## Database Schema
 
-SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `020`). Migrations are tracked by a `schema_version` table.
+SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `022`). Migrations are tracked by a `schema_version` table.
 
 ### Migration Files
 
@@ -133,11 +133,14 @@ SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via nu
 | `015_agent_icon_name.sql` | Icon name column on agent configs |
 | `015_pipeline_mcp_presets.sql` | Pipeline preset identification and project assignment |
 | `016_chores_enhancements.sql` | Chore execution tracking, AI enhance, pipeline assignment |
-| `017_blocking_queue.sql` | Per-repo blocking queue for serial issue activation |
-| `018_pipeline_blocking_override.sql` | Project-level pipeline blocking override |
+| `017_blocking_queue.sql` | _(historical — removed by `021_remove_blocking.sql`)_ Per-repo blocking queue for serial issue activation |
+| `018_pipeline_blocking_override.sql` | _(historical — removed by `021_remove_blocking.sql`)_ Project-level pipeline blocking override |
 | `019_agent_model_setting.sql` | Agent model preference (user_preferences + global_settings fallback) |
 | `020_chore_presets.sql` | Chore preset identification columns and unique index for seeding |
 | `021_remove_blocking.sql` | Drop blocking queue table, blocking columns, and related indexes |
+| `021_pipeline_state.sql` | Pipeline execution state tracking |
+| `022_chat_file_urls.sql` | Chat file URL storage |
+| `022_encrypt_existing_tokens.sql` | Encrypt existing tokens in the database |
 
 ## Workflow Settings
 

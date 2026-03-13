@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from collections.abc import Awaitable, Callable
 from datetime import timedelta
 from typing import Any
 
@@ -181,6 +182,56 @@ class InMemoryCache:
 
 # Global cache instance
 cache = InMemoryCache()
+
+
+async def cached_fetch[T](
+    cache_instance: InMemoryCache,
+    key: str,
+    fetch_fn: Callable[[], Awaitable[T]],
+    ttl_seconds: int | None = None,
+    refresh: bool = False,
+    stale_fallback: bool = False,
+) -> T:
+    """Fetch data with cache-aside pattern.
+
+    Checks the cache first.  On a miss (or forced *refresh*) the
+    *fetch_fn* coroutine is awaited, its result is stored in the cache,
+    and the fresh value is returned.
+
+    When *stale_fallback* is ``True`` and *fetch_fn* raises, any stale
+    cache entry is returned instead of propagating the error.
+
+    Args:
+        cache_instance: The :class:`InMemoryCache` to read/write.
+        key: Cache key.
+        fetch_fn: Async callable (no args) that returns the data.
+        ttl_seconds: TTL for the cache entry.  When ``None`` (default),
+            the cache instance's configured TTL is used.
+        refresh: When ``True``, skip the cache and always call *fetch_fn*.
+        stale_fallback: When ``True``, return stale data on fetch errors.
+
+    Returns:
+        The cached or freshly-fetched value.
+    """
+    if not refresh:
+        cached = cache_instance.get(key)
+        if cached is not None:
+            logger.debug("cached_fetch hit: %s", key)
+            return cached  # type: ignore[return-value]
+
+    try:
+        result = await fetch_fn()
+    except Exception:
+        if stale_fallback:
+            stale = cache_instance.get_stale(key)
+            if stale is not None:
+                logger.warning("cached_fetch stale fallback: %s", key)
+                return stale  # type: ignore[return-value]
+        raise
+
+    cache_instance.set(key, result, ttl_seconds=ttl_seconds)
+    logger.debug("cached_fetch set: %s (TTL: %ss)", key, ttl_seconds or "default")
+    return result  # type: ignore[return-value]
 
 
 # Convenience functions for project caching

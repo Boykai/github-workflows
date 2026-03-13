@@ -28,7 +28,7 @@ class RecommendationStatus(StrEnum):
 
 
 class AITaskProposal(BaseModel):
-    """Temporary entity for AI-generated tasks awaiting user confirmation."""
+    """AI-generated task proposal awaiting user confirmation."""
 
     proposal_id: UUID = Field(default_factory=uuid4, description="Unique proposal identifier")
     session_id: UUID = Field(..., description="Parent session ID (FK)")

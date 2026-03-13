@@ -94,6 +94,7 @@ export interface TaskCreateActionData {
 
 export interface StatusUpdateActionData {
   task_id: string;
+  /** @deprecated Use current_status / target_status instead. Retained for backward compatibility. */
   old_status?: string;
   new_status?: string;
   confirmed?: boolean;

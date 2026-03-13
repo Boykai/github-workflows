@@ -41,7 +41,8 @@ class PipelineStage(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
     order: int
     groups: list[ExecutionGroup] = Field(default_factory=list)
-    # Deprecated — retained for backward compatibility
+    # DEPRECATED(v2.0): Remove once all pipelines use groups-based format. See issue #3779.
+    # Retained for backward compatibility with pre-groups pipeline consumers.
     agents: list[PipelineAgentNode] = Field(default_factory=list)
     execution_mode: str = Field(default="sequential")
 
