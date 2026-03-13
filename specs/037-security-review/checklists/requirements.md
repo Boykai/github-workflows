@@ -1,7 +1,7 @@
 # Specification Quality Checklist: Security, Privacy & Vulnerability Audit
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning  
-**Created**: 2026-03-12  
+**Created**: 2026-03-13  
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -34,6 +34,7 @@
 - All 21 audit findings are covered across 25 functional requirements (FR-001 through FR-025)
 - 10 user stories map to the 4 audit phases (Critical, High, Medium, Low) with clear prioritization
 - 10 measurable success criteria directly correspond to the behavior-based verification checks from the audit
+- 8 edge cases cover: encryption migration, OAuth re-authorization, rate limiter availability, shared NAT/VPN, secret rotation, session expiration on WebSocket, OAuth callback replay, and TTL-expired local storage entries
 - Assumptions section documents reasonable defaults for: migration path for encryption enforcement, staging validation for OAuth scope narrowing, per-user over per-IP rate limiting preference
 - No [NEEDS CLARIFICATION] markers — all requirements have reasonable defaults based on the detailed audit findings
 - Risk section documents the 4 highest-impact risks with mitigations: OAuth scope breakage, encryption enforcement breaking change, rate limiting impact, and CSP compatibility

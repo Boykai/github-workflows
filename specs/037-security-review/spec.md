@@ -1,7 +1,7 @@
 # Feature Specification: Security, Privacy & Vulnerability Audit
 
 **Feature Branch**: `037-security-review`  
-**Created**: 2026-03-12  
+**Created**: 2026-03-13  
 **Status**: Draft  
 **Input**: User description: "Security, Privacy & Vulnerability Audit — 3 Critical · 8 High · 9 Medium · 2 Low findings across OWASP Top 10"
 
@@ -175,6 +175,9 @@ As a developer maintaining the CI/CD pipeline, I expect GitHub Actions workflows
 - What happens when the rate limiter state store is unavailable? The system should fail open with a logged warning rather than blocking all requests.
 - What happens when a legitimate user shares a NAT/VPN IP with an abusive user? Per-user rate limits (preferred over per-IP) prevent penalizing innocent users on shared networks.
 - What happens when a webhook secret is rotated while requests are in flight? The system should accept signatures from both the old and new secret during a brief overlap window, or clearly document the need for a brief downtime.
+- What happens when a user's session expires during an active WebSocket connection? The connection must be terminated gracefully and the client must re-authenticate before reconnecting.
+- What happens if the OAuth callback is replayed by an attacker? The OAuth flow must use a single-use state parameter to prevent callback replay attacks; a replayed callback must be rejected.
+- What happens when a TTL-expired message reference is accessed from local storage? The system should treat it as a cache miss, fetch from the backend, and clean up the expired entry.
 
 ## Requirements *(mandatory)*
 
