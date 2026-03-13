@@ -152,7 +152,7 @@ export function PipelineAnalytics({ pipelines }: PipelineAnalyticsProps) {
             </h4>
             <div className="space-y-1.5">
               {analytics.topAgents.map((agent) => {
-                const pct = Math.round((agent.count / analytics.totalAgents) * 100);
+                const pct = Math.round((agent.count / (analytics.totalAgents || 1)) * 100);
                 return (
                   <div key={agent.slug} className="flex items-center gap-2">
                     <Tooltip content={`${agent.count} assignments across pipelines`}>
@@ -184,7 +184,7 @@ export function PipelineAnalytics({ pipelines }: PipelineAnalyticsProps) {
             {analytics.topModels.length > 0 ? (
               <div className="space-y-1.5">
                 {analytics.topModels.map((model) => {
-                  const pct = Math.round((model.count / analytics.totalAgents) * 100);
+                  const pct = Math.round((model.count / (analytics.totalAgents || 1)) * 100);
                   return (
                     <div key={model.name} className="flex items-center gap-2">
                       <Tooltip content={`${model.count} agent nodes using this model`}>

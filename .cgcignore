@@ -20,8 +20,7 @@ test-results/
 e2e-report/
 frontend/test-results/
 frontend/e2e-report/
-<MagicMock *>
-/spec
+specs/
 **/*_test.py
 **/*.test.js
 
