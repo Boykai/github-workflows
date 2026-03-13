@@ -1,7 +1,5 @@
 ---
 description: Generate a custom checklist for the current feature based on user requirements.
-tools:
-- '*'
 mcp-servers:
   context7:
     type: http
