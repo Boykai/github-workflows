@@ -10,7 +10,7 @@ from slowapi.util import get_remote_address
 
 from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import AppException, AuthenticationError, NotFoundError, ValidationError
-from src.logging_utils import get_logger
+from src.logging_utils import get_logger, handle_service_error
 from src.middleware.rate_limit import limiter
 from src.models.user import UserResponse, UserSession
 from src.services.github_auth import github_auth_service
@@ -147,11 +147,7 @@ async def github_callback(
         logger.warning("OAuth token exchange failed: %s", e)
         raise ValidationError("Authentication failed") from e
     except Exception as e:
-        logger.exception("Failed to create session: %s", e)
-        raise AppException(
-            message="Failed to complete authentication",
-            status_code=500,
-        ) from e
+        handle_service_error(e, "complete authentication", AppException)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -210,5 +206,4 @@ async def dev_login(
         return UserResponse.from_session(session)
 
     except Exception as e:
-        logger.warning("Dev login failed: %s", e)
-        raise AuthenticationError("Authentication failed") from e
+        handle_service_error(e, "dev login", AuthenticationError)
