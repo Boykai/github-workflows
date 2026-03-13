@@ -57,7 +57,7 @@ _TRACKING_SECTION_RE = re.compile(
 # Regex to parse a single row (6-column with group):
 # | 1 | Backlog | G1 (series) | `speckit.specify` | gpt-4o | ⏳ Pending |
 _ROW_RE_6COL = re.compile(
-    r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]+?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]+?)\s*\|"
+    r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]*?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]+?)\s*\|"
 )
 
 # Regex to parse a single row (5-column): | 1 | Backlog | `speckit.specify` | gpt-4o | ⏳ Pending |
@@ -134,7 +134,9 @@ def build_agent_pipeline_steps(
 
         if status_groups:
             # Group-aware path: iterate groups
-            for group_num, group in enumerate(sorted(status_groups, key=lambda g: g.order), start=1):
+            for group_num, group in enumerate(
+                sorted(status_groups, key=lambda g: g.order), start=1
+            ):
                 mode_display = _mode_label(group.execution_mode)
                 group_label = f"G{group_num} ({mode_display})"
                 for agent in group.agents:
@@ -152,7 +154,7 @@ def build_agent_pipeline_steps(
                             model=model,
                             state=STATE_PENDING,
                             group_label=group_label,
-                            group_order=group.order,
+                            group_order=group_num - 1,
                             group_execution_mode=group.execution_mode,
                         )
                     )
@@ -211,7 +213,7 @@ def render_tracking_markdown(steps: list[AgentStep]) -> str:
         ]
         for step in steps:
             model_display = (step.model or "TBD").replace("|", "\\|")
-            group_display = step.group_label or ""
+            group_display = (step.group_label or "").replace("|", "\\|")
             lines.append(
                 f"| {step.index} | {step.status} | {group_display} | `{step.agent_name}` | {model_display} | {step.state} |"
             )

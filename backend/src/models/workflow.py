@@ -21,9 +21,7 @@ class ExecutionGroupMapping(BaseModel):
 
     group_id: str = Field(..., description="Unique group identifier")
     order: int = Field(default=0, description="Execution order within the stage")
-    execution_mode: str = Field(
-        default="sequential", description="'sequential' or 'parallel'"
-    )
+    execution_mode: str = Field(default="sequential", description="'sequential' or 'parallel'")
     agents: list[AgentAssignment] = Field(
         default_factory=list, description="Ordered agent assignments in this group"
     )

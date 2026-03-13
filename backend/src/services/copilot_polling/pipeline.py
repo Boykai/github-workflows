@@ -1114,7 +1114,7 @@ async def _reconstruct_pipeline_state(
                 # Determine current_group_index and current_agent_index_in_group
                 for gi_idx, gi in enumerate(pipeline.groups):
                     if gi.execution_mode == "parallel":
-                        all_terminal = all(
+                        all_terminal = len(gi.agent_statuses) >= len(gi.agents) and all(
                             s in ("completed", "failed") for s in gi.agent_statuses.values()
                         )
                         if not all_terminal:
@@ -1209,8 +1209,9 @@ async def _advance_pipeline(
         if group.execution_mode == "parallel":
             # Mark agent as completed in parallel group tracking
             group.agent_statuses[completed_agent] = "completed"
-            # Check if all agents in the parallel group are done
-            all_done = all(
+            # Check if all agents in the parallel group are done —
+            # ensure every agent in the group has a terminal status
+            all_done = len(group.agent_statuses) >= len(group.agents) and all(
                 s in ("completed", "failed") for s in group.agent_statuses.values()
             )
             if all_done:
