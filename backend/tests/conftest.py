@@ -228,7 +228,7 @@ async def client(
         patch("src.api.auth.github_auth_service", mock_github_auth_service),
         patch("src.api.projects.github_auth_service", mock_github_auth_service),
         # AI agent service
-        patch("src.api.chat.get_ai_agent_service", return_value=mock_ai_agent_service),
+        patch("src.api.chat.messaging.get_ai_agent_service", return_value=mock_ai_agent_service),
         # connection_manager — patched in every API module that broadcasts
         patch("src.api.projects.connection_manager", mock_websocket_manager),
         patch("src.api.tasks.connection_manager", mock_websocket_manager),

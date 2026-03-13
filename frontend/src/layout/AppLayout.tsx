@@ -118,7 +118,7 @@ export function AppLayout() {
             isDarkMode={isDarkMode}
             onToggleTheme={toggleTheme}
             user={
-              user ? { login: user.github_username, avatar_url: user.github_avatar_url } : undefined
+              user ? { login: user.github_username, avatar_url: user.github_avatar_url ?? undefined } : undefined
             }
             notifications={notifications}
             unreadCount={unreadCount}

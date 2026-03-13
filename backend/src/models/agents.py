@@ -137,3 +137,15 @@ class BulkModelUpdateResult(BaseModel):
     failed_agents: list[str] = Field(default_factory=list)
     target_model_id: str
     target_model_name: str
+
+
+class AgentMcpSyncResponse(BaseModel):
+    """Response for agent MCP sync endpoint."""
+
+    success: bool = True
+    files_updated: int = 0
+    files_skipped: int = 0
+    files_unchanged: int = 0
+    warnings: list[str] = Field(default_factory=list)
+    errors: list[str] = Field(default_factory=list)
+    synced_mcps: list[str] = Field(default_factory=list)

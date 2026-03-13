@@ -12,6 +12,7 @@ from src.config import get_settings
 from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, build_pipeline_label
 from src.exceptions import AppException, AuthorizationError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
+from src.models.common import DeleteResponse, PipelineSeedPresetsResponse
 from src.models.pipeline import (
     PipelineConfig,
     PipelineConfigCreate,
@@ -148,7 +149,7 @@ async def list_pipelines(
 # ── Seed Presets ──
 
 
-@router.post("/{project_id}/seed-presets")
+@router.post("/{project_id}/seed-presets", response_model=PipelineSeedPresetsResponse)
 async def seed_presets(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -398,7 +399,7 @@ async def update_pipeline(
 # ── Delete Pipeline ──
 
 
-@router.delete("/{project_id}/{pipeline_id}")
+@router.delete("/{project_id}/{pipeline_id}", response_model=DeleteResponse)
 async def delete_pipeline(
     project_id: str,
     pipeline_id: str,

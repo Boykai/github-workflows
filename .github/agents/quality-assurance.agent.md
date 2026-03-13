@@ -3,8 +3,6 @@ name: Quality Assurance
 description: Analyzes a related PR and its changed code paths, applies scoped quality
   improvements, verifies requirements and standards, and fixes PR-local defects, test
   gaps, or drift that could impact production quality.
-tools:
-- '*'
 handoffs:
 - label: Run Validation
   agent: Linter

@@ -143,7 +143,7 @@ async def _discover_agent_files(owner: str, repo: str, token: str) -> list[dict]
 
     Returns a list of dicts with keys: ``path``, ``sha``, ``download_url``.
     """
-    import httpx
+    from src.services.http_client import create_client
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -152,7 +152,7 @@ async def _discover_agent_files(owner: str, repo: str, token: str) -> list[dict]
     }
 
     url = f"https://api.github.com/repos/{owner}/{repo}/contents/.github/agents"
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with create_client(timeout=30.0) as client:
         resp = await client.get(url, headers=headers)
 
     if resp.status_code == 404:
@@ -276,7 +276,7 @@ async def sync_agent_mcps(
     Returns:
         AgentMcpSyncResult with counts and any warnings/errors.
     """
-    import httpx
+    from src.services.http_client import create_client
 
     result = AgentMcpSyncResult()
 
@@ -303,7 +303,7 @@ async def sync_agent_mcps(
             "X-GitHub-Api-Version": "2022-11-28",
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with create_client(timeout=30.0) as client:
             for agent_entry in agent_files:
                 file_path = agent_entry["path"]
                 try:

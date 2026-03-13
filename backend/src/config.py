@@ -77,6 +77,7 @@ class Settings(BaseSettings):
 
     # Database
     database_path: str = "/var/lib/ghchat/data/settings.db"
+    migration_dry_run: bool = False
 
     # Signal integration
     signal_api_url: str = "http://signal-api:8080"

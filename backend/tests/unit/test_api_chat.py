@@ -6,7 +6,6 @@ Covers:
 - POST   /api/v1/chat/messages                     → send_message (branches)
 - POST   /api/v1/chat/proposals/{id}/confirm       → confirm_proposal
 - DELETE /api/v1/chat/proposals/{id}               → cancel_proposal
-- _resolve_repository                              → all fallback branches
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -20,7 +19,6 @@ from src.models.chat import (
     ProposalStatus,
 )
 from src.models.task import Task
-from src.models.user import UserSession
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -80,7 +78,9 @@ class TestSendMessageFeatureRequest:
 
     async def test_ai_not_configured(self, client, mock_session, mock_ai_agent_service):
         mock_session.selected_project_id = "PVT_1"
-        with patch("src.api.chat.get_ai_agent_service", side_effect=ValueError("not configured")):
+        with patch(
+            "src.api.chat.messaging.get_ai_agent_service", side_effect=ValueError("not configured")
+        ):
             resp = await client.post("/api/v1/chat/messages", json={"content": "add dark mode"})
         assert resp.status_code == 200
         data = resp.json()
@@ -152,7 +152,7 @@ class TestSendMessageStatusChange:
                 return [target_task]
             return None
 
-        with patch("src.api.chat.cache") as mock_cache:
+        with patch("src.api.chat.messaging.cache") as mock_cache:
             mock_cache.get.side_effect = _cache_get
             resp = await client.post(
                 "/api/v1/chat/messages",
@@ -172,7 +172,7 @@ class TestSendMessageStatusChange:
         mock_ai_agent_service.parse_status_change_request.return_value = status_change
         mock_ai_agent_service.identify_target_task = MagicMock(return_value=None)
 
-        with patch("src.api.chat.cache") as mock_cache:
+        with patch("src.api.chat.messaging.cache") as mock_cache:
             mock_cache.get.return_value = None
             resp = await client.post(
                 "/api/v1/chat/messages",
@@ -241,7 +241,9 @@ class TestSendMessageTaskGeneration:
         mock_ai_agent_service.parse_status_change_request.return_value = None
         mock_ai_agent_service.generate_title_from_description.return_value = "Some task"
 
-        with patch("src.api.chat.AITaskProposal", side_effect=RuntimeError("storage failed")):
+        with patch(
+            "src.api.chat.commands.AITaskProposal", side_effect=RuntimeError("storage failed")
+        ):
             resp = await client.post(
                 "/api/v1/chat/messages",
                 json={"content": "some task", "ai_enhance": False},
@@ -311,10 +313,14 @@ class TestConfirmProposal:
 
         # Patch workflow functions to avoid side effects
         with (
-            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
-            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
-            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
-            patch("src.api.chat.get_agent_slugs", return_value=[]),
+            patch(
+                "src.api.chat.proposals.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.chat.proposals.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.chat.proposals.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.proposals.get_agent_slugs", return_value=[]),
         ):
             mock_orch.return_value.assign_agent_for_status = AsyncMock()
             mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
@@ -385,115 +391,6 @@ class TestCancelProposal:
     async def test_cancel_not_found(self, client):
         resp = await client.delete("/api/v1/chat/proposals/nonexistent")
         assert resp.status_code == 404
-
-
-# ── _resolve_repository (direct unit tests) ────────────────────────────────
-
-
-class TestResolveRepository:
-    """Direct tests for _resolve_repository covering all fallback branches."""
-
-    async def test_no_project_selected_raises(self):
-        from src.api.chat import _resolve_repository
-        from src.exceptions import ValidationError
-
-        session = UserSession(
-            github_user_id="1",
-            github_username="u",
-            access_token="t",
-            selected_project_id=None,
-        )
-        with pytest.raises(ValidationError, match="No project selected"):
-            await _resolve_repository(session)
-
-    async def test_project_repository_found(self):
-        from src.api.chat import _resolve_repository
-
-        session = UserSession(
-            github_user_id="1",
-            github_username="u",
-            access_token="t",
-            selected_project_id="PVT_1",
-        )
-        mock_svc = AsyncMock()
-        mock_svc.get_project_repository.return_value = ("owner", "repo")
-        with patch("src.services.github_projects.github_projects_service", mock_svc):
-            result = await _resolve_repository(session)
-        assert result == ("owner", "repo")
-
-    async def test_workflow_config_fallback(self):
-        from src.api.chat import _resolve_repository
-
-        session = UserSession(
-            github_user_id="1",
-            github_username="u",
-            access_token="t",
-            selected_project_id="PVT_1",
-        )
-        mock_svc = AsyncMock()
-        mock_svc.get_project_repository.return_value = None
-        mock_config = MagicMock(repository_owner="wf_owner", repository_name="wf_repo")
-        with (
-            patch("src.services.github_projects.github_projects_service", mock_svc),
-            patch(
-                "src.services.workflow_orchestrator.get_workflow_config",
-                new_callable=AsyncMock,
-                return_value=mock_config,
-            ),
-        ):
-            result = await _resolve_repository(session)
-        assert result == ("wf_owner", "wf_repo")
-
-    async def test_settings_default_fallback(self):
-        from src.api.chat import _resolve_repository
-
-        session = UserSession(
-            github_user_id="1",
-            github_username="u",
-            access_token="t",
-            selected_project_id="PVT_1",
-        )
-        mock_svc = AsyncMock()
-        mock_svc.get_project_repository.return_value = None
-        with (
-            patch("src.services.github_projects.github_projects_service", mock_svc),
-            patch(
-                "src.services.workflow_orchestrator.get_workflow_config",
-                new_callable=AsyncMock,
-                return_value=None,
-            ),
-            patch("src.config.get_settings") as mock_s,
-        ):
-            mock_s.return_value = MagicMock(
-                default_repo_owner="def_owner", default_repo_name="def_repo"
-            )
-            result = await _resolve_repository(session)
-        assert result == ("def_owner", "def_repo")
-
-    async def test_all_fallbacks_fail_raises(self):
-        from src.api.chat import _resolve_repository
-        from src.exceptions import ValidationError
-
-        session = UserSession(
-            github_user_id="1",
-            github_username="u",
-            access_token="t",
-            selected_project_id="PVT_1",
-        )
-        mock_svc = AsyncMock()
-        mock_svc.get_project_repository.return_value = None
-        with (
-            patch("src.services.github_projects.github_projects_service", mock_svc),
-            patch(
-                "src.services.workflow_orchestrator.get_workflow_config",
-                new_callable=AsyncMock,
-                return_value=None,
-            ),
-            patch("src.config.get_settings") as mock_s,
-        ):
-            mock_s.return_value = MagicMock(default_repo_owner=None, default_repo_name=None)
-            with pytest.raises(ValidationError, match="No repository found"):
-                await _resolve_repository(session)
 
 
 # ── cancel_proposal (direct unit tests) ─────────────────────────────────────
@@ -573,10 +470,14 @@ class TestConfirmProposalEdgeCases:
         mock_github_service.add_issue_to_project.return_value = "PVTI_20"
 
         with (
-            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
-            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
-            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
-            patch("src.api.chat.get_agent_slugs", return_value=[]),
+            patch(
+                "src.api.chat.proposals.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.chat.proposals.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.chat.proposals.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.proposals.get_agent_slugs", return_value=[]),
         ):
             mock_orch.return_value.assign_agent_for_status = AsyncMock()
             mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
@@ -611,10 +512,14 @@ class TestConfirmProposalEdgeCases:
         mock_github_service.add_issue_to_project.return_value = "PVTI_21"
 
         with (
-            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
-            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
-            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
-            patch("src.api.chat.get_agent_slugs", return_value=[]),
+            patch(
+                "src.api.chat.proposals.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.chat.proposals.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.chat.proposals.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.proposals.get_agent_slugs", return_value=[]),
         ):
             mock_orch.return_value.assign_agent_for_status = AsyncMock()
             mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
@@ -656,10 +561,16 @@ class TestConfirmProposalEdgeCases:
         }
 
         with (
-            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
-            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock) as mock_set_config,
-            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
-            patch("src.api.chat.get_agent_slugs", return_value=["easy"]),
+            patch(
+                "src.api.chat.proposals.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "src.api.chat.proposals.set_workflow_config", new_callable=AsyncMock
+            ) as mock_set_config,
+            patch("src.api.chat.proposals.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.proposals.get_agent_slugs", return_value=["easy"]),
             patch(
                 "src.services.workflow_orchestrator.config.load_pipeline_as_agent_mappings",
                 new_callable=AsyncMock,
@@ -730,10 +641,14 @@ class TestConfirmProposalPreservesFullDescription:
         mock_github_service.add_issue_to_project.return_value = "PVTI_30"
 
         with (
-            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
-            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
-            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
-            patch("src.api.chat.get_agent_slugs", return_value=[]),
+            patch(
+                "src.api.chat.proposals.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.chat.proposals.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.chat.proposals.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.proposals.get_agent_slugs", return_value=[]),
         ):
             mock_orch.return_value.assign_agent_for_status = AsyncMock()
             mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
@@ -770,10 +685,14 @@ class TestConfirmProposalPreservesFullDescription:
         mock_github_service.add_issue_to_project.return_value = "PVTI_31"
 
         with (
-            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
-            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
-            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
-            patch("src.api.chat.get_agent_slugs", return_value=[]),
+            patch(
+                "src.api.chat.proposals.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.chat.proposals.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.chat.proposals.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.proposals.get_agent_slugs", return_value=[]),
         ):
             mock_orch.return_value.assign_agent_for_status = AsyncMock()
             mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
@@ -874,10 +793,14 @@ class TestConfirmProposalPreservesFullDescription:
         mock_github_service.add_issue_to_project.return_value = "PVTI_32"
 
         with (
-            patch("src.api.chat.get_workflow_config", new_callable=AsyncMock, return_value=None),
-            patch("src.api.chat.set_workflow_config", new_callable=AsyncMock),
-            patch("src.api.chat.get_workflow_orchestrator") as mock_orch,
-            patch("src.api.chat.get_agent_slugs", return_value=[]),
+            patch(
+                "src.api.chat.proposals.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.chat.proposals.set_workflow_config", new_callable=AsyncMock),
+            patch("src.api.chat.proposals.get_workflow_orchestrator") as mock_orch,
+            patch("src.api.chat.proposals.get_agent_slugs", return_value=[]),
         ):
             mock_orch.return_value.assign_agent_for_status = AsyncMock()
             mock_orch.return_value.create_all_sub_issues = AsyncMock(return_value=[])
@@ -964,7 +887,9 @@ class TestErrorMessageSanitization:
 
         with (
             patch(
-                "src.api.chat.resolve_repository", new_callable=AsyncMock, return_value=("o", "r")
+                "src.api.chat.proposals.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("o", "r"),
             ),
         ):
             resp = await client.post(

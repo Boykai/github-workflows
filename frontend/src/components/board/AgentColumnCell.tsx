@@ -45,7 +45,7 @@ function SortableAgentTile({
   compactCount?: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
-    id: agent.id,
+    id: agent.id ?? '',
     transition: { duration: 150, easing: 'ease' },
   });
 
@@ -134,7 +134,7 @@ export function AgentColumnCell({
           <span className="text-[10px] text-muted-foreground/65">{agentCount}</span>
         </div>
       )}
-      <SortableContext items={agents.map((a) => a.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={agents.map((a) => a.id ?? '')} strategy={verticalListSortingStrategy}>
         <div role="list" aria-label={`Agents in ${status}`} className={cn('flex min-h-[2px] flex-col', isCompact ? 'gap-1.5' : 'gap-2')}>
           {agents.map((agent, index) => (
             <SortableAgentTile

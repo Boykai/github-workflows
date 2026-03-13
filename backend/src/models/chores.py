@@ -190,3 +190,10 @@ class ChoreCreateResponse(BaseModel):
     pr_url: str | None = None
     pr_merged: bool = False
     merge_error: str | None = None
+
+
+class ChoreDeleteResponse(BaseModel):
+    """Response from chore deletion endpoint."""
+
+    deleted: bool = True
+    closed_issue_number: int | None = None

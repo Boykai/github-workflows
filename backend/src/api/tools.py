@@ -4,12 +4,12 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
-from src.exceptions import AppException, GitHubAPIError, NotFoundError, ValidationError
-from src.logging_utils import get_logger
+from src.exceptions import AppException, NotFoundError, ValidationError
+from src.logging_utils import get_logger, handle_service_error
 from src.models.tools import (
     McpPresetListResponse,
     McpToolConfigCreate,
@@ -82,10 +82,8 @@ async def get_repo_config(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Cannot resolve repository: {exc}",
-        ) from exc
+        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
+        raise ValidationError("Cannot resolve repository for project") from exc
 
     try:
         return await service.get_repo_mcp_config(
@@ -94,13 +92,7 @@ async def get_repo_config(
             access_token=session.access_token,
         )
     except Exception as exc:
-        logger.exception(
-            "Failed to fetch repository MCP config for project %s (%s/%s)",
-            project_id,
-            owner,
-            repo,
-        )
-        raise GitHubAPIError("Failed to fetch repository MCP config") from exc
+        handle_service_error(exc, "fetch repository MCP config")
 
 
 @router.put(
@@ -136,14 +128,7 @@ async def update_repo_server(
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
     except RuntimeError as exc:
-        logger.exception(
-            "Failed to update repository MCP server %s for project %s (%s/%s)",
-            server_name,
-            project_id,
-            owner,
-            repo,
-        )
-        raise GitHubAPIError("Failed to update repository MCP server") from exc
+        handle_service_error(exc, "update repository MCP server")
 
 
 @router.delete(
@@ -177,14 +162,7 @@ async def delete_repo_server(
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
     except RuntimeError as exc:
-        logger.exception(
-            "Failed to delete repository MCP server %s for project %s (%s/%s)",
-            server_name,
-            project_id,
-            owner,
-            repo,
-        )
-        raise GitHubAPIError("Failed to delete repository MCP server") from exc
+        handle_service_error(exc, "delete repository MCP server")
 
 
 # ── Create Tool ──

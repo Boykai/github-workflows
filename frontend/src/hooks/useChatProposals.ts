@@ -41,7 +41,7 @@ export function useChatProposals() {
           created_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + PROPOSAL_EXPIRY_MS).toISOString(),
         };
-        setPendingProposals((prev) => new Map(prev).set(proposal.proposal_id, proposal));
+        setPendingProposals((prev) => new Map(prev).set(proposal.proposal_id!, proposal));
       }
     }
 

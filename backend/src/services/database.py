@@ -61,7 +61,7 @@ async def init_database() -> aiosqlite.Connection:
     await db.execute("PRAGMA foreign_keys=ON;")
 
     # Run migrations
-    await _run_migrations(db)
+    await _run_migrations(db, dry_run=settings.migration_dry_run)
 
     _connection = db
     logger.info("Database initialized at %s", db_path)
@@ -88,7 +88,7 @@ def get_db() -> aiosqlite.Connection:
     return _connection
 
 
-async def _run_migrations(db: aiosqlite.Connection) -> None:
+async def _run_migrations(db: aiosqlite.Connection, *, dry_run: bool = False) -> None:
     """
     Run pending SQL migrations.
 
@@ -97,6 +97,8 @@ async def _run_migrations(db: aiosqlite.Connection) -> None:
     3. Discover .sql migration files sorted by numeric prefix
     4. If DB version > app version, refuse to start
     5. Apply pending migrations sequentially in transactions
+
+    When *dry_run* is True, pending SQL is logged but **not** executed.
     """
     # Ensure schema_version table exists
     await db.execute(
@@ -152,8 +154,20 @@ async def _run_migrations(db: aiosqlite.Connection) -> None:
         return
 
     for version, path in sorted(pending):
-        logger.info("Applying migration %s (%d → %d)", path.stem, current_version, version)
         sql = path.read_text(encoding="utf-8")
+
+        if dry_run:
+            logger.info(
+                "[DRY-RUN] Would apply migration %s (%d → %d):\n%s",
+                path.stem,
+                current_version,
+                version,
+                sql,
+            )
+            current_version = version
+            continue
+
+        logger.info("Applying migration %s (%d → %d)", path.stem, current_version, version)
 
         try:
             await db.executescript(sql)
@@ -170,7 +184,10 @@ async def _run_migrations(db: aiosqlite.Connection) -> None:
             raise
 
     await _reconcile_known_schema_drifts(db)
-    logger.info("All migrations applied. Schema version: %d", current_version)
+    if dry_run:
+        logger.info("[DRY-RUN] %d pending migration(s) previewed (not applied)", len(pending))
+    else:
+        logger.info("All migrations applied. Schema version: %d", current_version)
 
 
 async def _reconcile_known_schema_drifts(db: aiosqlite.Connection) -> None:

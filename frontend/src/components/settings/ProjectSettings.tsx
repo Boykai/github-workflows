@@ -35,8 +35,8 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
     const ps = settings.project;
 
     if (ps.board_display_config) {
-      setColumnOrder(ps.board_display_config.column_order.join(', '));
-      setCollapsedColumns(ps.board_display_config.collapsed_columns.join(', '));
+      setColumnOrder((ps.board_display_config.column_order ?? []).join(', '));
+      setCollapsedColumns((ps.board_display_config.collapsed_columns ?? []).join(', '));
       setShowEstimates(ps.board_display_config.show_estimates);
     } else {
       setColumnOrder('');

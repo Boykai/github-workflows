@@ -21,6 +21,7 @@ from src.models.chores import (
     ChoreCreate,
     ChoreCreateResponse,
     ChoreCreateWithConfirmation,
+    ChoreDeleteResponse,
     ChoreInlineUpdate,
     ChoreInlineUpdateResponse,
     ChoreTemplate,
@@ -30,6 +31,7 @@ from src.models.chores import (
     EvaluateChoreTriggersResponse,
     TriggerChoreRequest,
 )
+from src.models.common import SeedPresetsResponse
 from src.models.user import UserSession
 from src.services.chores.service import ChoreConflictError, ChoresService
 from src.services.chores.template_builder import (
@@ -52,7 +54,7 @@ def _get_service() -> ChoresService:
 # ── Seed Presets ──
 
 
-@router.post("/{project_id}/seed-presets")
+@router.post("/{project_id}/seed-presets", response_model=SeedPresetsResponse)
 async def seed_presets(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -273,7 +275,7 @@ async def update_chore(
 # ── Delete ──
 
 
-@router.delete("/{project_id}/{chore_id}")
+@router.delete("/{project_id}/{chore_id}", response_model=ChoreDeleteResponse)
 async def delete_chore(
     project_id: str,
     chore_id: str,

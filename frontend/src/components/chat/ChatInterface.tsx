@@ -448,8 +448,8 @@ export function ChatInterface({
                 {proposal && message.action_type === 'task_create' && (
                   <TaskPreview
                     proposal={proposal}
-                    onConfirm={() => onConfirmProposal(proposal.proposal_id)}
-                    onReject={() => onRejectProposal(proposal.proposal_id)}
+                    onConfirm={() => onConfirmProposal(proposal.proposal_id!)}
+                    onReject={() => onRejectProposal(proposal.proposal_id!)}
                   />
                 )}
 

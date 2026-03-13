@@ -416,6 +416,7 @@ describe('useChat', () => {
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
     expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({
       content: '/agent Build a code reviewer',
+      ai_enhance: false,
     });
   });
 
@@ -442,7 +443,7 @@ describe('useChat', () => {
     });
 
     expect(mockChatApi.sendMessage).toHaveBeenCalled();
-    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: '/agent Create a tester' });
+    expect(mockChatApi.sendMessage.mock.calls[0][0]).toEqual({ content: '/agent Create a tester', ai_enhance: false });
     // Should NOT produce local system messages
     const systemMsgs = result.current.messages.filter((m) => m.sender_type === 'system');
     expect(systemMsgs).toHaveLength(0);

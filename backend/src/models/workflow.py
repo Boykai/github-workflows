@@ -82,7 +82,92 @@ class WorkflowResult(BaseModel):
     message: str = Field(..., description="Human-readable result message")
 
 
+class PipelineStateItem(BaseModel):
+    """Single pipeline state for an issue."""
+
+    issue_number: int
+    project_id: str
+    status: str
+    agents: list[str] = Field(default_factory=list)
+    current_agent_index: int = 0
+    current_agent: str | None = None
+    completed_agents: list[str] = Field(default_factory=list)
+    is_complete: bool = False
+    started_at: str | None = None
+    error: str | None = None
+
+
+class PipelineStatesResponse(BaseModel):
+    """Response for listing all pipeline states."""
+
+    pipeline_states: dict[int, PipelineStateItem]
+    count: int
+
+
+class PipelineRetryResponse(BaseModel):
+    """Response for pipeline retry endpoint."""
+
+    message: str
+    issue_number: int
+    agent: str | None = None
+    success: bool = False
+
+
+class PollingStatusResponse(BaseModel):
+    """Response for polling status endpoint."""
+
+    is_running: bool
+    project_id: str | None = None
+    repository: str | None = None
+    interval_seconds: int | None = None
+    last_check: str | None = None
+    checks_count: int = 0
+
+
+class PollingStartResponse(BaseModel):
+    """Response for polling start endpoint."""
+
+    message: str
+    interval_seconds: int | None = None
+    project_id: str | None = None
+    repository: str | None = None
+    status: PollingStatusResponse | None = None
+
+
+class PollingCheckResult(BaseModel):
+    """Individual result from checking an issue for completion."""
+
+    issue_number: int | None = None
+    status: str | None = None
+    task_title: str | None = None
+    pr_number: int | None = None
+    message: str | None = None
+    error: str | None = None
+
+
+class PollingCheckAllResponse(BaseModel):
+    """Response for check-all-issues endpoint."""
+
+    checked_count: int
+    results: list[PollingCheckResult] = Field(default_factory=list)
+
+
+class PollingStopResponse(BaseModel):
+    """Response for polling stop endpoint."""
+
+    message: str
+    status: PollingStatusResponse | None = None
+
+
 __all__ = [
+    "PipelineRetryResponse",
+    "PipelineStateItem",
+    "PipelineStatesResponse",
+    "PollingCheckAllResponse",
+    "PollingCheckResult",
+    "PollingStartResponse",
+    "PollingStatusResponse",
+    "PollingStopResponse",
     "TriggeredBy",
     "WorkflowConfiguration",
     "WorkflowResult",

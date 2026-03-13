@@ -45,7 +45,7 @@ export function useRecentParentIssues(boardData: BoardDataResponse | null): Rece
         recent.push({
           item_id: item.item_id,
           title: item.title,
-          number: item.number,
+          number: item.number ?? undefined,
           repository: item.repository
             ? { owner: item.repository.owner, name: item.repository.name }
             : undefined,

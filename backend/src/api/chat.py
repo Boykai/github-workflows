@@ -119,7 +119,7 @@ async def _handle_agent_command(
 
     try:
         db = get_db()
-        owner, repo = await _resolve_repository(session)
+        owner, repo = await resolve_repository(session.access_token, selected_project_id)
         agent_response_text = await handle_agent_command(
             message=content,
             session_key=session_key,
@@ -174,7 +174,8 @@ async def _handle_feature_request(
     try:
         metadata_context: dict | None = None
         try:
-            owner, repo = await _resolve_repository(session)
+            project_id = require_selected_project(session)
+            owner, repo = await resolve_repository(session.access_token, project_id)
             from src.services.metadata_service import MetadataService
 
             metadata_svc = MetadataService()
@@ -445,12 +446,6 @@ async def _handle_task_generation(
         return error_message
 
 
-async def _resolve_repository(session: UserSession) -> tuple[str, str]:
-    """Resolve repository owner and name for issue creation."""
-    project_id = require_selected_project(session)
-    return await resolve_repository(session.access_token, project_id)
-
-
 def get_session_messages(session_id: UUID) -> list[ChatMessage]:
     """Get messages for a session."""
     return _messages.get(str(session_id), [])
@@ -670,9 +665,8 @@ async def confirm_proposal(
                 proposal.status = ProposalStatus.EDITED
 
     # Resolve repository info for issue creation
-    owner, repo = await _resolve_repository(session)
-
     project_id = require_selected_project(session)
+    owner, repo = await resolve_repository(session.access_token, project_id)
 
     # Validate description does not exceed GitHub API limit before attempting
     # issue creation.  This check lives outside the try/except below so that the

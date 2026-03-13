@@ -624,7 +624,7 @@ class ToolsService:
         access_token: str,
     ) -> RepoMcpConfigResponse:
         """Read repository MCP configuration from all supported GitHub paths."""
-        import httpx
+        from src.services.http_client import create_client
 
         headers = {
             "Authorization": f"Bearer {access_token}",
@@ -635,7 +635,7 @@ class ToolsService:
         source_paths: dict[str, list[str]] = {}
         available_paths: list[str] = []
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with create_client(timeout=30.0) as client:
             for path in MCP_CONFIG_PATHS:
                 get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
                 resp = await client.get(get_url, headers=headers)
@@ -683,7 +683,7 @@ class ToolsService:
         data: RepoMcpServerUpdate,
     ) -> RepoMcpServerConfig:
         """Update a repository MCP server directly in supported repo config files."""
-        import httpx
+        from src.services.http_client import create_client
 
         is_valid, error_msg = self.validate_mcp_config(data.config_content)
         if not is_valid:
@@ -705,7 +705,7 @@ class ToolsService:
         }
 
         updated_paths: list[str] = []
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with create_client(timeout=30.0) as client:
             pending_updates: list[tuple[str, str | None, dict[str, object]]] = []
 
             for path in MCP_CONFIG_PATHS:
@@ -778,7 +778,7 @@ class ToolsService:
         server_name: str,
     ) -> RepoMcpServerConfig:
         """Delete a repository MCP server directly from supported repo config files."""
-        import httpx
+        from src.services.http_client import create_client
 
         headers = {
             "Authorization": f"Bearer {access_token}",
@@ -788,7 +788,7 @@ class ToolsService:
 
         removed_config: dict[str, object] | None = None
         removed_paths: list[str] = []
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with create_client(timeout=30.0) as client:
             for path in MCP_CONFIG_PATHS:
                 get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
                 resp = await client.get(get_url, headers=headers)
@@ -850,7 +850,7 @@ class ToolsService:
         access_token: str,
     ) -> McpToolConfigSyncResult:
         """Sync an MCP tool configuration to all supported GitHub MCP config files."""
-        import httpx
+        from src.services.http_client import create_client
 
         tool = await self.get_tool(project_id, tool_id, github_user_id)
         if not tool:
@@ -888,7 +888,7 @@ class ToolsService:
             }
 
             synced_paths: list[str] = []
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with create_client(timeout=30.0) as client:
                 tool_config = json.loads(tool.config_content)
                 for path in MCP_CONFIG_PATHS:
                     existing_sha = None
@@ -990,7 +990,7 @@ class ToolsService:
         protected_server_names: set[str] | None = None,
     ) -> None:
         """Remove an MCP server entry from all supported GitHub MCP config files."""
-        import httpx
+        from src.services.http_client import create_client
 
         headers = {
             "Authorization": f"Bearer {access_token}",
@@ -998,7 +998,7 @@ class ToolsService:
             "X-GitHub-Api-Version": "2022-11-28",
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with create_client(timeout=30.0) as client:
             for path in MCP_CONFIG_PATHS:
                 get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
                 resp = await client.get(get_url, headers=headers)

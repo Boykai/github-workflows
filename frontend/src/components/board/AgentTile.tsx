@@ -82,12 +82,12 @@ export function AgentTile({
 
   const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onRemove?.(agent.id);
+    if (agent.id) onRemove?.(agent.id);
   };
 
   const handleClone = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onClone?.(agent.id);
+    if (agent.id) onClone?.(agent.id);
   };
 
   const stopDragPointerPropagation = (event: React.PointerEvent<HTMLElement>) => {

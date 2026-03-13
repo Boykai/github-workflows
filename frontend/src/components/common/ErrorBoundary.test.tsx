@@ -5,6 +5,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ErrorBoundary } from './ErrorBoundary';
 
+vi.mock('@/lib/reportError', () => ({ reportError: vi.fn() }));
+
 // Suppress React error boundary console.error noise in test output.
 // The spy is stored so it can be restored in afterEach to prevent leaking
 // the mock into other test files.

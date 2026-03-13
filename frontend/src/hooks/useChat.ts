@@ -59,7 +59,7 @@ export function useChat() {
         try {
           const result = await executeCommand(content);
           if (result.passthrough) {
-            await sendMutation.mutateAsync({ content });
+            await sendMutation.mutateAsync({ content, ai_enhance: false });
             return;
           }
           setLocalMessages((prev) => [
@@ -118,7 +118,7 @@ export function useChat() {
       );
 
       try {
-        await sendMutation.mutateAsync({ content: msg.content });
+        await sendMutation.mutateAsync({ content: msg.content, ai_enhance: false });
         setLocalMessages((prev) => prev.filter((m) => m.message_id !== messageId));
       } catch {
         setLocalMessages((prev) =>

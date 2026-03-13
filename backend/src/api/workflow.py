@@ -13,9 +13,17 @@ from src.exceptions import AppException, NotFoundError, ValidationError
 from src.logging_utils import get_logger, handle_service_error
 from src.middleware.rate_limit import limiter
 from src.models.agent import AgentAssignment, AvailableAgentsResponse
+from src.models.common import MessageResponse
 from src.models.recommendation import RecommendationStatus
 from src.models.user import UserSession
 from src.models.workflow import (
+    PipelineRetryResponse,
+    PipelineStateItem,
+    PipelineStatesResponse,
+    PollingCheckAllResponse,
+    PollingStartResponse,
+    PollingStatusResponse,
+    PollingStopResponse,
     WorkflowConfiguration,
     WorkflowResult,
     WorkflowTransition,
@@ -362,7 +370,7 @@ async def reject_recommendation(
     }
 
 
-@router.post("/pipeline/{issue_number}/retry")
+@router.post("/pipeline/{issue_number}/retry", response_model=PipelineRetryResponse)
 async def retry_pipeline(
     request: Request,
     issue_number: int,
@@ -658,7 +666,7 @@ async def get_transition_history(
     return transitions
 
 
-@router.get("/pipeline-states")
+@router.get("/pipeline-states", response_model=PipelineStatesResponse)
 async def list_pipeline_states(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
@@ -695,7 +703,7 @@ async def list_pipeline_states(
     }
 
 
-@router.get("/pipeline-states/{issue_number}")
+@router.get("/pipeline-states/{issue_number}", response_model=PipelineStateItem)
 async def get_pipeline_state_for_issue(
     issue_number: int,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -728,7 +736,7 @@ async def get_pipeline_state_for_issue(
     }
 
 
-@router.post("/notify/in-review")
+@router.post("/notify/in-review", response_model=MessageResponse)
 async def notify_in_review(
     session: Annotated[UserSession, Depends(get_session_dep)],
     issue_id: str = Query(..., description="GitHub Issue node ID"),
@@ -771,7 +779,7 @@ async def notify_in_review(
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-@router.get("/polling/status")
+@router.get("/polling/status", response_model=PollingStatusResponse)
 async def get_polling_status(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
@@ -825,7 +833,7 @@ async def check_issue_copilot_completion(
     return result
 
 
-@router.post("/polling/start")
+@router.post("/polling/start", response_model=PollingStartResponse)
 async def start_copilot_polling(
     session: Annotated[UserSession, Depends(get_session_dep)],
     interval_seconds: int = 15,
@@ -874,7 +882,7 @@ async def start_copilot_polling(
     }
 
 
-@router.post("/polling/stop")
+@router.post("/polling/stop", response_model=PollingStopResponse)
 async def stop_copilot_polling(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
@@ -892,7 +900,7 @@ async def stop_copilot_polling(
     return {"message": "Polling stopped", "status": get_polling_status()}
 
 
-@router.post("/polling/check-all")
+@router.post("/polling/check-all", response_model=PollingCheckAllResponse)
 async def check_all_in_progress_issues(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:

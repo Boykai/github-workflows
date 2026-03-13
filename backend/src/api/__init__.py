@@ -8,6 +8,7 @@ from src.api.board import router as board_router
 from src.api.chat import router as chat_router
 from src.api.chores import router as chores_router
 from src.api.cleanup import router as cleanup_router
+from src.api.errors import router as errors_router
 from src.api.health import router as health_router
 from src.api.mcp import router as mcp_router
 from src.api.metadata import router as metadata_router
@@ -39,3 +40,4 @@ router.include_router(pipelines_router, prefix="/pipelines", tags=["pipelines"])
 router.include_router(tools_router, prefix="/tools", tags=["tools"])
 router.include_router(metadata_router, prefix="/metadata", tags=["metadata"])
 router.include_router(health_router, tags=["health"])
+router.include_router(errors_router, tags=["errors"])

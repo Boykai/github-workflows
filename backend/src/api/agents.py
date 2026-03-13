@@ -18,6 +18,7 @@ from src.models.agents import (
     AgentCreate,
     AgentCreateResult,
     AgentDeleteResult,
+    AgentMcpSyncResponse,
     AgentPendingCleanupResult,
     AgentUpdate,
     BulkModelUpdateRequest,
@@ -302,6 +303,7 @@ async def agent_chat(
 
 @router.post(
     "/{project_id}/sync-mcps",
+    response_model=AgentMcpSyncResponse,
     dependencies=[Depends(verify_project_access)],
 )
 async def sync_agent_mcps_endpoint(

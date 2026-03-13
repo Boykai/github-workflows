@@ -47,9 +47,16 @@ github-workflows/
 │   │   ├── api/                  # Route handlers
 │   │   │   ├── auth.py           #   OAuth flow, sessions, dev-login
 │   │   │   ├── board.py          #   Project board (Kanban columns + items)
-│   │   │   ├── chat.py           #   Chat messages, proposals, #agent command
+│   │   │   ├── chat/             #   Chat package (decomposed)
+│   │   │   │   ├── __init__.py   #     Router aggregation + re-exports
+│   │   │   │   ├── _state.py     #     Shared session state helpers
+│   │   │   │   ├── commands.py   #     Chat commands (confirm, reject, actions)
+│   │   │   │   ├── messaging.py  #     Message send/receive, auto-start polling
+│   │   │   │   ├── proposals.py  #     Proposal CRUD
+│   │   │   │   └── uploads.py    #     File upload handling
 │   │   │   ├── chores.py        #   Chore CRUD, triggering, chat, evaluation
 │   │   │   ├── cleanup.py        #   Stale resource cleanup
+│   │   │   ├── errors.py         #   POST /errors — frontend error reporting
 │   │   │   ├── health.py         #   Health check endpoint
 │   │   │   ├── mcp.py            #   MCP configuration endpoints
 │   │   │   ├── pipelines.py      #   Pipeline CRUD + launch from imported issue
@@ -125,10 +132,11 @@ github-workflows/
 │   │       ├── chat_store.py     #   Chat message persistence (async SQLite)
 │   │       ├── cleanup_service.py  # Stale resource cleanup service
 │   │       ├── completion_providers.py  # Pluggable LLM: Copilot SDK / Azure OpenAI
-│   │       ├── database.py       #   aiosqlite connection, WAL mode, migrations
+│   │       ├── database.py       #   aiosqlite connection, WAL mode, migrations (+ dry-run)
 │   │       ├── encryption.py     #   Fernet encryption for tokens at rest
 │   │       ├── github_auth.py    #   OAuth token exchange
 │   │       ├── github_commit_workflow.py  # Git commit workflow helpers
+│   │       ├── http_client.py    #   httpx.AsyncClient factory, X-Request-ID injection
 │   │       ├── mcp_store.py      #   MCP configuration persistence
 │   │       ├── metadata_service.py  # Repository metadata caching service
 │   │       ├── model_fetcher.py  #   AI model metadata fetching
@@ -142,8 +150,8 @@ github-workflows/
 │   └── tests/
 │       ├── conftest.py           # Shared test fixtures
 │       ├── helpers/              # Test helper utilities
-│       ├── unit/                 # 59 unit test files
-│       ├── integration/          # Integration tests
+│       ├── unit/                 # 68 unit test files
+│       ├── integration/          # 5 integration test files
 │       └── test_api_e2e.py       # API end-to-end tests
 │
 ├── frontend/

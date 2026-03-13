@@ -14,6 +14,7 @@ from src.config import get_settings
 from src.constants import LABELS
 from src.logging_utils import get_logger
 from src.services.cache import InMemoryCache
+from src.services.http_client import create_client
 from src.utils import utcnow
 
 logger = get_logger(__name__)
@@ -132,7 +133,7 @@ class MetadataService:
             "X-GitHub-Api-Version": "2022-11-28",
         }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with create_client(timeout=30.0) as client:
             labels, labels_ok = await self._fetch_paginated(
                 client, f"https://api.github.com/repos/{owner}/{repo}/labels", headers
             )

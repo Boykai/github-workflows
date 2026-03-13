@@ -14,6 +14,7 @@ from fastapi import APIRouter, Depends, status
 from src.api.auth import get_session_dep
 from src.exceptions import NotFoundError
 from src.logging_utils import get_logger
+from src.models.common import MessageResponse
 from src.models.mcp import (
     McpConfigurationCreate,
     McpConfigurationListResponse,
@@ -56,7 +57,7 @@ async def create_mcp_configuration(
     return result
 
 
-@router.delete("/mcps/{mcp_id}")
+@router.delete("/mcps/{mcp_id}", response_model=MessageResponse)
 async def delete_mcp_configuration(
     mcp_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],

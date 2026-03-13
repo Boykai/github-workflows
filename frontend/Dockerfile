@@ -8,6 +8,9 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json* ./
 
+# Install bash (needed by generate-types.sh prebuild script)
+RUN apk add --no-cache bash
+
 # Install dependencies
 RUN npm ci
 
@@ -15,7 +18,9 @@ RUN npm ci
 COPY . .
 
 # Build the application
-RUN npm run build
+# Use vite build directly — generated.ts is already in the build context
+# and the prebuild (generate:types) needs a running backend
+RUN npx vite build
 
 # Production stage
 FROM nginx:1.27-alpine

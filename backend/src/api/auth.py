@@ -12,6 +12,7 @@ from src.constants import SESSION_COOKIE_NAME
 from src.exceptions import AppException, AuthenticationError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
 from src.middleware.rate_limit import limiter
+from src.models.common import MessageResponse
 from src.models.user import UserResponse, UserSession
 from src.services.github_auth import github_auth_service
 
@@ -146,6 +147,8 @@ async def github_callback(
     except ValueError as e:
         logger.warning("OAuth token exchange failed: %s", e)
         raise ValidationError("Authentication failed") from e
+    except AppException:
+        raise
     except Exception as e:
         logger.exception("Failed to create session: %s", e)
         raise AppException(
@@ -163,7 +166,7 @@ async def get_current_user(
     return UserResponse.from_session(session)
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=MessageResponse)
 async def logout(
     response: Response,
     session_id: Annotated[str | None, Cookie(alias=SESSION_COOKIE_NAME)] = None,

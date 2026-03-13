@@ -1,88 +1,227 @@
 /**
  * TypeScript types for Agent Projects API.
- * Aligned with backend Pydantic models and OpenAPI contract.
+ *
+ * Types are auto-derived from the backend OpenAPI schema where available.
+ * Frontend-only types (UI state, form state, etc.) are defined manually below.
+ *
+ * To regenerate: `npm run generate:types`
  */
 
-// ============ Enums ============
+import type { components } from './generated';
 
-export type ProjectType = 'organization' | 'user' | 'repository';
+/** Shorthand for accessing generated schema types. */
+type Schema = components['schemas'];
 
-export type SenderType = 'user' | 'assistant' | 'system';
+/** Makes specific keys of T both required and non-nullable. */
+type WithRequired<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 
-export type ActionType = 'task_create' | 'status_update' | 'project_select' | 'issue_create';
+// ============ Generated Type Aliases — Enums ============
 
-export type ProposalStatus = 'pending' | 'confirmed' | 'edited' | 'cancelled';
+export type ProjectType = Schema['ProjectType'];
+export type SenderType = Schema['SenderType'];
+export type ActionType = Schema['ActionType'];
+export type ProposalStatus = Schema['ProposalStatus'];
+export type ContentType = Schema['ContentType'];
+export type PRState = Schema['PRState'];
+export type StatusColor = Schema['StatusColor'];
+export type ScheduleType = Schema['ScheduleType'];
+export type ChoreStatus = Schema['ChoreStatus'];
+export type SignalConnectionStatus = Schema['SignalConnectionStatus'];
+export type SignalNotificationMode = Schema['SignalNotificationMode'];
+export type SignalLinkStatus = Schema['SignalLinkStatus'];
+export type AIProviderType = Schema['AIProvider'];
+export type ThemeModeType = Schema['ThemeMode'];
+export type DefaultViewType = Schema['DefaultView'];
 
-export type RecommendationStatus = 'pending' | 'confirmed' | 'rejected';
+// ============ Generated Type Aliases — User & Auth ============
 
-// ============ User & Auth ============
+export type User = Schema['UserResponse'];
+export type StatusColumn = Schema['StatusColumn'];
+export type Project = Schema['GitHubProject'];
+export type ProjectListResponse = Schema['ProjectListResponse'];
 
-export interface User {
-  github_user_id: string;
-  github_username: string;
-  github_avatar_url?: string;
-  selected_project_id?: string;
-}
+// ============ Generated Type Aliases — Tasks ============
+
+export type Task = Schema['Task'];
+export type TaskCreateRequest = Schema['TaskCreateRequest'];
+export type TaskListResponse = Schema['TaskListResponse'];
+
+// ============ Generated Type Aliases — Chat ============
+// ChatMessage: make message_id/timestamp required (always present in responses),
+// add frontend-only status field, and narrow action_data for safe casting.
+
+type _ChatMessage = WithRequired<Schema['ChatMessage'], 'message_id' | 'timestamp'>;
+export type ChatMessage = Omit<_ChatMessage, 'action_data'> & {
+  status?: MessageStatus;
+  action_data?: ActionData | null;
+};
+export type ChatMessageRequest = Schema['ChatMessageRequest'];
+export type ChatMessagesResponse = Omit<Schema['ChatMessagesResponse'], 'messages'> & {
+  messages: ChatMessage[];
+};
+export type FileUploadResponse = Schema['FileUploadResponse'];
+
+// ============ Generated Type Aliases — Proposals ============
+
+export type AITaskProposal = Schema['AITaskProposal'];
+export type ProposalConfirmRequest = Schema['ProposalConfirmRequest'];
+
+// ============ Generated Type Aliases — Agents ============
+
+export type AgentAssignment = Schema['AgentAssignment'];
+export type AvailableAgent = Schema['AvailableAgent'];
+
+// ============ Generated Type Aliases — Workflow ============
+
+export type WorkflowResult = Schema['WorkflowResult'];
+export type PipelineIssueLaunchRequest = Schema['PipelineIssueLaunchRequest'];
+export type WorkflowConfiguration = Schema['WorkflowConfiguration'];
+export type WorkflowDefaults = Schema['WorkflowDefaults'];
+export type WorkflowDefaultsUpdate = Schema['WorkflowDefaultsUpdate'];
+export type PipelineStateInfo = Schema['PipelineStateItem'];
+
+// ============ Generated Type Aliases — Board ============
+
+export type BoardProject = Schema['BoardProject'];
+export type BoardItem = Omit<Schema['BoardItem'], 'assignees' | 'linked_prs' | 'sub_issues' | 'labels'> & {
+  assignees: Schema['Assignee'][];
+  linked_prs: Schema['LinkedPR'][];
+  sub_issues: SubIssue[];
+  labels: Schema['Label'][];
+};
+export type BoardColumn = Omit<Schema['BoardColumn'], 'items'> & { items: BoardItem[] };
+export type BoardDataResponse = Omit<Schema['BoardDataResponse'], 'columns'> & {
+  columns: BoardColumn[];
+};
+export type BoardProjectListResponse = Schema['BoardProjectListResponse'];
+export type LinkedPR = Schema['LinkedPR'];
+export type SubIssue = WithRequired<Schema['SubIssue'], 'assignees' | 'linked_prs'>;
+export type RateLimitInfo = Schema['RateLimitInfo'];
+export type BoardAssignee = Schema['Assignee'];
+export type BoardStatusOption = Schema['StatusOption'];
+export type BoardStatusField = Schema['StatusField'];
+export type BoardCustomFieldValue = Schema['CustomFieldValue'];
+export type BoardRepository = Schema['Repository'];
+export type BoardLabel = Schema['Label'];
+
+// ============ Generated Type Aliases — Settings ============
+
+export type AIPreferences = Schema['AIPreferences'];
+export type AIPreferencesUpdate = Schema['AIPreferencesUpdate'];
+export type DisplayPreferences = Schema['DisplayPreferences'];
+export type DisplayPreferencesUpdate = Schema['DisplayPreferencesUpdate'];
+export type NotificationPreferences = Schema['NotificationPreferences'];
+export type NotificationPreferencesUpdate = Schema['NotificationPreferencesUpdate'];
+export type EffectiveUserSettings = Schema['EffectiveUserSettings'];
+export type GlobalSettings = WithRequired<Schema['GlobalSettingsResponse'], 'allowed_models'>;
+export type GlobalSettingsUpdate = Schema['GlobalSettingsUpdate'];
+export type UserPreferencesUpdate = Schema['UserPreferencesUpdate'];
+export type ProjectBoardConfig = WithRequired<Schema['ProjectBoardConfig'], 'column_order' | 'collapsed_columns'>;
+export type ProjectAgentMapping = Schema['ProjectAgentMapping'];
+export type ProjectSpecificSettings = Schema['ProjectSpecificSettings'];
+export type EffectiveProjectSettings = Schema['EffectiveProjectSettings'];
+export type ProjectSettingsUpdate = Schema['ProjectSettingsUpdate'];
+
+// ============ Generated Type Aliases — Models ============
+
+export type ModelOption = Schema['ModelOption'];
+export type ModelsResponse = Schema['ModelsResponse'];
+
+// ============ Generated Type Aliases — Signal ============
+
+export type SignalConnection = Schema['SignalConnectionResponse'];
+export type SignalLinkResponse = Schema['SignalLinkResponse'];
+export type SignalLinkStatusResponse = Schema['SignalLinkStatusResponse'];
+export type SignalPreferences = Schema['SignalPreferencesResponse'];
+export type SignalPreferencesUpdate = Schema['SignalPreferencesUpdate'];
+export type SignalBanner = Schema['SignalBanner'];
+export type SignalBannersResponse = Schema['SignalBannersResponse'];
+
+// ============ Generated Type Aliases — MCP Configuration ============
+
+export type McpConfiguration = Schema['McpConfigurationResponse'];
+export type McpConfigurationListResponse = Schema['McpConfigurationListResponse'];
+export type McpConfigurationCreate = Schema['McpConfigurationCreate'];
+
+// ============ Generated Type Aliases — Cleanup ============
+
+export type BranchInfo = Schema['BranchInfo'];
+export type PullRequestInfo = Schema['PullRequestInfo'];
+export type OrphanedIssueInfo = Schema['OrphanedIssueInfo'];
+export type CleanupPreflightResponse = Schema['CleanupPreflightResponse'];
+export type CleanupItemResult = Schema['CleanupItemResult'];
+export type CleanupExecuteRequest = Schema['CleanupExecuteRequest'];
+export type CleanupExecuteResponse = Schema['CleanupExecuteResponse'];
+export type CleanupAuditLogEntry = Schema['CleanupAuditLogRow'];
+export type CleanupHistoryResponse = Schema['CleanupHistoryResponse'];
+
+// ============ Generated Type Aliases — Chores ============
+
+export type Chore = Schema['Chore'];
+export type ChoreCreate = Schema['ChoreCreate'];
+export type ChoreTemplate = Schema['ChoreTemplate'];
+export type ChoreUpdate = Schema['ChoreUpdate'];
+export type ChoreTriggerResult = Schema['ChoreTriggerResult'];
+export type EvaluateChoreTriggersResponse = Schema['EvaluateChoreTriggersResponse'];
+export type ChoreChatMessage = Schema['ChoreChatMessage'];
+export type ChoreChatResponse = Schema['ChoreChatResponse'];
+export type ChoreInlineUpdate = Schema['ChoreInlineUpdate'];
+export type ChoreInlineUpdateResponse = Schema['ChoreInlineUpdateResponse'];
+export type ChoreCreateWithConfirmation = Schema['ChoreCreateWithConfirmation'];
+export type ChoreCreateResponse = Schema['ChoreCreateResponse'];
+
+// ============ Generated Type Aliases — Pipeline ============
+
+export type PipelineAgentNode = WithRequired<Schema['PipelineAgentNode'], 'tool_ids' | 'config'>;
+export type ExecutionGroup = Omit<Schema['ExecutionGroup'], 'agents'> & {
+  agents: PipelineAgentNode[];
+};
+export type PipelineStage = Omit<Schema['PipelineStage'], 'groups' | 'agents'> & {
+  groups: ExecutionGroup[];
+  agents: PipelineAgentNode[];
+};
+export type PipelineConfig = Omit<Schema['PipelineConfig'], 'stages'> & {
+  stages: PipelineStage[];
+};
+export type PipelineConfigSummary = Omit<Schema['PipelineConfigSummary'], 'stages'> & {
+  stages: PipelineStage[];
+};
+export type PipelineConfigListResponse = Omit<Schema['PipelineConfigListResponse'], 'pipelines'> & {
+  pipelines: PipelineConfigSummary[];
+};
+export type PipelineConfigCreate = Schema['PipelineConfigCreate'];
+export type PipelineConfigUpdate = Schema['PipelineConfigUpdate'];
+export type ProjectPipelineAssignment = Schema['ProjectPipelineAssignment'];
+
+// ============ Generated Type Aliases — MCP Tools ============
+
+export type McpToolConfig = Schema['McpToolConfigResponse'];
+export type McpToolConfigCreate = Schema['McpToolConfigCreate'];
+export type McpToolConfigUpdate = Schema['McpToolConfigUpdate'];
+export type McpToolConfigListResponse = Schema['McpToolConfigListResponse'];
+export type McpToolSyncResult = Schema['McpToolConfigSyncResult'];
+export type RepoMcpServerConfig = WithRequired<Schema['RepoMcpServerConfig'], 'source_paths'>;
+export type RepoMcpServerUpdate = Schema['RepoMcpServerUpdate'];
+export type RepoMcpConfigResponse = Omit<Schema['RepoMcpConfigResponse'], 'paths_checked' | 'available_paths' | 'servers'> & {
+  paths_checked: string[];
+  available_paths: string[];
+  servers: RepoMcpServerConfig[];
+};
+export type McpPreset = Schema['McpPresetResponse'];
+export type McpPresetListResponse = Schema['McpPresetListResponse'];
+export type ToolDeleteResult = WithRequired<Schema['ToolDeleteResult'], 'affected_agents'>;
+
+// ============ Frontend-Only Types ============
+// These types exist only in the frontend and are not in the API schema.
+
+// -- Auth (not exposed via OpenAPI) --
 
 export interface AuthResponse {
   user: User;
   message: string;
 }
 
-// ============ Projects ============
-
-export interface StatusColumn {
-  field_id: string;
-  name: string;
-  option_id: string;
-  color?: string;
-}
-
-export interface Project {
-  project_id: string;
-  owner_id: string;
-  owner_login: string;
-  name: string;
-  type: ProjectType;
-  url: string;
-  description?: string;
-  status_columns: StatusColumn[];
-  item_count?: number;
-  cached_at: string;
-}
-
-export interface ProjectListResponse {
-  projects: Project[];
-}
-
-// ============ Tasks ============
-
-export interface Task {
-  task_id: string;
-  project_id: string;
-  github_item_id: string;
-  github_content_id?: string;
-  title: string;
-  description?: string;
-  status: string;
-  status_option_id: string;
-  assignees?: string[];
-  labels?: Array<{ name: string; color: string }>;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface TaskCreateRequest {
-  project_id: string;
-  title: string;
-  description?: string;
-}
-
-export interface TaskListResponse {
-  tasks: Task[];
-}
-
-// ============ Chat Messages ============
+// -- Chat Action Data --
 
 export interface TaskCreateActionData {
   proposal_id: string;
@@ -119,25 +258,7 @@ export type ActionData =
 
 export type MessageStatus = 'pending' | 'sent' | 'failed';
 
-export interface ChatMessage {
-  message_id: string;
-  session_id: string;
-  sender_type: SenderType;
-  content: string;
-  action_type?: ActionType;
-  action_data?: ActionData;
-  timestamp: string;
-  status?: MessageStatus;
-}
-
-export interface ChatMessageRequest {
-  content: string;
-  ai_enhance?: boolean;
-  file_urls?: string[];
-  pipeline_id?: string;
-}
-
-// ============ @Mention Types ============
+// -- @Mention Types --
 
 /** Represents a single @mention reference within the chat input. */
 export interface MentionToken {
@@ -165,7 +286,7 @@ export interface MentionFilterResult {
   matchIndices: [number, number][];
 }
 
-// ============ Chat Enhancement Types ============
+// -- Chat Enhancement Types --
 
 /** State of a file pending upload or already uploaded */
 export interface FileAttachment {
@@ -211,14 +332,6 @@ export const ALLOWED_TYPES = [
   ...FILE_VALIDATION.allowedArchiveTypes,
 ];
 
-/** File upload response from backend */
-export interface FileUploadResponse {
-  filename: string;
-  file_url: string;
-  file_size: number;
-  content_type: string;
-}
-
 /** File upload error response from backend */
 export interface FileUploadError {
   filename: string;
@@ -226,48 +339,20 @@ export interface FileUploadError {
   error_code: string;
 }
 
-export interface ChatMessagesResponse {
-  messages: ChatMessage[];
-}
-
-// ============ AI Task Proposals ============
-
-export interface AITaskProposal {
-  proposal_id: string;
-  session_id: string;
-  original_input: string;
-  proposed_title: string;
-  proposed_description: string;
-  status: ProposalStatus;
-  edited_title?: string;
-  edited_description?: string;
-  created_at: string;
-  expires_at: string;
-  pipeline_name?: string;
-  pipeline_source?: string;
-}
-
-export interface ProposalConfirmRequest {
-  edited_title?: string;
-  edited_description?: string;
-}
-
-// ============ API Error ============
+// -- API Error --
 
 export interface APIError {
   error: string;
   details?: Record<string, unknown>;
 }
 
-// ============ Issue Recommendation (T051) ============
+// -- Issue Recommendation --
 
 export type IssuePriority = 'P0' | 'P1' | 'P2' | 'P3';
 
 export type IssueSize = 'XS' | 'S' | 'M' | 'L' | 'XL';
 
-// Pre-defined labels for GitHub Issues
 export type IssueLabel =
-  // Type labels
   | 'feature'
   | 'bug'
   | 'enhancement'
@@ -275,16 +360,13 @@ export type IssueLabel =
   | 'documentation'
   | 'testing'
   | 'infrastructure'
-  // Scope labels
   | 'frontend'
   | 'backend'
   | 'database'
   | 'api'
-  // Status labels
   | 'ai-generated'
   | 'good first issue'
   | 'help wanted'
-  // Domain labels
   | 'security'
   | 'performance'
   | 'accessibility'
@@ -337,28 +419,11 @@ export interface IssueCreateActionData {
   status: RecommendationStatus;
 }
 
-// ============ Agent Assignment (004-agent-workflow-config-ui) ============
+export type RecommendationStatus = 'pending' | 'confirmed' | 'rejected';
 
 export type AgentSource = 'builtin' | 'repository';
 
-export interface AgentAssignment {
-  id: string; // UUID string
-  slug: string; // Agent identifier
-  display_name?: string | null;
-  config?: Record<string, unknown> | null;
-}
-
-export interface AvailableAgent {
-  slug: string;
-  display_name: string;
-  description?: string | null;
-  avatar_url?: string | null;
-  icon_name?: string | null;
-  default_model_id?: string;
-  default_model_name?: string;
-  tools_count?: number | null;
-  source: AgentSource;
-}
+// -- Agent Preset (frontend-only) --
 
 export interface AgentPreset {
   id: string;
@@ -367,36 +432,7 @@ export interface AgentPreset {
   mappings: Record<string, AgentAssignment[]>;
 }
 
-// ============ Workflow Result (T052) ============
-
-export interface WorkflowResult {
-  success: boolean;
-  issue_id?: string;
-  issue_number?: number;
-  issue_url?: string;
-  project_item_id?: string;
-  current_status?: string;
-  message: string;
-}
-
-export interface PipelineIssueLaunchRequest {
-  issue_description: string;
-  pipeline_id: string;
-}
-
-export interface WorkflowConfiguration {
-  project_id: string;
-  repository_owner: string;
-  repository_name: string;
-  copilot_assignee: string;
-  review_assignee?: string;
-  agent_mappings: Record<string, AgentAssignment[]>;
-  status_backlog: string;
-  status_ready: string;
-  status_in_progress: string;
-  status_in_review: string;
-  enabled: boolean;
-}
+// -- Agent Notification (WebSocket) --
 
 export interface AgentNotification {
   type: 'agent_assigned' | 'agent_completed';
@@ -407,22 +443,7 @@ export interface AgentNotification {
   timestamp: string;
 }
 
-export interface PipelineStateInfo {
-  issue_number: number;
-  project_id: string;
-  status: string;
-  agents: string[];
-  current_agent_index: number;
-  current_agent: string | null;
-  completed_agents: string[];
-  is_complete: boolean;
-  started_at: string | null;
-  error: string | null;
-}
-
-// ============ Board Types ============
-
-// ============ Status Change Proposal ============
+// -- Status Change Proposal --
 
 export interface StatusChangeProposal {
   proposal_id: string;
@@ -435,325 +456,7 @@ export interface StatusChangeProposal {
   status: string;
 }
 
-// ============ Settings Types (006-sqlite-settings-storage) ============
-
-export type AIProviderType = 'copilot' | 'azure_openai';
-
-export type ThemeModeType = 'dark' | 'light';
-
-export type DefaultViewType = 'chat' | 'board' | 'settings';
-
-export interface AIPreferences {
-  provider: AIProviderType;
-  model: string;
-  temperature: number;
-  agent_model: string;
-}
-
-export interface DisplayPreferences {
-  theme: ThemeModeType;
-  default_view: DefaultViewType;
-  sidebar_collapsed: boolean;
-}
-
-export interface WorkflowDefaults {
-  default_repository: string | null;
-  default_assignee: string;
-  copilot_polling_interval: number;
-}
-
-export interface NotificationPreferences {
-  task_status_change: boolean;
-  agent_completion: boolean;
-  new_recommendation: boolean;
-  chat_mention: boolean;
-}
-
-export interface EffectiveUserSettings {
-  ai: AIPreferences;
-  display: DisplayPreferences;
-  workflow: WorkflowDefaults;
-  notifications: NotificationPreferences;
-}
-
-export interface GlobalSettings {
-  ai: AIPreferences;
-  display: DisplayPreferences;
-  workflow: WorkflowDefaults;
-  notifications: NotificationPreferences;
-  allowed_models: string[];
-}
-
-export interface ProjectBoardConfig {
-  column_order: string[];
-  collapsed_columns: string[];
-  show_estimates: boolean;
-}
-
-export interface ProjectAgentMapping {
-  slug: string;
-  display_name?: string | null;
-}
-
-export interface ProjectSpecificSettings {
-  project_id: string;
-  board_display_config?: ProjectBoardConfig | null;
-  agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
-}
-
-export interface EffectiveProjectSettings {
-  ai: AIPreferences;
-  display: DisplayPreferences;
-  workflow: WorkflowDefaults;
-  notifications: NotificationPreferences;
-  project: ProjectSpecificSettings;
-}
-
-// ── Update (PUT) request types ──
-
-export interface AIPreferencesUpdate {
-  provider?: AIProviderType | null;
-  model?: string | null;
-  temperature?: number | null;
-  agent_model?: string | null;
-}
-
-export interface DisplayPreferencesUpdate {
-  theme?: ThemeModeType | null;
-  default_view?: DefaultViewType | null;
-  sidebar_collapsed?: boolean | null;
-}
-
-export interface WorkflowDefaultsUpdate {
-  default_repository?: string | null;
-  default_assignee?: string | null;
-  copilot_polling_interval?: number | null;
-}
-
-export interface NotificationPreferencesUpdate {
-  task_status_change?: boolean | null;
-  agent_completion?: boolean | null;
-  new_recommendation?: boolean | null;
-  chat_mention?: boolean | null;
-}
-
-export interface UserPreferencesUpdate {
-  ai?: AIPreferencesUpdate;
-  display?: DisplayPreferencesUpdate;
-  workflow?: WorkflowDefaultsUpdate;
-  notifications?: NotificationPreferencesUpdate;
-}
-
-export interface GlobalSettingsUpdate {
-  ai?: AIPreferencesUpdate;
-  display?: DisplayPreferencesUpdate;
-  workflow?: WorkflowDefaultsUpdate;
-  notifications?: NotificationPreferencesUpdate;
-  allowed_models?: string[];
-}
-
-export interface ProjectSettingsUpdate {
-  board_display_config?: ProjectBoardConfig | null;
-  agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
-}
-
-// ============ Dynamic Model Fetching Types (012-settings-dynamic-ux) ============
-
-export interface ModelOption {
-  id: string;
-  name: string;
-  provider: string;
-}
-
-export interface ModelsResponse {
-  status: 'success' | 'auth_required' | 'rate_limited' | 'error';
-  models: ModelOption[];
-  fetched_at: string | null;
-  cache_hit: boolean;
-  rate_limit_warning: boolean;
-  message: string | null;
-}
-
-// ============ Signal Messaging Types (011-signal-chat-integration) ============
-
-export type SignalConnectionStatus = 'pending' | 'connected' | 'error' | 'disconnected';
-
-export type SignalNotificationMode = 'all' | 'actions_only' | 'confirmations_only' | 'none';
-
-export type SignalLinkStatus = 'pending' | 'connected' | 'failed' | 'expired';
-
-export interface SignalConnection {
-  connection_id: string | null;
-  status: SignalConnectionStatus | null;
-  signal_identifier: string | null;
-  notification_mode: SignalNotificationMode | null;
-  linked_at: string | null;
-  last_active_project_id: string | null;
-}
-
-export interface SignalLinkResponse {
-  qr_code_base64: string;
-  expires_in_seconds: number;
-}
-
-export interface SignalLinkStatusResponse {
-  status: SignalLinkStatus;
-  signal_identifier: string | null;
-  error_message: string | null;
-}
-
-export interface SignalPreferences {
-  notification_mode: SignalNotificationMode;
-}
-
-export interface SignalPreferencesUpdate {
-  notification_mode: SignalNotificationMode;
-}
-
-export interface SignalBanner {
-  id: string;
-  message: string;
-  created_at: string;
-}
-
-export interface SignalBannersResponse {
-  banners: SignalBanner[];
-}
-
-// ============ MCP Configuration Types (012-mcp-settings-config) ============
-
-export interface McpConfiguration {
-  id: string;
-  name: string;
-  endpoint_url: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface McpConfigurationListResponse {
-  mcps: McpConfiguration[];
-  count: number;
-}
-
-export interface McpConfigurationCreate {
-  name: string;
-  endpoint_url: string;
-}
-
-// ============ Board Types (continued) ============
-
-export type StatusColor =
-  | 'GRAY'
-  | 'BLUE'
-  | 'GREEN'
-  | 'YELLOW'
-  | 'ORANGE'
-  | 'RED'
-  | 'PINK'
-  | 'PURPLE';
-
-export type ContentType = 'issue' | 'draft_issue' | 'pull_request';
-
-export type PRState = 'open' | 'closed' | 'merged';
-
-export interface BoardStatusOption {
-  option_id: string;
-  name: string;
-  color: StatusColor;
-  description?: string;
-}
-
-export interface BoardStatusField {
-  field_id: string;
-  options: BoardStatusOption[];
-}
-
-export interface BoardProject {
-  project_id: string;
-  name: string;
-  description?: string;
-  url: string;
-  owner_login: string;
-  status_field: BoardStatusField;
-}
-
-export interface BoardRepository {
-  owner: string;
-  name: string;
-}
-
-export interface BoardAssignee {
-  login: string;
-  avatar_url: string;
-}
-
-export interface BoardCustomFieldValue {
-  name: string;
-  color?: StatusColor;
-}
-
-export interface LinkedPR {
-  pr_id: string;
-  number: number;
-  title: string;
-  state: PRState;
-  url: string;
-}
-
-export interface BoardLabel {
-  id: string;
-  name: string;
-  color: string;
-}
-
-export interface SubIssue {
-  id: string;
-  number: number;
-  title: string;
-  url: string;
-  state: string;
-  assigned_agent?: string | null;
-  assignees: BoardAssignee[];
-  linked_prs: LinkedPR[];
-}
-
-export interface BoardItem {
-  item_id: string;
-  content_id?: string;
-  content_type: ContentType;
-  title: string;
-  number?: number;
-  repository?: BoardRepository;
-  url?: string;
-  body?: string;
-  status: string;
-  status_option_id: string;
-  assignees: BoardAssignee[];
-  priority?: BoardCustomFieldValue;
-  size?: BoardCustomFieldValue;
-  estimate?: number;
-  linked_prs: LinkedPR[];
-  sub_issues: SubIssue[];
-  labels: BoardLabel[];
-  created_at?: string;
-  updated_at?: string;
-  milestone?: string;
-}
-
-export interface BoardColumn {
-  status: BoardStatusOption;
-  items: BoardItem[];
-  item_count: number;
-  estimate_total: number;
-}
-
-export interface RateLimitInfo {
-  limit: number;
-  remaining: number;
-  reset_at: number;
-  used: number;
-}
+// -- Board UI Types --
 
 export type RefreshErrorType = 'rate_limit' | 'network' | 'auth' | 'server' | 'unknown';
 
@@ -764,223 +467,7 @@ export interface RefreshError {
   retryAfter?: Date;
 }
 
-export interface BoardDataResponse {
-  project: BoardProject;
-  columns: BoardColumn[];
-  rate_limit?: RateLimitInfo | null;
-}
-
-export interface BoardProjectListResponse {
-  projects: BoardProject[];
-  rate_limit?: RateLimitInfo | null;
-}
-
-// ============ Cleanup Types ============
-
-export interface BranchInfo {
-  name: string;
-  eligible_for_deletion: boolean;
-  linked_issue_number: number | null;
-  linked_issue_title: string | null;
-  linking_method: string | null;
-  preservation_reason: string | null;
-  deletion_reason: string | null;
-}
-
-export interface PullRequestInfo {
-  number: number;
-  title: string;
-  head_branch: string;
-  referenced_issues: number[];
-  eligible_for_deletion: boolean;
-  preservation_reason: string | null;
-  deletion_reason: string | null;
-}
-
-export interface OrphanedIssueInfo {
-  number: number;
-  title: string;
-  labels: string[];
-  html_url: string | null;
-}
-
-export interface CleanupPreflightResponse {
-  branches_to_delete: BranchInfo[];
-  branches_to_preserve: BranchInfo[];
-  prs_to_close: PullRequestInfo[];
-  prs_to_preserve: PullRequestInfo[];
-  orphaned_issues: OrphanedIssueInfo[];
-  open_issues_on_board: number;
-  has_permission: boolean;
-  permission_error: string | null;
-}
-
-export interface CleanupItemResult {
-  item_type: 'branch' | 'pr' | 'issue';
-  identifier: string;
-  action: 'deleted' | 'closed' | 'preserved' | 'failed';
-  reason: string | null;
-  error: string | null;
-}
-
-export interface CleanupExecuteRequest {
-  owner: string;
-  repo: string;
-  project_id: string;
-  branches_to_delete: string[];
-  prs_to_close: number[];
-  issues_to_close: number[];
-}
-
-export interface CleanupExecuteResponse {
-  operation_id: string;
-  branches_deleted: number;
-  branches_preserved: number;
-  prs_closed: number;
-  prs_preserved: number;
-  issues_closed: number;
-  errors: CleanupItemResult[];
-  results: CleanupItemResult[];
-}
-
-export interface CleanupAuditLogEntry {
-  id: string;
-  started_at: string;
-  completed_at: string | null;
-  status: string;
-  branches_deleted: number;
-  branches_preserved: number;
-  prs_closed: number;
-  prs_preserved: number;
-  errors_count: number;
-  details: {
-    results: CleanupItemResult[];
-  } | null;
-}
-
-export interface CleanupHistoryResponse {
-  operations: CleanupAuditLogEntry[];
-  count: number;
-}
-
-// ============ Chores Types (016-replace-housekeeping-chores) ============
-
-export type ScheduleType = 'time' | 'count';
-export type ChoreStatus = 'active' | 'paused';
-
-export interface Chore {
-  id: string;
-  project_id: string;
-  name: string;
-  template_path: string;
-  template_content: string;
-  schedule_type: ScheduleType | null;
-  schedule_value: number | null;
-  status: ChoreStatus;
-  last_triggered_at: string | null;
-  last_triggered_count: number;
-  current_issue_number: number | null;
-  current_issue_node_id: string | null;
-  pr_number: number | null;
-  pr_url: string | null;
-  tracking_issue_number: number | null;
-  execution_count: number;
-  ai_enhance_enabled: boolean;
-  agent_pipeline_id: string;
-  is_preset: boolean;
-  preset_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ChoreCreate {
-  name: string;
-  template_content: string;
-}
-
-export interface ChoreTemplate {
-  name: string;
-  about: string;
-  path: string;
-  content: string;
-}
-
-export interface ChoreUpdate {
-  schedule_type?: ScheduleType | null;
-  schedule_value?: number | null;
-  status?: ChoreStatus;
-  ai_enhance_enabled?: boolean;
-  agent_pipeline_id?: string;
-}
-
-export interface ChoreTriggerResult {
-  chore_id: string;
-  chore_name: string;
-  triggered: boolean;
-  issue_number: number | null;
-  issue_url: string | null;
-  skip_reason: string | null;
-}
-
-export interface EvaluateChoreTriggersResponse {
-  evaluated: number;
-  triggered: number;
-  skipped: number;
-  results: ChoreTriggerResult[];
-}
-
-export interface ChoreChatMessage {
-  content: string;
-  conversation_id?: string | null;
-  ai_enhance?: boolean;
-}
-
-export interface ChoreChatResponse {
-  message: string;
-  conversation_id: string;
-  template_ready: boolean;
-  template_content: string | null;
-  template_name: string | null;
-}
-
-// ── Inline Editing Types ──
-
-export interface ChoreInlineUpdate {
-  name?: string;
-  template_content?: string;
-  schedule_type?: ScheduleType | null;
-  schedule_value?: number | null;
-  ai_enhance_enabled?: boolean;
-  agent_pipeline_id?: string;
-  expected_sha?: string;
-}
-
-export interface ChoreInlineUpdateResponse {
-  chore: Chore;
-  pr_number: number | null;
-  pr_url: string | null;
-  pr_merged: boolean;
-  merge_error: string | null;
-}
-
-export interface ChoreCreateWithConfirmation {
-  name: string;
-  template_content: string;
-  ai_enhance_enabled: boolean;
-  agent_pipeline_id: string;
-  auto_merge: boolean;
-}
-
-export interface ChoreCreateResponse {
-  chore: Chore;
-  issue_number: number | null;
-  pr_number: number | null;
-  pr_url: string | null;
-  pr_merged: boolean;
-  merge_error: string | null;
-}
-
-// ── Featured Rituals Types ──
+// -- Chore UI Types --
 
 export interface FeaturedRitualCard {
   choreId: string;
@@ -1009,7 +496,7 @@ export interface ChoreCounterData {
   issuesSinceLastRun: number;
 }
 
-// ============ Solune UI Redesign Types (025) ============
+// -- Solune UI Redesign Types --
 
 export interface NavRoute {
   path: string;
@@ -1043,79 +530,7 @@ export interface Notification {
   source?: string;
 }
 
-// ============ Pipeline Types ============
-
-export interface PipelineAgentNode {
-  id: string;
-  agent_slug: string;
-  agent_display_name: string;
-  model_id: string;
-  model_name: string;
-  tool_ids: string[];
-  tool_count: number;
-  config: Record<string, unknown>;
-}
-
-export interface ExecutionGroup {
-  id: string;
-  order: number;
-  execution_mode: 'sequential' | 'parallel';
-  agents: PipelineAgentNode[];
-}
-
-export interface PipelineStage {
-  id: string;
-  name: string;
-  order: number;
-  /** Ordered execution groups within this stage. */
-  groups?: ExecutionGroup[];
-  /** @deprecated Use groups[].agents instead. Retained for backward compatibility. */
-  agents: PipelineAgentNode[];
-  /** @deprecated Use groups[].execution_mode instead. Retained for backward compatibility. */
-  execution_mode?: 'sequential' | 'parallel';
-}
-
-export interface PipelineConfig {
-  id: string;
-  project_id: string;
-  name: string;
-  description: string;
-  stages: PipelineStage[];
-  is_preset: boolean;
-  preset_id: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface PipelineConfigSummary {
-  id: string;
-  name: string;
-  description: string;
-  stage_count: number;
-  agent_count: number;
-  total_tool_count: number;
-  is_preset: boolean;
-  preset_id: string;
-  stages: PipelineStage[];
-  updated_at: string;
-}
-
-export interface PipelineConfigListResponse {
-  pipelines: PipelineConfigSummary[];
-  total: number;
-}
-
-export interface PipelineConfigCreate {
-  name: string;
-  description?: string;
-  stages: PipelineStage[];
-}
-
-export interface PipelineConfigUpdate {
-  name?: string;
-  description?: string;
-  stages?: PipelineStage[];
-}
+// -- Pipeline UI Types --
 
 export interface AIModel {
   id: string;
@@ -1145,11 +560,6 @@ export interface PipelineValidationErrors {
   [key: string]: string | undefined;
 }
 
-export interface ProjectPipelineAssignment {
-  project_id: string;
-  pipeline_id: string;
-}
-
 export interface PresetPipelineDefinition {
   presetId: string;
   name: string;
@@ -1171,92 +581,12 @@ export interface PresetSeedResult {
   total: number;
 }
 
-// ============ MCP Tools Types (027-mcp-tools-page) ============
+// -- MCP Tools UI Types --
 
 export type McpToolSyncStatus = 'synced' | 'pending' | 'error';
-
-export interface McpToolConfig {
-  id: string;
-  name: string;
-  description: string;
-  endpoint_url: string;
-  config_content: string;
-  sync_status: McpToolSyncStatus;
-  sync_error: string;
-  synced_at: string | null;
-  github_repo_target: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface McpToolConfigCreate {
-  name: string;
-  description: string;
-  config_content: string;
-  github_repo_target: string;
-}
-
-export interface McpToolConfigUpdate {
-  name?: string;
-  description?: string;
-  config_content?: string;
-  github_repo_target?: string;
-}
-
-export interface McpToolConfigListResponse {
-  tools: McpToolConfig[];
-  count: number;
-}
-
-export interface McpToolSyncResult {
-  id: string;
-  sync_status: McpToolSyncStatus;
-  sync_error: string;
-  synced_at: string | null;
-  synced_paths: string[];
-}
-
-export interface RepoMcpServerConfig {
-  name: string;
-  config: Record<string, unknown>;
-  source_paths: string[];
-}
-
-export interface RepoMcpServerUpdate {
-  name: string;
-  config_content: string;
-}
-
-export interface RepoMcpConfigResponse {
-  paths_checked: string[];
-  available_paths: string[];
-  primary_path: string | null;
-  servers: RepoMcpServerConfig[];
-}
-
-export interface McpPreset {
-  id: string;
-  name: string;
-  description: string;
-  category: string;
-  icon: string;
-  config_content: string;
-}
-
-export interface McpPresetListResponse {
-  presets: McpPreset[];
-  count: number;
-}
 
 export interface ToolChip {
   id: string;
   name: string;
   description: string;
-}
-
-export interface ToolDeleteResult {
-  success: boolean;
-  deleted_id: string | null;
-  affected_agents: ToolChip[];
 }

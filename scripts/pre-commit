@@ -88,6 +88,48 @@ if [ -n "$STAGED_PY_FILES" ]; then
 fi
 
 # ============================================
+# Type Generation Stale Check
+# ============================================
+STAGED_MODEL_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^backend/src/(api|models|constants)' || true)
+if [ -n "$STAGED_MODEL_FILES" ]; then
+    echo ""
+    echo "🔄 Type generation stale check..."
+
+    echo -n "  📐 Regenerating types & constants... "
+    if [ -f "$REPO_ROOT/scripts/generate-types.sh" ]; then
+        # Save current checksums
+        OLD_TYPES_HASH=""
+        OLD_CONST_HASH=""
+        [ -f "$REPO_ROOT/frontend/src/types/generated.ts" ] && OLD_TYPES_HASH=$(md5sum "$REPO_ROOT/frontend/src/types/generated.ts" | cut -d' ' -f1)
+        [ -f "$REPO_ROOT/frontend/src/constants/generated.ts" ] && OLD_CONST_HASH=$(md5sum "$REPO_ROOT/frontend/src/constants/generated.ts" | cut -d' ' -f1)
+
+        # Regenerate constants (does not require running backend)
+        if [ -f "$REPO_ROOT/scripts/generate-constants.py" ]; then
+            python3 "$REPO_ROOT/scripts/generate-constants.py" > /dev/null 2>&1 || true
+        fi
+
+        # Check if constants changed
+        NEW_CONST_HASH=""
+        [ -f "$REPO_ROOT/frontend/src/constants/generated.ts" ] && NEW_CONST_HASH=$(md5sum "$REPO_ROOT/frontend/src/constants/generated.ts" | cut -d' ' -f1)
+
+        if [ "$OLD_CONST_HASH" != "$NEW_CONST_HASH" ]; then
+            git add "$REPO_ROOT/frontend/src/constants/generated.ts" 2>/dev/null || true
+            echo -e "${YELLOW}constants/generated.ts updated and staged${NC}"
+        else
+            echo -e "${GREEN}✓ (constants up to date)${NC}"
+        fi
+
+        # Note: types/generated.ts regeneration requires a running backend server
+        # and is best handled in CI. Warn if backend models changed.
+        if [ "$OLD_TYPES_HASH" != "" ]; then
+            echo -e "  ${YELLOW}⚠  Backend models changed — run 'npm run generate:types' to update types/generated.ts${NC}"
+        fi
+    else
+        echo -e "${YELLOW}⚠  generate-types.sh not found, skipping${NC}"
+    fi
+fi
+
+# ============================================
 # Frontend Checks (with auto-fix)
 # ============================================
 if [ -n "$STAGED_FRONTEND_FILES" ]; then

@@ -16,7 +16,6 @@ import json
 import re
 from datetime import UTC, datetime
 
-import httpx
 import websockets
 
 from src.config import get_settings
@@ -31,6 +30,7 @@ from src.models.signal import (
 )
 from src.services.database import get_db
 from src.services.encryption import EncryptionService
+from src.services.http_client import create_client
 
 logger = get_logger(__name__)
 
@@ -65,7 +65,7 @@ async def request_qr_code(device_name: str = "Agent Projects") -> bytes:
     Returns raw PNG bytes.
     """
     url = f"{_signal_base_url()}/v1/qrcodelink"
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with create_client(timeout=30.0) as client:
         resp = await client.get(url, params={"device_name": device_name})
         resp.raise_for_status()
         return resp.content
@@ -109,7 +109,7 @@ async def check_link_complete() -> dict:
     """
     url = f"{_signal_base_url()}/v1/accounts"
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        async with create_client(timeout=10.0) as client:
             resp = await client.get(url)
             resp.raise_for_status()
             accounts = resp.json()
@@ -151,7 +151,7 @@ async def send_message(recipient: str, message: str, text_mode: str = "styled") 
         "recipients": [recipient],
         "text_mode": text_mode,
     }
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with create_client(timeout=15.0) as client:
         resp = await client.post(url, json=payload)
         resp.raise_for_status()
     return True
@@ -160,7 +160,7 @@ async def send_message(recipient: str, message: str, text_mode: str = "styled") 
 async def get_accounts() -> list[str]:
     """List registered/linked Signal phone numbers on the sidecar."""
     url = f"{_signal_base_url()}/v1/accounts"
-    async with httpx.AsyncClient(timeout=10.0) as client:
+    async with create_client(timeout=10.0) as client:
         resp = await client.get(url)
         resp.raise_for_status()
         return resp.json()

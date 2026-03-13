@@ -40,10 +40,17 @@ src/
 ├── exceptions.py              # Custom exception classes (AppException tree)
 ├── utils.py                   # Shared helpers: utcnow(), resolve_repository()
 │
-├── api/                       # Route handlers (8 modules)
+├── api/                       # Route handlers
 │   ├── auth.py                # OAuth flow, consolidated session dependency
 │   ├── board.py               # Project board (Kanban columns + items)
-│   ├── chat.py                # Chat messages, proposals, confirm/reject, auto-start polling
+│   ├── chat/                  # Chat package (decomposed from monolithic chat.py)
+│   │   ├── __init__.py        #   Router aggregation + re-exports
+│   │   ├── _state.py          #   Shared session state helpers
+│   │   ├── commands.py        #   Chat commands (confirm, reject, actions)
+│   │   ├── messaging.py       #   Message send/receive, auto-start polling
+│   │   ├── proposals.py       #   Proposal CRUD
+│   │   └── uploads.py         #   File upload handling
+│   ├── errors.py              # POST /errors — frontend error reporting (rate-limited)
 │   ├── projects.py            # List/select projects, tasks, WebSocket, SSE
 │   ├── settings.py            # User preferences, global settings, project settings
 │   ├── tasks.py               # Create/update tasks (GitHub Issues + project items)
@@ -91,9 +98,11 @@ src/
 │   ├── ai_agent.py            # AI issue generation via pluggable CompletionProvider
 │   ├── agent_tracking.py      # Durable agent pipeline tracking (issue body markdown table)
 │   ├── cache.py               # In-memory TTL cache (for GitHub API responses)
+│   ├── chat_store.py          # Chat persistence (messages, proposals, recommendations)
 │   ├── completion_providers.py # Pluggable LLM providers (Copilot SDK / Azure OpenAI)
-│   ├── database.py            # aiosqlite connection, WAL mode, schema migrations
+│   ├── database.py            # aiosqlite connection, WAL mode, schema migrations (+ dry-run mode)
 │   ├── github_auth.py         # OAuth token exchange
+│   ├── http_client.py         # httpx.AsyncClient factory with X-Request-ID injection
 │   ├── session_store.py       # Session CRUD (async SQLite)
 │   ├── settings_store.py      # Settings persistence (async SQLite)
 │   └── websocket.py           # WebSocket connection manager, broadcast
@@ -214,6 +223,7 @@ SQLite database lifecycle management:
 - `init_database()` — Creates database file, enables WAL mode, runs migrations
 - `close_database()` — Graceful shutdown
 - `run_migrations()` — Executes numbered SQL migration files in order, tracked by `schema_version` table
+- **Dry-run mode**: Set `MIGRATION_DRY_RUN=true` to preview pending migrations without executing them
 
 ### Completion Providers (`completion_providers.py`)
 
@@ -253,7 +263,10 @@ Numbered SQL migration files in `src/migrations/` are executed in order at start
 | Migration | Purpose |
 |---|---|
 | `001_initial_schema.sql` | Creates `sessions`, `user_preferences`, `project_settings`, `global_settings` tables |
-| `002_add_workflow_config_column.sql` | Adds `workflow_config TEXT` column to `project_settings` for full JSON config persistence |
+| `002_add_workflow_config_column.sql` | Adds `workflow_config TEXT` column to `project_settings` |
+| `003` – `011` | Admin column, signal tables, MCP configs, agent configs, housekeeping, metadata cache |
+| `012_chat_persistence.sql` | Creates `chat_messages`, `chat_proposals`, `chat_recommendations` tables |
+| `013` – `022` | Pipeline configs, agent model defaults, MCP tool extensions, blocking queue, encryption |
 
 ### Workflow Config Storage
 
@@ -272,10 +285,10 @@ pytest tests/ -v --tb=short -q            # Quick summary
 The test suite covers:
 
 - **Unit**: Each service in isolation (AI agent, cache, completion providers, config, database, GitHub auth/projects, models, prompts, session store, settings store, polling, webhooks, WebSocket, workflow orchestrator, all API routes)
-- **Integration**: Custom agent assignment flow
+- **Integration**: Custom agent assignment flow, chat persistence, pipeline lifecycle, workflow orchestration
 - **E2E**: Full API endpoint testing
 
-Total: **1,450+ tests** across 50 test files (47 unit + 1 integration + 1 E2E + 1 conftest).
+Total: **1,900+ tests** across 74 test files (68 unit + 5 integration + 1 E2E).
 
 ## Environment
 

@@ -69,7 +69,7 @@ class TestRepoMcpConfigApi:
             access_token="test-token",
         )
 
-    async def test_repo_config_returns_400_when_repository_cannot_be_resolved(
+    async def test_repo_config_returns_422_when_repository_cannot_be_resolved(
         self,
         client,
     ):
@@ -79,10 +79,10 @@ class TestRepoMcpConfigApi:
         ):
             resp = await client.get("/api/v1/tools/PVT_123/repo-config")
 
-        assert resp.status_code == 400
+        assert resp.status_code == 422
         data = resp.json()
-        assert "detail" in data
-        assert "Cannot resolve repository" in data["detail"]
+        assert "error" in data
+        assert "Cannot resolve repository" in data["error"]
 
     async def test_repo_config_returns_502_when_service_fetch_fails(
         self,

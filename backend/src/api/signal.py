@@ -21,6 +21,7 @@ from src.exceptions import (
     ValidationError,
 )
 from src.logging_utils import get_logger
+from src.models.common import MessageResponse
 from src.models.signal import (
     SignalBanner,
     SignalBannersResponse,
@@ -172,7 +173,7 @@ async def check_signal_link_status(
     return SignalLinkStatusResponse(status=SignalLinkStatus.PENDING)
 
 
-@router.delete("/connection")
+@router.delete("/connection", response_model=MessageResponse)
 async def disconnect_signal(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
@@ -242,7 +243,7 @@ async def get_signal_banners(
     )
 
 
-@router.post("/banners/{banner_id}/dismiss")
+@router.post("/banners/{banner_id}/dismiss", response_model=MessageResponse)
 async def dismiss_signal_banner(
     banner_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],

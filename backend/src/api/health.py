@@ -40,10 +40,10 @@ async def _check_database() -> dict:
 async def _check_github_api() -> dict:
     """Check GitHub API reachability via /rate_limit."""
     try:
-        import httpx
+        from src.services.http_client import create_client
 
         t0 = time.monotonic()
-        async with httpx.AsyncClient(timeout=5.0) as client:
+        async with create_client(timeout=5.0) as client:
             resp = await client.get("https://api.github.com/rate_limit")
         elapsed = round((time.monotonic() - t0) * 1000)
         if resp.status_code < 500:

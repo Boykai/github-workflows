@@ -238,7 +238,7 @@ async def ensure_pipeline_labels_exist(
 
     Idempotent — 422 (already exists) is silently ignored.
     """
-    import httpx
+    from src.services.http_client import create_client
 
     _FIXED_LABELS = [
         (ACTIVE_LABEL, ACTIVE_LABEL_COLOR, "Marks the active agent sub-issue"),
@@ -246,7 +246,7 @@ async def ensure_pipeline_labels_exist(
     ]
 
     try:
-        async with httpx.AsyncClient() as client:
+        async with create_client() as client:
             for name, color, description in _FIXED_LABELS:
                 try:
                     resp = await client.post(

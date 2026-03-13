@@ -3,8 +3,6 @@ name: Tester
 description: Analyzes local changes or a related PR and its code changes, adds meaningful
   tests for the changed behavior, fixes scoped quality gaps, and improves DRY/simplification
   where it strengthens correctness or testability.
-tools:
-- '*'
 handoffs:
 - label: Run Validation
   agent: Linter
