@@ -1225,6 +1225,14 @@ async def _advance_pipeline(
                 pipeline.current_group_index += 1
                 pipeline.current_agent_index_in_group = 0
 
+        # Skip empty groups after advancement
+        while (
+            pipeline.current_group_index < len(pipeline.groups)
+            and not pipeline.groups[pipeline.current_group_index].agents
+        ):
+            pipeline.current_group_index += 1
+            pipeline.current_agent_index_in_group = 0
+
     # Clear the pending assignment flag now that the agent has completed
     _pending_agent_assignments.pop(f"{issue_number}:{completed_agent}", None)
 
@@ -1474,9 +1482,13 @@ async def _advance_pipeline(
     # ── Group-aware: parallel group still has active agents → wait
     if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
         group = pipeline.groups[pipeline.current_group_index]
-        if group.execution_mode == "parallel" and group.agent_statuses:
-            still_active = any(
-                s not in ("completed", "failed") for s in group.agent_statuses.values()
+        if group.execution_mode == "parallel" and group.agents:
+            # Treat missing agent_statuses entries as non-terminal
+            still_active = (
+                len(group.agent_statuses) < len(group.agents)
+                or any(
+                    s not in ("completed", "failed") for s in group.agent_statuses.values()
+                )
             )
             if still_active:
                 # Other parallel agents are still running — do NOT assign a new agent

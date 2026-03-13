@@ -1749,6 +1749,24 @@ class WorkflowOrchestrator:
                 existing_pipeline.current_agent_index_in_group if existing_pipeline else 0
             )
 
+            # For parallel groups, preserve existing completed_agents to avoid
+            # marking earlier agents as completed before they actually finish.
+            is_parallel_group = (
+                existing_groups
+                and existing_group_idx < len(existing_groups)
+                and existing_groups[existing_group_idx].execution_mode == "parallel"
+            )
+            effective_completed = (
+                existing_pipeline.completed_agents
+                if is_parallel_group and existing_pipeline
+                else agent_slugs[:agent_index]
+            )
+            effective_agent_index = (
+                existing_pipeline.current_agent_index
+                if is_parallel_group and existing_pipeline
+                else agent_index
+            )
+
             set_pipeline_state(
                 ctx.issue_number,
                 PipelineState(
@@ -1756,8 +1774,8 @@ class WorkflowOrchestrator:
                     project_id=ctx.project_id,
                     status=status,
                     agents=agent_slugs,
-                    current_agent_index=agent_index,
-                    completed_agents=agent_slugs[:agent_index],
+                    current_agent_index=effective_agent_index,
+                    completed_agents=effective_completed,
                     started_at=utcnow(),
                     error=None if success else f"Failed to assign agent '{agent_name}'",
                     agent_assigned_sha=assigned_sha,
@@ -2355,6 +2373,8 @@ class WorkflowOrchestrator:
                 )
 
             agent_sub_issues = await self.create_all_sub_issues(ctx)
+            initial_agents: list[str] = []
+            initial_groups: list[PipelineGroupInfo] = []
             if agent_sub_issues and ctx.issue_number is not None:
                 # Populate agents for the initial status so the polling loop
                 # doesn't see an empty list and immediately consider the
@@ -2362,7 +2382,6 @@ class WorkflowOrchestrator:
                 initial_agents = get_agent_slugs(config, status_name) if config else []
 
                 # Build group info from config.group_mappings if available
-                initial_groups: list[PipelineGroupInfo] = []
                 if config and getattr(config, "group_mappings", None):
                     status_groups = config.group_mappings.get(status_name, [])
                     initial_groups.extend(
@@ -2370,6 +2389,11 @@ class WorkflowOrchestrator:
                             group_id=gm.group_id,
                             execution_mode=gm.execution_mode,
                             agents=[a.slug for a in gm.agents],
+                            agent_statuses=(
+                                {a.slug: "pending" for a in gm.agents}
+                                if gm.execution_mode == "parallel"
+                                else {}
+                            ),
                         )
                         for gm in sorted(status_groups, key=lambda g: g.order)
                     )
@@ -2411,7 +2435,34 @@ class WorkflowOrchestrator:
                         )
                     status_name = next_status
 
-            await self.assign_agent_for_status(ctx, status_name, agent_index=0)
+            # For parallel groups, assign ALL agents in the first group with stagger
+            first_parallel_group = (
+                agent_sub_issues
+                and ctx.issue_number is not None
+                and initial_groups
+                and initial_groups[0].agents
+                and initial_groups[0].execution_mode == "parallel"
+                and len(initial_groups[0].agents) > 1
+            )
+            if first_parallel_group:
+                import asyncio
+
+                group = initial_groups[0]
+                for i, agent_slug in enumerate(group.agents):
+                    flat_idx = (
+                        initial_agents.index(agent_slug) if agent_slug in initial_agents else i
+                    )
+                    if i > 0:
+                        await asyncio.sleep(2)
+                    group.agent_statuses[agent_slug] = "active"
+                    await self.assign_agent_for_status(ctx, status_name, agent_index=flat_idx)
+                # Update stored state with active statuses
+                if ctx.issue_number is not None:
+                    pipeline = get_pipeline_state(ctx.issue_number)
+                    if pipeline:
+                        set_pipeline_state(ctx.issue_number, pipeline)
+            else:
+                await self.assign_agent_for_status(ctx, status_name, agent_index=0)
 
             # Check if agent assignment actually succeeded
             pipeline = get_pipeline_state(ctx.issue_number) if ctx.issue_number else None
