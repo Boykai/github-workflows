@@ -111,8 +111,9 @@ async def _prepare_workflow_config(
     if pipeline_result is None:
         raise NotFoundError("Selected pipeline config is no longer available")
 
-    config.agent_mappings, pipeline_name, exec_modes = pipeline_result
+    config.agent_mappings, pipeline_name, exec_modes, grp_mappings = pipeline_result
     config.stage_execution_modes = exec_modes
+    config.group_mappings = grp_mappings
     await set_workflow_config(project_id, config)
     return config, pipeline_name
 
@@ -217,6 +218,7 @@ async def launch_pipeline_issue(
                 issue_body,
                 config.agent_mappings,
                 get_status_order(config),
+                group_mappings=config.group_mappings or None,
             )
 
         if len(issue_body) > GITHUB_ISSUE_BODY_MAX_LENGTH:

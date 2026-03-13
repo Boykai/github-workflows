@@ -26,10 +26,10 @@
 
 **Purpose**: Establish the shared workflow, runtime, and tracking-table data contracts for group-aware execution.
 
-- [ ] T001 Add the `ExecutionGroupMapping` schema and execution-mode validation in `/home/runner/work/github-workflows/github-workflows/backend/src/models/workflow.py`
-- [ ] T002 Add the `WorkflowConfiguration.group_mappings` field and serialization defaults in `/home/runner/work/github-workflows/github-workflows/backend/src/models/workflow.py`
-- [ ] T003 [P] Add `PipelineGroupInfo` plus group-aware `PipelineState` fields and properties in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/models.py`
-- [ ] T004 [P] Extend `AgentStep` with backward-compatible defaulted `group_label`, `group_order`, and `group_execution_mode` metadata in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
+- [x] T001 Add the `ExecutionGroupMapping` schema and execution-mode validation in `/home/runner/work/github-workflows/github-workflows/backend/src/models/workflow.py`
+- [x] T002 Add the `WorkflowConfiguration.group_mappings` field and serialization defaults in `/home/runner/work/github-workflows/github-workflows/backend/src/models/workflow.py`
+- [x] T003 [P] Add `PipelineGroupInfo` plus group-aware `PipelineState` fields and properties in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/models.py`
+- [x] T004 [P] Extend `AgentStep` with backward-compatible defaulted `group_label`, `group_order`, and `group_execution_mode` metadata in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
 
 **Checkpoint**: Shared models can represent `ExecutionGroupMapping`, `PipelineGroupInfo`, and tracking-table group metadata without breaking existing serialization defaults.
 
@@ -41,10 +41,10 @@
 
 **⚠️ CRITICAL**: No user story work should begin until execution-group mappings can be loaded, stored, and forwarded consistently.
 
-- [ ] T005 Add shared regression coverage for `ExecutionGroupMapping`, `WorkflowConfiguration.group_mappings`, and `PipelineResolutionResult.group_mappings` in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_models.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator_config.py`
-- [ ] T006 Update `load_pipeline_as_agent_mappings()` to iterate `PipelineStage.groups` from `/home/runner/work/github-workflows/github-workflows/backend/src/models/pipeline.py` and build ordered `group_mappings` plus flat fallback in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py`
-- [ ] T007 [P] Update `PipelineResolutionResult`, `resolve_project_pipeline_mappings()`, and `_prepare_workflow_config()` to accept and persist the 4-tuple group payload in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/api/pipelines.py`
-- [ ] T008 [P] Thread optional `group_mappings` through shared tracking entry points in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py`
+- [x] T005 Add shared regression coverage for `ExecutionGroupMapping`, `WorkflowConfiguration.group_mappings`, and `PipelineResolutionResult.group_mappings` in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_models.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator_config.py`
+- [x] T006 Update `load_pipeline_as_agent_mappings()` to iterate `PipelineStage.groups` from `/home/runner/work/github-workflows/github-workflows/backend/src/models/pipeline.py` and build ordered `group_mappings` plus flat fallback in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py`
+- [x] T007 [P] Update `PipelineResolutionResult`, `resolve_project_pipeline_mappings()`, and `_prepare_workflow_config()` to accept and persist the 4-tuple group payload in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/api/pipelines.py`
+- [x] T008 [P] Thread optional `group_mappings` through shared tracking entry points in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py`
 
 **Checkpoint**: `PipelineConfig -> WorkflowConfiguration` preserves ordered groups, callers accept the new internal contract, and shared helpers can receive group-aware mappings.
 
@@ -58,14 +58,14 @@
 
 ### Tests for User Story 1
 
-- [ ] T009 [P] [US1] Add sequential-group orchestration and stage-entry regression tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
+- [x] T009 [P] [US1] Add sequential-group orchestration and stage-entry regression tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Initialize `PipelineState.groups`, `current_group_index`, and `current_agent_index_in_group` for sequential groups in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
-- [ ] T011 [US1] Implement sequential-group agent selection in `assign_agent_for_status()` in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
-- [ ] T012 [US1] Advance exactly one agent at a time inside the active sequential group in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T013 [US1] Preserve active sequential-group context while updating tracking state in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
+- [x] T010 [US1] Initialize `PipelineState.groups`, `current_group_index`, and `current_agent_index_in_group` for sequential groups in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T011 [US1] Implement sequential-group agent selection in `assign_agent_for_status()` in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T012 [US1] Advance exactly one agent at a time inside the active sequential group in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`
+- [x] T013 [US1] Preserve active sequential-group context while updating tracking state in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
 
 **Checkpoint**: A single sequential execution group behaves deterministically and is independently testable as the MVP slice.
 
@@ -79,13 +79,13 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Add parallel-group assignment and completion tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
+- [x] T014 [P] [US2] Add parallel-group assignment and completion tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Add 2-second staggered assignment for all agents in the active parallel group in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
-- [ ] T016 [US2] Initialize and update per-agent parallel group statuses for active assignments in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T017 [US2] Hold stage advancement until every agent in the active parallel group reaches a terminal state in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py`
+- [x] T015 [US2] Add 2-second staggered assignment for all agents in the active parallel group in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T016 [US2] Initialize and update per-agent parallel group statuses for active assignments in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`
+- [x] T017 [US2] Hold stage advancement until every agent in the active parallel group reaches a terminal state in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py`
 
 **Checkpoint**: Parallel groups launch as a coordinated batch, track each agent independently, and complete only when the whole group finishes.
 
@@ -99,13 +99,13 @@
 
 ### Tests for User Story 3
 
-- [ ] T018 [P] [US3] Add mixed-group ordering and empty-group skip coverage in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py`
+- [x] T018 [P] [US3] Add mixed-group ordering and empty-group skip coverage in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py`
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Sort and materialize ordered `ExecutionGroupMapping` entries per status in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
-- [ ] T020 [US3] Move between `current_group_index` values only after the active group completes in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T021 [US3] Transition to the next pipeline status only after the final group in the current status completes in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T019 [US3] Sort and materialize ordered `ExecutionGroupMapping` entries per status in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T020 [US3] Move between `current_group_index` values only after the active group completes in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`
+- [x] T021 [US3] Transition to the next pipeline status only after the final group in the current status completes in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
 
 **Checkpoint**: Stages with multiple ordered groups execute end-to-end in the configured sequence and skip empty groups without error.
 
@@ -119,13 +119,13 @@
 
 ### Tests for User Story 4
 
-- [ ] T022 [P] [US4] Add 6-column tracking-table render, parse, and re-render preservation tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_agent_tracking.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
+- [x] T022 [P] [US4] Add 6-column tracking-table render, parse, and re-render preservation tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_agent_tracking.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Build per-step group labels (`G{n} (series)` for sequential groups and `G{n} (parallel)` for parallel groups) from `group_mappings` in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
-- [ ] T024 [US4] Render the 6-column tracking markdown and preserve group metadata through `append_tracking_to_body()` and `update_agent_state()` in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
-- [ ] T025 [US4] Reconstruct `PipelineGroupInfo` from tracking-table group rows during polling recovery in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py`
+- [x] T023 [US4] Build per-step group labels (`G{n} (series)` for sequential groups and `G{n} (parallel)` for parallel groups) from `group_mappings` in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
+- [x] T024 [US4] Render the 6-column tracking markdown and preserve group metadata through `append_tracking_to_body()` and `update_agent_state()` in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
+- [x] T025 [US4] Reconstruct `PipelineGroupInfo` from tracking-table group rows during polling recovery in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py`
 
 **Checkpoint**: The issue body visibly shows group structure, and polling recovery can rebuild grouped runtime state from the Group column.
 
@@ -139,13 +139,13 @@
 
 ### Tests for User Story 5
 
-- [ ] T026 [P] [US5] Add legacy pipeline fallback and 6-column/5-column/4-column parser coverage in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_agent_tracking.py`, `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator_config.py`, and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
+- [x] T026 [P] [US5] Add legacy pipeline fallback and 6-column/5-column/4-column parser coverage in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_agent_tracking.py`, `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator_config.py`, and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
 
 ### Implementation for User Story 5
 
-- [ ] T027 [US5] Implement 6-column -> 5-column -> 4-column tracking-table parser fallback in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
-- [ ] T028 [US5] Apply `if group_mappings and group_mappings.get(status)` guard paths with unchanged flat fallback in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`, and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py`
-- [ ] T029 [US5] Keep legacy pipelines and new pipelines without explicit groups on implicit sequential execution and 5-column tracking output in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
+- [x] T027 [US5] Implement 6-column -> 5-column -> 4-column tracking-table parser fallback in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
+- [x] T028 [US5] Apply `if group_mappings and group_mappings.get(status)` guard paths with unchanged flat fallback in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`, and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py`
+- [x] T029 [US5] Keep legacy pipelines and new pipelines without explicit groups on implicit sequential execution and 5-column tracking output in `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`
 
 **Checkpoint**: Existing pipelines remain unaffected, historical issue bodies still parse, and grouped behavior activates only when grouped data is actually present.
 
@@ -159,13 +159,13 @@
 
 ### Tests for User Story 6
 
-- [ ] T030 [P] [US6] Add partial-failure continuation and failed-agent recording tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py`
+- [x] T030 [P] [US6] Add partial-failure continuation and failed-agent recording tests in `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py` and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py`
 
 ### Implementation for User Story 6
 
-- [ ] T031 [US6] Record failed agents without canceling remaining parallel-group work in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
-- [ ] T032 [P] [US6] Reflect completed versus failed outcomes per agent row during partial-failure updates in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py`
-- [ ] T033 [US6] Advance from a partially failed parallel group only after every member reaches `completed` or `failed` in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T031 [US6] Record failed agents without canceling remaining parallel-group work in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T032 [P] [US6] Reflect completed versus failed outcomes per agent row during partial-failure updates in `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/helpers.py`
+- [x] T033 [US6] Advance from a partially failed parallel group only after every member reaches `completed` or `failed` in `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py`
 
 **Checkpoint**: Parallel groups tolerate individual agent failure, record failure detail, and move forward only after all grouped agents finish.
 
@@ -175,10 +175,10 @@
 
 **Purpose**: Validate the end-to-end grouped execution flow, confirm backward compatibility, and run the scoped quality gates.
 
-- [ ] T034 [P] Validate sequential, parallel, mixed-group, backward-compatibility, and partial-failure scenarios in `/home/runner/work/github-workflows/github-workflows/specs/039-group-pipeline-execution/quickstart.md` against `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T035 [P] Run targeted backend tests from `/home/runner/work/github-workflows/github-workflows/specs/039-group-pipeline-execution/quickstart.md` against `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_agent_tracking.py`, `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py`, and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
-- [ ] T036 [P] Run backend lint and format validation from `/home/runner/work/github-workflows/github-workflows/backend/pyproject.toml` against `/home/runner/work/github-workflows/github-workflows/backend/src/models/workflow.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/`, and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/`
-- [ ] T037 Review cleanup for group-aware orchestration, backward-compatibility guards, and contract alignment in `/home/runner/work/github-workflows/github-workflows/backend/src/api/pipelines.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py`, and `/home/runner/work/github-workflows/github-workflows/specs/039-group-pipeline-execution/contracts/internal-interfaces.md`
+- [x] T034 [P] Validate sequential, parallel, mixed-group, backward-compatibility, and partial-failure scenarios in `/home/runner/work/github-workflows/github-workflows/specs/039-group-pipeline-execution/quickstart.md` against `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/orchestrator.py` and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/pipeline.py`
+- [x] T035 [P] Run targeted backend tests from `/home/runner/work/github-workflows/github-workflows/specs/039-group-pipeline-execution/quickstart.md` against `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_agent_tracking.py`, `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_workflow_orchestrator.py`, and `/home/runner/work/github-workflows/github-workflows/backend/tests/unit/test_copilot_polling.py`
+- [x] T036 [P] Run backend lint and format validation from `/home/runner/work/github-workflows/github-workflows/backend/pyproject.toml` against `/home/runner/work/github-workflows/github-workflows/backend/src/models/workflow.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/agent_tracking.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/`, and `/home/runner/work/github-workflows/github-workflows/backend/src/services/copilot_polling/`
+- [x] T037 Review cleanup for group-aware orchestration, backward-compatibility guards, and contract alignment in `/home/runner/work/github-workflows/github-workflows/backend/src/api/pipelines.py`, `/home/runner/work/github-workflows/github-workflows/backend/src/services/workflow_orchestrator/config.py`, and `/home/runner/work/github-workflows/github-workflows/specs/039-group-pipeline-execution/contracts/internal-interfaces.md`
 
 ---
 

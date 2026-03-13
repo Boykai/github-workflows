@@ -125,6 +125,16 @@ class WorkflowContext:
 
 
 @dataclass
+class PipelineGroupInfo:
+    """Runtime tracking of an execution group within a pipeline status."""
+
+    group_id: str
+    execution_mode: str = "sequential"
+    agents: list[str] = field(default_factory=list)
+    agent_statuses: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
 class PipelineState:
     """Tracks per-issue pipeline progress through sequential agents."""
 
@@ -150,10 +160,21 @@ class PipelineState:
     execution_mode: str = "sequential"
     parallel_agent_statuses: dict[str, str] = field(default_factory=dict)
     failed_agents: list[str] = field(default_factory=list)
+    # Group-aware execution support
+    groups: list[PipelineGroupInfo] = field(default_factory=list)
+    current_group_index: int = 0
+    current_agent_index_in_group: int = 0
 
     @property
     def current_agent(self) -> str | None:
         """Get the currently active agent, or None if pipeline is complete."""
+        if self.groups:
+            if self.current_group_index < len(self.groups):
+                group = self.groups[self.current_group_index]
+                if self.current_agent_index_in_group < len(group.agents):
+                    return group.agents[self.current_agent_index_in_group]
+            return None
+        # Flat fallback (existing behavior)
         if self.current_agent_index < len(self.agents):
             return self.agents[self.current_agent_index]
         return None
@@ -161,6 +182,17 @@ class PipelineState:
     @property
     def is_complete(self) -> bool:
         """Check if all agents in the pipeline have completed."""
+        if self.groups:
+            if self.current_group_index >= len(self.groups):
+                return True
+            group = self.groups[self.current_group_index]
+            if group.execution_mode == "parallel" and group.agent_statuses:
+                return all(
+                    s in ("completed", "failed")
+                    for s in group.agent_statuses.values()
+                )
+            return False
+        # Flat fallback (existing behavior)
         if self.execution_mode == "parallel" and self.parallel_agent_statuses:
             return all(s in ("completed", "failed") for s in self.parallel_agent_statuses.values())
         return self.current_agent_index >= len(self.agents)

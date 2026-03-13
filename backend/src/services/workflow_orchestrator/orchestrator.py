@@ -24,6 +24,7 @@ from src.utils import BoundedDict, utcnow
 
 from .config import _transitions, get_workflow_config
 from .models import (
+    PipelineGroupInfo,
     PipelineState,
     WorkflowContext,
     WorkflowState,
@@ -525,7 +526,10 @@ class WorkflowOrchestrator:
         config = ctx.config or await get_workflow_config(ctx.project_id)
         if config and config.agent_mappings:
             status_order = get_status_order(config)
-            body = append_tracking_to_body(body, config.agent_mappings, status_order)
+            body = append_tracking_to_body(
+                body, config.agent_mappings, status_order,
+                group_mappings=config.group_mappings or None,
+            )
             logger.info("Appended agent pipeline tracking to issue body")
 
         # Validate assembled body does not exceed GitHub API limit
@@ -2322,6 +2326,20 @@ class WorkflowOrchestrator:
                 # doesn't see an empty list and immediately consider the
                 # pipeline "complete" (is_complete = 0 >= len([]) = True).
                 initial_agents = get_agent_slugs(config, status_name) if config else []
+
+                # Build group info from config.group_mappings if available
+                initial_groups: list[PipelineGroupInfo] = []
+                if config and getattr(config, "group_mappings", None):
+                    status_groups = config.group_mappings.get(status_name, [])
+                    initial_groups.extend(
+                        PipelineGroupInfo(
+                            group_id=gm.group_id,
+                            execution_mode=gm.execution_mode,
+                            agents=[a.slug for a in gm.agents],
+                        )
+                        for gm in sorted(status_groups, key=lambda g: g.order)
+                    )
+
                 pipeline_state = PipelineState(
                     issue_number=ctx.issue_number,
                     project_id=ctx.project_id,
@@ -2329,6 +2347,7 @@ class WorkflowOrchestrator:
                     agents=initial_agents,
                     agent_sub_issues=agent_sub_issues,
                     started_at=utcnow(),
+                    groups=initial_groups,
                 )
                 set_pipeline_state(ctx.issue_number, pipeline_state)
                 logger.info(
