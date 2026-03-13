@@ -582,7 +582,11 @@ async def _run_ai_pipeline(
     2. Status-change → status-update proposal
     3. General input → task proposal
     """
-    from src.api.chat import add_message, get_proposal, get_recommendation, store_proposal, store_recommendation
+    from src.api.chat import (
+        add_message,
+        store_proposal,
+        store_recommendation,
+    )
     from src.models.recommendation import (
         AITaskProposal,
         ProposalStatus,
