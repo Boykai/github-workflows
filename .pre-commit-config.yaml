@@ -64,3 +64,13 @@ repos:
         name: Lint Markdown (markdownlint)
         args: [--config, .markdownlint.json]
         files: (^docs/.*\.md$|^[^/]*\.md$)
+
+  # Architecture diagram generation
+  - repo: local
+    hooks:
+      - id: generate-diagrams
+        name: Regenerate Architecture Diagrams
+        entry: ./scripts/generate-diagrams.sh
+        language: script
+        files: (^backend/src/|^frontend/src/|^docker-compose\.yml$|^scripts/generate-diagrams\.sh$)
+        pass_filenames: false

@@ -25,6 +25,8 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 STAGED_PY_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
 # Check if we have staged frontend files
 STAGED_FRONTEND_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^frontend/.*\.(ts|tsx|js|jsx)$' || true)
+# Check if we have staged files that affect architecture diagrams
+STAGED_ARCH_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(^backend/src/|^frontend/src/|^docker-compose\.yml$|^scripts/generate-diagrams\.sh$)' || true)
 
 # ============================================
 # Backend Checks (with auto-fix)
@@ -152,6 +154,28 @@ if [ -n "$STAGED_FRONTEND_FILES" ]; then
             git add "$REPO_ROOT/$file" 2>/dev/null || true
         fi
     done
+fi
+
+# ============================================
+# Architecture Diagram Regeneration
+# ============================================
+if [ -n "$STAGED_ARCH_FILES" ]; then
+    echo ""
+    echo "📊 Architecture diagrams..."
+
+    echo -n "  🔄 Regenerating diagrams... "
+    diag_err=$(mktemp)
+    if "$REPO_ROOT/scripts/generate-diagrams.sh" > /dev/null 2>"$diag_err"; then
+        echo -e "${GREEN}✓${NC}"
+        # Stage any updated diagram files
+        git add "$REPO_ROOT/docs/architectures/" 2>/dev/null || true
+    else
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}    Diagram generation failed${NC}"
+        cat "$diag_err" >&2
+        FAILED=1
+    fi
+    rm -f "$diag_err"
 fi
 
 # ============================================

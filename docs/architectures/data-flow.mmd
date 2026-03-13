@@ -1,0 +1,37 @@
+graph LR
+    User(("User"))
+
+    subgraph Frontend
+        UI["React UI"]
+        WS_C["WebSocket Client"]
+        TQ["TanStack Query"]
+    end
+
+    subgraph Backend
+        Router["FastAPI Router"]
+        WS_S["WebSocket Server"]
+        Orch["Workflow Orchestrator"]
+        Poll["Copilot Polling"]
+        GHSvc["GitHub Projects Service"]
+        Cache["In-Memory Cache"]
+    end
+
+    DB[("SQLite")]
+    GitHub["GitHub API"]
+    Signal["Signal Sidecar"]
+    AI["AI Provider"]
+
+    User --> UI
+    UI -- "REST requests" --> TQ
+    TQ -- "HTTP" --> Router
+    UI -- "WS connect" --> WS_C
+    WS_C <--> |"real-time updates"| WS_S
+    Router --> GHSvc
+    Router --> Orch
+    Orch --> Poll
+    Poll --> AI
+    GHSvc --> GitHub
+    GHSvc --> Cache
+    Router --> DB
+    Orch --> DB
+    Router --> Signal
