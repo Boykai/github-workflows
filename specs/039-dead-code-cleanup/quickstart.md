@@ -6,7 +6,7 @@
 ## Prerequisites
 
 - Python 3.12+ (backend)
-- Node.js 22+ (frontend)
+- Node.js 20+ (frontend)
 - Git
 
 ## Repository Setup

@@ -2,6 +2,7 @@
 
 import hashlib
 import json
+from collections.abc import Awaitable, Callable
 from datetime import timedelta
 from typing import Any
 
@@ -186,8 +187,8 @@ cache = InMemoryCache()
 async def cached_fetch[T](
     cache_instance: InMemoryCache,
     key: str,
-    fetch_fn: Any,
-    ttl_seconds: int = 300,
+    fetch_fn: Callable[[], Awaitable[T]],
+    ttl_seconds: int | None = None,
     refresh: bool = False,
     stale_fallback: bool = False,
 ) -> T:
@@ -204,7 +205,8 @@ async def cached_fetch[T](
         cache_instance: The :class:`InMemoryCache` to read/write.
         key: Cache key.
         fetch_fn: Async callable (no args) that returns the data.
-        ttl_seconds: TTL for the cache entry (default 300 s).
+        ttl_seconds: TTL for the cache entry.  When ``None`` (default),
+            the cache instance's configured TTL is used.
         refresh: When ``True``, skip the cache and always call *fetch_fn*.
         stale_fallback: When ``True``, return stale data on fetch errors.
 
@@ -228,7 +230,7 @@ async def cached_fetch[T](
         raise
 
     cache_instance.set(key, result, ttl_seconds=ttl_seconds)
-    logger.debug("cached_fetch set: %s (TTL: %ds)", key, ttl_seconds)
+    logger.debug("cached_fetch set: %s (TTL: %ss)", key, ttl_seconds or "default")
     return result  # type: ignore[return-value]
 
 

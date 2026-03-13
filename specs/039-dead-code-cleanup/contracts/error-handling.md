@@ -38,7 +38,7 @@ except Exception as e:
 
 | Context | Error Class | HTTP Status |
 |---------|------------|-------------|
-| Invalid user input / missing fields | `ValidationError` | 400 |
+| Invalid user input / missing fields | `ValidationError` | 422 |
 | Resource not found | `NotFoundError` | 404 |
 | Authentication failure | `AuthorizationError` | 401/403 |
 | GitHub API failure | `GitHubAPIError` | 502 |
