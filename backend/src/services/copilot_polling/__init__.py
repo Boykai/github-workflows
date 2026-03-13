@@ -145,6 +145,9 @@ __all__ = [
     "AGENT_OUTPUT_FILES",
     "ASSIGNMENT_GRACE_PERIOD_SECONDS",
     "RECOVERY_COOLDOWN_SECONDS",
+    "STATE_ACTIVE",
+    "STATE_DONE",
+    "STATE_PENDING",
     "PipelineGroupInfo",
     "PipelineState",
     # State

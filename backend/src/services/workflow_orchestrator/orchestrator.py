@@ -2331,14 +2331,14 @@ class WorkflowOrchestrator:
                 initial_groups: list[PipelineGroupInfo] = []
                 if config and getattr(config, "group_mappings", None):
                     status_groups = config.group_mappings.get(status_name, [])
-                    for gm in sorted(status_groups, key=lambda g: g.order):
-                        initial_groups.append(
-                            PipelineGroupInfo(
-                                group_id=gm.group_id,
-                                execution_mode=gm.execution_mode,
-                                agents=[a.slug for a in gm.agents],
-                            )
+                    initial_groups.extend(
+                        PipelineGroupInfo(
+                            group_id=gm.group_id,
+                            execution_mode=gm.execution_mode,
+                            agents=[a.slug for a in gm.agents],
                         )
+                        for gm in sorted(status_groups, key=lambda g: g.order)
+                    )
 
                 pipeline_state = PipelineState(
                     issue_number=ctx.issue_number,
