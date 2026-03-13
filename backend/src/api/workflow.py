@@ -328,11 +328,7 @@ async def confirm_recommendation(
         # and preserves the structured ``details`` payload.
         raise
     except Exception as e:
-        logger.error("Workflow failed: %s", e, exc_info=True)
-        return WorkflowResult(
-            success=False,
-            message="Failed to create issue",
-        )
+        handle_service_error(e, "create issue from recommendation")
 
 
 @router.post("/recommendations/{recommendation_id}/reject")

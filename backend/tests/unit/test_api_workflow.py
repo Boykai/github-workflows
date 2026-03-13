@@ -422,7 +422,7 @@ class TestConfirmRecommendation:
     async def test_confirm_workflow_failure(
         self, client, mock_session, mock_github_service, mock_websocket_manager
     ):
-        """When orchestrator raises, endpoint returns success=False."""
+        """When orchestrator raises, endpoint returns 502 via handle_service_error."""
         mock_session.selected_project_id = TEST_PROJECT_ID
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
@@ -444,8 +444,9 @@ class TestConfirmRecommendation:
             ms.return_value = MagicMock(default_assignee="copilot", database_path=":memory:")
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
-        assert resp.status_code == 200
-        assert resp.json()["success"] is False
+        assert resp.status_code == 502
+        data = resp.json()
+        assert "Failed to create issue from recommendation" in data["error"]
 
     async def test_confirm_applies_selected_pipeline_override(
         self, client, mock_session, mock_github_service, mock_websocket_manager
@@ -1069,7 +1070,7 @@ class TestWorkflowErrorSanitization:
     async def test_confirm_recommendation_error_does_not_leak(
         self, client, mock_session, mock_github_service
     ):
-        """confirm_recommendation must not include raw exception in WorkflowResult."""
+        """confirm_recommendation must not leak raw exception details to the end user."""
         import src.api.chat as chat_mod
         from src.models.recommendation import IssueRecommendation
 
@@ -1106,10 +1107,9 @@ class TestWorkflowErrorSanitization:
             )
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
-        assert resp.status_code == 200
+        assert resp.status_code == 502
         body = resp.json()
-        assert body["success"] is False
         # Must not leak internal error text
-        assert "DB lock timeout" not in body["message"]
-        assert "5000ms" not in body["message"]
+        assert "DB lock timeout" not in body.get("error", "")
+        assert "5000ms" not in body.get("error", "")
         chat_mod._recommendations.pop(rec_id, None)

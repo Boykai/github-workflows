@@ -711,10 +711,7 @@ async def send_message(
         except ValidationError:
             raise
         except Exception as exc:
-            logger.warning(
-                "Pipeline validation failed for pipeline_id=%s: %s", chat_request.pipeline_id, exc
-            )
-            raise ValidationError(f"Pipeline not found: {chat_request.pipeline_id}") from exc
+            handle_service_error(exc, "validate pipeline", ValidationError)
 
     # Try to get AI service (optional)
     try:
