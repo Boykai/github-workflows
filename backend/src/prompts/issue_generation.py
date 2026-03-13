@@ -5,7 +5,8 @@ from datetime import timedelta
 from src.constants import LABELS
 from src.utils import utcnow
 
-# Backward-compatible alias — prefer ``LABELS`` for new code.
+# Deprecated: prefer ``LABELS`` from ``src.constants`` for new code.
+# Retained because ``tests/unit/test_prompts.py`` still references it.
 PREDEFINED_LABELS = LABELS
 
 ISSUE_GENERATION_SYSTEM_PROMPT = """You are an expert product manager helping structure feature requests into well-organized GitHub issues.

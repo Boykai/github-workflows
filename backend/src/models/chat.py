@@ -13,8 +13,6 @@ from uuid import UUID, uuid4
 
 from pydantic import BaseModel, Field, field_validator
 
-from src.constants import DEFAULT_AGENT_MAPPINGS  # noqa: F401  — backward compat
-
 # ---- Re-exports for backward compatibility --------------------------------
 from src.models.agent import (  # noqa: F401
     AgentAssignment,

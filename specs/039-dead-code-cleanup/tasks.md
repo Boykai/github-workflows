@@ -25,8 +25,8 @@
 
 **Purpose**: Verify baseline codebase state and confirm all cleanup targets exist
 
-- [ ] T001 Verify baseline codebase metrics (465 files, 4653 functions, 803 classes per CGC) and confirm all target files listed in plan.md project structure exist in the repository
-- [ ] T002 [P] Review error-handling, deprecation-policy, and complexity-budget contracts in specs/039-dead-code-cleanup/contracts/ to confirm migration patterns before implementation
+- [x] T001 Verify baseline codebase metrics (465 files, 4653 functions, 803 classes per CGC) and confirm all target files listed in plan.md project structure exist in the repository
+- [x] T002 [P] Review error-handling, deprecation-policy, and complexity-budget contracts in specs/039-dead-code-cleanup/contracts/ to confirm migration patterns before implementation
 
 ---
 
@@ -36,9 +36,9 @@
 
 **⚠️ CRITICAL**: US3 error handler migration and cache consolidation depend on these utilities existing with expected APIs
 
-- [ ] T003 Confirm handle_service_error(exc, operation, error_cls) utility exists and matches expected signature in backend/src/logging_utils.py (expected at lines 224–261)
-- [ ] T004 [P] Confirm require_selected_project validation helper exists in backend/src/dependencies.py and raises ValidationError when session.selected_project_id is missing
-- [ ] T005 [P] Confirm InMemoryCache class exposes get(), get_stale(), set(), get_entry(), and refresh_ttl() methods in backend/src/services/cache.py
+- [x] T003 Confirm handle_service_error(exc, operation, error_cls) utility exists and matches expected signature in backend/src/logging_utils.py (expected at lines 224–261)
+- [x] T004 [P] Confirm require_selected_project validation helper exists in backend/src/dependencies.py and raises ValidationError when session.selected_project_id is missing
+- [x] T005 [P] Confirm InMemoryCache class exposes get(), get_stale(), set(), get_entry(), and refresh_ttl() methods in backend/src/services/cache.py
 
 **Checkpoint**: Foundation verified — user story implementation can now begin
 
@@ -52,9 +52,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Remove gitignored build artifact directories from working tree: backend/htmlcov/, frontend/coverage/, frontend/e2e-report/, frontend/test-results/ (skip any that do not exist — cleanup must be idempotent)
-- [ ] T007 [US1] Replace local formatTimeAgo function with import from the existing shared `formatTimeAgo` in frontend/src/utils/formatTime.ts (confirmed in plan.md as canonical import target) in frontend/src/components/settings/DynamicDropdown.tsx, adding `new Date(isoString)` conversion at each call site to adapt for the string-to-Date signature difference
-- [ ] T008 [US1] Run frontend test suite (`npx vitest run`) to verify zero regressions after DynamicDropdown.tsx change
+- [x] T006 [US1] Remove gitignored build artifact directories from working tree: backend/htmlcov/, frontend/coverage/, frontend/e2e-report/, frontend/test-results/ (skip any that do not exist — cleanup must be idempotent)
+- [x] T007 [US1] Replace local formatTimeAgo function with import from the existing shared `formatTimeAgo` in frontend/src/utils/formatTime.ts (confirmed in plan.md as canonical import target) in frontend/src/components/settings/DynamicDropdown.tsx, adding `new Date(isoString)` conversion at each call site to adapt for the string-to-Date signature difference
+- [x] T008 [US1] Run frontend test suite (`npx vitest run`) to verify zero regressions after DynamicDropdown.tsx change
 
 **Checkpoint**: User Story 1 complete — build artifacts removed and duplicate function eliminated
 
@@ -68,16 +68,16 @@
 
 ### Implementation for User Story 2
 
-- [ ] T009 [P] [US2] Add `DEPRECATED(v2.0): Remove after all tracked issues use 5-column format` annotation to `_ROW_RE_OLD` regex (L61–62) and its fallback usage (L206) in backend/src/services/agent_tracking.py — create a GitHub tracking issue for the deprecation or link to an existing one, replacing the `#XXXX` placeholder in the annotation with the actual issue number
-- [ ] T010 [P] [US2] Add `DEPRECATED(v2.0)` annotations to all legacy pipeline references at L2075+ in backend/src/services/copilot_polling/pipeline.py — create or link a GitHub tracking issue for each deprecation group and include the issue number in the annotation
-- [ ] T011 [P] [US2] Add deprecation timeline annotations to `agents` field (L44) and `execution_mode` field (L46) in backend/src/models/pipeline.py with removal condition: "Remove once all pipelines use groups-based format"
-- [ ] T012 [P] [US2] Add legacy format encounter logging (`logger.info("legacy_format_encountered", extra={"format_type": ..., "context": ..., "issue_number": ...})`) at normalization points L215, L238, L300 in backend/src/services/pipelines/service.py
-- [ ] T013 [P] [US2] Add `@deprecated` JSDoc annotations to `old_status` (L97), `agents` (L1072), and `execution_mode` (L1075) fields in frontend/src/types/index.ts; audit `old_status` in StatusUpdateActionData and confirm whether any backend code sends it
-- [ ] T014 [P] [US2] Add `@internal Test-only reset function. Do not use in production code.` JSDoc annotation to `_resetForTesting` export in frontend/src/hooks/useScrollLock.ts
-- [ ] T015 [P] [US2] Audit `clearLegacyStorage` function (L40–47) in frontend/src/hooks/useChatHistory.ts — if localStorage is still used for security cleanup, add `@internal` annotation explaining its purpose; if no longer needed, remove the function
-- [ ] T016 [P] [US2] Update `AITaskProposal` docstring to reflect permanent entity status (remove "Temporary entity" language) in backend/src/models/recommendation.py
-- [ ] T017 [US2] Update docs/configuration.md to reflect correct migration count (001 through 022) and annotate blocking migrations (017, 018, 021) as historical/removed per research R8 findings
-- [ ] T018 [US2] Run backend (`python -m pytest tests/ -v --tb=short`) and frontend (`npx vitest run`) test suites to verify zero regressions after annotation changes
+- [x] T009 [P] [US2] Add `DEPRECATED(v2.0): Remove after all tracked issues use 5-column format` annotation to `_ROW_RE_OLD` regex (L61–62) and its fallback usage (L206) in backend/src/services/agent_tracking.py — create a GitHub tracking issue for the deprecation or link to an existing one, replacing the `#XXXX` placeholder in the annotation with the actual issue number
+- [x] T010 [P] [US2] Add `DEPRECATED(v2.0)` annotations to all legacy pipeline references at L2075+ in backend/src/services/copilot_polling/pipeline.py — create or link a GitHub tracking issue for each deprecation group and include the issue number in the annotation
+- [x] T011 [P] [US2] Add deprecation timeline annotations to `agents` field (L44) and `execution_mode` field (L46) in backend/src/models/pipeline.py with removal condition: "Remove once all pipelines use groups-based format"
+- [x] T012 [P] [US2] Add legacy format encounter logging (`logger.info("legacy_format_encountered", extra={"format_type": ..., "context": ..., "issue_number": ...})`) at normalization points L215, L238, L300 in backend/src/services/pipelines/service.py
+- [x] T013 [P] [US2] Add `@deprecated` JSDoc annotations to `old_status` (L97), `agents` (L1072), and `execution_mode` (L1075) fields in frontend/src/types/index.ts; audit `old_status` in StatusUpdateActionData and confirm whether any backend code sends it
+- [x] T014 [P] [US2] Add `@internal Test-only reset function. Do not use in production code.` JSDoc annotation to `_resetForTesting` export in frontend/src/hooks/useScrollLock.ts
+- [x] T015 [P] [US2] Audit `clearLegacyStorage` function (L40–47) in frontend/src/hooks/useChatHistory.ts — if localStorage is still used for security cleanup, add `@internal` annotation explaining its purpose; if no longer needed, remove the function
+- [x] T016 [P] [US2] Update `AITaskProposal` docstring to reflect permanent entity status (remove "Temporary entity" language) in backend/src/models/recommendation.py
+- [x] T017 [US2] Update docs/configuration.md to reflect correct migration count (001 through 022) and annotate blocking migrations (017, 018, 021) as historical/removed per research R8 findings
+- [x] T018 [US2] Run backend (`python -m pytest tests/ -v --tb=short`) and frontend (`npx vitest run`) test suites to verify zero regressions after annotation changes
 
 **Checkpoint**: User Story 2 complete — all 8+ legacy code paths annotated with deprecation timelines and migration tracking active
 
@@ -91,26 +91,26 @@
 
 ### Error Handler Migration (per contracts/error-handling.md)
 
-- [ ] T019 [P] [US3] Migrate 5 inline error handlers to `handle_service_error` in backend/src/api/projects.py — replace `except Exception as e: logger.error(...); raise FooError(...)` patterns with `handle_service_error(e, "operation", ErrorClass)` calls
-- [ ] T020 [P] [US3] Migrate 4 inline error handlers to `handle_service_error` in backend/src/api/webhooks.py per error-handling contract
-- [ ] T021 [P] [US3] Migrate 2 inline error handlers to `handle_service_error` in backend/src/api/signal.py per error-handling contract
-- [ ] T022 [P] [US3] Migrate 1 inline error handler to `handle_service_error` in backend/src/api/auth.py per error-handling contract
-- [ ] T023 [P] [US3] Migrate 1 inline error handler to `handle_service_error` in backend/src/api/chores.py per error-handling contract
-- [ ] T024 [P] [US3] Migrate 1 inline error handler at L952 to `handle_service_error` in backend/src/api/chat.py — skip L167 (silent-fail), L249/389/437 (error-response patterns per contract exceptions)
+- [x] T019 [P] [US3] Migrate 5 inline error handlers to `handle_service_error` in backend/src/api/projects.py — replace `except Exception as e: logger.error(...); raise FooError(...)` patterns with `handle_service_error(e, "operation", ErrorClass)` calls
+- [x] T020 [P] [US3] Migrate 4 inline error handlers to `handle_service_error` in backend/src/api/webhooks.py per error-handling contract
+- [x] T021 [P] [US3] Migrate 2 inline error handlers to `handle_service_error` in backend/src/api/signal.py per error-handling contract
+- [x] T022 [P] [US3] Migrate 1 inline error handler to `handle_service_error` in backend/src/api/auth.py per error-handling contract
+- [x] T023 [P] [US3] Migrate 1 inline error handler to `handle_service_error` in backend/src/api/chores.py per error-handling contract
+- [x] T024 [P] [US3] Migrate 1 inline error handler at L952 to `handle_service_error` in backend/src/api/chat.py — skip L167 (silent-fail), L249/389/437 (error-response patterns per contract exceptions)
 
 ### Cache Pattern Extraction
 
-- [ ] T025 [US3] Create `cached_fetch` async utility in backend/src/services/cache.py with signature: `cached_fetch(cache: InMemoryCache, key: str, fetch_fn: Callable[..., Awaitable[T]], ttl_seconds: int = 300, refresh: bool = False, stale_fallback: bool = False) -> T` per research R2 design
-- [ ] T026 [P] [US3] Adopt `cached_fetch` replacing inline cache check/get/set pattern in backend/src/api/board.py (use `stale_fallback=True` for rate-limit/5xx scenarios)
-- [ ] T027 [P] [US3] Adopt `cached_fetch` replacing inline cache check/get/set pattern in backend/src/api/projects.py
-- [ ] T028 [US3] Adopt `cached_fetch` replacing inline cache check/get/set pattern in backend/src/api/chat.py
+- [x] T025 [US3] Create `cached_fetch` async utility in backend/src/services/cache.py with signature: `cached_fetch(cache: InMemoryCache, key: str, fetch_fn: Callable[..., Awaitable[T]], ttl_seconds: int = 300, refresh: bool = False, stale_fallback: bool = False) -> T` per research R2 design
+- [x] T026 [P] [US3] Adopt `cached_fetch` replacing inline cache check/get/set pattern in backend/src/api/board.py (use `stale_fallback=True` for rate-limit/5xx scenarios)
+- [x] T027 [P] [US3] Adopt `cached_fetch` replacing inline cache check/get/set pattern in backend/src/api/projects.py
+- [x] T028 [US3] Adopt `cached_fetch` replacing inline cache check/get/set pattern in backend/src/api/chat.py
 
 ### Validation and Audit
 
-- [ ] T029 [P] [US3] Adopt `require_selected_project` validation helper at 5+ repeated `if not session.selected_project_id` validation sites in backend/src/api/workflow.py
-- [ ] T030 [P] [US3] Verify `pipeline_source` field end-to-end usage across backend models and frontend components; mark `@deprecated` if frontend does not consume the field
-- [ ] T031 [US3] Address temporary file upload storage in backend/src/api/chat.py — add lifecycle management (cleanup on restart or TTL) or document as intentional for self-hosted single-instance deployments
-- [ ] T032 [US3] Run backend test suite (`python -m pytest tests/ -v --tb=short`) and type check (`python -m pyright src/`) to verify zero regressions after DRY consolidation
+- [x] T029 [P] [US3] Adopt `require_selected_project` validation helper at 5+ repeated `if not session.selected_project_id` validation sites in backend/src/api/workflow.py
+- [x] T030 [P] [US3] Verify `pipeline_source` field end-to-end usage across backend models and frontend components; mark `@deprecated` if frontend does not consume the field
+- [x] T031 [US3] Address temporary file upload storage in backend/src/api/chat.py — add lifecycle management (cleanup on restart or TTL) or document as intentional for self-hosted single-instance deployments
+- [x] T032 [US3] Run backend test suite (`python -m pytest tests/ -v --tb=short`) and type check (`python -m pyright src/`) to verify zero regressions after DRY consolidation
 
 **Checkpoint**: User Story 3 complete — 14 inline error handlers migrated, cache pattern consolidated into `cached_fetch`, validation helpers adopted
 
@@ -124,18 +124,18 @@
 
 ### Backend Decomposition (per contracts/complexity-budget.md)
 
-- [ ] T033 [P] [US4] Decompose `post_agent_outputs_from_pr` (CC=123) into private sub-functions `_get_active_pipeline_tasks`, `_detect_agent_pr_completion`, `_extract_pr_markdown_files`, `_post_agent_comments`, `_update_tracking_after_output` in backend/src/services/copilot_polling/agent_output.py (target: each sub-function CC < 30)
-- [ ] T034 [P] [US4] Decompose `assign_agent_for_status` (CC=91) into private sub-functions `_resolve_agent_for_status`, `_validate_assignment_context`, `_create_or_update_pipeline_state`, `_execute_agent_assignment` in backend/src/services/workflow_orchestrator/orchestrator.py (target: each sub-function CC < 25)
-- [ ] T035 [P] [US4] Decompose `recover_stalled_issues` (CC=72) into private sub-functions `_bootstrap_recovery_config`, `_detect_stalled_issue`, `_check_recovery_cooldown`, `_execute_recovery_reassignment` in backend/src/services/copilot_polling/recovery.py (target: each sub-function CC < 20)
+- [x] T033 [P] [US4] Decompose `post_agent_outputs_from_pr` (CC=123) into private sub-functions `_get_active_pipeline_tasks`, `_detect_agent_pr_completion`, `_extract_pr_markdown_files`, `_post_agent_comments`, `_update_tracking_after_output` in backend/src/services/copilot_polling/agent_output.py (target: each sub-function CC < 30)
+- [x] T034 [P] [US4] Decompose `assign_agent_for_status` (CC=91) into private sub-functions `_resolve_agent_for_status`, `_validate_assignment_context`, `_create_or_update_pipeline_state`, `_execute_agent_assignment` in backend/src/services/workflow_orchestrator/orchestrator.py (target: each sub-function CC < 25)
+- [x] T035 [P] [US4] Decompose `recover_stalled_issues` (CC=72) into private sub-functions `_bootstrap_recovery_config`, `_detect_stalled_issue`, `_check_recovery_cooldown`, `_execute_recovery_reassignment` in backend/src/services/copilot_polling/recovery.py (target: each sub-function CC < 20)
 
 ### Frontend Decomposition
 
-- [ ] T036 [P] [US4] Verify `GlobalSettings` component CC in frontend/src/components/settings/GlobalSettings.tsx — if the form orchestration (excluding already-extracted subcomponents) exceeds CC=30, extract `useGlobalSettingsForm` custom hook for submit/reset logic
-- [ ] T037 [P] [US4] Decompose `LoginPage` into co-located sub-components `HeroSection` (branding, tagline, feature highlights), `ThemeToggle` (dark/light switch), and `AuthPanel` (login button, OAuth callback) in frontend/src/pages/LoginPage.tsx (target: each sub-component CC < 30)
+- [x] T036 [P] [US4] Verify `GlobalSettings` component CC in frontend/src/components/settings/GlobalSettings.tsx — if the form orchestration (excluding already-extracted subcomponents) exceeds CC=30, extract `useGlobalSettingsForm` custom hook for submit/reset logic
+- [x] T037 [P] [US4] Decompose `LoginPage` into co-located sub-components `HeroSection` (branding, tagline, feature highlights), `ThemeToggle` (dark/light switch), and `AuthPanel` (login button, OAuth callback) in frontend/src/pages/LoginPage.tsx (target: each sub-component CC < 30)
 
 ### Verification
 
-- [ ] T038 [US4] Run backend (`python -m pytest tests/ -v`) and frontend (`npx vitest run`) test suites, plus type checks (`python -m pyright src/` and `npm run type-check`), to verify zero regressions after complexity reduction
+- [x] T038 [US4] Run backend (`python -m pytest tests/ -v`) and frontend (`npx vitest run`) test suites, plus type checks (`python -m pyright src/` and `npm run type-check`), to verify zero regressions after complexity reduction
 
 **Checkpoint**: User Story 4 complete — all 5 complexity hotspots decomposed to meet CC targets, zero functions with CC > 40 remain
 
@@ -149,22 +149,22 @@
 
 ### Migration Planning (documentation only — no implementation)
 
-- [ ] T039 [P] [US5] Create singleton removal migration plan in specs/039-dead-code-cleanup/migration-plan-singleton.md — document all 17+ import sites for `github_projects_service`, provider pattern design with `get_service()` fallback, and a checklist of all files needing migration (reference backend/src/services/github_projects/service.py and agents.py)
-- [ ] T040 [P] [US5] Create in-memory store SQLite migration plan in specs/039-dead-code-cleanup/migration-plan-sqlite.md — document all ~15 code paths for `_messages`, `_proposals`, `_recommendations` in backend/src/api/chat.py, reference existing migration 012 tables, and list transaction management requirements
+- [x] T039 [P] [US5] Create singleton removal migration plan in specs/039-dead-code-cleanup/migration-plan-singleton.md — document all 17+ import sites for `github_projects_service`, provider pattern design with `get_service()` fallback, and a checklist of all files needing migration (reference backend/src/services/github_projects/service.py and agents.py)
+- [x] T040 [P] [US5] Create in-memory store SQLite migration plan in specs/039-dead-code-cleanup/migration-plan-sqlite.md — document all ~15 code paths for `_messages`, `_proposals`, `_recommendations` in backend/src/api/chat.py, reference existing migration 012 tables, and list transaction management requirements
 
 ### Backward-Compatibility Alias Audit
 
-- [ ] T041 [P] [US5] Audit backward-compat re-export aliases (L16–18) in backend/src/models/chat.py — grep for all import sites of old names across the codebase; remove aliases if no consumers found, otherwise add `@deprecated` annotation with migration instructions
-- [ ] T042 [P] [US5] Audit backward-compat alias (L8) in backend/src/prompts/issue_generation.py — grep for all import sites of old name; remove if no consumers found, otherwise add `@deprecated` annotation
-- [ ] T043 [P] [US5] Audit backward-compat alias (L94) in backend/src/api/auth.py — grep for all import sites of old name; remove if no consumers found, otherwise add `@deprecated` annotation
+- [x] T041 [P] [US5] Audit backward-compat re-export aliases (L16–18) in backend/src/models/chat.py — grep for all import sites of old names across the codebase; remove aliases if no consumers found, otherwise add `@deprecated` annotation with migration instructions
+- [x] T042 [P] [US5] Audit backward-compat alias (L8) in backend/src/prompts/issue_generation.py — grep for all import sites of old name; remove if no consumers found, otherwise add `@deprecated` annotation
+- [x] T043 [P] [US5] Audit backward-compat alias (L94) in backend/src/api/auth.py — grep for all import sites of old name; remove if no consumers found, otherwise add `@deprecated` annotation
 
 ### Settings Audit
 
-- [ ] T044 [US5] Audit `agent_pipeline_mappings` deprecation status in backend/src/services/workflow_orchestrator/config.py and frontend/src/components/settings/ProjectSettings.tsx — if no project uses the old format, remove UI editing and auto-backfill code; otherwise document removal criteria
+- [x] T044 [US5] Audit `agent_pipeline_mappings` deprecation status in backend/src/services/workflow_orchestrator/config.py and frontend/src/components/settings/ProjectSettings.tsx — if no project uses the old format, remove UI editing and auto-backfill code; otherwise document removal criteria
 
 ### Verification
 
-- [ ] T045 [US5] Run backend (`python -m pytest tests/ -v`) and frontend (`npx vitest run`) test suites to verify zero regressions after alias removal and settings audit
+- [x] T045 [US5] Run backend (`python -m pytest tests/ -v`) and frontend (`npx vitest run`) test suites to verify zero regressions after alias removal and settings audit
 
 **Checkpoint**: User Story 5 complete — migration plans documented, backward-compat aliases audited, all planning artifacts produced
 
@@ -174,9 +174,9 @@
 
 **Purpose**: Final sweep and validation across all user stories
 
-- [ ] T046 [P] Run final cleanup sweep removing orphaned imports across backend/src/ and frontend/src/ (use linting tools: `python -m ruff check src/ --fix` for backend, `npm run lint -- --fix` for frontend)
-- [ ] T047 [P] Update project structure documentation in docs/ if any file paths changed during cleanup; verify README.md references are still accurate
-- [ ] T048 Run full regression suite: backend pytest (`python -m pytest tests/ -v`), frontend vitest (`npx vitest run`), backend type check (`python -m pyright src/`), frontend type check (`npm run type-check`), frontend lint (`npm run lint`), and validate all success criteria from specs/039-dead-code-cleanup/quickstart.md
+- [x] T046 [P] Run final cleanup sweep removing orphaned imports across backend/src/ and frontend/src/ (use linting tools: `python -m ruff check src/ --fix` for backend, `npm run lint -- --fix` for frontend)
+- [x] T047 [P] Update project structure documentation in docs/ if any file paths changed during cleanup; verify README.md references are still accurate
+- [x] T048 Run full regression suite: backend pytest (`python -m pytest tests/ -v`), frontend vitest (`npx vitest run`), backend type check (`python -m pyright src/`), frontend type check (`npm run type-check`), frontend lint (`npm run lint`), and validate all success criteria from specs/039-dead-code-cleanup/quickstart.md
 
 ---
 

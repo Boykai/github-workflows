@@ -91,7 +91,7 @@ async def get_current_session(
     return session
 
 
-# Backward-compatible alias — callers may use either name.
+# Alias for FastAPI Depends() usage — 95+ call sites use this name.
 get_session_dep = get_current_session
 
 
