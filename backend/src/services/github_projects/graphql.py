@@ -776,6 +776,10 @@ query($projectId: ID!, $first: Int!, $after: String) {
               url
               createdAt
               updatedAt
+              issueType {
+                id
+                name
+              }
               milestone {
                 title
               }

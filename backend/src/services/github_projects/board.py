@@ -177,6 +177,11 @@ class BoardMixin:
             if ln
         ]
 
+        issue_type_data = content.get("issueType")
+        issue_type_name: str | None = (
+            issue_type_data.get("name") if isinstance(issue_type_data, dict) else None
+        )
+
         milestone_data = content.get("milestone")
         return BoardItem(
             item_id=item["id"],
@@ -195,6 +200,7 @@ class BoardMixin:
             estimate=estimate_val,
             linked_prs=linked_prs,
             labels=content_labels,
+            issue_type=issue_type_name,
             created_at=content.get("createdAt"),
             updated_at=content.get("updatedAt"),
             milestone=milestone_data.get("title") if milestone_data else None,
