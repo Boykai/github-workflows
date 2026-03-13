@@ -1,104 +1,84 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Group-Aware Pipeline Execution & Tracking Table
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `039-group-pipeline-execution` | **Date**: 2026-03-13 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/039-group-pipeline-execution/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+The frontend Pipeline page already supports `ExecutionGroup` with series/parallel toggles, and the backend data model stores per-group execution modes. However, all group information is lost during the conversion from `PipelineConfig` → `WorkflowConfiguration` → `PipelineState` because `load_pipeline_as_agent_mappings()` iterates the deprecated flat `stage.agents` field instead of `stage.groups`. This plan adds a `group_mappings` field to `WorkflowConfiguration`, threads group information through the orchestration and tracking layers, implements group-aware execution (sequential groups run agents one-by-one; parallel groups run all agents simultaneously with 2s stagger; groups execute in configured order within a stage), and extends the GitHub Issue tracking table with a "Group" column — all with backward-compatible fallback for legacy pipelines. No frontend changes are needed. See [research.md](./research.md) for technology decisions.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python ≥3.12 (backend only — no frontend changes required)
+**Primary Dependencies**: FastAPI ≥0.135, Pydantic v2, aiosqlite, asyncio
+**Storage**: SQLite via aiosqlite with JSON-serialized pipeline stages (existing pattern); `WorkflowConfiguration` persisted per-project; `PipelineState` is in-memory only (reconstructed from issue tracking table)
+**Testing**: pytest (~1736 backend tests); relevant test files: `test_agent_tracking.py` (522 lines), `test_workflow_orchestrator.py` (3610 lines), `test_copilot_polling.py` (9744 lines)
+**Target Platform**: Linux server (backend service)
+**Project Type**: Web application (backend changes only for this feature)
+**Performance Goals**: Parallel group agents assigned within 2s × N stagger window; no regression to sequential pipeline latency
+**Constraints**: Full backward compatibility with existing pipelines; no data migration required; tracking table must parse 3 formats (6-col, 5-col, 4-col)
+**Scale/Scope**: Up to 10 stages × 5 groups × 10 agents per pipeline; typical 2–5 agents per parallel group
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ PASS | spec.md contains 6 prioritized user stories (P1–P3) with Given-When-Then acceptance scenarios, edge cases, and 14 functional requirements |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates in `.specify/templates/` |
+| III. Agent-Orchestrated Execution | ✅ PASS | Plan produced by `speckit.plan` agent; tasks will be produced by `speckit.tasks` agent |
+| IV. Test Optionality with Clarity | ✅ PASS | Tests are included — updating existing test files (`test_agent_tracking.py`, `test_workflow_orchestrator.py`, `test_copilot_polling.py`) to cover new group-aware behavior and backward compatibility |
+| V. Simplicity and DRY | ✅ PASS | Extends existing models (`WorkflowConfiguration`, `PipelineState`, `AgentStep`) with optional fields rather than creating parallel structures; uses "if groups exist, use group logic; else flat fallback" guard pattern throughout |
+
+**Post-Phase 1 Re-check**: ✅ PASS — Two new models added (`ExecutionGroupMapping`, `PipelineGroupInfo`), both are minimal dataclasses/Pydantic models with no unnecessary abstraction. The `ExecutionGroupMapping` mirrors the existing `ExecutionGroup` from `pipeline.py` but at the workflow layer — this separation maintains the existing architectural boundary between pipeline config and workflow execution. No complexity violations.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/039-group-pipeline-execution/
+├── plan.md                          # This file
+├── research.md                      # Phase 0 output — technology decisions
+├── data-model.md                    # Phase 1 output — entity definitions & relationships
+├── quickstart.md                    # Phase 1 output — developer onboarding guide
+├── contracts/                       # Phase 1 output — internal interface changes
+│   └── internal-interfaces.md       # Changed internal service interfaces
+└── tasks.md                         # Phase 2 output (NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
 │   ├── models/
+│   │   └── workflow.py              # Add ExecutionGroupMapping; add group_mappings to WorkflowConfiguration
 │   ├── services/
+│   │   ├── agent_tracking.py        # Add group fields to AgentStep; update build/render/parse for 6-col table
+│   │   ├── workflow_orchestrator/
+│   │   │   ├── models.py            # Add PipelineGroupInfo; update PipelineState with group fields
+│   │   │   ├── config.py            # Update load_pipeline_as_agent_mappings() to build group_mappings
+│   │   │   └── orchestrator.py      # Update execute_full_workflow() and assign_agent_for_status()
+│   │   └── copilot_polling/
+│   │       ├── pipeline.py          # Update _advance_pipeline(), _reconstruct_pipeline_state(), polling checks
+│   │       └── helpers.py           # Update tracking helpers (pass-through group info)
 │   └── api/
+│       └── pipelines.py             # Update _prepare_workflow_config() to accept 4-tuple
 └── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+    └── unit/
+        ├── test_agent_tracking.py   # Add 6-col format tests + backward compat parsing
+        ├── test_workflow_orchestrator.py  # Add PipelineState group property tests
+        └── test_copilot_polling.py  # Update _advance_pipeline and reconstruct tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application (backend only). All changes are confined to `backend/` directory. No frontend changes — the UI already supports ExecutionGroups. Eight existing backend files are modified; two new models are added to existing files. Test updates extend three existing test files.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No Constitution Check violations. Table included for completeness.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| N/A | — | — |
