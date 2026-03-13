@@ -1542,7 +1542,20 @@ async def _advance_pipeline(
             for i, agent_slug in enumerate(new_group.agents):
                 if i > 0:
                     await asyncio.sleep(2)  # 2s stagger for rate limit safety
-                agent_flat_idx = pipeline.agents.index(agent_slug) if agent_slug in pipeline.agents else pipeline.current_agent_index + i
+                try:
+                    agent_flat_idx = pipeline.agents.index(agent_slug)
+                except ValueError:
+                    logger.warning(
+                        "Agent '%s' not found in flat agent list for issue #%d — "
+                        "using offset %d from current_agent_index",
+                        agent_slug,
+                        issue_number,
+                        i,
+                    )
+                    agent_flat_idx = min(
+                        pipeline.current_agent_index + i,
+                        len(pipeline.agents) - 1,
+                    )
                 new_group.agent_statuses[agent_slug] = "active"
                 result = await orchestrator.assign_agent_for_status(
                     ctx, agent_lookup_status, agent_index=agent_flat_idx

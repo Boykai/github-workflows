@@ -90,7 +90,11 @@ class AgentStep:
 
 
 def _mode_label(execution_mode: str) -> str:
-    """Convert execution_mode to display label: 'sequential' → 'series', 'parallel' → 'parallel'."""
+    """Convert execution_mode to display label for the tracking table.
+
+    'sequential' → 'series' (shortened for compactness in the table column)
+    'parallel' → 'parallel' (already concise, kept as-is)
+    """
     return "series" if execution_mode == "sequential" else "parallel"
 
 
