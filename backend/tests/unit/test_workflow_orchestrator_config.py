@@ -102,9 +102,12 @@ class TestLoadPipelineAsAgentMappings:
             patch("src.services.database.get_db", return_value=Mock()),
             patch("src.services.pipelines.service.PipelineService", return_value=mock_service),
         ):
-            mappings, pipeline_name, exec_modes = await load_pipeline_as_agent_mappings(
-                "project-1", "pipeline-1"
-            )
+            (
+                mappings,
+                pipeline_name,
+                exec_modes,
+                _grp_mappings,
+            ) = await load_pipeline_as_agent_mappings("project-1", "pipeline-1")
 
         assert pipeline_name == "Full Review Pipeline"
         assert list(mappings.keys()) == ["Backlog", "Ready"]
@@ -131,7 +134,7 @@ class TestResolveProjectPipelineMappings:
             ),
             patch(
                 "src.services.workflow_orchestrator.config.load_pipeline_as_agent_mappings",
-                new=AsyncMock(return_value=({"Backlog": []}, "Full Review Pipeline", {})),
+                new=AsyncMock(return_value=({"Backlog": []}, "Full Review Pipeline", {}, {})),
             ) as mock_load_pipeline,
             patch(
                 "src.services.workflow_orchestrator.config.load_user_agent_mappings",

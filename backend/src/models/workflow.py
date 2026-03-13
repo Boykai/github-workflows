@@ -4,11 +4,34 @@ from datetime import datetime
 from enum import StrEnum
 from uuid import UUID, uuid4
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from src.constants import AGENT_DISPLAY_NAMES, DEFAULT_AGENT_MAPPINGS
 from src.models.agent import AgentAssignment, AgentAssignmentInput
 from src.utils import utcnow
+
+
+class ExecutionGroupMapping(BaseModel):
+    """A group of agents within a workflow status sharing an execution mode.
+
+    Created during the conversion from ``PipelineConfig`` →
+    ``WorkflowConfiguration`` to preserve execution-group structure
+    through the orchestration layer.
+    """
+
+    group_id: str = Field(..., description="Unique group identifier")
+    order: int = Field(default=0, description="Execution order within the stage")
+    execution_mode: str = Field(default="sequential", description="'sequential' or 'parallel'")
+    agents: list[AgentAssignment] = Field(
+        default_factory=list, description="Ordered agent assignments in this group"
+    )
+
+    @field_validator("execution_mode")
+    @classmethod
+    def validate_execution_mode(cls, v: str) -> str:
+        if v not in ("sequential", "parallel"):
+            raise ValueError("execution_mode must be 'sequential' or 'parallel'")
+        return v
 
 
 class TriggeredBy(StrEnum):
@@ -53,6 +76,10 @@ class WorkflowConfiguration(BaseModel):
         default_factory=dict,
         description="Status name → execution mode ('sequential' | 'parallel')",
     )
+    group_mappings: dict[str, list[ExecutionGroupMapping]] = Field(
+        default_factory=dict,
+        description="Status name → ordered list of execution groups. Empty for legacy pipelines.",
+    )
 
 
 class WorkflowTransition(BaseModel):
@@ -83,6 +110,7 @@ class WorkflowResult(BaseModel):
 
 
 __all__ = [
+    "ExecutionGroupMapping",
     "TriggeredBy",
     "WorkflowConfiguration",
     "WorkflowResult",

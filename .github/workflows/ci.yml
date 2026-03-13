@@ -115,6 +115,19 @@ jobs:
             --config .markdown-link-check.json \
             --quiet
 
+  # Verify architecture diagrams are in sync with the codebase
+  diagrams:
+    name: Diagrams
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Verify diagrams are up to date
+        run: ./scripts/generate-diagrams.sh --check
+
   # Docker build verification
   docker:
     name: Docker Build

@@ -24,6 +24,7 @@ from src.utils import BoundedDict, utcnow
 
 from .config import _transitions, get_workflow_config
 from .models import (
+    PipelineGroupInfo,
     PipelineState,
     WorkflowContext,
     WorkflowState,
@@ -525,7 +526,12 @@ class WorkflowOrchestrator:
         config = ctx.config or await get_workflow_config(ctx.project_id)
         if config and config.agent_mappings:
             status_order = get_status_order(config)
-            body = append_tracking_to_body(body, config.agent_mappings, status_order)
+            body = append_tracking_to_body(
+                body,
+                config.agent_mappings,
+                status_order,
+                group_mappings=config.group_mappings or None,
+            )
             logger.info("Appended agent pipeline tracking to issue body")
 
         # Validate assembled body does not exceed GitHub API limit
@@ -1243,6 +1249,13 @@ class WorkflowOrchestrator:
         if sub_issue_info:
             agent_sub_issues["human"] = sub_issue_info
 
+        # Preserve group-aware execution state from existing pipeline
+        existing_groups = existing_pipeline.groups if existing_pipeline else []
+        existing_group_idx = existing_pipeline.current_group_index if existing_pipeline else 0
+        existing_agent_idx_in_group = (
+            existing_pipeline.current_agent_index_in_group if existing_pipeline else 0
+        )
+
         set_pipeline_state(
             ctx.issue_number,
             PipelineState(
@@ -1256,6 +1269,9 @@ class WorkflowOrchestrator:
                 error=None,
                 agent_assigned_sha="",
                 agent_sub_issues=agent_sub_issues,
+                groups=existing_groups,
+                current_group_index=existing_group_idx,
+                current_agent_index_in_group=existing_agent_idx_in_group,
             ),
         )
 
@@ -1460,6 +1476,15 @@ class WorkflowOrchestrator:
         if sub_issue_info:
             _agent_sub_issues_cr["copilot-review"] = sub_issue_info
 
+        # Preserve group-aware execution state from existing pipeline
+        _existing_groups_cr = _existing_pipeline_cr.groups if _existing_pipeline_cr else []
+        _existing_group_idx_cr = (
+            _existing_pipeline_cr.current_group_index if _existing_pipeline_cr else 0
+        )
+        _existing_agent_idx_in_group_cr = (
+            _existing_pipeline_cr.current_agent_index_in_group if _existing_pipeline_cr else 0
+        )
+
         set_pipeline_state(
             ctx.issue_number,
             PipelineState(
@@ -1473,6 +1498,9 @@ class WorkflowOrchestrator:
                 error=None,
                 agent_assigned_sha="",
                 agent_sub_issues=_agent_sub_issues_cr,
+                groups=_existing_groups_cr,
+                current_group_index=_existing_group_idx_cr,
+                current_agent_index_in_group=_existing_agent_idx_in_group_cr,
             ),
         )
 
@@ -1714,6 +1742,31 @@ class WorkflowOrchestrator:
             if sub_issue_info:
                 agent_sub_issues[agent_name] = sub_issue_info
 
+            # Preserve group-aware execution state from existing pipeline
+            existing_groups = existing_pipeline.groups if existing_pipeline else []
+            existing_group_idx = existing_pipeline.current_group_index if existing_pipeline else 0
+            existing_agent_idx_in_group = (
+                existing_pipeline.current_agent_index_in_group if existing_pipeline else 0
+            )
+
+            # For parallel groups, preserve existing completed_agents to avoid
+            # marking earlier agents as completed before they actually finish.
+            is_parallel_group = (
+                existing_groups
+                and existing_group_idx < len(existing_groups)
+                and existing_groups[existing_group_idx].execution_mode == "parallel"
+            )
+            effective_completed = (
+                existing_pipeline.completed_agents
+                if is_parallel_group and existing_pipeline
+                else agent_slugs[:agent_index]
+            )
+            effective_agent_index = (
+                existing_pipeline.current_agent_index
+                if is_parallel_group and existing_pipeline
+                else agent_index
+            )
+
             set_pipeline_state(
                 ctx.issue_number,
                 PipelineState(
@@ -1721,12 +1774,15 @@ class WorkflowOrchestrator:
                     project_id=ctx.project_id,
                     status=status,
                     agents=agent_slugs,
-                    current_agent_index=agent_index,
-                    completed_agents=agent_slugs[:agent_index],
+                    current_agent_index=effective_agent_index,
+                    completed_agents=effective_completed,
                     started_at=utcnow(),
                     error=None if success else f"Failed to assign agent '{agent_name}'",
                     agent_assigned_sha=assigned_sha,
                     agent_sub_issues=agent_sub_issues,
+                    groups=existing_groups,
+                    current_group_index=existing_group_idx,
+                    current_agent_index_in_group=existing_agent_idx_in_group,
                 ),
             )
 
@@ -2334,11 +2390,31 @@ class WorkflowOrchestrator:
                 )
 
             agent_sub_issues = await self.create_all_sub_issues(ctx)
+            initial_agents: list[str] = []
+            initial_groups: list[PipelineGroupInfo] = []
             if agent_sub_issues and ctx.issue_number is not None:
                 # Populate agents for the initial status so the polling loop
                 # doesn't see an empty list and immediately consider the
                 # pipeline "complete" (is_complete = 0 >= len([]) = True).
                 initial_agents = get_agent_slugs(config, status_name) if config else []
+
+                # Build group info from config.group_mappings if available
+                if config and getattr(config, "group_mappings", None):
+                    status_groups = config.group_mappings.get(status_name, [])
+                    initial_groups.extend(
+                        PipelineGroupInfo(
+                            group_id=gm.group_id,
+                            execution_mode=gm.execution_mode,
+                            agents=[a.slug for a in gm.agents],
+                            agent_statuses=(
+                                {a.slug: "pending" for a in gm.agents}
+                                if gm.execution_mode == "parallel"
+                                else {}
+                            ),
+                        )
+                        for gm in sorted(status_groups, key=lambda g: g.order)
+                    )
+
                 pipeline_state = PipelineState(
                     issue_number=ctx.issue_number,
                     project_id=ctx.project_id,
@@ -2346,6 +2422,7 @@ class WorkflowOrchestrator:
                     agents=initial_agents,
                     agent_sub_issues=agent_sub_issues,
                     started_at=utcnow(),
+                    groups=initial_groups,
                 )
                 set_pipeline_state(ctx.issue_number, pipeline_state)
                 logger.info(
@@ -2375,7 +2452,34 @@ class WorkflowOrchestrator:
                         )
                     status_name = next_status
 
-            await self.assign_agent_for_status(ctx, status_name, agent_index=0)
+            # For parallel groups, assign ALL agents in the first group with stagger
+            first_parallel_group = (
+                agent_sub_issues
+                and ctx.issue_number is not None
+                and initial_groups
+                and initial_groups[0].agents
+                and initial_groups[0].execution_mode == "parallel"
+                and len(initial_groups[0].agents) > 1
+            )
+            if first_parallel_group:
+                import asyncio
+
+                group = initial_groups[0]
+                for i, agent_slug in enumerate(group.agents):
+                    flat_idx = (
+                        initial_agents.index(agent_slug) if agent_slug in initial_agents else i
+                    )
+                    if i > 0:
+                        await asyncio.sleep(2)
+                    group.agent_statuses[agent_slug] = "active"
+                    await self.assign_agent_for_status(ctx, status_name, agent_index=flat_idx)
+                # Update stored state with active statuses
+                if ctx.issue_number is not None:
+                    pipeline = get_pipeline_state(ctx.issue_number)
+                    if pipeline:
+                        set_pipeline_state(ctx.issue_number, pipeline)
+            else:
+                await self.assign_agent_for_status(ctx, status_name, agent_index=0)
 
             # Check if agent assignment actually succeeded
             pipeline = get_pipeline_state(ctx.issue_number) if ctx.issue_number else None

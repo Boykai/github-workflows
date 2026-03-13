@@ -28,6 +28,9 @@ from src.constants import (
 )
 from src.models.workflow import WorkflowConfiguration
 from src.services.agent_tracking import (
+    STATE_ACTIVE,
+    STATE_DONE,
+    STATE_PENDING,
     get_current_agent_from_tracking,
     get_next_pending_agent,
     mark_agent_active,
@@ -37,6 +40,7 @@ from src.services.agent_tracking import (
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
 from src.services.workflow_orchestrator import (
+    PipelineGroupInfo,
     PipelineState,
     WorkflowContext,
     WorkflowState,
@@ -141,6 +145,10 @@ __all__ = [
     "AGENT_OUTPUT_FILES",
     "ASSIGNMENT_GRACE_PERIOD_SECONDS",
     "RECOVERY_COOLDOWN_SECONDS",
+    "STATE_ACTIVE",
+    "STATE_DONE",
+    "STATE_PENDING",
+    "PipelineGroupInfo",
     "PipelineState",
     # State
     "PollingState",

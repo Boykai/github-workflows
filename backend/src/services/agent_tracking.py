@@ -35,6 +35,7 @@ from src.logging_utils import get_logger
 
 if TYPE_CHECKING:
     from src.models.agent import AgentAssignment
+    from src.models.workflow import ExecutionGroupMapping
 
 logger = get_logger(__name__)
 
@@ -51,6 +52,12 @@ STATE_DONE = "✅ Done"
 _TRACKING_SECTION_RE = re.compile(
     r"---\s*\n\s*##\s*🤖\s*(?:Agent Pipeline|Agents Pipelines).*",
     re.DOTALL,
+)
+
+# Regex to parse a single row (6-column with group):
+# | 1 | Backlog | G1 (series) | `speckit.specify` | gpt-4o | ⏳ Pending |
+_ROW_RE_6COL = re.compile(
+    r"\|\s*(\d+)\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]*?)\s*\|\s*`([^`]+)`\s*\|\s*([^|\n]+?)\s*\|\s*([^|\n]+?)\s*\|"
 )
 
 # Regex to parse a single row (5-column): | 1 | Backlog | `speckit.specify` | gpt-4o | ⏳ Pending |
@@ -75,14 +82,27 @@ class AgentStep:
     agent_name: str  # e.g. "speckit.specify"
     model: str = ""  # e.g. "gpt-4o"; empty string → renders as "TBD"
     state: str = STATE_PENDING  # one of STATE_PENDING / STATE_ACTIVE / STATE_DONE
+    group_label: str = ""  # e.g. "G1 (series)", "G2 (parallel)"
+    group_order: int = 0
+    group_execution_mode: str = ""  # "sequential" or "parallel" (empty for legacy)
 
 
 # ── Generating the tracking section ─────────────────────────────────────────
 
 
+def _mode_label(execution_mode: str) -> str:
+    """Convert execution_mode to display label for the tracking table.
+
+    'sequential' → 'series' (shortened for compactness in the table column)
+    'parallel' → 'parallel' (already concise, kept as-is)
+    """
+    return "series" if execution_mode == "sequential" else "parallel"
+
+
 def build_agent_pipeline_steps(
     agent_mappings: dict[str, list[AgentAssignment]],
     status_order: list[str],
+    group_mappings: dict[str, list[ExecutionGroupMapping]] | None = None,
 ) -> list[AgentStep]:
     """
     Build the ordered list of agent steps from the workflow configuration.
@@ -91,6 +111,9 @@ def build_agent_pipeline_steps(
         agent_mappings: Status name → list of AgentAssignment objects
         status_order:   Ordered list of statuses that have agents
                         (e.g. ["Backlog", "Ready", "In Progress"])
+        group_mappings: Optional status name → ordered list of ExecutionGroupMapping.
+                        When provided, agents are iterated per-group and group metadata
+                        is attached to each step.
 
     Returns:
         Flat ordered list of AgentStep with all states set to PENDING
@@ -98,36 +121,73 @@ def build_agent_pipeline_steps(
     steps: list[AgentStep] = []
     idx = 1
     for status in status_order:
-        # Case-insensitive lookup: status names may differ in casing
-        # between the config defaults and the user's project board.
-        matched_agents = agent_mappings.get(status, None)
-        if matched_agents is None:
-            status_lower = status.lower()
-            for k, v in agent_mappings.items():
-                if k.lower() == status_lower:
-                    matched_agents = v
-                    break
-        if not matched_agents:
-            matched_agents = []
-        for agent in matched_agents:
-            agent_slug = agent.slug if hasattr(agent, "slug") else str(agent)
-            config = getattr(agent, "config", None)
-            if isinstance(config, dict):
-                # Prefer human-readable model_name; fall back to model_id so
-                # the tracking table never shows "TBD" when a model is in fact configured.
-                model = config.get("model_name", "") or config.get("model_id", "") or ""
-            else:
-                model = ""
-            steps.append(
-                AgentStep(
-                    index=idx,
-                    status=status,
-                    agent_name=agent_slug,
-                    model=model,
-                    state=STATE_PENDING,
+        # Check if this status has group_mappings
+        status_groups = None
+        if group_mappings:
+            status_groups = group_mappings.get(status)
+            if status_groups is None:
+                # Case-insensitive lookup
+                status_lower = status.lower()
+                for k, v in group_mappings.items():
+                    if k.lower() == status_lower:
+                        status_groups = v
+                        break
+
+        if status_groups:
+            # Group-aware path: iterate groups
+            for group_num, group in enumerate(
+                sorted(status_groups, key=lambda g: g.order), start=1
+            ):
+                mode_display = _mode_label(group.execution_mode)
+                group_label = f"G{group_num} ({mode_display})"
+                for agent in group.agents:
+                    agent_slug = agent.slug if hasattr(agent, "slug") else str(agent)
+                    config = getattr(agent, "config", None)
+                    if isinstance(config, dict):
+                        model = config.get("model_name", "") or config.get("model_id", "") or ""
+                    else:
+                        model = ""
+                    steps.append(
+                        AgentStep(
+                            index=idx,
+                            status=status,
+                            agent_name=agent_slug,
+                            model=model,
+                            state=STATE_PENDING,
+                            group_label=group_label,
+                            group_order=group_num - 1,
+                            group_execution_mode=group.execution_mode,
+                        )
+                    )
+                    idx += 1
+        else:
+            # Flat fallback: existing behavior
+            matched_agents = agent_mappings.get(status, None)
+            if matched_agents is None:
+                status_lower = status.lower()
+                for k, v in agent_mappings.items():
+                    if k.lower() == status_lower:
+                        matched_agents = v
+                        break
+            if not matched_agents:
+                matched_agents = []
+            for agent in matched_agents:
+                agent_slug = agent.slug if hasattr(agent, "slug") else str(agent)
+                config = getattr(agent, "config", None)
+                if isinstance(config, dict):
+                    model = config.get("model_name", "") or config.get("model_id", "") or ""
+                else:
+                    model = ""
+                steps.append(
+                    AgentStep(
+                        index=idx,
+                        status=status,
+                        agent_name=agent_slug,
+                        model=model,
+                        state=STATE_PENDING,
+                    )
                 )
-            )
-            idx += 1
+                idx += 1
     return steps
 
 
@@ -136,22 +196,43 @@ def render_tracking_markdown(steps: list[AgentStep]) -> str:
     Render the tracking table as a markdown string.
 
     Returns the full section (separator + header + table) that gets
-    appended to the issue body.
+    appended to the issue body.  Uses the 6-column format (with Group column)
+    when any step has a non-empty ``group_label``; otherwise uses the
+    existing 5-column format.
     """
-    lines = [
-        "",
-        TRACKING_SEPARATOR,
-        "",
-        TRACKING_HEADER,
-        "",
-        "| # | Status | Agent | Model | State |",
-        "|---|--------|-------|-------|-------|",
-    ]
-    for step in steps:
-        model_display = (step.model or "TBD").replace("|", "\\|")
-        lines.append(
-            f"| {step.index} | {step.status} | `{step.agent_name}` | {model_display} | {step.state} |"
-        )
+    has_groups = any(step.group_label for step in steps)
+
+    if has_groups:
+        lines = [
+            "",
+            TRACKING_SEPARATOR,
+            "",
+            TRACKING_HEADER,
+            "",
+            "| # | Status | Group | Agent | Model | State |",
+            "|---|--------|-------|-------|-------|-------|",
+        ]
+        for step in steps:
+            model_display = (step.model or "TBD").replace("|", "\\|")
+            group_display = (step.group_label or "").replace("|", "\\|")
+            lines.append(
+                f"| {step.index} | {step.status} | {group_display} | `{step.agent_name}` | {model_display} | {step.state} |"
+            )
+    else:
+        lines = [
+            "",
+            TRACKING_SEPARATOR,
+            "",
+            TRACKING_HEADER,
+            "",
+            "| # | Status | Agent | Model | State |",
+            "|---|--------|-------|-------|-------|",
+        ]
+        for step in steps:
+            model_display = (step.model or "TBD").replace("|", "\\|")
+            lines.append(
+                f"| {step.index} | {step.status} | `{step.agent_name}` | {model_display} | {step.state} |"
+            )
     lines.append("")
     return "\n".join(lines)
 
@@ -160,6 +241,7 @@ def append_tracking_to_body(
     body: str,
     agent_mappings: dict[str, list[AgentAssignment]],
     status_order: list[str],
+    group_mappings: dict[str, list[ExecutionGroupMapping]] | None = None,
 ) -> str:
     """
     Append (or replace) the tracking section at the end of an issue body.
@@ -167,7 +249,7 @@ def append_tracking_to_body(
     If the tracking section is already present it will be replaced so the
     function is idempotent.
     """
-    steps = build_agent_pipeline_steps(agent_mappings, status_order)
+    steps = build_agent_pipeline_steps(agent_mappings, status_order, group_mappings)
     tracking = render_tracking_markdown(steps)
 
     # Strip existing tracking section if present
@@ -183,6 +265,8 @@ def parse_tracking_from_body(body: str) -> list[AgentStep] | None:
     """
     Parse the agent tracking table from a GitHub Issue body.
 
+    Tries 6-column format first, then 5-column, then legacy 4-column.
+
     Returns:
         List of AgentStep or None if no tracking section found.
     """
@@ -192,12 +276,47 @@ def parse_tracking_from_body(body: str) -> list[AgentStep] | None:
 
     section = match.group(0)
     steps: list[AgentStep] = []
+
+    # Try 6-column format first: | idx | status | group | agent | model | state |
+    for row_match in _ROW_RE_6COL.finditer(section):
+        idx = int(row_match.group(1))
+        status = row_match.group(2).strip()
+        group_label = row_match.group(3).strip()
+        agent_name = row_match.group(4).strip()
+        model = row_match.group(5).strip()
+        model = "" if model == "TBD" else model
+        state = row_match.group(6).strip()
+        # Parse group metadata from group_label (e.g. "G1 (series)")
+        group_execution_mode = ""
+        group_order = 0
+        if group_label:
+            gl_match = re.match(r"G(\d+)\s*\((\w+)\)", group_label)
+            if gl_match:
+                group_order = int(gl_match.group(1)) - 1  # 0-based
+                mode_str = gl_match.group(2)
+                group_execution_mode = "sequential" if mode_str == "series" else "parallel"
+        steps.append(
+            AgentStep(
+                index=idx,
+                status=status,
+                agent_name=agent_name,
+                model=model,
+                state=state,
+                group_label=group_label,
+                group_order=group_order,
+                group_execution_mode=group_execution_mode,
+            )
+        )
+
+    if steps:
+        return steps
+
+    # Fallback: 5-column format: | idx | status | agent | model | state |
     for row_match in _ROW_RE.finditer(section):
         idx = int(row_match.group(1))
         status = row_match.group(2).strip()
         agent_name = row_match.group(3).strip()
         model = row_match.group(4).strip()
-        # Normalize placeholder "TBD" back to the canonical "no model" value.
         model = "" if model == "TBD" else model
         state = row_match.group(5).strip()
         steps.append(
