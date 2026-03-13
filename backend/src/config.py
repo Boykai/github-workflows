@@ -131,7 +131,7 @@ class Settings(BaseSettings):
                     "Cookies must use the Secure flag in production mode. "
                     "Set COOKIE_SECURE=true or use an https:// FRONTEND_URL."
                 )
-            if not self.admin_github_user_id:
+            if self.admin_github_user_id is None or self.admin_github_user_id <= 0:
                 errors.append(
                     "ADMIN_GITHUB_USER_ID is required in production mode. "
                     "Set it to the numeric GitHub user ID of the admin account."

@@ -120,6 +120,10 @@ class TestProductionAdminUserIdRequired:
         with pytest.raises(ValueError, match="ADMIN_GITHUB_USER_ID is required"):
             _make_production(admin_github_user_id=0)
 
+    def test_negative_admin_user_id_raises(self):
+        with pytest.raises(ValueError, match="ADMIN_GITHUB_USER_ID is required"):
+            _make_production(admin_github_user_id=-1)
+
     def test_valid_admin_user_id_passes(self):
         s = _make_production(admin_github_user_id=12345)
         assert s.admin_github_user_id == 12345

@@ -47,10 +47,28 @@ async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
         admin_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
         if admin_id is None:
-            # Check if auto-promotion is allowed (debug mode only).
+            # Check if an explicit admin is configured via env var.
             from src.config import get_settings
 
             settings = get_settings()
+            if settings.admin_github_user_id:
+                # Production (or debug) with explicit admin — allow only that user
+                # and persist to DB so future checks hit the fast path.
+                if str(github_user_id) != str(settings.admin_github_user_id):
+                    return False
+                cursor = await db.execute(
+                    "UPDATE global_settings SET admin_github_user_id = ? "
+                    "WHERE id = 1 AND admin_github_user_id IS NULL",
+                    (github_user_id,),
+                )
+                await db.commit()
+                if cursor.rowcount > 0:
+                    logger.info(
+                        "Seeded admin user %s from ADMIN_GITHUB_USER_ID via #agent command",
+                        github_user_id,
+                    )
+                return True
+            # No explicit admin configured
             if not settings.debug:
                 logger.error(
                     "ADMIN_GITHUB_USER_ID not set in production — denying admin access for user %s",
