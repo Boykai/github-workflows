@@ -48,13 +48,13 @@ As a developer, I want legacy code paths clearly annotated with deprecation time
 
 As a developer, I want repeated code patterns extracted into shared utilities so that bug fixes and improvements only need to happen in one place.
 
-**Why this priority**: While not blocking, 20 inline error handlers and repeated cache/validation patterns increase maintenance burden and risk of inconsistent behavior. Consolidation improves reliability and reduces code volume.
+**Why this priority**: While not blocking, 18 inline error handlers (14 direct migration candidates) and repeated cache/validation patterns increase maintenance burden and risk of inconsistent behavior. Consolidation improves reliability and reduces code volume.
 
 **Independent Test**: Can be tested by verifying that `handle_service_error` is used in all applicable API endpoints, `cached_fetch` replaces repeated cache patterns, and `require_selected_project` replaces repeated validation checks — with all backend tests passing.
 
 **Acceptance Scenarios**:
 
-1. **Given** 20 API endpoints use inline `except Exception as e: logger.error(...)` patterns, **When** they are migrated to `handle_service_error`, **Then** error handling is consistent across all endpoints (excluding intentionally different catches like WebSocket handlers).
+1. **Given** 18 inline `except Exception as e: logger.error(...)` patterns exist across API endpoints (14 direct migration candidates, 4 intentional skips), **When** the direct candidates are migrated to `handle_service_error`, **Then** error handling is consistent across all endpoints (excluding intentionally different catches like WebSocket handlers).
 2. **Given** three API modules repeat the cache check/get/set pattern, **When** `cached_fetch` is created in `backend/src/services/cache.py`, **Then** all three call sites use the shared wrapper with equivalent behavior.
 3. **Given** 5+ places repeat `if not session.selected_project_id: raise ValidationError(...)`, **When** `require_selected_project` is added to `backend/src/dependencies.py`, **Then** all validation sites use the shared helper.
 4. **Given** `pipeline_source` field may be unused by the frontend, **When** end-to-end usage is verified, **Then** the field is either confirmed consumed or marked `@deprecated`.
@@ -119,7 +119,7 @@ As a technical lead, I want migration plans documented for singleton removal and
 - **FR-007**: System MUST add migration tracking (logging) when legacy pipeline format is encountered to monitor adoption rate of the new format.
 - **FR-008**: System MUST mark `old_status` in `StatusUpdateActionData` as `@deprecated` or remove it after verifying no backend code sends the field.
 - **FR-009**: System MUST add `@internal` JSDoc annotations to `_resetForTesting` exports in production hooks.
-- **FR-010**: System MUST migrate 20 inline error handling patterns across 6 API files to use the shared `handle_service_error` utility, excluding intentionally different catches (WebSocket, non-fatal warnings).
+- **FR-010**: System MUST migrate 14 inline error handling patterns across 6 API files to use the shared `handle_service_error` utility, excluding 4 intentionally different catches (WebSocket, non-fatal warnings).
 - **FR-011**: System MUST create a `cached_fetch` generic wrapper in `backend/src/services/cache.py` that encapsulates the repeated cache check/get/set pattern.
 - **FR-012**: System MUST create a `require_selected_project` validation helper in `backend/src/dependencies.py` that replaces 5+ repeated validation checks.
 - **FR-013**: System MUST verify `pipeline_source` field usage end-to-end and either confirm frontend consumption or mark it `@deprecated`.
@@ -151,7 +151,7 @@ As a technical lead, I want migration plans documented for singleton removal and
 - **SC-002**: Zero duplicate utility functions exist in the codebase — the local `formatTimeAgo` in `DynamicDropdown.tsx` is eliminated.
 - **SC-003**: 100% of legacy code paths (11 markers) have deprecation annotations with explicit removal conditions or tracking issues.
 - **SC-004**: All 5 TODO items are resolved — either addressed, annotated with timeline, or converted to tracked issues.
-- **SC-005**: Error handling consolidation reduces inline catch patterns from 20 to 0 across the 6 targeted API files (excluding intentional exceptions).
+- **SC-005**: Error handling consolidation reduces inline catch patterns from 14 to 0 across the 6 targeted API files (excluding 4 intentional exceptions).
 - **SC-006**: All 5 high-complexity functions are decomposed to meet their target cyclomatic complexity (CC < 30 for most, CC < 25 for `assign_agent_for_status`, CC < 20 for `recover_stalled_issues`).
 - **SC-007**: All existing unit tests pass after each phase — zero test regressions across backend and frontend suites.
 - **SC-008**: All existing type checks pass — zero errors from backend and frontend type checkers.
@@ -162,7 +162,7 @@ As a technical lead, I want migration plans documented for singleton removal and
 
 - The codebase baseline of 465 files, 4653 functions, and 803 classes (from CGC) is accurate at the time of execution.
 - Build artifact directories (`htmlcov/`, `coverage/`, etc.) are gitignored and safe to delete without affecting any developer's committed work.
-- The `handle_service_error` utility already exists and follows an established pattern that can be adopted by the 20 inline error handlers.
+- The `handle_service_error` utility already exists and follows an established pattern that can be adopted by the 14 inline error handlers (4 additional catches are intentionally different).
 - Migration 012 tables (`chat_messages`, `chat_proposals`, `chat_recommendations`) already exist in the database schema and can be referenced in the migration plan.
 - Singleton and in-memory store migrations are explicitly deferred to separate specifications — only planning artifacts are produced in this feature.
 - WebSocket handlers and non-fatal warning catches are intentionally different from the standard error handling pattern and should be preserved as-is.

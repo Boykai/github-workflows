@@ -43,25 +43,27 @@ Or for TypeScript/JSDoc:
 
 ### Legacy Format Encounter Logging
 
-When the system encounters data in a deprecated format, it MUST log the encounter:
+When the system encounters data in a deprecated format, it MUST log the encounter.
+Context details are embedded in the log message string because the `StructuredJsonFormatter`
+only emits a fixed whitelist of `extra` keys (`operation`, `duration_ms`, `error_type`,
+`status_code`). Including format type, code path, and data identifiers directly in the
+message ensures they appear in all log outputs:
 
 ```python
 logger.info(
-    "legacy_format_encountered",
-    extra={
-        "format_type": "4_column_tracking",  # or "flat_agents", "flat_execution_mode"
-        "context": "agent_tracking.parse_rows",
-        "issue_number": issue_number,
-    },
+    "legacy_format_encountered: format_type=%s context=%s issue_number=%s",
+    "4_column_tracking",  # or "flat_agents", "flat_execution_mode"
+    "agent_tracking.parse_rows",
+    issue_number,
 )
 ```
 
 **Log level**: INFO (not WARNING — legacy format is expected during migration period)
 
-**Structured fields**:
+**Message fields**:
 - `format_type`: Identifies which deprecated format was encountered
 - `context`: Code path that triggered the fallback
-- `issue_number` / `project_id`: Data identifier for debugging
+- `issue_number` / `stage_id`: Data identifier for debugging
 
 ### Removal Readiness Criteria
 
