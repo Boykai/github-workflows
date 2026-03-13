@@ -334,7 +334,7 @@ async def get_recommendation_by_id(
     return d
 
 
-def recommendation_status_from_db(status: str) -> str:
+def _recommendation_status_from_db(status: str) -> str:
     """Normalize stored recommendation status values to model enum values."""
     return "confirmed" if status == "accepted" else status
 

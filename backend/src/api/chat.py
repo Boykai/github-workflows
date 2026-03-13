@@ -220,7 +220,7 @@ async def get_recommendation(recommendation_id: str) -> IssueRecommendation | No
             return None
         data = json.loads(row["data"]) if isinstance(row["data"], str) else row["data"]
         rec = IssueRecommendation.model_validate(data)
-        rec.status = RecommendationStatus(chat_store.recommendation_status_from_db(row["status"]))
+        rec.status = RecommendationStatus(chat_store._recommendation_status_from_db(row["status"]))
         _recommendations[str(rec.recommendation_id)] = rec
         return rec
     except Exception:

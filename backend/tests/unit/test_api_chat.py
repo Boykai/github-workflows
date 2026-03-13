@@ -529,7 +529,6 @@ class TestCancelProposalDirect:
         reloaded = await chat_mod.get_proposal(str(proposal.proposal_id))
         assert reloaded is not None
         assert reloaded.status == ProposalStatus.CANCELLED
-        chat_mod._proposals.pop(str(proposal.proposal_id), None)
 
 
 # ── confirm_proposal edge cases (direct) ─────────────────────────────────
@@ -584,8 +583,8 @@ class TestConfirmProposalEdgeCases:
         assert loaded.status == ProposalStatus.EDITED
         assert loaded.edited_title == "Edited title"
         assert loaded.edited_description == "Edited description"
-        assert loaded.created_at == proposal.created_at
-        assert loaded.expires_at == proposal.expires_at
+        assert loaded.created_at.isoformat() == proposal.created_at.isoformat()
+        assert loaded.expires_at.isoformat() == proposal.expires_at.isoformat()
 
     async def test_confirm_with_edited_title(
         self, client, mock_session, mock_github_service, mock_websocket_manager
