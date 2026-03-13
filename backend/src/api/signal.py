@@ -20,7 +20,7 @@ from src.exceptions import (
     NotFoundError,
     ValidationError,
 )
-from src.logging_utils import get_logger
+from src.logging_utils import get_logger, handle_service_error
 from src.models.signal import (
     SignalBanner,
     SignalBannersResponse,
@@ -99,8 +99,8 @@ async def initiate_signal_link(
     try:
         qr_base64 = await request_qr_code_base64(body.device_name)
     except Exception as e:
-        logger.error("Failed to request QR code from signal-api: %s", e)
-        raise AppException("Failed to generate QR code from Signal service", status_code=502) from e
+        # Signal service is an upstream dependency — 502 Bad Gateway is appropriate
+        handle_service_error(e, "request QR code from Signal service")
 
     return SignalLinkResponse(
         qr_code_base64=qr_base64,

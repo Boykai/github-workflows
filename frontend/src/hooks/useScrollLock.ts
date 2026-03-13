@@ -72,7 +72,10 @@ export function useScrollLock(isLocked: boolean): void {
   }, [isLocked]);
 }
 
-// Exported for testing only — allows resetting module state between tests.
+/**
+ * @internal Test-only reset function. Do not use in production code.
+ * Allows resetting module state between tests.
+ */
 export function _resetForTesting(): void {
   lockCount = 0;
   originalOverflow = '';

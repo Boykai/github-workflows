@@ -34,6 +34,7 @@ export interface UseChatHistoryReturn {
 }
 
 /**
+ * @internal Security: clears pre-v2 localStorage data on logout.
  * Remove any legacy chat history that may have been persisted to localStorage
  * by earlier versions of this hook.
  */
