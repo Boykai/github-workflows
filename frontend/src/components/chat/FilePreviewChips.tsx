@@ -3,7 +3,7 @@
  * Renders between the ChatToolbar and the text input.
  */
 
-import { X, FileText, Image, Loader2, Check, AlertTriangle } from 'lucide-react';
+import { X, FileText, Image, Loader2, Check, AlertTriangle, Film } from 'lucide-react';
 import type { FileAttachment } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -33,6 +33,10 @@ function isImageFile(contentType: string): boolean {
   return contentType.startsWith('image/');
 }
 
+function isVideoFile(contentType: string): boolean {
+  return contentType.startsWith('video/');
+}
+
 function StatusIcon({ status }: { status: FileAttachment['status'] }) {
   switch (status) {
     case 'uploading':
@@ -59,7 +63,9 @@ export function FilePreviewChips({ files, onRemove }: FilePreviewChipsProps) {
               : 'border-border bg-background/76')}
           title={file.error || file.filename}
         >
-          {isImageFile(file.contentType) ? (
+          {isVideoFile(file.contentType) ? (
+            <Film className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+          ) : isImageFile(file.contentType) ? (
             <Image className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
           ) : (
             <FileText className="w-3.5 h-3.5 text-muted-foreground shrink-0" />

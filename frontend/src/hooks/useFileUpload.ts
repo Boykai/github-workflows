@@ -58,9 +58,14 @@ export function useFileUpload(): UseFileUploadReturn {
           break;
         }
 
-        // Check file size
-        if (file.size > FILE_VALIDATION.maxFileSize) {
-          newErrors.push(`${file.name}: File exceeds the 10 MB size limit`);
+        // Check file size — use higher limit for video files
+        const isVideo = FILE_VALIDATION.allowedVideoTypes.includes(
+          ext as (typeof FILE_VALIDATION.allowedVideoTypes)[number]
+        );
+        const maxSize = isVideo ? FILE_VALIDATION.maxVideoFileSize : FILE_VALIDATION.maxFileSize;
+        const sizeLabel = isVideo ? '2 GB' : '10 MB';
+        if (file.size > maxSize) {
+          newErrors.push(`${file.name}: File exceeds the ${sizeLabel} size limit`);
           continue;
         }
 

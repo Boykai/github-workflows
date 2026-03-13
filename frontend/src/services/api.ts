@@ -74,6 +74,10 @@ import type {
   ToolChip,
   ToolDeleteResult,
   FileUploadResponse,
+  VideoUploadResponse,
+  VideoMetadata,
+  VideoListResponse,
+  VideoUpdateRequest,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -1099,6 +1103,88 @@ export const agentToolsApi = {
     return request<{ tools: ToolChip[] }>(`/agents/${projectId}/${agentId}/tools`, {
       method: 'PUT',
       body: JSON.stringify({ tool_ids: toolIds }),
+    });
+  },
+};
+
+// ============ Video API ============
+
+export const videoApi = {
+  /**
+   * Upload a video file. Supports MP4, MOV, AVI, MKV, WebM up to 2 GB.
+   */
+  async uploadVideo(
+    file: File,
+    onProgress?: (progress: number) => void
+  ): Promise<VideoUploadResponse> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const url = `${API_BASE_URL}/videos/upload`;
+
+    return new Promise<VideoUploadResponse>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url);
+      xhr.withCredentials = true;
+
+      xhr.upload.addEventListener('progress', (event) => {
+        if (event.lengthComputable && onProgress) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      });
+
+      xhr.addEventListener('load', () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(JSON.parse(xhr.responseText));
+        } else {
+          const errorData = JSON.parse(xhr.responseText).error || 'Upload failed';
+          reject(new ApiError(xhr.status, { error: errorData }));
+        }
+      });
+
+      xhr.addEventListener('error', () => {
+        reject(new ApiError(0, { error: 'Network error during upload' }));
+      });
+
+      xhr.addEventListener('abort', () => {
+        reject(new ApiError(0, { error: 'Upload cancelled' }));
+      });
+
+      xhr.send(formData);
+    });
+  },
+
+  /**
+   * List all uploaded videos.
+   */
+  listVideos(): Promise<VideoListResponse> {
+    return request<VideoListResponse>('/videos');
+  },
+
+  /**
+   * Get video metadata by ID.
+   */
+  getVideo(videoId: string): Promise<VideoMetadata> {
+    return request<VideoMetadata>(`/videos/${videoId}`);
+  },
+
+  /**
+   * Update video metadata (title, description).
+   */
+  updateVideo(videoId: string, update: VideoUpdateRequest): Promise<VideoMetadata> {
+    return request<VideoMetadata>(`/videos/${videoId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(update),
+    });
+  },
+
+  /**
+   * Delete a video.
+   */
+  deleteVideo(videoId: string): Promise<void> {
+    return request<void>(`/videos/${videoId}`, {
+      method: 'DELETE',
     });
   },
 };

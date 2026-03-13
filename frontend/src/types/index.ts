@@ -199,10 +199,13 @@ export interface ChatPreferences {
 /** File upload validation constants */
 export const FILE_VALIDATION = {
   maxFileSize: 10 * 1024 * 1024, // 10 MB
+  maxVideoFileSize: 2 * 1024 * 1024 * 1024, // 2 GB
+  maxVideoDuration: 3600, // 1 hour in seconds
   maxFilesPerMessage: 5,
   allowedImageTypes: ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'],
   allowedDocTypes: ['.pdf', '.txt', '.md', '.csv', '.json', '.yaml', '.yml'],
   allowedArchiveTypes: ['.zip'],
+  allowedVideoTypes: ['.mp4', '.mov', '.avi', '.mkv', '.webm'],
   blockedTypes: ['.exe', '.sh', '.bat', '.cmd', '.js', '.py', '.rb'],
 } as const;
 
@@ -210,6 +213,7 @@ export const ALLOWED_TYPES = [
   ...FILE_VALIDATION.allowedImageTypes,
   ...FILE_VALIDATION.allowedDocTypes,
   ...FILE_VALIDATION.allowedArchiveTypes,
+  ...FILE_VALIDATION.allowedVideoTypes,
 ];
 
 /** File upload response from backend */
@@ -225,6 +229,53 @@ export interface FileUploadError {
   filename: string;
   error: string;
   error_code: string;
+}
+
+// ============ Video Types ============
+
+/** Processing status for uploaded videos */
+export type VideoStatus = 'uploading' | 'processing' | 'ready' | 'error';
+
+/** Video metadata from the backend */
+export interface VideoMetadata {
+  id: string;
+  filename: string;
+  title: string;
+  description: string;
+  file_url: string;
+  thumbnail_url: string | null;
+  file_size: number;
+  content_type: string;
+  duration: number | null;
+  width: number | null;
+  height: number | null;
+  status: VideoStatus;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+/** Response from video upload endpoint */
+export interface VideoUploadResponse {
+  id: string;
+  filename: string;
+  file_url: string;
+  thumbnail_url: string | null;
+  file_size: number;
+  content_type: string;
+  status: VideoStatus;
+}
+
+/** Request to update video metadata */
+export interface VideoUpdateRequest {
+  title?: string;
+  description?: string;
+}
+
+/** Response for listing videos */
+export interface VideoListResponse {
+  videos: VideoMetadata[];
+  total: number;
 }
 
 export interface ChatMessagesResponse {

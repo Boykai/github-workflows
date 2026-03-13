@@ -92,7 +92,7 @@ export function ChatToolbar({
           ref={fileInputRef}
           type="file"
           multiple
-          accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,application/pdf,text/plain,text/markdown,text/csv,application/json,application/x-yaml,application/zip"
+          accept="image/png,image/jpeg,image/gif,image/webp,image/svg+xml,application/pdf,text/plain,text/markdown,text/csv,application/json,application/x-yaml,application/zip,video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm"
           onChange={handleFileChange}
           className="hidden"
           aria-hidden="true"

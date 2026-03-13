@@ -62,12 +62,14 @@ router = APIRouter()
 
 # ── File upload validation constants ─────────────────────────────────────
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
+MAX_VIDEO_FILE_SIZE_BYTES = 2 * 1024 * 1024 * 1024  # 2 GB
 MAX_FILES_PER_MESSAGE = 5
 ALLOWED_IMAGE_TYPES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
 ALLOWED_DOC_TYPES = {".pdf", ".txt", ".md", ".csv", ".json", ".yaml", ".yml"}
 ALLOWED_ARCHIVE_TYPES = {".zip"}
+ALLOWED_VIDEO_TYPES = {".mp4", ".mov", ".avi", ".mkv", ".webm"}
 BLOCKED_TYPES = {".exe", ".sh", ".bat", ".cmd", ".js", ".py", ".rb"}
-ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_DOC_TYPES | ALLOWED_ARCHIVE_TYPES
+ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_DOC_TYPES | ALLOWED_ARCHIVE_TYPES | ALLOWED_VIDEO_TYPES
 
 
 class FileUploadResponse(BaseModel):
@@ -1032,12 +1034,16 @@ async def upload_file(
                 "error_code": "empty_file",
             },
         )
-    if len(content) > MAX_FILE_SIZE_BYTES:
+    # Use higher size limit for video files
+    is_video = ext in ALLOWED_VIDEO_TYPES
+    max_size = MAX_VIDEO_FILE_SIZE_BYTES if is_video else MAX_FILE_SIZE_BYTES
+    size_label = "2 GB" if is_video else "10 MB"
+    if len(content) > max_size:
         return JSONResponse(
             status_code=413,
             content={
                 "filename": file.filename,
-                "error": "File exceeds the 10 MB size limit",
+                "error": f"File exceeds the {size_label} size limit",
                 "error_code": "file_too_large",
             },
         )
