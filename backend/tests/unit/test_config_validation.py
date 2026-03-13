@@ -23,6 +23,7 @@ def _make_production(**overrides) -> Settings:
         "encryption_key": "ZmVybmV0LXRlc3Qta2V5LWZvci11bml0LXRlc3Rz",  # base64
         "github_webhook_secret": "whsec_test_1234567890",
         "cookie_secure": True,
+        "admin_github_user_id": 12345,
         "debug": False,
         "_env_file": None,
     }
@@ -108,6 +109,26 @@ class TestCookieSecureEnforced:
         assert s.effective_cookie_secure is True
 
 
+class TestProductionAdminUserIdRequired:
+    """ADMIN_GITHUB_USER_ID must be set in production mode."""
+
+    def test_missing_admin_user_id_raises(self):
+        with pytest.raises(ValueError, match="ADMIN_GITHUB_USER_ID is required"):
+            _make_production(admin_github_user_id=None)
+
+    def test_zero_admin_user_id_raises(self):
+        with pytest.raises(ValueError, match="ADMIN_GITHUB_USER_ID is required"):
+            _make_production(admin_github_user_id=0)
+
+    def test_negative_admin_user_id_raises(self):
+        with pytest.raises(ValueError, match="ADMIN_GITHUB_USER_ID is required"):
+            _make_production(admin_github_user_id=-1)
+
+    def test_valid_admin_user_id_passes(self):
+        s = _make_production(admin_github_user_id=12345)
+        assert s.admin_github_user_id == 12345
+
+
 class TestCorsOriginsValidation:
     """CORS origins must be well-formed URLs with scheme and hostname (FR-008)."""
 
@@ -151,6 +172,16 @@ class TestDebugModeDegradedGracefully:
         s = _make_debug(session_secret_key="short")
         assert s.debug is True
         assert "SESSION_SECRET_KEY is shorter than 64 characters" in caplog.text
+
+    def test_missing_admin_user_id_warns(self, caplog):
+        s = _make_debug(admin_github_user_id=None)
+        assert s.debug is True
+        assert "ADMIN_GITHUB_USER_ID not set" in caplog.text
+
+    def test_negative_admin_user_id_warns_in_debug(self, caplog):
+        s = _make_debug(admin_github_user_id=-1)
+        assert s.debug is True
+        assert "not a valid GitHub user ID" in caplog.text
 
     def test_all_valid_in_debug_no_errors(self):
         """Even with full production-grade config, debug mode shouldn't fail."""

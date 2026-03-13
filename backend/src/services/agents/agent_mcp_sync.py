@@ -186,23 +186,21 @@ def _merge_mcps_into_frontmatter(
     active_mcps: dict[str, dict],
     file_path: str = "",
 ) -> tuple[dict, list[str]]:
-    """Merge active MCPs into frontmatter and enforce ``tools: ["*"]``.
+    """Merge active MCPs into frontmatter.
 
     Returns ``(updated_frontmatter, warnings)``.
+
+    Note: ``tools`` is intentionally **not** managed here.  VS Code agent
+    definitions and Custom GitHub Agent definitions use incompatible
+    ``tools`` schemas, so the sync leaves the field untouched (or absent).
     """
     warnings: list[str] = []
 
-    # ── Enforce tools: ["*"] (FR-001, FR-010) ────────────────────────
-    current_tools = frontmatter.get("tools")
-    if current_tools != ["*"]:
-        if current_tools is not None:
-            warnings.append(f"{file_path}: tools overridden from {current_tools!r} to ['*']")
-            logger.warning(
-                "Agent file %s: tools overridden from %r to ['*']",
-                file_path,
-                current_tools,
-            )
-        frontmatter["tools"] = ["*"]
+    # Remove legacy tools field if present — it is no longer managed by sync.
+    if "tools" in frontmatter:
+        warnings.append(f"{file_path}: removed legacy 'tools' field from frontmatter")
+        logger.info("Agent file %s: removed legacy 'tools' field", file_path)
+        del frontmatter["tools"]
 
     # ── Replace mcp-servers with the authoritative active MCP set (FR-002, FR-004) ──
     frontmatter["mcp-servers"] = {key: dict(config) for key, config in active_mcps.items()}
@@ -216,11 +214,6 @@ def _validate_agent_frontmatter(frontmatter: dict, file_path: str) -> list[str]:
     Returns a list of error strings (empty if valid).
     """
     errors: list[str] = []
-
-    # tools must be ["*"]
-    tools = frontmatter.get("tools")
-    if tools != ["*"]:
-        errors.append(f"{file_path}: 'tools' is not ['*'] — got {tools!r}")
 
     # mcp-servers must be a dict
     mcp_servers = frontmatter.get("mcp-servers")

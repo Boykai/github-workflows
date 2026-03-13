@@ -180,5 +180,6 @@ def _prod_like_settings(*, debug: bool):
         kwargs["encryption_key"] = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="
         kwargs["github_webhook_secret"] = "test-webhook-secret"
         kwargs["cookie_secure"] = True
+        kwargs["admin_github_user_id"] = 12345
 
     return Settings(**kwargs)

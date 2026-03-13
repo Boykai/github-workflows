@@ -34,15 +34,11 @@ class TestFormatAttachmentsMarkdownSingleFile:
     """Single-file formatting for images and documents."""
 
     def test_single_image_file(self):
-        result = format_attachments_markdown(
-            ["/api/v1/chat/uploads/a1b2c3d4-screenshot.png"]
-        )
+        result = format_attachments_markdown(["/api/v1/chat/uploads/a1b2c3d4-screenshot.png"])
         assert "![screenshot.png](/api/v1/chat/uploads/a1b2c3d4-screenshot.png)" in result
 
     def test_single_document_file(self):
-        result = format_attachments_markdown(
-            ["/api/v1/chat/uploads/e5f6a7b8-report.pdf"]
-        )
+        result = format_attachments_markdown(["/api/v1/chat/uploads/e5f6a7b8-report.pdf"])
         assert "[report.pdf](/api/v1/chat/uploads/e5f6a7b8-report.pdf)" in result
         assert "![" not in result  # should NOT be inline image
 
@@ -82,9 +78,7 @@ class TestFormatAttachmentsMarkdownPrefixStripping:
     """Upload ID prefix is stripped from displayed filenames."""
 
     def test_filename_prefix_stripping(self):
-        result = format_attachments_markdown(
-            ["/api/v1/chat/uploads/a1b2c3d4-my-document.txt"]
-        )
+        result = format_attachments_markdown(["/api/v1/chat/uploads/a1b2c3d4-my-document.txt"])
         assert "[my-document.txt]" in result
 
     def test_no_prefix_filename(self):
@@ -94,9 +88,7 @@ class TestFormatAttachmentsMarkdownPrefixStripping:
 
     def test_natural_hyphen_preserved(self):
         """Filenames with natural hyphens (not upload ID) are preserved."""
-        result = format_attachments_markdown(
-            ["/api/v1/chat/uploads/my-feature-spec.pdf"]
-        )
+        result = format_attachments_markdown(["/api/v1/chat/uploads/my-feature-spec.pdf"])
         assert "[my-feature-spec.pdf]" in result
 
 
@@ -163,19 +155,13 @@ class TestFormatAttachmentsMarkdownEscaping:
     """Markdown-sensitive characters in filenames are escaped."""
 
     def test_brackets_escaped(self):
-        result = format_attachments_markdown(
-            ["/api/v1/chat/uploads/abcd1234-file[1].txt"]
-        )
+        result = format_attachments_markdown(["/api/v1/chat/uploads/abcd1234-file[1].txt"])
         assert r"[file\[1\].txt]" in result
 
     def test_parens_escaped(self):
-        result = format_attachments_markdown(
-            ["/api/v1/chat/uploads/abcd1234-report(final).pdf"]
-        )
+        result = format_attachments_markdown(["/api/v1/chat/uploads/abcd1234-report(final).pdf"])
         assert r"[report\(final\).pdf]" in result
 
     def test_backslash_escaped(self):
-        result = format_attachments_markdown(
-            ["/api/v1/chat/uploads/abcd1234-back\\slash.txt"]
-        )
+        result = format_attachments_markdown(["/api/v1/chat/uploads/abcd1234-back\\slash.txt"])
         assert r"[back\\slash.txt]" in result

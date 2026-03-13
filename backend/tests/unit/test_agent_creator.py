@@ -183,11 +183,10 @@ class TestGenerateConfigFiles:
         content = files[0]["content"]
         assert "description: Reviews PRs for security vulnerabilities" in content
 
-    def test_agent_file_has_tools_in_frontmatter(self, preview: AgentPreview):
+    def test_agent_file_omits_tools_from_frontmatter(self, preview: AgentPreview):
         files = generate_config_files(preview)
         content = files[0]["content"]
-        assert "- search_code" in content
-        assert "- create_issue" in content
+        assert "tools:" not in content
 
     def test_agent_file_has_system_prompt_body(self, preview: AgentPreview):
         files = generate_config_files(preview)
@@ -399,8 +398,12 @@ class TestIsAdminUser:
         assert await is_admin_user(admin_db, "99999") is False
 
     async def test_no_admin_set_auto_promotes(self, seeded_db: aiosqlite.Connection):
-        """When no admin is set, the first caller is auto-promoted."""
-        assert await is_admin_user(seeded_db, "12345") is True
+        """When no admin is set in debug mode, the first caller is auto-promoted."""
+        mock_settings = AsyncMock()
+        mock_settings.debug = True
+        mock_settings.admin_github_user_id = None
+        with patch("src.config.get_settings", return_value=mock_settings):
+            assert await is_admin_user(seeded_db, "12345") is True
         # Verify the admin was persisted.
         cursor = await seeded_db.execute(
             "SELECT admin_github_user_id FROM global_settings WHERE id = 1"
@@ -411,8 +414,43 @@ class TestIsAdminUser:
 
     async def test_no_admin_set_second_user_denied(self, seeded_db: aiosqlite.Connection):
         """After auto-promotion, a different user is denied."""
-        assert await is_admin_user(seeded_db, "first-user") is True
-        assert await is_admin_user(seeded_db, "second-user") is False
+        mock_settings = AsyncMock()
+        mock_settings.debug = True
+        mock_settings.admin_github_user_id = None
+        with patch("src.config.get_settings", return_value=mock_settings):
+            assert await is_admin_user(seeded_db, "first-user") is True
+            assert await is_admin_user(seeded_db, "second-user") is False
+
+    async def test_no_admin_set_production_denies(self, seeded_db: aiosqlite.Connection):
+        """In production mode, missing admin config denies access."""
+        mock_settings = AsyncMock()
+        mock_settings.debug = False
+        mock_settings.admin_github_user_id = None
+        with patch("src.config.get_settings", return_value=mock_settings):
+            assert await is_admin_user(seeded_db, "12345") is False
+
+    async def test_production_configured_admin_allowed(self, seeded_db: aiosqlite.Connection):
+        """In production with ADMIN_GITHUB_USER_ID set, configured admin is allowed and DB seeded."""
+        mock_settings = AsyncMock()
+        mock_settings.debug = False
+        mock_settings.admin_github_user_id = 12345
+        with patch("src.config.get_settings", return_value=mock_settings):
+            assert await is_admin_user(seeded_db, "12345") is True
+        # Verify admin was persisted in DB
+        cursor = await seeded_db.execute(
+            "SELECT admin_github_user_id FROM global_settings WHERE id = 1"
+        )
+        row = await cursor.fetchone()
+        admin_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
+        assert str(admin_id) == "12345"
+
+    async def test_production_configured_admin_denies_other(self, seeded_db: aiosqlite.Connection):
+        """In production with ADMIN_GITHUB_USER_ID set, non-admin user is denied."""
+        mock_settings = AsyncMock()
+        mock_settings.debug = False
+        mock_settings.admin_github_user_id = 12345
+        with patch("src.config.get_settings", return_value=mock_settings):
+            assert await is_admin_user(seeded_db, "99999") is False
 
     async def test_db_error_returns_false(self):
         """If the DB query fails, default to denying access."""

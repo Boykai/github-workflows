@@ -74,8 +74,11 @@ async def require_admin(
 
     Checks ``session.github_user_id`` against the
     ``admin_github_user_id`` column in ``global_settings``.
-    If no admin has been set yet (NULL), the first authenticated user is
-    auto-promoted and persisted.
+    If no admin has been set yet (NULL) and ``ADMIN_GITHUB_USER_ID`` is
+    configured, only the designated user is allowed and the DB is seeded.
+    In debug mode without an explicit admin, the first user is
+    auto-promoted. In production without an explicit admin, a 500 is
+    raised.
 
     Returns the session if authorized; raises *403* otherwise.
     """
@@ -104,7 +107,7 @@ async def require_admin(
         settings = get_settings()
         if settings.admin_github_user_id:
             # Explicit admin designation via ADMIN_GITHUB_USER_ID env var
-            if session.github_user_id != settings.admin_github_user_id:
+            if str(session.github_user_id) != str(settings.admin_github_user_id):
                 raise AuthorizationError("Admin access required")
             # Set the configured user as admin in the database
             await db.execute(
@@ -118,10 +121,18 @@ async def require_admin(
                 session.github_user_id,
             )
             return session
-        # Fallback: auto-promote first user (with warning for production)
+        # No ADMIN_GITHUB_USER_ID configured
+        if not settings.debug:
+            # Production: refuse to auto-promote — config validator should
+            # have caught this at startup, but defend in depth.
+            raise AppException(
+                message="ADMIN_GITHUB_USER_ID must be set in production mode.",
+                status_code=500,
+            )
+        # Debug mode only: auto-promote first user
         logger.warning(
             "ADMIN_GITHUB_USER_ID not set — auto-promoting first user %s (%s). "
-            "Set ADMIN_GITHUB_USER_ID in environment for production.",
+            "This is only allowed in debug mode.",
             session.github_username,
             session.github_user_id,
         )
@@ -156,8 +167,8 @@ async def require_admin(
             )
         admin_user_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
-    if session.github_user_id != admin_user_id:
-        raise AuthorizationError("Only the session owner can modify settings")
+    if str(session.github_user_id) != str(admin_user_id):
+        raise AuthorizationError("Admin access required")
 
     return session
 

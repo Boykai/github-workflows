@@ -164,6 +164,7 @@ class TestDevLogin:
             encryption_key="AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
             github_webhook_secret="test-webhook-secret",
             cookie_secure=True,
+            admin_github_user_id=12345,
             debug=False,
             _env_file=None,
         )

@@ -35,9 +35,9 @@ logger = get_logger(__name__)
 async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
     """Check whether *github_user_id* matches the admin in global_settings.
 
-    If no admin has been set yet (``admin_github_user_id`` is NULL), the
-    first caller is auto-promoted — mirroring the behaviour of the
-    ``require_admin`` FastAPI dependency in ``dependencies.py``.
+    If no admin has been set yet (``admin_github_user_id`` is NULL) and the
+    application is running in debug mode, the first caller is auto-promoted.
+    In production mode, a missing admin always denies access.
     """
     try:
         cursor = await db.execute("SELECT admin_github_user_id FROM global_settings WHERE id = 1")
@@ -47,7 +47,35 @@ async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
         admin_id = row["admin_github_user_id"] if isinstance(row, dict) else row[0]
 
         if admin_id is None:
-            # Auto-promote the first authenticated user (atomic CAS).
+            # Check if an explicit admin is configured via env var.
+            from src.config import get_settings
+
+            settings = get_settings()
+            if settings.admin_github_user_id:
+                # Production (or debug) with explicit admin — allow only that user
+                # and persist to DB so future checks hit the fast path.
+                if str(github_user_id) != str(settings.admin_github_user_id):
+                    return False
+                cursor = await db.execute(
+                    "UPDATE global_settings SET admin_github_user_id = ? "
+                    "WHERE id = 1 AND admin_github_user_id IS NULL",
+                    (github_user_id,),
+                )
+                await db.commit()
+                if cursor.rowcount > 0:
+                    logger.info(
+                        "Seeded admin user %s from ADMIN_GITHUB_USER_ID via #agent command",
+                        github_user_id,
+                    )
+                return True
+            # No explicit admin configured
+            if not settings.debug:
+                logger.error(
+                    "ADMIN_GITHUB_USER_ID not set in production — denying admin access for user %s",
+                    github_user_id,
+                )
+                return False
+            # Debug mode only: auto-promote the first authenticated user (atomic CAS).
             cursor = await db.execute(
                 "UPDATE global_settings SET admin_github_user_id = ? "
                 "WHERE id = 1 AND admin_github_user_id IS NULL",
@@ -55,7 +83,9 @@ async def is_admin_user(db: aiosqlite.Connection, github_user_id: str) -> bool:
             )
             await db.commit()
             if cursor.rowcount > 0:
-                logger.info("Auto-promoted user %s as admin via #agent command", github_user_id)
+                logger.info(
+                    "Auto-promoted user %s as admin via #agent command (debug mode)", github_user_id
+                )
                 return True
             # Another user won the race — re-read.
             cursor = await db.execute(
@@ -1011,10 +1041,6 @@ def generate_config_files(preview: AgentPreview) -> list[dict]:
     frontmatter_data: dict[str, object] = {"name": preview.name, "description": preview.description}
     if preview.icon_name:
         frontmatter_data["icon"] = preview.icon_name
-    if preview.tool_allowlist:
-        frontmatter_data["tools"] = list(preview.tool_allowlist)
-    elif preview.tools and not preview.mcp_servers:
-        frontmatter_data["tools"] = list(preview.tools)
     if preview.mcp_servers:
         frontmatter_data["mcp-servers"] = preview.mcp_servers
     if preview.tool_ids:

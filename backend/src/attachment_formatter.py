@@ -34,11 +34,7 @@ def _is_valid_upload_url(url: str) -> bool:
     Rejects URLs containing path-traversal sequences (``..``) even if the
     prefix is correct.
     """
-    return (
-        isinstance(url, str)
-        and url.startswith(_ALLOWED_URL_PREFIX)
-        and ".." not in url
-    )
+    return isinstance(url, str) and url.startswith(_ALLOWED_URL_PREFIX) and ".." not in url
 
 
 def format_attachments_markdown(file_urls: list[str]) -> str:
