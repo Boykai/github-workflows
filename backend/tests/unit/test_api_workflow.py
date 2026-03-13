@@ -101,13 +101,20 @@ ORCH = "src.services.workflow_orchestrator"
 
 class TestRejectRecommendation:
     async def test_reject_pending(self, client, mock_session):
+        import src.api.chat as chat_mod
+
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
+        await chat_mod.store_recommendation(rec)
         with patch("src.api.chat._recommendations", {rec_id: rec}):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/reject")
         assert resp.status_code == 200
         assert resp.json()["recommendation_id"] == rec_id
         assert rec.status == RecommendationStatus.REJECTED
+        chat_mod._recommendations.pop(rec_id, None)
+        reloaded = await chat_mod.get_recommendation(rec_id)
+        assert reloaded is not None
+        assert reloaded.status == RecommendationStatus.REJECTED
 
     async def test_reject_not_found(self, client):
         resp = await client.post("/api/v1/workflow/recommendations/nonexistent/reject")
@@ -373,9 +380,12 @@ class TestConfirmRecommendation:
     async def test_confirm_success(
         self, client, mock_session, mock_github_service, mock_websocket_manager
     ):
+        import src.api.chat as chat_mod
+
         mock_session.selected_project_id = TEST_PROJECT_ID
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
+        await chat_mod.store_recommendation(rec)
 
         mock_github_service.get_project_repository.return_value = (
             "testowner",
@@ -418,6 +428,10 @@ class TestConfirmRecommendation:
         data = resp.json()
         assert data["success"] is True
         assert data["issue_number"] == 99
+        chat_mod._recommendations.pop(rec_id, None)
+        reloaded = await chat_mod.get_recommendation(rec_id)
+        assert reloaded is not None
+        assert reloaded.status == RecommendationStatus.CONFIRMED
 
     async def test_confirm_workflow_failure(
         self, client, mock_session, mock_github_service, mock_websocket_manager

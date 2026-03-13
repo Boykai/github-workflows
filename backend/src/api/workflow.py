@@ -1,6 +1,7 @@
 """Workflow API endpoints for issue creation and management."""
 
 import hashlib
+import json
 from datetime import datetime, timedelta
 from typing import Annotated
 
@@ -275,6 +276,18 @@ async def confirm_recommendation(
             # Update recommendation status
             recommendation.status = RecommendationStatus.CONFIRMED
             recommendation.confirmed_at = utcnow()
+            try:
+                from src.services import chat_store
+
+                db = get_db()
+                await chat_store.update_recommendation_status(
+                    db,
+                    recommendation_id,
+                    recommendation.status.value,
+                    data=json.dumps(recommendation.model_dump(mode="json")),
+                )
+            except Exception:
+                logger.warning("Failed to update recommendation status in SQLite", exc_info=True)
 
             # Broadcast WebSocket notification for issue creation
             await connection_manager.broadcast_to_project(
@@ -350,6 +363,18 @@ async def reject_recommendation(
         raise ValidationError(f"Recommendation already {recommendation.status.value}")
 
     recommendation.status = RecommendationStatus.REJECTED
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        await chat_store.update_recommendation_status(
+            db,
+            recommendation_id,
+            recommendation.status.value,
+            data=json.dumps(recommendation.model_dump(mode="json")),
+        )
+    except Exception:
+        logger.warning("Failed to update recommendation status in SQLite", exc_info=True)
     logger.info("Recommendation %s rejected", recommendation_id)
 
     return {
