@@ -95,7 +95,14 @@ async def save_proposal(
         """INSERT OR REPLACE INTO chat_proposals
            (proposal_id, session_id, original_input, proposed_title, proposed_description, file_urls)
            VALUES (?, ?, ?, ?, ?, ?)""",
-        (proposal_id, session_id, original_input, proposed_title, proposed_description, file_urls_json),
+        (
+            proposal_id,
+            session_id,
+            original_input,
+            proposed_title,
+            proposed_description,
+            file_urls_json,
+        ),
     )
     await db.commit()
 
