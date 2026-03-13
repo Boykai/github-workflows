@@ -1082,6 +1082,59 @@ async def _reconstruct_pipeline_state(
         agent_assigned_sha=reconstructed_sha,
     )
 
+    # Reconstruct group info from tracking table if 6-column format was used
+    if issue_data:
+        body = issue_data.get("body", "")
+        tracking_steps = _cp.parse_tracking_from_body(body) if body else None
+        if tracking_steps and any(s.group_label for s in tracking_steps):
+            # Filter steps for this status
+            status_steps = [s for s in tracking_steps if s.status == status]
+            if status_steps:
+                groups_by_label: dict[str, _cp.PipelineGroupInfo] = {}
+                for step in status_steps:
+                    if step.group_label and step.group_label not in groups_by_label:
+                        groups_by_label[step.group_label] = _cp.PipelineGroupInfo(
+                            group_id=step.group_label,
+                            execution_mode=step.group_execution_mode or "sequential",
+                            agents=[],
+                        )
+                    if step.group_label:
+                        gi = groups_by_label[step.group_label]
+                        gi.agents.append(step.agent_name)
+                        # For parallel groups, reconstruct agent_statuses
+                        if gi.execution_mode == "parallel":
+                            if _cp.STATE_DONE in step.state:
+                                gi.agent_statuses[step.agent_name] = "completed"
+                            elif _cp.STATE_ACTIVE in step.state:
+                                gi.agent_statuses[step.agent_name] = "active"
+                            else:
+                                gi.agent_statuses[step.agent_name] = "pending"
+
+                pipeline.groups = list(groups_by_label.values())
+                # Determine current_group_index and current_agent_index_in_group
+                for gi_idx, gi in enumerate(pipeline.groups):
+                    if gi.execution_mode == "parallel":
+                        all_terminal = len(gi.agent_statuses) >= len(gi.agents) and all(
+                            s in ("completed", "failed") for s in gi.agent_statuses.values()
+                        )
+                        if not all_terminal:
+                            pipeline.current_group_index = gi_idx
+                            pipeline.current_agent_index_in_group = 0
+                            break
+                    else:
+                        # Sequential: find first non-completed agent
+                        for ai_idx, agent_slug in enumerate(gi.agents):
+                            if agent_slug not in completed:
+                                pipeline.current_group_index = gi_idx
+                                pipeline.current_agent_index_in_group = ai_idx
+                                break
+                        else:
+                            continue
+                        break
+                else:
+                    # All groups complete
+                    pipeline.current_group_index = len(pipeline.groups)
+
     # Reconstruct sub-issue mappings from GitHub API
     pipeline.agent_sub_issues = await _cp._reconstruct_sub_issue_mappings(
         access_token=access_token,
@@ -1149,6 +1202,36 @@ async def _advance_pipeline(
         return None
     pipeline.completed_agents.append(completed_agent)
     pipeline.current_agent_index += 1
+
+    # Group-aware advancement
+    if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
+        group = pipeline.groups[pipeline.current_group_index]
+        if group.execution_mode == "parallel":
+            # Mark agent as completed in parallel group tracking
+            group.agent_statuses[completed_agent] = "completed"
+            # Check if all agents in the parallel group are done —
+            # ensure every agent in the group has a terminal status
+            all_done = len(group.agent_statuses) >= len(group.agents) and all(
+                s in ("completed", "failed") for s in group.agent_statuses.values()
+            )
+            if all_done:
+                pipeline.current_group_index += 1
+                pipeline.current_agent_index_in_group = 0
+        else:
+            # Sequential group: advance within group
+            pipeline.current_agent_index_in_group += 1
+            if pipeline.current_agent_index_in_group >= len(group.agents):
+                # Group complete → advance to next group
+                pipeline.current_group_index += 1
+                pipeline.current_agent_index_in_group = 0
+
+        # Skip empty groups after advancement
+        while (
+            pipeline.current_group_index < len(pipeline.groups)
+            and not pipeline.groups[pipeline.current_group_index].agents
+        ):
+            pipeline.current_group_index += 1
+            pipeline.current_agent_index_in_group = 0
 
     # Clear the pending assignment flag now that the agent has completed
     _pending_agent_assignments.pop(f"{issue_number}:{completed_agent}", None)
@@ -1395,72 +1478,156 @@ async def _advance_pipeline(
             to_status=to_status,
             task_title=task_title,
         )
-    else:
-        # Assign next agent
-        next_agent = pipeline.current_agent
-        pipeline.started_at = utcnow()
-        _cp.set_pipeline_state(issue_number, pipeline)
 
-        # Use the pipeline's ORIGINAL status for agent lookup when available.
-        # When external automation (e.g. GitHub project rules) moves an issue
-        # ahead of where the pipeline is (Backlog/Ready → In Progress, or
-        # In Progress → In Review), pipeline.status is updated to match the
-        # board.  But the agents in the pipeline are still for the ORIGINAL
-        # status.  Looking up agents for the updated board status would
-        # return the wrong agent list (e.g. ["speckit.implement"] instead
-        # of ["speckit.plan", "speckit.tasks"]), causing the pipeline to
-        # silently skip remaining agents.
-        agent_lookup_status = pipeline.original_status or pipeline.status or from_status
-
-        logger.info(
-            "Assigning next agent '%s' to issue #%d (pipeline_status='%s', board_status='%s')",
-            next_agent,
-            issue_number,
-            agent_lookup_status,
-            from_status,
-        )
-
-        orchestrator = _cp.get_workflow_orchestrator()
-        ctx = _cp.WorkflowContext(
-            session_id="polling",
-            project_id=project_id,
-            access_token=access_token,
-            repository_owner=owner,
-            repository_name=repo,
-            issue_id=issue_node_id,
-            issue_number=issue_number,
-            project_item_id=item_id,
-            current_state=_cp.WorkflowState.READY,
-        )
-        ctx.config = await _cp.get_workflow_config(project_id)
-
-        success = await orchestrator.assign_agent_for_status(
-            ctx, agent_lookup_status, agent_index=pipeline.current_agent_index
-        )
-
-        # Send agent_assigned WebSocket notification
-        if success:
-            await _cp.connection_manager.broadcast_to_project(
-                project_id,
-                {
-                    "type": "agent_assigned",
-                    "issue_number": issue_number,
-                    "agent_name": next_agent,
-                    "status": agent_lookup_status,
-                    "next_agent": pipeline.next_agent,
-                    "timestamp": utcnow().isoformat(),
-                },
+    # ── Group-aware: parallel group still has active agents → wait
+    if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
+        group = pipeline.groups[pipeline.current_group_index]
+        if group.execution_mode == "parallel" and group.agents:
+            # Treat missing agent_statuses entries as non-terminal
+            still_active = (
+                len(group.agent_statuses) < len(group.agents)
+                or any(
+                    s not in ("completed", "failed") for s in group.agent_statuses.values()
+                )
             )
+            if still_active:
+                # Other parallel agents are still running — do NOT assign a new agent
+                pipeline.started_at = utcnow()
+                _cp.set_pipeline_state(issue_number, pipeline)
+                logger.info(
+                    "Parallel group '%s' on issue #%d still has active agents — waiting",
+                    group.group_id,
+                    issue_number,
+                )
+                return {
+                    "status": "waiting",
+                    "issue_number": issue_number,
+                    "task_title": task_title,
+                    "action": "parallel_wait",
+                    "completed_agent": completed_agent,
+                    "pipeline_progress": f"{len(pipeline.completed_agents)}/{len(pipeline.agents)}",
+                }
 
-        return {
-            "status": "success" if success else "error",
-            "issue_number": issue_number,
-            "task_title": task_title,
-            "action": "agent_assigned",
-            "agent_name": next_agent,
-            "completed_agent": completed_agent,
-            "pipeline_progress": f"{len(pipeline.completed_agents)}/{len(pipeline.agents)}",
-        }
+    # Assign next agent(s)
+    next_agent = pipeline.current_agent
+    pipeline.started_at = utcnow()
+    _cp.set_pipeline_state(issue_number, pipeline)
+
+    # Use the pipeline's ORIGINAL status for agent lookup when available.
+    # When external automation (e.g. GitHub project rules) moves an issue
+    # ahead of where the pipeline is (Backlog/Ready → In Progress, or
+    # In Progress → In Review), pipeline.status is updated to match the
+    # board.  But the agents in the pipeline are still for the ORIGINAL
+    # status.  Looking up agents for the updated board status would
+    # return the wrong agent list (e.g. ["speckit.implement"] instead
+    # of ["speckit.plan", "speckit.tasks"]), causing the pipeline to
+    # silently skip remaining agents.
+    agent_lookup_status = pipeline.original_status or pipeline.status or from_status
+
+    logger.info(
+        "Assigning next agent '%s' to issue #%d (pipeline_status='%s', board_status='%s')",
+        next_agent,
+        issue_number,
+        agent_lookup_status,
+        from_status,
+    )
+
+    orchestrator = _cp.get_workflow_orchestrator()
+    ctx = _cp.WorkflowContext(
+        session_id="polling",
+        project_id=project_id,
+        access_token=access_token,
+        repository_owner=owner,
+        repository_name=repo,
+        issue_id=issue_node_id,
+        issue_number=issue_number,
+        project_item_id=item_id,
+        current_state=_cp.WorkflowState.READY,
+    )
+    ctx.config = await _cp.get_workflow_config(project_id)
+
+    # Group-aware: if the new current group is parallel, assign ALL agents
+    # with 2s stagger for rate limit safety.
+    if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
+        new_group = pipeline.groups[pipeline.current_group_index]
+        if new_group.execution_mode == "parallel" and len(new_group.agents) > 1:
+            success = True
+            for i, agent_slug in enumerate(new_group.agents):
+                if i > 0:
+                    await asyncio.sleep(2)  # 2s stagger for rate limit safety
+                try:
+                    agent_flat_idx = pipeline.agents.index(agent_slug)
+                except ValueError:
+                    logger.warning(
+                        "Agent '%s' not found in flat agent list for issue #%d — "
+                        "using offset %d from current_agent_index",
+                        agent_slug,
+                        issue_number,
+                        i,
+                    )
+                    agent_flat_idx = min(
+                        pipeline.current_agent_index + i,
+                        len(pipeline.agents) - 1,
+                    )
+                new_group.agent_statuses[agent_slug] = "active"
+                result = await orchestrator.assign_agent_for_status(
+                    ctx, agent_lookup_status, agent_index=agent_flat_idx
+                )
+                if not result:
+                    success = False
+                    new_group.agent_statuses[agent_slug] = "failed"
+                    pipeline.failed_agents.append(agent_slug)
+            _cp.set_pipeline_state(issue_number, pipeline)
+
+            if success:
+                await _cp.connection_manager.broadcast_to_project(
+                    project_id,
+                    {
+                        "type": "agent_assigned",
+                        "issue_number": issue_number,
+                        "agent_name": ", ".join(new_group.agents),
+                        "status": agent_lookup_status,
+                        "next_agent": None,
+                        "timestamp": utcnow().isoformat(),
+                    },
+                )
+            return {
+                "status": "success" if success else "error",
+                "issue_number": issue_number,
+                "task_title": task_title,
+                "action": "parallel_group_assigned",
+                "agent_name": ", ".join(new_group.agents),
+                "completed_agent": completed_agent,
+                "pipeline_progress": f"{len(pipeline.completed_agents)}/{len(pipeline.agents)}",
+            }
+
+    success = await orchestrator.assign_agent_for_status(
+        ctx, agent_lookup_status, agent_index=pipeline.current_agent_index
+    )
+
+    # Send agent_assigned WebSocket notification
+    if success:
+        await _cp.connection_manager.broadcast_to_project(
+            project_id,
+            {
+                "type": "agent_assigned",
+                "issue_number": issue_number,
+                "agent_name": next_agent,
+                "status": agent_lookup_status,
+                "next_agent": pipeline.next_agent,
+                "timestamp": utcnow().isoformat(),
+            },
+        )
+
+    return {
+        "status": "success" if success else "error",
+        "issue_number": issue_number,
+        "task_title": task_title,
+        "action": "agent_assigned",
+        "agent_name": next_agent,
+        "completed_agent": completed_agent,
+        "pipeline_progress": f"{len(pipeline.completed_agents)}/{len(pipeline.agents)}",
+    }
 
 
 async def _transition_after_pipeline_complete(

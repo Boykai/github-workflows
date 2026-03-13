@@ -8,6 +8,7 @@ import aiosqlite
 from src.logging_utils import get_logger
 from src.models.agent import AgentAssignment
 from src.models.workflow import (
+    ExecutionGroupMapping,
     WorkflowConfiguration,
     WorkflowTransition,
 )
@@ -28,6 +29,7 @@ class PipelineResolutionResult:
     pipeline_name: str | None = None
     pipeline_id: str | None = None
     stage_execution_modes: dict[str, str] = field(default_factory=dict)
+    group_mappings: dict[str, list[ExecutionGroupMapping]] = field(default_factory=dict)
 
 
 logger = get_logger(__name__)
@@ -328,11 +330,20 @@ async def _persist_workflow_config_to_db(
 async def load_pipeline_as_agent_mappings(
     project_id: str,
     pipeline_id: str,
-) -> tuple[dict[str, list[AgentAssignment]], str, dict[str, str]] | None:
+) -> (
+    tuple[
+        dict[str, list[AgentAssignment]],
+        str,
+        dict[str, str],
+        dict[str, list[ExecutionGroupMapping]],
+    ]
+    | None
+):
     """Load a pipeline config and convert its stages to agent_mappings.
 
-    Returns ``(agent_mappings, pipeline_name, stage_execution_modes)`` or
-    ``None`` if the pipeline does not exist (e.g. was deleted).
+    Returns ``(agent_mappings, pipeline_name, stage_execution_modes,
+    group_mappings)`` or ``None`` if the pipeline does not exist (e.g. was
+    deleted).
     """
     try:
         from src.services.database import get_db
@@ -346,23 +357,55 @@ async def load_pipeline_as_agent_mappings(
 
         agent_mappings: dict[str, list[AgentAssignment]] = {}
         stage_execution_modes: dict[str, str] = {}
+        group_mappings: dict[str, list[ExecutionGroupMapping]] = {}
         for stage in sorted(config.stages, key=lambda s: s.order):
-            agent_mappings[stage.name] = [
-                AgentAssignment(
-                    slug=node.agent_slug,
-                    display_name=node.agent_display_name or None,
-                    config={
-                        "model_id": node.model_id,
-                        "model_name": node.model_name,
-                    }
-                    if node.model_id
-                    else None,
-                )
-                for node in stage.agents
-            ]
+            # Build group_mappings from stage.groups when available
+            if stage.groups:
+                groups_for_stage: list[ExecutionGroupMapping] = []
+                flat_agents: list[AgentAssignment] = []
+                for group in sorted(stage.groups, key=lambda g: g.order):
+                    group_agents = [
+                        AgentAssignment(
+                            slug=node.agent_slug,
+                            display_name=node.agent_display_name or None,
+                            config={
+                                "model_id": node.model_id,
+                                "model_name": node.model_name,
+                            }
+                            if node.model_id
+                            else None,
+                        )
+                        for node in group.agents
+                    ]
+                    groups_for_stage.append(
+                        ExecutionGroupMapping(
+                            group_id=group.id,
+                            order=group.order,
+                            execution_mode=group.execution_mode,
+                            agents=group_agents,
+                        )
+                    )
+                    flat_agents.extend(group_agents)
+                group_mappings[stage.name] = groups_for_stage
+                agent_mappings[stage.name] = flat_agents
+            else:
+                # Legacy fallback: use flat stage.agents
+                agent_mappings[stage.name] = [
+                    AgentAssignment(
+                        slug=node.agent_slug,
+                        display_name=node.agent_display_name or None,
+                        config={
+                            "model_id": node.model_id,
+                            "model_name": node.model_name,
+                        }
+                        if node.model_id
+                        else None,
+                    )
+                    for node in stage.agents
+                ]
             stage_execution_modes[stage.name] = getattr(stage, "execution_mode", "sequential")
 
-        return agent_mappings, config.name, stage_execution_modes
+        return agent_mappings, config.name, stage_execution_modes, group_mappings
     except Exception:
         logger.warning(
             "Failed to load pipeline %s for project %s",
@@ -407,7 +450,7 @@ async def resolve_project_pipeline_mappings(
         if assigned_id:
             result = await load_pipeline_as_agent_mappings(project_id, assigned_id)
             if result is not None:
-                mappings, pipeline_name, exec_modes = result
+                mappings, pipeline_name, exec_modes, grp_mappings = result
                 logger.info(
                     "Resolved pipeline '%s' (%s) for project %s",
                     pipeline_name,
@@ -420,6 +463,7 @@ async def resolve_project_pipeline_mappings(
                     pipeline_name=pipeline_name,
                     pipeline_id=assigned_id,
                     stage_execution_modes=exec_modes,
+                    group_mappings=grp_mappings,
                 )
             # Pipeline was deleted — auto-cleanup stale reference (T012/R5)
             logger.warning(

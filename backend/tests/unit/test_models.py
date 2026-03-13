@@ -237,3 +237,240 @@ class TestIssueRecommendation:
         assert recommendation.metadata is not None
         assert recommendation.metadata.priority == IssuePriority.P2
         assert recommendation.metadata.size == IssueSize.M
+
+
+# =============================================================================
+# Group-Aware Pipeline Models
+# =============================================================================
+
+
+class TestExecutionGroupMapping:
+    """Tests for ExecutionGroupMapping model."""
+
+    def test_create_sequential_group(self):
+        from src.models.agent import AgentAssignment
+        from src.models.workflow import ExecutionGroupMapping
+
+        agents = [AgentAssignment(slug="agent1"), AgentAssignment(slug="agent2")]
+        egm = ExecutionGroupMapping(
+            group_id="g1", order=0, execution_mode="sequential", agents=agents
+        )
+        assert egm.group_id == "g1"
+        assert egm.order == 0
+        assert egm.execution_mode == "sequential"
+        assert len(egm.agents) == 2
+
+    def test_create_parallel_group(self):
+        from src.models.workflow import ExecutionGroupMapping
+
+        egm = ExecutionGroupMapping(group_id="g2", order=1, execution_mode="parallel")
+        assert egm.execution_mode == "parallel"
+        assert egm.agents == []
+
+    def test_invalid_execution_mode_raises(self):
+        from src.models.workflow import ExecutionGroupMapping
+
+        with pytest.raises(ValueError, match="execution_mode"):
+            ExecutionGroupMapping(group_id="g1", order=0, execution_mode="invalid")
+
+    def test_default_values(self):
+        from src.models.workflow import ExecutionGroupMapping
+
+        egm = ExecutionGroupMapping(group_id="g1")
+        assert egm.order == 0
+        assert egm.execution_mode == "sequential"
+        assert egm.agents == []
+
+
+class TestWorkflowConfigurationGroupMappings:
+    """Tests for WorkflowConfiguration.group_mappings field."""
+
+    def test_default_group_mappings_is_empty(self):
+        from src.models.workflow import WorkflowConfiguration
+
+        config = WorkflowConfiguration(
+            project_id="p1", repository_owner="owner", repository_name="repo"
+        )
+        assert config.group_mappings == {}
+
+    def test_serialization_roundtrip(self):
+        from src.models.agent import AgentAssignment
+        from src.models.workflow import ExecutionGroupMapping, WorkflowConfiguration
+
+        egm = ExecutionGroupMapping(
+            group_id="g1",
+            order=0,
+            execution_mode="parallel",
+            agents=[AgentAssignment(slug="agent1")],
+        )
+        config = WorkflowConfiguration(
+            project_id="p1",
+            repository_owner="o",
+            repository_name="r",
+            group_mappings={"Ready": [egm]},
+        )
+        data = config.model_dump()
+        restored = WorkflowConfiguration(**data)
+        assert len(restored.group_mappings["Ready"]) == 1
+        assert restored.group_mappings["Ready"][0].group_id == "g1"
+        assert restored.group_mappings["Ready"][0].execution_mode == "parallel"
+
+
+class TestPipelineStateGroupProperties:
+    """Tests for PipelineState group-aware properties."""
+
+    def test_current_agent_with_groups(self):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo, PipelineState
+
+        groups = [
+            PipelineGroupInfo(group_id="g1", execution_mode="sequential", agents=["a1", "a2"]),
+        ]
+        ps = PipelineState(
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2"],
+            groups=groups,
+        )
+        assert ps.current_agent == "a1"
+
+    def test_current_agent_flat_fallback(self):
+        from src.services.workflow_orchestrator.models import PipelineState
+
+        ps = PipelineState(
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2"],
+        )
+        assert ps.current_agent == "a1"
+
+    def test_is_complete_with_groups_all_done(self):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo, PipelineState
+
+        groups = [
+            PipelineGroupInfo(group_id="g1", execution_mode="sequential", agents=["a1"]),
+        ]
+        ps = PipelineState(
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1"],
+            groups=groups,
+            current_group_index=1,
+        )
+        assert ps.is_complete is True
+
+    def test_is_complete_with_groups_not_done(self):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo, PipelineState
+
+        groups = [
+            PipelineGroupInfo(group_id="g1", execution_mode="sequential", agents=["a1", "a2"]),
+        ]
+        ps = PipelineState(
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2"],
+            groups=groups,
+        )
+        assert ps.is_complete is False
+
+    def test_is_complete_parallel_group_all_terminal(self):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo, PipelineState
+
+        groups = [
+            PipelineGroupInfo(
+                group_id="g1",
+                execution_mode="parallel",
+                agents=["a1", "a2"],
+                agent_statuses={"a1": "completed", "a2": "failed"},
+            ),
+        ]
+        ps = PipelineState(
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2"],
+            groups=groups,
+        )
+        # All agents terminal but group index hasn't advanced yet
+        assert ps.is_complete is True  # All agents in group are terminal
+
+    def test_is_complete_parallel_group_partial(self):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo, PipelineState
+
+        groups = [
+            PipelineGroupInfo(
+                group_id="g1",
+                execution_mode="parallel",
+                agents=["a1", "a2"],
+                agent_statuses={"a1": "completed", "a2": "active"},
+            ),
+        ]
+        ps = PipelineState(
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2"],
+            groups=groups,
+        )
+        assert ps.is_complete is False
+
+    def test_current_agent_with_groups_second_group(self):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo, PipelineState
+
+        groups = [
+            PipelineGroupInfo(group_id="g1", execution_mode="sequential", agents=["a1"]),
+            PipelineGroupInfo(group_id="g2", execution_mode="parallel", agents=["a2", "a3"]),
+        ]
+        ps = PipelineState(
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1", "a2", "a3"],
+            groups=groups,
+            current_group_index=1,
+            current_agent_index_in_group=0,
+        )
+        assert ps.current_agent == "a2"
+
+    def test_current_agent_returns_none_when_all_groups_done(self):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo, PipelineState
+
+        groups = [
+            PipelineGroupInfo(group_id="g1", execution_mode="sequential", agents=["a1"]),
+        ]
+        ps = PipelineState(
+            issue_number=1,
+            project_id="p1",
+            status="Ready",
+            agents=["a1"],
+            groups=groups,
+            current_group_index=1,
+        )
+        assert ps.current_agent is None
+
+
+class TestPipelineGroupInfo:
+    """Tests for PipelineGroupInfo dataclass."""
+
+    def test_default_values(self):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo
+
+        gi = PipelineGroupInfo(group_id="g1")
+        assert gi.execution_mode == "sequential"
+        assert gi.agents == []
+        assert gi.agent_statuses == {}
+
+    def test_parallel_with_statuses(self):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo
+
+        gi = PipelineGroupInfo(
+            group_id="g1",
+            execution_mode="parallel",
+            agents=["a1", "a2"],
+            agent_statuses={"a1": "active", "a2": "pending"},
+        )
+        assert gi.execution_mode == "parallel"
+        assert len(gi.agent_statuses) == 2

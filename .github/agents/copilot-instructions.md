@@ -231,6 +231,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - N/A (frontend-only audit; no persistence changes) (037-theme-contrast-audit)
 - Python 3.13 (backend, floor ≥3.12), TypeScript 5.9 (frontend) + FastAPI, aiosqlite, httpx, Pydantic (backend); React 19.2, TanStack React Query 5.90 (frontend) (037-chat-attachment-github-issue)
 - aiosqlite (chat_proposals, chat_recommendations tables) + GitHub Issues (final attachment destination) (037-chat-attachment-github-issue)
+- Python ≥3.12 (backend only — no frontend changes required) + FastAPI ≥0.135, Pydantic v2, aiosqlite, asyncio (039-group-pipeline-execution)
+- SQLite via aiosqlite with JSON-serialized pipeline stages (existing pattern); `WorkflowConfiguration` persisted per-project; `PipelineState` is in-memory only (reconstructed from issue tracking table) (039-group-pipeline-execution)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16

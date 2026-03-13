@@ -24,6 +24,7 @@ from .config import (
 )
 from .models import (
     MainBranchInfo,
+    PipelineGroupInfo,
     PipelineState,
     WorkflowContext,
     WorkflowState,
@@ -59,6 +60,7 @@ from .transitions import (
 
 __all__ = [
     "MainBranchInfo",
+    "PipelineGroupInfo",
     "PipelineState",
     "WorkflowContext",
     # orchestrator
