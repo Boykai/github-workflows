@@ -127,9 +127,8 @@ As a **developer**, I want dead code, unreachable branches, duplicated logic, an
 
 ## Assumptions
 
-- The codebase uses Python (backend) and TypeScript/JavaScript (frontend) as primary languages.
-- The backend test runner is `pytest` and the frontend test runner is `vitest`.
-- Existing linting tools (`ruff` for Python, `eslint` for TypeScript) are already configured and their current configuration is the standard to follow.
+- The project has automated test suites configured for all major components; the existing test runners and their configurations are the standard to follow.
+- Existing linting and formatting tools are already configured in the repository; their current settings define the code style standard.
 - The existing code style (indentation, naming conventions, import ordering) observed in the codebase is the standard to preserve.
 - "Public API surface" includes all exported functions, classes, REST endpoints, and component interfaces that external consumers or other modules depend on.
 - A "minimal fix" means changing only the lines necessary to resolve the specific bug, without restructuring surrounding code.
@@ -140,7 +139,7 @@ As a **developer**, I want dead code, unreachable branches, duplicated logic, an
 
 - **SC-001**: 100% of files in the repository are reviewed across all five bug categories.
 - **SC-002**: Every identified obvious bug has a corresponding fix and at least one new regression test.
-- **SC-003**: The full test suite (both backend and frontend) passes with zero failures after all fixes are applied.
+- **SC-003**: The full project test suite passes with zero failures after all fixes are applied.
 - **SC-004**: All existing linting and formatting checks pass without new violations after all fixes are applied.
 - **SC-005**: Every ambiguous or trade-off issue is documented with a `TODO(bug-bash)` comment that includes the issue description, options, and rationale.
 - **SC-006**: A complete summary table is produced with every discovered bug categorized, described, and marked as either "Fixed" or "Flagged (TODO)".
