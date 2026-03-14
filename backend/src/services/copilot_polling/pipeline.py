@@ -1484,9 +1484,15 @@ async def _advance_pipeline(
     if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
         group = pipeline.groups[pipeline.current_group_index]
         if group.execution_mode == "parallel" and group.agents:
-            # Treat missing agent_statuses entries as non-terminal
-            still_active = len(group.agent_statuses) < len(group.agents) or any(
-                s not in ("completed", "failed") for s in group.agent_statuses.values()
+            # Only wait when a parallel group has already started. A freshly
+            # entered group has all agents pending and must be assigned now.
+            has_started = any(
+                status in ("active", "completed", "failed")
+                for status in group.agent_statuses.values()
+            )
+            still_active = has_started and (
+                len(group.agent_statuses) < len(group.agents)
+                or any(s not in ("completed", "failed") for s in group.agent_statuses.values())
             )
             if still_active:
                 # Other parallel agents are still running — do NOT assign a new agent
