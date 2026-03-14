@@ -15,6 +15,7 @@ Called as a fire-and-forget task from signal_bridge._process_inbound_ws_message.
 
 from __future__ import annotations
 
+import json
 from uuid import NAMESPACE_URL, UUID, uuid5
 
 from src.constants import DEFAULT_STATUS_COLUMNS
@@ -362,15 +363,16 @@ async def _handle_confirm(
     try:
         from src.services.cache import cache, get_project_items_cache_key
         from src.services.github_projects import github_projects_service as gh
-        from src.utils import resolve_repository
+        from src.utils import resolve_repository, utcnow
 
         owner, repo = await resolve_repository(token, pid)
 
         # ── Issue creation from recommendation ──
         if pending["type"] == "issue_create":
-            from src.api.chat import _recommendations
+            from src.api.chat import get_recommendation
+            from src.models.recommendation import RecommendationStatus
 
-            rec = _recommendations.get(pending["recommendation_id"])
+            rec = await get_recommendation(pending["recommendation_id"])
             if not rec:
                 await _reply(source_phone, "⚠️ Proposal expired. Send your request again.")
                 return
@@ -408,6 +410,21 @@ async def _handle_confirm(
                 session_id=signal_sid,
                 github_user_id=conn.github_user_id,
             )
+            rec.status = RecommendationStatus.CONFIRMED
+            rec.confirmed_at = utcnow()
+            try:
+                from src.services import chat_store
+                from src.services.database import get_db
+
+                db = get_db()
+                await chat_store.update_recommendation_status(
+                    db,
+                    pending["recommendation_id"],
+                    rec.status.value,
+                    data=json.dumps(rec.model_dump(mode="json")),
+                )
+            except Exception:
+                logger.warning("Failed to update recommendation status in SQLite", exc_info=True)
 
             msg = ChatMessage(
                 session_id=signal_sid,
@@ -416,7 +433,7 @@ async def _handle_confirm(
                 action_type=ActionType.ISSUE_CREATE,
                 action_data={"status": "confirmed", "issue_number": issue["number"]},
             )
-            add_message(signal_sid, msg)
+            await add_message(signal_sid, msg)
 
             # Build reply with orchestration details
             reply_lines = [
@@ -436,10 +453,10 @@ async def _handle_confirm(
 
         # ── Task creation from proposal ──
         if pending["type"] == "task_create":
-            from src.api.chat import _proposals
+            from src.api.chat import get_proposal
             from src.models.recommendation import ProposalStatus
 
-            proposal = _proposals.get(pending.get("proposal_id", ""))
+            proposal = await get_proposal(pending.get("proposal_id", ""))
             if not proposal:
                 await _reply(source_phone, "⚠️ Proposal expired. Send your request again.")
                 return
@@ -459,6 +476,20 @@ async def _handle_confirm(
                 issue_database_id=issue.get("id"),
             )
             proposal.status = ProposalStatus.CONFIRMED
+            try:
+                from src.services import chat_store
+                from src.services.database import get_db
+
+                db = get_db()
+                await chat_store.update_proposal_status(
+                    db,
+                    str(proposal.proposal_id),
+                    proposal.status.value,
+                    edited_title=proposal.edited_title,
+                    edited_description=proposal.edited_description,
+                )
+            except Exception:
+                logger.warning("Failed to update proposal status in SQLite", exc_info=True)
             cache.delete(get_project_items_cache_key(pid))
 
             # ── Workflow orchestration (sub-issues + agent assignment) ──
@@ -481,7 +512,7 @@ async def _handle_confirm(
                 action_type=ActionType.TASK_CREATE,
                 action_data={"status": "confirmed", "issue_number": issue["number"]},
             )
-            add_message(signal_sid, msg)
+            await add_message(signal_sid, msg)
 
             # Build reply with orchestration details
             reply_lines = [
@@ -501,10 +532,10 @@ async def _handle_confirm(
 
         # ── Status update ──
         if pending["type"] == "status_update":
-            from src.api.chat import _proposals
+            from src.api.chat import get_proposal
             from src.models.recommendation import ProposalStatus
 
-            proposal = _proposals.get(pending.get("proposal_id", ""))
+            proposal = await get_proposal(pending.get("proposal_id", ""))
             if not proposal:
                 await _reply(source_phone, "⚠️ Proposal expired. Send your request again.")
                 return
@@ -516,6 +547,20 @@ async def _handle_confirm(
                 status_name=pending["target_status"],
             )
             proposal.status = ProposalStatus.CONFIRMED
+            try:
+                from src.services import chat_store
+                from src.services.database import get_db
+
+                db = get_db()
+                await chat_store.update_proposal_status(
+                    db,
+                    str(proposal.proposal_id),
+                    proposal.status.value,
+                    edited_title=proposal.edited_title,
+                    edited_description=proposal.edited_description,
+                )
+            except Exception:
+                logger.warning("Failed to update proposal status in SQLite", exc_info=True)
             cache.delete(get_project_items_cache_key(pid))
 
             title = pending.get("task_title", "")
@@ -525,7 +570,7 @@ async def _handle_confirm(
                 sender_type=SenderType.SYSTEM,
                 content=f"✅ Status updated: **{title}** → _{target}_",
             )
-            add_message(signal_sid, msg)
+            await add_message(signal_sid, msg)
             await _reply_with_audit(
                 conn,
                 source_phone,
@@ -546,23 +591,50 @@ async def _handle_reject(conn: SignalConnection, source_phone: str) -> None:
         await _reply(source_phone, "No pending proposal to cancel.")
         return
 
-    from src.api.chat import _proposals, add_message
-    from src.models.recommendation import ProposalStatus
+    from src.api.chat import add_message, get_proposal, get_recommendation
+    from src.models.recommendation import ProposalStatus, RecommendationStatus
 
     signal_sid = _signal_session_id(conn.github_user_id)
 
     proposal_id = pending.get("proposal_id")
     if proposal_id:
-        proposal = _proposals.get(proposal_id)
+        proposal = await get_proposal(proposal_id)
         if proposal:
             proposal.status = ProposalStatus.CANCELLED
+            try:
+                from src.services import chat_store
+                from src.services.database import get_db
+
+                db = get_db()
+                await chat_store.update_proposal_status(db, proposal_id, proposal.status.value)
+            except Exception:
+                logger.warning("Failed to update proposal status in SQLite", exc_info=True)
+
+    recommendation_id = pending.get("recommendation_id")
+    if recommendation_id:
+        recommendation = await get_recommendation(recommendation_id)
+        if recommendation:
+            recommendation.status = RecommendationStatus.REJECTED
+            try:
+                from src.services import chat_store
+                from src.services.database import get_db
+
+                db = get_db()
+                await chat_store.update_recommendation_status(
+                    db,
+                    recommendation_id,
+                    recommendation.status.value,
+                    data=json.dumps(recommendation.model_dump(mode="json")),
+                )
+            except Exception:
+                logger.warning("Failed to update recommendation status in SQLite", exc_info=True)
 
     msg = ChatMessage(
         session_id=signal_sid,
         sender_type=SenderType.SYSTEM,
         content="❌ Proposal cancelled.",
     )
-    add_message(signal_sid, msg)
+    await add_message(signal_sid, msg)
     await _reply_with_audit(conn, source_phone, "❌ Proposal cancelled.", msg)
 
 
@@ -582,7 +654,11 @@ async def _run_ai_pipeline(
     2. Status-change → status-update proposal
     3. General input → task proposal
     """
-    from src.api.chat import _proposals, _recommendations, add_message
+    from src.api.chat import (
+        add_message,
+        store_proposal,
+        store_recommendation,
+    )
     from src.models.recommendation import (
         AITaskProposal,
         ProposalStatus,
@@ -644,7 +720,7 @@ async def _run_ai_pipeline(
                 session_id=str(signal_sid),
                 github_token=token,
             )
-            _recommendations[str(rec.recommendation_id)] = rec
+            await store_recommendation(rec)
             _signal_pending[conn.github_user_id] = {
                 "type": "issue_create",
                 "recommendation_id": str(rec.recommendation_id),
@@ -667,7 +743,7 @@ async def _run_ai_pipeline(
                     "status": RecommendationStatus.PENDING.value,
                 },
             )
-            add_message(signal_sid, ai_msg)
+            await add_message(signal_sid, ai_msg)
             await _reply_with_audit(
                 conn,
                 source_phone,
@@ -704,7 +780,7 @@ async def _run_ai_pipeline(
                         f"Move from '{target_task.status}' to '{status_change.target_status}'"
                     ),
                 )
-                _proposals[str(proposal.proposal_id)] = proposal
+                await store_proposal(proposal)
                 _signal_pending[conn.github_user_id] = {
                     "type": "status_update",
                     "proposal_id": str(proposal.proposal_id),
@@ -726,7 +802,7 @@ async def _run_ai_pipeline(
                         "status": ProposalStatus.PENDING.value,
                     },
                 )
-                add_message(signal_sid, ai_msg)
+                await add_message(signal_sid, ai_msg)
                 await _reply_with_audit(
                     conn,
                     source_phone,
@@ -746,7 +822,7 @@ async def _run_ai_pipeline(
                 sender_type=SenderType.ASSISTANT,
                 content=(f"Could not find a task matching '{status_change.task_reference}'."),
             )
-            add_message(signal_sid, ai_msg)
+            await add_message(signal_sid, ai_msg)
             await _reply_with_audit(
                 conn,
                 source_phone,
@@ -770,7 +846,7 @@ async def _run_ai_pipeline(
             proposed_title=generated.title,
             proposed_description=generated.description,
         )
-        _proposals[str(proposal.proposal_id)] = proposal
+        await store_proposal(proposal)
         _signal_pending[conn.github_user_id] = {
             "type": "task_create",
             "proposal_id": str(proposal.proposal_id),
@@ -788,7 +864,7 @@ async def _run_ai_pipeline(
                 "status": ProposalStatus.PENDING.value,
             },
         )
-        add_message(signal_sid, ai_msg)
+        await add_message(signal_sid, ai_msg)
         await _reply_with_audit(
             conn,
             source_phone,
@@ -812,7 +888,7 @@ async def _run_ai_pipeline(
             sender_type=SenderType.ASSISTANT,
             content="Processing failed. Please try again.",
         )
-        add_message(signal_sid, error_msg)
+        await add_message(signal_sid, error_msg)
         await _reply(
             source_phone,
             "⚠️ I couldn't process your message. Please try again.",

@@ -101,13 +101,20 @@ ORCH = "src.services.workflow_orchestrator"
 
 class TestRejectRecommendation:
     async def test_reject_pending(self, client, mock_session):
+        import src.api.chat as chat_mod
+
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
-        with patch(f"{WF}._recommendations", {rec_id: rec}):
+        await chat_mod.store_recommendation(rec)
+        with patch("src.api.chat._recommendations", {rec_id: rec}):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/reject")
         assert resp.status_code == 200
         assert resp.json()["recommendation_id"] == rec_id
         assert rec.status == RecommendationStatus.REJECTED
+        chat_mod._recommendations.pop(rec_id, None)
+        reloaded = await chat_mod.get_recommendation(rec_id)
+        assert reloaded is not None
+        assert reloaded.status == RecommendationStatus.REJECTED
 
     async def test_reject_not_found(self, client):
         resp = await client.post("/api/v1/workflow/recommendations/nonexistent/reject")
@@ -119,7 +126,7 @@ class TestRejectRecommendation:
             status=RecommendationStatus.REJECTED,
         )
         rec_id = str(rec.recommendation_id)
-        with patch(f"{WF}._recommendations", {rec_id: rec}):
+        with patch("src.api.chat._recommendations", {rec_id: rec}):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/reject")
         assert resp.status_code == 422  # ValidationError
 
@@ -358,7 +365,7 @@ class TestConfirmRecommendation:
             status=RecommendationStatus.CONFIRMED,
         )
         rec_id = str(rec.recommendation_id)
-        with patch(f"{WF}._recommendations", {rec_id: rec}):
+        with patch("src.api.chat._recommendations", {rec_id: rec}):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
         assert resp.status_code == 422
 
@@ -366,16 +373,19 @@ class TestConfirmRecommendation:
         mock_session.selected_project_id = None
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
-        with patch(f"{WF}._recommendations", {rec_id: rec}):
+        with patch("src.api.chat._recommendations", {rec_id: rec}):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
         assert resp.status_code == 422
 
     async def test_confirm_success(
         self, client, mock_session, mock_github_service, mock_websocket_manager
     ):
+        import src.api.chat as chat_mod
+
         mock_session.selected_project_id = TEST_PROJECT_ID
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
+        await chat_mod.store_recommendation(rec)
 
         mock_github_service.get_project_repository.return_value = (
             "testowner",
@@ -395,7 +405,7 @@ class TestConfirmRecommendation:
         mock_orchestrator.execute_full_workflow.return_value = wf_result
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
@@ -418,11 +428,15 @@ class TestConfirmRecommendation:
         data = resp.json()
         assert data["success"] is True
         assert data["issue_number"] == 99
+        chat_mod._recommendations.pop(rec_id, None)
+        reloaded = await chat_mod.get_recommendation(rec_id)
+        assert reloaded is not None
+        assert reloaded.status == RecommendationStatus.CONFIRMED
 
     async def test_confirm_workflow_failure(
         self, client, mock_session, mock_github_service, mock_websocket_manager
     ):
-        """When orchestrator raises, endpoint returns success=False."""
+        """When orchestrator raises, endpoint returns 502 via handle_service_error."""
         mock_session.selected_project_id = TEST_PROJECT_ID
         rec = _recommendation(session_id=mock_session.session_id)
         rec_id = str(rec.recommendation_id)
@@ -432,7 +446,7 @@ class TestConfirmRecommendation:
         mock_orchestrator.execute_full_workflow.side_effect = Exception("boom")
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(
                 f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=_workflow_config()
@@ -444,8 +458,9 @@ class TestConfirmRecommendation:
             ms.return_value = MagicMock(default_assignee="copilot", database_path=":memory:")
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
-        assert resp.status_code == 200
-        assert resp.json()["success"] is False
+        assert resp.status_code == 502
+        data = resp.json()
+        assert "Failed to create issue from recommendation" in data["error"]
 
     async def test_confirm_applies_selected_pipeline_override(
         self, client, mock_session, mock_github_service, mock_websocket_manager
@@ -520,7 +535,7 @@ class TestConfirmRecommendation:
         mock_pipeline_service.get_pipeline = AsyncMock(return_value=selected_pipeline)
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(
                 f"{WF}.get_workflow_config",
@@ -568,7 +583,7 @@ class TestConfirmRecommendation:
         fake_recent = {input_hash: (utcnow(), "other-rec-id")}
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", fake_recent),
         ):
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
@@ -854,7 +869,7 @@ class TestConfirmRecommendationPreservesFullDescription:
         mock_orchestrator.execute_full_workflow.return_value = wf_result
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
@@ -909,7 +924,7 @@ class TestConfirmRecommendationPreservesFullDescription:
         mock_orchestrator.execute_full_workflow.return_value = wf_result
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
@@ -969,7 +984,7 @@ class TestConfirmRecommendationPreservesFullDescription:
         mock_orchestrator.execute_full_workflow.return_value = wf_result
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
@@ -1032,7 +1047,7 @@ class TestConfirmRecommendationPreservesFullDescription:
         )
 
         with (
-            patch(f"{WF}._recommendations", {rec_id: rec}),
+            patch("src.api.chat._recommendations", {rec_id: rec}),
             patch(f"{WF}._recent_requests", {}),
             patch(f"{WF}.get_workflow_config", new_callable=AsyncMock, return_value=None),
             patch(f"{WF}.set_workflow_config", new_callable=AsyncMock),
@@ -1069,7 +1084,7 @@ class TestWorkflowErrorSanitization:
     async def test_confirm_recommendation_error_does_not_leak(
         self, client, mock_session, mock_github_service
     ):
-        """confirm_recommendation must not include raw exception in WorkflowResult."""
+        """confirm_recommendation must not leak raw exception details to the end user."""
         import src.api.chat as chat_mod
         from src.models.recommendation import IssueRecommendation
 
@@ -1106,10 +1121,9 @@ class TestWorkflowErrorSanitization:
             )
             resp = await client.post(f"/api/v1/workflow/recommendations/{rec_id}/confirm")
 
-        assert resp.status_code == 200
+        assert resp.status_code == 502
         body = resp.json()
-        assert body["success"] is False
         # Must not leak internal error text
-        assert "DB lock timeout" not in body["message"]
-        assert "5000ms" not in body["message"]
+        assert "DB lock timeout" not in body.get("error", "")
+        assert "5000ms" not in body.get("error", "")
         chat_mod._recommendations.pop(rec_id, None)

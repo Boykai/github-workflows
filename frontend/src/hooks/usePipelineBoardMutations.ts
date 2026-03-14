@@ -2,7 +2,7 @@
  * usePipelineBoardMutations — board-level mutations for pipeline stages and agents.
  *
  * All agent operations now work through groups rather than directly on stage.agents.
- * The deprecated stage.agents field is kept in sync for backward compatibility.
+ * The stage.agents field is kept in sync for backward compatibility.
  */
 
 import { useCallback, type Dispatch, type SetStateAction } from 'react';
@@ -16,7 +16,7 @@ import type {
   ExecutionGroup,
 } from '@/types';
 
-/** Sync the deprecated stage.agents from groups for backward compat. */
+/** Sync stage.agents from groups for backward compat. */
 function syncLegacyAgents(stage: PipelineStage): PipelineStage {
   const allAgents = (stage.groups ?? []).flatMap((g) => g.agents);
   return { ...stage, agents: allAgents };
@@ -249,7 +249,7 @@ export function usePipelineBoardMutations(
     [setPipeline],
   );
 
-  /** @deprecated — use reorderAgentsInGroup. Falls back to reordering in first group. */
+  /** Falls back to reordering in first group. Use reorderAgentsInGroup for group-specific reordering. */
   const reorderAgentsInStage = useCallback(
     (stageId: string, newOrder: PipelineAgentNode[]) => {
       setPipeline((prev) => {

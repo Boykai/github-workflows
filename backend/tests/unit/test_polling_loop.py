@@ -45,7 +45,7 @@ class TestPollSteps:
     """POLL_STEPS is the ordered list of polling steps."""
 
     def test_has_expected_count(self):
-        assert len(POLL_STEPS) == 8
+        assert len(POLL_STEPS) == 7
 
     def test_all_are_poll_step_instances(self):
         for step in POLL_STEPS:

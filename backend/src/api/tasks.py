@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
+from src.constants import DEFAULT_STATUS_BACKLOG
 from src.dependencies import require_selected_project, verify_project_access
 from src.exceptions import ValidationError
 from src.logging_utils import get_logger
@@ -146,7 +147,7 @@ async def create_task(
         github_item_id=item_id,
         title=request.title,
         description=request.description,
-        status="Todo",  # Default status for new items
+        status=DEFAULT_STATUS_BACKLOG,  # Default status for new items
         status_option_id="",  # Will be set by GitHub
         issue_number=issue_number,
     )

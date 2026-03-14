@@ -209,12 +209,12 @@ def _discover_migrations() -> list[tuple[int, Path]]:
     """
     Discover SQL migration files in the migrations directory.
 
-    Files must match pattern: NNN_*.sql (e.g., 001_initial_schema.sql)
+    Files must match pattern: NNN_*.sql (e.g., 023_consolidated_schema.sql)
     Returns list of (version_number, file_path) sorted by version then filename.
 
-    Logs a warning if duplicate version prefixes are detected (e.g., two files
-    starting with ``013_``).  Both files are still returned so existing
-    deployments that already applied them are not broken.
+    Logs a warning if duplicate version prefixes are detected.  Both files are
+    still returned so existing deployments that already applied them are not
+    broken.
     """
     if not MIGRATIONS_DIR.exists():
         return []
@@ -231,10 +231,8 @@ def _discover_migrations() -> list[tuple[int, Path]]:
     # Warn about duplicate version prefixes so operators can plan renumbering.
     # NOTE: Both files ARE applied because `_run_migrations()` pre-computes the
     # pending list (`v > current_version`) before iterating and only updates
-    # schema_version once per version.  With duplicates like two `013_*.sql`
-    # files, the first sets schema_version=13 and the second is still in the
-    # pre-computed list so it also executes.  Renumbering is still recommended
-    # to avoid confusion.
+    # schema_version once per version.  Duplicates are still applied in filename
+    # order but renumbering is recommended to avoid confusion.
     seen: dict[int, list[str]] = {}
     for version, path in migrations:
         seen.setdefault(version, []).append(path.name)

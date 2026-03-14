@@ -1,7 +1,7 @@
 """Chat persistence — SQLite-backed message, proposal, and recommendation storage.
 
 Replaces the in-memory dict storage in ``api/chat.py`` with durable SQLite
-persistence using the tables created by ``012_chat_persistence.sql``.
+persistence using the tables created by ``023_consolidated_schema.sql``.
 """
 
 from __future__ import annotations
@@ -87,21 +87,43 @@ async def save_proposal(
     original_input: str,
     proposed_title: str,
     proposed_description: str,
+    status: str = "pending",
+    edited_title: str | None = None,
+    edited_description: str | None = None,
+    created_at: str | None = None,
+    expires_at: str | None = None,
     file_urls: list[str] | None = None,
+    selected_pipeline_id: str | None = None,
 ) -> None:
     """Persist a chat proposal to SQLite."""
+    from src.utils import utcnow
+
     file_urls_json = json.dumps(file_urls) if file_urls else None
+    if created_at is None:
+        created_at = utcnow().isoformat()
+    if expires_at is None:
+        from datetime import timedelta
+
+        expires_at = (utcnow() + timedelta(minutes=10)).isoformat()
     await db.execute(
         """INSERT OR REPLACE INTO chat_proposals
-           (proposal_id, session_id, original_input, proposed_title, proposed_description, file_urls)
-           VALUES (?, ?, ?, ?, ?, ?)""",
+           (proposal_id, session_id, original_input, proposed_title,
+            proposed_description, status, edited_title, edited_description,
+            created_at, expires_at, file_urls, selected_pipeline_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
         (
             proposal_id,
             session_id,
             original_input,
             proposed_title,
             proposed_description,
+            status,
+            edited_title,
+            edited_description,
+            created_at,
+            expires_at,
             file_urls_json,
+            selected_pipeline_id,
         ),
     )
     await db.commit()
@@ -171,6 +193,43 @@ async def update_proposal_status(
     await db.commit()
 
 
+async def get_proposal_by_id(
+    db: aiosqlite.Connection,
+    proposal_id: str,
+) -> dict | None:
+    """Retrieve a single proposal by its ID."""
+    cursor = await db.execute(
+        """SELECT proposal_id, session_id, original_input, proposed_title,
+                  proposed_description, status, edited_title, edited_description,
+                  created_at, expires_at, file_urls, selected_pipeline_id
+           FROM chat_proposals WHERE proposal_id = ?""",
+        (proposal_id,),
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    if isinstance(row, tuple):
+        raw_file_urls = row[10]
+        return {
+            "proposal_id": row[0],
+            "session_id": row[1],
+            "original_input": row[2],
+            "proposed_title": row[3],
+            "proposed_description": row[4],
+            "status": row[5],
+            "edited_title": row[6],
+            "edited_description": row[7],
+            "created_at": row[8],
+            "expires_at": row[9],
+            "file_urls": json.loads(raw_file_urls) if raw_file_urls else [],
+            "selected_pipeline_id": row[11],
+        }
+    d = dict(row)
+    raw = d.get("file_urls")
+    d["file_urls"] = json.loads(raw) if raw else []
+    return d
+
+
 # ── Recommendations ──────────────────────────────────────────────
 
 
@@ -179,15 +238,22 @@ async def save_recommendation(
     session_id: str,
     recommendation_id: str,
     data: str,
+    status: str = "pending",
     file_urls: list[str] | None = None,
 ) -> None:
     """Persist a chat recommendation to SQLite."""
     file_urls_json = json.dumps(file_urls) if file_urls else None
     await db.execute(
         """INSERT OR REPLACE INTO chat_recommendations
-           (recommendation_id, session_id, data, file_urls)
-           VALUES (?, ?, ?, ?)""",
-        (recommendation_id, session_id, data, file_urls_json),
+           (recommendation_id, session_id, data, status, file_urls)
+           VALUES (?, ?, ?, ?, ?)""",
+        (
+            recommendation_id,
+            session_id,
+            data,
+            _recommendation_status_to_db(status),
+            file_urls_json,
+        ),
     )
     await db.commit()
 
@@ -230,10 +296,57 @@ async def update_recommendation_status(
     db: aiosqlite.Connection,
     recommendation_id: str,
     status: str,
+    data: str | None = None,
 ) -> None:
     """Update a recommendation's status."""
-    await db.execute(
-        "UPDATE chat_recommendations SET status = ? WHERE recommendation_id = ?",
-        (status, recommendation_id),
-    )
+    db_status = _recommendation_status_to_db(status)
+    if data is not None:
+        await db.execute(
+            "UPDATE chat_recommendations SET status = ?, data = ? WHERE recommendation_id = ?",
+            (db_status, data, recommendation_id),
+        )
+    else:
+        await db.execute(
+            "UPDATE chat_recommendations SET status = ? WHERE recommendation_id = ?",
+            (db_status, recommendation_id),
+        )
     await db.commit()
+
+
+async def get_recommendation_by_id(
+    db: aiosqlite.Connection,
+    recommendation_id: str,
+) -> dict | None:
+    """Retrieve a single recommendation by its ID."""
+    cursor = await db.execute(
+        """SELECT recommendation_id, session_id, data, status, created_at, file_urls
+           FROM chat_recommendations WHERE recommendation_id = ?""",
+        (recommendation_id,),
+    )
+    row = await cursor.fetchone()
+    if row is None:
+        return None
+    if isinstance(row, tuple):
+        raw_file_urls = row[5]
+        return {
+            "recommendation_id": row[0],
+            "session_id": row[1],
+            "data": row[2],
+            "status": row[3],
+            "created_at": row[4],
+            "file_urls": json.loads(raw_file_urls) if raw_file_urls else [],
+        }
+    d = dict(row)
+    raw = d.get("file_urls")
+    d["file_urls"] = json.loads(raw) if raw else []
+    return d
+
+
+def recommendation_status_from_db(status: str) -> str:
+    """Normalize stored recommendation status values to model enum values."""
+    return "confirmed" if status == "accepted" else status
+
+
+def _recommendation_status_to_db(status: str) -> str:
+    """Map model enum values to the legacy SQLite status constraint."""
+    return "accepted" if status == "confirmed" else status

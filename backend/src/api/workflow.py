@@ -1,13 +1,14 @@
 """Workflow API endpoints for issue creation and management."""
 
 import hashlib
+import json
 from datetime import datetime, timedelta
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
-from src.api.chat import _recommendations
+from src.api.chat import get_recommendation
 from src.dependencies import require_selected_project, verify_project_access
 from src.exceptions import AppException, NotFoundError, ValidationError
 from src.logging_utils import get_logger, handle_service_error
@@ -175,7 +176,7 @@ async def confirm_recommendation(
     4. Auto-transition to "Ready"
     """
     # Get recommendation
-    recommendation = _recommendations.get(recommendation_id)
+    recommendation = await get_recommendation(recommendation_id)
     if not recommendation:
         raise NotFoundError(f"Recommendation not found: {recommendation_id}")
 
@@ -275,6 +276,18 @@ async def confirm_recommendation(
             # Update recommendation status
             recommendation.status = RecommendationStatus.CONFIRMED
             recommendation.confirmed_at = utcnow()
+            try:
+                from src.services import chat_store
+
+                db = get_db()
+                await chat_store.update_recommendation_status(
+                    db,
+                    recommendation_id,
+                    recommendation.status.value,
+                    data=json.dumps(recommendation.model_dump(mode="json")),
+                )
+            except Exception:
+                logger.warning("Failed to update recommendation status in SQLite", exc_info=True)
 
             # Broadcast WebSocket notification for issue creation
             await connection_manager.broadcast_to_project(
@@ -328,11 +341,7 @@ async def confirm_recommendation(
         # and preserves the structured ``details`` payload.
         raise
     except Exception as e:
-        logger.error("Workflow failed: %s", e, exc_info=True)
-        return WorkflowResult(
-            success=False,
-            message="Failed to create issue",
-        )
+        handle_service_error(e, "create issue from recommendation")
 
 
 @router.post("/recommendations/{recommendation_id}/reject")
@@ -343,7 +352,7 @@ async def reject_recommendation(
     """
     Reject an AI-generated issue recommendation (T026).
     """
-    recommendation = _recommendations.get(recommendation_id)
+    recommendation = await get_recommendation(recommendation_id)
     if not recommendation:
         raise NotFoundError(f"Recommendation not found: {recommendation_id}")
 
@@ -354,6 +363,18 @@ async def reject_recommendation(
         raise ValidationError(f"Recommendation already {recommendation.status.value}")
 
     recommendation.status = RecommendationStatus.REJECTED
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        await chat_store.update_recommendation_status(
+            db,
+            recommendation_id,
+            recommendation.status.value,
+            data=json.dumps(recommendation.model_dump(mode="json")),
+        )
+    except Exception:
+        logger.warning("Failed to update recommendation status in SQLite", exc_info=True)
     logger.info("Recommendation %s rejected", recommendation_id)
 
     return {

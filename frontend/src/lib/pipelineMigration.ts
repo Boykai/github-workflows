@@ -50,7 +50,7 @@ export function migrateStageToGroupFormat(stage: PipelineStage): PipelineStage {
   return {
     ...stage,
     groups: [group],
-    // Retain deprecated fields for backward compat
+    // Retain fields for backward compat
     agents: stage.agents ?? [],
     execution_mode: stage.execution_mode ?? 'sequential',
   };

@@ -106,9 +106,6 @@ async def list_projects(
             session.access_token, session.github_username
         )
 
-        # TODO: Also fetch org projects the user has access to
-        # This requires listing orgs first, then querying each
-
         all_projects = user_projects
 
         # Cache results

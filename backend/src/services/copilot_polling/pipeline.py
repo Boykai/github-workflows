@@ -2168,7 +2168,6 @@ async def check_in_progress_issues(
             # Without this, the legacy fallback would skip all remaining
             # pipeline agents (speckit.plan, speckit.tasks, speckit.implement)
             # and jump straight to "In Review".
-            # DEPRECATED(v2.0): Remove once all active issues use pipeline-based tracking. See issue #3779.
             if pipeline is None or pipeline.is_complete:
                 agents = _cp.get_agent_slugs(config, config.status_in_progress) if config else []
                 pipeline = await _get_or_reconstruct_pipeline(
@@ -2182,7 +2181,6 @@ async def check_in_progress_issues(
                     expected_status=config.status_in_progress if config else "In Progress",
                     labels=task.labels,
                 )
-                # DEPRECATED(v2.0): Remove once all active issues use pipeline-based tracking. See issue #3779.
                 # If still no agents after checking tracking table, fall to legacy path
                 if not pipeline.agents:
                     pipeline = None
@@ -2207,7 +2205,6 @@ async def check_in_progress_issues(
                 continue
 
             # No active pipeline and no agents configured for In Progress —
-            # DEPRECATED(v2.0): Remove once all active issues use pipeline-based tracking. See issue #3779.
             # use legacy PR completion detection.
             result = await process_in_progress_issue(
                 access_token=access_token,
@@ -2274,7 +2271,6 @@ async def process_in_progress_issue(
         # is the authoritative handler.  This guard protects against race
         # conditions (e.g., concurrent poll loops) or callers that bypass
         # the pipeline check (e.g., the manual API endpoint).
-        # DEPRECATED(v2.0): Remove once all active issues use pipeline-based tracking. See issue #3779.
         pipeline = _cp.get_pipeline_state(issue_number)
         if pipeline and not pipeline.is_complete:
             logger.info(
@@ -2359,7 +2355,6 @@ async def process_in_progress_issue(
             logger.info("Successfully converted PR #%d from draft to ready", pr_number)
             _system_marked_ready_prs.add(pr_number)
 
-        # DEPRECATED(v2.0): Remove once all active issues use pipeline-based tracking. See issue #3779.
         # Step 1.5: Merge child PR into main branch if applicable (legacy handling)
         main_branch_info = _cp.get_issue_main_branch(issue_number)
         if main_branch_info:

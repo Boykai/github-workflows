@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Annotated
@@ -79,17 +80,163 @@ class FileUploadResponse(BaseModel):
     content_type: str
 
 
-# TODO(018-codebase-audit-refactor): Migrate these in-memory stores to SQLite
-# using the chat_messages, chat_proposals, and chat_recommendations tables
-# created by migration 012_chat_persistence.sql. The migration file is ready
-# and the tables will be created on next application startup. This refactoring
-# was deferred because it requires updating ~15 code paths in this 713-line file
-# with careful transaction management and error handling.
-# In-memory storage for chat messages and proposals (MVP — lost on restart)
+# ── SQLite-backed chat persistence ───────────────────────────────────────
+#
+# Chat messages, proposals, and recommendations are persisted to SQLite
+# via chat_store.py (tables from 023_consolidated_schema.sql).  In-memory
+# dicts act as a write-through cache for fast reads within the same
+# server session.  On a cache miss the data is loaded from SQLite,
+# ensuring nothing is lost on restart.
+
 _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
-# In-memory storage for issue recommendations (T007 — lost on restart)
 _recommendations: dict[str, IssueRecommendation] = {}
+
+
+async def _persist_message(session_id: UUID, message: ChatMessage) -> None:
+    """Persist a chat message to SQLite (fire-and-forget safe)."""
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        await chat_store.save_message(
+            db,
+            session_id=str(session_id),
+            message_id=str(message.message_id),
+            sender_type=message.sender_type.value,
+            content=message.content,
+            action_type=message.action_type.value if message.action_type else None,
+            action_data=json.dumps(message.action_data) if message.action_data else None,
+        )
+    except Exception:
+        logger.warning("Failed to persist chat message to SQLite", exc_info=True)
+
+
+async def _persist_proposal(proposal: AITaskProposal) -> None:
+    """Persist a proposal to SQLite."""
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        await chat_store.save_proposal(
+            db,
+            session_id=str(proposal.session_id),
+            proposal_id=str(proposal.proposal_id),
+            original_input=proposal.original_input,
+            proposed_title=proposal.proposed_title,
+            proposed_description=proposal.proposed_description,
+            status=proposal.status.value,
+            edited_title=proposal.edited_title,
+            edited_description=proposal.edited_description,
+            created_at=proposal.created_at.isoformat(),
+            expires_at=proposal.expires_at.isoformat(),
+            file_urls=proposal.file_urls or None,
+            selected_pipeline_id=proposal.selected_pipeline_id,
+        )
+    except Exception:
+        logger.warning("Failed to persist proposal to SQLite", exc_info=True)
+
+
+async def _persist_recommendation(recommendation: IssueRecommendation) -> None:
+    """Persist a recommendation to SQLite."""
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        await chat_store.save_recommendation(
+            db,
+            session_id=str(recommendation.session_id),
+            recommendation_id=str(recommendation.recommendation_id),
+            data=json.dumps(recommendation.model_dump(mode="json")),
+            status=recommendation.status.value,
+            file_urls=recommendation.file_urls or None,
+        )
+    except Exception:
+        logger.warning("Failed to persist recommendation to SQLite", exc_info=True)
+
+
+async def store_proposal(proposal: AITaskProposal) -> None:
+    """Store a proposal in cache and persist to SQLite."""
+    _proposals[str(proposal.proposal_id)] = proposal
+    await _persist_proposal(proposal)
+
+
+async def store_recommendation(recommendation: IssueRecommendation) -> None:
+    """Store a recommendation in cache and persist to SQLite."""
+    _recommendations[str(recommendation.recommendation_id)] = recommendation
+    await _persist_recommendation(recommendation)
+
+
+async def get_proposal(proposal_id: str) -> AITaskProposal | None:
+    """Get a proposal by ID from cache or SQLite."""
+    # Fast path: in-memory cache
+    proposal = _proposals.get(proposal_id)
+    if proposal is not None:
+        return proposal
+
+    # Slow path: load from SQLite
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        row = await chat_store.get_proposal_by_id(db, proposal_id)
+        if row is None:
+            return None
+        proposal = AITaskProposal(
+            proposal_id=row["proposal_id"],
+            session_id=row["session_id"],
+            original_input=row["original_input"],
+            proposed_title=row["proposed_title"],
+            proposed_description=row["proposed_description"],
+            status=ProposalStatus(row["status"]),
+            edited_title=row.get("edited_title"),
+            edited_description=row.get("edited_description"),
+            file_urls=row.get("file_urls", []),
+            selected_pipeline_id=row.get("selected_pipeline_id"),
+            created_at=row["created_at"],
+            expires_at=row["expires_at"] or _default_expires_at(row["created_at"]),
+        )
+        _proposals[proposal_id] = proposal
+        return proposal
+    except Exception:
+        logger.warning("Failed to load proposal from SQLite", exc_info=True)
+        return None
+
+
+async def get_recommendation(recommendation_id: str) -> IssueRecommendation | None:
+    """Get a recommendation by ID from cache or SQLite."""
+    # Fast path: in-memory cache
+    rec = _recommendations.get(recommendation_id)
+    if rec is not None:
+        return rec
+
+    # Slow path: load from SQLite
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        row = await chat_store.get_recommendation_by_id(db, recommendation_id)
+        if row is None:
+            return None
+        data = json.loads(row["data"]) if isinstance(row["data"], str) else row["data"]
+        rec = IssueRecommendation.model_validate(data)
+        rec.status = RecommendationStatus(chat_store.recommendation_status_from_db(row["status"]))
+        _recommendations[str(rec.recommendation_id)] = rec
+        return rec
+    except Exception:
+        logger.warning("Failed to load recommendation from SQLite", exc_info=True)
+        return None
+
+
+def _default_expires_at(created_at_str: str) -> str:
+    """Compute a fallback expires_at when the stored value is NULL."""
+    from datetime import datetime, timedelta
+
+    try:
+        created = datetime.fromisoformat(created_at_str)
+        return (created + timedelta(minutes=10)).isoformat()
+    except (ValueError, TypeError):
+        return created_at_str
 
 
 # ── Command dispatch helpers (extracted from send_message) ───────────────
@@ -142,7 +289,7 @@ async def _handle_agent_command(
         sender_type=SenderType.ASSISTANT,
         content=agent_response_text,
     )
-    add_message(session.session_id, agent_msg)
+    await add_message(session.session_id, agent_msg)
     _trigger_signal_delivery(session, agent_msg, project_name)
     return agent_msg
 
@@ -194,7 +341,7 @@ async def _handle_feature_request(
         recommendation.selected_pipeline_id = pipeline_id or None
         recommendation.file_urls = file_urls or []
 
-        _recommendations[str(recommendation.recommendation_id)] = recommendation
+        await store_recommendation(recommendation)
 
         requirements_preview = "\n".join(
             f"- {req}" for req in recommendation.functional_requirements
@@ -236,7 +383,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
                 "pipeline_id": pipeline_id,
             },
         )
-        add_message(session.session_id, assistant_message)
+        await add_message(session.session_id, assistant_message)
         _trigger_signal_delivery(session, assistant_message, project_name)
 
         logger.info(
@@ -253,7 +400,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             sender_type=SenderType.ASSISTANT,
             content="I couldn't generate an issue recommendation from your feature request. Please try again with more detail.",
         )
-        add_message(session.session_id, error_message)
+        await add_message(session.session_id, error_message)
         return error_message
 
 
@@ -291,7 +438,7 @@ async def _handle_status_change(
             sender_type=SenderType.ASSISTANT,
             content=f"I couldn't find a task matching '{status_change.task_reference}'. Please try again with a more specific task name.",
         )
-        add_message(session.session_id, error_message)
+        await add_message(session.session_id, error_message)
         return error_message
 
     target_status = status_change.target_status
@@ -314,7 +461,7 @@ async def _handle_status_change(
         proposed_title=target_task.title,
         proposed_description=f"Move from '{target_task.status}' to '{target_status}'",
     )
-    _proposals[str(proposal.proposal_id)] = proposal
+    await store_proposal(proposal)
 
     assistant_message = ChatMessage(
         session_id=session.session_id,
@@ -332,7 +479,7 @@ async def _handle_status_change(
             "status": ProposalStatus.PENDING.value,
         },
     )
-    add_message(session.session_id, assistant_message)
+    await add_message(session.session_id, assistant_message)
     _trigger_signal_delivery(session, assistant_message, project_name)
     return assistant_message
 
@@ -364,7 +511,7 @@ async def _handle_task_generation(
                 proposed_description=content,
                 selected_pipeline_id=pipeline_id or None,
             )
-            _proposals[str(proposal.proposal_id)] = proposal
+            await store_proposal(proposal)
 
             description_preview = content[:200]
             if len(content) > 200:
@@ -382,7 +529,7 @@ async def _handle_task_generation(
                     "status": ProposalStatus.PENDING.value,
                 },
             )
-            add_message(session.session_id, assistant_message)
+            await add_message(session.session_id, assistant_message)
             _trigger_signal_delivery(session, assistant_message, project_name)
             return assistant_message
 
@@ -393,7 +540,7 @@ async def _handle_task_generation(
                 sender_type=SenderType.ASSISTANT,
                 content="I couldn't generate metadata for your request. Your input was preserved — please try again.",
             )
-            add_message(session.session_id, error_message)
+            await add_message(session.session_id, error_message)
             return error_message
 
     # Full AI pipeline: generate both title and description via AI
@@ -411,7 +558,7 @@ async def _handle_task_generation(
             proposed_description=generated.description,
             selected_pipeline_id=pipeline_id or None,
         )
-        _proposals[str(proposal.proposal_id)] = proposal
+        await store_proposal(proposal)
 
         assistant_message = ChatMessage(
             session_id=session.session_id,
@@ -430,7 +577,7 @@ async def _handle_task_generation(
                 "status": ProposalStatus.PENDING.value,
             },
         )
-        add_message(session.session_id, assistant_message)
+        await add_message(session.session_id, assistant_message)
         _trigger_signal_delivery(session, assistant_message, project_name)
         return assistant_message
 
@@ -441,7 +588,7 @@ async def _handle_task_generation(
             sender_type=SenderType.ASSISTANT,
             content="I couldn't generate a task from your description. Please try again with more detail.",
         )
-        add_message(session.session_id, error_message)
+        await add_message(session.session_id, error_message)
         return error_message
 
 
@@ -451,17 +598,51 @@ async def _resolve_repository(session: UserSession) -> tuple[str, str]:
     return await resolve_repository(session.access_token, project_id)
 
 
-def get_session_messages(session_id: UUID) -> list[ChatMessage]:
-    """Get messages for a session."""
-    return _messages.get(str(session_id), [])
+async def get_session_messages(session_id: UUID) -> list[ChatMessage]:
+    """Get messages for a session from cache or SQLite."""
+    key = str(session_id)
+    cached = _messages.get(key)
+    if cached is not None:
+        return cached
+
+    # Load from SQLite on cache miss
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        rows = await chat_store.get_messages(db, key)
+        messages = []
+        for row in rows:
+            action_data = None
+            if row.get("action_data"):
+                try:
+                    action_data = json.loads(row["action_data"])
+                except (json.JSONDecodeError, TypeError):
+                    action_data = None
+            messages.append(
+                ChatMessage(
+                    message_id=row["message_id"],
+                    session_id=row["session_id"],
+                    sender_type=SenderType(row["sender_type"]),
+                    content=row["content"],
+                    action_type=ActionType(row["action_type"]) if row.get("action_type") else None,
+                    action_data=action_data,
+                )
+            )
+        _messages[key] = messages
+        return messages
+    except Exception:
+        logger.warning("Failed to load messages from SQLite", exc_info=True)
+        return []
 
 
-def add_message(session_id: UUID, message: ChatMessage) -> None:
-    """Add a message to a session."""
+async def add_message(session_id: UUID, message: ChatMessage) -> None:
+    """Add a message to a session and persist to SQLite."""
     key = str(session_id)
     if key not in _messages:
         _messages[key] = []
     _messages[key].append(message)
+    await _persist_message(session_id, message)
 
 
 def _trigger_signal_delivery(
@@ -500,7 +681,7 @@ async def get_messages(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> ChatMessagesResponse:
     """Get chat messages for current session."""
-    messages = get_session_messages(session.session_id)
+    messages = await get_session_messages(session.session_id)
     return ChatMessagesResponse(messages=messages)
 
 
@@ -510,8 +691,14 @@ async def clear_messages(
 ) -> dict[str, str]:
     """Clear all chat messages for current session."""
     key = str(session.session_id)
-    if key in _messages:
-        _messages[key] = []
+    _messages.pop(key, None)
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        await chat_store.clear_messages(db, key)
+    except Exception:
+        logger.warning("Failed to clear messages from SQLite", exc_info=True)
     return {"message": "Chat history cleared"}
 
 
@@ -542,10 +729,7 @@ async def send_message(
         except ValidationError:
             raise
         except Exception as exc:
-            logger.warning(
-                "Pipeline validation failed for pipeline_id=%s: %s", chat_request.pipeline_id, exc
-            )
-            raise ValidationError(f"Pipeline not found: {chat_request.pipeline_id}") from exc
+            handle_service_error(exc, "validate pipeline")
 
     # Try to get AI service (optional)
     try:
@@ -557,7 +741,7 @@ async def send_message(
             sender_type=SenderType.ASSISTANT,
             content="AI features are not configured. Please set up your AI provider credentials (GitHub Copilot OAuth or Azure OpenAI) to use chat functionality.",
         )
-        add_message(session.session_id, error_msg)
+        await add_message(session.session_id, error_msg)
         return error_msg
 
     # Create user message
@@ -566,7 +750,7 @@ async def send_message(
         sender_type=SenderType.USER,
         content=chat_request.content,
     )
-    add_message(session.session_id, user_message)
+    await add_message(session.session_id, user_message)
 
     # Get project details for context
     project_name = "Unknown Project"
@@ -644,7 +828,7 @@ async def confirm_proposal(
     connection_manager=Depends(get_connection_manager),  # noqa: B008
 ) -> AITaskProposal:
     """Confirm an AI task proposal and create the task."""
-    proposal = _proposals.get(proposal_id)
+    proposal = await get_proposal(proposal_id)
 
     if not proposal:
         raise NotFoundError(f"Proposal not found: {proposal_id}")
@@ -654,6 +838,13 @@ async def confirm_proposal(
 
     if proposal.is_expired:
         proposal.status = ProposalStatus.CANCELLED
+        try:
+            from src.services import chat_store
+
+            db = get_db()
+            await chat_store.update_proposal_status(db, proposal_id, ProposalStatus.CANCELLED.value)
+        except Exception:
+            logger.warning("Failed to update expired proposal status in SQLite", exc_info=True)
         raise ValidationError("Proposal has expired")
 
     if proposal.status != ProposalStatus.PENDING:
@@ -723,6 +914,19 @@ async def confirm_proposal(
         )
 
         proposal.status = ProposalStatus.CONFIRMED
+        try:
+            from src.services import chat_store
+
+            db = get_db()
+            await chat_store.update_proposal_status(
+                db,
+                proposal_id,
+                ProposalStatus.CONFIRMED.value,
+                edited_title=proposal.edited_title,
+                edited_description=proposal.edited_description,
+            )
+        except Exception:
+            logger.warning("Failed to update proposal status in SQLite", exc_info=True)
 
         # Invalidate cache
         cache.delete(get_project_items_cache_key(project_id))
@@ -753,7 +957,7 @@ async def confirm_proposal(
                 "status": ProposalStatus.CONFIRMED.value,
             },
         )
-        add_message(session.session_id, confirm_message)
+        await add_message(session.session_id, confirm_message)
         _trigger_signal_delivery(session, confirm_message)
 
         logger.info(
@@ -963,7 +1167,7 @@ async def cancel_proposal(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """Cancel an AI task proposal."""
-    proposal = _proposals.get(proposal_id)
+    proposal = await get_proposal(proposal_id)
 
     if not proposal:
         raise NotFoundError(f"Proposal not found: {proposal_id}")
@@ -972,6 +1176,13 @@ async def cancel_proposal(
         raise NotFoundError(f"Proposal not found: {proposal_id}")
 
     proposal.status = ProposalStatus.CANCELLED
+    try:
+        from src.services import chat_store
+
+        db = get_db()
+        await chat_store.update_proposal_status(db, proposal_id, ProposalStatus.CANCELLED.value)
+    except Exception:
+        logger.warning("Failed to update proposal status in SQLite", exc_info=True)
 
     # Add cancellation message
     cancel_message = ChatMessage(
@@ -979,7 +1190,7 @@ async def cancel_proposal(
         sender_type=SenderType.SYSTEM,
         content="Task creation cancelled.",
     )
-    add_message(session.session_id, cancel_message)
+    await add_message(session.session_id, cancel_message)
 
     return {"message": "Proposal cancelled"}
 

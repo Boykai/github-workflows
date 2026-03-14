@@ -85,9 +85,10 @@ async def evaluate_triggers(
     # Resolve repository for the specified project
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
+    except AppException:
+        raise
     except Exception as e:
-        logger.warning("Could not resolve repository for project %s: %s", project_id, e)
-        return EvaluateChoreTriggersResponse(evaluated=0, triggered=0, skipped=0, results=[])
+        handle_service_error(e, "resolve repository for chore triggers")
 
     result = await service.evaluate_triggers(
         github_service=github_projects_service,
