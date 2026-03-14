@@ -150,11 +150,12 @@ async def _build_pipeline_from_labels(
 
     # Look up pipeline config from DB
     try:
+        from src.services.database import get_db
         from src.services.pipelines.service import PipelineService
 
-        svc = PipelineService()
-        configs = await svc.list_pipelines(project_id)
-        matched_config = next((c for c in configs if c.name == config_name), None)
+        svc = PipelineService(get_db())
+        response = await svc.list_pipelines(project_id)
+        matched_config = next((c for c in response.pipelines if c.name == config_name), None)
         if not matched_config:
             return None
     except Exception:
@@ -1484,11 +1485,8 @@ async def _advance_pipeline(
         group = pipeline.groups[pipeline.current_group_index]
         if group.execution_mode == "parallel" and group.agents:
             # Treat missing agent_statuses entries as non-terminal
-            still_active = (
-                len(group.agent_statuses) < len(group.agents)
-                or any(
-                    s not in ("completed", "failed") for s in group.agent_statuses.values()
-                )
+            still_active = len(group.agent_statuses) < len(group.agents) or any(
+                s not in ("completed", "failed") for s in group.agent_statuses.values()
             )
             if still_active:
                 # Other parallel agents are still running — do NOT assign a new agent

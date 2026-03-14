@@ -550,9 +550,10 @@ class WorkflowOrchestrator:
         pipeline_config_name: str | None = None
         if ctx.selected_pipeline_id:
             try:
+                from src.services.database import get_db
                 from src.services.pipelines.service import PipelineService
 
-                _svc = PipelineService()
+                _svc = PipelineService(get_db())
                 _pc = await _svc.get_pipeline(ctx.project_id, ctx.selected_pipeline_id)
                 if _pc:
                     pipeline_config_name = _pc.name
@@ -1813,6 +1814,8 @@ class WorkflowOrchestrator:
         Failures are logged but never block pipeline progression (FR-017).
         """
         # Swap agent:<old> → agent:<new> on the parent issue
+        if ctx.issue_number is None:
+            return
         try:
             old_agent_label = (
                 build_agent_label(agent_slugs[agent_index - 1]) if agent_index > 0 else None

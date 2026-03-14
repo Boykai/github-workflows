@@ -263,7 +263,6 @@ class TestParseTrackingFromBody:
         assert parse_tracking_from_body("") is None
 
 
-
 # =============================================================================
 # get_current_agent_from_tracking
 # =============================================================================

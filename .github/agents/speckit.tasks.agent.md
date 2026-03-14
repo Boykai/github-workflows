@@ -30,6 +30,10 @@ mcp-servers:
     - start
     tools:
     - '*'
+    env:
+      IGNORE_TEST_FILES: 'false'
+      IGNORE_HIDDEN_FILES: 'true'
+      MAX_FILE_SIZE_MB: '10'
 ---
 
 ## User Input

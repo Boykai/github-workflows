@@ -13,6 +13,7 @@ import { CleanUpAuditHistory } from './CleanUpAuditHistory';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Trash2, Loader2, Lock, TriangleAlert } from 'lucide-react';
+import type { CleanupConfirmPayload } from '@/types';
 
 interface CleanUpButtonProps {
   owner?: string;
@@ -42,9 +43,9 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
     startPreflight(owner, repo, projectId);
   };
 
-  const handleConfirm = () => {
+  const handleConfirm = (payload: CleanupConfirmPayload) => {
     if (!owner || !repo) return;
-    confirmExecute(owner, repo, projectId);
+    confirmExecute(owner, repo, projectId, payload);
   };
 
   const handleViewHistory = async () => {
@@ -116,8 +117,8 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
       )}
 
       {/* Confirmation Modal */}
-      {state === 'confirming' && preflightData && (
-        <CleanUpConfirmModal data={preflightData} onConfirm={handleConfirm} onCancel={cancel} />
+      {state === 'confirming' && preflightData && owner && repo && (
+        <CleanUpConfirmModal data={preflightData} owner={owner} repo={repo} onConfirm={handleConfirm} onCancel={cancel} />
       )}
 
       {/* Summary Modal */}

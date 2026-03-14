@@ -832,6 +832,13 @@ export interface CleanupExecuteRequest {
   issues_to_close: number[];
 }
 
+/** Payload from the confirm modal — the user's final selections after toggling. */
+export interface CleanupConfirmPayload {
+  branches_to_delete: string[];
+  prs_to_close: number[];
+  issues_to_close: number[];
+}
+
 export interface CleanupExecuteResponse {
   operation_id: string;
   branches_deleted: number;

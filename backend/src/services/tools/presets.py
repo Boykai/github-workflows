@@ -170,6 +170,11 @@ _PRESETS: tuple[McpPresetResponse, ...] = (
                         "command": "uvx",
                         "args": ["--from", "codegraphcontext", "cgc", "mcp", "start"],
                         "tools": ["*"],
+                        "env": {
+                            "IGNORE_TEST_FILES": "false",
+                            "IGNORE_HIDDEN_FILES": "true",
+                            "MAX_FILE_SIZE_MB": "10",
+                        },
                     }
                 }
             }

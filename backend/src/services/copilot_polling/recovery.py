@@ -340,8 +340,7 @@ async def _check_copilot_session_health(
         return not errored
     except Exception as err:
         logger.debug(
-            "Recovery: could not check Copilot session error "
-            "on PR #%s for issue #%d: %s",
+            "Recovery: could not check Copilot session error on PR #%s for issue #%d: %s",
             wip_pr_number,
             issue_number,
             err,

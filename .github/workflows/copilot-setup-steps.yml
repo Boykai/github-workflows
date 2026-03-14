@@ -23,6 +23,14 @@ jobs:
 
       - name: Index the repository
         run: cgc index .
+        env:
+          IGNORE_TEST_FILES: "false"
+          IGNORE_HIDDEN_FILES: "true"
+          MAX_FILE_SIZE_MB: "10"
 
       - name: Start CodeGraphContext MCP server
         run: cgc mcp start &
+        env:
+          IGNORE_TEST_FILES: "false"
+          IGNORE_HIDDEN_FILES: "true"
+          MAX_FILE_SIZE_MB: "10"
