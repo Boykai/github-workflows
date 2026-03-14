@@ -2742,6 +2742,105 @@ class TestAdvancePipeline:
         # successful merge to keep rollback consistent.
         mock_update_tracking.assert_not_called()
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.pipeline.asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling._merge_child_pr_if_applicable")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_assigns_new_parallel_group_after_sequential_completion(
+        self,
+        mock_set_state,
+        mock_config,
+        mock_get_orchestrator,
+        mock_merge,
+        mock_get_branch,
+        mock_ws,
+        mock_service,
+        mock_update_tracking,
+        mock_sleep,
+    ):
+        """A newly-entered parallel group must be assigned immediately.
+
+        Regression for issue #3890: after a sequential group completed, the
+        next parallel group was treated as already active because its status
+        map was incomplete, so _advance_pipeline returned `parallel_wait`
+        before assigning any of the pending agents.
+        """
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo
+
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement", "linter", "archivist", "judge"],
+            current_agent_index=0,
+            completed_agents=[],
+            groups=[
+                PipelineGroupInfo(
+                    group_id="g1",
+                    execution_mode="sequential",
+                    agents=["speckit.implement"],
+                ),
+                PipelineGroupInfo(
+                    group_id="g2",
+                    execution_mode="parallel",
+                    agents=["linter", "archivist", "judge"],
+                    agent_statuses={
+                        "linter": "pending",
+                        "archivist": "pending",
+                        "judge": "pending",
+                    },
+                ),
+            ],
+            current_group_index=0,
+            current_agent_index_in_group=0,
+        )
+
+        mock_get_branch.return_value = None
+        mock_merge.return_value = None
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock()
+        mock_update_tracking.return_value = True
+
+        result = await _advance_pipeline(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            pipeline=pipeline,
+            from_status="In Progress",
+            to_status="In Review",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "success"
+        assert result["action"] == "parallel_group_assigned"
+        assert result["agent_name"] == "linter, archivist, judge"
+        assert pipeline.current_group_index == 1
+        assert pipeline.groups[1].agent_statuses == {
+            "linter": "active",
+            "archivist": "active",
+            "judge": "active",
+        }
+
+        assert mock_orchestrator.assign_agent_for_status.await_count == 3
+        called_indices = [
+            call.kwargs["agent_index"]
+            for call in mock_orchestrator.assign_agent_for_status.await_args_list
+        ]
+        assert called_indices == [1, 2, 3]
+
 
 class TestFindCompletedChildPr:
     """Tests for _find_completed_child_pr function."""
