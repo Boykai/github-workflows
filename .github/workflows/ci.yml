@@ -22,7 +22,7 @@ jobs:
       contents: read
     defaults:
       run:
-        working-directory: backend
+        working-directory: solune/backend
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -57,7 +57,7 @@ jobs:
       contents: read
     defaults:
       run:
-        working-directory: frontend
+        working-directory: solune/frontend
 
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -67,7 +67,7 @@ jobs:
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: solune/frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -103,16 +103,16 @@ jobs:
         run: npm install -g markdownlint-cli@0.48.0 markdown-link-check@3.14.2
 
       - name: Lint markdown formatting
-        run: markdownlint "docs/**/*.md" "*.md" --config .markdownlint.json
+        run: markdownlint "solune/docs/**/*.md" "*.md" --config solune/.markdownlint.json
 
       - name: Check documentation links
         run: |
-          find docs -name "*.md" -print0 | xargs -0 -I {} \
+          find solune/docs -name "*.md" -print0 | xargs -0 -I {} \
             markdown-link-check {} \
-              --config .markdown-link-check.json \
+              --config solune/.markdown-link-check.json \
               --quiet
           markdown-link-check README.md \
-            --config .markdown-link-check.json \
+            --config solune/.markdown-link-check.json \
             --quiet
 
   # Verify architecture diagrams are in sync with the codebase
@@ -126,7 +126,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Verify diagrams are up to date
-        run: ./scripts/generate-diagrams.sh --check
+        run: ./solune/scripts/generate-diagrams.sh --check
 
   # Docker build verification
   docker:
@@ -140,11 +140,11 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Build backend image
-        run: docker build -t ghchat-backend ./backend
+        run: docker build -t solune-backend ./solune/backend
 
       - name: Build frontend image
-        run: docker build -t ghchat-frontend ./frontend
+        run: docker build -t solune-frontend ./solune/frontend
 
       - name: Verify images
         run: |
-          docker images | grep ghchat
+          docker images | grep solune

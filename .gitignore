@@ -32,14 +32,14 @@ pnpm-debug.log*
 .pnpm-store/
 
 # Build outputs
-backend/dist/
-frontend/dist/
+solune/backend/dist/
+solune/frontend/dist/
 *.log
 *.tsbuildinfo
 
 # Vite config compiled artifacts (vite.config.ts is the source of truth)
-frontend/vite.config.js
-frontend/vite.config.d.ts
+solune/frontend/vite.config.js
+solune/frontend/vite.config.d.ts
 
 # Environment
 .env
@@ -72,6 +72,9 @@ e2e-report/
 frontend/test-results/
 frontend/e2e-report/
 frontend/coverage/
+solune/frontend/test-results/
+solune/frontend/e2e-report/
+solune/frontend/coverage/
 
 # SQLite database files
 *.db

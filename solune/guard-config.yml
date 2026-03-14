@@ -1,0 +1,16 @@
+# Solune Guard Configuration
+# Defines protection levels for file paths.
+# Evaluated per-file; most-specific match wins.
+
+guard_rules:
+  - path_pattern: "solune/**"
+    guard_level: admin
+    description: "Platform core — requires elevated permission"
+
+  - path_pattern: ".github/**"
+    guard_level: adminlock
+    description: "Workflow and agent configs — fully locked"
+
+  - path_pattern: "apps/**"
+    guard_level: none
+    description: "App directories — unrestricted for agents"

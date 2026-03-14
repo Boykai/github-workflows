@@ -1,4 +1,4 @@
-# GitHub Workflows Chat — Development Guidelines
+# Solune — Development Guidelines
 
 Last updated: 2026-03-11
 
@@ -40,15 +40,15 @@ Last updated: 2026-03-11
 
 | Service | Container | Host port | Container port | Notes |
 |---|---|---|---|---|
-| `backend` | `ghchat-backend` | 8000 | 8000 | FastAPI / Uvicorn |
-| `frontend` | `ghchat-frontend` | 5173 | 8080 | nginx static server |
-| `signal-api` | `ghchat-signal-api` | internal only | 8080 | `bbernhard/signal-cli-rest-api` |
+| `backend` | `solune-backend` | 8000 | 8000 | FastAPI / Uvicorn |
+| `frontend` | `solune-frontend` | 5173 | 8080 | nginx static server |
+| `signal-api` | `solune-signal-api` | internal only | 8080 | `bbernhard/signal-cli-rest-api` |
 
 - Backend health: `GET http://localhost:8000/api/v1/health`
 - Frontend health: `GET http://localhost:8080/health` (inside container); `http://localhost:5173` from host
-- Data volume: `ghchat-data` mounted at `/var/lib/ghchat/data` (SQLite database)
+- Data volume: `solune-data` mounted at `/var/lib/solune/data` (SQLite database)
 - Signal config volume: `signal-cli-config` at `/home/.local/share/signal-cli`
-- All three services share the `ghchat-network` bridge network
+- All three services share the `solune-network` bridge network
 
 ## Architecture Notes
 
@@ -267,6 +267,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite (session/settings); InMemoryCache for board/sub-issue/project data; in-memory dicts for chat messages/proposals/recommendations (MVP, migration 012 tables ready) (039-dead-code-cleanup)
 - Python ≥3.12 (backend only — no frontend changes required) + FastAPI ≥0.135, Pydantic v2, aiosqlite, asyncio (039-group-pipeline-execution)
 - SQLite via aiosqlite with JSON-serialized pipeline stages (existing pattern); `WorkflowConfiguration` persisted per-project; `PipelineState` is in-memory only (reconstructed from issue tracking table) (039-group-pipeline-execution)
+- Python 3.12+ (backend), TypeScript 5.9 (frontend) + FastAPI 0.135+, React 19.2, Vite 7.3, TanStack Query v5, Pydantic v2, aiosqlite (041-solune-rebrand-app-builder)
+- SQLite with aiosqlite (async, WAL mode) — `settings.db` at `/var/lib/solune/data/settings.db` (041-solune-rebrand-app-builder)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16

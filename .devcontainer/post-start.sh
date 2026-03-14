@@ -25,9 +25,9 @@ if [ -n "$CODESPACE_NAME" ]; then
     echo ""
     
     # Update .env if it exists
-    if [ -f /workspace/.env ]; then
-        sed -i "s|GITHUB_REDIRECT_URI=.*|GITHUB_REDIRECT_URI=$CALLBACK_URL|g" /workspace/.env
-        sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=$FRONTEND_URL|g" /workspace/.env
+    if [ -f /workspace/solune/.env ]; then
+        sed -i "s|GITHUB_REDIRECT_URI=.*|GITHUB_REDIRECT_URI=$CALLBACK_URL|g" /workspace/solune/.env
+        sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=$FRONTEND_URL|g" /workspace/solune/.env
         echo "✅ Updated .env with Codespaces URLs"
     fi
 fi

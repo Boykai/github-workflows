@@ -1,0 +1,46 @@
+graph TB
+    subgraph Pages["Pages"]
+        P_0["AgentsPage"]
+        P_1["AgentsPipelinePage"]
+        P_2["AppPage"]
+        P_3["AppsPage"]
+        P_4["ChoresPage"]
+        P_5["LoginPage"]
+        P_6["NotFoundPage"]
+        P_7["ProjectsPage"]
+        P_8["SettingsPage"]
+        P_9["ToolsPage"]
+    end
+
+    subgraph Components["Component Groups"]
+        C_0["Agents<br/>(10 files)"]
+        C_1["Apps<br/>(3 files)"]
+        C_2["Auth<br/>(1 files)"]
+        C_3["Board<br/>(19 files)"]
+        C_4["Chat<br/>(15 files)"]
+        C_5["Chores<br/>(9 files)"]
+        C_6["Common<br/>(6 files)"]
+        C_7["Pipeline<br/>(14 files)"]
+        C_8["Settings<br/>(17 files)"]
+        C_9["Tools<br/>(9 files)"]
+        C_10["Ui<br/>(5 files)"]
+    end
+
+    subgraph State["State & Services"]
+        Hooks["Custom Hooks<br/>(42 hooks)"]
+        API["api.ts<br/>HTTP + WS Client"]
+        TQ["TanStack Query v5<br/>Server State"]
+    end
+
+    subgraph Styling["Styling & Theming"]
+        TW["Tailwind CSS 4"]
+        Theme["ThemeProvider<br/>dark / light / system"]
+    end
+
+    Pages --> Components
+    Pages --> Hooks
+    Components --> Hooks
+    Hooks --> API
+    Hooks --> TQ
+    Components --> TW
+    Components --> Theme
