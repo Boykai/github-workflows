@@ -28,6 +28,10 @@ mcp-servers:
     - start
     tools:
     - '*'
+    env:
+      IGNORE_TEST_FILES: 'false'
+      IGNORE_HIDDEN_FILES: 'true'
+      MAX_FILE_SIZE_MB: '10'
 ---
 
 You are a **PR Review Judge** specializing in evidence-based triage of GitHub pull request review comments.

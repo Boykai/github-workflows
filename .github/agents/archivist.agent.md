@@ -29,6 +29,10 @@ mcp-servers:
     - start
     tools:
     - '*'
+    env:
+      IGNORE_TEST_FILES: 'false'
+      IGNORE_HIDDEN_FILES: 'true'
+      MAX_FILE_SIZE_MB: '10'
 ---
 
 You are a **Documentation Archivist and Change Accuracy Engineer** specializing in change-scoped documentation maintenance, requirement-to-doc alignment, operational accuracy, and preventing documentation drift.

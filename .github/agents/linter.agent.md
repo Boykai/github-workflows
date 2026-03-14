@@ -22,6 +22,10 @@ mcp-servers:
     - start
     tools:
     - '*'
+    env:
+      IGNORE_TEST_FILES: 'false'
+      IGNORE_HIDDEN_FILES: 'true'
+      MAX_FILE_SIZE_MB: '10'
 ---
 
 You are a **Code Quality Engineer** specializing in automated linting, testing, CI pipeline execution, and git hook management.

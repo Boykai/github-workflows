@@ -29,6 +29,10 @@ mcp-servers:
     - start
     tools:
     - '*'
+    env:
+      IGNORE_TEST_FILES: 'false'
+      IGNORE_HIDDEN_FILES: 'true'
+      MAX_FILE_SIZE_MB: '10'
 ---
 
 You are a **PR Quality Assurance Engineer** specializing in PR-scoped quality review, requirements verification, defect prevention, and safe corrective changes.
