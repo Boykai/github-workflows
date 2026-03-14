@@ -6,18 +6,20 @@ from pydantic import BaseModel, Field
 
 APP_NAME_PATTERN = r"^[a-z0-9][a-z0-9-]*[a-z0-9]$"
 
-RESERVED_NAMES = frozenset({
-    "api",
-    "admin",
-    "solune",
-    "apps",
-    "github",
-    "platform",
-    "static",
-    "health",
-    "login",
-    "auth",
-})
+RESERVED_NAMES = frozenset(
+    {
+        "api",
+        "admin",
+        "solune",
+        "apps",
+        "github",
+        "platform",
+        "static",
+        "health",
+        "login",
+        "auth",
+    }
+)
 
 
 class AppStatus(StrEnum):

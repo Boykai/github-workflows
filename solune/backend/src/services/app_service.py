@@ -76,8 +76,7 @@ def _scaffold_app_directory(name: str, display_name: str, description: str) -> P
     # README.md
     readme = app_dir / "README.md"
     readme.write_text(
-        f"# {display_name}\n\n{description}\n\n"
-        f"Created by the Solune platform.\n",
+        f"# {display_name}\n\n{description}\n\nCreated by the Solune platform.\n",
         encoding="utf-8",
     )
 
@@ -112,8 +111,7 @@ def _scaffold_app_directory(name: str, display_name: str, description: str) -> P
     # docker-compose.yml template
     compose = app_dir / "docker-compose.yml"
     compose.write_text(
-        f"# Docker Compose for {display_name}\n"
-        "# Extend or customize as needed.\nservices: {}\n",
+        f"# Docker Compose for {display_name}\n# Extend or customize as needed.\nservices: {{}}\n",
         encoding="utf-8",
     )
 

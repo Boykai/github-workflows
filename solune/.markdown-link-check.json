@@ -13,6 +13,9 @@
       "pattern": "^https://github\\.com/Boykai/github-workflows/commits/main$"
     },
     {
+      "pattern": "^https://github\\.com/Boykai/github-workflows/blob/main/"
+    },
+    {
       "pattern": "^https?://localhost"
     }
   ],

@@ -62,7 +62,12 @@ export function AppCard({ app, onSelect, onStart, onStop, onDelete }: AppCardPro
       </p>
 
       {/* Actions (stop event propagation so card click doesn't fire) */}
-      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="flex items-center gap-2"
+        role="toolbar"
+        onClick={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.stopPropagation()}
+      >
         {app.status === 'stopped' && (
           <button
             type="button"
