@@ -31,6 +31,7 @@ logger = get_logger(__name__)
 # Resolve the repository root (three levels up from this file)
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 _APPS_DIR = _REPO_ROOT / "apps"
+_APPS_DIR_RESOLVED = _APPS_DIR.resolve()
 
 # Valid state transitions: mapping from current status to set of allowed next statuses
 _VALID_TRANSITIONS: dict[AppStatus, set[AppStatus]] = {
@@ -62,12 +63,26 @@ def validate_app_name(name: str) -> None:
         raise ValidationError(f"Invalid app name '{name}': path traversal characters not allowed.")
 
 
+def _safe_app_path(name: str) -> Path:
+    """Return a resolved app directory path, raising on any traversal attempt.
+
+    This is a defence-in-depth check: even after ``validate_app_name``
+    rejects obviously bad names, we verify that the resolved path is
+    still within the expected ``apps/`` tree.
+    """
+    validate_app_name(name)
+    app_dir = (_APPS_DIR / name).resolve()
+    if not app_dir.is_relative_to(_APPS_DIR_RESOLVED):
+        raise ValidationError(f"Invalid app name '{name}': resolved path escapes apps directory.")
+    return app_dir
+
+
 def _scaffold_app_directory(name: str, display_name: str, description: str) -> Path:
     """Create the on-disk scaffold for a new application.
 
     Returns the absolute path to the created directory.
     """
-    app_dir = _APPS_DIR / name
+    app_dir = _safe_app_path(name)
     if app_dir.exists():
         raise ConflictError(f"Directory already exists for app '{name}'.")
 
@@ -310,8 +325,8 @@ async def delete_app(db: aiosqlite.Connection, name: str) -> None:
     if app.status == AppStatus.ACTIVE:
         raise ValidationError(f"Cannot delete app '{name}': must stop the app first.")
 
-    # Remove directory
-    app_dir = _APPS_DIR / name
+    # Remove directory with traversal-safe path resolution
+    app_dir = _safe_app_path(app.name)
     if app_dir.exists():
         shutil.rmtree(app_dir)
         logger.info("Removed directory for app '%s'", name)
