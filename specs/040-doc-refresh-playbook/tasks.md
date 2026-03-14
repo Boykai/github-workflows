@@ -154,8 +154,8 @@
 - [ ] T039 [US6] Spot-check 3 key user flows in the running application: select representative P0/P1 user flows, walk through each in the application, compare page names, navigation paths, and terminology against documentation, flag and fix any discrepancies (SC-006, verification-baseline.md contract)
 - [ ] T040 [US6] Verify refresh scope by running `git diff --stat` and confirming changes are limited to `docs/`, `README.md`, `CHANGELOG.md`, and `docs/.last-refresh` — revert any accidental code edits before committing (SC-005, verification-baseline.md contract)
 - [ ] T041 [US6] Add a dated CHANGELOG entry under the appropriate `## YYYY-MM-DD` section with `### Changed` listing which documents were updated during this refresh cycle (e.g., "Documentation refresh: updated [list of documents] to match current codebase state") in `CHANGELOG.md` (FR-016, verification-baseline.md contract)
-- [ ] T042 [US6] Update `docs/.last-refresh` baseline with current cycle data: set `date` to current ISO 8601 timestamp, `sha` to the commit SHA of the refresh commit (after CHANGELOG entry), `documents_updated` to the list of modified doc paths, `documents_skipped` to reviewed-but-unchanged docs, `broken_links_found` to count from T034, and `manual_followups` to any deferred items (FR-017, FR-021, RefreshBaseline entity in data-model.md)
-- [ ] T043 [US6] Commit the refresh with message format: `docs: bi-weekly documentation refresh YYYY-MM-DD` including the updated baseline file — the baseline commit SHA must reflect the final committed state so the next cycle has a clean diff starting point (FR-017, verification-baseline.md contract)
+- [ ] T042 [US6] Commit all documentation changes (from T019–T041) with message format: `docs: bi-weekly documentation refresh YYYY-MM-DD` — this commit captures all doc updates, CHANGELOG entry, and cross-reference fixes (FR-017, verification-baseline.md contract)
+- [ ] T043 [US6] Update `docs/.last-refresh` baseline with current cycle data: set `date` to current ISO 8601 timestamp, `sha` to the commit SHA from T042 (`git rev-parse HEAD`), `documents_updated` to the list of modified doc paths, `documents_skipped` to reviewed-but-unchanged docs, `broken_links_found` to count from T034, and `manual_followups` to any deferred items — then amend the refresh commit (`git commit --amend --no-edit`) so the baseline is included in the final committed state (FR-017, FR-021, RefreshBaseline entity in data-model.md, quickstart.md)
 
 **Checkpoint**: User Story 6 complete — refresh cycle closed, baseline recorded, next cycle can start with a clean diff window
 
@@ -199,7 +199,7 @@
 - Change detection sources (T010, T011, T012) can run in parallel, then merge in T013
 - Doc updates (T023–T033) are fully independent and can all run in parallel
 - Cross-reference tasks (T034–T037) can run in parallel
-- Verification and recording (T038–T043) must run sequentially: sweep → spot-check → scope verify → CHANGELOG → baseline → commit
+- Verification and recording (T038–T043) must run sequentially: sweep → spot-check → scope verify → CHANGELOG → commit → baseline (amend)
 
 ### Parallel Opportunities
 
