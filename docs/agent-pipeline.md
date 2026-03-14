@@ -127,6 +127,33 @@ States: **⏳ Pending** (not started), **🔄 Active** (assigned to Copilot), **
 
 This table survives server restarts and provides visibility directly on the GitHub Issue.
 
+### Group-Aware Tracking Table
+
+Pipelines that use **execution groups** display a 6-column tracking table with an additional `Group` column:
+
+```markdown
+## 🤖 Agent Pipeline
+
+| # | Group | Status | Agent | Model | State |
+|---|-------|--------|-------|-------|-------|
+| 1 | G1 (series) | Backlog | `speckit.specify` | gpt-4o | ✅ Done |
+| 2 | G2 (parallel) | Ready | `speckit.plan` | gpt-4o | 🔄 Active |
+| 3 | G2 (parallel) | Ready | `speckit.tasks` | gpt-4o | 🔄 Active |
+| 4 | G3 (series) | In Progress | `speckit.implement` | gpt-4o | ⏳ Pending |
+| 5 | G4 (series) | In Review | `copilot-review` | gpt-4o | ⏳ Pending |
+```
+
+Groups numbered G1, G2, etc. execute sequentially (one group finishes before the next starts). Agents within a **parallel** group run concurrently. The `(series)` / `(parallel)` label indicates the execution mode.
+
+## Pipeline Analytics
+
+The **Pipeline Analytics** dashboard replaces the former Recent Activity section on the Agents Pipelines page. It provides four metrics:
+
+1. **Agent Frequency** — How often each agent is used across pipeline runs
+2. **Model Distribution** — Breakdown of AI models assigned to agents
+3. **Execution Mode Breakdown** — Ratio of series vs. parallel execution groups
+4. **Complexity Spotlight** — Highlights pipelines with the most stages or longest durations
+
 ## Polling Service
 
 The background polling service runs every 60 seconds (configurable via `COPILOT_POLLING_INTERVAL`) and executes in order:
