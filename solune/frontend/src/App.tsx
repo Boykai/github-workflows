@@ -46,6 +46,9 @@ const LoginPage = lazy(() =>
 const NotFoundPage = lazy(() =>
   import('@/pages/NotFoundPage').then((module) => ({ default: module.NotFoundPage }))
 );
+const AppsPage = lazy(() =>
+  import('@/pages/AppsPage').then((module) => ({ default: module.AppsPage }))
+);
 
 function RouteFallback() {
   return (
@@ -96,6 +99,8 @@ const router = createBrowserRouter(
         <Route path="tools" element={withSuspense(<ToolsPage />)} />
         <Route path="chores" element={withSuspense(<ChoresPage />)} />
         <Route path="settings" element={withSuspense(<SettingsPage />)} />
+        <Route path="apps" element={withSuspense(<AppsPage />)} />
+        <Route path="apps/:appName" element={withSuspense(<AppsPage />)} />
         <Route path="*" element={withSuspense(<NotFoundPage />)} />
       </Route>
     </>

@@ -1102,3 +1102,48 @@ export const agentToolsApi = {
     });
   },
 };
+
+// ============ Apps API (041-solune-rebrand-app-builder) ============
+
+import type { App, AppCreate, AppUpdate, AppStatusResponse, AppStatus } from '@/types/apps';
+
+export const appsApi = {
+  list(status?: AppStatus): Promise<App[]> {
+    const qs = status ? `?status=${status}` : '';
+    return request<App[]>(`/apps${qs}`);
+  },
+
+  create(data: AppCreate): Promise<App> {
+    return request<App>('/apps', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  get(appName: string): Promise<App> {
+    return request<App>(`/apps/${appName}`);
+  },
+
+  update(appName: string, data: AppUpdate): Promise<App> {
+    return request<App>(`/apps/${appName}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  },
+
+  delete(appName: string): Promise<void> {
+    return request<void>(`/apps/${appName}`, { method: 'DELETE' });
+  },
+
+  start(appName: string): Promise<AppStatusResponse> {
+    return request<AppStatusResponse>(`/apps/${appName}/start`, { method: 'POST' });
+  },
+
+  stop(appName: string): Promise<AppStatusResponse> {
+    return request<AppStatusResponse>(`/apps/${appName}/stop`, { method: 'POST' });
+  },
+
+  status(appName: string): Promise<AppStatusResponse> {
+    return request<AppStatusResponse>(`/apps/${appName}/status`);
+  },
+};

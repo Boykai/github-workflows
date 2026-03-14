@@ -67,6 +67,7 @@ import {
   Wrench,
   ListChecks,
   Settings,
+  Boxes,
 } from 'lucide-react';
 import type { NavRoute } from '@/types';
 
@@ -78,6 +79,7 @@ export const NAV_ROUTES: NavRoute[] = [
   { path: '/agents', label: 'Agents', icon: Bot },
   { path: '/tools', label: 'Tools', icon: Wrench },
   { path: '/chores', label: 'Chores', icon: ListChecks },
+  { path: '/apps', label: 'Apps', icon: Boxes },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 
