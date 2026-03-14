@@ -20,27 +20,27 @@ Perform a balanced first pass focused on measurable, low-risk performance gains 
 7. Phase 4 — Optional second-wave work. If the first pass still leaves material UI lag on large boards or excessive backend complexity, prepare a follow-on plan for structural changes: board virtualization, deeper service decomposition around GitHub project fetching/polling, bounded cache policies, and stronger instrumentation around request budgets and render timings. This phase is explicitly out of scope for the first implementation unless measurements prove it is necessary.
 
 **Relevant files**
-- `/root/repos/github-projects-chat/github-workflows/specs/022-api-rate-limit-protection/spec.md` — primary acceptance criteria for idle-rate-limit reduction, sub-issue caching, refresh behavior, and cache TTL alignment.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/api/projects.py` — projects tasks endpoints and WebSocket subscription flow; likely location for change-detection verification and refresh semantics.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/api/board.py` — board-data cache behavior, manual refresh semantics, and sub-issue cache invalidation path.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/services/copilot_polling/polling_loop.py` — polling hot path and expensive background work that can still consume rate limit budget.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/services/github_projects/service.py` — board/project fetching path and candidate reuse points for sub-issue caching or batching.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/services/cache.py` — cache TTLs, cache-key helpers, and any bounded-cache improvements if needed.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/utils.py` — shared repository resolution logic to reuse instead of duplicated fallback flows.
-- `/root/repos/github-projects-chat/github-workflows/backend/src/api/workflow.py` — known duplicate repository-resolution path that may add inconsistency and avoidable work.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useRealTimeSync.ts` — current WebSocket/fallback polling behavior; today it still invalidates board data during polling fallback.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useBoardRefresh.ts` — board auto-refresh policy and manual refresh coordination.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useProjectBoard.ts` — board query ownership and invalidation/refetch strategy.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/components/board/BoardColumn.tsx` — full column list rendering without memoization or virtualization.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/components/board/IssueCard.tsx` — likely high-frequency rerender unit for board interactions.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/pages/ProjectsPage.tsx` — render-time sorting/aggregation and board-level derived state.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/components/chat/ChatPopup.tsx` — hot drag listener path worth throttling.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/components/agents/AddAgentPopover.tsx` — positioning listeners and update frequency.
-- `/root/repos/github-projects-chat/github-workflows/backend/tests/unit/test_cache.py` — backend cache TTL and stale fallback coverage to extend.
-- `/root/repos/github-projects-chat/github-workflows/backend/tests/unit/test_api_board.py` — board cache and board endpoint behavior to reuse for regression tests.
-- `/root/repos/github-projects-chat/github-workflows/backend/tests/unit/test_copilot_polling.py` — polling behavior and rate-limit-aware logic to reuse.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useRealTimeSync.test.tsx` — refresh invalidation and WebSocket fallback coverage to extend.
-- `/root/repos/github-projects-chat/github-workflows/frontend/src/hooks/useBoardRefresh.test.tsx` — refresh timer and deduplication behavior to reuse.
+- `solune/specs/022-api-rate-limit-protection/spec.md` — primary acceptance criteria for idle-rate-limit reduction, sub-issue caching, refresh behavior, and cache TTL alignment.
+- `solune/backend/src/api/projects.py` — projects tasks endpoints and WebSocket subscription flow; likely location for change-detection verification and refresh semantics.
+- `solune/backend/src/api/board.py` — board-data cache behavior, manual refresh semantics, and sub-issue cache invalidation path.
+- `solune/backend/src/services/copilot_polling/polling_loop.py` — polling hot path and expensive background work that can still consume rate limit budget.
+- `solune/backend/src/services/github_projects/service.py` — board/project fetching path and candidate reuse points for sub-issue caching or batching.
+- `solune/backend/src/services/cache.py` — cache TTLs, cache-key helpers, and any bounded-cache improvements if needed.
+- `solune/backend/src/utils.py` — shared repository resolution logic to reuse instead of duplicated fallback flows.
+- `solune/backend/src/api/workflow.py` — known duplicate repository-resolution path that may add inconsistency and avoidable work.
+- `solune/frontend/src/hooks/useRealTimeSync.ts` — current WebSocket/fallback polling behavior; today it still invalidates board data during polling fallback.
+- `solune/frontend/src/hooks/useBoardRefresh.ts` — board auto-refresh policy and manual refresh coordination.
+- `solune/frontend/src/hooks/useProjectBoard.ts` — board query ownership and invalidation/refetch strategy.
+- `solune/frontend/src/components/board/BoardColumn.tsx` — full column list rendering without memoization or virtualization.
+- `solune/frontend/src/components/board/IssueCard.tsx` — likely high-frequency rerender unit for board interactions.
+- `solune/frontend/src/pages/ProjectsPage.tsx` — render-time sorting/aggregation and board-level derived state.
+- `solune/frontend/src/components/chat/ChatPopup.tsx` — hot drag listener path worth throttling.
+- `solune/frontend/src/components/agents/AddAgentPopover.tsx` — positioning listeners and update frequency.
+- `solune/backend/tests/unit/test_cache.py` — backend cache TTL and stale fallback coverage to extend.
+- `solune/backend/tests/unit/test_api_board.py` — board cache and board endpoint behavior to reuse for regression tests.
+- `solune/backend/tests/unit/test_copilot_polling.py` — polling behavior and rate-limit-aware logic to reuse.
+- `solune/frontend/src/hooks/useRealTimeSync.test.tsx` — refresh invalidation and WebSocket fallback coverage to extend.
+- `solune/frontend/src/hooks/useBoardRefresh.test.tsx` — refresh timer and deduplication behavior to reuse.
 
 **Verification**
 1. Backend baseline: measure idle API activity for an open board over a fixed interval and compare against Spec 022 targets; confirm no repeated unchanged refreshes are sent.
