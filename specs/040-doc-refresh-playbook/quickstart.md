@@ -16,20 +16,19 @@ If no `docs/.last-refresh` baseline file exists, create one:
 
 ```bash
 # Record today's date and current commit as the starting baseline
-cat > docs/.last-refresh << 'EOF'
+SHA=$(git rev-parse HEAD)
+DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+cat > docs/.last-refresh << EOF
 {
-  "date": "2026-03-14T00:00:00Z",
-  "sha": "$(git rev-parse HEAD)",
+  "date": "$DATE",
+  "sha": "$SHA",
   "documents_updated": [],
   "documents_skipped": [],
   "broken_links_found": 0,
   "manual_followups": []
 }
 EOF
-
-# Replace the sha placeholder with the actual value
-SHA=$(git rev-parse HEAD)
-sed -i "s/\$(git rev-parse HEAD)/$SHA/" docs/.last-refresh
 ```
 
 ## Refresh Cycle Walkthrough
