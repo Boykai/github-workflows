@@ -41,7 +41,8 @@ def _load_rules(config_path: Path | None = None) -> list[dict[str, str]]:
     with path.open(encoding="utf-8") as f:
         data: dict[str, Any] = yaml.safe_load(f) or {}
 
-    _cached_rules = data.get("guard_rules", [])
+    guard_rules = data.get("guard_rules")
+    _cached_rules = guard_rules if isinstance(guard_rules, list) else []
     _cached_mtime = mtime
     logger.info("Loaded %d guard rules from %s", len(_cached_rules), path)
     return _cached_rules
