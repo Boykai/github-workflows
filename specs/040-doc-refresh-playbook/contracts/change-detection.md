@@ -24,6 +24,7 @@ The process begins by reading `docs/.last-refresh`:
 ```
 
 **Fallback behavior** (FR-020): If the file is missing or malformed:
+
 1. Attempt to find the most recent `docs-refresh-*` git tag
 2. If no tag exists, use `--since="2 weeks ago"` for date-based operations and `HEAD~100` for SHA-based operations
 3. Log a warning: "No valid baseline found; using default 2-week window"
@@ -33,13 +34,15 @@ The process begins by reading `docs/.last-refresh`:
 **Command**: Read `CHANGELOG.md` from the current HEAD.
 
 **Parsing rules**:
+
 1. Scan for date-section headers matching `## YYYY-MM-DD` or `## [Unreleased]`
 2. Include all entries from sections dated after the baseline date AND the `[Unreleased]` section
 3. Within each section, extract items grouped under `### Added`, `### Changed`, `### Removed`, `### Fixed`
-4. Each bullet item (`- `) becomes a ManifestItem with `source: "CHANGELOG"`
+4. Each bullet item (`-`) becomes a ManifestItem with `source: "CHANGELOG"`
 
 **Output format** (per item):
-```
+
+```text
 - description: <bullet text>
   source: CHANGELOG
   source_detail: "## YYYY-MM-DD > ### Added"
@@ -48,6 +51,7 @@ The process begins by reading `docs/.last-refresh`:
 ```
 
 **Category mapping**:
+
 | CHANGELOG Section | Manifest Category |
 |---|---|
 | `### Added` | New features |
@@ -66,8 +70,9 @@ find specs/ -mindepth 1 -maxdepth 1 -type d -newer docs/.last-refresh
 **Fallback** (no baseline file): Use `find specs/ -mindepth 1 -maxdepth 1 -type d -newermt "2 weeks ago"`
 
 **Processing**:
+
 1. For each modified directory, read `spec.md` (if it exists)
-2. Extract the feature title (first `# ` heading) and the first paragraph as the summary
+2. Extract the feature title (first `#` heading) and the first paragraph as the summary
 3. Create a ManifestItem with `source: "specs"` and `source_detail: "specs/<dir>/spec.md"`
 
 **Deduplication**: If a spec's feature is already represented by a CHANGELOG entry, mark the spec entry as `(confirming CHANGELOG)` rather than creating a duplicate.
@@ -75,6 +80,7 @@ find specs/ -mindepth 1 -maxdepth 1 -type d -newer docs/.last-refresh
 ## Source 3: Code Diff Analysis
 
 **Commands**:
+
 ```bash
 # Structural changes (added/deleted/renamed files)
 git diff --stat <baseline-sha>..HEAD
@@ -87,12 +93,14 @@ git diff --name-status <baseline-sha>..HEAD
 ```
 
 **Processing rules**:
+
 1. **New files** (`A` status in `--name-status`): Flag files in monitored directories
 2. **Deleted files** (`D` status): Flag as potential removed functionality
 3. **Renamed files** (`R` status): Flag as potential changed behavior
 4. **High-churn files** (>5 commits or >100 lines changed): Flag for review
 
 **Monitored directories** (high-documentation-impact):
+
 | Directory | Documentation Impact |
 |---|---|
 | `backend/src/api/` | `docs/api-reference.md` |

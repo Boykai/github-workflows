@@ -83,6 +83,7 @@
 1. Repository → **Settings** → **Rules** → **Rulesets**
 2. Under **Bypass list**, add **Copilot** (GitHub Copilot app)
 3. Set bypass mode to **Always Allow**
+4. Set target branches to **Include all branches**
 
 **Pipeline recovery / Agent re-assignment issues:**
 
@@ -91,7 +92,6 @@
 - Agent error detection uses both timeline events and PR status checks
 - If an agent fails repeatedly, verify Copilot subscription status and repository ruleset bypass configuration
 - Check recovery state: `GET /api/v1/workflow/pipeline-states/{issue_number}`
-4. Set target branches to **Include all branches**
 
 ## Signal
 

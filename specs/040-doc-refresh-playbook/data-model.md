@@ -24,12 +24,14 @@ This feature defines a bi-weekly documentation refresh process. It does not intr
 | manual_followups | string[] | Items flagged for manual follow-up in the next cycle |
 
 **Validation Rules**:
+
 - `date` must be a valid ISO 8601 timestamp
 - `sha` must be a valid 40-character hex string (full SHA) or 7+ character abbreviated SHA
 - `documents_updated` must contain valid file paths relative to the repository root
 - File must be valid JSON parseable by standard JSON tools
 
 **State Transitions**:
+
 - **Missing → Created**: First refresh cycle creates the baseline file
 - **Existing → Updated**: Each successful refresh cycle overwrites with new values
 - **Corrupted → Fallback**: If JSON is malformed, the process falls back to date-based heuristic (2 weeks prior)
@@ -70,12 +72,14 @@ This feature defines a bi-weekly documentation refresh process. It does not intr
 | affected_docs | string[] | Documentation files likely impacted |
 
 **Validation Rules**:
+
 - Every item must have exactly one source attribution
 - Items must not be duplicated across categories
 - Domain must be one of the predefined area labels from FR-006
 - At minimum, description and source are required
 
 **Relationships**:
+
 - Produced from: RefreshBaseline (determines diff window), CHANGELOG.md, specs/ directories, git history
 - Consumed by: PriorityAssignment, all doc update phases
 
@@ -105,11 +109,13 @@ This feature defines a bi-weekly documentation refresh process. It does not intr
 | P3 | Config, errors, or test structure changed | `troubleshooting.md`, `configuration.md`, `testing.md`, `setup.md` |
 
 **Validation Rules**:
+
 - A document inherits its highest applicable priority (if triggered by multiple rules)
 - Documents with no applicable triggers are not assigned a priority (skipped)
 - P0 assignment requires confirmation of narrative shift (not just any change)
 
 **Relationships**:
+
 - Derived from: ChangeManifest
 - Consumed by: README update phase, docs update phase
 
@@ -134,6 +140,7 @@ This feature defines a bi-weekly documentation refresh process. It does not intr
 | `docs/signal-integration.md` | Signal-related backend code | Signal code changed |
 
 **Validation Rules**:
+
 - Every documentation file in `docs/` must have a mapping entry
 - Source-of-truth paths must exist in the repository
 - Mapping is reviewed during each refresh cycle for staleness

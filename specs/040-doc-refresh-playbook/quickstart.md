@@ -56,6 +56,7 @@ git log --oneline --since="$(jq -r .date docs/.last-refresh)"
 ```
 
 Compile findings into the Change Manifest with five categories:
+
 - New features, Changed behavior, Removed functionality, Architectural shifts, UX shifts
 
 ### Phase 2: Prioritize (15–20 min)
@@ -76,12 +77,14 @@ Only if README was flagged P0:
 1. Update the feature list (add new capabilities, remove deprecated ones)
 2. Update the architecture overview (if services changed)
 3. Validate quickstart instructions:
+
    ```bash
    # Check current versions
    grep python_requires backend/pyproject.toml
    grep '"node"' frontend/package.json
    cat docker-compose.yml | head -20
    ```
+
 4. Update workflow descriptions (page names, nav paths, terminology)
 
 ### Phase 4: Update Docs (1.5–2.5 hours)
@@ -122,17 +125,22 @@ git diff --name-status $LAST_SHA..HEAD -- docs/decisions/
 1. Run the weekly sweep checklist: `docs/checklists/weekly-sweep.md`
 2. Spot-check 3 user flows in the running application
 3. Verify scope:
+
    ```bash
    git diff --stat
    # Should only show docs/, README.md, CHANGELOG.md
    ```
+
 4. Add CHANGELOG entry and commit:
+
    ```bash
    # Add entry to CHANGELOG.md under current date
    git add docs/ README.md CHANGELOG.md
    git commit -m "docs: bi-weekly documentation refresh $(date +%Y-%m-%d)"
    ```
+
 5. Update baseline:
+
    ```bash
    # Write new baseline with the refresh commit SHA
    SHA=$(git rev-parse HEAD)

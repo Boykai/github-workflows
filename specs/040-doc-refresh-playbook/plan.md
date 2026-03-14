@@ -24,18 +24,23 @@ A bi-weekly documentation refresh process that detects what changed in the appli
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
 ### I. Specification-First Development ✅
+
 Feature spec (`spec.md`) includes 6 prioritized user stories (P1–P3) with independent testing criteria and Given-When-Then acceptance scenarios. Scope boundaries are explicit — code changes are out of scope, automation is deferred to post-manual-validation cycles, and this complements rather than replaces existing checklists.
 
 ### II. Template-Driven Workflow ✅
+
 All artifacts follow canonical templates: `plan.md` (this file), `research.md`, `data-model.md`, `quickstart.md`, and `contracts/`. No custom sections added beyond what the template prescribes.
 
 ### III. Agent-Orchestrated Execution ✅
+
 Plan phase produces well-defined outputs (research, data model, contracts, quickstart) that feed into the tasks phase. The six-phase playbook structure has clear inputs (previous phase outputs) and produces specific outputs (Change Manifest, Priority Assignments, updated docs, baseline record).
 
 ### IV. Test Optionality with Clarity ✅
+
 This feature is a documentation process — no code is written, so no unit/integration tests are applicable. Validation is performed through the existing weekly sweep checklist (manual), automated link checking (`grep`), and scope verification (`git diff --stat`). These validation steps are built into the playbook itself (Phase 6).
 
 ### V. Simplicity and DRY ✅
+
 The playbook uses standard Unix tools (`git`, `grep`, `find`, `jq`) and existing repository scripts (`generate-diagrams.sh`). No new abstractions, frameworks, or dependencies are introduced. The JSON baseline format is the simplest viable approach for storing cycle metadata. The documentation-to-source mapping is a static 11-row table, not an over-engineered registry.
 
 **Gate Result**: PASS — all constitution principles satisfied. No violations requiring justification.
@@ -43,6 +48,7 @@ The playbook uses standard Unix tools (`git`, `grep`, `find`, `jq`) and existing
 ### Post-Design Re-evaluation ✅
 
 After completing Phase 1 design artifacts:
+
 - **I. Specification-First**: Research resolved all unknowns (8 research tasks). Data model defines 5 entities matching the spec's key entities.
 - **II. Template-Driven**: All artifacts follow canonical templates. Contracts cover the three main process phases (detection, update, verification).
 - **III. Agent-Orchestrated**: Clear handoff chain: research → data model → contracts → quickstart → tasks (next phase).
