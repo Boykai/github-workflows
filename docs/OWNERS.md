@@ -19,6 +19,8 @@ Each doc file has a designated owner responsible for keeping it accurate. Owners
 | `docs/checklists/quarterly-audit.md` | Tech lead | Quarterly architecture audit checklist |
 | `docs/decisions/` | Tech lead | ADRs — one per significant architectural decision |
 | `frontend/docs/findings-log.md` | Frontend lead | Component findings and decisions log |
+| `docs/.last-refresh` | Rotating dev | Bi-weekly refresh baseline (date, SHA, updated docs) |
+| `docs/.change-manifest.md` | Rotating dev | Change manifest compiled during each refresh cycle |
 
 ## Review Cadence
 
@@ -26,5 +28,6 @@ Each doc file has a designated owner responsible for keeping it accurate. Owners
 |---------|-------|-------|
 | Every PR | Files changed by the PR | PR author |
 | Weekly (~30 min) | `api-reference.md`, `configuration.md`, `setup.md` | Rotating dev |
+| Bi-weekly (~3–4 hours) | Full documentation refresh cycle (detect changes, prioritize, rewrite) | Rotating dev |
 | Monthly (~2–3 hours) | All `docs/` files | Tech lead sign-off |
 | Quarterly (~half day) | `architecture.md`, `docs/decisions/` | Tech lead |

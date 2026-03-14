@@ -38,3 +38,7 @@ Review `docs/decisions/` directory and its `README.md` index:
 - **Date**: YYYY-MM-DD
 - **Reviewer**: @username
 - **Issues found**: [count] (link to issues if filed)
+
+## See Also
+
+- [Bi-weekly Documentation Refresh Playbook](../../specs/040-doc-refresh-playbook/quickstart.md) — the bi-weekly process that actively rewrites documentation for evolution; this quarterly audit complements it as a deep structural review
