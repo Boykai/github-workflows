@@ -24,9 +24,9 @@ REPO_ROOT="$(git rev-parse --show-toplevel)"
 # Check if we have staged Python files
 STAGED_PY_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep '\.py$' || true)
 # Check if we have staged frontend files
-STAGED_FRONTEND_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^frontend/.*\.(ts|tsx|js|jsx)$' || true)
+STAGED_FRONTEND_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '^solune/frontend/.*\.(ts|tsx|js|jsx)$' || true)
 # Check if we have staged files that affect architecture diagrams
-STAGED_ARCH_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(^backend/src/|^frontend/src/|^docker-compose\.yml$|^scripts/generate-diagrams\.sh$)' || true)
+STAGED_ARCH_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(^solune/backend/src/|^solune/frontend/src/|docker-compose\.yml$|^solune/scripts/generate-diagrams\.sh$)' || true)
 
 # ============================================
 # Backend Checks (with auto-fix)
@@ -36,16 +36,16 @@ if [ -n "$STAGED_PY_FILES" ]; then
     echo "📦 Backend checks..."
 
     # Check if we're in a virtual environment or if backend venv exists
-    if [ -d "$REPO_ROOT/backend/.venv" ]; then
-        RUFF="$REPO_ROOT/backend/.venv/bin/ruff"
+    if [ -d "$REPO_ROOT/solune/backend/.venv" ]; then
+        RUFF="$REPO_ROOT/solune/backend/.venv/bin/ruff"
     else
         RUFF="ruff"
     fi
 
     # Auto-format with ruff format, then verify
     echo -n "  🎨 Ruff formatting... "
-    $RUFF format "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null || true
-    if $RUFF format --check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null; then
+    $RUFF format "$REPO_ROOT/solune/backend/src" "$REPO_ROOT/solune/backend/tests" --quiet 2>/dev/null || true
+    if $RUFF format --check "$REPO_ROOT/solune/backend/src" "$REPO_ROOT/solune/backend/tests" --quiet 2>/dev/null; then
         echo -e "${GREEN}✓ (auto-formatted)${NC}"
     else
         echo -e "${RED}✗ (auto-fix failed)${NC}"
@@ -54,13 +54,13 @@ if [ -n "$STAGED_PY_FILES" ]; then
 
     # Auto-fix with ruff, then verify
     echo -n "  🔧 Ruff linting... "
-    $RUFF check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --fix --quiet 2>/dev/null || true
-    if $RUFF check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" --quiet 2>/dev/null; then
+    $RUFF check "$REPO_ROOT/solune/backend/src" "$REPO_ROOT/solune/backend/tests" --fix --quiet 2>/dev/null || true
+    if $RUFF check "$REPO_ROOT/solune/backend/src" "$REPO_ROOT/solune/backend/tests" --quiet 2>/dev/null; then
         echo -e "${GREEN}✓ (auto-fixed)${NC}"
     else
         echo -e "${RED}✗ (issues remain after auto-fix)${NC}"
         echo -e "${YELLOW}    Remaining issues:${NC}"
-        $RUFF check "$REPO_ROOT/backend/src" "$REPO_ROOT/backend/tests" 2>&1 | head -10
+        $RUFF check "$REPO_ROOT/solune/backend/src" "$REPO_ROOT/solune/backend/tests" 2>&1 | head -10
         FAILED=1
     fi
 
@@ -73,18 +73,18 @@ if [ -n "$STAGED_PY_FILES" ]; then
 
     # Type check with pyright (no auto-fix available for type errors)
     echo -n "  🐍 Pyright type check... "
-    if [ -d "$REPO_ROOT/backend/.venv" ]; then
-        PYRIGHT="$REPO_ROOT/backend/.venv/bin/pyright"
+    if [ -d "$REPO_ROOT/solune/backend/.venv" ]; then
+        PYRIGHT="$REPO_ROOT/solune/backend/.venv/bin/pyright"
     else
         PYRIGHT="pyright"
     fi
 
-    if $PYRIGHT "$REPO_ROOT/backend/src" --pythonpath "$REPO_ROOT/backend/.venv/bin/python" > /dev/null 2>&1; then
+    if $PYRIGHT "$REPO_ROOT/solune/backend/src" --pythonpath "$REPO_ROOT/solune/backend/.venv/bin/python" > /dev/null 2>&1; then
         echo -e "${GREEN}✓${NC}"
     else
         echo -e "${RED}✗${NC}"
         echo -e "${YELLOW}    Type errors must be fixed manually${NC}"
-        $PYRIGHT "$REPO_ROOT/backend/src" --pythonpath "$REPO_ROOT/backend/.venv/bin/python" 2>&1 | tail -10
+        $PYRIGHT "$REPO_ROOT/solune/backend/src" --pythonpath "$REPO_ROOT/solune/backend/.venv/bin/python" 2>&1 | tail -10
         FAILED=1
     fi
 fi
@@ -96,7 +96,7 @@ if [ -n "$STAGED_FRONTEND_FILES" ]; then
     echo ""
     echo "🌐 Frontend checks..."
 
-    cd "$REPO_ROOT/frontend"
+    cd "$REPO_ROOT/solune/frontend"
 
     # Auto-fix with ESLint, then verify
     echo -n "  📝 ESLint... "

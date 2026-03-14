@@ -6,7 +6,7 @@ set -e
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 HOOKS_DIR="$REPO_ROOT/.git/hooks"
-SCRIPTS_DIR="$REPO_ROOT/scripts"
+SCRIPTS_DIR="$REPO_ROOT/solune/scripts"
 
 echo "🔧 Setting up git hooks..."
 
@@ -38,7 +38,7 @@ echo "🧪 Running tests before push..."
 # Backend tests
 echo ""
 echo "📦 Backend tests..."
-cd "$REPO_ROOT/backend"
+cd "$REPO_ROOT/solune/backend"
 if [ -d ".venv" ]; then
     source .venv/bin/activate 2>/dev/null || true
 fi
@@ -47,7 +47,7 @@ python -m pytest tests/ -q --tb=short
 # Frontend tests
 echo ""
 echo "🌐 Frontend tests..."
-cd "$REPO_ROOT/frontend"
+cd "$REPO_ROOT/solune/frontend"
 npm test
 
 echo ""

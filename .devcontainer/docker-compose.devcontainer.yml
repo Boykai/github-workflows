@@ -7,8 +7,8 @@ services:
     environment:
       - DOCKER_HOST=unix:///var/run/docker-host.sock
     networks:
-      - ghchat-dev
+      - solune-dev
 
 networks:
-  ghchat-dev:
+  solune-dev:
     driver: bridge

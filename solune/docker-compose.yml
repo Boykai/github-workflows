@@ -1,7 +1,7 @@
 services:
   backend:
     build:
-      context: ./solune/backend
+      context: ./backend
       dockerfile: Dockerfile
     container_name: solune-backend
     restart: unless-stopped
@@ -48,7 +48,7 @@ services:
       - solune-network
   frontend:
     build:
-      context: ./solune/frontend
+      context: ./frontend
       dockerfile: Dockerfile
       args:
         - VITE_API_BASE_URL=${VITE_API_BASE_URL:-/api/v1}

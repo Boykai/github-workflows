@@ -9,8 +9,8 @@
 
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT_DIR="$REPO_ROOT/docs/architectures"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+OUT_DIR="$REPO_ROOT/solune/docs/architectures"
 CHECK_MODE=false
 CHANGED=0
 
@@ -86,8 +86,8 @@ MERMAID
 # 2. Backend Component Diagram — derived from backend/src/services/
 # ---------------------------------------------------------------------------
 generate_backend_components() {
-    local services_dir="$REPO_ROOT/backend/src/services"
-    local api_dir="$REPO_ROOT/backend/src/api"
+    local services_dir="$REPO_ROOT/solune/backend/src/services"
+    local api_dir="$REPO_ROOT/solune/backend/src/api"
 
     # Discover service modules (directories and top-level .py files)
     local service_defs=""
@@ -160,7 +160,7 @@ MERMAID
 # 3. Frontend Component Diagram — derived from frontend/src/
 # ---------------------------------------------------------------------------
 generate_frontend_components() {
-    local src_dir="$REPO_ROOT/frontend/src"
+    local src_dir="$REPO_ROOT/solune/frontend/src"
 
     # Discover component groups
     local comp_dir="$src_dir/components"
@@ -293,12 +293,12 @@ generate_deployment() {
     diagram=$(cat <<'MERMAID'
 graph TB
     subgraph Host["Docker Host"]
-        subgraph Net["ghchat-network (bridge)"]
-            FE["ghchat-frontend<br/>nginx :8080<br/>→ host :5173"]
-            BE["ghchat-backend<br/>uvicorn :8000"]
-            SIG["ghchat-signal-api<br/>signal-cli :8080 (internal)"]
+        subgraph Net["solune-network (bridge)"]
+            FE["solune-frontend<br/>nginx :8080<br/>→ host :5173"]
+            BE["solune-backend<br/>uvicorn :8000"]
+            SIG["solune-signal-api<br/>signal-cli :8080 (internal)"]
         end
-        VOL_DATA[("ghchat-data volume<br/>SQLite DB")]
+        VOL_DATA[("solune-data volume<br/>SQLite DB")]
         VOL_SIG[("signal-cli-config volume")]
     end
 
