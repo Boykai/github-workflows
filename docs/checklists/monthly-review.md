@@ -49,3 +49,7 @@ For each file, verify:
 - **Date**: YYYY-MM-DD
 - **Reviewer**: @username
 - **Issues found**: [count] (link to issues if filed)
+
+## See Also
+
+- [Bi-weekly Documentation Refresh Playbook](../../specs/040-doc-refresh-playbook/quickstart.md) — the bi-weekly process that detects changes and rewrites docs; this monthly review complements that cycle as a deeper quality gate

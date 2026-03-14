@@ -18,6 +18,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) co
 
 - Agent pills in the Agents page "Column assignments" sidebar now show only the `model_name` on hover instead of full config dump
 - Removed project selection button from the Projects page (project selection handled via sidebar)
+- Documentation refresh: updated agent-pipeline.md (pipeline analytics, group-aware execution), architecture.md (CSP/rate-limit middleware, logging_utils), configuration.md (ADMIN_GITHUB_USER_ID), setup.md (Python 3.13+), troubleshooting.md (pipeline recovery details) to match current codebase state
 
 ---
 

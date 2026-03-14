@@ -79,6 +79,7 @@ See [Agent Pipeline](docs/agent-pipeline.md) for the full flow, sub-issue lifecy
 | [Project Structure](docs/project-structure.md) | Complete file/directory tree with descriptions |
 | [Troubleshooting](docs/troubleshooting.md) | Common issues and solutions |
 | [Custom Agents](docs/custom-agents-best-practices.md) | Best practices for creating custom GitHub agents |
+| [Documentation Maintenance](docs/checklists/) | Weekly sweep, monthly review, quarterly audit checklists |
 
 ## Running Tests
 

@@ -85,7 +85,7 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 - **Framework**: FastAPI with async endpoints, Pydantic v2 models
 - **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (23 SQL migration files, numbered 001–020)
 - **DI**: Singletons registered on `app.state` during lifespan; `dependencies.py` provides `Depends()` getters
-- **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware
+- **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware; `CSPMiddleware` for Content Security Policy headers; `RateLimitMiddleware` for request rate limiting
 - **Exceptions**: Custom `AppException` hierarchy → `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ValidationError`, `GitHubAPIError`, `RateLimitError`, `McpValidationError`, `McpLimitExceededError`
 
 ### Backend Module Layout
@@ -102,7 +102,8 @@ Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) + Agent MCP Sync (`agent_mcp_sync.py`) — keeps `mcp-servers` and `tools: ["*"]` in sync across all `.agent.md` files |
 | `migrations/` | SQL migration files `001` through `020` (23 files; prefixes 013–015 have two files each) |
 | `prompts/` | AI prompt templates for issue and task generation |
-| `middleware/` | `RequestIDMiddleware` |
+| `middleware/` | `RequestIDMiddleware`, `CSPMiddleware` (Content Security Policy headers), `RateLimitMiddleware` (request rate limiting) |
+| `logging_utils.py` | `RequestIDFilter`, `SanitizingFormatter`, `StructuredJsonFormatter` for structured JSON logging |
 | `config.py` | `pydantic-settings` configuration from `.env` |
 | `constants.py` | Status names, agent mappings, labels, cache keys |
 | `dependencies.py` | FastAPI DI helpers |
