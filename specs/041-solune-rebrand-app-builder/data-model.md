@@ -212,6 +212,15 @@ CREATE TABLE IF NOT EXISTS apps (
 
 CREATE INDEX IF NOT EXISTS idx_apps_status ON apps(status);
 CREATE INDEX IF NOT EXISTS idx_apps_created_at ON apps(created_at);
+
+-- Trigger to auto-update updated_at on row modification
+CREATE TRIGGER IF NOT EXISTS trg_apps_updated_at
+    AFTER UPDATE ON apps
+    FOR EACH ROW
+BEGIN
+    UPDATE apps SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+    WHERE name = OLD.name;
+END;
 ```
 
 ## Pydantic Models (Backend)
@@ -221,6 +230,9 @@ CREATE INDEX IF NOT EXISTS idx_apps_created_at ON apps(created_at);
 from enum import Enum
 from pydantic import BaseModel, Field
 from typing import Optional
+
+# Shared validation pattern for app names — used in both App and AppCreate
+APP_NAME_PATTERN = r"^[a-z0-9][a-z0-9-]*[a-z0-9]$"
 
 
 class AppStatus(str, Enum):
@@ -236,7 +248,7 @@ class RepoType(str, Enum):
 
 
 class App(BaseModel):
-    name: str = Field(..., pattern=r"^[a-z0-9][a-z0-9-]*[a-z0-9]$", min_length=2, max_length=64)
+    name: str = Field(..., pattern=APP_NAME_PATTERN, min_length=2, max_length=64)
     display_name: str = Field(..., min_length=1, max_length=128)
     description: str = Field(default="")
     directory_path: str
@@ -251,7 +263,7 @@ class App(BaseModel):
 
 
 class AppCreate(BaseModel):
-    name: str = Field(..., pattern=r"^[a-z0-9][a-z0-9-]*[a-z0-9]$", min_length=2, max_length=64)
+    name: str = Field(..., pattern=APP_NAME_PATTERN, min_length=2, max_length=64)
     display_name: str = Field(..., min_length=1, max_length=128)
     description: str = Field(default="")
     pipeline_id: Optional[str] = None
