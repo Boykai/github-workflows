@@ -61,8 +61,8 @@ cd frontend && npm run dev
 
 ```bash
 git clone <repository-url>
-cd github-workflows
-cp .env.example .env
+cd <repository-name>
+cp solune/.env.example solune/.env
 ```
 
 ### 2. Create GitHub OAuth App

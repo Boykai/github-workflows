@@ -1,35 +1,30 @@
-# Solune
+# Solune — Platform Core
 
-[![CI](https://github.com/Boykai/github-workflows/actions/workflows/ci.yml/badge.svg)](https://github.com/Boykai/github-workflows/actions/workflows/ci.yml)
-[![License: MIT](https://img.shields.io/github/license/Boykai/github-workflows?color=0f766e)](https://github.com/Boykai/github-workflows)
-[![Last Commit](https://img.shields.io/github/last-commit/Boykai/github-workflows?color=2563eb&label=last%20commit)](https://github.com/Boykai/github-workflows/commits/main)
-[![Open Issues](https://img.shields.io/github/issues/Boykai/github-workflows?color=f59e0b&label=issues)](https://github.com/Boykai/github-workflows/issues)
-[![Open Pull Requests](https://img.shields.io/github/issues-pr/Boykai/github-workflows?color=dc2626&label=pull%20requests)](https://github.com/Boykai/github-workflows/pulls)
-[![Repo Stars](https://img.shields.io/github/stars/Boykai/github-workflows?style=flat&color=facc15&label=stars)](https://github.com/Boykai/github-workflows/stargazers)
-[![Repo Forks](https://img.shields.io/github/forks/Boykai/github-workflows?style=flat&color=7c3aed&label=forks)](https://github.com/Boykai/github-workflows/network/members)
+> Agent-driven development platform. Define Agent Pipelines, compose specialized Agents, build applications from specs via chat, iterate through GitHub DevOps tracking.
 
-> AI-powered conversational interface for creating, managing, and executing GitHub Issues on a Project Board — with an automated **Spec Kit agent pipeline** that turns feature requests into specifications, plans, tasks, and implementations through GitHub Copilot custom agents.
+This directory contains the Solune platform core: backend, frontend, documentation, scripts, and feature specifications. For the monorepo overview, see the [root README](../README.md).
 
 ## What It Does
 
-- **Describe features in natural language** → AI generates structured GitHub Issues
-- **Automated agent pipeline** → `specify` → `plan` → `tasks` → `implement` → `review`
-- **Each agent gets a sub-issue** for per-agent visibility, with child PRs merged into a single main branch
-- **Real-time board** → Kanban view with drag-and-drop agent configuration
-- **Voice input** → Dictate chat messages via microphone with real-time transcription (Firefox, Chrome, Edge, Safari)
-- **Signal messaging** → Receive notifications and reply from your phone
-- **Custom agent creation** → Type `#agent <description> #<status>` in chat to create agents
-- **Import parent issues** → Paste or upload a GitHub Issue description on the Projects page and launch an agent pipeline directly
+- **Build apps from conversation** — Describe what you want, Solune scaffolds the project, creates GitHub Issues, and wires up an agent pipeline
+- **Automated agent pipeline** — `specify` → `plan` → `tasks` → `implement` → `review`
+- **Multi-app management** — Create, preview, start/stop applications from a unified dashboard
+- **Live preview** — Embedded iframe preview for running applications with start/stop controls
+- **Real-time board** — Kanban view with drag-and-drop agent configuration
+- **Voice input** — Dictate chat messages via microphone with real-time transcription
+- **Signal messaging** — Receive notifications and reply from your phone
+- **Context switching** — `/<app-name>` slash command to switch agent focus between applications
+- **Self-editing protection** — `@admin`/`@adminlock` guards prevent agents from modifying platform core
 
 ## Quick Start
+
+From the repository root:
 
 ### Docker (Recommended)
 
 ```bash
-git clone <repository-url>
-cd github-workflows
-cp .env.example .env
-# Edit .env — set GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, SESSION_SECRET_KEY
+cp solune/.env.example solune/.env
+# Edit solune/.env — set GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, SESSION_SECRET_KEY
 docker compose up --build -d
 ```
 
@@ -37,7 +32,7 @@ Open **<http://localhost:5173>**.
 
 ### GitHub Codespaces
 
-Click **Code** → **Codespaces** → **Create codespace on main**. The dev container auto-installs everything. Copy `.env.example` to `.env`, add your OAuth credentials, and start the services.
+Click **Code** → **Codespaces** → **Create codespace on main**. The dev container auto-installs everything. Copy `solune/.env.example` to `solune/.env`, add your OAuth credentials, and start the services.
 
 See [Setup Guide](docs/setup.md) for full instructions including local development without Docker.
 
