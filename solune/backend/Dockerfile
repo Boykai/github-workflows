@@ -23,10 +23,10 @@ RUN find /usr/local/lib/python3.13 -name "copilot" -type f -executable 2>/dev/nu
 COPY src/ ./src/
 
 # Create data directory for SQLite database (volume mount target)
-RUN mkdir -p /var/lib/ghchat/data
+RUN mkdir -p /var/lib/solune/data
 
 # Create non-root user and set ownership
-RUN useradd --create-home appuser && chown -R appuser:appuser /app /var/lib/ghchat/data
+RUN useradd --create-home appuser && chown -R appuser:appuser /app /var/lib/solune/data
 USER appuser
 
 # Expose port
