@@ -11,6 +11,7 @@ import type {
   CleanupPreflightResponse,
   CleanupExecuteResponse,
   CleanupHistoryResponse,
+  CleanupConfirmPayload,
 } from '@/types';
 
 export type CleanupState =
@@ -36,8 +37,8 @@ interface UseCleanupReturn {
   permissionError: string | null;
   /** Start the preflight check */
   startPreflight: (owner: string, repo: string, projectId: string) => Promise<void>;
-  /** Confirm and execute the cleanup */
-  confirmExecute: (owner: string, repo: string, projectId: string) => Promise<void>;
+  /** Confirm and execute the cleanup with the user's final selections */
+  confirmExecute: (owner: string, repo: string, projectId: string, payload: CleanupConfirmPayload) => Promise<void>;
   /** Cancel and return to idle */
   cancel: () => void;
   /** Dismiss summary and return to idle */
@@ -85,9 +86,7 @@ export function useCleanup(): UseCleanupReturn {
   }, []);
 
   const confirmExecute = useCallback(
-    async (owner: string, repo: string, projectId: string) => {
-      if (!preflightData) return;
-
+    async (owner: string, repo: string, projectId: string, payload: CleanupConfirmPayload) => {
       setState('executing');
       setError(null);
 
@@ -96,9 +95,9 @@ export function useCleanup(): UseCleanupReturn {
           owner,
           repo,
           project_id: projectId,
-          branches_to_delete: preflightData.branches_to_delete.map((b) => b.name),
-          prs_to_close: preflightData.prs_to_close.map((p) => p.number),
-          issues_to_close: (preflightData.orphaned_issues ?? []).map((i) => i.number),
+          branches_to_delete: payload.branches_to_delete,
+          prs_to_close: payload.prs_to_close,
+          issues_to_close: payload.issues_to_close,
         });
 
         setExecuteResult(result);
@@ -109,7 +108,7 @@ export function useCleanup(): UseCleanupReturn {
         setState('summary');
       }
     },
-    [preflightData]
+    []
   );
 
   const cancel = useCallback(() => {
