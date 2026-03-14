@@ -1439,10 +1439,10 @@ class TestPostAgentOutputsFromPr:
             "## Issue Body\n\n"
             "---\n\n"
             "## 🤖 Agent Pipeline\n\n"
-            "| # | Status | Agent | State |\n"
-            "|---|--------|-------|-------|\n"
-            "| 1 | Backlog | `speckit.specify` | 🔄 Active |\n"
-            "| 2 | Ready | `speckit.plan` | ⏳ Pending |\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 1 | Backlog | `speckit.specify` | gpt-4o | 🔄 Active |\n"
+            "| 2 | Ready | `speckit.plan` | gpt-4o | ⏳ Pending |\n"
         )
         mock_tracking.return_value = (tracking_body, [])  # body, comments (no Done! yet)
 
@@ -1511,10 +1511,10 @@ class TestPostAgentOutputsFromPr:
             "## Issue Body\n\n"
             "---\n\n"
             "## 🤖 Agent Pipeline\n\n"
-            "| # | Status | Agent | State |\n"
-            "|---|--------|-------|-------|\n"
-            "| 1 | Backlog | `speckit.specify` | ✅ Done |\n"
-            "| 2 | Ready | `speckit.plan` | ⏳ Pending |\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 1 | Backlog | `speckit.specify` | gpt-4o | ✅ Done |\n"
+            "| 2 | Ready | `speckit.plan` | gpt-4o | ⏳ Pending |\n"
         )
         mock_tracking.return_value = (tracking_body, [])
 
@@ -3174,20 +3174,20 @@ class TestRecoverStalledIssues:
         "## Issue Body\n\n"
         "---\n\n"
         "## 🤖 Agent Pipeline\n\n"
-        "| # | Status | Agent | State |\n"
-        "|---|--------|-------|-------|\n"
-        "| 1 | Backlog | `speckit.specify` | 🔄 Active |\n"
-        "| 2 | Ready | `speckit.plan` | ⏳ Pending |\n"
+        "| # | Status | Agent | Model | State |\n"
+        "|---|--------|-------|-------|-------|\n"
+        "| 1 | Backlog | `speckit.specify` | gpt-4o | 🔄 Active |\n"
+        "| 2 | Ready | `speckit.plan` | gpt-4o | ⏳ Pending |\n"
     )
 
     TRACKING_BODY_ALL_DONE = (
         "## Issue Body\n\n"
         "---\n\n"
         "## 🤖 Agent Pipeline\n\n"
-        "| # | Status | Agent | State |\n"
-        "|---|--------|-------|-------|\n"
-        "| 1 | Backlog | `speckit.specify` | ✅ Done |\n"
-        "| 2 | Ready | `speckit.plan` | ✅ Done |\n"
+        "| # | Status | Agent | Model | State |\n"
+        "|---|--------|-------|-------|-------|\n"
+        "| 1 | Backlog | `speckit.specify` | gpt-4o | ✅ Done |\n"
+        "| 2 | Ready | `speckit.plan` | gpt-4o | ✅ Done |\n"
     )
 
     @pytest.fixture(autouse=True)
@@ -3639,12 +3639,12 @@ class TestRecoverStalledIssues:
             "## Issue Body\n\n"
             "---\n\n"
             "## 🤖 Agent Pipeline\n\n"
-            "| # | Status | Agent | State |\n"
-            "|---|--------|-------|-------|\n"
-            "| 1 | In Progress | `speckit.tasks` | ⏳ Pending |\n"
-            "| 2 | In Progress | `speckit.implement` | ⏳ Pending |\n"
-            "| 3 | In Progress | `copilot-review` | ✅ Done |\n"
-            "| 4 | In Progress | `judge` | ⏳ Pending |\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 1 | In Progress | `speckit.tasks` | gpt-4o | ⏳ Pending |\n"
+            "| 2 | In Progress | `speckit.implement` | gpt-4o | ⏳ Pending |\n"
+            "| 3 | In Progress | `copilot-review` | gpt-4o | ✅ Done |\n"
+            "| 4 | In Progress | `judge` | gpt-4o | ⏳ Pending |\n"
         )
         mock_config.return_value = MagicMock(
             status_in_review="In Review",
@@ -3720,10 +3720,10 @@ class TestRecoverStalledIssues:
             "## Issue Body\n\n"
             "---\n\n"
             "## 🤖 Agent Pipeline\n\n"
-            "| # | Status | Agent | State |\n"
-            "|---|--------|-------|-------|\n"
-            "| 1 | In Progress | `copilot-review` | 🔄 Active |\n"
-            "| 2 | In Progress | `judge` | ⏳ Pending |\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 1 | In Progress | `copilot-review` | gpt-4o | 🔄 Active |\n"
+            "| 2 | In Progress | `judge` | gpt-4o | ⏳ Pending |\n"
         )
         mock_config.return_value = MagicMock(
             status_in_review="In Review",
@@ -3779,9 +3779,9 @@ class TestRecoverStalledIssues:
             "## Issue Body\n\n"
             "---\n\n"
             "## 🤖 Agent Pipeline\n\n"
-            "| # | Status | Agent | State |\n"
-            "|---|--------|-------|-------|\n"
-            "| 1 | In Progress | `human` | 🔄 Active |\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 1 | In Progress | `human` | gpt-4o | 🔄 Active |\n"
         )
         mock_config.return_value = MagicMock(
             status_in_review="In Review",
@@ -5865,10 +5865,10 @@ class TestProcessPipelineCompletionBatchTracking:
 
         body_with_active = (
             "Issue body\n\n---\n\n## 🤖 Agent Pipeline\n\n"
-            "| # | Status | Agent | State |\n"
-            "|---|--------|-------|-------|\n"
-            "| 1 | Ready | `speckit.plan` | 🔄 Active |\n"
-            "| 2 | Ready | `speckit.tasks` | 🔄 Active |\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 1 | Ready | `speckit.plan` | gpt-4o | 🔄 Active |\n"
+            "| 2 | Ready | `speckit.tasks` | gpt-4o | 🔄 Active |\n"
         )
 
         mock_service.get_issue_with_comments = AsyncMock(
@@ -5940,10 +5940,10 @@ class TestProcessPipelineCompletionBatchTracking:
 
         body_with_active = (
             "Body\n\n---\n\n## 🤖 Agent Pipeline\n\n"
-            "| # | Status | Agent | State |\n"
-            "|---|--------|-------|-------|\n"
-            "| 1 | Ready | `speckit.plan` | 🔄 Active |\n"
-            "| 2 | Ready | `speckit.tasks` | 🔄 Active |\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 1 | Ready | `speckit.plan` | gpt-4o | 🔄 Active |\n"
+            "| 2 | Ready | `speckit.tasks` | gpt-4o | 🔄 Active |\n"
         )
 
         mock_service.get_issue_with_comments = AsyncMock(
@@ -6051,11 +6051,11 @@ class TestPipelineAdvancesAfterCopilotReview:
         # Tracking table shows judge as ⏳ Pending (not 🔄 Active)
         body_pending = (
             "Body\n\n---\n\n## 🤖 Agent Pipeline\n\n"
-            "| # | Status | Agent | State |\n"
-            "|---|--------|-------|-------|\n"
-            "| 5 | In Review | `copilot-review` | ✅ Done |\n"
-            "| 6 | In Review | `judge` | ⏳ Pending |\n"
-            "| 7 | In Review | `linter` | ⏳ Pending |\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 5 | In Review | `copilot-review` | gpt-4o | ✅ Done |\n"
+            "| 6 | In Review | `judge` | gpt-4o | ⏳ Pending |\n"
+            "| 7 | In Review | `linter` | gpt-4o | ⏳ Pending |\n"
         )
         mock_service.get_issue_with_comments = AsyncMock(
             return_value={"body": body_pending, "comments": []}
@@ -6980,11 +6980,11 @@ class TestRecoveryForcedTransition:
         "## Issue Body\n\n"
         "---\n\n"
         "## 🤖 Agent Pipeline\n\n"
-        "| # | Status | Agent | State |\n"
-        "|---|--------|-------|-------|\n"
-        "| 1 | In Progress | `speckit.plan` | ✅ Done |\n"
-        "| 2 | In Progress | `speckit.tasks` | ✅ Done |\n"
-        "| 3 | In Progress | `speckit.implement` | ✅ Done |\n"
+        "| # | Status | Agent | Model | State |\n"
+        "|---|--------|-------|-------|-------|\n"
+        "| 1 | In Progress | `speckit.plan` | gpt-4o | ✅ Done |\n"
+        "| 2 | In Progress | `speckit.tasks` | gpt-4o | ✅ Done |\n"
+        "| 3 | In Progress | `speckit.implement` | gpt-4o | ✅ Done |\n"
     )
 
     @pytest.fixture(autouse=True)
@@ -9009,9 +9009,9 @@ class TestRecoveryIncludesInReview:
         "## Issue Body\n\n"
         "---\n\n"
         "## 🤖 Agent Pipeline\n\n"
-        "| # | Status | Agent | State |\n"
-        "|---|--------|-------|-------|\n"
-        "| 1 | In Review | `copilot-review` | 🔄 Active |\n"
+        "| # | Status | Agent | Model | State |\n"
+        "|---|--------|-------|-------|-------|\n"
+        "| 1 | In Review | `copilot-review` | gpt-4o | 🔄 Active |\n"
     )
 
     @pytest.fixture(autouse=True)
@@ -9079,10 +9079,10 @@ class TestRecoveryIncludesInReview:
             "## Issue Body\n\n"
             "---\n\n"
             "## 🤖 Agent Pipeline\n\n"
-            "| # | Status | Agent | State |\n"
-            "|---|--------|-------|-------|\n"
-            "| 1 | In Progress | `speckit.implement` | 🔄 Active |\n"
-            "| 2 | In Review | `copilot-review` | ⏳ Pending |\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 1 | In Progress | `speckit.implement` | gpt-4o | 🔄 Active |\n"
+            "| 2 | In Review | `copilot-review` | gpt-4o | ⏳ Pending |\n"
         )
         mock_config.return_value = MagicMock(
             status_in_review="In Review",
