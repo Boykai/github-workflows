@@ -70,7 +70,7 @@ class TestAppsApi:
         resp = await apps_client.post(
             "/api/v1/apps",
             json={
-                "name": "Bad Name",
+                "name": "invalid@chars",
                 "display_name": "Demo App",
                 "description": "Created through the API",
             },

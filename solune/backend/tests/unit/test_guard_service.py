@@ -28,6 +28,22 @@ class TestLoadRules:
 
         assert guard_service._load_rules(config_path) == []
 
+    def test_reset_cache_clears_loaded_rules(self, tmp_path):
+        config_path = tmp_path / "guard-config.yml"
+        config_path.write_text(
+            "guard_rules:\n  - path_pattern: apps/**\n    guard_level: none\n",
+            encoding="utf-8",
+        )
+
+        assert guard_service._load_rules(config_path) == [
+            {"path_pattern": "apps/**", "guard_level": "none"}
+        ]
+
+        guard_service.reset_cache()
+
+        assert guard_service._cached_rules is None
+        assert guard_service._cached_mtime == 0.0
+
 
 class TestCheckGuard:
     def test_more_specific_pattern_wins(self, tmp_path):

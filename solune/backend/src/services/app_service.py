@@ -14,7 +14,7 @@ from pathlib import Path
 
 import aiosqlite
 
-from src.exceptions import ConflictError, NotFoundError, ValidationError
+from src.exceptions import ConflictError, DatabaseError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
 from src.models.app import (
     APP_NAME_PATTERN,
@@ -200,7 +200,10 @@ async def create_app(db: aiosqlite.Connection, payload: AppCreate) -> App:
     cursor = await db.execute("SELECT * FROM apps WHERE name = ?", (payload.name,))
     row = await cursor.fetchone()
     if row is None:
-        raise RuntimeError(f"App '{payload.name}' was created but could not be reloaded.")
+        raise DatabaseError(
+            f"App '{payload.name}' was created but could not be reloaded. "
+            "This indicates a database inconsistency."
+        )
     return _row_to_app(row)
 
 
