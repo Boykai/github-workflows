@@ -1,0 +1,22 @@
+{
+  "date": "2026-03-14T18:41:00Z",
+  "sha": "518be4cbd6ae2b9030abe4b13847e2c77f83b2b4",
+  "documents_updated": [
+    "docs/agent-pipeline.md",
+    "docs/architecture.md",
+    "docs/configuration.md",
+    "docs/setup.md",
+    "docs/troubleshooting.md"
+  ],
+  "documents_skipped": [
+    "docs/api-reference.md",
+    "docs/custom-agents-best-practices.md",
+    "docs/project-structure.md",
+    "docs/testing.md",
+    "docs/signal-integration.md",
+    "frontend/docs/findings-log.md",
+    "README.md"
+  ],
+  "broken_links_found": 0,
+  "manual_followups": []
+}

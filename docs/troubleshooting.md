@@ -83,6 +83,14 @@
 1. Repository → **Settings** → **Rules** → **Rulesets**
 2. Under **Bypass list**, add **Copilot** (GitHub Copilot app)
 3. Set bypass mode to **Always Allow**
+
+**Pipeline recovery / Agent re-assignment issues:**
+
+- The system automatically recovers stalled pipelines with exponential backoff retry (3 attempts: 3s → 6s → 12s)
+- Per-issue cooldown of 5 minutes between re-assignment attempts prevents rapid-fire retries
+- Agent error detection uses both timeline events and PR status checks
+- If an agent fails repeatedly, verify Copilot subscription status and repository ruleset bypass configuration
+- Check recovery state: `GET /api/v1/workflow/pipeline-states/{issue_number}`
 4. Set target branches to **Include all branches**
 
 ## Signal

@@ -89,6 +89,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 | Variable | Default | Description |
 |----------|---------|-------------|
+| `ADMIN_GITHUB_USER_ID` | — | Numeric GitHub user ID of the administrator. **Required in production mode**; in debug mode, the first authenticated user is auto-promoted with a warning. |
 | `ENCRYPTION_KEY` | — | Fernet key for encrypting OAuth tokens at rest. Generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. If unset, tokens are stored unencrypted. |
 | `COOKIE_SECURE` | `false` | Set `true` in production (HTTPS) to add the `Secure` flag to session cookies. Auto-enabled when `FRONTEND_URL` starts with `https://`. |
 | `COOKIE_MAX_AGE` | `28800` | Session cookie max-age in seconds (default: 8 hours) |
