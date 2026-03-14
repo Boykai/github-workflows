@@ -3,7 +3,7 @@
 from typing import Any
 
 import src.services.copilot_polling as _cp
-from src.constants import STALLED_LABEL, find_agent_label, has_stalled_label
+from src.constants import STALLED_LABEL
 from src.logging_utils import get_logger
 from src.models.agent import AgentStepState
 from src.services.github_projects.identities import is_copilot_author
@@ -441,17 +441,15 @@ async def recover_stalled_issues(
             if await _should_skip_recovery(issue_number, task_owner, task_repo, now):
                 continue
 
-            # ── Label-based early exit ────────────────────────────────────
-            # If the task has a valid agent label and is not marked stalled,
-            # the pipeline is demonstrably active — skip the expensive issue
-            # body fetch and tracking table parse.
-            task_labels = getattr(task, "labels", None) or []
-            if find_agent_label(task_labels) and not has_stalled_label(task_labels):
-                logger.debug(
-                    "Recovery: skipping issue #%d — has active agent label, not stalled",
-                    issue_number,
-                )
-                continue
+            # NOTE: A label-based early exit was previously here, skipping
+            # issues with an agent:* label on the assumption that the agent
+            # is actively working.  However, having an agent label only
+            # proves a Copilot assignment was *attempted* — Copilot may
+            # have silently failed to start (no WIP PR).  When that
+            # happens, both the pipeline check (which sees tracking=Active
+            # and waits) and recovery (which skipped due to the label)
+            # would deadlock — permanently stalling the pipeline.
+            # Removed to allow recovery to always verify actual work.
 
             # ── Read the issue body tracking table ────────────────────────
             try:

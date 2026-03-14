@@ -305,9 +305,67 @@ class TestInlineUpdateChore:
         assert exc_info.value.current_sha == "current-sha"
         assert exc_info.value.current_content == "Updated content"
 
+    @pytest.mark.anyio
+    async def test_name_change_updates_template_path_and_deletes_old_file(self, mock_db):
+        """Renaming a chore should update template_path in DB and delete the old file in the PR."""
+        from unittest.mock import AsyncMock
 
-# =============================================================================
-# ChoresService.trigger_chore
+        from src.models.chores import ChoreCreate, ChoreInlineUpdate
+        from src.services.chores.service import ChoresService
+
+        service = ChoresService(mock_db)
+        chore = await service.create_chore(
+            "PVT_1",
+            ChoreCreate(name="Old Name", template_content="Body content"),
+            template_path=".github/ISSUE_TEMPLATE/chore-old-name.md",
+        )
+        assert chore.template_path == ".github/ISSUE_TEMPLATE/chore-old-name.md"
+
+        mock_github = AsyncMock()
+        mock_github.get_repository_info.return_value = {
+            "repository_id": "R_1",
+            "default_branch": "main",
+            "head_oid": "abc123",
+        }
+        mock_github.create_branch.return_value = "ref-id"
+        mock_github.commit_files.return_value = "commit-oid"
+        mock_github.create_pull_request.return_value = {
+            "number": 99,
+            "url": "https://github.com/test/repo/pull/99",
+        }
+
+        result = await service.inline_update_chore(
+            chore.id,
+            ChoreInlineUpdate(name="New Name", template_content="Updated body"),
+            github_service=mock_github,
+            access_token="token",
+            owner="test",
+            repo="repo",
+            project_id="PVT_1",
+        )
+
+        # DB should have the new template_path
+        updated = result["chore"]
+        assert updated.name == "New Name"
+        assert updated.template_path == ".github/ISSUE_TEMPLATE/chore-new-name.md"
+
+        # commit_files should have been called with the new path and old path as deletion
+        mock_github.commit_files.assert_awaited_once()
+        commit_call = mock_github.commit_files.call_args
+        files_arg = (
+            commit_call.args[5] if len(commit_call.args) > 5 else commit_call.kwargs.get("files")
+        )
+        # Files may be positional or keyword — check the committed file path
+        assert any(f["path"] == ".github/ISSUE_TEMPLATE/chore-new-name.md" for f in files_arg)
+        # The old file path should be in the deletions kwarg
+        deletions = commit_call.kwargs.get("deletions") or (
+            commit_call.args[8] if len(commit_call.args) > 8 else None
+        )
+        assert deletions == [".github/ISSUE_TEMPLATE/chore-old-name.md"]
+
+        assert result["pr_number"] == 99
+
+
 # =============================================================================
 
 
