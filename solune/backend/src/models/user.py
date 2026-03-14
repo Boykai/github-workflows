@@ -23,6 +23,9 @@ class UserSession(BaseModel):
     selected_project_id: str | None = Field(
         default=None, description="Currently selected GitHub Project ID"
     )
+    active_app_name: str | None = Field(
+        default=None, description="Active application context for agent operations"
+    )
     created_at: datetime = Field(
         default_factory=lambda: datetime.now(UTC),
         description="Session creation time",

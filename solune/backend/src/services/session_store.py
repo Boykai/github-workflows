@@ -62,6 +62,7 @@ def _row_to_session(row: aiosqlite.Row) -> UserSession:
         refresh_token=refresh_token,
         token_expires_at=token_expires,
         selected_project_id=row["selected_project_id"],
+        active_app_name=row["active_app_name"] if "active_app_name" in row.keys() else None,
         created_at=created_at,
         updated_at=updated_at,
     )
@@ -84,8 +85,8 @@ async def save_session(db: aiosqlite.Connection, session: UserSession) -> None:
         INSERT OR REPLACE INTO user_sessions (
             session_id, github_user_id, github_username, github_avatar_url,
             access_token, refresh_token, token_expires_at,
-            selected_project_id, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            selected_project_id, active_app_name, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             str(session.session_id),
@@ -96,6 +97,7 @@ async def save_session(db: aiosqlite.Connection, session: UserSession) -> None:
             encrypted_refresh,
             session.token_expires_at.isoformat() if session.token_expires_at else None,
             session.selected_project_id,
+            session.active_app_name,
             session.created_at.isoformat(),
             session.updated_at.isoformat(),
         ),

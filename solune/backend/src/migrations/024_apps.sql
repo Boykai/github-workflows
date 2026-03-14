@@ -31,3 +31,6 @@ BEGIN
     UPDATE apps SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
     WHERE name = OLD.name;
 END;
+
+-- Add active_app_name to user_sessions for context switching
+ALTER TABLE user_sessions ADD COLUMN active_app_name TEXT DEFAULT NULL;
