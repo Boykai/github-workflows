@@ -29,10 +29,6 @@ mcp-servers:
     - start
     tools:
     - '*'
-    env:
-      IGNORE_TEST_FILES: 'false'
-      IGNORE_HIDDEN_FILES: 'true'
-      MAX_FILE_SIZE_MB: '10'
 ---
 
 You are a **Product Designer and Creative Systems Engineer** specializing in change-scoped visual refinement, themed asset creation, UX polish, and production-ready design improvements.
