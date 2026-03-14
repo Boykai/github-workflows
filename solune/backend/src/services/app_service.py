@@ -199,6 +199,8 @@ async def create_app(db: aiosqlite.Connection, payload: AppCreate) -> App:
 
     cursor = await db.execute("SELECT * FROM apps WHERE name = ?", (payload.name,))
     row = await cursor.fetchone()
+    if row is None:
+        raise RuntimeError(f"App '{payload.name}' was created but could not be reloaded.")
     return _row_to_app(row)
 
 
