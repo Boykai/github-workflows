@@ -117,8 +117,8 @@ export function CleanUpButton({ owner, repo, projectId }: CleanUpButtonProps) {
       )}
 
       {/* Confirmation Modal */}
-      {state === 'confirming' && preflightData && (
-        <CleanUpConfirmModal data={preflightData} owner={owner!} repo={repo!} onConfirm={handleConfirm} onCancel={cancel} />
+      {state === 'confirming' && preflightData && owner && repo && (
+        <CleanUpConfirmModal data={preflightData} owner={owner} repo={repo} onConfirm={handleConfirm} onCancel={cancel} />
       )}
 
       {/* Summary Modal */}
