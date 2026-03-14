@@ -874,6 +874,17 @@ class ChoresService:
 
         needs_pr = "template_content" in updates or "name" in updates
 
+        # When the name changes, derive the new template_path and remember
+        # the old one so the repo commit can delete-and-create atomically.
+        old_template_path: str | None = None
+        if "name" in updates:
+            from src.services.chores.template_builder import derive_template_path
+
+            new_path = derive_template_path(updates["name"])
+            if new_path != chore.template_path:
+                old_template_path = chore.template_path
+                updates["template_path"] = new_path
+
         if expected_sha and needs_pr and github_service and access_token and owner and repo:
             response = await github_service.rest_request(
                 access_token,
@@ -940,6 +951,7 @@ class ChoresService:
                     chore_name=chore.name,
                     template_path=chore.template_path,
                     template_content=build_template(chore.name, chore.template_content),
+                    old_template_path=old_template_path,
                 )
                 pr_number = result.get("pr_number")
                 pr_url = result.get("pr_url")

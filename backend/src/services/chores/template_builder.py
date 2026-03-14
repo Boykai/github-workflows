@@ -228,8 +228,13 @@ async def update_template_in_repo(
     chore_name: str,
     template_path: str,
     template_content: str,
+    old_template_path: str | None = None,
 ) -> dict:
     """Update an existing chore template in the repo via branch + PR.
+
+    When the chore is renamed, *old_template_path* points to the previous
+    file.  The commit will create the file at *template_path* and delete
+    *old_template_path* in a single atomic commit so the rename is clean.
 
     Args:
         github_service: GitHubProjectsService instance.
@@ -237,8 +242,9 @@ async def update_template_in_repo(
         owner: Repository owner.
         repo: Repository name.
         chore_name: Chore display name.
-        template_path: Existing template file path.
+        template_path: Target template file path (new path when renamed).
         template_content: Updated template content (with front matter).
+        old_template_path: Previous file path to delete when renamed.
 
     Returns:
         Dict with keys: pr_number, pr_url
@@ -264,6 +270,11 @@ async def update_template_in_repo(
         if branch_head:
             commit_base_oid = branch_head
 
+    # When renamed, delete the old file in the same commit.
+    deletions = None
+    if old_template_path and old_template_path != template_path:
+        deletions = [old_template_path]
+
     commit_oid = await github_service.commit_files(
         access_token,
         owner,
@@ -272,6 +283,7 @@ async def update_template_in_repo(
         commit_base_oid,
         [{"path": template_path, "content": template_content}],
         f"chore: update {chore_name}",
+        deletions=deletions,
     )
     if commit_oid is None:
         raise RuntimeError(f"Failed to commit template update to {branch_name}")
