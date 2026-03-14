@@ -93,7 +93,7 @@
 - [ ] T030 [P] [US2] Update `Sidebar.tsx` brand mark to display "Solune" in `solune/frontend/src/components/Sidebar.tsx` per FR-008
 - [ ] T031 [US2] Rewrite root `README.md` with Solune product pitch: "Agent-driven development platform" with updated feature descriptions and badges per FR-009
 - [ ] T032 [US2] Rewrite `.github/agents/copilot-instructions.md` with new monorepo structure, Solune platform role, agent operation on `apps/` subdirectories, and `@admin`/`@adminlock` routing model per FR-010
-- [ ] T033 [US2] Run comprehensive search for old brand strings and eliminate any remaining occurrences per FR-011 and SC-003: `grep -ri "Agent Projects\|ghchat-\|GitHub Workflows Chat" solune/ --include="*.py" --include="*.ts" --include="*.tsx" --include="*.yml" --include="*.json" --include="*.md"`
+- [ ] T033 [US2] Run comprehensive search for old brand strings and eliminate any remaining occurrences per FR-011 and SC-003: `grep -ri "Agent Projects\|ghchat-\|GitHub Workflows Chat" solune/ --include="*.py" --include="*.ts" --include="*.tsx" --include="*.yml" --include="*.yaml" --include="*.json" --include="*.md" --include="*.html" --include="*.sh" --include="*.toml" --include="*.cfg" --include="*.env*"`
 - [ ] T034 [US2] Verify frontend builds successfully and branding displays correctly: `cd solune/frontend && npm run build && npm run type-check` per SC-004
 
 **Checkpoint**: User Story 2 complete — zero old brand strings, all pages show "Solune" branding.
@@ -138,7 +138,7 @@
 - [ ] T049 [P] [US4] Create API client with functions for all app endpoints (list, create, get, update, delete, start, stop, status) in `solune/frontend/src/services/appsApi.ts` per contracts/apps-api.md
 - [ ] T050 [US4] Create TanStack Query hooks (`useApps`, `useApp`, `useCreateApp`, `useUpdateApp`, `useDeleteApp`, `useStartApp`, `useStopApp`) in `solune/frontend/src/hooks/useApps.ts`
 - [ ] T051 [P] [US4] Create `AppCard` component with name, description, status badge (creating=blue, active=green, stopped=gray, error=red), and action buttons in `solune/frontend/src/components/apps/AppCard.tsx` per FR-019, FR-021
-- [ ] T052 [P] [US4] Create `AppPreview` component with iframe wrapper for live app preview (src=`http://localhost:{port}`), loading state, and offline/error state fallback in `solune/frontend/src/components/apps/AppPreview.tsx` per FR-022
+- [ ] T052 [P] [US4] Create `AppPreview` component with iframe wrapper for live app preview (src=`http://localhost:{port}`), `sandbox` attribute for XSS/clickjacking protection, loading state, and offline/error state fallback in `solune/frontend/src/components/apps/AppPreview.tsx` per FR-022
 - [ ] T053 [US4] Create `AppDetailView` component with app info, embedded `AppPreview`, and start/stop/delete controls in `solune/frontend/src/components/apps/AppDetailView.tsx` per FR-020
 - [ ] T054 [US4] Create `AppsPage` component with card grid layout, create-app dialog, and navigation to detail view in `solune/frontend/src/pages/AppsPage.tsx` per FR-019
 - [ ] T055 [US4] Add routes `/apps` and `/apps/:appName` in `solune/frontend/src/App.tsx` (or main router file) following existing route patterns per research.md R10
