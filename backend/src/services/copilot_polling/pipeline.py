@@ -150,11 +150,12 @@ async def _build_pipeline_from_labels(
 
     # Look up pipeline config from DB
     try:
+        from src.services.database import get_db
         from src.services.pipelines.service import PipelineService
 
-        svc = PipelineService()
-        configs = await svc.list_pipelines(project_id)
-        matched_config = next((c for c in configs if c.name == config_name), None)
+        svc = PipelineService(get_db())
+        response = await svc.list_pipelines(project_id)
+        matched_config = next((c for c in response.pipelines if c.name == config_name), None)
         if not matched_config:
             return None
     except Exception:

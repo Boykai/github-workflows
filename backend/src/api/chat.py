@@ -182,6 +182,11 @@ async def get_proposal(proposal_id: str) -> AITaskProposal | None:
         row = await chat_store.get_proposal_by_id(db, proposal_id)
         if row is None:
             return None
+        from datetime import datetime as _dt
+
+        raw_expires = row["expires_at"] or _default_expires_at(row["created_at"])
+        parsed_expires = _dt.fromisoformat(raw_expires) if isinstance(raw_expires, str) else raw_expires
+
         proposal = AITaskProposal(
             proposal_id=row["proposal_id"],
             session_id=row["session_id"],
@@ -194,7 +199,7 @@ async def get_proposal(proposal_id: str) -> AITaskProposal | None:
             file_urls=row.get("file_urls", []),
             selected_pipeline_id=row.get("selected_pipeline_id"),
             created_at=row["created_at"],
-            expires_at=row["expires_at"] or _default_expires_at(row["created_at"]),
+            expires_at=parsed_expires,
         )
         _proposals[proposal_id] = proposal
         return proposal
