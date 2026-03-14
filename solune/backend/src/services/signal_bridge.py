@@ -59,7 +59,7 @@ def _signal_base_url() -> str:
     return get_settings().signal_api_url
 
 
-async def request_qr_code(device_name: str = "Agent Projects") -> bytes:
+async def request_qr_code(device_name: str = "Solune") -> bytes:
     """Request a QR code PNG image from signal-cli-rest-api.
 
     Returns raw PNG bytes.
@@ -71,7 +71,7 @@ async def request_qr_code(device_name: str = "Agent Projects") -> bytes:
         return resp.content
 
 
-async def request_qr_code_base64(device_name: str = "Agent Projects") -> str:
+async def request_qr_code_base64(device_name: str = "Solune") -> str:
     """Request a QR code and return it as a base64-encoded PNG string."""
     raw = await request_qr_code(device_name)
     return base64.b64encode(raw).decode()
@@ -442,7 +442,7 @@ async def send_welcome_message(phone: str) -> None:
     Explains available commands so the user can start chatting via Signal.
     """
     text = (
-        "\U0001f44b *Welcome to Agent Projects!*\n\n"
+        "\U0001f44b *Welcome to Solune!*\n\n"
         "Your Signal account is now connected. "
         "You can chat with me just like the chat window in the app.\n\n"
         "*Here's what you can do:*\n"

@@ -50,7 +50,7 @@
 
 **Workflow configuration lost after restart:**
 
-- Verify Docker volume `ghchat-data` is mounted
+- Verify Docker volume `solune-data` is mounted
 - Check `DATABASE_PATH` points to a persistent location (default: `data/settings.db`)
 - Auto-backfill migrates legacy `agent_pipeline_mappings` data on startup
 

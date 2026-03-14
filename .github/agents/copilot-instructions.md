@@ -1,4 +1,4 @@
-# GitHub Workflows Chat — Development Guidelines
+# Solune — Development Guidelines
 
 Last updated: 2026-03-11
 

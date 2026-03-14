@@ -324,7 +324,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     """
     settings = get_settings()
     setup_logging(settings.debug, structured=not settings.debug)
-    logger.info("Starting Agent Projects API")
+    logger.info("Starting Solune API")
 
     from src.services.database import close_database, init_database, seed_global_settings
 
@@ -436,7 +436,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 
         if db is not None:
             await close_database()
-        logger.info("Shutting down Agent Projects API")
+        logger.info("Shutting down Solune API")
 
 
 def create_app() -> FastAPI:
@@ -444,8 +444,8 @@ def create_app() -> FastAPI:
     settings = get_settings()
 
     app = FastAPI(
-        title="Agent Projects API",
-        description="REST API for Agent Projects",
+        title="Solune API",
+        description="REST API for Solune",
         version="0.1.0",
         lifespan=lifespan,
         docs_url="/api/docs" if settings.enable_docs else None,

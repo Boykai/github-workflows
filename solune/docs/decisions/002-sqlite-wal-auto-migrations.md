@@ -27,4 +27,4 @@ Schema is managed by numbered SQL files in `backend/src/migrations/` (currently 
 - **+** Numbered migrations are explicit, reversible (by backup + rollback), and Git-traceable.
 - **−** Not suitable for multi-replica deployments — SQLite is single-writer.
 - **−** No schema rollback support; forward-only migrations mean mistakes require a new migration file.
-- **Note**: The `ghchat-data` Docker volume must be mounted to persist the database across container restarts.
+- **Note**: The `solune-data` Docker volume must be mounted to persist the database across container restarts.

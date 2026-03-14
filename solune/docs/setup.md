@@ -1,6 +1,6 @@
 # Setup Guide
 
-This guide walks through every supported way to run Agent Projects locally: GitHub Codespaces (easiest), Docker Compose (recommended), and bare-metal without Docker. Follow the steps in order for your chosen path.
+This guide walks through every supported way to run Solune locally: GitHub Codespaces (easiest), Docker Compose (recommended), and bare-metal without Docker. Follow the steps in order for your chosen path.
 
 ## Prerequisites
 
@@ -103,9 +103,9 @@ Open **<http://localhost:5173>**. Verify containers are running:
 
 ```bash
 docker ps
-# ghchat-backend    (healthy)
-# ghchat-frontend
-# ghchat-signal-api (healthy)
+# solune-backend    (healthy)
+# solune-frontend
+# solune-signal-api (healthy)
 ```
 
 ---

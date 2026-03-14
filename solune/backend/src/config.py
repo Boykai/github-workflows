@@ -76,7 +76,7 @@ class Settings(BaseSettings):
     encryption_key: str | None = Field(default=None, repr=False)
 
     # Database
-    database_path: str = "/var/lib/ghchat/data/settings.db"
+    database_path: str = "/var/lib/solune/data/settings.db"
 
     # Signal integration
     signal_api_url: str = "http://signal-api:8080"

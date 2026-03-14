@@ -95,7 +95,7 @@ Files: config.py
 17. Data volume mounted inside application directory — OWASP A05 (Medium)
 The SQLite volume is mounted at data, commingling runtime data with application code.
 
-Correct behavior: Mount data volumes outside the application root (e.g., /var/lib/ghchat/data).
+Correct behavior: Mount data volumes outside the application root (e.g., /var/lib/solune/data).
 Files: docker-compose.yml
 18. Chat history stored unencrypted and indefinitely in localStorage — Privacy / OWASP A02 (Medium)
 Full message content is persisted to localStorage with no expiration, survives logout, and is readable by any XSS.

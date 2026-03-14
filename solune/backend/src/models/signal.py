@@ -98,7 +98,7 @@ class SignalConflictBanner(BaseModel):
 class SignalLinkRequest(BaseModel):
     """POST /api/v1/signal/connection/link request body."""
 
-    device_name: str = Field(default="Agent Projects", max_length=50)
+    device_name: str = Field(default="Solune", max_length=50)
 
 
 class SignalPreferencesUpdate(BaseModel):

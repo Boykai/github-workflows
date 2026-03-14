@@ -13,7 +13,7 @@ The system needs to send and receive Signal messages to allow users to interact 
 
 ## Decision
 
-Run `bbernhard/signal-cli-rest-api` as a Docker Compose sidecar service (`ghchat-signal-api`) accessible via HTTP at `signal-api:8080`. The backend communicates with the sidecar via:
+Run `bbernhard/signal-cli-rest-api` as a Docker Compose sidecar service (`solune-signal-api`) accessible via HTTP at `signal-api:8080`. The backend communicates with the sidecar via:
 
 - **HTTP** — Send messages, generate QR codes, manage account registration.
 - **WebSocket** — Receive inbound messages in real time.

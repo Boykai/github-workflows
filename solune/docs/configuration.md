@@ -75,7 +75,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DATABASE_PATH` | `/var/lib/ghchat/data/settings.db` | SQLite database path (map to Docker volume for persistence) |
+| `DATABASE_PATH` | `/var/lib/solune/data/settings.db` | SQLite database path (map to Docker volume for persistence) |
 
 ### Signal (Optional)
 

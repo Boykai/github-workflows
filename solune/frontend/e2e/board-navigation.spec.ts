@@ -9,7 +9,7 @@ import { VIEWPORTS } from './viewports';
 test.describe('Board Navigation', () => {
   test('should display app branding on home page', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('h1')).toContainText('Agent Projects');
+    await expect(page.locator('h1')).toContainText('Solune');
   });
 
   test('should navigate to board view when authenticated', async ({ page }) => {

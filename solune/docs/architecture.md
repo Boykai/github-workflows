@@ -1,10 +1,10 @@
 # Architecture
 
-This document describes the system design of Agent Projects: how the services are composed, how data flows between them, and how the key backend modules are structured. Read this before making cross-service changes or onboarding to the codebase.
+This document describes the system design of Solune: how the services are composed, how data flows between them, and how the key backend modules are structured. Read this before making cross-service changes or onboarding to the codebase.
 
 ## Overview
 
-Agent Projects is a full-stack web application with a React frontend, a FastAPI backend, and a Signal messaging sidecar. All three services are orchestrated with Docker Compose behind a shared bridge network.
+Solune is a full-stack web application with a React frontend, a FastAPI backend, and a Signal messaging sidecar. All three services are orchestrated with Docker Compose behind a shared bridge network.
 
 ```text
 ┌───────────────────────────┐     ┌──────────────────────────────────┐     ┌──────────────────┐
@@ -48,11 +48,11 @@ Agent Projects is a full-stack web application with a React frontend, a FastAPI 
 
 | Service | Container | Port | Purpose |
 |---------|-----------|------|---------|
-| `backend` | `ghchat-backend` | 8000 | FastAPI API server |
-| `frontend` | `ghchat-frontend` | 5173 → 80 | nginx serving React SPA + reverse proxy to `/api/` |
-| `signal-api` | `ghchat-signal-api` | 8080 (internal) | `bbernhard/signal-cli-rest-api` sidecar (json-rpc mode) |
+| `backend` | `solune-backend` | 8000 | FastAPI API server |
+| `frontend` | `solune-frontend` | 5173 → 80 | nginx serving React SPA + reverse proxy to `/api/` |
+| `signal-api` | `solune-signal-api` | 8080 (internal) | `bbernhard/signal-cli-rest-api` sidecar (json-rpc mode) |
 
-Volumes: `ghchat-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
+Volumes: `solune-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 
 ## Frontend Architecture
 

@@ -1,6 +1,6 @@
 # Architecture Decision Records
 
-This directory contains Architecture Decision Records (ADRs) for Agent Projects.
+This directory contains Architecture Decision Records (ADRs) for Solune.
 
 Each ADR captures a significant technical decision that shaped the system design.
 
