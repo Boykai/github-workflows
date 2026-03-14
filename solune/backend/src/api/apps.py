@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
@@ -24,11 +26,13 @@ logger = get_logger(__name__)
 
 router = APIRouter()
 
+_SessionDep = Annotated[UserSession, Depends(get_session_dep)]
+
 
 @router.get("", response_model=list[App])
 async def list_apps_endpoint(
-    _session: UserSession = Depends(get_session_dep),
-    status: AppStatus | None = Query(None, description="Filter by app status"),
+    _session: _SessionDep,
+    status: Annotated[AppStatus | None, Query(description="Filter by app status")] = None,
 ) -> list[App]:
     """List all managed applications."""
     db = get_db()
@@ -38,7 +42,7 @@ async def list_apps_endpoint(
 @router.post("", response_model=App, status_code=201)
 async def create_app_endpoint(
     payload: AppCreate,
-    _session: UserSession = Depends(get_session_dep),
+    _session: _SessionDep,
 ) -> App:
     """Create a new application with directory scaffolding."""
     db = get_db()
@@ -48,7 +52,7 @@ async def create_app_endpoint(
 @router.get("/{app_name}", response_model=App)
 async def get_app_endpoint(
     app_name: str,
-    _session: UserSession = Depends(get_session_dep),
+    _session: _SessionDep,
 ) -> App:
     """Get details of a specific application."""
     db = get_db()
@@ -59,7 +63,7 @@ async def get_app_endpoint(
 async def update_app_endpoint(
     app_name: str,
     payload: AppUpdate,
-    _session: UserSession = Depends(get_session_dep),
+    _session: _SessionDep,
 ) -> App:
     """Update application metadata."""
     db = get_db()
@@ -69,7 +73,7 @@ async def update_app_endpoint(
 @router.delete("/{app_name}", status_code=204)
 async def delete_app_endpoint(
     app_name: str,
-    _session: UserSession = Depends(get_session_dep),
+    _session: _SessionDep,
 ) -> None:
     """Delete an application (must be stopped first)."""
     db = get_db()
@@ -79,7 +83,7 @@ async def delete_app_endpoint(
 @router.post("/{app_name}/start", response_model=AppStatusResponse)
 async def start_app_endpoint(
     app_name: str,
-    _session: UserSession = Depends(get_session_dep),
+    _session: _SessionDep,
 ) -> AppStatusResponse:
     """Start an application."""
     db = get_db()
@@ -89,7 +93,7 @@ async def start_app_endpoint(
 @router.post("/{app_name}/stop", response_model=AppStatusResponse)
 async def stop_app_endpoint(
     app_name: str,
-    _session: UserSession = Depends(get_session_dep),
+    _session: _SessionDep,
 ) -> AppStatusResponse:
     """Stop a running application."""
     db = get_db()
@@ -99,7 +103,7 @@ async def stop_app_endpoint(
 @router.get("/{app_name}/status", response_model=AppStatusResponse)
 async def get_app_status_endpoint(
     app_name: str,
-    _session: UserSession = Depends(get_session_dep),
+    _session: _SessionDep,
 ) -> AppStatusResponse:
     """Get the current status of an application."""
     db = get_db()

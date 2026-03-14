@@ -1,6 +1,6 @@
 """Application data models for Solune multi-app management."""
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import BaseModel, Field
 
@@ -20,14 +20,14 @@ RESERVED_NAMES = frozenset({
 })
 
 
-class AppStatus(str, Enum):
+class AppStatus(StrEnum):
     CREATING = "creating"
     ACTIVE = "active"
     STOPPED = "stopped"
     ERROR = "error"
 
 
-class RepoType(str, Enum):
+class RepoType(StrEnum):
     SAME_REPO = "same-repo"
     EXTERNAL_REPO = "external-repo"
 

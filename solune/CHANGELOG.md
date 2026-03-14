@@ -10,6 +10,13 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) co
 
 ### Added
 
+- **Monorepo restructure**: Repository reorganized with `solune/` (platform core) and `apps/` (generated applications) at the root
+- **Full product rebrand**: All references renamed from "Agent Projects" / "ghchat" to "Solune" across ~70+ files
+- **App management backend**: New `apps` table, Pydantic models (`App`, `AppCreate`, `AppUpdate`, `AppStatus`), app service with full CRUD lifecycle (create, list, get, update, start, stop, delete), directory scaffolding, and name validation
+- **App management API**: RESTful endpoints at `/api/v1/apps` for all app operations including lifecycle controls (start/stop) and status checks
+- **Apps page**: New frontend page at `/apps` with card grid view, create dialog, detail view with live iframe preview and start/stop controls
+- **Slash command context switching**: `active_app_name` session attribute for `/<app-name>` command support and working directory resolution
+- **Admin guard system**: `guard-config.yml` with `@admin` / `@adminlock` protection levels, guard service with most-specific-match-wins evaluation, and middleware for file operation interception
 - Pipeline Analytics dashboard replacing the Recent Activity section on the Agents Pipelines page — displays agent frequency, model distribution, execution mode breakdown, and complexity spotlight
 - Expand button visible in collapsed sidebar so users can re-open it
 - Rich gold primary color for the "+ Add Agent" button on the Agents page
