@@ -185,7 +185,9 @@ async def get_proposal(proposal_id: str) -> AITaskProposal | None:
         from datetime import datetime as _dt
 
         raw_expires = row["expires_at"] or _default_expires_at(row["created_at"])
-        parsed_expires = _dt.fromisoformat(raw_expires) if isinstance(raw_expires, str) else raw_expires
+        parsed_expires = (
+            _dt.fromisoformat(raw_expires) if isinstance(raw_expires, str) else raw_expires
+        )
 
         proposal = AITaskProposal(
             proposal_id=row["proposal_id"],

@@ -3,6 +3,7 @@
   "MD004": { "style": "dash" },
   "MD006": true,
   "MD013": false,
+  "MD024": { "siblings_only": true },
   "MD032": true,
   "MD033": false,
   "MD034": true,
