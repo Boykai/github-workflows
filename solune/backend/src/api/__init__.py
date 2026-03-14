@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from src.api.agents import router as agents_router
+from src.api.apps import router as apps_router
 from src.api.auth import router as auth_router
 from src.api.board import router as board_router
 from src.api.chat import router as chat_router
@@ -39,3 +40,4 @@ router.include_router(pipelines_router, prefix="/pipelines", tags=["pipelines"])
 router.include_router(tools_router, prefix="/tools", tags=["tools"])
 router.include_router(metadata_router, prefix="/metadata", tags=["metadata"])
 router.include_router(health_router, tags=["health"])
+router.include_router(apps_router, prefix="/apps", tags=["apps"])
