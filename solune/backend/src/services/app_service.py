@@ -72,7 +72,7 @@ def _safe_app_path(name: str) -> Path:
     """
     validate_app_name(name)
     app_dir = (_APPS_DIR / name).resolve()
-    if not app_dir.parts[: len(_APPS_DIR_RESOLVED.parts)] == _APPS_DIR_RESOLVED.parts:
+    if not app_dir.is_relative_to(_APPS_DIR_RESOLVED):
         raise ValidationError(f"Invalid app name '{name}': resolved path escapes apps directory.")
     return app_dir
 
@@ -325,7 +325,7 @@ async def delete_app(db: aiosqlite.Connection, name: str) -> None:
     if app.status == AppStatus.ACTIVE:
         raise ValidationError(f"Cannot delete app '{name}': must stop the app first.")
 
-    # Remove directory — use validated app.name from DB, not raw input
+    # Remove directory with traversal-safe path resolution
     app_dir = _safe_app_path(app.name)
     if app_dir.exists():
         shutil.rmtree(app_dir)
