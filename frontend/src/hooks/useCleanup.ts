@@ -89,6 +89,7 @@ export function useCleanup(): UseCleanupReturn {
     async (owner: string, repo: string, projectId: string, payload: CleanupConfirmPayload) => {
       setState('executing');
       setError(null);
+      setExecuteResult(null);
 
       try {
         const result = await cleanupApi.execute({
