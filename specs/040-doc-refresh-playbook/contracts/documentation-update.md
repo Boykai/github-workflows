@@ -35,6 +35,7 @@ For each document flagged by the PriorityAssignment:
 ### Step 1: Extract Current Claims
 
 Read the document and list all factual claims:
+
 - Endpoint paths, methods, and parameters (for API docs)
 - Environment variable names, types, and defaults (for config docs)
 - Service names and relationships (for architecture docs)
@@ -44,6 +45,7 @@ Read the document and list all factual claims:
 ### Step 2: Extract Source Truth
 
 Read the source-of-truth file(s) and extract the current state:
+
 - Parse route decorators for API endpoints
 - Parse config class for environment variables
 - Parse docker-compose.yml for services
@@ -64,6 +66,7 @@ Compare claims against truth and classify each discrepancy:
 ### Step 4: Apply Updates
 
 For each discrepancy:
+
 1. Make the minimum change to correct the document
 2. Preserve existing formatting and style
 3. Do not rewrite sections that are already accurate
@@ -72,6 +75,7 @@ For each discrepancy:
 ### Step 5: Verify Update
 
 After applying all changes to a document:
+
 1. Re-run the diff between updated doc and source — zero discrepancies expected
 2. Check that all internal links within the document still resolve
 3. Check that markdown formatting is valid

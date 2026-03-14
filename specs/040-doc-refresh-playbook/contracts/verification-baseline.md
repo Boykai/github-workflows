@@ -13,11 +13,13 @@ Defines the verification steps and baseline recording process that close each re
 ### Internal Link Check
 
 **Command**:
+
 ```bash
 grep -rn '\[.*\](docs/' README.md docs/
 ```
 
 **Processing**:
+
 1. For each match, extract the target path from the markdown link
 2. Resolve the path relative to the repository root
 3. Check if the target file exists
@@ -32,6 +34,7 @@ grep -rn '\[.*\](docs/' README.md docs/
 **Trigger**: Change Manifest contains items in the "Architectural shifts" category.
 
 **Command**:
+
 ```bash
 scripts/generate-diagrams.sh
 ```
@@ -39,6 +42,7 @@ scripts/generate-diagrams.sh
 **Verification**: After regeneration, verify that all `.mmd` files in `docs/architectures/` are valid Mermaid syntax. The CI pipeline includes automated diagram generation, but the refresh cycle may need to invoke the script explicitly for changes not captured by CI.
 
 **Files affected**:
+
 - `docs/architectures/high-level.mmd`
 - `docs/architectures/deployment.mmd`
 - `docs/architectures/frontend-components.mmd`
@@ -50,6 +54,7 @@ scripts/generate-diagrams.sh
 **Trigger**: New files in `docs/decisions/` since the last refresh.
 
 **Command**:
+
 ```bash
 git diff --name-status <baseline-sha>..HEAD -- docs/decisions/
 ```
@@ -67,6 +72,7 @@ git diff --name-status <baseline-sha>..HEAD -- docs/decisions/
 ### Weekly Sweep Checklist
 
 Run the checklist at `docs/checklists/weekly-sweep.md` as a validation pass:
+
 - API Reference Check (against `backend/src/api/`)
 - Configuration Check (against `backend/src/config.py`)
 - Setup Guide Check (against current project state)
@@ -77,6 +83,7 @@ Run the checklist at `docs/checklists/weekly-sweep.md` as a validation pass:
 ### UX Spot-Check
 
 Manually verify 3 key user flows in the running application:
+
 1. Select a representative P0/P1 user flow
 2. Walk through the flow in the application
 3. Compare page names, navigation, and terminology against the documentation
@@ -87,11 +94,13 @@ Manually verify 3 key user flows in the running application:
 ### Scope Verification
 
 **Command**:
+
 ```bash
 git diff --stat
 ```
 
 **Acceptance criteria** (SC-005): Changes are limited to:
+
 - `docs/**` (documentation files)
 - `README.md` (project readme)
 - `CHANGELOG.md` (refresh record)
@@ -132,7 +141,8 @@ Write `docs/.last-refresh` with the current cycle's data:
 **Timing**: The baseline is written AFTER the CHANGELOG entry is committed, so the SHA reflects the complete refresh commit. This ensures the next cycle's diff window starts from the fully-committed state.
 
 **Commit message format**:
-```
+
+```text
 docs: bi-weekly documentation refresh YYYY-MM-DD
 
 Updated: <list of files>

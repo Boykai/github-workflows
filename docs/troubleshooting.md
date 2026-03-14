@@ -91,7 +91,8 @@
 - Agent error detection uses both timeline events and PR status checks
 - If an agent fails repeatedly, verify Copilot subscription status and repository ruleset bypass configuration
 - Check recovery state: `GET /api/v1/workflow/pipeline-states/{issue_number}`
-4. Set target branches to **Include all branches**
+
+1. Set target branches to **Include all branches**
 
 ## Signal
 
