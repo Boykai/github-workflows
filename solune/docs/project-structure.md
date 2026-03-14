@@ -1,7 +1,7 @@
 # Project Structure
 
 ```text
-github-workflows/
+solune/
 ├── .devcontainer/                # GitHub Codespaces / Dev Container config
 │   ├── devcontainer.json         #   Python 3.13, Node 22, Docker-in-Docker
 │   ├── docker-compose.devcontainer.yml

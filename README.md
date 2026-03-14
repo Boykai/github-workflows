@@ -44,7 +44,7 @@ docker-compose.yml    # Root compose orchestrating everything
 
 ```bash
 git clone <repository-url>
-cd github-workflows
+cd <repository-name>
 cp solune/.env.example solune/.env
 # Edit solune/.env — set GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, SESSION_SECRET_KEY
 docker compose up --build -d
