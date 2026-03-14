@@ -1,7 +1,7 @@
 """Chat persistence — SQLite-backed message, proposal, and recommendation storage.
 
 Replaces the in-memory dict storage in ``api/chat.py`` with durable SQLite
-persistence using the tables created by ``012_chat_persistence.sql``.
+persistence using the tables created by ``023_consolidated_schema.sql``.
 """
 
 from __future__ import annotations

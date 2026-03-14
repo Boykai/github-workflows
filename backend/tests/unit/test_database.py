@@ -8,7 +8,6 @@ Covers:
 - get_db() / close_database()
 """
 
-from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import aiosqlite
@@ -45,14 +44,14 @@ async def raw_db():
 class TestDiscoverMigrations:
     def test_returns_sorted_tuples(self):
         migrations = _discover_migrations()
-        assert len(migrations) >= 2
+        assert len(migrations) >= 1
         versions = [v for v, _ in migrations]
         assert versions == sorted(versions)
 
-    def test_first_migration_is_001(self):
+    def test_first_migration_is_023_consolidated(self):
         migrations = _discover_migrations()
-        assert migrations[0][0] == 1
-        assert "001_" in migrations[0][1].name
+        assert migrations[0][0] == 23
+        assert "023_" in migrations[0][1].name
 
     def test_paths_are_valid(self):
         for _, path in _discover_migrations():
@@ -126,13 +125,16 @@ class TestRunMigrations:
             (max_ver,),
         )
 
-        old_agent_migrations = [
-            path
-            for _, path in migrations
-            if path.name in {"007_agent_configs.sql", "014_agent_default_models.sql"}
-        ]
-        for migration_path in old_agent_migrations:
-            await raw_db.executescript(Path(migration_path).read_text(encoding="utf-8"))
+        # Create agent_configs WITHOUT icon_name to simulate an old volume
+        await raw_db.execute(
+            "CREATE TABLE agent_configs ("
+            "  id TEXT PRIMARY KEY, name TEXT NOT NULL, slug TEXT NOT NULL,"
+            "  description TEXT NOT NULL, system_prompt TEXT NOT NULL,"
+            "  status_column TEXT NOT NULL, tools TEXT NOT NULL DEFAULT '[]',"
+            "  project_id TEXT NOT NULL, owner TEXT NOT NULL, repo TEXT NOT NULL,"
+            "  created_by TEXT NOT NULL"
+            ")"
+        )
         await raw_db.commit()
 
         await _run_migrations(raw_db)

@@ -83,7 +83,7 @@ class FileUploadResponse(BaseModel):
 # ── SQLite-backed chat persistence ───────────────────────────────────────
 #
 # Chat messages, proposals, and recommendations are persisted to SQLite
-# via chat_store.py (tables from 012_chat_persistence.sql).  In-memory
+# via chat_store.py (tables from 023_consolidated_schema.sql).  In-memory
 # dicts act as a write-through cache for fast reads within the same
 # server session.  On a cache miss the data is loaded from SQLite,
 # ensuring nothing is lost on restart.
