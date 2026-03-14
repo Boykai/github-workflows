@@ -219,7 +219,7 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
             tools: [&quot;*&quot;]
           </code>{' '}
           for full tool access. Activated MCPs and Built-In MCPs are automatically synced to the
-          agent MCP configuration file.
+          agent configuration file.
         </p>
       </div>
 

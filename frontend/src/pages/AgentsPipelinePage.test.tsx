@@ -243,7 +243,7 @@ describe('AgentsPipelinePage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows overflow text with anchor link when more than 3 pipelines exist', () => {
+  it('renders Pipeline Analytics section when pipelines exist', () => {
     const pipelines = Array.from({ length: 5 }, (_, i) => ({
       id: `pipeline-${i}`,
       name: `Pipeline ${i}`,
@@ -261,29 +261,16 @@ describe('AgentsPipelinePage', () => {
 
     render(<AgentsPipelinePage />);
 
-    expect(screen.getByText(/Showing 3 of 5/)).toBeInTheDocument();
-    const link = screen.getByRole('link', { name: /see all in Saved Pipelines/ });
-    expect(link).toHaveAttribute('href', '#saved-pipelines');
+    expect(screen.getByText('Pipeline Analytics')).toBeInTheDocument();
   });
 
-  it('does not show overflow text when 3 or fewer pipelines exist', () => {
-    const pipelines = Array.from({ length: 2 }, (_, i) => ({
-      id: `pipeline-${i}`,
-      name: `Pipeline ${i}`,
-      description: '',
-      stage_count: 1,
-      agent_count: 1,
-      total_tool_count: 0,
-      is_preset: false,
-      preset_id: '',
-      updated_at: '2026-03-10T18:00:00Z',
-      stages: [],
-    }));
+  it('shows analytics empty state when no pipelines exist', () => {
+    const pipelines: unknown[] = [];
 
-    mockPipelineConfig.pipelines = { pipelines, total: 2 };
+    mockPipelineConfig.pipelines = { pipelines, total: 0 };
 
     render(<AgentsPipelinePage />);
 
-    expect(screen.queryByText(/Showing \d+ of/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Analytics will appear once pipelines are created/)).toBeInTheDocument();
   });
 });

@@ -21,7 +21,7 @@ import { PipelineBoard } from '@/components/pipeline/PipelineBoard';
 import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
 import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
-import { PipelineFlowGraph } from '@/components/pipeline/PipelineFlowGraph';
+import { PipelineAnalytics } from '@/components/pipeline/PipelineAnalytics';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
@@ -376,58 +376,8 @@ export function AgentsPipelinePage() {
             onAssign={pipelineConfig.assignPipeline}
           />
 
-          {/* Activity Feed with flow graph for recent pipelines */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Recent Activity</h3>
-            <div className="celestial-panel rounded-[1.2rem] border border-border/75 p-4">
-              {(pipelineConfig.pipelines?.pipelines ?? []).length > 0 ? (
-                <div className="overflow-x-auto pb-2">
-                  <div className="flex min-w-full flex-col gap-3">
-                    {(pipelineConfig.pipelines?.pipelines ?? []).slice(0, 3).map((p) => (
-                      <div key={p.id} className="grid min-w-full gap-3" style={alignedGridStyle}>
-                        <div className="col-[1/-1] rounded-[1rem] border border-border/40 bg-background/12 p-3">
-                          <PipelineFlowGraph
-                            stages={p.stages ?? []}
-                            width={220}
-                            height={84}
-                            responsive={true}
-                            className="w-full"
-                          />
-                          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-                            <div className="min-w-0">
-                              <Tooltip content={p.name}>
-                                <p className="truncate text-xs font-medium text-foreground">
-                                  {p.name}
-                                </p>
-                              </Tooltip>
-                              <p className="text-[10px] text-muted-foreground">
-                                {p.stage_count} stages · {p.agent_count} agents
-                              </p>
-                            </div>
-                            <span className="solar-chip-soft rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em]">
-                              Recent pipeline
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    {(pipelineConfig.pipelines?.pipelines ?? []).length > 3 && (
-                      <p className="mt-2 text-center text-xs text-muted-foreground">
-                        Showing 3 of {(pipelineConfig.pipelines?.pipelines ?? []).length} —{" "}
-                        <a href="#saved-pipelines" className="text-primary/70 hover:text-primary underline-offset-2 hover:underline">
-                          see all in Saved Pipelines
-                        </a>
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Agent workflow events will appear here as agents process items
-                </p>
-              )}
-            </div>
-          </div>
+          {/* Pipeline Analytics Dashboard */}
+          <PipelineAnalytics pipelines={pipelineConfig.pipelines?.pipelines ?? []} />
         </>
       )}
 
