@@ -250,3 +250,4 @@ Start manual. Automate incrementally after 2–3 cycles validate the process.
 - [ ] README feature list matches current capabilities in priority order
 - [ ] New baseline (tag or metadata) is set for next cycle
 - [ ] Changelog updated with documentation changes
+- [ ] Clear any specs/ directories when complete with work
