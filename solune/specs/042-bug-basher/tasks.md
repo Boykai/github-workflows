@@ -234,7 +234,7 @@
 
 ### 7a: Dead Code Removal (Code Quality Contract §CQ1)
 
-- [ ] T078 [P] [US5] Run `cd solune/backend && python -m ruff check src/ --select F841,F401` to identify unused variables (F841) and unused imports (F401) across all backend files; remove dead code
+- [ ] T078 [P] [US5] Run `cd solune/backend && python -m ruff check src/ --select F841,F401` to identify unused variables (F841) and unused imports (F401) across all backend files; also manually search for unused functions and classes not caught by these rules; remove dead code
 - [ ] T079 [P] [US5] Search all backend service files `solune/backend/src/services/*.py` for functions defined but never called (compare definitions vs usages); remove or flag with `TODO(bug-bash)` if unsure about dynamic usage
 - [ ] T080 [P] [US5] Search all frontend source files `solune/frontend/src/**/*.{ts,tsx}` for unused exports, unreferenced components, and dead utility functions; remove dead code
 - [ ] T081 [P] [US5] Search backend files for commented-out code blocks and `if False:` patterns in `solune/backend/src/**/*.py`; remove
