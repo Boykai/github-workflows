@@ -318,6 +318,9 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
 
 // ============ useAvailableAgents Hook (T018) ============
 
+/** Stable empty array to avoid creating new references each render. */
+const EMPTY_AGENTS: AvailableAgent[] = [];
+
 interface UseAvailableAgentsReturn {
   agents: AvailableAgent[];
   isLoading: boolean;
@@ -338,7 +341,7 @@ export function useAvailableAgents(projectId?: string | null): UseAvailableAgent
   });
 
   return {
-    agents: data ?? [],
+    agents: data ?? EMPTY_AGENTS,
     isLoading,
     error: error?.message ?? null,
     refetch,

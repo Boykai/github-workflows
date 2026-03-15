@@ -8,6 +8,9 @@ import { boardApi } from '@/services/api';
 import { STALE_TIME_PROJECTS, STALE_TIME_SHORT } from '@/constants';
 import type { BoardProject, BoardDataResponse, RateLimitInfo } from '@/types';
 
+/** Stable empty array to avoid creating new references each render. */
+const EMPTY_PROJECTS: BoardProject[] = [];
+
 interface UseProjectBoardOptions {
   /** Externally managed selected project ID (from session) */
   selectedProjectId?: string | null;
@@ -90,7 +93,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
   );
 
   return {
-    projects: projectsData?.projects ?? [],
+    projects: projectsData?.projects ?? EMPTY_PROJECTS,
     projectsRateLimitInfo: projectsData?.rate_limit ?? null,
     projectsLoading,
     projectsError: projectsError as Error | null,

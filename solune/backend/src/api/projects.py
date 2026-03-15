@@ -309,6 +309,19 @@ async def websocket_subscribe(
                 if cached is not None:
                     return cached
 
+                # Periodic checks should not trigger fresh API calls when the
+                # cache has merely expired.  Serve stale data instead — the
+                # auto-refresh timer (5 min) or a manual refresh will populate
+                # fresh data.  This eliminates unnecessary outbound API calls
+                # during idle board viewing (SC-001).
+                stale = cache.get_stale(cache_key)
+                if stale is not None:
+                    logger.debug(
+                        "WebSocket periodic check using stale cache for project %s",
+                        project_id,
+                    )
+                    return stale
+
             tasks = await github_projects_service.get_project_items(
                 session.access_token, project_id
             )

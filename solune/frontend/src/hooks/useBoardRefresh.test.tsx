@@ -580,4 +580,93 @@ describe('useBoardRefresh', () => {
     // The manual refresh should have called getBoardData (force=true)
     expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
   });
+
+  it('simultaneous auto-refresh + external reload should be deduplicated (FR-010)', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    // Trigger requestBoardReload (simulates a WebSocket refresh event)
+    await act(async () => {
+      result.current.requestBoardReload();
+    });
+
+    // Clear so we can count the next batch of calls
+    invalidateSpy.mockClear();
+
+    // Immediately trigger another requestBoardReload (simulates auto-refresh overlap)
+    await act(async () => {
+      result.current.requestBoardReload();
+    });
+
+    // The second request should be deduplicated (within debounce window).
+    // At most one pending debounced reload should fire after the window.
+    await act(async () => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    // Should fire at most once for the deferred debounced reload
+    const boardDataInvalidations = invalidateSpy.mock.calls.filter(
+      (call) => {
+        const qk = call[0]?.queryKey;
+        return Array.isArray(qk) && qk[0] === 'board';
+      }
+    );
+    expect(boardDataInvalidations.length).toBeLessThanOrEqual(1);
+  });
+
+  it('resetTimer should reset the auto-refresh countdown', async () => {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    // Advance halfway through auto-refresh interval
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+    });
+
+    // Reset timer (simulated external trigger, e.g. WebSocket event)
+    await act(async () => {
+      result.current.resetTimer();
+    });
+
+    invalidateSpy.mockClear();
+
+    // Advance by the original interval minus a bit — should NOT fire yet
+    // because the timer was reset
+    await act(async () => {
+      vi.advanceTimersByTime(900);
+    });
+
+    const earlyInvalidations = invalidateSpy.mock.calls.filter(
+      (call) => {
+        const qk = call[0]?.queryKey;
+        return Array.isArray(qk) && qk[0] === 'board';
+      }
+    );
+    expect(earlyInvalidations.length).toBe(0);
+
+    // Advance the remaining time — now it should fire
+    await act(async () => {
+      vi.advanceTimersByTime(200);
+    });
+
+    const laterInvalidations = invalidateSpy.mock.calls.filter(
+      (call) => {
+        const qk = call[0]?.queryKey;
+        return Array.isArray(qk) && qk[0] === 'board';
+      }
+    );
+    expect(laterInvalidations.length).toBe(1);
+  });
 });

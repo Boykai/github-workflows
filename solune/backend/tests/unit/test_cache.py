@@ -262,3 +262,44 @@ class TestCacheClearExpiredSafety:
 
         # Should return None, not raise
         assert cache.get("k1") is None
+
+
+class TestCacheWarmPreventsOutboundCalls:
+    """Performance regression tests: warm cache should prevent redundant work."""
+
+    @patch("src.services.cache.get_settings")
+    def test_warm_cache_returns_value_without_fetch(self, mock_settings):
+        """A warm (non-expired) cache entry should be returned directly (SC-001)."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+        c.set("board:proj1", {"columns": []}, ttl_seconds=300)
+
+        result = c.get("board:proj1")
+        assert result == {"columns": []}
+
+    @patch("src.services.cache.get_settings")
+    def test_stale_cache_available_after_expiry(self, mock_settings):
+        """After TTL expires, get_stale should still return the value even when
+        get() has not been called (entry is still in the internal store)."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=0)
+        c = InMemoryCache()
+        c.set("board:proj1", {"columns": []}, ttl_seconds=0)
+
+        time.sleep(0.01)
+
+        # get_stale() returns the value even though TTL expired — this is the
+        # stale-fallback path used by WebSocket periodic checks and error fallback.
+        assert c.get_stale("board:proj1") == {"columns": []}
+
+    @patch("src.services.cache.get_settings")
+    def test_ttl_alignment_with_board_cache(self, mock_settings):
+        """Board cache TTL should be settable to 300s to align with frontend auto-refresh."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=60)
+        c = InMemoryCache()
+        c.set("board_data:proj1", {"columns": []}, ttl_seconds=300)
+
+        entry = c.get_entry("board_data:proj1")
+        assert entry is not None
+        # TTL should be 300s, not the default 60s
+        remaining = (entry.expires_at - utcnow()).total_seconds()
+        assert 295 <= remaining <= 305
