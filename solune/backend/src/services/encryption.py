@@ -33,7 +33,12 @@ class EncryptionService:
                 self._fernet = Fernet(key.encode() if isinstance(key, str) else key)
                 logger.info("EncryptionService initialised with provided key")
             except Exception as e:
-                logger.exception("Invalid ENCRYPTION_KEY — falling back to passthrough mode: %s", e)
+                raise ValueError(
+                    f"Invalid ENCRYPTION_KEY: {e}. "
+                    "Generate a valid key with: "
+                    'python -c "from cryptography.fernet import Fernet; '
+                    'print(Fernet.generate_key().decode())"'
+                ) from e
         else:
             logger.warning(
                 "ENCRYPTION_KEY not set — tokens will be stored in plaintext. "

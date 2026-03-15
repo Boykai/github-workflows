@@ -96,3 +96,9 @@ class TestTokenEncryptionAtRest:
 
         with pytest.raises(ValueError, match="corrupted data"):
             svc.decrypt(ciphertext)
+
+    async def test_invalid_key_raises_immediately(self):
+        """An invalid encryption key must raise ValueError, not silently
+        fall back to passthrough mode (bug-bash: security regression)."""
+        with pytest.raises(ValueError, match="Invalid ENCRYPTION_KEY"):
+            EncryptionService(key="this-is-not-a-valid-fernet-key")

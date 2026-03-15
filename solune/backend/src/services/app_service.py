@@ -229,6 +229,9 @@ async def get_app(db: aiosqlite.Connection, name: str) -> App:
     return _row_to_app(row)
 
 
+_APP_UPDATABLE_COLUMNS = {"display_name", "description", "associated_pipeline_id"}
+
+
 async def update_app(db: aiosqlite.Connection, name: str, payload: AppUpdate) -> App:
     """Update application metadata."""
     app = await get_app(db, name)
@@ -243,6 +246,11 @@ async def update_app(db: aiosqlite.Connection, name: str, payload: AppUpdate) ->
 
     if not updates:
         return app
+
+    # Reject unexpected column names (defense-in-depth against SQL injection)
+    bad = set(updates) - _APP_UPDATABLE_COLUMNS
+    if bad:
+        raise ValidationError(f"Invalid update columns: {bad}")
 
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     values = list(updates.values())
