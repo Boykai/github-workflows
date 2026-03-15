@@ -22,7 +22,6 @@ from src.models.cleanup import (
     CleanupItemResult,
     CleanupPreflightRequest,
     CleanupPreflightResponse,
-    IssueToDelete,
     OrphanedIssueInfo,
     PullRequestInfo,
 )

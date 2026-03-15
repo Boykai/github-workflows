@@ -159,7 +159,8 @@ Agent pipeline mappings are fully customizable through the pipeline GUI, the Set
 ```
 
 Replace these with any custom agents from your `.github/agents/` directory. You can add or remove stages and configure series/parallel execution groups via the drag-and-drop pipeline GUI.
-```
+
+```text
 
 Settings are stored per-user in SQLite with a 3-tier fallback:
 
