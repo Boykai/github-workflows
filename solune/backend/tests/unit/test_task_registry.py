@@ -9,7 +9,6 @@ import pytest
 
 from src.services.task_registry import TaskRegistry
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -124,7 +123,8 @@ class TestConcurrentCreateDuringDrain:
             await asyncio.sleep(0.01)
             reg.create_task(_noop(), name="new-during-drain")
 
-        asyncio.create_task(_add_during_drain())
+        helper = TaskRegistry()
+        helper.create_task(_add_during_drain(), name="helper")
         await reg.drain(timeout=0.2)
         # The new task should have completed on its own.
         await asyncio.sleep(0.05)

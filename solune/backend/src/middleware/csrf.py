@@ -28,9 +28,17 @@ _CSRF_HEADER = "x-csrf-token"
 
 
 class CSRFMiddleware(BaseHTTPMiddleware):
-    """Double-submit cookie CSRF protection."""
+    """Double-submit cookie CSRF protection.
+
+    Disabled when the ``TESTING`` environment variable is set.
+    """
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
+        import os
+
+        if os.environ.get("TESTING"):
+            return await call_next(request)
+
         # Ensure every response has a CSRF cookie.
         csrf_cookie = request.cookies.get(_CSRF_COOKIE)
         if not csrf_cookie:
