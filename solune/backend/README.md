@@ -263,7 +263,7 @@ Decomposed into 2 sub-modules handling all GitHub API interactions. Uses **Claud
 
 ## Database & Migrations
 
-The backend uses **aiosqlite** (SQLite in WAL mode) for fully async durable storage. The database is created automatically at startup at the path specified by `DATABASE_PATH` (default: `/app/data/settings.db`). All database access uses `async`/`await` — no blocking I/O on the event loop. Multi-step operations use `BEGIN IMMEDIATE` transactions via the `chat_store.transaction()` context manager to prevent inconsistent state.
+The backend uses **aiosqlite** (SQLite in WAL mode) for fully async durable storage. The database is created automatically at startup at the path specified by `DATABASE_PATH` (default: `/app/data/settings.db`). All database access uses `async`/`await` — no blocking I/O on the event loop. Chat persistence uses `BEGIN IMMEDIATE` transactions via `chat_store.transaction()` to prevent inconsistent state during multi-step writes.
 
 ### Migration System
 
