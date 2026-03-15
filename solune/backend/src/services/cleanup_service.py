@@ -11,6 +11,7 @@ import re
 import uuid
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from enum import StrEnum
 
 from src.logging_utils import get_logger
 from src.models.cleanup import (
@@ -29,13 +30,30 @@ from src.models.cleanup import (
 logger = get_logger(__name__)
 
 
+class ItemType(StrEnum):
+    """Classification type for cleanup items."""
+
+    BRANCH = "branch"
+    PR = "pr"
+    ISSUE = "issue"
+    ORPHAN = "orphan"
+
+
+class LinkMethod(StrEnum):
+    """How an item was linked to an issue."""
+
+    BRANCH_NAME = "branch_name"
+    PR_BODY = "pr_body"
+    OWNERSHIP = "ownership"
+
+
 @dataclass(frozen=True)
 class ItemClassification:
     """Result of classifying a branch/PR for cleanup linking."""
 
-    item_type: str  # "branch" | "pr" | "orphan"
+    item_type: ItemType
     linked_issue_number: int | None = None
-    link_method: str | None = None  # "branch_name" | "pr_body" | "ownership"
+    link_method: LinkMethod | None = None
     confidence: float = 0.0
 
 
@@ -735,42 +753,56 @@ async def preflight(
     }
 
     # 4. Categorize branches
-    branches_to_delete: list[BranchInfo] = []
-    branches_to_preserve: list[BranchInfo] = []
+    # Use asyncio.to_thread for large batches to avoid blocking the event loop
+    # with CPU-bound regex matching.
+    def _classify_branches() -> tuple[list[BranchInfo], list[BranchInfo]]:
+        to_delete: list[BranchInfo] = []
+        to_preserve: list[BranchInfo] = []
+        for branch_data in branches_data:
+            info = _categorize_branch(
+                branch_data,
+                open_issue_numbers,
+                issue_titles,
+                app_issue_numbers,
+                app_sub_issue_closed_parent,
+                prs_data,
+            )
+            if info.eligible_for_deletion:
+                to_delete.append(info)
+            else:
+                to_preserve.append(info)
+        return to_delete, to_preserve
 
-    for branch_data in branches_data:
-        info = _categorize_branch(
-            branch_data,
-            open_issue_numbers,
-            issue_titles,
-            app_issue_numbers,
-            app_sub_issue_closed_parent,
-            prs_data,
-        )
-        if info.eligible_for_deletion:
-            branches_to_delete.append(info)
-        else:
-            branches_to_preserve.append(info)
+    if len(branches_data) > 100:
+        branches_to_delete, branches_to_preserve = await asyncio.to_thread(_classify_branches)
+    else:
+        branches_to_delete, branches_to_preserve = _classify_branches()
 
     # 5. Categorize PRs
-    prs_to_close: list[PullRequestInfo] = []
-    prs_to_preserve: list[PullRequestInfo] = []
-
     preserved_branch_names = {b.name for b in branches_to_preserve}
 
-    for pr in prs_data:
-        info = _categorize_pr(
-            pr,
-            open_issue_numbers,
-            app_issue_numbers,
-            app_sub_issue_closed_parent,
-            preserved_branch_names,
-            branches_to_delete,
-        )
-        if info.eligible_for_deletion:
-            prs_to_close.append(info)
-        else:
-            prs_to_preserve.append(info)
+    def _classify_prs() -> tuple[list[PullRequestInfo], list[PullRequestInfo]]:
+        to_close: list[PullRequestInfo] = []
+        to_keep: list[PullRequestInfo] = []
+        for pr in prs_data:
+            info = _categorize_pr(
+                pr,
+                open_issue_numbers,
+                app_issue_numbers,
+                app_sub_issue_closed_parent,
+                preserved_branch_names,
+                branches_to_delete,
+            )
+            if info.eligible_for_deletion:
+                to_close.append(info)
+            else:
+                to_keep.append(info)
+        return to_close, to_keep
+
+    if len(prs_data) > 100:
+        prs_to_close, prs_to_preserve = await asyncio.to_thread(_classify_prs)
+    else:
+        prs_to_close, prs_to_preserve = _classify_prs()
 
     # 6. Identify orphaned app-created issues (open, labelled by app, not on board)
     orphaned_issues: list[OrphanedIssueInfo] = []
