@@ -23,8 +23,8 @@ cd solune/backend
 DEBUG=false ENCRYPTION_KEY= python -m uvicorn src.main:app
 # Expected: startup error about missing ENCRYPTION_KEY
 
-# Should fail — short session key
-DEBUG=false ENCRYPTION_KEY=valid-key SESSION_SECRET_KEY=short python -m uvicorn src.main:app
+# Should fail — short session key (generate a valid Fernet key first)
+DEBUG=false ENCRYPTION_KEY=$(python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())") SESSION_SECRET_KEY=short python -m uvicorn src.main:app
 # Expected: startup error about SESSION_SECRET_KEY length
 ```
 

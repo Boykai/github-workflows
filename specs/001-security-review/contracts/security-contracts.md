@@ -10,7 +10,7 @@ The application MUST validate all security-critical configuration at startup whe
 
 | Variable | Validation Rule | Error Message |
 |----------|----------------|---------------|
-| `ENCRYPTION_KEY` | Must be set; must be a valid Fernet key (base64-encoded 32 bytes) | `ENCRYPTION_KEY is required in production mode` / `ENCRYPTION_KEY is not a valid Fernet key` |
+| `ENCRYPTION_KEY` | Must be set; must be a valid Fernet key (base64-encoded 32 bytes). Validated at first use via `EncryptionService(debug=False)` — raises `ValueError` on invalid key. | `ENCRYPTION_KEY is required in production mode` / `Invalid ENCRYPTION_KEY — the key is set but is not a valid Fernet key` |
 | `GITHUB_WEBHOOK_SECRET` | Must be set and non-empty | `GITHUB_WEBHOOK_SECRET is required in production mode` |
 | `SESSION_SECRET_KEY` | Must be set; length ≥ 64 characters | `SESSION_SECRET_KEY must be at least 64 characters in production mode` |
 | `COOKIE_SECURE` | Must be `true` | `Cookie Secure flag must be enabled in production mode` |

@@ -51,14 +51,16 @@ Server-side secret for at-rest encryption.
 | SESSION_SECRET_KEY | env string | Required, ≥ 64 characters in production | Session signing entropy |
 | COOKIE_SECURE | boolean | Required `true` in production | HTTPS-only cookie transmission |
 
-**Validation at startup (production mode)**:
+**Validation behavior (production mode, `DEBUG=false`)**:
 ```
-Missing ENCRYPTION_KEY → ERROR: refuse to start
-Invalid ENCRYPTION_KEY → WARNING + plaintext fallback (GAP: should also refuse)
-Missing GITHUB_WEBHOOK_SECRET → ERROR: refuse to start
-SESSION_SECRET_KEY < 64 chars → ERROR: refuse to start
-COOKIE_SECURE = false → ERROR: refuse to start
+Missing ENCRYPTION_KEY → ERROR: refuse to start (Settings validation)
+Invalid ENCRYPTION_KEY → ERROR: ValueError raised at first use via EncryptionService(debug=False)
+Missing GITHUB_WEBHOOK_SECRET → ERROR: refuse to start (Settings validation)
+SESSION_SECRET_KEY < 64 chars → ERROR: refuse to start (Settings validation)
+COOKIE_SECURE = false → ERROR: refuse to start (Settings validation)
 ```
+
+> **Note**: Invalid `ENCRYPTION_KEY` validation occurs at `EncryptionService` instantiation (lazy, on first use), not at application startup. Settings validation catches missing keys; format validation happens on first encryption service call.
 
 ### Rate Limit Record
 
