@@ -43,7 +43,7 @@ def _get_encryption() -> EncryptionService:
     global _encryption
     if _encryption is None:
         settings = get_settings()
-        _encryption = EncryptionService(settings.encryption_key)
+        _encryption = EncryptionService(settings.encryption_key, debug=settings.debug)
     return _encryption
 
 
