@@ -105,6 +105,7 @@ class CleanupExecuteResponse(BaseModel):
     prs_closed: int
     prs_preserved: int
     issues_deleted: int = 0
+    issues_closed: int = 0
     errors: list[CleanupItemResult]
     results: list[CleanupItemResult]
 
@@ -127,7 +128,7 @@ class CleanupAuditLogRow(BaseModel):
     branches_preserved: int
     prs_closed: int
     prs_preserved: int
-    issues_closed: int = 0
+    issues_deleted: int = 0
     errors_count: int
     details: dict[str, Any] | None  # Parsed JSON object (stored as TEXT in SQLite)
 

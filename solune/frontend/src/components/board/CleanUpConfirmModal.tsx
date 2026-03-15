@@ -99,7 +99,7 @@ export function CleanUpConfirmModal({
   const hasItemsToDelete =
     finalBranchesToDelete.length > 0 ||
     finalPrsToClose.length > 0 ||
-    finalIssuesToClose.length > 0 ||
+    finalIssuesToClose.filter((i) => i.node_id != null).length > 0 ||
     finalBranchesToDeleteFromPreserve.length > 0 ||
     finalPrsToCloseFromPreserve.length > 0;
 

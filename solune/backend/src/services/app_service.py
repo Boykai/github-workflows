@@ -1,5 +1,3 @@
-# ^^^ os.path used intentionally — CodeQL recognises os.path.realpath+startswith
-# as a path-traversal sanitiser but does not recognise pathlib.Path.is_relative_to.
 """App lifecycle service for Solune multi-app management.
 
 Handles CRUD operations, state transitions, GitHub-based directory scaffolding,

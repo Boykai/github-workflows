@@ -917,6 +917,7 @@ async def execute_cleanup(
 
     # Delete orphaned app-created issues via GraphQL deleteIssue mutation
     issues_deleted = 0
+    issues_closed = 0
     delete_issue_mutation = """
     mutation DeleteIssue($issueId: ID!) {
       deleteIssue(input: {issueId: $issueId}) {
@@ -961,10 +962,10 @@ async def execute_cleanup(
                         CleanupItemResult(
                             item_type="issue",
                             identifier=str(issue_number),
-                            action="deleted",
+                            action="closed",
                         )
                     )
-                    issues_deleted += 1
+                    issues_closed += 1
                 else:
                     item = CleanupItemResult(
                         item_type="issue",
@@ -1028,6 +1029,7 @@ async def execute_cleanup(
         prs_closed=prs_closed,
         prs_preserved=prs_preserved,
         issues_deleted=issues_deleted,
+        issues_closed=issues_closed,
         errors=errors,
         results=results,
     )
