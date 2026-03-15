@@ -57,7 +57,7 @@ Represents a test added to guard against a specific bug reintroduction.
 **Validation Rules**:
 - Every BugReportEntry with status `✅ Fixed` must have at least one associated RegressionTest.
 - The test must fail if the bug is reintroduced (i.e., it must not be vacuous).
-- Backend tests follow pytest naming: `test_<descriptive_name>` in `solune/backend/tests/unit/` or `solune/backend/tests/integration/`.
+- Backend tests follow pytest naming: `test_bug_NNN_<descriptive_name>` in `solune/backend/tests/unit/` or `solune/backend/tests/integration/`.
 - Frontend tests follow Vitest naming: `describe/it` blocks in `*.test.ts` or `*.test.tsx` files.
 
 ---

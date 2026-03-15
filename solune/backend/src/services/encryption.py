@@ -24,6 +24,8 @@ class EncryptionService:
         A base64-encoded 32-byte Fernet key from the ``ENCRYPTION_KEY``
         environment variable.  If *None*, the service operates in
         passthrough mode (encrypt/decrypt are identity functions).
+        If a non-None value is provided but is not a valid Fernet key,
+        a :class:`ValueError` is raised on initialization.
     """
 
     def __init__(self, key: str | None = None) -> None:

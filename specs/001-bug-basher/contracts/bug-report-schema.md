@@ -39,7 +39,7 @@ The summary table MUST be a markdown table with the following exact structure:
 ### Exclusion Rules
 
 - Files with no bugs found MUST NOT appear in the table (FR-015).
-- The table MUST NOT include configuration files, generated files, or files outside the repository.
+- The table MUST NOT include generated files or files outside the repository.
 
 ---
 

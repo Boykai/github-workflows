@@ -2,6 +2,7 @@
 
 Evaluates each target file path before allowing file system access.
 Returns 403 with explanation for blocked/locked paths.
+"""
 
 # TODO(bug-bash): This middleware is defined but never registered in main.py's
 # create_app(). The guard enforcement (check_guard) is therefore inactive for all
@@ -9,7 +10,6 @@ Returns 403 with explanation for blocked/locked paths.
 # ``app.add_middleware(AdminGuardMiddleware)``, (b) remove the dead middleware if
 # guard enforcement is handled externally. Deferred because: adding middleware
 # changes runtime behaviour for all requests and needs human review.
-"""
 
 from __future__ import annotations
 
