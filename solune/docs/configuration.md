@@ -109,7 +109,7 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 ## Database Schema
 
-SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `022`). Migrations are tracked by a `schema_version` table.
+SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `026`). Migrations are tracked by a `schema_version` table.
 
 ### Migration Files
 
@@ -142,6 +142,10 @@ SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via nu
 | `021_pipeline_state.sql` | Pipeline execution state tracking |
 | `022_chat_file_urls.sql` | Chat file URL storage |
 | `022_encrypt_existing_tokens.sql` | Encrypt existing tokens in the database |
+| `023_consolidated_schema.sql` | Consolidated schema baseline |
+| `024_apps.sql` | Apps table and scaffolding |
+| `025_fix_apps_fk.sql` | Fix foreign key constraint on apps |
+| `026_performance_indexes.sql` | Indexes on `admin_github_user_id`, `selected_project_id`, and chat session columns |
 
 ## Workflow Settings
 

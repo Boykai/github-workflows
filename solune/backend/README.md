@@ -33,11 +33,12 @@ The backend follows a layered architecture: **API routes → Services → Models
 
 ```text
 src/
-├── main.py                    # FastAPI app factory, lifespan (DB init, DI registration), CORS
+├── main.py                    # FastAPI app factory, lifespan (DB init, DI registration, TaskGroup)
 ├── config.py                  # Pydantic Settings from env / .env
 ├── constants.py               # Status names, agent mappings, display names, cache key helpers
 ├── dependencies.py            # FastAPI DI helpers (app.state → Depends())
-├── exceptions.py              # Custom exception classes (AppException tree)
+├── exceptions.py              # Custom exception classes (AppException tree + PersistenceError)
+├── protocols.py               # Protocol types for service interfaces (ModelProvider, CacheInvalidationPolicy)
 ├── utils.py                   # Shared helpers: utcnow(), resolve_repository()
 │
 ├── api/                       # Route handlers (8 modules)
@@ -63,7 +64,15 @@ src/
 │
 ├── migrations/                # Numbered SQL migration scripts (auto-run at startup)
 │   ├── 001_initial_schema.sql
-│   └── 002_add_workflow_config_column.sql
+│   ├── …
+│   └── 026_performance_indexes.sql
+│
+├── middleware/                 # HTTP middleware stack
+│   ├── request_id.py          #   Request-ID tracing
+│   ├── csp.py                 #   Content Security Policy headers
+│   ├── csrf.py                #   Double-submit cookie CSRF protection
+│   ├── rate_limit.py          #   Per-user/IP rate limiting
+│   └── admin_guard.py         #   Admin-only endpoint protection
 │
 ├── services/                  # Business logic layer
 │   ├── github_projects/       # GitHub API package (decomposed from monolithic file)
@@ -96,6 +105,7 @@ src/
 │   ├── github_auth.py         # OAuth token exchange
 │   ├── session_store.py       # Session CRUD (async SQLite)
 │   ├── settings_store.py      # Settings persistence (async SQLite)
+│   ├── task_registry.py       # Centralized fire-and-forget asyncio.Task tracking + drain
 │   └── websocket.py           # WebSocket connection manager, broadcast
 │
 └── prompts/                   # Prompt templates for AI completion providers
@@ -104,6 +114,15 @@ src/
 ```
 
 ## Key Services
+
+### Task Registry (`services/task_registry.py`)
+
+Centralized registry for fire-and-forget `asyncio` tasks. Every `asyncio.create_task()` call that is not directly awaited should go through the module-level `task_registry` singleton instead. The registry:
+
+- **Tracks** all pending tasks so none are silently garbage-collected.
+- **Logs** failures at WARNING level with the task name and exception.
+- **`drain(timeout=30.0)`** — graceful shutdown: awaits pending tasks, cancels stragglers.
+- **`cancel_all()`** — forceful shutdown: cancels every non-done task.
 
 ### Copilot Polling Service (`services/copilot_polling/`)
 
@@ -244,7 +263,7 @@ Decomposed into 2 sub-modules handling all GitHub API interactions. Uses **Claud
 
 ## Database & Migrations
 
-The backend uses **aiosqlite** (SQLite in WAL mode) for fully async durable storage. The database is created automatically at startup at the path specified by `DATABASE_PATH` (default: `/app/data/settings.db`). All database access uses `async`/`await` — no blocking I/O on the event loop.
+The backend uses **aiosqlite** (SQLite in WAL mode) for fully async durable storage. The database is created automatically at startup at the path specified by `DATABASE_PATH` (default: `/app/data/settings.db`). All database access uses `async`/`await` — no blocking I/O on the event loop. Chat persistence uses `BEGIN IMMEDIATE` transactions via `chat_store.transaction()` to prevent inconsistent state during multi-step writes.
 
 ### Migration System
 
@@ -254,6 +273,8 @@ Numbered SQL migration files in `src/migrations/` are executed in order at start
 |---|---|
 | `001_initial_schema.sql` | Creates `sessions`, `user_preferences`, `project_settings`, `global_settings` tables |
 | `002_add_workflow_config_column.sql` | Adds `workflow_config TEXT` column to `project_settings` for full JSON config persistence |
+| … | _(see `src/migrations/` for the full list)_ |
+| `026_performance_indexes.sql` | Adds indexes on `admin_github_user_id`, `selected_project_id`, and chat session columns |
 
 ### Workflow Config Storage
 
