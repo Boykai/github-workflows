@@ -1,0 +1,15 @@
+graph TB
+    subgraph Host["Docker Host"]
+        subgraph Net["solune-network (bridge)"]
+            FE["solune-frontend<br/>nginx :8080<br/>→ host :5173"]
+            BE["solune-backend<br/>uvicorn :8000"]
+            SIG["solune-signal-api<br/>signal-cli :8080 (internal)"]
+        end
+        VOL_DATA[("solune-data volume<br/>SQLite DB")]
+        VOL_SIG[("signal-cli-config volume")]
+    end
+
+    FE -- "/api/* reverse proxy" --> BE
+    BE -- "HTTP + WS" --> SIG
+    BE --- VOL_DATA
+    SIG --- VOL_SIG
