@@ -24,6 +24,8 @@ class EncryptionService:
         A base64-encoded 32-byte Fernet key from the ``ENCRYPTION_KEY``
         environment variable.  If *None*, the service operates in
         passthrough mode (encrypt/decrypt are identity functions).
+        If a non-None value is provided but is not a valid Fernet key,
+        a :class:`ValueError` is raised on initialization.
     """
 
     def __init__(self, key: str | None = None) -> None:
@@ -33,7 +35,15 @@ class EncryptionService:
                 self._fernet = Fernet(key.encode() if isinstance(key, str) else key)
                 logger.info("EncryptionService initialised with provided key")
             except Exception as e:
-                logger.exception("Invalid ENCRYPTION_KEY — falling back to passthrough mode: %s", e)
+                # An explicit key that fails to parse is always an error —
+                # silently falling back to plaintext would store tokens
+                # unencrypted without the operator noticing.
+                raise ValueError(
+                    "ENCRYPTION_KEY is set but is not a valid Fernet key. "
+                    "Tokens would be stored in plaintext. "
+                    'Generate a valid key with: python -c "from cryptography.fernet import Fernet; '
+                    'print(Fernet.generate_key().decode())"'
+                ) from e
         else:
             logger.warning(
                 "ENCRYPTION_KEY not set — tokens will be stored in plaintext. "
