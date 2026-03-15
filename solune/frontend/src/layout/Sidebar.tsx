@@ -8,6 +8,7 @@ import { NAV_ROUTES } from '@/constants';
 import { Moon, PanelLeftClose, PanelLeft, Sun } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
 import { Tooltip } from '@/components/ui/tooltip';
+import type { TooltipContentKey } from '@/constants/tooltip-content';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import type { RecentInteraction } from '@/types';
 import type { Project } from '@/types';
@@ -88,7 +89,7 @@ export function Sidebar({
       <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
         {NAV_ROUTES.map((route) => {
           const segment = route.path === '/' ? 'app' : route.path.replace(/^\//, '');
-          const contentKey = `nav.${segment}` as keyof typeof import('@/constants/tooltip-content').tooltipContent;
+          const contentKey = `nav.${segment}` as TooltipContentKey;
           return (
           <Tooltip contentKey={contentKey} side="right" key={route.path}>
             <NavLink

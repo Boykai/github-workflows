@@ -404,3 +404,6 @@ export const tooltipContent: Record<string, TooltipEntry> = {
     summary: 'Collapse or expand the sidebar navigation.',
   },
 };
+
+/** Union of all registered tooltip content keys. */
+export type TooltipContentKey = keyof typeof tooltipContent;
