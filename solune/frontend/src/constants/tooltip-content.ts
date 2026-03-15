@@ -259,6 +259,15 @@ export const tooltipContent: Record<string, TooltipEntry> = {
   'pipeline.agent.clone': {
     summary: 'Duplicate this agent into the same execution group.',
   },
+  'pipeline.agent.remove': {
+    summary: 'Remove this agent from the stage.',
+  },
+  'board.agentTile.clone': {
+    summary: 'Clone agent into this pipeline.',
+  },
+  'board.agentTile.remove': {
+    summary: 'Remove agent from this column.',
+  },
   'pipeline.group.dragHandle': {
     summary: 'Drag to reorder this execution group within the stage.',
   },
@@ -270,6 +279,9 @@ export const tooltipContent: Record<string, TooltipEntry> = {
   'pipeline.stage.dragHandle': {
     summary: 'Drag to reorder this stage in the pipeline.',
   },
+  'pipeline.stage.rename': {
+    summary: 'Click to rename this stage.',
+  },
   'pipeline.analytics.complexity': {
     title: 'Complexity Score',
     summary:
@@ -277,9 +289,6 @@ export const tooltipContent: Record<string, TooltipEntry> = {
   },
 
   // ── Agents Gap Fill (Phase 2.2) ─────────────────────────────────────
-  'agents.card.icon': {
-    summary: 'Click to choose a custom icon for this agent.',
-  },
   'agents.card.expand': {
     summary: 'Expand or collapse agent details.',
   },
@@ -308,12 +317,6 @@ export const tooltipContent: Record<string, TooltipEntry> = {
   },
 
   // ── Board Gap Fill (Phase 2.4) ──────────────────────────────────────
-  'board.filter.button': {
-    summary: 'Filter board items by labels, assignees, or milestones.',
-  },
-  'board.sort.button': {
-    summary: 'Sort board items by date, priority, or title.',
-  },
   'board.column.addAgent': {
     summary: 'Assign an agent to work on items in this column.',
   },
@@ -373,6 +376,9 @@ export const tooltipContent: Record<string, TooltipEntry> = {
   },
 
   // ── Navigation Gap Fill (Phase 2.7) ─────────────────────────────────
+  'nav.app': {
+    summary: 'Return to the main dashboard.',
+  },
   'nav.projects': {
     summary: 'View and manage your project boards.',
   },
@@ -387,6 +393,9 @@ export const tooltipContent: Record<string, TooltipEntry> = {
   },
   'nav.tools': {
     summary: 'Configure MCP tools and integrations.',
+  },
+  'nav.apps': {
+    summary: 'Browse and manage generated applications.',
   },
   'nav.settings': {
     summary: 'Application settings and preferences.',

@@ -22,7 +22,20 @@ import { cn } from '@/lib/utils';
 // ---------------------------------------------------------------------------
 // Re-export primitives for composition
 // ---------------------------------------------------------------------------
-export const Popover = PopoverPrimitive.Root;
+
+/**
+ * Popover root — defaults to `modal` mode for focus trapping.
+ * Pass `modal={false}` to opt out when focus trapping is undesirable
+ * (e.g., inline search dropdowns that need typing in other fields).
+ */
+export const Popover = React.forwardRef<
+  React.ComponentRef<typeof PopoverPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof PopoverPrimitive.Root> & { modal?: boolean }
+>(({ modal = true, ...props }, _ref) => (
+  <PopoverPrimitive.Root modal={modal} {...props} />
+));
+Popover.displayName = 'Popover';
+
 export const PopoverTrigger = PopoverPrimitive.Trigger;
 export const PopoverAnchor = PopoverPrimitive.Anchor;
 export const PopoverClose = PopoverPrimitive.Close;

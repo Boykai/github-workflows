@@ -172,7 +172,7 @@ export function StageCard({
               maxLength={100}
             />
           ) : (
-            <Tooltip content="Click to rename this stage" side="bottom">
+            <Tooltip contentKey="pipeline.stage.rename" side="bottom">
               <button
                 type="button"
                 onClick={() => {

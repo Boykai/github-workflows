@@ -138,7 +138,6 @@ export function AgentCard({
                 <HoverCardTrigger asChild>
                   <h4
                     className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem] cursor-default"
-                    title={displayName}
                   >
                     {displayName}
                   </h4>

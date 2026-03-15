@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/002-tooltip-hover-coverage/`
 **Prerequisites**: plan.md (required), spec.md (required), research.md, data-model.md, contracts/, quickstart.md
 
-**Tests**: Unit tests are required for the two new UI primitives (hover-card, popover) per spec FR-027 and plan Phase 1 item 5. Phase 2+ component changes rely on existing test infrastructure and manual verification per quickstart.md.
+**Tests**: Unit tests are required for the two new UI primitives (hover-card, popover) per spec FR-001/FR-002 and plan Phase 1 item 5. Phase 2+ component changes rely on existing test infrastructure and manual verification per quickstart.md.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing. User Story 1 (tooltips) and User Story 2 (hover cards) share the new `hover-card.tsx` infrastructure; User Story 3 (popovers) depends on `popover.tsx`. User Stories 4 (hover styling) and 5 (registry audit) are cross-cutting but can proceed independently after Setup completes.
 

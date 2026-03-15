@@ -86,8 +86,11 @@ export function Sidebar({
 
       {/* Navigation */}
       <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
-        {NAV_ROUTES.map((route) => (
-          <Tooltip content={route.label} side="right" key={route.path}>
+        {NAV_ROUTES.map((route) => {
+          const segment = route.path === '/' ? 'app' : route.path.replace(/^\//, '');
+          const contentKey = `nav.${segment}` as keyof typeof import('@/constants/tooltip-content').tooltipContent;
+          return (
+          <Tooltip contentKey={contentKey} side="right" key={route.path}>
             <NavLink
               to={route.path}
               end={route.path === '/'}
@@ -103,7 +106,8 @@ export function Sidebar({
               {!isCollapsed && <span>{route.label}</span>}
             </NavLink>
           </Tooltip>
-        ))}
+          );
+        })}
 
         {/* Recent Interactions section */}
         {!isCollapsed && (

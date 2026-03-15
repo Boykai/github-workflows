@@ -161,7 +161,7 @@ export function AgentTile({
         )}
 
         {onClone && (
-          <Tooltip content="Clone agent into this pipeline">
+          <Tooltip contentKey="board.agentTile.clone">
             <button
               className="celestial-focus flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
               onClick={handleClone}
@@ -175,7 +175,7 @@ export function AgentTile({
         )}
 
         {onRemove && (
-          <Tooltip content="Remove agent">
+          <Tooltip contentKey="board.agentTile.remove">
             <button
               className="celestial-focus flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
               onClick={handleRemove}
@@ -247,7 +247,7 @@ export function AgentTile({
         </Tooltip>
 
         {onClone && (
-          <Tooltip content="Clone agent into this pipeline">
+          <Tooltip contentKey="board.agentTile.clone">
             <button
               className="celestial-focus solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-primary"
               onClick={handleClone}
@@ -262,7 +262,7 @@ export function AgentTile({
 
         {/* Remove button */}
         {onRemove && (
-          <Tooltip content="Remove agent">
+          <Tooltip contentKey="board.agentTile.remove">
             <button
               className="celestial-focus w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
               onClick={handleRemove}

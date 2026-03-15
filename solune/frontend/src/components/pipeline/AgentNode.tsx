@@ -170,7 +170,7 @@ export function AgentNode({
       )}
 
       {/* Remove button */}
-      <Tooltip content="Remove this agent from the stage">
+      <Tooltip contentKey="pipeline.agent.remove">
         <button
           type="button"
           onClick={onRemove}

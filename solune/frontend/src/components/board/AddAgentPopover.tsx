@@ -93,7 +93,6 @@ export function AddAgentPopover({
         side="bottom"
         align="start"
         className="flex max-h-80 w-64 flex-col overflow-hidden rounded-[1rem] border-border bg-popover p-0 shadow-lg backdrop-blur-sm"
-        role="listbox"
         aria-label={`Add agent to ${status}`}
         aria-busy={isLoading}
       >
@@ -155,7 +154,7 @@ export function AddAgentPopover({
                     )}
                     onClick={() => handleSelect(agent)}
                     type="button"
-                    title={isDuplicate ? `${displayName} (already assigned)` : displayName}
+                    aria-label={isDuplicate ? `${displayName} (already assigned)` : displayName}
                   >
                     <div className="flex items-start justify-between gap-2 w-full">
                       <div className="flex min-w-0 items-start gap-2">
