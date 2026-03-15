@@ -803,4 +803,85 @@ describe('useRealTimeSync', () => {
       });
     });
   });
+
+  describe('polling fallback scope (SC-004, FR-006)', () => {
+    it('should only invalidate tasks query, never board data, during polling fallback', async () => {
+      vi.useFakeTimers();
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      const { result } = renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      // Force polling mode by simulating WebSocket error
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateError();
+      });
+
+      expect(result.current.status).toBe('polling');
+      invalidateSpy.mockClear();
+
+      // Advance past one polling interval
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+      });
+
+      // Verify only tasks query was invalidated
+      for (const call of invalidateSpy.mock.calls) {
+        const queryKey = call[0]?.queryKey;
+        if (Array.isArray(queryKey)) {
+          // Must be a tasks query, never board data
+          expect(queryKey).not.toContain('board');
+          expect(queryKey[0]).toBe('projects');
+        }
+      }
+
+      vi.useRealTimers();
+    });
+
+    it('should produce at most one tasks query invalidation within 30s during WS-to-polling transition', async () => {
+      vi.useFakeTimers();
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      // Start connected
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      invalidateSpy.mockClear();
+
+      // Simulate WebSocket close (triggers reconnect + polling fallback)
+      await act(async () => {
+        mockWebSocketInstances[0]?.close();
+      });
+
+      // Count invalidations within the first 30s window
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+      });
+
+      // Should have at most one tasks invalidation from the polling interval
+      const tasksInvalidations = invalidateSpy.mock.calls.filter((call) => {
+        const queryKey = call[0]?.queryKey;
+        return Array.isArray(queryKey) && queryKey[0] === 'projects';
+      });
+      expect(tasksInvalidations.length).toBeLessThanOrEqual(1);
+
+      vi.useRealTimers();
+    });
+  });
 });

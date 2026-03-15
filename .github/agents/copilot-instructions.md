@@ -271,6 +271,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite with aiosqlite (async, WAL mode) — `settings.db` at `/var/lib/solune/data/settings.db` (041-solune-rebrand-app-builder)
 - Python 3.13 (backend), TypeScript ~5.9 (frontend) + FastAPI ≥0.135, Pydantic ≥2.12, React 19.2, Vite 7.3, Tailwind CSS 4.2 (001-bug-basher)
 - SQLite via aiosqlite (async); consolidated schema at `solune/backend/src/migrations/023_consolidated_schema.sql` (001-bug-basher)
+- Python ≥ 3.12 (Ruff targets 3.13, Pyright targets 3.13) · TypeScript ~5.9 (strict mode, ES2022 target) + FastAPI ≥ 0.135, githubkit ≥ 0.14.6, httpx ≥ 0.28, Pydantic ≥ 2.12 (backend) · React 19.2, TanStack React Query 5.90, Vite, @dnd-kit (frontend) (001-performance-review)
+- SQLite via aiosqlite (session/config) · In-memory TTL cache (`InMemoryCache` in `services/cache.py`) (001-performance-review)
 
 ## Recent Changes
 - 001-performance-review: Added Python 3.12+ (backend), TypeScript 5.9 / React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.90, @dnd-kit, Vite 7.3, websockets 16
