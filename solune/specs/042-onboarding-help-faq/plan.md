@@ -1,11 +1,11 @@
 # Implementation Plan: Onboarding Spotlight Tour & Help/FAQ Page
 
 **Branch**: `042-onboarding-help-faq` | **Date**: 2026-03-15 | **Spec**: [spec.md](spec.md)
-**Input**: Feature specification from `/specs/042-onboarding-help-faq/spec.md`
+**Input**: Feature specification from `/solune/specs/042-onboarding-help-faq/spec.md`
 
 ## Summary
 
-Add a celestial-themed guided spotlight tour (9 steps) that auto-launches on first login and a `/help` route with FAQ accordion, feature guides, and tour replay. The tour uses CSS mask cutouts to highlight existing layout elements (sidebar, chat, theme toggle) with positioned tooltips. All state is client-side via localStorage. No backend changes. All new components reuse the existing celestial CSS animation system and theme tokens.
+Add a celestial-themed guided spotlight tour (9 steps) that auto-launches on first login and a `/help` route with FAQ accordion, feature guides, and tour replay. The tour uses CSS clip-path polygon cutouts to highlight existing layout elements (sidebar, chat, theme toggle) with positioned tooltips. All state is client-side via localStorage. No backend changes. All new components reuse the existing celestial CSS animation system and theme tokens.
 
 ## Technical Context
 
@@ -36,7 +36,7 @@ Add a celestial-themed guided spotlight tour (9 steps) that auto-launches on fir
 ### Documentation (this feature)
 
 ```text
-specs/042-onboarding-help-faq/
+solune/specs/042-onboarding-help-faq/
 ├── plan.md              # This file
 ├── research.md          # Phase 0: decisions on spotlight approach, FAQ structure
 ├── data-model.md        # Phase 1: Tour step schema, FAQ entry schema

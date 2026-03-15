@@ -33,7 +33,7 @@ npm run dev          # starts Vite dev server on :5173
 ## Adding a New Tour Step
 
 1. Add `data-tour-step="your-id"` attribute to the target element in the layout
-2. Create an SVG icon in `src/assets/onboarding/your-icon.svg`
+2. Add a TSX icon component in `src/assets/onboarding/icons.tsx` (inline SVG using `currentColor`, exported as a named React component)
 3. Add a step object to the `TOUR_STEPS` array in `SpotlightTour.tsx`:
 
 ```typescript
@@ -51,7 +51,7 @@ npm run dev          # starts Vite dev server on :5173
 
 ## Adding a New FAQ Entry
 
-Add an object to the `FAQ_ENTRIES` array in `FaqAccordion.tsx`:
+Add an object to the `FAQ_ENTRIES` array in `HelpPage.tsx`:
 
 ```typescript
 {

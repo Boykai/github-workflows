@@ -145,17 +145,21 @@ export function SpotlightTooltip({
     return () => document.removeEventListener('keydown', handler);
   }, []);
 
-  // Focus first button on mount, restore on unmount
+  // Capture pre-tour focus on mount, restore on unmount
   useEffect(() => {
     previousFocusRef.current = document.activeElement as HTMLElement;
+    return () => {
+      previousFocusRef.current?.focus();
+    };
+  }, []);
+
+  // Focus first button on each step change
+  useEffect(() => {
     const timer = requestAnimationFrame(() => {
       const firstBtn = tooltipRef.current?.querySelector<HTMLElement>('button');
       firstBtn?.focus();
     });
-    return () => {
-      cancelAnimationFrame(timer);
-      previousFocusRef.current?.focus();
-    };
+    return () => cancelAnimationFrame(timer);
   }, [currentStep]);
 
   const Icon = step.icon;

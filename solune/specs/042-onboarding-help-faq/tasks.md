@@ -1,6 +1,6 @@
 # Tasks: Onboarding Spotlight Tour & Help/FAQ Page
 
-**Input**: Design documents from `/specs/042-onboarding-help-faq/`
+**Input**: Design documents from `/solune/specs/042-onboarding-help-faq/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
 **Tests**: Included for useOnboarding hook (guards critical localStorage logic per constitution check).
@@ -138,7 +138,7 @@
 - [X] T026 [P] Verify reduced motion support — all new components use existing `.celestial-*` animation classes which are already disabled under `@media (prefers-reduced-motion: reduce)` in index.css; verify clip-path transition on SpotlightOverlay also respects reduced motion by adding `motion-safe:` prefix to transition in `solune/frontend/src/components/onboarding/SpotlightOverlay.tsx`
 - [X] T027 Run `npm run type-check` and `npm run lint` in `solune/frontend/` to verify no TypeScript or lint errors across all new and modified files
 - [X] T028 Run `npm run test` in `solune/frontend/` to verify useOnboarding hook tests pass and no existing tests regress
-- [X] T029 Run quickstart.md validation — follow the steps in `specs/042-onboarding-help-faq/quickstart.md` to verify: tour auto-launches on first visit, Help page renders all sections, Replay Tour works, FAQ accordion works, each new tour step can be added following the documented process
+- [X] T029 Run quickstart.md validation — follow the steps in `solune/specs/042-onboarding-help-faq/quickstart.md` to verify: tour auto-launches on first visit, Help page renders all sections, Replay Tour works, FAQ accordion works, each new tour step can be added following the documented process
 
 ---
 

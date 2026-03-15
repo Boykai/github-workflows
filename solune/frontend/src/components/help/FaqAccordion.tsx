@@ -57,6 +57,7 @@ export function FaqAccordion({ entries }: FaqAccordionProps) {
                 >
                   <button
                     type="button"
+                    id={`faq-question-${item.id}`}
                     aria-expanded={isOpen}
                     aria-controls={`faq-answer-${item.id}`}
                     className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left text-sm font-medium text-foreground transition-colors hover:bg-primary/5"
@@ -79,6 +80,7 @@ export function FaqAccordion({ entries }: FaqAccordionProps) {
                   <div
                     id={`faq-answer-${item.id}`}
                     role="region"
+                    aria-labelledby={`faq-question-${item.id}`}
                     className={cn(
                       'grid transition-[grid-template-rows] duration-300 ease-in-out',
                       isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]',
