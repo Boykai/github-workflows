@@ -18,6 +18,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ChatPopup } from '@/components/chat/ChatPopup';
+import { SpotlightTour } from '@/components/onboarding/SpotlightTour';
 import { RateLimitProvider } from '@/context/RateLimitContext';
 
 /** Dismissible Signal conflict banner bar. */
@@ -157,6 +158,10 @@ export function AppLayout() {
             removePendingRecommendation(recommendationId);
           }}
           onNewChat={clearChat}
+        />
+        <SpotlightTour
+          isSidebarCollapsed={isCollapsed}
+          onToggleSidebar={toggleSidebar}
         />
       </div>
     </RateLimitProvider>
