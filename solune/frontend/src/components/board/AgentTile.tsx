@@ -10,6 +10,7 @@ import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/tooltip';
 
 function getAssignmentModelName(agent: AgentAssignment): string {
   const config = agent.config;
@@ -160,29 +161,31 @@ export function AgentTile({
         )}
 
         {onClone && (
-          <button
-            className="celestial-focus flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
-            onClick={handleClone}
-            onPointerDown={stopDragPointerPropagation}
-            title="Clone agent into this pipeline"
-            aria-label={`Clone ${displayName}`}
-            type="button"
-          >
-            <DoubleMoonIcon />
-          </button>
+          <Tooltip content="Clone agent into this pipeline">
+            <button
+              className="celestial-focus flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary"
+              onClick={handleClone}
+              onPointerDown={stopDragPointerPropagation}
+              aria-label={`Clone ${displayName}`}
+              type="button"
+            >
+              <DoubleMoonIcon />
+            </button>
+          </Tooltip>
         )}
 
         {onRemove && (
-          <button
-            className="celestial-focus flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
-            onClick={handleRemove}
-            onPointerDown={stopDragPointerPropagation}
-            title="Remove agent"
-            aria-label={`Remove ${displayName}`}
-            type="button"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+          <Tooltip content="Remove agent">
+            <button
+              className="celestial-focus flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+              onClick={handleRemove}
+              onPointerDown={stopDragPointerPropagation}
+              aria-label={`Remove ${displayName}`}
+              type="button"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </Tooltip>
         )}
       </div>
     );
@@ -231,42 +234,45 @@ export function AgentTile({
         )}
 
         {/* Expand toggle (T029) */}
-        <button
-          className="celestial-focus solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
-          onClick={() => setIsExpanded(!isExpanded)}
-          onPointerDown={stopDragPointerPropagation}
-          title={isExpanded ? 'Collapse' : 'Expand'}
-          aria-label={isExpanded ? `Collapse ${displayName} details` : `Expand ${displayName} details`}
-          type="button"
-        >
-          {isExpanded ? '▾' : '▸'}
-        </button>
-
-        {onClone && (
+        <Tooltip content={isExpanded ? 'Collapse details' : 'Expand details'}>
           <button
-            className="celestial-focus solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-primary"
-            onClick={handleClone}
+            className="celestial-focus solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+            onClick={() => setIsExpanded(!isExpanded)}
             onPointerDown={stopDragPointerPropagation}
-            title="Clone agent into this pipeline"
-            aria-label={`Clone ${displayName}`}
+            aria-label={isExpanded ? `Collapse ${displayName} details` : `Expand ${displayName} details`}
             type="button"
           >
-            <DoubleMoonIcon />
+            {isExpanded ? '▾' : '▸'}
           </button>
+        </Tooltip>
+
+        {onClone && (
+          <Tooltip content="Clone agent into this pipeline">
+            <button
+              className="celestial-focus solar-action flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-primary"
+              onClick={handleClone}
+              onPointerDown={stopDragPointerPropagation}
+              aria-label={`Clone ${displayName}`}
+              type="button"
+            >
+              <DoubleMoonIcon />
+            </button>
+          </Tooltip>
         )}
 
         {/* Remove button */}
         {onRemove && (
-          <button
-            className="celestial-focus w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-            onClick={handleRemove}
-            onPointerDown={stopDragPointerPropagation}
-            title="Remove agent"
-            aria-label={`Remove ${displayName}`}
-            type="button"
-          >
-            <X className="h-3.5 w-3.5" />
-          </button>
+          <Tooltip content="Remove agent">
+            <button
+              className="celestial-focus w-6 h-6 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+              onClick={handleRemove}
+              onPointerDown={stopDragPointerPropagation}
+              aria-label={`Remove ${displayName}`}
+              type="button"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </Tooltip>
         )}
       </div>
 

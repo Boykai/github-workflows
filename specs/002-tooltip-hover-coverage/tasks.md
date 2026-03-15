@@ -27,8 +27,8 @@
 
 **Purpose**: Install new Radix dependencies and bootstrap the development environment.
 
-- [ ] T001 Install `@radix-ui/react-hover-card` and `@radix-ui/react-popover` in `solune/frontend/package.json` via `npm install` per `specs/002-tooltip-hover-coverage/quickstart.md`
-- [ ] T002 Run baseline validation commands (`npx vitest run`, `npm run type-check`, `npm run lint`) in `solune/frontend/` to record any pre-existing failures before making source changes
+- [x] T001 Install `@radix-ui/react-hover-card` and `@radix-ui/react-popover` in `solune/frontend/package.json` via `npm install` per `specs/002-tooltip-hover-coverage/quickstart.md`
+- [x] T002 Run baseline validation commands (`npx vitest run`, `npm run type-check`, `npm run lint`) in `solune/frontend/` to record any pre-existing failures before making source changes
 
 ---
 
@@ -38,12 +38,12 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T003 Create `solune/frontend/src/components/ui/hover-card.tsx` — Radix HoverCard wrapper exporting `HoverCard`, `HoverCardTrigger`, and styled `HoverCardContent` with `forwardRef`, `openDelay={300}`, `closeDelay={150}`, fade+slide animation gated behind `motion-safe:` Tailwind modifier, portal rendering, and collision detection per `specs/002-tooltip-hover-coverage/contracts/hover-card-component-contract.md`
-- [ ] T004 [P] Create `solune/frontend/src/components/ui/popover.tsx` — Radix Popover wrapper exporting `Popover`, `PopoverTrigger`, `PopoverContent`, `PopoverAnchor`, `PopoverClose`, and `PopoverArrow` with `forwardRef`, focus trap, Escape-to-close, outside-click-to-close, focus-return-to-trigger, `aria-haspopup`/`aria-expanded`, and `motion-safe:` animation per `specs/002-tooltip-hover-coverage/contracts/popover-component-contract.md`
-- [ ] T005 [P] Create unit tests in `solune/frontend/src/components/ui/hover-card.test.tsx` — renders without crashing, shows content on hover trigger, hides content on mouse leave, applies custom className, respects `side`/`align` props, no animation under `prefers-reduced-motion` per plan Phase 1 item 5
-- [ ] T006 [P] Create unit tests in `solune/frontend/src/components/ui/popover.test.tsx` — renders without crashing, shows content on click, hides on Escape, hides on outside click, traps focus, returns focus to trigger, applies custom className per plan Phase 1 item 5
-- [ ] T007 Extend `solune/frontend/src/constants/tooltip-content.ts` registry with all 40 new entries identified in `specs/002-tooltip-hover-coverage/research.md` RT-003 plus `agents.card.icon` from plan 2.2: pipeline keys (`pipeline.agent.dragHandle`, `pipeline.agent.clone`, `pipeline.group.dragHandle`, `pipeline.group.label`, `pipeline.stage.dragHandle`, `pipeline.analytics.complexity`), agents keys (`agents.card.icon`, `agents.card.expand`, `agents.tools.moveUp`, `agents.tools.moveDown`, `agents.tools.remove`, `agents.bulk.scope`), chat keys (`chat.voice.stop`, `chat.mention.agentPreview`, `chat.command.description`), board keys (`board.filter.button`, `board.sort.button`, `board.column.addAgent`, `board.column.settings`, `board.column.collapse`), tools keys (`tools.card.resync`, `tools.config.repoUrl`, `tools.config.branch`, `tools.config.serverCommand`, `tools.generator.copy`, `tools.search.input`), settings keys (`settings.ai.temperature`, `settings.ai.provider`, `settings.theme.toggle`, `settings.signal.qr`, `settings.reset.danger`, `settings.reset.cache`, `settings.reset.all`), and nav keys (`nav.projects`, `nav.agents`, `nav.pipeline`, `nav.chores`, `nav.tools`, `nav.settings`, `nav.sidebar.toggle`)
-- [ ] T008 Extend `solune/frontend/src/test/test-utils.tsx` to include any required providers for HoverCard and Popover rendering in test contexts, ensuring `tooltipAwareRender` supports the new primitives per plan Phase 1 item 6
+- [x] T003 Create `solune/frontend/src/components/ui/hover-card.tsx` — Radix HoverCard wrapper exporting `HoverCard`, `HoverCardTrigger`, and styled `HoverCardContent` with `forwardRef`, `openDelay={300}`, `closeDelay={150}`, fade+slide animation gated behind `motion-safe:` Tailwind modifier, portal rendering, and collision detection per `specs/002-tooltip-hover-coverage/contracts/hover-card-component-contract.md`
+- [x] T004 [P] Create `solune/frontend/src/components/ui/popover.tsx` — Radix Popover wrapper exporting `Popover`, `PopoverTrigger`, `PopoverContent`, `PopoverAnchor`, `PopoverClose`, and `PopoverArrow` with `forwardRef`, focus trap, Escape-to-close, outside-click-to-close, focus-return-to-trigger, `aria-haspopup`/`aria-expanded`, and `motion-safe:` animation per `specs/002-tooltip-hover-coverage/contracts/popover-component-contract.md`
+- [x] T005 [P] Create unit tests in `solune/frontend/src/components/ui/hover-card.test.tsx` — renders without crashing, shows content on hover trigger, hides content on mouse leave, applies custom className, respects `side`/`align` props, no animation under `prefers-reduced-motion` per plan Phase 1 item 5
+- [x] T006 [P] Create unit tests in `solune/frontend/src/components/ui/popover.test.tsx` — renders without crashing, shows content on click, hides on Escape, hides on outside click, traps focus, returns focus to trigger, applies custom className per plan Phase 1 item 5
+- [x] T007 Extend `solune/frontend/src/constants/tooltip-content.ts` registry with all 40 new entries identified in `specs/002-tooltip-hover-coverage/research.md` RT-003 plus `agents.card.icon` from plan 2.2: pipeline keys (`pipeline.agent.dragHandle`, `pipeline.agent.clone`, `pipeline.group.dragHandle`, `pipeline.group.label`, `pipeline.stage.dragHandle`, `pipeline.analytics.complexity`), agents keys (`agents.card.icon`, `agents.card.expand`, `agents.tools.moveUp`, `agents.tools.moveDown`, `agents.tools.remove`, `agents.bulk.scope`), chat keys (`chat.voice.stop`, `chat.mention.agentPreview`, `chat.command.description`), board keys (`board.filter.button`, `board.sort.button`, `board.column.addAgent`, `board.column.settings`, `board.column.collapse`), tools keys (`tools.card.resync`, `tools.config.repoUrl`, `tools.config.branch`, `tools.config.serverCommand`, `tools.generator.copy`, `tools.search.input`), settings keys (`settings.ai.temperature`, `settings.ai.provider`, `settings.theme.toggle`, `settings.signal.qr`, `settings.reset.danger`, `settings.reset.cache`, `settings.reset.all`), and nav keys (`nav.projects`, `nav.agents`, `nav.pipeline`, `nav.chores`, `nav.tools`, `nav.settings`, `nav.sidebar.toggle`)
+- [x] T008 Extend `solune/frontend/src/test/test-utils.tsx` to include any required providers for HoverCard and Popover rendering in test contexts, ensuring `tooltipAwareRender` supports the new primitives per plan Phase 1 item 6
 
 **Checkpoint**: Foundation ready — `npm run test` passes, both new primitives are available, registry has all keys, user story implementation can begin.
 
@@ -59,16 +59,16 @@
 
 #### 2.7 — Sidebar Navigation
 
-- [ ] T009 [US1] Replace all `title=` attributes on icon-only nav items in `solune/frontend/src/layout/Sidebar.tsx` with `<Tooltip contentKey="nav.{page}">` wrappers for Projects, Agents, Pipeline, Chores, Tools, Settings and add collapse/expand toggle tooltip using `nav.sidebar.toggle` per plan Phase 2.7
-- [ ] T010 [P] [US1] Add `aria-label` matching tooltip summary to every icon-only nav button in `solune/frontend/src/layout/Sidebar.tsx` per spec FR-024
+- [x] T009 [US1] Replace all `title=` attributes on icon-only nav items in `solune/frontend/src/layout/Sidebar.tsx` with `<Tooltip contentKey="nav.{page}">` wrappers for Projects, Agents, Pipeline, Chores, Tools, Settings and add collapse/expand toggle tooltip using `nav.sidebar.toggle` per plan Phase 2.7
+- [x] T010 [P] [US1] Add `aria-label` matching tooltip summary to every icon-only nav button in `solune/frontend/src/layout/Sidebar.tsx` per spec FR-024
 
 #### 2.1 — Pipeline Builder
 
-- [ ] T011 [P] [US1] Add tooltip with `contentKey="pipeline.agent.dragHandle"` to the drag handle on `AgentNode` in `solune/frontend/src/components/pipeline/AgentNode.tsx` and set matching `aria-label`
-- [ ] T012 [P] [US1] Add tooltip with `contentKey="pipeline.agent.clone"` to the clone button on `AgentNode` in `solune/frontend/src/components/pipeline/AgentNode.tsx` and set matching `aria-label`
+- [x] T011 [P] [US1] Add tooltip with `contentKey="pipeline.agent.dragHandle"` to the drag handle on `AgentNode` in `solune/frontend/src/components/pipeline/AgentNode.tsx` and set matching `aria-label`
+- [x] T012 [P] [US1] Add tooltip with `contentKey="pipeline.agent.clone"` to the clone button on `AgentNode` in `solune/frontend/src/components/pipeline/AgentNode.tsx` and set matching `aria-label`
 - [ ] T013 [P] [US1] Add tooltip with `contentKey="pipeline.group.dragHandle"` to the drag handle on `ExecutionGroupCard` in `solune/frontend/src/components/pipeline/ExecutionGroupCard.tsx` and set matching `aria-label`
 - [ ] T014 [P] [US1] Add tooltip with `contentKey="pipeline.group.label"` to the group label badge on `ExecutionGroupCard` in `solune/frontend/src/components/pipeline/ExecutionGroupCard.tsx`
-- [ ] T015 [P] [US1] Add tooltip with `contentKey="pipeline.stage.dragHandle"` to the drag handle on `StageCard` in `solune/frontend/src/components/pipeline/StageCard.tsx` and set matching `aria-label`
+- [x] T015 [P] [US1] Add tooltip with `contentKey="pipeline.stage.dragHandle"` to the drag handle on `StageCard` in `solune/frontend/src/components/pipeline/StageCard.tsx` and set matching `aria-label`
 - [ ] T016 [P] [US1] Add tooltip with `contentKey="pipeline.analytics.complexity"` to the complexity badge on `PipelineAnalytics` in `solune/frontend/src/components/pipeline/PipelineAnalytics.tsx`
 - [ ] T017 [P] [US1] Replace `title=` attribute on truncated workflow names in `SavedWorkflowsList` in `solune/frontend/src/components/pipeline/SavedWorkflowsList.tsx` with `<Tooltip>` using direct `content` prop
 
@@ -76,13 +76,13 @@
 
 - [ ] T018 [P] [US1] Add tooltip with `contentKey="agents.card.icon"` to the icon area on `AgentCard` in `solune/frontend/src/components/agents/AgentCard.tsx` and set matching `aria-label`
 - [ ] T019 [P] [US1] Add tooltip with `contentKey="agents.card.expand"` to the expand/collapse toggle on `AgentCard` in `solune/frontend/src/components/agents/AgentCard.tsx` with dynamic `aria-label` ("Expand agent details" / "Collapse agent details") per spec acceptance scenario 3
-- [ ] T020 [P] [US1] Add tooltips with `contentKey="agents.tools.moveUp"` and `contentKey="agents.tools.moveDown"` to the move-up/move-down buttons in `ToolsEditor` in `solune/frontend/src/components/agents/ToolsEditor.tsx` and set matching `aria-label`
-- [ ] T021 [P] [US1] Add tooltip with `contentKey="agents.tools.remove"` to the remove-tool button in `ToolsEditor` in `solune/frontend/src/components/agents/ToolsEditor.tsx` and set matching `aria-label`
+- [x] T020 [P] [US1] Add tooltips with `contentKey="agents.tools.moveUp"` and `contentKey="agents.tools.moveDown"` to the move-up/move-down buttons in `ToolsEditor` in `solune/frontend/src/components/agents/ToolsEditor.tsx` and set matching `aria-label`
+- [x] T021 [P] [US1] Add tooltip with `contentKey="agents.tools.remove"` to the remove-tool button in `ToolsEditor` in `solune/frontend/src/components/agents/ToolsEditor.tsx` and set matching `aria-label`
 - [ ] T022 [P] [US1] Add tooltip with `contentKey="agents.bulk.scope"` to the scope selector in `BulkModelUpdateDialog` in `solune/frontend/src/components/agents/BulkModelUpdateDialog.tsx`
 
 #### 2.3 — Chat Interface
 
-- [ ] T023 [P] [US1] Verify/add tooltip with `contentKey="chat.voice.stop"` to the stop-recording state of `VoiceInputButton` in `solune/frontend/src/components/chat/VoiceInputButton.tsx` and set matching `aria-label`
+- [x] T023 [P] [US1] Verify/add tooltip with `contentKey="chat.voice.stop"` to the stop-recording state of `VoiceInputButton` in `solune/frontend/src/components/chat/VoiceInputButton.tsx` and set matching `aria-label`
 
 #### 2.4 — Board / Projects
 
@@ -93,7 +93,7 @@
 
 - [ ] T026 [P] [US1] Verify/add tooltip with `contentKey="tools.card.resync"` to the re-sync button on `ToolCard` in `solune/frontend/src/components/tools/ToolCard.tsx` and set matching `aria-label`
 - [ ] T027 [P] [US1] Add field-help tooltips using `contentKey="tools.config.repoUrl"`, `tools.config.branch`, `tools.config.serverCommand` to inputs in `RepoConfigPanel` in `solune/frontend/src/components/tools/RepoConfigPanel.tsx`
-- [ ] T028 [P] [US1] Add tooltip with `contentKey="tools.generator.copy"` to the copy button in `GitHubMcpConfigGenerator` in `solune/frontend/src/components/tools/GitHubMcpConfigGenerator.tsx` and set matching `aria-label`
+- [x] T028 [P] [US1] Add tooltip with `contentKey="tools.generator.copy"` to the copy button in `GitHubMcpConfigGenerator` in `solune/frontend/src/components/tools/GitHubMcpConfigGenerator.tsx` and set matching `aria-label`
 - [ ] T029 [P] [US1] Add tooltip with `contentKey="tools.search.input"` to the search input in the tools page search component under `solune/frontend/src/components/tools/`
 
 #### 2.6 — Settings Page
@@ -116,11 +116,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T035 [US2] Create `AgentHoverCardContent` preview component (reusable across AgentNode and AgentCard hover cards) rendering `AgentHoverCardData` fields — name, description (truncated ~100 chars), model badge, tools list (max 5, "+N more"), last-run status badge — in a new file or inline in `solune/frontend/src/components/pipeline/AgentNode.tsx` per `specs/002-tooltip-hover-coverage/data-model.md` and `contracts/hover-card-component-contract.md`
-- [ ] T036 [P] [US2] Wrap `AgentNode` in `solune/frontend/src/components/pipeline/AgentNode.tsx` with `<HoverCard openDelay={300} closeDelay={150}>` + `<HoverCardTrigger asChild>` + `<HoverCardContent>` rendering `AgentHoverCardContent` per spec FR-009 and contract usage pattern "Agent Node Hover Card"
-- [ ] T037 [P] [US2] Wrap `AgentCard` name/avatar in `solune/frontend/src/components/agents/AgentCard.tsx` with `<HoverCard>` rendering `AgentHoverCardContent` showing description snippet, active tools, and run count per spec FR-010
-- [ ] T038 [US2] Create `IssueHoverCardContent` preview component rendering `IssueHoverCardData` fields — full title, number, assignees (max 3 avatars, "+N"), labels as colored badges, pipeline stage, status — in `solune/frontend/src/components/board/IssueCard.tsx` or a shared location per `specs/002-tooltip-hover-coverage/data-model.md`
-- [ ] T039 [P] [US2] Wrap `IssueCard` in `solune/frontend/src/components/board/IssueCard.tsx` with `<HoverCard>` rendering `IssueHoverCardContent` showing full title (if truncated), assignees, labels, pipeline stage per spec FR-011 and contract usage pattern "Issue Card Hover Card"
+- [x] T035 [US2] Create `AgentHoverCardContent` preview component (reusable across AgentNode and AgentCard hover cards) rendering `AgentHoverCardData` fields — name, description (truncated ~100 chars), model badge, tools list (max 5, "+N more"), last-run status badge — in a new file or inline in `solune/frontend/src/components/pipeline/AgentNode.tsx` per `specs/002-tooltip-hover-coverage/data-model.md` and `contracts/hover-card-component-contract.md`
+- [x] T036 [P] [US2] Wrap `AgentNode` in `solune/frontend/src/components/pipeline/AgentNode.tsx` with `<HoverCard openDelay={300} closeDelay={150}>` + `<HoverCardTrigger asChild>` + `<HoverCardContent>` rendering `AgentHoverCardContent` per spec FR-009 and contract usage pattern "Agent Node Hover Card"
+- [x] T037 [P] [US2] Wrap `AgentCard` name/avatar in `solune/frontend/src/components/agents/AgentCard.tsx` with `<HoverCard>` rendering `AgentHoverCardContent` showing description snippet, active tools, and run count per spec FR-010
+- [x] T038 [US2] Create `IssueHoverCardContent` preview component rendering `IssueHoverCardData` fields — full title, number, assignees (max 3 avatars, "+N"), labels as colored badges, pipeline stage, status — in `solune/frontend/src/components/board/IssueCard.tsx` or a shared location per `specs/002-tooltip-hover-coverage/data-model.md`
+- [x] T039 [P] [US2] Wrap `IssueCard` in `solune/frontend/src/components/board/IssueCard.tsx` with `<HoverCard>` rendering `IssueHoverCardContent` showing full title (if truncated), assignees, labels, pipeline stage per spec FR-011 and contract usage pattern "Issue Card Hover Card"
 - [ ] T040 [US2] Create `MentionHoverCardContent` preview component rendering `MentionHoverCardData` fields — agent name, description, tools (max 3, overflow) — in `solune/frontend/src/components/chat/` per `specs/002-tooltip-hover-coverage/data-model.md`
 - [ ] T041 [P] [US2] Wrap `@agent-name` mention chips in chat composer in `solune/frontend/src/components/chat/MentionAutocomplete.tsx` (or the component rendering mention chips) with `<HoverCard>` rendering `MentionHoverCardContent` per spec FR-012
 - [ ] T042 [US2] Add loading skeleton placeholder inside each hover card content component for async data states per spec edge case "hover cards when the underlying data is still loading"
@@ -137,9 +137,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T043 [US3] Migrate `ModelSelector` in `solune/frontend/src/components/pipeline/ModelSelector.tsx` from manual useState + absolute-positioned dropdown to `<Popover>` + `<PopoverTrigger>` + `<PopoverContent>` per `specs/002-tooltip-hover-coverage/contracts/popover-component-contract.md` migration pattern — retain existing search, filtering, recent tracking, and cost badge logic; remove manual Escape/outside-click/portal handlers
-- [ ] T044 [P] [US3] Migrate `AddAgentPopover` in `solune/frontend/src/components/board/AddAgentPopover.tsx` from manual overlay to `<Popover>` + `<PopoverTrigger>` + `<PopoverContent>` — retain existing agent filtering and selection logic; remove manual overlay mechanics per contract migration pattern
-- [ ] T045 [P] [US3] Migrate `AgentPresetSelector` in `solune/frontend/src/components/board/AgentPresetSelector.tsx` from manual overlay to `<Popover>` + `<PopoverTrigger>` + `<PopoverContent>` — retain existing preset logic, confirmation dialogs, and localStorage; remove manual overlay mechanics per research RT-002
+- [x] T043 [US3] Migrate `ModelSelector` in `solune/frontend/src/components/pipeline/ModelSelector.tsx` from manual useState + absolute-positioned dropdown to `<Popover>` + `<PopoverTrigger>` + `<PopoverContent>` per `specs/002-tooltip-hover-coverage/contracts/popover-component-contract.md` migration pattern — retain existing search, filtering, recent tracking, and cost badge logic; remove manual Escape/outside-click/portal handlers
+- [x] T044 [P] [US3] Migrate `AddAgentPopover` in `solune/frontend/src/components/board/AddAgentPopover.tsx` from manual overlay to `<Popover>` + `<PopoverTrigger>` + `<PopoverContent>` — retain existing agent filtering and selection logic; remove manual overlay mechanics per contract migration pattern
+- [x] T045 [P] [US3] Migrate `AgentPresetSelector` in `solune/frontend/src/components/board/AgentPresetSelector.tsx` from manual overlay to `<Popover>` + `<PopoverTrigger>` + `<PopoverContent>` — retain existing preset logic, confirmation dialogs, and localStorage; remove manual overlay mechanics per research RT-002
 - [ ] T046 [US3] Grep codebase (`solune/frontend/src/`) for remaining manual open/close toggle patterns (useState + absolute-positioned div) and migrate each to `popover.tsx` per spec FR-017 and plan Phase 4
 - [ ] T047 [US3] Verify all migrated popovers have correct `aria-haspopup="dialog"` on trigger, `aria-expanded` toggling, focus trapping, and focus restoration per `specs/002-tooltip-hover-coverage/contracts/popover-component-contract.md` migration checklist
 
@@ -157,12 +157,12 @@
 
 #### Uniform Hover State Token
 
-- [ ] T048 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `AgentCard` in `solune/frontend/src/components/agents/AgentCard.tsx` per research RT-005
-- [ ] T049 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `IssueCard` in `solune/frontend/src/components/board/IssueCard.tsx` per research RT-005
-- [ ] T050 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `ToolCard` in `solune/frontend/src/components/tools/ToolCard.tsx` per research RT-005
-- [ ] T051 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `ChoreCard` (or chore row component) under `solune/frontend/src/components/chores/` per research RT-005
-- [ ] T052 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `AgentNode` in `solune/frontend/src/components/pipeline/AgentNode.tsx` per research RT-005
-- [ ] T053 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `StageCard` in `solune/frontend/src/components/pipeline/StageCard.tsx` per research RT-005
+- [x] T048 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `AgentCard` in `solune/frontend/src/components/agents/AgentCard.tsx` per research RT-005
+- [x] T049 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `IssueCard` in `solune/frontend/src/components/board/IssueCard.tsx` per research RT-005
+- [x] T050 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `ToolCard` in `solune/frontend/src/components/tools/ToolCard.tsx` per research RT-005
+- [x] T051 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `ChoreCard` (or chore row component) under `solune/frontend/src/components/chores/` per research RT-005
+- [x] T052 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `AgentNode` in `solune/frontend/src/components/pipeline/AgentNode.tsx` per research RT-005
+- [x] T053 [P] [US4] Apply consistent `hover:ring-1 hover:ring-border hover:bg-accent/50 transition-all` classes to `StageCard` in `solune/frontend/src/components/pipeline/StageCard.tsx` per research RT-005
 
 #### Drag Handle Affordance
 
@@ -188,7 +188,7 @@
 ### Implementation for User Story 5
 
 - [ ] T059 [US5] Audit and prune orphaned keys in `solune/frontend/src/constants/tooltip-content.ts` — find registry entries with no corresponding `contentKey=` usage in any component file under `solune/frontend/src/` per spec FR-021 and plan Phase 5 item 11
-- [ ] T060 [P] [US5] Grep `solune/frontend/src/` for remaining `title=` on interactive elements (buttons, links, toggles) and convert each to `<Tooltip>` wrapper per spec FR-022 and plan Phase 5 item 12; retain `title=` only on non-interactive truncated text `<span>` elements
+- [x] T060 [P] [US5] Grep `solune/frontend/src/` for remaining `title=` on interactive elements (buttons, links, toggles) and convert each to `<Tooltip>` wrapper per spec FR-022 and plan Phase 5 item 12; retain `title=` only on non-interactive truncated text `<span>` elements
 - [ ] T061 [P] [US5] Perform terminology audit on all tooltip `summary` text in `solune/frontend/src/constants/tooltip-content.ts` — ensure exact match with UI labels (e.g., "execution group" not "group", "stage" not "column") per spec FR-023 and plan Phase 5 item 13
 
 **Checkpoint**: Registry has zero orphaned keys, zero `title=` on interactive elements, and all terminology matches. User Story 5 is fully functional and testable independently.
@@ -202,7 +202,7 @@
 ### Accessibility & Motion
 
 - [ ] T062 [P] Audit every icon-only button across `solune/frontend/src/` for `aria-label` attribute matching its tooltip text per spec FR-024 and plan Phase 6 item 14
-- [ ] T063 [P] Verify `prefers-reduced-motion` compliance — confirm HoverCard and Popover animations in `solune/frontend/src/components/ui/hover-card.tsx` and `solune/frontend/src/components/ui/popover.tsx` use `motion-safe:` Tailwind modifier and produce no animation under reduced-motion per spec FR-003 and research RT-006
+- [x] T063 [P] Verify `prefers-reduced-motion` compliance — confirm HoverCard and Popover animations in `solune/frontend/src/components/ui/hover-card.tsx` and `solune/frontend/src/components/ui/popover.tsx` use `motion-safe:` Tailwind modifier and produce no animation under reduced-motion per spec FR-003 and research RT-006
 - [ ] T064 [P] Verify all tooltip triggers are reachable via keyboard Tab navigation and all popovers are focus-trapped and focus-returning per spec FR-025 and FR-026
 
 ### Chat Interface Inline Descriptions
@@ -212,10 +212,10 @@
 
 ### Final Verification
 
-- [ ] T067 Run `npx vitest run` in `solune/frontend/` and verify all tests pass including new hover-card and popover tests
-- [ ] T068 Run `npm run type-check` in `solune/frontend/` and verify zero type errors
-- [ ] T069 Run `npm run lint` in `solune/frontend/` and verify zero lint errors
-- [ ] T070 Run `npm run build` in `solune/frontend/` and verify successful production build
+- [x] T067 Run `npx vitest run` in `solune/frontend/` and verify all tests pass including new hover-card and popover tests
+- [x] T068 Run `npm run type-check` in `solune/frontend/` and verify zero type errors
+- [x] T069 Run `npm run lint` in `solune/frontend/` and verify zero lint errors
+- [x] T070 Run `npm run build` in `solune/frontend/` and verify successful production build
 - [ ] T071 Run quickstart.md manual verification walkthrough per `specs/002-tooltip-hover-coverage/quickstart.md` Verification section — every icon-only button shows tooltip ≤300ms; all truncated text shows full content; hover cards render correct data; all popovers close on Escape; no animation under `prefers-reduced-motion`
 
 ---

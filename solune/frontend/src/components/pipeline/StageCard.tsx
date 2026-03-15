@@ -150,7 +150,7 @@ export function StageCard({
   };
 
   return (
-    <div className="celestial-panel celestial-fade-in pipeline-column-surface pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm">
+    <div className="celestial-panel celestial-fade-in pipeline-column-surface pipeline-stage-card group flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm transition-all hover:ring-1 hover:ring-border hover:bg-accent/50">
       {/* Header: lock icon + name + remove */}
       <div className="flex items-start gap-2">
         <Tooltip contentKey="pipeline.stage.lockIcon">
@@ -172,17 +172,18 @@ export function StageCard({
               maxLength={100}
             />
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setEditName(stage.name);
-                setIsEditing(true);
-              }}
-              className="celestial-focus w-full truncate text-left text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none"
-              title="Click to rename"
-            >
-              {stage.name}
-            </button>
+            <Tooltip content="Click to rename this stage" side="bottom">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditName(stage.name);
+                  setIsEditing(true);
+                }}
+                className="celestial-focus w-full truncate text-left text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none"
+              >
+                {stage.name}
+              </button>
+            </Tooltip>
           )}
 
           <div className="mt-1 flex flex-wrap items-center gap-1.5">

@@ -5,12 +5,12 @@ import { TriangleAlert } from 'lucide-react';
  * Displays available agents with slug, display_name, and description.
  * On select, calls addAgent callback. Shows loading/error states (T019).
  *
- * The dropdown is rendered via a portal so it floats above all board content
- * regardless of parent overflow constraints.
+ * Uses Radix Popover for portal rendering, positioning, click-outside
+ * dismissal, and Escape-key handling.
  */
 
-import { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react';
-import { createPortal } from 'react-dom';
+import { useState, useCallback } from 'react';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AvailableAgent, AgentAssignment } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
@@ -46,97 +46,18 @@ export function AddAgentPopover({
 }: AddAgentPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [filter, setFilter] = useState('');
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const [position, setPosition] = useState<{ top: number; left: number } | null>(null);
 
-  // Compute position of the dropdown relative to the trigger button
-  const updatePosition = useCallback(() => {
-    if (!triggerRef.current) return;
-    const rect = triggerRef.current.getBoundingClientRect();
-    const dropdownHeight = 320; // max-h-80 = 20rem = 320px
-    const dropdownWidth = 256; // w-64 = 16rem = 256px
-    const margin = 8;
-    const spaceBelow = window.innerHeight - rect.bottom - margin;
-    const placeAbove = spaceBelow < dropdownHeight && rect.top > spaceBelow;
-
-    let top = placeAbove ? rect.top - dropdownHeight - 4 : rect.bottom + 4;
-    top = Math.max(margin, Math.min(top, window.innerHeight - dropdownHeight - margin));
-
-    let left = rect.left;
-    left = Math.max(margin, Math.min(left, window.innerWidth - dropdownWidth - margin));
-
-    setPosition({ top, left });
+  const handleOpenChange = useCallback((open: boolean) => {
+    setIsOpen(open);
+    if (!open) setFilter('');
   }, []);
-
-  // Recalculate position when opened and on scroll/resize
-  useLayoutEffect(() => {
-    if (!isOpen) return;
-    updatePosition();
-
-    // Throttle scroll/resize recalculations to once per animation frame to
-    // prevent layout thrashing from repeated getBoundingClientRect calls.
-    let rafId = 0;
-    const scheduleReposition = () => {
-      if (rafId) return;
-      rafId = requestAnimationFrame(() => {
-        rafId = 0;
-        updatePosition();
-      });
-    };
-
-    window.addEventListener('scroll', scheduleReposition, { capture: true, passive: true });
-    window.addEventListener('resize', scheduleReposition);
-    return () => {
-      window.removeEventListener('scroll', scheduleReposition, { capture: true });
-      window.removeEventListener('resize', scheduleReposition);
-      if (rafId) cancelAnimationFrame(rafId);
-    };
-  }, [isOpen, updatePosition]);
-
-  // Close on outside click
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (e: MouseEvent) => {
-      if (
-        popoverRef.current &&
-        !popoverRef.current.contains(e.target as Node) &&
-        triggerRef.current &&
-        !triggerRef.current.contains(e.target as Node)
-      ) {
-        setIsOpen(false);
-        setFilter('');
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
-  // Close on Escape
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setIsOpen(false);
-        setFilter('');
-        triggerRef.current?.focus();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
 
   const handleSelect = useCallback(
     (agent: AvailableAgent) => {
       onAddAgent(status, agent);
-      setIsOpen(false);
-      setFilter('');
+      handleOpenChange(false);
     },
-    [status, onAddAgent]
+    [status, onAddAgent, handleOpenChange]
   );
 
   const filteredAgents = availableAgents.filter((a) => {
@@ -152,147 +73,137 @@ export function AddAgentPopover({
   // Count how many times each slug is already assigned
   const assignedSlugs = new Set(assignedAgents.map((a) => a.slug));
 
-  const dropdown =
-    isOpen && position
-      ? createPortal(
-          <div
-            ref={popoverRef}
-            style={{ position: 'fixed', top: position.top, left: position.left }}
-            className="celestial-fade-in z-50 flex max-h-80 w-64 flex-col overflow-hidden rounded-[1rem] border border-border bg-popover shadow-lg backdrop-blur-sm"
-            role="listbox"
-            aria-label={`Add agent to ${status}`}
-            aria-busy={isLoading}
-          >
-            {/* Search filter */}
-            <div className="border-b border-border bg-background/40 p-2">
-              <input
-                type="text"
-                className="celestial-focus w-full rounded-md border border-input bg-background/72 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
-                placeholder="Filter agents..."
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
-                /* eslint-disable-next-line jsx-a11y/no-autofocus */
-                autoFocus
-              />
-            </div>
-
-            {/* Loading */}
-            {isLoading && (
-              <div className="p-4 text-sm text-muted-foreground flex items-center justify-center gap-2">
-                <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                Loading agents...
-              </div>
-            )}
-
-            {/* Error */}
-            {error && !isLoading && (
-              <div className="p-3 text-sm text-destructive bg-destructive/10 flex flex-col gap-2">
-                <span className="inline-flex items-center gap-2">
-                  <TriangleAlert className="h-4 w-4" />
-                  {error}
-                </span>
-                <button
-                  className="px-2 py-1 bg-background border border-destructive/20 rounded text-xs hover:bg-destructive/20 transition-colors"
-                  onClick={onRetry}
-                  type="button"
-                >
-                  Retry
-                </button>
-              </div>
-            )}
-
-            {/* Agent list */}
-            {!isLoading && !error && (
-              <div className="overflow-y-auto flex-1 p-1">
-                {filteredAgents.length === 0 ? (
-                  <div className="p-3 text-sm text-muted-foreground text-center">
-                    {filter ? 'No matching agents' : 'No agents available'}
-                  </div>
-                ) : (
-                  filteredAgents.map((agent) => {
-                    const isDuplicate = assignedSlugs.has(agent.slug);
-                    const displayName = formatAgentName(agent.slug, agent.display_name);
-                    return (
-                      <button
-                        key={agent.slug}
-                        className={cn(
-                          'relative flex w-full flex-col gap-1 rounded-md p-2 text-left transition-colors hover:bg-primary/10',
-                          isDuplicate ? 'opacity-70' : ''
-                        )}
-                        onClick={() => handleSelect(agent)}
-                        type="button"
-                        title={isDuplicate ? `${displayName} (already assigned)` : displayName}
-                      >
-                        <div className="flex items-start justify-between gap-2 w-full">
-                          <div className="flex min-w-0 items-start gap-2">
-                            <ThemedAgentIcon
-                              slug={agent.slug}
-                              name={displayName}
-                              avatarUrl={agent.avatar_url}
-                              iconName={agent.icon_name}
-                              size="md"
-                              className="mt-0.5"
-                            />
-                            <span className="text-sm font-medium text-foreground truncate pr-2">
-                              {displayName}
-                            </span>
-                          </div>
-                          <span
-                            className={cn(
-                              'text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0',
-                              agent.source === 'builtin'
-                                ? 'solar-chip-neutral'
-                                : agent.source === 'repository'
-                                  ? 'solar-chip-success'
-                                  : 'bg-muted text-muted-foreground'
-                            )}
-                          >
-                            {agent.source}
-                          </span>
-                        </div>
-                        {agent.description && (
-                          <div className="text-xs text-muted-foreground line-clamp-2 leading-snug">
-                            {agent.description}
-                          </div>
-                        )}
-                        <div className="text-[10px] font-mono text-muted-foreground/70 truncate">
-                          {agent.slug}
-                        </div>
-                        {isDuplicate && (
-                          <span className="absolute top-2 right-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
-                            already assigned
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })
-                )}
-              </div>
-            )}
-          </div>,
-          document.body
-        )
-      : null;
-
   return (
-    <div className="relative">
-      <button
-        ref={triggerRef}
-        className={
-          compact
-            ? 'celestial-focus w-full rounded-full border border-dashed border-primary/30 bg-background/22 px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-foreground'
-            : 'celestial-focus w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground'
-        }
-        onClick={() => setIsOpen(!isOpen)}
-        aria-expanded={isOpen}
-        aria-label={`Add agent to ${status}`}
-        title={`Add agent to ${status}`}
-        type="button"
-      >
-        + Add Agent
-      </button>
+    <Popover open={isOpen} onOpenChange={handleOpenChange}>
+      <PopoverTrigger asChild>
+        <button
+          className={
+            compact
+              ? 'celestial-focus w-full rounded-full border border-dashed border-primary/30 bg-background/22 px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/45 hover:bg-primary/10 hover:text-foreground'
+              : 'celestial-focus w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground'
+          }
+          aria-label={`Add agent to ${status}`}
+          type="button"
+        >
+          + Add Agent
+        </button>
+      </PopoverTrigger>
 
-      {dropdown}
-    </div>
+      <PopoverContent
+        side="bottom"
+        align="start"
+        className="flex max-h-80 w-64 flex-col overflow-hidden rounded-[1rem] border-border bg-popover p-0 shadow-lg backdrop-blur-sm"
+        role="listbox"
+        aria-label={`Add agent to ${status}`}
+        aria-busy={isLoading}
+      >
+        {/* Search filter */}
+        <div className="border-b border-border bg-background/40 p-2">
+          <input
+            type="text"
+            className="celestial-focus w-full rounded-md border border-input bg-background/72 px-2 py-1 text-sm focus:outline-none focus:ring-1 focus:ring-ring"
+            placeholder="Filter agents..."
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            /* eslint-disable-next-line jsx-a11y/no-autofocus */
+            autoFocus
+          />
+        </div>
+
+        {/* Loading */}
+        {isLoading && (
+          <div className="p-4 text-sm text-muted-foreground flex items-center justify-center gap-2">
+            <span className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+            Loading agents...
+          </div>
+        )}
+
+        {/* Error */}
+        {error && !isLoading && (
+          <div className="p-3 text-sm text-destructive bg-destructive/10 flex flex-col gap-2">
+            <span className="inline-flex items-center gap-2">
+              <TriangleAlert className="h-4 w-4" />
+              {error}
+            </span>
+            <button
+              className="px-2 py-1 bg-background border border-destructive/20 rounded text-xs hover:bg-destructive/20 transition-colors"
+              onClick={onRetry}
+              type="button"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {/* Agent list */}
+        {!isLoading && !error && (
+          <div className="overflow-y-auto flex-1 p-1">
+            {filteredAgents.length === 0 ? (
+              <div className="p-3 text-sm text-muted-foreground text-center">
+                {filter ? 'No matching agents' : 'No agents available'}
+              </div>
+            ) : (
+              filteredAgents.map((agent) => {
+                const isDuplicate = assignedSlugs.has(agent.slug);
+                const displayName = formatAgentName(agent.slug, agent.display_name);
+                return (
+                  <button
+                    key={agent.slug}
+                    className={cn(
+                      'relative flex w-full flex-col gap-1 rounded-md p-2 text-left transition-colors hover:bg-primary/10',
+                      isDuplicate ? 'opacity-70' : ''
+                    )}
+                    onClick={() => handleSelect(agent)}
+                    type="button"
+                    title={isDuplicate ? `${displayName} (already assigned)` : displayName}
+                  >
+                    <div className="flex items-start justify-between gap-2 w-full">
+                      <div className="flex min-w-0 items-start gap-2">
+                        <ThemedAgentIcon
+                          slug={agent.slug}
+                          name={displayName}
+                          avatarUrl={agent.avatar_url}
+                          iconName={agent.icon_name}
+                          size="md"
+                          className="mt-0.5"
+                        />
+                        <span className="text-sm font-medium text-foreground truncate pr-2">
+                          {displayName}
+                        </span>
+                      </div>
+                      <span
+                        className={cn(
+                          'text-[10px] px-1.5 py-0.5 rounded-full font-medium uppercase tracking-wider shrink-0',
+                          agent.source === 'builtin'
+                            ? 'solar-chip-neutral'
+                            : agent.source === 'repository'
+                              ? 'solar-chip-success'
+                              : 'bg-muted text-muted-foreground'
+                        )}
+                      >
+                        {agent.source}
+                      </span>
+                    </div>
+                    {agent.description && (
+                      <div className="text-xs text-muted-foreground line-clamp-2 leading-snug">
+                        {agent.description}
+                      </div>
+                    )}
+                    <div className="text-[10px] font-mono text-muted-foreground/70 truncate">
+                      {agent.slug}
+                    </div>
+                    {isDuplicate && (
+                      <span className="absolute top-2 right-2 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
+                        already assigned
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
   );
 }

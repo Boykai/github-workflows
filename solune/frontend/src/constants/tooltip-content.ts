@@ -251,4 +251,147 @@ export const tooltipContent: Record<string, TooltipEntry> = {
   'tools.panel.addToolButton': {
     summary: 'Add a new MCP tool configuration to make it available for agents.',
   },
+
+  // ── Pipeline Gap Fill (Phase 2.1) ────────────────────────────────────
+  'pipeline.agent.dragHandle': {
+    summary: 'Drag to reorder this agent within the execution group.',
+  },
+  'pipeline.agent.clone': {
+    summary: 'Duplicate this agent into the same execution group.',
+  },
+  'pipeline.group.dragHandle': {
+    summary: 'Drag to reorder this execution group within the stage.',
+  },
+  'pipeline.group.label': {
+    title: 'Execution Group',
+    summary:
+      'An execution group defines how agents run together — either in parallel (all at once) or sequentially (one after another).',
+  },
+  'pipeline.stage.dragHandle': {
+    summary: 'Drag to reorder this stage in the pipeline.',
+  },
+  'pipeline.analytics.complexity': {
+    title: 'Complexity Score',
+    summary:
+      'Calculated from the total number of stages, execution groups, and agents in the pipeline. Higher values indicate more complex workflows.',
+  },
+
+  // ── Agents Gap Fill (Phase 2.2) ─────────────────────────────────────
+  'agents.card.icon': {
+    summary: 'Click to choose a custom icon for this agent.',
+  },
+  'agents.card.expand': {
+    summary: 'Expand or collapse agent details.',
+  },
+  'agents.tools.moveUp': {
+    summary: 'Move this tool up in the execution order.',
+  },
+  'agents.tools.moveDown': {
+    summary: 'Move this tool down in the execution order.',
+  },
+  'agents.tools.remove': {
+    summary: 'Remove this tool from the agent.',
+  },
+  'agents.bulk.scope': {
+    summary: 'Select which agents will be affected by the bulk model update.',
+  },
+
+  // ── Chat Gap Fill (Phase 2.3) ───────────────────────────────────────
+  'chat.voice.stop': {
+    summary: 'Stop recording and discard the voice input.',
+  },
+  'chat.mention.agentPreview': {
+    summary: 'Hover to preview agent details.',
+  },
+  'chat.command.description': {
+    summary: 'Type a command to perform an action.',
+  },
+
+  // ── Board Gap Fill (Phase 2.4) ──────────────────────────────────────
+  'board.filter.button': {
+    summary: 'Filter board items by labels, assignees, or milestones.',
+  },
+  'board.sort.button': {
+    summary: 'Sort board items by date, priority, or title.',
+  },
+  'board.column.addAgent': {
+    summary: 'Assign an agent to work on items in this column.',
+  },
+  'board.column.settings': {
+    summary: 'Configure column settings and automation rules.',
+  },
+  'board.column.collapse': {
+    summary: 'Collapse this column to save space.',
+  },
+
+  // ── Tools Gap Fill (Phase 2.5) ──────────────────────────────────────
+  'tools.card.resync': {
+    summary: "Re-sync this tool's configuration with GitHub to pick up any changes.",
+  },
+  'tools.config.repoUrl': {
+    summary: 'The GitHub repository URL where this MCP server is hosted.',
+  },
+  'tools.config.branch': {
+    summary: 'The branch to use when fetching the MCP server configuration.',
+  },
+  'tools.config.serverCommand': {
+    summary: 'The command used to start the MCP server process.',
+  },
+  'tools.generator.copy': {
+    summary: 'Copy the generated MCP configuration JSON to your clipboard.',
+  },
+  'tools.search.input': {
+    summary: 'Search tools by name or description.',
+  },
+
+  // ── Settings Gap Fill (Phase 2.6) ───────────────────────────────────
+  'settings.ai.temperature': {
+    title: 'Temperature',
+    summary:
+      'Controls randomness in AI responses. Lower values (0.0) produce more deterministic output; higher values (1.0+) increase creativity and variety.',
+  },
+  'settings.ai.provider': {
+    summary: 'Select the AI provider (e.g., OpenAI, Anthropic) for the default model.',
+  },
+  'settings.theme.toggle': {
+    summary: 'Switch between light and dark theme.',
+  },
+  'settings.signal.qr': {
+    summary: 'Scan this QR code with Signal to connect your account for notifications.',
+  },
+  'settings.reset.danger': {
+    title: '⚠️ Destructive Action',
+    summary: 'This action cannot be undone. All associated data will be permanently deleted.',
+  },
+  'settings.reset.cache': {
+    summary: 'Clear all cached data. This may temporarily slow down the application while caches rebuild.',
+  },
+  'settings.reset.all': {
+    title: '⚠️ Reset All Settings',
+    summary:
+      'Reset all settings to their factory defaults. This removes all custom configurations, saved preferences, and cached data.',
+  },
+
+  // ── Navigation Gap Fill (Phase 2.7) ─────────────────────────────────
+  'nav.projects': {
+    summary: 'View and manage your project boards.',
+  },
+  'nav.agents': {
+    summary: 'Browse and configure AI agents.',
+  },
+  'nav.pipeline': {
+    summary: 'Design and manage agent pipelines.',
+  },
+  'nav.chores': {
+    summary: 'Schedule and manage recurring tasks.',
+  },
+  'nav.tools': {
+    summary: 'Configure MCP tools and integrations.',
+  },
+  'nav.settings': {
+    summary: 'Application settings and preferences.',
+  },
+  'nav.sidebar.toggle': {
+    summary: 'Collapse or expand the sidebar navigation.',
+  },
 };

@@ -11,6 +11,7 @@ import { Check, ClipboardCopy, Info, RefreshCw, Sparkles } from 'lucide-react';
 import type { McpToolConfig } from '@/types';
 import { cn } from '@/lib/utils';
 import { buildGitHubMcpConfig, BUILTIN_MCPS } from '@/lib/buildGitHubMcpConfig';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface GitHubMcpConfigGeneratorProps {
   tools: McpToolConfig[];
@@ -297,31 +298,33 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
               Syntax-highlighted JSON ready to copy into GitHub.com.
             </p>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              void handleCopy();
-            }}
-            aria-label={copied ? 'Copied' : 'Copy to clipboard'}
-            className={cn(
-              'inline-flex items-center gap-1.5 self-start rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
-              copied
-                ? 'border-green-500/40 bg-green-500/10 text-green-600'
-                : 'border-border/70 text-muted-foreground hover:border-primary/50 hover:bg-primary/10 hover:text-foreground'
-            )}
-          >
-            {copied ? (
-              <>
-                <Check className="h-3 w-3" />
-                Copied!
-              </>
-            ) : (
-              <>
-                <ClipboardCopy className="h-3 w-3" />
-                Copy to Clipboard
-              </>
-            )}
-          </button>
+          <Tooltip contentKey="tools.generator.copy">
+            <button
+              type="button"
+              onClick={() => {
+                void handleCopy();
+              }}
+              aria-label={copied ? 'Copied' : 'Copy to clipboard'}
+              className={cn(
+                'inline-flex items-center gap-1.5 self-start rounded-full border px-3 py-1.5 text-xs font-medium transition-colors',
+                copied
+                  ? 'border-green-500/40 bg-green-500/10 text-green-600'
+                  : 'border-border/70 text-muted-foreground hover:border-primary/50 hover:bg-primary/10 hover:text-foreground'
+              )}
+            >
+              {copied ? (
+                <>
+                  <Check className="h-3 w-3" />
+                  Copied!
+                </>
+              ) : (
+                <>
+                  <ClipboardCopy className="h-3 w-3" />
+                  Copy to Clipboard
+                </>
+              )}
+            </button>
+          </Tooltip>
           <span role="status" aria-live="polite" className="sr-only">
             {copied ? 'Copied to clipboard' : ''}
           </span>

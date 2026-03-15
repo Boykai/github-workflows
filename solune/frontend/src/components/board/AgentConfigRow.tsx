@@ -354,7 +354,6 @@ export function AgentConfigRow({
         <button
           className={cn('celestial-focus solar-action flex items-center justify-center rounded-md text-muted-foreground transition-colors hover:text-foreground', isCompact ? 'h-5 w-5 text-xs' : 'h-6 w-6')}
           onClick={() => setIsExpanded(!isExpanded)}
-          title={isExpanded ? 'Collapse agent row' : 'Expand agent row'}
           aria-label={isExpanded ? 'Collapse agent row' : 'Expand agent row'}
           type="button"
         >
