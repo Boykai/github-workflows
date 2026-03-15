@@ -49,6 +49,9 @@ const NotFoundPage = lazy(() =>
 const AppsPage = lazy(() =>
   import('@/pages/AppsPage').then((module) => ({ default: module.AppsPage }))
 );
+const HelpPage = lazy(() =>
+  import('@/pages/HelpPage').then((module) => ({ default: module.HelpPage }))
+);
 
 function RouteFallback() {
   return (
@@ -101,6 +104,7 @@ const router = createBrowserRouter(
         <Route path="settings" element={withSuspense(<SettingsPage />)} />
         <Route path="apps" element={withSuspense(<AppsPage />)} />
         <Route path="apps/:appName" element={withSuspense(<AppsPage />)} />
+        <Route path="help" element={withSuspense(<HelpPage />)} />
         <Route path="*" element={withSuspense(<NotFoundPage />)} />
       </Route>
     </>

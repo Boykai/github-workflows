@@ -1271,3 +1271,25 @@ export interface ToolDeleteResult {
   deleted_id: string | null;
   affected_agents: ToolChip[];
 }
+
+// ============ Onboarding Tour & Help Types (042) ============
+
+export type TourStepPlacement = 'top' | 'bottom' | 'left' | 'right';
+
+export interface TourStep {
+  id: number;
+  targetSelector: string | null;
+  title: string;
+  description: string;
+  icon: React.ComponentType<{ className?: string }>;
+  placement: TourStepPlacement;
+}
+
+export type FaqCategory = 'getting-started' | 'agents-pipelines' | 'chat-voice' | 'settings-integration';
+
+export interface FaqEntry {
+  id: string;
+  question: string;
+  answer: string;
+  category: FaqCategory;
+}
