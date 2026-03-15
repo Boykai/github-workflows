@@ -9,7 +9,6 @@ Fire-and-forget via asyncio.create_task so the chat response is not blocked.
 
 from __future__ import annotations
 
-import asyncio
 import logging
 
 import httpx
@@ -276,4 +275,9 @@ async def deliver_chat_message_via_signal(
     )
 
     # Fire-and-forget background retry task
-    asyncio.create_task(_delivery_task(phone, text, audit.id))
+    from src.services.task_registry import task_registry
+
+    task_registry.create_task(
+        _delivery_task(phone, text, audit.id),
+        name=f"signal-delivery-{audit.id}",
+    )

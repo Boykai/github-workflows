@@ -84,87 +84,137 @@ class FileUploadResponse(BaseModel):
 #
 # Chat messages, proposals, and recommendations are persisted to SQLite
 # via chat_store.py (tables from 023_consolidated_schema.sql).  In-memory
-# dicts act as a write-through cache for fast reads within the same
-# server session.  On a cache miss the data is loaded from SQLite,
-# ensuring nothing is lost on restart.
+# dicts act as a read-through cache backed by SQLite (single source of truth).
+# Writes go to SQLite first, then update the cache on success.
 
 _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
 _recommendations: dict[str, IssueRecommendation] = {}
+_locks: dict[str, asyncio.Lock] = {}
+
+_PERSIST_MAX_RETRIES = 3
+_PERSIST_BASE_DELAY = 0.1  # 100ms, 200ms, 400ms
+
+
+def _get_lock(key: str) -> asyncio.Lock:
+    """Return a per-key asyncio lock (lazy-created)."""
+    if key not in _locks:
+        _locks[key] = asyncio.Lock()
+    return _locks[key]
+
+
+async def _retry_persist(
+    fn,
+    *args,
+    context: str = "",
+    **kwargs,
+) -> None:
+    """Retry a persistence function with exponential backoff.
+
+    Only *transient* SQLite errors (``OperationalError`` — e.g. database
+    locked, busy, I/O) are retried.  Permanent errors (``IntegrityError``,
+    ``ProgrammingError``, etc.) are re-raised immediately.
+
+    Raises :class:`PersistenceError` after all retries are exhausted.
+    """
+    import sqlite3
+
+    from src.exceptions import PersistenceError
+
+    last_exc: Exception | None = None
+    for attempt in range(1, _PERSIST_MAX_RETRIES + 1):
+        try:
+            await fn(*args, **kwargs)
+            return
+        except sqlite3.OperationalError as exc:
+            last_exc = exc
+            logger.warning(
+                "Persist attempt %d/%d failed (%s): %s",
+                attempt,
+                _PERSIST_MAX_RETRIES,
+                context,
+                exc,
+            )
+            if attempt < _PERSIST_MAX_RETRIES:
+                await asyncio.sleep(_PERSIST_BASE_DELAY * (2 ** (attempt - 1)))
+        except Exception:
+            raise  # Non-transient — fail fast
+
+    raise PersistenceError(
+        f"Failed to persist {context} after {_PERSIST_MAX_RETRIES} retries",
+        details={"context": context, "last_error": str(last_exc)},
+    )
 
 
 async def _persist_message(session_id: UUID, message: ChatMessage) -> None:
-    """Persist a chat message to SQLite (fire-and-forget safe)."""
-    try:
-        from src.services import chat_store
+    """Persist a chat message to SQLite with retry."""
+    from src.services import chat_store
 
-        db = get_db()
-        await chat_store.save_message(
-            db,
-            session_id=str(session_id),
-            message_id=str(message.message_id),
-            sender_type=message.sender_type.value,
-            content=message.content,
-            action_type=message.action_type.value if message.action_type else None,
-            action_data=json.dumps(message.action_data) if message.action_data else None,
-        )
-    except Exception:
-        logger.warning("Failed to persist chat message to SQLite", exc_info=True)
+    db = get_db()
+    await _retry_persist(
+        chat_store.save_message,
+        db,
+        session_id=str(session_id),
+        message_id=str(message.message_id),
+        sender_type=message.sender_type.value,
+        content=message.content,
+        action_type=message.action_type.value if message.action_type else None,
+        action_data=json.dumps(message.action_data) if message.action_data else None,
+        context=f"message:{message.message_id}",
+    )
 
 
 async def _persist_proposal(proposal: AITaskProposal) -> None:
-    """Persist a proposal to SQLite."""
-    try:
-        from src.services import chat_store
+    """Persist a proposal to SQLite with retry."""
+    from src.services import chat_store
 
-        db = get_db()
-        await chat_store.save_proposal(
-            db,
-            session_id=str(proposal.session_id),
-            proposal_id=str(proposal.proposal_id),
-            original_input=proposal.original_input,
-            proposed_title=proposal.proposed_title,
-            proposed_description=proposal.proposed_description,
-            status=proposal.status.value,
-            edited_title=proposal.edited_title,
-            edited_description=proposal.edited_description,
-            created_at=proposal.created_at.isoformat(),
-            expires_at=proposal.expires_at.isoformat(),
-            file_urls=proposal.file_urls or None,
-            selected_pipeline_id=proposal.selected_pipeline_id,
-        )
-    except Exception:
-        logger.warning("Failed to persist proposal to SQLite", exc_info=True)
+    db = get_db()
+    await _retry_persist(
+        chat_store.save_proposal,
+        db,
+        session_id=str(proposal.session_id),
+        proposal_id=str(proposal.proposal_id),
+        original_input=proposal.original_input,
+        proposed_title=proposal.proposed_title,
+        proposed_description=proposal.proposed_description,
+        status=proposal.status.value,
+        edited_title=proposal.edited_title,
+        edited_description=proposal.edited_description,
+        created_at=proposal.created_at.isoformat(),
+        expires_at=proposal.expires_at.isoformat(),
+        file_urls=proposal.file_urls or None,
+        selected_pipeline_id=proposal.selected_pipeline_id,
+        context=f"proposal:{proposal.proposal_id}",
+    )
 
 
 async def _persist_recommendation(recommendation: IssueRecommendation) -> None:
-    """Persist a recommendation to SQLite."""
-    try:
-        from src.services import chat_store
+    """Persist a recommendation to SQLite with retry."""
+    from src.services import chat_store
 
-        db = get_db()
-        await chat_store.save_recommendation(
-            db,
-            session_id=str(recommendation.session_id),
-            recommendation_id=str(recommendation.recommendation_id),
-            data=json.dumps(recommendation.model_dump(mode="json")),
-            status=recommendation.status.value,
-            file_urls=recommendation.file_urls or None,
-        )
-    except Exception:
-        logger.warning("Failed to persist recommendation to SQLite", exc_info=True)
+    db = get_db()
+    await _retry_persist(
+        chat_store.save_recommendation,
+        db,
+        session_id=str(recommendation.session_id),
+        recommendation_id=str(recommendation.recommendation_id),
+        data=json.dumps(recommendation.model_dump(mode="json")),
+        status=recommendation.status.value,
+        file_urls=recommendation.file_urls or None,
+        context=f"recommendation:{recommendation.recommendation_id}",
+    )
 
 
 async def store_proposal(proposal: AITaskProposal) -> None:
-    """Store a proposal in cache and persist to SQLite."""
-    _proposals[str(proposal.proposal_id)] = proposal
+    """Persist a proposal to SQLite, then update cache."""
     await _persist_proposal(proposal)
+    _proposals[str(proposal.proposal_id)] = proposal
 
 
 async def store_recommendation(recommendation: IssueRecommendation) -> None:
-    """Store a recommendation in cache and persist to SQLite."""
-    _recommendations[str(recommendation.recommendation_id)] = recommendation
+    """Persist a recommendation to SQLite, then update cache."""
     await _persist_recommendation(recommendation)
+    _recommendations[str(recommendation.recommendation_id)] = recommendation
 
 
 async def get_proposal(proposal_id: str) -> AITaskProposal | None:
@@ -644,12 +694,13 @@ async def get_session_messages(session_id: UUID) -> list[ChatMessage]:
 
 
 async def add_message(session_id: UUID, message: ChatMessage) -> None:
-    """Add a message to a session and persist to SQLite."""
+    """Persist a message to SQLite, then update cache."""
     key = str(session_id)
-    if key not in _messages:
-        _messages[key] = []
-    _messages[key].append(message)
     await _persist_message(session_id, message)
+    async with _get_lock(key):
+        if key not in _messages:
+            _messages[key] = []
+        _messages[key].append(message)
 
 
 def _trigger_signal_delivery(
@@ -678,7 +729,9 @@ def _trigger_signal_delivery(
             logger.debug("Signal delivery trigger failed (non-fatal): %s", e)
 
     try:
-        asyncio.create_task(_deliver())
+        from src.services.task_registry import task_registry
+
+        task_registry.create_task(_deliver(), name="signal-delivery")
     except RuntimeError:
         pass  # No running event loop — skip silently
 
@@ -686,10 +739,47 @@ def _trigger_signal_delivery(
 @router.get("/messages", response_model=ChatMessagesResponse)
 async def get_messages(
     session: Annotated[UserSession, Depends(get_session_dep)],
+    limit: int = 50,
+    offset: int = 0,
 ) -> ChatMessagesResponse:
-    """Get chat messages for current session."""
-    messages = await get_session_messages(session.session_id)
-    return ChatMessagesResponse(messages=messages)
+    """Get chat messages for current session with pagination.
+
+    Pagination is performed at the database level to avoid loading all
+    rows into memory for sessions with large message histories.
+    """
+    from src.services import chat_store
+
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
+    key = str(session.session_id)
+
+    db = get_db()
+    total = await chat_store.count_messages(db, key)
+    rows = await chat_store.get_messages(db, key, limit=limit, offset=offset)
+    paginated: list[ChatMessage] = []
+    for row in rows:
+        action_data = None
+        if row.get("action_data"):
+            try:
+                action_data = json.loads(row["action_data"])
+            except (json.JSONDecodeError, TypeError):
+                action_data = None
+        paginated.append(
+            ChatMessage(
+                message_id=row["message_id"],
+                session_id=row["session_id"],
+                sender_type=SenderType(row["sender_type"]),
+                content=row["content"],
+                action_type=ActionType(row["action_type"]) if row.get("action_type") else None,
+                action_data=action_data,
+            )
+        )
+    return ChatMessagesResponse(
+        messages=paginated,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.delete("/messages")

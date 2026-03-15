@@ -117,6 +117,7 @@ async def _auto_start_copilot_polling() -> bool:
                 SELECT project_id, workflow_config FROM project_settings
                 WHERE workflow_config IS NOT NULL
                 ORDER BY updated_at DESC
+                LIMIT 50
                 """,
             )
             owner_only_fallback: str | None = None
@@ -316,26 +317,20 @@ async def _session_cleanup_loop() -> None:
 async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
     """Application lifespan handler.
 
-    The entire startup sequence is wrapped in ``try / finally`` so that
-    resources are always cleaned up — even when a later startup step
-    raises before ``yield``.  Each resource is guarded by a
-    ``None``/flag check so cleanup only tears down what was actually
-    initialised.
+    Uses :class:`asyncio.TaskGroup` for background tasks so they are
+    automatically cancelled and awaited on shutdown.  Fire-and-forget
+    tasks go through :data:`task_registry` and are drained before the
+    database is closed.
     """
     settings = get_settings()
     setup_logging(settings.debug, structured=not settings.debug)
     logger.info("Starting Solune API")
 
     from src.services.database import close_database, init_database, seed_global_settings
-
-    # Start Signal WebSocket listener for inbound messages
     from src.services.signal_bridge import start_signal_ws_listener, stop_signal_ws_listener
+    from src.services.task_registry import task_registry
 
-    # Track which resources were successfully initialised so the finally
-    # block only tears down what actually started.
     db = None
-    cleanup_task: asyncio.Task | None = None
-    watchdog_task: asyncio.Task | None = None
     signal_started = False
 
     try:
@@ -376,9 +371,6 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         _app.state.github_service = github_projects_service
         _app.state.connection_manager = connection_manager
 
-        # Start periodic session cleanup
-        cleanup_task = asyncio.create_task(_session_cleanup_loop())
-
         # Start Signal WebSocket listener for inbound messages
         await start_signal_ws_listener()
         signal_started = True
@@ -389,41 +381,35 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         except Exception as e:
             logger.exception("Failed to auto-start Copilot polling (non-fatal): %s", e)
 
-        # Agent MCP sync on startup — reconcile any drift between Tools page
-        # state and agent files (FR-009).  Uses the most recent user session.
-        # Run as a background task so it does not block app startup.
+        # Agent MCP sync — fire-and-forget via TaskRegistry
         async def _run_startup_agent_mcp_sync_background() -> None:
             try:
                 await _startup_agent_mcp_sync(db)
             except Exception as e:
                 logger.warning("Startup agent MCP sync failed (non-fatal): %s", e)
 
-        asyncio.create_task(_run_startup_agent_mcp_sync_background())
+        task_registry.create_task(
+            _run_startup_agent_mcp_sync_background(), name="startup-mcp-sync"
+        )
 
-        # Start polling watchdog — restarts polling if it stops unexpectedly.
-        # This is the primary guarantee that the agent pipeline "always recovers".
-        watchdog_task = asyncio.create_task(_polling_watchdog_loop())
-
-        yield
+        # Use TaskGroup for long-running background loops — automatic
+        # cancellation and awaiting on exit.
+        try:
+            async with asyncio.TaskGroup() as tg:
+                tg.create_task(_session_cleanup_loop())
+                tg.create_task(_polling_watchdog_loop())
+                yield
+        except* Exception as eg:
+            for exc in eg.exceptions:
+                logger.error("Background task failed during lifespan: %s", exc, exc_info=exc)
     finally:
-        # Shutdown: stop Signal listener, cancel cleanup task, stop polling,
-        # close database.  Guards ensure we only tear down resources that
-        # were initialised.
+        # Stop known long-lived tasks first so they don't block the drain.
         if signal_started:
             await stop_signal_ws_listener()
-        if cleanup_task is not None:
-            cleanup_task.cancel()
-            try:
-                await cleanup_task
-            except asyncio.CancelledError:
-                pass
 
-        if watchdog_task is not None:
-            watchdog_task.cancel()
-            try:
-                await watchdog_task
-            except asyncio.CancelledError:
-                pass
+        # Drain remaining fire-and-forget tasks tracked by the registry
+        # before tearing down the database connection.
+        await task_registry.drain(drain_timeout=30.0)
 
         # Stop Copilot polling if it was auto-started or started via the UI
         try:
@@ -464,6 +450,7 @@ def create_app() -> FastAPI:
             "Accept",
             "X-Request-ID",
             "X-Requested-With",
+            "X-CSRF-Token",
         ],
     )
 
@@ -477,14 +464,20 @@ def create_app() -> FastAPI:
 
     app.add_middleware(CSPMiddleware)
 
+    # CSRF protection — double-submit cookie for state-changing requests
+    from src.middleware.csrf import CSRFMiddleware
+
+    app.add_middleware(CSRFMiddleware)
+
     # Rate limiting — slowapi state + exception handler
     from slowapi import _rate_limit_exceeded_handler
     from slowapi.errors import RateLimitExceeded
 
-    from src.middleware.rate_limit import limiter
+    from src.middleware.rate_limit import RateLimitKeyMiddleware, limiter
 
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
+    app.add_middleware(RateLimitKeyMiddleware)
 
     # Exception handlers
     @app.exception_handler(AppException)

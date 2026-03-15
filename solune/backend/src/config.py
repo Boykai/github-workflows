@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     cache_ttl_seconds: int = 300
 
     # Metadata cache TTL (labels, branches, milestones, collaborators)
-    metadata_cache_ttl_seconds: int = 3600
+    metadata_cache_ttl_seconds: int = 300
 
     # Default repository for issue creation (owner/repo format)
     default_repository: str | None = None
@@ -92,6 +92,9 @@ class Settings(BaseSettings):
 
     # API documentation toggle (independent of DEBUG)
     enable_docs: bool = False
+
+    # Timeout for external API calls (seconds).
+    api_timeout_seconds: int = 30
 
     # Explicit admin designation via environment variable (numeric GitHub user ID).
     # Required in production mode.  In debug mode, when unset, the first

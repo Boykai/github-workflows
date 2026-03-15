@@ -100,3 +100,10 @@ class DatabaseError(AppException):
         super().__init__(
             message, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, details=details
         )
+
+
+class PersistenceError(DatabaseError):
+    """Persistence operation failed after retries."""
+
+    def __init__(self, message: str = "Persistence failed", details: dict | None = None):
+        super().__init__(message, details=details)

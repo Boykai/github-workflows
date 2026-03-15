@@ -86,29 +86,31 @@ export function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
-        {NAV_ROUTES.map((route) => {
-          const segment = route.path === '/' ? 'app' : route.path.replace(/^\//, '');
-          const contentKey = `nav.${segment}` as TooltipContentKey;
-          return (
-          <Tooltip contentKey={contentKey} side="right" key={route.path}>
-            <NavLink
-              to={route.path}
-              end={route.path === '/'}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all ${
-                  isActive
-                    ? 'bg-primary/14 text-primary shadow-sm ring-1 ring-primary/20'
-                    : 'text-muted-foreground hover:bg-accent/14 hover:text-foreground'
-                } ${isCollapsed ? 'justify-center' : ''}`
-              }
-            >
-              <route.icon className="w-5 h-5 shrink-0" />
-              {!isCollapsed && <span>{route.label}</span>}
-            </NavLink>
-          </Tooltip>
-          );
-        })}
+      <nav data-tour-step="sidebar-nav" className="flex flex-1 flex-col gap-1 px-2 py-4">
+        {NAV_ROUTES.map((route) => (
+          <NavLink
+            key={route.path}
+            to={route.path}
+            end={route.path === '/'}
+            data-tour-step={{
+              '/projects': 'projects-link',
+              '/pipeline': 'pipeline-link',
+              '/agents': 'agents-link',
+              '/help': 'help-link',
+            }[route.path] ?? undefined}
+            className={({ isActive }) =>
+              `flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all ${
+                isActive
+                  ? 'bg-primary/14 text-primary shadow-sm ring-1 ring-primary/20'
+                  : 'text-muted-foreground hover:bg-accent/14 hover:text-foreground'
+              } ${isCollapsed ? 'justify-center' : ''}`
+            }
+            title={isCollapsed ? route.label : undefined}
+          >
+            <route.icon className="w-5 h-5 shrink-0" />
+            {!isCollapsed && <span>{route.label}</span>}
+          </NavLink>
+        ))}
 
         {/* Recent Interactions section */}
         {!isCollapsed && (
@@ -147,6 +149,7 @@ export function Sidebar({
         )}
         <button
           onClick={() => setSelectorOpen(!selectorOpen)}
+          data-tour-step="project-selector"
           className={cn('flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/14', isCollapsed ? 'justify-center' : '')}
           title={
             selectedProject
