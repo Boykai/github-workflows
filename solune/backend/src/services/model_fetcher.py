@@ -320,7 +320,12 @@ class ModelFetcherService:
 
         # Serve stale cache immediately and trigger background refresh
         if cached and cached.is_stale and not force_refresh:
-            asyncio.create_task(self._background_refresh(provider, token, cache_key))
+            from src.services.task_registry import task_registry
+
+            task_registry.create_task(
+                self._background_refresh(provider, token, cache_key),
+                name=f"model-refresh-{cache_key[:16]}",
+            )
             return ModelsResponse(
                 status="success",
                 models=cached.models,
@@ -396,7 +401,11 @@ class ModelFetcherService:
                     message=f"Failed to fetch models from {provider}. Please try again.",
                 )
 
-        task: asyncio.Task[ModelsResponse] = asyncio.create_task(_fetch_and_cache())
+        from src.services.task_registry import task_registry
+
+        task: asyncio.Task[ModelsResponse] = task_registry.create_task(
+            _fetch_and_cache(), name=f"model-fetch-{cache_key[:16]}"
+        )
         self._inflight_fetches[cache_key] = task
         try:
             return await task

@@ -325,7 +325,11 @@ class GitHubProjectsService(
 
             return data
 
-        task: asyncio.Task[dict] = asyncio.create_task(_execute_graphql())
+        from src.services.task_registry import task_registry
+
+        task: asyncio.Task[dict] = task_registry.create_task(
+            _execute_graphql(), name=f"graphql-{cache_key[:16]}"
+        )
         self._inflight_graphql[cache_key] = task
         try:
             return await task

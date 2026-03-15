@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import tempfile
 from pathlib import Path
@@ -678,7 +677,9 @@ def _trigger_signal_delivery(
             logger.debug("Signal delivery trigger failed (non-fatal): %s", e)
 
     try:
-        asyncio.create_task(_deliver())
+        from src.services.task_registry import task_registry
+
+        task_registry.create_task(_deliver(), name="signal-delivery")
     except RuntimeError:
         pass  # No running event loop — skip silently
 

@@ -474,7 +474,11 @@ async def start_signal_ws_listener() -> None:
     if not phone:
         logger.warning("No registered Signal account — WebSocket listener not started")
         return
-    _ws_listener_task = asyncio.create_task(_ws_listen_loop(phone))
+    from src.services.task_registry import task_registry
+
+    _ws_listener_task = task_registry.create_task(
+        _ws_listen_loop(phone), name="signal-ws-listener"
+    )
     logger.info("Signal WebSocket listener started for %s", phone)
 
 
@@ -664,7 +668,9 @@ async def _process_inbound_ws_message(data: dict) -> None:
         except Exception as e:
             logger.exception("Signal AI processing failed: %s", e)
 
-    asyncio.create_task(_safe_process())
+    from src.services.task_registry import task_registry
+
+    task_registry.create_task(_safe_process(), name="signal-ai-process")
 
 
 async def _send_auto_reply(recipient: str, text: str) -> None:
