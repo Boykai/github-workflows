@@ -81,6 +81,18 @@ class TestTokenEncryptionAtRest:
         assert svc.encrypt(token) == token
         assert svc.decrypt(token) == token
 
+    async def test_invalid_key_raises_in_production_mode(self):
+        """An invalid (malformed) key must raise ValueError when debug=False."""
+        with pytest.raises(ValueError, match="Invalid ENCRYPTION_KEY"):
+            EncryptionService(key="not-a-valid-fernet-key", debug=False)
+
+    async def test_invalid_key_falls_back_in_debug_mode(self):
+        """An invalid key should fall back to passthrough in debug mode."""
+        svc = EncryptionService(key="not-a-valid-fernet-key", debug=True)
+        assert not svc.enabled
+        token = "gho_mytoken"
+        assert svc.encrypt(token) == token
+
     async def test_decrypt_invalid_utf8_raises_value_error(self):
         """Decrypting ciphertext that yields invalid UTF-8 bytes must raise
         ValueError instead of an unhandled UnicodeDecodeError."""
