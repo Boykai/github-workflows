@@ -4,6 +4,7 @@
  * Supports optional grouping within columns via getGroups callback.
  */
 
+import { useMemo } from 'react';
 import type { BoardDataResponse, BoardItem, AvailableAgent } from '@/types';
 import type { BoardGroup } from '@/hooks/useBoardControls';
 import { BoardColumn } from './BoardColumn';
@@ -22,12 +23,16 @@ export function ProjectBoard({
   getGroups,
 }: ProjectBoardProps) {
   const columnCount = Math.max(boardData.columns.length, 1);
+  const gridStyle = useMemo(
+    () => ({ gridTemplateColumns: `repeat(${columnCount}, minmax(min(16rem, 85vw), 1fr))` }),
+    [columnCount]
+  );
 
   return (
     <div className="celestial-fade-in w-full overflow-x-auto overflow-y-visible pb-6" role="region" aria-label="Project board">
       <div
         className="grid min-h-[56rem] min-w-full items-start gap-5 pb-2"
-        style={{ gridTemplateColumns: `repeat(${columnCount}, minmax(min(16rem, 85vw), 1fr))` }}
+        style={gridStyle}
       >
         {boardData.columns.map((column) => (
           <BoardColumn
