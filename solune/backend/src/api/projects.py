@@ -297,12 +297,12 @@ async def websocket_subscribe(
 
     await connection_manager.connect(websocket, project_id)
 
-    _stale_revalidation_count = 0  # tracks consecutive stale returns
-    _STALE_REVALIDATION_LIMIT = 10  # revalidate after this many stale returns
+    stale_revalidation_count = 0  # tracks consecutive stale returns
+    STALE_REVALIDATION_LIMIT = 10  # revalidate after this many stale returns
 
     async def send_tasks(*, force_refresh: bool = False):
         """Fetch and send current tasks, using cache when possible."""
-        nonlocal _stale_revalidation_count
+        nonlocal stale_revalidation_count
         try:
             cache_key = get_project_items_cache_key(project_id)
 
@@ -311,7 +311,7 @@ async def websocket_subscribe(
             if not force_refresh:
                 cached = cache.get(cache_key)
                 if cached is not None:
-                    _stale_revalidation_count = 0
+                    stale_revalidation_count = 0
                     return cached
 
                 # When the cache has expired, serve stale data to avoid
@@ -321,13 +321,13 @@ async def websocket_subscribe(
                 # rather than staying permanently stale.
                 stale = cache.get_stale(cache_key)
                 if stale is not None:
-                    _stale_revalidation_count += 1
-                    if _stale_revalidation_count < _STALE_REVALIDATION_LIMIT:
+                    stale_revalidation_count += 1
+                    if stale_revalidation_count < STALE_REVALIDATION_LIMIT:
                         logger.debug(
                             "WebSocket periodic check using stale cache for project %s (%d/%d)",
                             project_id,
-                            _stale_revalidation_count,
-                            _STALE_REVALIDATION_LIMIT,
+                            stale_revalidation_count,
+                            STALE_REVALIDATION_LIMIT,
                         )
                         return stale
                     # Revalidation threshold reached — fall through to fetch
@@ -335,13 +335,13 @@ async def websocket_subscribe(
                         "Stale revalidation limit reached for project %s, fetching fresh data",
                         project_id,
                     )
-                    _stale_revalidation_count = 0
+                    stale_revalidation_count = 0
 
             tasks = await github_projects_service.get_project_items(
                 session.access_token, project_id
             )
             cache.set(cache_key, tasks)
-            _stale_revalidation_count = 0
+            stale_revalidation_count = 0
             return tasks
         except Exception as e:
             logger.error("Failed to fetch tasks for WebSocket: %s", e)
