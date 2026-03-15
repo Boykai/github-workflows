@@ -83,7 +83,6 @@ export function AddAgentPopover({
               : 'celestial-focus w-full rounded-md border border-dashed border-border/50 bg-background/26 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground'
           }
           aria-label={`Add agent to ${status}`}
-          title={`Add agent to ${status}`}
           type="button"
         >
           + Add Agent

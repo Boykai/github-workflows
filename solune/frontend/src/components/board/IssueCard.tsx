@@ -135,7 +135,7 @@ export const IssueCard = memo(function IssueCard({
   return (
     <div
       className={cn(
-        'project-board-card celestial-panel flex min-w-[15rem] shrink-0 cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/90 p-3 shadow-sm backdrop-blur-sm hover:-translate-y-0.5 hover:border-primary/35 hover:bg-card/96 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
+        'project-board-card celestial-panel group flex min-w-[15rem] shrink-0 cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/90 p-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:ring-1 hover:ring-border hover:bg-card/96 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
         isParentIssue && 'min-h-[14rem]'
       )}
       onClick={() => onClick(item)}

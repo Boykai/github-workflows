@@ -246,7 +246,7 @@ export function ChoreCard({
   return (
     <Card
       className={cn(
-        'group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90',
+        'group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90 transition-all hover:ring-1 hover:ring-border hover:bg-accent/50',
         isSpotlight && 'border-primary/20 bg-background/62'
       )}
     >

@@ -65,7 +65,7 @@ export function AgentNode({
         style={dragStyle}
         {...(dragHandleAttributes ?? {})}
         {...(dragHandleListeners ?? {})}
-        className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]', agentStatus === 'failed' ? 'border-destructive/50 bg-destructive/5' : agentStatus === 'completed' ? 'border-green-500/30' : 'border-border/50', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
+        className={cn('pipeline-agent-node group flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-all hover:border-primary/30 hover:ring-1 hover:ring-border hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)]', agentStatus === 'failed' ? 'border-destructive/50 bg-destructive/5' : agentStatus === 'completed' ? 'border-green-500/30' : 'border-border/50', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
     >
       {/* Drag handle removed — entire card is the drag target */}
 

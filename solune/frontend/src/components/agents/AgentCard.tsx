@@ -94,7 +94,7 @@ export function AgentCard({
   return (
     <Card
       className={cn(
-        'celestial-panel celestial-fade-in group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90',
+        'celestial-panel celestial-fade-in group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90 transition-all hover:ring-1 hover:ring-border hover:bg-accent/50',
         isSpotlight && 'border-primary/20 bg-background/62'
       )}
     >

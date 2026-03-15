@@ -150,7 +150,7 @@ export function StageCard({
   };
 
   return (
-    <div className="celestial-panel celestial-fade-in pipeline-column-surface pipeline-stage-card flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm">
+    <div className="celestial-panel celestial-fade-in pipeline-column-surface pipeline-stage-card group flex h-full min-w-0 flex-col gap-2 rounded-xl border border-border/70 p-3 shadow-sm backdrop-blur-sm transition-all hover:ring-1 hover:ring-border hover:bg-accent/50">
       {/* Header: lock icon + name + remove */}
       <div className="flex items-start gap-2">
         <Tooltip contentKey="pipeline.stage.lockIcon">
