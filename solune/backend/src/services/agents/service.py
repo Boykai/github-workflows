@@ -41,7 +41,7 @@ logger = get_logger(__name__)
 
 # ── YAML frontmatter regex ──────────────────────────────────────────────
 _FRONTMATTER_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n?(.*)", re.DOTALL)
-_TOOL_METADATA_KEY = "github-workflows-tool-ids"
+_TOOL_METADATA_KEY = "solune-tool-ids"
 
 # ── Chat sessions (bounded) ─────────────────────────────────────────────
 _MAX_CHAT_SESSIONS = 200

@@ -100,7 +100,7 @@ class TestIsSubIssue:
     def test_parent_issue_not_sub_issue(self):
         """Normal parent issues should not be detected as sub-issues."""
         task = MagicMock()
-        task.title = "Conduct Deep Security Review of GitHub Workflows App"
+        task.title = "Conduct Deep Security Review of Solune App"
         assert is_sub_issue(task) is False
 
     def test_sub_issue_with_agent_prefix(self):

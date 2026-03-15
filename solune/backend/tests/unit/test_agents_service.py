@@ -507,5 +507,5 @@ class TestAgentsServiceUpdate:
         assert "mcp-servers:" in content
         assert "context7:" in content
         assert "url: https://example.com/mcp" in content
-        assert "github-workflows-tool-ids: tool-123" in content
+        assert "solune-tool-ids: tool-123" in content
         assert "tool-123" not in content.split("mcp-servers:", 1)[0]

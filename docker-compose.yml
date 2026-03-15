@@ -1,3 +1,5 @@
+name: solune
+
 services:
   backend:
     build:

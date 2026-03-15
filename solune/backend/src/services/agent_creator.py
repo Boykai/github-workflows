@@ -1044,7 +1044,7 @@ def generate_config_files(preview: AgentPreview) -> list[dict]:
     if preview.mcp_servers:
         frontmatter_data["mcp-servers"] = preview.mcp_servers
     if preview.tool_ids:
-        frontmatter_data["metadata"] = {"github-workflows-tool-ids": ",".join(preview.tool_ids)}
+        frontmatter_data["metadata"] = {"solune-tool-ids": ",".join(preview.tool_ids)}
     frontmatter = yaml.dump(frontmatter_data, default_flow_style=False, sort_keys=False).rstrip(
         "\n"
     )
