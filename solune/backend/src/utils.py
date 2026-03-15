@@ -101,7 +101,10 @@ class BoundedDict[K, V]:
                 try:
                     self._on_evict(evicted_key, evicted_value)
                 except Exception:
-                    pass
+                    logger.debug(
+                        "BoundedDict on_evict callback failed for key %s", evicted_key,
+                        exc_info=True,
+                    )
         self._data[key] = value
 
     def __getitem__(self, key: K) -> V:

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import asyncio as _aio
+import asyncio
 import json
 import tempfile
 from pathlib import Path
@@ -90,16 +90,16 @@ class FileUploadResponse(BaseModel):
 _messages: dict[str, list[ChatMessage]] = {}
 _proposals: dict[str, AITaskProposal] = {}
 _recommendations: dict[str, IssueRecommendation] = {}
-_locks: dict[str, _aio.Lock] = {}
+_locks: dict[str, asyncio.Lock] = {}
 
 _PERSIST_MAX_RETRIES = 3
 _PERSIST_BASE_DELAY = 0.1  # 100ms, 200ms, 400ms
 
 
-def _get_lock(key: str) -> _aio.Lock:
+def _get_lock(key: str) -> asyncio.Lock:
     """Return a per-key asyncio lock (lazy-created)."""
     if key not in _locks:
-        _locks[key] = _aio.Lock()
+        _locks[key] = asyncio.Lock()
     return _locks[key]
 
 
@@ -130,7 +130,7 @@ async def _retry_persist(
                 exc,
             )
             if attempt < _PERSIST_MAX_RETRIES:
-                await _aio.sleep(_PERSIST_BASE_DELAY * (2 ** (attempt - 1)))
+                await asyncio.sleep(_PERSIST_BASE_DELAY * (2 ** (attempt - 1)))
 
     raise PersistenceError(
         f"Failed to persist {context} after {_PERSIST_MAX_RETRIES} retries",

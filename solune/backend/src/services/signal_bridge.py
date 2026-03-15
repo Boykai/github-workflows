@@ -531,13 +531,25 @@ async def _ws_listen_loop(phone: str) -> None:
         except asyncio.CancelledError:
             logger.info("Signal WebSocket listener cancelled")
             return
-        except (websockets.ConnectionClosed, ConnectionError, Exception) as e:
+        except (websockets.ConnectionClosed, ConnectionError) as e:
             consecutive_failures += 1
             delay = min(backoff_base * (2 ** (consecutive_failures - 1)), backoff_cap)
             jitter = random.uniform(0, delay * 0.25)
             wait = delay + jitter
             logger.warning(
-                "Signal WebSocket error (attempt %d): %s. Reconnecting in %.1fs…",
+                "Signal WebSocket disconnected (attempt %d): %s. Reconnecting in %.1fs…",
+                consecutive_failures,
+                e,
+                wait,
+            )
+            await asyncio.sleep(wait)
+        except Exception as e:
+            consecutive_failures += 1
+            delay = min(backoff_base * (2 ** (consecutive_failures - 1)), backoff_cap)
+            jitter = random.uniform(0, delay * 0.25)
+            wait = delay + jitter
+            logger.exception(
+                "Unexpected Signal WebSocket error (attempt %d): %s. Reconnecting in %.1fs…",
                 consecutive_failures,
                 e,
                 wait,

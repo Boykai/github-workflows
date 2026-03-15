@@ -88,6 +88,6 @@ class RateLimitKeyMiddleware:
                 if session and session.github_user_id:
                     request.state.rate_limit_key = f"github:{session.github_user_id}"
             except Exception:
-                pass  # Fallback to session cookie or IP in key_func
+                logger.debug("Rate limit key resolution failed", exc_info=True)
 
         await self.app(scope, receive, send)
