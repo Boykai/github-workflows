@@ -2,17 +2,37 @@
 
 Replaces the in-memory dict storage in ``api/chat.py`` with durable SQLite
 persistence using the tables created by ``023_consolidated_schema.sql``.
+
+All write operations use ``BEGIN IMMEDIATE`` transactions to prevent
+concurrent writers from causing inconsistent state.
 """
 
 from __future__ import annotations
 
 import json
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 import aiosqlite
 
 from src.logging_utils import get_logger
 
 logger = get_logger(__name__)
+
+
+@asynccontextmanager
+async def transaction(db: aiosqlite.Connection) -> AsyncGenerator[aiosqlite.Connection]:
+    """Context manager for an ``IMMEDIATE`` transaction.
+
+    Commits on success, rolls back on exception.
+    """
+    await db.execute("BEGIN IMMEDIATE")
+    try:
+        yield db
+        await db.execute("COMMIT")
+    except BaseException:
+        await db.execute("ROLLBACK")
+        raise
 
 
 # ── Messages ─────────────────────────────────────────────────────
@@ -28,26 +48,42 @@ async def save_message(
     action_data: str | None = None,
 ) -> None:
     """Persist a chat message to SQLite."""
-    await db.execute(
-        """INSERT OR REPLACE INTO chat_messages
-           (message_id, session_id, sender_type, content, action_type, action_data)
-           VALUES (?, ?, ?, ?, ?, ?)""",
-        (message_id, session_id, sender_type, content, action_type, action_data),
-    )
-    await db.commit()
+    async with transaction(db):
+        await db.execute(
+            """INSERT OR REPLACE INTO chat_messages
+               (message_id, session_id, sender_type, content, action_type, action_data)
+               VALUES (?, ?, ?, ?, ?, ?)""",
+            (message_id, session_id, sender_type, content, action_type, action_data),
+        )
 
 
 async def get_messages(
     db: aiosqlite.Connection,
     session_id: str,
+    *,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[dict]:
-    """Retrieve all messages for a session, ordered by timestamp."""
-    cursor = await db.execute(
-        """SELECT message_id, session_id, sender_type, content,
-                  action_type, action_data, timestamp
-           FROM chat_messages WHERE session_id = ? ORDER BY timestamp""",
-        (session_id,),
-    )
+    """Retrieve messages for a session, ordered by timestamp.
+
+    When *limit* is provided, only *limit* rows starting at *offset* are
+    returned (SQL-level pagination).  Otherwise all rows are fetched.
+    """
+    if limit is not None:
+        cursor = await db.execute(
+            """SELECT message_id, session_id, sender_type, content,
+                      action_type, action_data, timestamp
+               FROM chat_messages WHERE session_id = ? ORDER BY timestamp
+               LIMIT ? OFFSET ?""",
+            (session_id, limit, offset),
+        )
+    else:
+        cursor = await db.execute(
+            """SELECT message_id, session_id, sender_type, content,
+                      action_type, action_data, timestamp
+               FROM chat_messages WHERE session_id = ? ORDER BY timestamp""",
+            (session_id,),
+        )
     rows = await cursor.fetchall()
     result = []
     for row in rows:
@@ -68,13 +104,26 @@ async def get_messages(
     return result
 
 
+async def count_messages(
+    db: aiosqlite.Connection,
+    session_id: str,
+) -> int:
+    """Return the total number of messages for a session."""
+    cursor = await db.execute(
+        "SELECT COUNT(*) FROM chat_messages WHERE session_id = ?",
+        (session_id,),
+    )
+    row = await cursor.fetchone()
+    return row[0] if row else 0
+
+
 async def clear_messages(
     db: aiosqlite.Connection,
     session_id: str,
 ) -> None:
     """Delete all messages for a session."""
-    await db.execute("DELETE FROM chat_messages WHERE session_id = ?", (session_id,))
-    await db.commit()
+    async with transaction(db):
+        await db.execute("DELETE FROM chat_messages WHERE session_id = ?", (session_id,))
 
 
 # ── Proposals ────────────────────────────────────────────────────
@@ -105,28 +154,28 @@ async def save_proposal(
         from datetime import timedelta
 
         expires_at = (utcnow() + timedelta(minutes=10)).isoformat()
-    await db.execute(
-        """INSERT OR REPLACE INTO chat_proposals
-           (proposal_id, session_id, original_input, proposed_title,
-            proposed_description, status, edited_title, edited_description,
-            created_at, expires_at, file_urls, selected_pipeline_id)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (
-            proposal_id,
-            session_id,
-            original_input,
-            proposed_title,
-            proposed_description,
-            status,
-            edited_title,
-            edited_description,
-            created_at,
-            expires_at,
-            file_urls_json,
-            selected_pipeline_id,
-        ),
-    )
-    await db.commit()
+    async with transaction(db):
+        await db.execute(
+            """INSERT OR REPLACE INTO chat_proposals
+               (proposal_id, session_id, original_input, proposed_title,
+                proposed_description, status, edited_title, edited_description,
+                created_at, expires_at, file_urls, selected_pipeline_id)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+            (
+                proposal_id,
+                session_id,
+                original_input,
+                proposed_title,
+                proposed_description,
+                status,
+                edited_title,
+                edited_description,
+                created_at,
+                expires_at,
+                file_urls_json,
+                selected_pipeline_id,
+            ),
+        )
 
 
 async def get_proposals(
@@ -178,19 +227,19 @@ async def update_proposal_status(
     edited_description: str | None = None,
 ) -> None:
     """Update a proposal's status and optional edited fields."""
-    if edited_title is not None or edited_description is not None:
-        await db.execute(
-            """UPDATE chat_proposals
-               SET status = ?, edited_title = ?, edited_description = ?
-               WHERE proposal_id = ?""",
-            (status, edited_title, edited_description, proposal_id),
-        )
-    else:
-        await db.execute(
-            "UPDATE chat_proposals SET status = ? WHERE proposal_id = ?",
-            (status, proposal_id),
-        )
-    await db.commit()
+    async with transaction(db):
+        if edited_title is not None or edited_description is not None:
+            await db.execute(
+                """UPDATE chat_proposals
+                   SET status = ?, edited_title = ?, edited_description = ?
+                   WHERE proposal_id = ?""",
+                (status, edited_title, edited_description, proposal_id),
+            )
+        else:
+            await db.execute(
+                "UPDATE chat_proposals SET status = ? WHERE proposal_id = ?",
+                (status, proposal_id),
+            )
 
 
 async def get_proposal_by_id(
@@ -243,19 +292,19 @@ async def save_recommendation(
 ) -> None:
     """Persist a chat recommendation to SQLite."""
     file_urls_json = json.dumps(file_urls) if file_urls else None
-    await db.execute(
-        """INSERT OR REPLACE INTO chat_recommendations
-           (recommendation_id, session_id, data, status, file_urls)
-           VALUES (?, ?, ?, ?, ?)""",
-        (
-            recommendation_id,
-            session_id,
-            data,
-            _recommendation_status_to_db(status),
-            file_urls_json,
-        ),
-    )
-    await db.commit()
+    async with transaction(db):
+        await db.execute(
+            """INSERT OR REPLACE INTO chat_recommendations
+               (recommendation_id, session_id, data, status, file_urls)
+               VALUES (?, ?, ?, ?, ?)""",
+            (
+                recommendation_id,
+                session_id,
+                data,
+                _recommendation_status_to_db(status),
+                file_urls_json,
+            ),
+        )
 
 
 async def get_recommendations(
@@ -300,17 +349,17 @@ async def update_recommendation_status(
 ) -> None:
     """Update a recommendation's status."""
     db_status = _recommendation_status_to_db(status)
-    if data is not None:
-        await db.execute(
-            "UPDATE chat_recommendations SET status = ?, data = ? WHERE recommendation_id = ?",
-            (db_status, data, recommendation_id),
-        )
-    else:
-        await db.execute(
-            "UPDATE chat_recommendations SET status = ? WHERE recommendation_id = ?",
-            (db_status, recommendation_id),
-        )
-    await db.commit()
+    async with transaction(db):
+        if data is not None:
+            await db.execute(
+                "UPDATE chat_recommendations SET status = ?, data = ? WHERE recommendation_id = ?",
+                (db_status, data, recommendation_id),
+            )
+        else:
+            await db.execute(
+                "UPDATE chat_recommendations SET status = ? WHERE recommendation_id = ?",
+                (db_status, recommendation_id),
+            )
 
 
 async def get_recommendation_by_id(

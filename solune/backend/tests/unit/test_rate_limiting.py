@@ -32,6 +32,7 @@ class TestRateLimitKeyFunction:
         """Authenticated requests are keyed by session ID."""
         request = MagicMock()
         request.cookies = {"session_id": "test-session-abc123"}
+        request.state.rate_limit_key = None
         request.client = MagicMock()
         request.client.host = "192.168.1.1"
 
@@ -42,18 +43,31 @@ class TestRateLimitKeyFunction:
         """Unauthenticated requests fall back to IP address."""
         request = MagicMock()
         request.cookies = {}
+        request.state.rate_limit_key = None
         request.client = MagicMock()
         request.client.host = "10.0.0.1"
 
         key = get_user_key(request)
-        assert key == "10.0.0.1"
+        assert key == "ip:10.0.0.1"
 
     def test_missing_session_cookie_falls_back_to_ip(self):
         """When session cookie is absent, key is IP-based."""
         request = MagicMock()
         request.cookies = {"other_cookie": "value"}
+        request.state.rate_limit_key = None
         request.client = MagicMock()
         request.client.host = "172.16.0.1"
 
         key = get_user_key(request)
-        assert key == "172.16.0.1"
+        assert key == "ip:172.16.0.1"
+
+    def test_github_user_id_key_takes_precedence(self):
+        """When rate_limit_key is set by middleware, it takes precedence."""
+        request = MagicMock()
+        request.cookies = {"session_id": "session-xyz"}
+        request.state.rate_limit_key = "user:12345"
+        request.client = MagicMock()
+        request.client.host = "10.0.0.1"
+
+        key = get_user_key(request)
+        assert key == "user:12345"

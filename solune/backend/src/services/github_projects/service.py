@@ -62,7 +62,10 @@ class GitHubProjectsService(
             client_factory = GitHubClientFactory()
         self._client_factory = client_factory
         self._last_rate_limit: dict[str, int] | None = None
-        self._inflight_graphql: BoundedDict[str, asyncio.Task[dict]] = BoundedDict(maxlen=256)
+        self._inflight_graphql: BoundedDict[str, asyncio.Task[dict]] = BoundedDict(
+            maxlen=256,
+            on_evict=self._cancel_evicted_graphql,
+        )
         self._coalesced_hit_count: int = 0
         self._cycle_cache_hit_count: int = 0
         self._cycle_cache: dict[str, object] = {}
@@ -81,6 +84,12 @@ class GitHubProjectsService(
             )
         self._cycle_cache.clear()
         self._cycle_cache_hit_count = 0
+
+    @staticmethod
+    def _cancel_evicted_graphql(_key: str, task: asyncio.Task) -> None:  # type: ignore[type-arg]
+        """Cancel an evicted GraphQL task that hasn't finished yet."""
+        if not task.done():
+            task.cancel()
 
     def _invalidate_cycle_cache(self, *keys: str) -> None:
         """Remove specific entries from the cycle cache after a write."""
@@ -298,34 +307,52 @@ class GitHubProjectsService(
             return await inflight
 
         async def _execute_graphql() -> dict:
+            from src.config import get_settings
+
+            timeout = get_settings().api_timeout_seconds
             client = await self._client_factory.get_client(access_token)
 
-            if graphql_features or extra_headers:
-                # Custom headers required — use arequest() for full control
-                headers: dict[str, str] = {}
-                if extra_headers:
-                    headers.update(extra_headers)
-                if graphql_features:
-                    headers["GraphQL-Features"] = ",".join(graphql_features)
-                response = await client.arequest(
-                    "POST",
-                    "/graphql",
-                    json={"query": query, "variables": variables},
-                    headers=headers,
-                )
-                result = response.json()
-                if "errors" in result:
-                    error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])
-                    logger.error("GraphQL error: %s", error_msg)
-                    raise ValueError("GitHub API request failed")
-                data = result.get("data", {})
-            else:
-                # Standard GraphQL — SDK handles auth, retry, cache, errors
-                data = await client.async_graphql(query, variables=variables)
+            async def _inner() -> dict:
+                if graphql_features or extra_headers:
+                    # Custom headers required — use arequest() for full control
+                    headers: dict[str, str] = {}
+                    if extra_headers:
+                        headers.update(extra_headers)
+                    if graphql_features:
+                        headers["GraphQL-Features"] = ",".join(graphql_features)
+                    response = await client.arequest(
+                        "POST",
+                        "/graphql",
+                        json={"query": query, "variables": variables},
+                        headers=headers,
+                    )
+                    result = response.json()
+                    if "errors" in result:
+                        error_msg = "; ".join(
+                            e.get("message", str(e)) for e in result["errors"]
+                        )
+                        logger.error("GraphQL error: %s", error_msg)
+                        raise ValueError("GitHub API request failed")
+                    return result.get("data", {})
+                else:
+                    # Standard GraphQL — SDK handles auth, retry, cache, errors
+                    return await client.async_graphql(query, variables=variables)
 
-            return data
+            try:
+                return await asyncio.wait_for(_inner(), timeout=timeout)
+            except TimeoutError:
+                from src.exceptions import GitHubAPIError
 
-        task: asyncio.Task[dict] = asyncio.create_task(_execute_graphql())
+                raise GitHubAPIError(
+                    "GitHub GraphQL request timed out",
+                    details={"timeout_seconds": timeout},
+                ) from None
+
+        from src.services.task_registry import task_registry
+
+        task: asyncio.Task[dict] = task_registry.create_task(
+            _execute_graphql(), name=f"graphql-{cache_key[:16]}"
+        )
         self._inflight_graphql[cache_key] = task
         try:
             return await task

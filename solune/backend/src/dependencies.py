@@ -137,12 +137,17 @@ async def require_admin(
             session.github_user_id,
         )
         # Auto-promote first authenticated user atomically to prevent race conditions
-        cursor = await db.execute(
-            "UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1 AND admin_github_user_id IS NULL",
-            (session.github_user_id,),
-        )
-        await db.commit()
-        if cursor.rowcount > 0:
+        from src.services.chat_store import transaction
+
+        async with transaction(db):
+            cursor = await db.execute(
+                "UPDATE global_settings SET admin_github_user_id = ? "
+                "WHERE id = 1 AND admin_github_user_id IS NULL",
+                (session.github_user_id,),
+            )
+            promoted = cursor.rowcount > 0
+
+        if promoted:
             logger.info(
                 "Auto-promoted user %s (%s) as admin",
                 session.github_username,

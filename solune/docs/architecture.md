@@ -83,10 +83,11 @@ Volumes: `solune-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 ## Backend Architecture
 
 - **Framework**: FastAPI with async endpoints, Pydantic v2 models
-- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (23 SQL migration files, numbered 001–020)
+- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (SQL migration files `001` through `026`)
 - **DI**: Singletons registered on `app.state` during lifespan; `dependencies.py` provides `Depends()` getters
-- **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware; `CSPMiddleware` for Content Security Policy headers; `RateLimitMiddleware` for request rate limiting
-- **Exceptions**: Custom `AppException` hierarchy → `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ValidationError`, `GitHubAPIError`, `RateLimitError`, `McpValidationError`, `McpLimitExceededError`
+- **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware; `CSPMiddleware` for Content Security Policy headers; `CSRFMiddleware` for double-submit cookie CSRF protection; `RateLimitMiddleware` for request rate limiting
+- **Async Task Safety**: `asyncio.TaskGroup` for background loops (automatic cancellation on shutdown); `TaskRegistry` singleton for fire-and-forget tasks (tracked, drained on shutdown)
+- **Exceptions**: Custom `AppException` hierarchy → `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ValidationError`, `GitHubAPIError`, `RateLimitError`, `McpValidationError`, `McpLimitExceededError`, `DatabaseError`, `PersistenceError`
 
 ### Backend Module Layout
 
@@ -100,14 +101,15 @@ Volumes: `solune-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `services/workflow_orchestrator/` | Pipeline orchestration: `models` (contexts/state), `config` (async load/persist), `transitions`, `orchestrator` |
 | `services/chores/` | Chore templates, scheduler, counter, chat, template builder, service |
 | `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) + Agent MCP Sync (`agent_mcp_sync.py`) — keeps `mcp-servers` and `tools: ["*"]` in sync across all `.agent.md` files |
-| `migrations/` | SQL migration files `001` through `020` (23 files; prefixes 013–015 have two files each) |
+| `migrations/` | SQL migration files `001` through `026` |
 | `prompts/` | AI prompt templates for issue and task generation |
-| `middleware/` | `RequestIDMiddleware`, `CSPMiddleware` (Content Security Policy headers), `RateLimitMiddleware` (request rate limiting) |
+| `middleware/` | `RequestIDMiddleware`, `CSPMiddleware` (Content Security Policy), `CSRFMiddleware` (double-submit cookie CSRF protection), `RateLimitMiddleware` (request rate limiting), `AdminGuardMiddleware` |
 | `logging_utils.py` | `RequestIDFilter`, `SanitizingFormatter`, `StructuredJsonFormatter` for structured JSON logging |
 | `config.py` | `pydantic-settings` configuration from `.env` |
 | `constants.py` | Status names, agent mappings, labels, cache keys |
 | `dependencies.py` | FastAPI DI helpers |
-| `exceptions.py` | Custom exception classes |
+| `exceptions.py` | Custom exception classes (`AppException` hierarchy including `PersistenceError`) |
+| `protocols.py` | `Protocol` types for service interfaces (`ModelProvider`, `CacheInvalidationPolicy`) |
 
 ### AI Completion Providers
 
@@ -122,15 +124,16 @@ Set via `AI_PROVIDER` env var (`copilot` or `azure_openai`).
 
 ### Startup Lifecycle (`main.py`)
 
-1. Initialize SQLite database + run pending migrations
-2. Seed `global_settings` row
-3. Initialize chores service seed templates
-4. Register singleton services on `app.state`
-5. Start periodic session cleanup loop (exponential backoff on failures)
+1. Install global asyncio exception handler for unhandled async errors
+2. Initialize SQLite database + run pending migrations
+3. Seed `global_settings` row
+4. Load persisted pipeline state from SQLite into L1 caches
+5. Register singleton services on `app.state`
 6. Start Signal WebSocket listener for inbound messages
 7. Auto-resume Copilot polling from the most recent session with a selected project
-8. Run Agent MCP Sync in background — reconciles `mcp-servers` field and enforces `tools: ["*"]` across all `.github/agents/*.agent.md` files
-9. On shutdown: stop Signal listener → cancel cleanup task → stop polling → close database
+8. Run Agent MCP Sync in background via `TaskRegistry` (fire-and-forget)
+9. Start background loops via `asyncio.TaskGroup` — session cleanup loop (exponential backoff on failures) + polling watchdog loop (auto-restart on crash)
+10. On shutdown: drain `TaskRegistry` (30 s timeout) → stop Signal listener → stop polling → close database
 
 ### nginx Reverse Proxy
 

@@ -67,7 +67,6 @@ select = [
 ]
 ignore = [
     "E501",   # line too long (handled by ruff format)
-    "RUF006", # fire-and-forget asyncio.create_task is intentional
 ]
 
 [tool.ruff.lint.per-file-ignores]
