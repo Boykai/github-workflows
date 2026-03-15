@@ -43,9 +43,9 @@
 
 ### RT-003: Tooltip Registry Extension Strategy
 
-**Decision**: Extend the existing `tooltip-content.ts` registry with ~40 new entries following the established `{area}.{section}.{element}` naming convention. New entries cover all gaps identified in the per-component audit (Phase 2 of the issue): pipeline drag handles, agent card actions, tools editor actions, board toolbar/column actions, settings controls, and sidebar navigation.
+**Decision**: Extend the existing `tooltip-content.ts` registry with 39 new entries following the established `{area}.{section}.{element}` naming convention. New entries cover all gaps identified in the per-component audit (Phase 2 of the issue): pipeline drag handles, agent card actions, tools editor actions, board toolbar/column actions, settings controls, and sidebar navigation.
 
-**Rationale**: The existing registry contains 54 entries across 7 areas (board, chat, agents, pipeline, chores, settings, tools). The spec identifies ~40 additional elements that lack tooltips. Extending the existing registry (rather than creating a parallel system) maintains the single-source-of-truth pattern, preserves i18n readiness, and keeps the `contentKey=` lookup mechanism unchanged.
+**Rationale**: The existing registry contains 54 entries across 7 areas (board, chat, agents, pipeline, chores, settings, tools). The spec identifies 39 additional elements that lack tooltips. Extending the existing registry (rather than creating a parallel system) maintains the single-source-of-truth pattern, preserves i18n readiness, and keeps the `contentKey=` lookup mechanism unchanged.
 
 **Alternatives considered**:
 - **Per-component inline tooltip text**: Rejected because it scatters tooltip copy across ~30+ component files, making terminology consistency checks and future localization much harder.
