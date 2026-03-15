@@ -52,7 +52,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
 
                 return JSONResponse(
                     status_code=403,
-                    content={"error": "CSRF token missing or invalid"},
+                    content={"detail": "CSRF token missing or invalid"},
                 )
 
         response = await call_next(request)

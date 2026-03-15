@@ -60,7 +60,7 @@ limiter = Limiter(
 class RateLimitKeyMiddleware:
     """Pre-resolve ``github_user_id`` for the rate-limit key.
 
-    Sets ``request.state.rate_limit_key`` to ``github:{user_id}`` when
+    Sets ``request.state.rate_limit_key`` to ``user:{user_id}`` when
     the session cookie maps to a valid session, allowing the rate limiter
     to track users across sessions.  Falls back silently — the key_func
     will use the session cookie or IP.
@@ -86,7 +86,7 @@ class RateLimitKeyMiddleware:
                 db = get_db()
                 session = await get_session(db, session_id)
                 if session and session.github_user_id:
-                    request.state.rate_limit_key = f"github:{session.github_user_id}"
+                    request.state.rate_limit_key = f"user:{session.github_user_id}"
             except Exception:
                 logger.debug("Rate limit key resolution failed", exc_info=True)
 

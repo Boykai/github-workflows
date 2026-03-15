@@ -6,10 +6,10 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
 - [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
 - [x] All mandatory sections completed
+- [ ] No implementation details (languages, frameworks, APIs) — *spec references Python/FastAPI/SQLite/asyncio for precision since the codebase is fixed; acceptable for this internal-facing spec*
+- [ ] Written for non-technical stakeholders — *spec is written for the engineering team; implementation-specific language is used intentionally*
 
 ## Requirement Completeness
 
@@ -27,7 +27,7 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [ ] No implementation details leak into specification — *implementation references are intentional for this engineering-facing backend modernization spec*
 
 ## Notes
 

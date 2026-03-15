@@ -12,10 +12,11 @@ def chat_module():
     """Import and reset the chat module cache for isolation."""
     from src.api import chat
 
-    # Clear the in-memory caches between tests.
+    # Clear the in-memory caches and lock map between tests.
     chat._messages.clear()
     chat._proposals.clear()
     chat._recommendations.clear()
+    chat._locks.clear()
     return chat
 
 

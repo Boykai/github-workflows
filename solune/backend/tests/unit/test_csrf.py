@@ -45,7 +45,7 @@ class TestCSRFProtection:
         client = TestClient(csrf_app)
         resp = client.post("/test")
         assert resp.status_code == 403
-        assert "CSRF" in resp.json()["error"]
+        assert "CSRF" in resp.json()["detail"]
 
     def test_post_with_valid_token_succeeds(self, csrf_app) -> None:
         client = TestClient(csrf_app)

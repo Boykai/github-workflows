@@ -293,7 +293,7 @@ specs/002-backend-modernization/
 ├── contracts/           # Phase 1: behavior contracts
 │   ├── async-safety-contracts.md
 │   ├── data-integrity-contracts.md
-│   └── security-contracts.md
+│   └── security-performance-contracts.md
 ├── checklists/
 │   └── requirements.md  # Spec quality checklist (complete)
 └── tasks.md             # Phase 2 output (NOT created by /speckit.plan)

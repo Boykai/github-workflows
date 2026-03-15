@@ -65,9 +65,9 @@ class TestRateLimitKeyFunction:
         """When rate_limit_key is set by middleware, it takes precedence."""
         request = MagicMock()
         request.cookies = {"session_id": "session-xyz"}
-        request.state.rate_limit_key = "github:12345"
+        request.state.rate_limit_key = "user:12345"
         request.client = MagicMock()
         request.client.host = "10.0.0.1"
 
         key = get_user_key(request)
-        assert key == "github:12345"
+        assert key == "user:12345"

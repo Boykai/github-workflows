@@ -111,8 +111,14 @@ async def _retry_persist(
 ) -> None:
     """Retry a persistence function with exponential backoff.
 
+    Only *transient* SQLite errors (``OperationalError`` — e.g. database
+    locked, busy, I/O) are retried.  Permanent errors (``IntegrityError``,
+    ``ProgrammingError``, etc.) are re-raised immediately.
+
     Raises :class:`PersistenceError` after all retries are exhausted.
     """
+    import sqlite3
+
     from src.exceptions import PersistenceError
 
     last_exc: Exception | None = None
@@ -120,7 +126,7 @@ async def _retry_persist(
         try:
             await fn(*args, **kwargs)
             return
-        except Exception as exc:
+        except sqlite3.OperationalError as exc:
             last_exc = exc
             logger.warning(
                 "Persist attempt %d/%d failed (%s): %s",
@@ -131,6 +137,8 @@ async def _retry_persist(
             )
             if attempt < _PERSIST_MAX_RETRIES:
                 await asyncio.sleep(_PERSIST_BASE_DELAY * (2 ** (attempt - 1)))
+        except Exception:
+            raise  # Non-transient — fail fast
 
     raise PersistenceError(
         f"Failed to persist {context} after {_PERSIST_MAX_RETRIES} retries",

@@ -38,7 +38,7 @@
 - [x] T004 Create `TaskRegistry` singleton class in `solune/backend/src/services/task_registry.py` with `create_task(coro, *, name)`, `drain(timeout)`, `cancel_all()`, and `pending_count` property per data-model.md and async-safety-contracts.md
 - [x] T005 Add done-callback in `TaskRegistry.create_task()` that auto-removes completed tasks and logs failures at WARNING level in `solune/backend/src/services/task_registry.py`
 - [x] T006 Implement `TaskRegistry.drain(timeout)` using `asyncio.wait()` with timeout, cancelling undrained tasks and returning them for caller inspection in `solune/backend/src/services/task_registry.py`
-- [x] T007 Write unit tests for `TaskRegistry` (create, drain, cancel_all, concurrent create during drain, exception logging) in `solune/backend/tests/test_task_registry.py`
+- [x] T007 Write unit tests for `TaskRegistry` (create, drain, cancel_all, concurrent create during drain, exception logging) in `solune/backend/tests/unit/test_task_registry.py`
 
 ### 2B: TaskGroup Adoption
 
@@ -83,9 +83,9 @@
 
 ### Verification Tests for User Story 1
 
-- [ ] T027 [US1] Write shutdown integration test: send SIGTERM, verify no "task was destroyed but it is pending" warnings and all tasks complete/cancel within 30s in `solune/backend/tests/test_shutdown.py`
-- [x] T028 [US1] Write verification test: run `ruff check --select=ASYNC,RUF006 src/` and assert zero violations in `solune/backend/tests/test_lint_async.py`
-- [ ] T029 [US1] Write integration test: drop signal-cli WebSocket mid-connection, verify reconnect with exponential backoff timing in `solune/backend/tests/test_signal_reconnect.py`
+- [ ] T027 [US1] Write shutdown integration test: send SIGTERM, verify no "task was destroyed but it is pending" warnings and all tasks complete/cancel within 30s in `solune/backend/tests/unit/test_shutdown.py`
+- [x] T028 [US1] Write verification test: run `ruff check --select=ASYNC,RUF006 src/` and assert zero violations in `solune/backend/tests/unit/test_lint_async.py`
+- [ ] T029 [US1] Write integration test: drop signal-cli WebSocket mid-connection, verify reconnect with exponential backoff timing in `solune/backend/tests/unit/test_signal_reconnect.py`
 
 ### Validation for User Story 1
 
@@ -112,11 +112,11 @@
 - [x] T037 [US2] Add `BEGIN IMMEDIATE` transaction boundaries to multi-step write operations in `solune/backend/src/services/chat_store.py` with commit on success and rollback on exception
 - [x] T038 [US2] Add savepoint support for nested transactions in `solune/backend/src/services/chat_store.py` using `SAVEPOINT`/`RELEASE`/`ROLLBACK TO` pattern
 - [x] T039 [US2] Fix admin auto-promotion race condition in `solune/backend/src/dependencies.py`: verify `cursor.rowcount` after conditional `UPDATE ... WHERE admin_github_user_id IS NULL`, handle lost-race case (rowcount==0) by re-reading admin and returning 403
-- [ ] T040 [US2] Write concurrent admin promotion test: `asyncio.gather` with 10 simultaneous requests, assert exactly 1 succeeds in `solune/backend/tests/test_admin_race.py`
+- [ ] T040 [US2] Write concurrent admin promotion test: `asyncio.gather` with 10 simultaneous requests, assert exactly 1 succeeds in `solune/backend/tests/unit/test_admin_race.py`
 
 ### Validation for User Story 2
 
-- [ ] T041 [US2] Run persistence and admin race tests: `cd solune/backend && python -m pytest tests/test_admin_race.py -v`
+- [ ] T041 [US2] Run persistence and admin race tests: `cd solune/backend && python -m pytest tests/unit/test_admin_race.py -v`
 
 **Checkpoint**: User Story 2 is complete — reliable data persistence with no silent data loss.
 
@@ -140,7 +140,7 @@
 
 ### Validation for User Story 3
 
-- [x] T049 [US3] Verify CSRF protection: test that POST without `X-CSRF-Token` returns 403 and POST with valid token succeeds in `solune/backend/tests/test_csrf.py`
+- [x] T049 [US3] Verify CSRF protection: test that POST without `X-CSRF-Token` returns 403 and POST with valid token succeeds in `solune/backend/tests/unit/test_csrf.py`
 - [x] T050 [US3] Verify cache key scoping: assert `cache_key_issue_pr('PVT_a', 42, 101) != cache_key_issue_pr('PVT_b', 42, 101)` in `solune/backend/tests/`
 - [ ] T051 [US3] Verify database indexes with `EXPLAIN QUERY PLAN` on indexed columns per security-performance-contracts.md
 
@@ -166,7 +166,7 @@
 
 ### Verification Tests for User Story 4
 
-- [x] T059 [US4] Write pagination test: `limit=5&offset=0` returns exactly 5 results, `offset` beyond total returns empty list with correct total in `solune/backend/tests/test_pagination.py`
+- [x] T059 [US4] Write pagination test: `limit=5&offset=0` returns exactly 5 results, `offset` beyond total returns empty list with correct total in `solune/backend/tests/unit/test_pagination.py`
 - [x] T060 [US4] Verify metadata cache TTL is 300s (5 minutes) in `solune/backend/src/config.py`
 
 **Checkpoint**: User Story 4 is complete — responsive system under load.
