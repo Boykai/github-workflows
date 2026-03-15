@@ -290,6 +290,69 @@ class TestGetBoardData:
         assert hashes[0] is not None
         assert hashes[0] == hashes[1]
 
+    async def test_warm_cache_prevents_outbound_api_calls(self, client, mock_github_service):
+        """When board data is cached (warm), no outbound GitHub API call should occur (SC-001)."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = bd
+            resp = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp.status_code == 200
+            # Service should NOT be called when cache is warm
+            mock_github_service.get_board_data.assert_not_called()
+
+    async def test_non_manual_refresh_reuses_sub_issue_cache(self, client, mock_github_service):
+        """Non-manual refresh (refresh=false) must NOT clear sub-issue caches (SC-002)."""
+        bd = _make_board_data()
+        from src.models.board import Repository
+
+        bd.columns[0].items[0].repository = Repository(owner="test-owner", name="test-repo")
+        bd.columns[0].items[0].number = 42
+
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = None
+            mock_cache.get_stale.return_value = None
+
+            resp = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp.status_code == 200
+
+            # cache.delete should NOT be called (sub-issue caches preserved)
+            delete_calls = [str(call) for call in mock_cache.delete.call_args_list]
+            assert not any("sub_issues" in str(call) for call in delete_calls)
+
+
+# ── Performance: change detection suppresses unchanged WebSocket pushes ─────
+
+
+class TestChangeDetection:
+    """Verify that unchanged data hash suppresses client pushes (FR-004)."""
+
+    def test_unchanged_data_hash_produces_same_hash(self):
+        """Same board data should produce identical hashes for change detection."""
+        from src.services.cache import compute_data_hash
+
+        bd = _make_board_data()
+        payload = bd.model_dump(mode="json", exclude={"rate_limit"})
+
+        hash1 = compute_data_hash(payload)
+        hash2 = compute_data_hash(payload)
+        assert hash1 == hash2
+
+    def test_changed_data_produces_different_hash(self):
+        """Modified board data should produce a different hash."""
+        from src.services.cache import compute_data_hash
+
+        bd1 = _make_board_data()
+        bd2 = _make_board_data()
+        bd2.columns[0].items[0].title = "Different title"
+
+        hash1 = compute_data_hash(bd1.model_dump(mode="json", exclude={"rate_limit"}))
+        hash2 = compute_data_hash(bd2.model_dump(mode="json", exclude={"rate_limit"}))
+        assert hash1 != hash2
+
 
 # ── Regression: board error responses must NOT leak internal details ────────
 

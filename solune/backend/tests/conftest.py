@@ -174,6 +174,31 @@ def mock_websocket_manager() -> AsyncMock:
 
 
 # =============================================================================
+# Fixtures — Cache Isolation
+# =============================================================================
+
+
+@pytest.fixture(autouse=True)
+def _clear_resolve_repo_cache():
+    """Clear resolve_repository cache entries between tests.
+
+    resolve_repository() caches results in the global InMemoryCache to avoid
+    repeated GitHub API calls.  This fixture ensures tests that mock different
+    fallback paths are not polluted by a prior test's cached result.
+    """
+    from src.services.cache import cache as _cache
+
+    # Clear all resolve_repo:* entries before and after each test
+    keys_to_clear = [k for k in list(_cache._cache.keys()) if k.startswith("resolve_repo:")]
+    for k in keys_to_clear:
+        _cache.delete(k)
+    yield
+    keys_to_clear = [k for k in list(_cache._cache.keys()) if k.startswith("resolve_repo:")]
+    for k in keys_to_clear:
+        _cache.delete(k)
+
+
+# =============================================================================
 # Fixtures — Test Client
 # =============================================================================
 

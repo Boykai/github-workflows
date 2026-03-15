@@ -297,8 +297,12 @@ async def websocket_subscribe(
 
     await connection_manager.connect(websocket, project_id)
 
+    stale_revalidation_count = 0  # tracks consecutive stale returns
+    STALE_REVALIDATION_LIMIT = 10  # revalidate after this many stale returns
+
     async def send_tasks(*, force_refresh: bool = False):
         """Fetch and send current tasks, using cache when possible."""
+        nonlocal stale_revalidation_count
         try:
             cache_key = get_project_items_cache_key(project_id)
 
@@ -307,15 +311,45 @@ async def websocket_subscribe(
             if not force_refresh:
                 cached = cache.get(cache_key)
                 if cached is not None:
+                    stale_revalidation_count = 0
                     return cached
+
+                # When the cache has expired, serve stale data to avoid
+                # triggering a fresh API call on every periodic check.
+                # However, allow a real fetch every N stale cycles so
+                # connected clients eventually pick up external changes
+                # rather than staying permanently stale.
+                stale = cache.get_stale(cache_key)
+                if stale is not None:
+                    stale_revalidation_count += 1
+                    if stale_revalidation_count < STALE_REVALIDATION_LIMIT:
+                        logger.debug(
+                            "WebSocket periodic check using stale cache for project %s (%d/%d)",
+                            project_id,
+                            stale_revalidation_count,
+                            STALE_REVALIDATION_LIMIT,
+                        )
+                        return stale
+                    # Revalidation threshold reached — fall through to fetch
+                    logger.debug(
+                        "Stale revalidation limit reached for project %s, fetching fresh data",
+                        project_id,
+                    )
+                    stale_revalidation_count = 0
 
             tasks = await github_projects_service.get_project_items(
                 session.access_token, project_id
             )
             cache.set(cache_key, tasks)
+            stale_revalidation_count = 0
             return tasks
         except Exception as e:
             logger.error("Failed to fetch tasks for WebSocket: %s", e)
+            # On fetch failure, fall back to stale data if available
+            stale = cache.get_stale(cache_key)
+            if stale is not None:
+                logger.debug("Serving stale data after fetch failure for project %s", project_id)
+                return stale
             return None
 
     try:

@@ -1,134 +1,190 @@
 # Tasks: Performance Review
 
-**Input**: Design documents from `specs/001-performance-review/`
-**Prerequisites**: `plan.md`, `spec.md`, `research.md`, `data-model.md`, `quickstart.md`, `contracts/refresh-contract.md`
+**Input**: Design documents from `/specs/001-performance-review/`
+**Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Tests are required — `spec.md` mandates regression coverage (FR-016) and manual before/after verification (FR-017).
+**Tests**: Tests are REQUIRED per FR-014 and SC-008. Test extension tasks are included in the relevant user story phases and in the dedicated verification phase (US6).
 
-**Organization**: Tasks are grouped by user story so each increment can be implemented and verified independently.
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
-## Format: `[ID] [P?] [Story?] Description`
+## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: Can run in parallel (different files, no unmet dependencies)
-- **[Story]**: User story label for story-specific work (`[US1]`–`[US4]`)
-- Setup, Foundational, and Polish tasks do **not** include story labels
+- **[P]**: Can run in parallel (different files, no dependencies)
+- **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- Include exact file paths in descriptions
 
----
+## Path Conventions
 
-## Phase 1: Setup (Performance Review Workspace)
+- **Web app**: `solune/backend/src/`, `solune/frontend/src/`
+- Backend tests: `solune/backend/tests/unit/`
+- Frontend tests: co-located with source (e.g., `solune/frontend/src/hooks/*.test.tsx`)
 
-**Purpose**: Create the feature-local artifacts needed to capture measurements and run the performance pass consistently.
+## Phase 1: Setup (Shared Infrastructure)
 
-- [X] T001 [P] Create the before/after measurement workbook in `specs/001-performance-review/baseline.md`
-- [ ] T002 [P] Update the execution checklist and local verification commands in `specs/001-performance-review/quickstart.md`
+**Purpose**: Create measurement infrastructure and audit checklists before any code changes. No source code modifications in this phase.
 
-**Checkpoint**: The feature has a dedicated baseline artifact and an executable quickstart for local verification.
-
----
-
-## Phase 2: Foundational (Shared Guardrails and Contract)
-
-**Purpose**: Lock the shared rules that all implementation stories must preserve before code changes begin.
-
-**⚠️ CRITICAL**: No user story implementation should start until these guardrails are explicit.
-
-- [ ] T003 [P] Align refresh-source, scope, deduplication, and warm-state rules across `specs/001-performance-review/contracts/refresh-contract.md` and `specs/001-performance-review/data-model.md`
-- [X] T004 [P] Document the already-correct protections to preserve (300s TTL, stale fallback, sub-issue invalidation, manual refresh bypass) in `specs/001-performance-review/research.md` and `specs/001-performance-review/baseline.md`
-
-**Checkpoint**: The refresh contract and preservation rules are frozen, so implementation can focus on measured gaps only.
+- [x] T001 Create performance measurement checklist document in specs/001-performance-review/checklists/measurement-checklist.md defining metrics, measurement methods, target values (SC-001 through SC-006), and regression thresholds
+- [x] T002 [P] Compile Spec 022 acceptance criteria audit checklist in specs/001-performance-review/checklists/spec-022-audit.md listing each criterion (change detection, cache TTL alignment, sub-issue invalidation, rate-limit-aware polling, inflight coalescing, stale fallback) with pass/fail columns
 
 ---
 
-## Phase 3: User Story 1 — Team Establishes a Trusted Performance Baseline (Priority: P1) 🎯 MVP
+## Phase 2: Foundational — Baselines and Spec 022 Audit (Blocking Prerequisites)
 
-**Goal**: Capture a reproducible before/after baseline package that blocks anecdotal optimization work and reuses the existing regression suite as guardrails.
+**Purpose**: Capture current performance baselines and confirm Spec 022 implementation status. MUST complete before ANY optimization work begins (FR-001, FR-002).
 
-**Independent Test**: Follow `specs/001-performance-review/quickstart.md`, record baseline data in `specs/001-performance-review/baseline.md`, and verify the documented guardrail suites are the exact suites reused after implementation.
+**⚠️ CRITICAL**: No optimization code changes (Phases 3–7) can begin until this phase is complete. Baselines define success criteria and regression guardrails.
 
-### Tests for User Story 1
+### User Story 1 — Establish Performance Baselines (Priority: P1)
 
-- [X] T005 [P] [US1] Add the backend/frontend guardrail checklist in `specs/001-performance-review/baseline.md` for `backend/tests/unit/test_cache.py`, `backend/tests/unit/test_api_board.py`, `backend/tests/unit/test_copilot_polling.py`, `frontend/src/hooks/useRealTimeSync.test.tsx`, and `frontend/src/hooks/useBoardRefresh.test.tsx`
-- [ ] T006 [P] [US1] Add the manual network/profiler verification steps in `specs/001-performance-review/quickstart.md` for `frontend/src/pages/ProjectsPage.tsx`, `frontend/src/components/chat/ChatPopup.tsx`, and `frontend/src/components/board/AddAgentPopover.tsx`
+**Goal**: Record backend and frontend performance baselines on a representative board (50–100 tasks across 4–8 columns) so improvements are provable and regressions detectable.
 
-### Implementation for User Story 1
+**Independent Test**: All baseline values documented in measurement checklist with current value, target improvement, and regression threshold for each metric.
 
-- [X] T007 [US1] Record the before/after measurement table, success-criteria rubric, and follow-on recommendation gate in `specs/001-performance-review/baseline.md`
+- [x] T003 [US1] Record backend idle baseline: start backend, open a board, monitor structlog output for outbound GitHub API calls over a 5-minute idle window, and document call count in specs/001-performance-review/checklists/measurement-checklist.md
+- [x] T004 [P] [US1] Record backend cache-hit baseline: perform a board refresh with cold cache (count outbound calls), then with warm cache (count outbound calls), and document both in specs/001-performance-review/checklists/measurement-checklist.md
+- [x] T005 [P] [US1] Record frontend load baseline: profile board load with React DevTools Profiler on a 50+ task board, record time-to-interactive, render count, and network request count in specs/001-performance-review/checklists/measurement-checklist.md
+- [x] T006 [P] [US1] Record frontend interaction baseline: profile drag-card, click-card, and open-task-detail interactions with React DevTools Profiler, record rerender counts and interaction latencies in specs/001-performance-review/checklists/measurement-checklist.md
+- [x] T007 [P] [US1] Record real-time sync idle baseline: observe WebSocket/polling network activity on an idle board for 5 minutes, document query invalidation count and data transfer events in specs/001-performance-review/checklists/measurement-checklist.md
+- [x] T008 [US1] Finalize measurement checklist: ensure every metric (SC-001 through SC-006) has a documented current value, target value, and regression threshold in specs/001-performance-review/checklists/measurement-checklist.md
 
-**Checkpoint**: Baseline capture is reproducible, guardrails are explicit, and optimization work is blocked until the baseline artifact exists.
+### User Story 2 — Confirm Current State Against Spec 022 (Priority: P1)
 
----
+**Goal**: Audit every Spec 022 acceptance criterion against the live codebase and classify each as fully implemented, partially implemented, or not started, so optimization targets only remaining gaps.
 
-## Phase 4: User Story 2 — Idle Board Viewing Stops Wasting Upstream Request Budget (Priority: P1)
+**Independent Test**: Audit checklist completed with status for each criterion; only partially or not-started items feed into optimization scope.
 
-**Goal**: Suppress unchanged automatic board refreshes, lower warm-refresh upstream cost, and preserve manual refresh as a full fresh load.
+- [x] T009 [P] [US2] Audit board cache TTL alignment: verify 300-second TTL in solune/backend/src/api/board.py and confirm stale-data serving during cache window; record in specs/001-performance-review/checklists/spec-022-audit.md
+- [x] T010 [P] [US2] Audit sub-issue cache invalidation on manual refresh: verify cache clearing when refresh=True in solune/backend/src/api/board.py against test_manual_refresh_clears_sub_issue_caches in solune/backend/tests/unit/test_api_board.py; record in audit checklist
+- [x] T011 [P] [US2] Audit WebSocket change detection: verify data_hash comparison in 30-second periodic check in solune/backend/src/api/projects.py and confirm unchanged data suppresses client pushes; record in audit checklist
+- [x] T012 [P] [US2] Audit rate-limit-aware polling: verify pause thresholds, expensive-step skipping, and adaptive idle backoff (up to 300s) in solune/backend/src/services/copilot_polling/polling_loop.py; record in audit checklist
+- [x] T013 [P] [US2] Audit inflight request coalescing: verify concurrent GraphQL request deduplication in solune/backend/src/services/github_projects/service.py; record in audit checklist
+- [x] T014 [P] [US2] Audit stale fallback on error: verify cached_fetch() and board endpoint serve expired cache on GitHub API errors in solune/backend/src/services/cache.py and solune/backend/src/api/board.py; record in audit checklist
+- [x] T015 [US2] Summarize Spec 022 audit results in specs/001-performance-review/checklists/spec-022-audit.md with final status per criterion and list of remaining gaps to address
 
-**Independent Test**: Run the targeted backend regression suites, observe an unchanged board over the fixed interval, and confirm warm refreshes reuse cached board/sub-issue state while manual refresh still bypasses cache.
-
-### Tests for User Story 2
-
-- [X] T008 [P] [US2] Extend unchanged-refresh and manual-refresh regression coverage in `backend/tests/unit/test_api_board.py`
-- [ ] T009 [P] [US2] Extend WebSocket refresh-suppression and polling guard coverage in `backend/tests/unit/test_api_projects.py` and `backend/tests/unit/test_copilot_polling.py`
-
-### Implementation for User Story 2
-
-- [X] T010 [US2] Add board cache hash and warm-state metadata handling in `backend/src/services/cache.py` and `backend/src/api/board.py`
-- [ ] T011 [US2] Suppress unchanged-state WebSocket `refresh` broadcasts and keep canonical repository-resolution usage in `backend/src/api/projects.py` and `backend/src/utils.py`
-- [ ] T012 [US2] Reuse warm board and sub-issue cache paths during repeated board refreshes in `backend/src/api/board.py` and `backend/src/services/github_projects/service.py`
-
-**Checkpoint**: Idle unchanged viewing stops triggering repeated full refreshes, warm refreshes are cheaper, and manual refresh remains a forced full reload.
+**Checkpoint**: Baselines captured and Spec 022 status confirmed — optimization work can now begin. Only items marked partially/not-started in the audit feed into optimization phases.
 
 ---
 
-## Phase 5: User Story 3 — Live Updates Stay Responsive Without Recreating the Polling Storm (Priority: P1)
+## Phase 3: User Story 3 — Reduce Idle Backend Service Call Volume (Priority: P1) 🎯 MVP
 
-**Goal**: Enforce one refresh contract across WebSocket, fallback polling, auto-refresh, and manual refresh so task updates stay lightweight and board reloads are deduplicated.
+**Goal**: Eliminate unnecessary outbound GitHub API calls when a board is idle by ensuring WebSocket periodic checks reuse warm cache, sub-issue caches are reused on non-manual refreshes, and duplicate repository resolution is consolidated. Target: ≥ 50% idle call reduction (SC-001), ≥ 30% fewer calls with warm sub-issue cache (SC-002).
 
-**Independent Test**: Simulate live updates, WebSocket outages, fallback polling, auto-refresh, and manual refresh; verify task freshness remains timely while full board reloads only happen for manual refresh or confirmed board-level changes.
+**Independent Test**: Open a board, leave idle for 5 minutes, and confirm outbound call count meets SC-001 target. Perform cold-cache then warm-cache board refresh and confirm SC-002 target.
 
 ### Tests for User Story 3
 
-- [ ] T013 [P] [US3] Extend live-update and fallback polling contract coverage in `frontend/src/hooks/useRealTimeSync.test.tsx`
-- [ ] T014 [P] [US3] Extend board-reload deduplication and manual-refresh precedence coverage in `frontend/src/hooks/useBoardRefresh.test.tsx` and `frontend/src/hooks/useProjectBoard.test.tsx`
+- [x] T016 [P] [US3] Add test asserting warm board cache prevents outbound API calls during WebSocket periodic check in solune/backend/tests/unit/test_api_board.py
+- [x] T017 [P] [US3] Add test asserting sub-issue cache reuse reduces outbound call count on non-manual board refresh in solune/backend/tests/unit/test_api_board.py
+- [x] T018 [P] [US3] Add test asserting unchanged data hash suppresses client push in WebSocket subscription in solune/backend/tests/unit/test_api_board.py
 
 ### Implementation for User Story 3
 
-- [ ] T015 [US3] Encode lightweight-vs-full refresh handling and fallback coordination in `frontend/src/hooks/useRealTimeSync.ts`
-- [ ] T016 [US3] Add full-board reload debouncing, manual-refresh precedence, and fallback-aware timer resets in `frontend/src/hooks/useBoardRefresh.ts`
-- [X] T017 [US3] Align board query ownership and contract-driven reload triggers in `frontend/src/hooks/useProjectBoard.ts` and `frontend/src/pages/ProjectsPage.tsx`
+- [x] T019 [US3] Optimize WebSocket subscription periodic check to reuse warm board cache instead of force_refresh on 30-second interval in solune/backend/src/api/projects.py (FR-003, FR-004)
+- [x] T020 [US3] Verify and fix sub-issue cache reuse on non-manual refresh path (refresh=false) in solune/backend/src/api/board.py (FR-005)
+- [x] T021 [P] [US3] Consolidate duplicate resolve_repository() calls in solune/backend/src/api/workflow.py to reuse shared utility from solune/backend/src/utils.py (R-001 gap 4)
+- [x] T022 [US3] Verify that background polling in solune/backend/src/services/copilot_polling/polling_loop.py does not trigger unnecessary board-level refreshes when no relevant changes are detected (FR-007)
+- [x] T023 [US3] Run backend linter and type checks: cd solune/backend && python -m ruff check src/ && python -m pyright src/
+- [x] T024 [US3] Run targeted backend tests: cd solune/backend && python -m pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v
 
-**Checkpoint**: Live updates remain fast, fallback stays lightweight, and all board reload paths follow one documented policy.
+**Checkpoint**: Backend idle call volume meets SC-001 and SC-002 targets. All existing backend tests still pass (SC-007).
 
 ---
 
-## Phase 6: User Story 4 — Large Board Interactions Feel Smoother During the First Pass (Priority: P2)
+## Phase 4: User Story 4 — Decouple Lightweight Updates from Full Board Refreshes (Priority: P2)
 
-**Goal**: Reduce unnecessary render work and bound hot listener activity for representative board, chat, and popover interactions without architectural rewrites.
+**Goal**: Ensure real-time task updates appear quickly without triggering full board data reloads, fallback polling remains scoped to tasks-only invalidation, and all refresh sources follow a single coherent policy. Target: single-task update < 2s (SC-003), zero unnecessary full refreshes during polling (SC-004).
 
-**Independent Test**: Profile the representative board before and after the changes, repeat card updates, drag-resize, chat movement, and popover interactions, and confirm unchanged board surfaces avoid extra render/listener work.
+**Independent Test**: Move a card to a different status column via real-time update; confirm only the tasks query updates (not board data). Activate fallback polling; confirm no board data invalidation occurs. Trigger auto-refresh, manual refresh, and polling simultaneously; confirm deduplication.
 
 ### Tests for User Story 4
 
-- [ ] T018 [P] [US4] Add representative board interaction regression assertions in `frontend/src/pages/ProjectsPage.test.tsx`
-- [ ] T019 [P] [US4] Add render-stability and listener-bounding coverage in `frontend/src/hooks/useBoardControls.test.tsx` and `frontend/src/hooks/useProjectBoard.test.tsx`
+- [x] T025 [P] [US4] Add test asserting fallback polling invalidates only tasks query key, never board data query key in solune/frontend/src/hooks/useRealTimeSync.test.tsx (FR-006)
+- [x] T026 [P] [US4] Add test asserting WebSocket-to-polling transition produces at most one tasks query invalidation within 30 seconds in solune/frontend/src/hooks/useRealTimeSync.test.tsx (FR-010)
+- [x] T027 [P] [US4] Add test asserting simultaneous auto-refresh + polling triggers are deduplicated in solune/frontend/src/hooks/useBoardRefresh.test.tsx (FR-010)
 
 ### Implementation for User Story 4
 
-- [X] T020 [US4] Stabilize memo-sensitive derived state and callback props in `frontend/src/pages/ProjectsPage.tsx`, `frontend/src/components/board/BoardColumn.tsx`, and `frontend/src/components/board/IssueCard.tsx`
-- [X] T021 [US4] Bound drag-resize update frequency in `frontend/src/components/chat/ChatPopup.tsx`
-- [X] T022 [US4] Bound popover reposition work in `frontend/src/components/board/AddAgentPopover.tsx`
+- [x] T028 [US4] Verify and fix fallback polling scope: ensure polling only invalidates tasks query and never board data in solune/frontend/src/hooks/useRealTimeSync.ts (FR-006, FR-008)
+- [x] T029 [US4] Verify refresh policy coherence: audit interactions between WebSocket updates, fallback polling, auto-refresh timer, and manual refresh in solune/frontend/src/hooks/useBoardRefresh.ts and solune/frontend/src/hooks/useRealTimeSync.ts (FR-010)
+- [x] T030 [US4] Verify useProjectBoard query ownership and invalidation strategy align with refresh policy in solune/frontend/src/hooks/useProjectBoard.ts
+- [x] T031 [US4] Run frontend linter and type checks: cd solune/frontend && npm run lint && npm run type-check
+- [x] T032 [US4] Run targeted frontend tests: cd solune/frontend && npx vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx
 
-**Checkpoint**: In-scope board and chat interactions are smoother without broad rerender storms or unbounded continuous listeners.
+**Checkpoint**: Lightweight updates are decoupled from full board refreshes. SC-003 and SC-004 met. Existing frontend tests pass (SC-007).
 
 ---
 
-## Phase 7: Polish & Cross-Cutting Concerns
+## Phase 5: User Story 5 — Improve Board Rendering Responsiveness (Priority: P2)
 
-**Purpose**: Re-run the documented guardrails, compare results against the baseline, and either defer broader work or record the next structural step.
+**Goal**: Reduce unnecessary rerenders and rationalize event listeners so board interactions feel smooth on 50+ task boards. Target: measurable interaction latency improvement (SC-005), rerenders scoped to affected card + container only (SC-006).
 
-- [X] T023 [P] Re-run backend regression suites in `backend/tests/unit/test_cache.py`, `backend/tests/unit/test_api_board.py`, `backend/tests/unit/test_api_projects.py`, and `backend/tests/unit/test_copilot_polling.py`; record results in `specs/001-performance-review/baseline.md`
-- [X] T024 [P] Re-run frontend regression suites in `frontend/src/hooks/useRealTimeSync.test.tsx`, `frontend/src/hooks/useBoardRefresh.test.tsx`, `frontend/src/hooks/useProjectBoard.test.tsx`, and `frontend/src/pages/ProjectsPage.test.tsx`; record results in `specs/001-performance-review/baseline.md`
-- [X] T025 Perform the final before/after network-and-profiler comparison and update `specs/001-performance-review/baseline.md` with SC-001 through SC-007 results
-- [ ] T026 Document the explicit defer/follow-on decision for broader structural work in `specs/001-performance-review/research.md` using the measured outcome recorded in `specs/001-performance-review/baseline.md`
+**Independent Test**: Profile board interactions before and after changes on a 50+ task board. Confirm rerender count per interaction is reduced and limited to affected components. Confirm drag-card, click-card, and popover interactions do not trigger unrelated component rerenders.
+
+### Implementation for User Story 5
+
+- [x] T033 [US5] Audit and stabilize all useMemo dependencies for derived computations (grid template, hero stats, pipeline lookup, stage map, total-items aggregation) in solune/frontend/src/pages/ProjectsPage.tsx (FR-012)
+- [x] T034 [P] [US5] Verify memo() effectiveness for BoardColumn: ensure props passed to memoized component are stable references (not recreated per render) in solune/frontend/src/components/board/BoardColumn.tsx (FR-011)
+- [x] T035 [P] [US5] Verify memo() effectiveness for IssueCard: ensure props passed to memoized component are stable references (not recreated per render) in solune/frontend/src/components/board/IssueCard.tsx (FR-011)
+- [x] T036 [P] [US5] Verify RAF throttling and listener cleanup for drag-to-resize in solune/frontend/src/components/chat/ChatPopup.tsx (FR-013)
+- [x] T037 [P] [US5] Verify RAF throttling and listener cleanup for popover positioning in solune/frontend/src/components/agents/AddAgentPopover.tsx (FR-013)
+- [x] T038 [US5] Fix any unstable props, missing memoization, or unthrottled listeners identified in T033–T037 across solune/frontend/src/pages/ProjectsPage.tsx, solune/frontend/src/components/board/BoardColumn.tsx, solune/frontend/src/components/board/IssueCard.tsx, solune/frontend/src/components/chat/ChatPopup.tsx, and solune/frontend/src/components/agents/AddAgentPopover.tsx
+- [x] T039 [US5] Run frontend linter, type checks, and build: cd solune/frontend && npm run lint && npm run type-check && npm run build
+- [x] T040 [US5] Run full frontend test suite: cd solune/frontend && npx vitest run
+
+**Checkpoint**: Board interactions show measurable improvement on 50+ task boards (SC-005). Rerenders scoped to affected components (SC-006). All frontend tests pass.
+
+---
+
+## Phase 6: User Story 6 — Verify Improvements and Prevent Regressions (Priority: P3)
+
+**Goal**: Extend automated test coverage for performance-critical paths and perform manual verification pass to confirm real-world improvements match targets. Deliver SC-008 regression coverage.
+
+**Independent Test**: Run full backend and frontend test suites — all pass. Manual profiling pass shows improvements against baselines from Phase 2.
+
+### Tests for User Story 6
+
+- [x] T041 [P] [US6] Extend cache behavior tests: add assertion that warm cache prevents redundant outbound calls and TTLs align with expected values in solune/backend/tests/unit/test_cache.py (SC-008)
+- [x] T042 [P] [US6] Extend board endpoint tests: add assertion that sub-issue cache reuse on non-manual refresh reduces call count in solune/backend/tests/unit/test_api_board.py (SC-008)
+- [x] T043 [P] [US6] Extend polling tests: add idle-board minimal-activity scenario asserting no unnecessary board-level refreshes in solune/backend/tests/unit/test_copilot_polling.py (SC-008)
+- [x] T044 [P] [US6] Extend real-time sync tests: add assertions for polling-to-WebSocket transition safety and scoped invalidation in solune/frontend/src/hooks/useRealTimeSync.test.tsx (SC-008)
+- [x] T045 [P] [US6] Extend board refresh tests: add assertions for timer reset on external triggers and deduplication across simultaneous sources in solune/frontend/src/hooks/useBoardRefresh.test.tsx (SC-008)
+
+### Verification for User Story 6
+
+- [x] T046 [US6] Run full backend test suite: cd solune/backend && python -m pytest tests/ -v
+- [x] T047 [P] [US6] Run full frontend test suite: cd solune/frontend && npx vitest run
+- [x] T048 [US6] Perform manual backend network profiling pass: monitor idle board outbound calls via solune/backend/ structlog output for 5 minutes and compare against Phase 2 baseline (SC-001)
+- [x] T049 [P] [US6] Perform manual frontend rendering profiling pass: profile board interactions in solune/frontend/ with React DevTools Profiler and compare rerender counts and latencies against Phase 2 baseline (SC-005, SC-006)
+- [x] T050 [US6] Document post-optimization measurements and before/after comparison in specs/001-performance-review/checklists/measurement-checklist.md
+
+**Checkpoint**: All tests pass (SC-007). Regression coverage delivered (SC-008). Manual verification confirms real-world improvements.
+
+---
+
+## Phase 7: User Story 7 — Scope Boundary and Follow-On Plan (Priority: P3)
+
+**Goal**: Confirm no out-of-scope changes were introduced and produce follow-on documentation if targets were not fully met. Deliver SC-009, SC-010.
+
+**Independent Test**: Review delivered changes — no new external dependencies, no virtualization, no major service decomposition. If targets not met, follow-on plan exists with data-driven recommendations.
+
+- [x] T051 [US7] Verify no new external dependencies were introduced: check solune/backend/pyproject.toml and solune/frontend/package.json against pre-optimization versions (SC-009, FR-015)
+- [x] T052 [US7] If SC-001 through SC-006 targets are not fully met, create follow-on plan in specs/001-performance-review/follow-on-plan.md with specific recommendations and supporting measurement data (SC-010, FR-016)
+- [x] T053 [P] [US7] Document instrumentation recommendations for future regression visibility (refresh cost tracking, cache hit rates, refresh-source attribution) in specs/001-performance-review/follow-on-plan.md
+
+**Checkpoint**: Scope boundaries respected. Follow-on plan documented if needed.
+
+---
+
+## Phase 8: Polish & Cross-Cutting Concerns
+
+**Purpose**: Final validation across all phases, documentation updates, and sign-off.
+
+- [x] T054 Run full backend linter and type checks: cd solune/backend && python -m ruff check src/ && python -m pyright src/
+- [x] T055 [P] Run full frontend linter, type checks, and build: cd solune/frontend && npm run lint && npm run type-check && npm run build
+- [x] T056 Run full backend test suite for final regression check: cd solune/backend && python -m pytest tests/ -v
+- [x] T057 [P] Run full frontend test suite for final regression check: cd solune/frontend && npx vitest run
+- [x] T058 Final measurement checklist sign-off: confirm all SC-001 through SC-010 criteria are documented as met or addressed in specs/001-performance-review/checklists/measurement-checklist.md
+- [x] T059 Run quickstart.md validation: execute verification checklist from specs/001-performance-review/quickstart.md
 
 ---
 
@@ -136,106 +192,119 @@
 
 ### Phase Dependencies
 
-- **Phase 1: Setup** — no dependencies; start immediately.
-- **Phase 2: Foundational** — depends on Phase 1; blocks implementation so the refresh contract and preservation rules are fixed before code changes.
-- **Phase 3: US1** — depends on Phase 2; establishes the trusted baseline package and is the MVP gate for the whole feature.
-- **Phase 4: US2** — depends on US1 baseline capture and Phase 2 contract alignment.
-- **Phase 5: US3** — depends on Phase 2 and should follow US2 backend change-detection work so the frontend contract consumes the final backend signal behavior.
-- **Phase 6: US4** — depends on Phase 2; can begin after US3 if you want render profiling to reflect the final refresh contract.
-- **Phase 7: Polish** — depends on all targeted user stories being complete.
+- **Setup (Phase 1)**: No dependencies — can start immediately
+- **Foundational (Phase 2)**: Depends on Setup completion — **BLOCKS all optimization phases**
+- **US3 (Phase 3)**: Depends on Phase 2 (baselines and Spec 022 audit)
+- **US4 (Phase 4)**: Depends on Phase 2; can run in **parallel** with Phase 3 (different codebase areas: backend vs. frontend)
+- **US5 (Phase 5)**: Depends on Phase 4 (refresh-path fixes should land before render optimization to isolate causes)
+- **US6 (Phase 6)**: Depends on Phases 3, 4, and 5 (all optimization work must complete before verification)
+- **US7 (Phase 7)**: Depends on Phase 6 (scope review requires verification results)
+- **Polish (Phase 8)**: Depends on all previous phases
 
 ### User Story Dependencies
 
-- **US1 (P1)**: No dependency on other user stories; this is the measurement gate and recommended MVP scope.
-- **US2 (P1)**: Depends on US1 baseline artifacts so request-reduction results can be compared against the recorded before-state.
-- **US3 (P1)**: Depends on US2’s backend refresh suppression semantics to keep frontend refresh policy coherent.
-- **US4 (P2)**: Depends on US1 baseline artifacts; should preferably land after US3 so responsiveness is measured against the final refresh behavior.
+- **US1 (P1)**: Can start immediately — produces baselines that gate all optimization
+- **US2 (P1)**: Can start after T001 (measurement checklist exists) — can run in **parallel** with US1 frontend baselines
+- **US3 (P1)**: Depends on US1 + US2 completion — backend optimization, independent of frontend stories
+- **US4 (P2)**: Depends on US1 + US2 completion — frontend optimization, can run in **parallel** with US3
+- **US5 (P2)**: Depends on US4 completion — render optimization builds on refresh-path fixes
+- **US6 (P3)**: Depends on US3, US4, US5 — verification covers all optimization phases
+- **US7 (P3)**: Depends on US6 — scope boundary review uses verification results
 
 ### Within Each User Story
 
-- Write or extend the listed regression tests before implementation tasks in the same story.
-- Finish backend change-detection before validating frontend refresh-contract behavior.
-- Complete implementation tasks before recording final measurements for that story.
-- Re-run the story’s independent test before moving to the next priority increment.
+- Tests FIRST (when present) — ensure they exist before implementation
+- Audit/verify existing behavior before modifying
+- Core implementation changes before integration fixes
+- Linter/type checks after implementation
+- Targeted test runs to validate changes
+
+### Parallel Opportunities
+
+- **Phase 1**: T001 and T002 can run in parallel (different files)
+- **Phase 2**: T003–T007 (US1 baselines) and T009–T014 (US2 audits) can run in parallel after T001/T002
+- **Phase 2 internal**: All [P]-marked US1 baselines (T004, T005, T006, T007) can run in parallel; all [P]-marked US2 audits (T009–T014) can run in parallel
+- **Phase 3 + Phase 4**: Can run in parallel (backend vs. frontend, different files)
+- **Phase 3 internal**: T016, T017, T018 (tests) can run in parallel; T021 can run in parallel with T019/T020
+- **Phase 4 internal**: T025, T026, T027 (tests) can run in parallel
+- **Phase 5 internal**: T034, T035, T036, T037 can run in parallel (different component files)
+- **Phase 6 internal**: T041–T045 (test extensions) can run in parallel; T046/T047 can run in parallel; T048/T049 can run in parallel
+- **Phase 8**: T054/T055 can run in parallel; T056/T057 can run in parallel
 
 ---
 
-## Parallel Opportunities
-
-- **Setup**: T001 and T002 can run in parallel because they touch different feature-doc files.
-- **Foundational**: T003 and T004 can run in parallel once the feature baseline artifact exists.
-- **US1**: T005 and T006 can run in parallel; both feed T007.
-- **US2**: T008 and T009 can run in parallel; T010 can start after their expected assertions are defined, while T011 and T012 should proceed sequentially after T010.
-- **US3**: T013 and T014 can run in parallel; T015 and T016 can proceed in parallel if the query-key contract in T017 is finished last.
-- **US4**: T018 and T019 can run in parallel; T021 and T022 can run in parallel after T020 establishes the memo-sensitive render boundaries.
-- **Polish**: T023 and T024 can run in parallel before T025 and T026.
-
----
-
-## Parallel Example(s)
-
-### User Story 1
+## Parallel Example: User Story 3 (Backend Optimization)
 
 ```bash
-# Write the guardrail checklist while manual verification steps are documented
-Task: "T005 Add guardrail checklist in specs/001-performance-review/baseline.md"
-Task: "T006 Add manual network/profiler script in specs/001-performance-review/quickstart.md"
+# Launch all tests for US3 together:
+Task: T016 "Add warm cache test in solune/backend/tests/unit/test_api_board.py"
+Task: T017 "Add sub-issue cache reuse test in solune/backend/tests/unit/test_api_board.py"
+Task: T018 "Add data hash suppression test in solune/backend/tests/unit/test_api_board.py"
+
+# Then launch independent implementation tasks:
+Task: T019 "Optimize WebSocket periodic check in solune/backend/src/api/projects.py"
+Task: T021 "Consolidate resolve_repository() in solune/backend/src/api/workflow.py"  # [P] - different file
 ```
 
-### User Story 2
+## Parallel Example: Phase 3 + Phase 4 (Backend + Frontend in Parallel)
 
 ```bash
-# Define backend regression expectations in parallel before changing refresh behavior
-Task: "T008 Extend backend/tests/unit/test_api_board.py"
-Task: "T009 Extend backend/tests/unit/test_api_projects.py and backend/tests/unit/test_copilot_polling.py"
-```
+# Developer A (Backend — US3):
+Task: T019 "Optimize WebSocket periodic check in projects.py"
+Task: T020 "Verify sub-issue cache reuse in board.py"
+Task: T021 "Consolidate resolve_repository() in workflow.py"
 
-### User Story 3
-
-```bash
-# Cover both halves of the refresh contract before wiring implementation
-Task: "T013 Extend frontend/src/hooks/useRealTimeSync.test.tsx"
-Task: "T014 Extend frontend/src/hooks/useBoardRefresh.test.tsx and frontend/src/hooks/useProjectBoard.test.tsx"
-```
-
-### User Story 4
-
-```bash
-# Profile-facing regression work can be split before implementation begins
-Task: "T018 Extend frontend/src/pages/ProjectsPage.test.tsx"
-Task: "T019 Extend frontend/src/hooks/useBoardControls.test.tsx and frontend/src/hooks/useProjectBoard.test.tsx"
+# Developer B (Frontend — US4, simultaneously):
+Task: T028 "Verify fallback polling scope in useRealTimeSync.ts"
+Task: T029 "Verify refresh policy coherence in useBoardRefresh.ts"
+Task: T030 "Verify useProjectBoard query ownership"
 ```
 
 ---
 
 ## Implementation Strategy
 
-### MVP First (User Story 1 Only)
+### MVP First (User Story 3 Only)
 
-1. Complete Phase 1 and Phase 2 to create the baseline artifact and freeze the contract.
-2. Complete Phase 3 (US1) and capture the before-state measurements.
-3. **Stop and validate**: confirm `specs/001-performance-review/baseline.md` is reproducible and complete before code changes proceed.
+1. Complete Phase 1: Setup (measurement checklist + audit checklist)
+2. Complete Phase 2: Foundational (baselines + Spec 022 audit) — **CRITICAL GATE**
+3. Complete Phase 3: User Story 3 — backend idle call reduction
+4. **STOP and VALIDATE**: Compare idle call count against baseline; confirm SC-001 and SC-002 targets
+5. Deploy/demo if backend savings are sufficient for first milestone
 
 ### Incremental Delivery
 
-1. Finish Setup + Foundational work.
-2. Deliver **US1** to establish the measurement gate.
-3. Deliver **US2** to cut backend request waste and re-run the backend guardrails.
-4. Deliver **US3** to align frontend refresh behavior with the backend contract.
-5. Deliver **US4** to smooth the highest-value UI interactions.
-6. Finish with Phase 7 verification and the defer/follow-on decision.
+1. Complete Setup + Foundational → Baselines and audit ready
+2. Add US3 (backend optimization) → Test independently → ≥ 50% idle reduction (MVP!)
+3. Add US4 (refresh decoupling) → Test independently → < 2s task updates, zero unnecessary polling refreshes
+4. Add US5 (render optimization) → Test independently → Measurable interaction improvement
+5. Add US6 (verification) → Full regression pass → All targets validated
+6. Add US7 (scope boundary) → Follow-on plan if needed
+7. Each story adds value without breaking previous stories
 
-### Suggested Team Strategy
+### Parallel Team Strategy
 
-- **Engineer A**: US2 backend request-reduction work in `backend/src/` and `backend/tests/unit/`
-- **Engineer B**: US3 frontend refresh-contract work in `frontend/src/hooks/` and `frontend/src/pages/`
-- **Engineer C**: US4 render/listener optimization in `frontend/src/components/` once US1 baseline capture is complete
+With multiple developers:
+
+1. Team completes Setup + Foundational together (baselines require system access)
+2. Once Foundational is done:
+   - Developer A: User Story 3 (backend — Python)
+   - Developer B: User Story 4 (frontend — TypeScript)
+3. After US3 + US4:
+   - Developer A: User Story 6 backend tests (T041–T043, T046, T048)
+   - Developer B: User Story 5 (render optimization) → US6 frontend tests (T044–T045, T047, T049)
+4. Stories complete and integrate independently
 
 ---
 
 ## Notes
 
-- All checklist items use executable, repository-relative file paths.
-- `[P]` markers are only applied where file conflicts and unmet dependencies are not expected.
-- User story labels appear only on story phases.
-- The recommended MVP scope is **User Story 1** because every later optimization depends on its baseline artifact.
+- [P] tasks = different files, no dependencies on incomplete tasks in the same phase
+- [Story] label maps task to specific user story for traceability
+- Each user story should be independently completable and testable
+- Commit after each task or logical group
+- Stop at any checkpoint to validate story independently
+- Baselines (Phase 2) are a hard gate — no optimization code changes before baselines
+- Research findings (R-001 through R-006) identified existing implementations; tasks target remaining gaps only
+- Many components (BoardColumn, IssueCard, ChatPopup, AddAgentPopover) already have memo()/RAF — tasks verify effectiveness and fix only where needed
+- Avoid: vague tasks, same-file conflicts, cross-story dependencies that break independence
