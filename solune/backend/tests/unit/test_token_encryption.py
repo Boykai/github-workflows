@@ -96,3 +96,13 @@ class TestTokenEncryptionAtRest:
 
         with pytest.raises(ValueError, match="corrupted data"):
             svc.decrypt(ciphertext)
+
+    async def test_invalid_key_raises_instead_of_silent_fallback(self):
+        """Bug-bash regression: an invalid ENCRYPTION_KEY must raise ValueError
+        instead of silently falling back to plaintext passthrough mode.
+
+        Previously, a malformed key caused EncryptionService to operate in
+        passthrough mode, storing tokens unencrypted without any error.
+        """
+        with pytest.raises(ValueError, match="not a valid Fernet key"):
+            EncryptionService(key="not-a-valid-fernet-key")
