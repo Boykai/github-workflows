@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 from collections import OrderedDict
 from collections.abc import Awaitable, Callable, ItemsView, Iterator, KeysView, ValuesView
 from datetime import UTC, datetime
@@ -174,8 +175,12 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
     from src.services.github_projects import github_projects_service
     from src.services.workflow_orchestrator import get_workflow_config
 
-    # Check cache first to avoid repeated API calls for the same project
-    cache_key = f"resolve_repo:{project_id}"
+    # Check cache first to avoid repeated API calls for the same project.
+    # Include a hash of the access token so cached results are scoped to the
+    # caller — prevents a user without project access from reading a cache
+    # entry populated by another user.
+    token_hash = hashlib.sha256(access_token.encode()).hexdigest()[:16]
+    cache_key = f"resolve_repo:{token_hash}:{project_id}"
     cached = cache.get(cache_key)
     if cached is not None:
         return cached
