@@ -41,10 +41,11 @@ def _load_rules(config_path: Path | None = None) -> list[dict[str, str]]:
     with path.open(encoding="utf-8") as f:
         data: dict[str, Any] = yaml.safe_load(f) or {}
 
-    _cached_rules = data.get("guard_rules", [])
+    rules: list[dict[str, str]] = data.get("guard_rules", [])
+    _cached_rules = rules
     _cached_mtime = mtime
-    logger.info("Loaded %d guard rules from %s", len(_cached_rules), path)
-    return _cached_rules
+    logger.info("Loaded %d guard rules from %s", len(rules), path)
+    return rules
 
 
 def _match_guard_level(file_path: str, rules: list[dict[str, str]]) -> str:

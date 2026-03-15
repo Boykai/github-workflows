@@ -77,26 +77,25 @@ def _safe_app_path(name: str) -> Path:
     return app_dir
 
 
-def _scaffold_app_directory(name: str, display_name: str, description: str) -> Path:
+def _scaffold_app_directory(safe_dir: Path, name: str, display_name: str, description: str) -> None:
     """Create the on-disk scaffold for a new application.
 
-    Returns the absolute path to the created directory.
+    ``safe_dir`` must already be validated via ``_safe_app_path``.
     """
-    app_dir = _safe_app_path(name)
-    if app_dir.exists():
+    if safe_dir.exists():
         raise ConflictError(f"Directory already exists for app '{name}'.")
 
-    app_dir.mkdir(parents=True, exist_ok=False)
+    safe_dir.mkdir(parents=True, exist_ok=False)
 
     # README.md
-    readme = app_dir / "README.md"
+    readme = safe_dir / "README.md"
     readme.write_text(
         f"# {display_name}\n\n{description}\n\nCreated by the Solune platform.\n",
         encoding="utf-8",
     )
 
     # config.json
-    config = app_dir / "config.json"
+    config = safe_dir / "config.json"
     config.write_text(
         json.dumps(
             {
@@ -112,25 +111,23 @@ def _scaffold_app_directory(name: str, display_name: str, description: str) -> P
     )
 
     # src/.gitkeep
-    src_dir = app_dir / "src"
+    src_dir = safe_dir / "src"
     src_dir.mkdir()
     (src_dir / ".gitkeep").touch()
 
     # CHANGELOG.md
-    changelog = app_dir / "CHANGELOG.md"
+    changelog = safe_dir / "CHANGELOG.md"
     changelog.write_text(
         f"# Changelog — {display_name}\n\nAll notable changes will be documented here.\n",
         encoding="utf-8",
     )
 
     # docker-compose.yml template
-    compose = app_dir / "docker-compose.yml"
+    compose = safe_dir / "docker-compose.yml"
     compose.write_text(
         f"# Docker Compose for {display_name}\n# Extend or customize as needed.\nservices: {{}}\n",
         encoding="utf-8",
     )
-
-    return app_dir
 
 
 def _row_to_app(row: aiosqlite.Row) -> App:
@@ -167,8 +164,9 @@ async def create_app(db: aiosqlite.Connection, payload: AppCreate) -> App:
 
     directory_path = f"apps/{payload.name}"
 
-    # Scaffold the directory
-    _scaffold_app_directory(payload.name, payload.display_name, payload.description)
+    # Validate and scaffold the directory
+    safe_dir = _safe_app_path(payload.name)
+    _scaffold_app_directory(safe_dir, payload.name, payload.display_name, payload.description)
 
     # Insert into database
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -199,6 +197,8 @@ async def create_app(db: aiosqlite.Connection, payload: AppCreate) -> App:
 
     cursor = await db.execute("SELECT * FROM apps WHERE name = ?", (payload.name,))
     row = await cursor.fetchone()
+    if not row:
+        raise NotFoundError(f"App '{payload.name}' not found after creation.")
     return _row_to_app(row)
 
 
@@ -326,7 +326,12 @@ async def delete_app(db: aiosqlite.Connection, name: str) -> None:
         raise ValidationError(f"Cannot delete app '{name}': must stop the app first.")
 
     # Remove directory with traversal-safe path resolution
-    app_dir = _safe_app_path(app.name)
+    validate_app_name(app.name)
+    app_dir = (_APPS_DIR / app.name).resolve()
+    if not app_dir.is_relative_to(_APPS_DIR_RESOLVED):
+        raise ValidationError(
+            f"Invalid app name '{app.name}': resolved path escapes apps directory."
+        )
     if app_dir.exists():
         shutil.rmtree(app_dir)
         logger.info("Removed directory for app '%s'", name)
