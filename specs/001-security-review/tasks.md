@@ -25,9 +25,9 @@
 
 **Purpose**: No new project initialization required — this is a hardening exercise on an existing codebase. Setup phase ensures the working environment is ready for verification and targeted fixes.
 
-- [ ] T001 Review current codebase state against the 21-finding audit matrix in specs/001-security-review/research.md
-- [ ] T002 [P] Verify backend development environment runs successfully via `cd solune/backend && python -m pytest tests/ -v`
-- [ ] T003 [P] Verify frontend development environment builds successfully via `cd solune/frontend && npm run build`
+- [x] T001 Review current codebase state against the 21-finding audit matrix in specs/001-security-review/research.md
+- [x] T002 [P] Verify backend development environment runs successfully via `cd solune/backend && python -m pytest tests/ -v`
+- [x] T003 [P] Verify frontend development environment builds successfully via `cd solune/frontend && npm run build`
 
 ---
 
@@ -51,10 +51,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Verify OAuth callback in solune/backend/src/api/auth.py sets HttpOnly; SameSite=Strict; Secure cookie and redirects with no credentials in URL (Finding #1 — code review, confirm remediation)
-- [ ] T005 [P] [US1] Verify solune/frontend/src/hooks/useAuth.ts cleans OAuth callback URL via history.replaceState and never reads credentials from URL params (Finding #1 — code review, confirm remediation)
-- [ ] T006 [US1] Verify dev login endpoint in solune/backend/src/api/auth.py accepts credentials via POST JSON body only, not URL query parameters (Finding #7 — code review; if URL params accepted, migrate to POST body)
-- [ ] T007 [US1] Verify dev login contract matches specs/001-security-review/contracts/security-contracts.md: POST /api/v1/auth/dev/login with JSON body, endpoint absent when DEBUG=false
+- [x] T004 [US1] Verify OAuth callback in solune/backend/src/api/auth.py sets HttpOnly; SameSite=Strict; Secure cookie and redirects with no credentials in URL (Finding #1 — code review, confirm remediation)
+- [x] T005 [P] [US1] Verify solune/frontend/src/hooks/useAuth.ts cleans OAuth callback URL via history.replaceState and never reads credentials from URL params (Finding #1 — code review, confirm remediation)
+- [x] T006 [US1] Verify dev login endpoint in solune/backend/src/api/auth.py accepts credentials via POST JSON body only, not URL query parameters (Finding #7 — code review; if URL params accepted, migrate to POST body)
+- [x] T007 [US1] Verify dev login contract matches specs/001-security-review/contracts/security-contracts.md: POST /api/v1/auth/dev/login with JSON body, endpoint absent when DEBUG=false
 
 **Checkpoint**: User Story 1 verified — authentication flow is secure, no credentials in URLs.
 
@@ -70,9 +70,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T008 [US2] Harden invalid encryption key handling in solune/backend/src/services/encryption.py — in production mode (DEBUG=false), an invalid ENCRYPTION_KEY (set but not a valid Fernet key) must raise ValueError at startup instead of silently falling back to plaintext (Finding #2 gap)
-- [ ] T009 [US2] Verify solune/backend/src/config.py enforces mandatory ENCRYPTION_KEY, GITHUB_WEBHOOK_SECRET, SESSION_SECRET_KEY (≥64 chars), and COOKIE_SECURE in non-debug mode (Finding #2, #9 — code review, confirm remediation)
-- [ ] T010 [P] [US2] Verify startup validation contract matches specs/001-security-review/contracts/security-contracts.md: all required env vars validated, CORS origins validated as well-formed URLs
+- [x] T008 [US2] Harden invalid encryption key handling in solune/backend/src/services/encryption.py — in production mode (DEBUG=false), an invalid ENCRYPTION_KEY (set but not a valid Fernet key) must raise ValueError at startup instead of silently falling back to plaintext (Finding #2 gap)
+- [x] T009 [US2] Verify solune/backend/src/config.py enforces mandatory ENCRYPTION_KEY, GITHUB_WEBHOOK_SECRET, SESSION_SECRET_KEY (≥64 chars), and COOKIE_SECURE in non-debug mode (Finding #2, #9 — code review, confirm remediation)
+- [x] T010 [P] [US2] Verify startup validation contract matches specs/001-security-review/contracts/security-contracts.md: all required env vars validated, CORS origins validated as well-formed URLs
 
 **Checkpoint**: User Story 2 complete — production startup gate enforces all mandatory security configuration including invalid key detection.
 
@@ -88,11 +88,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T011 [P] [US3] Verify solune/backend/src/api/tasks.py uses Depends(verify_project_access) on all project-scoped endpoints (Finding #4 — code review)
-- [ ] T012 [P] [US3] Verify solune/backend/src/api/projects.py uses Depends(verify_project_access) on all project-scoped endpoints (Finding #4 — code review)
-- [ ] T013 [P] [US3] Verify solune/backend/src/api/settings.py uses Depends(verify_project_access) on all project-scoped endpoints (Finding #4 — code review)
-- [ ] T014 [P] [US3] Verify solune/backend/src/api/workflow.py uses Depends(verify_project_access) on all project-scoped endpoints (Finding #4 — code review)
-- [ ] T015 [US3] Verify WebSocket handler rejects connections to unowned project IDs before sending any data frame (Finding #4 — code review, check close code 4003)
+- [x] T011 [P] [US3] Verify solune/backend/src/api/tasks.py uses Depends(verify_project_access) on all project-scoped endpoints (Finding #4 — code review)
+- [x] T012 [P] [US3] Verify solune/backend/src/api/projects.py uses Depends(verify_project_access) on all project-scoped endpoints (Finding #4 — code review)
+- [x] T013 [P] [US3] Verify solune/backend/src/api/settings.py uses Depends(verify_project_access) on all project-scoped endpoints (Finding #4 — code review)
+- [x] T014 [P] [US3] Verify solune/backend/src/api/workflow.py uses Depends(verify_project_access) on all project-scoped endpoints (Finding #4 — code review)
+- [x] T015 [US3] Verify WebSocket handler rejects connections to unowned project IDs before sending any data frame (Finding #4 — code review, check close code 4003)
 
 **Checkpoint**: User Story 3 verified — all project-scoped operations enforce ownership checks.
 
@@ -108,11 +108,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T016 [P] [US4] Verify solune/frontend/Dockerfile creates a non-root user (nginx-app) and runs nginx on unprivileged port 8080 (Finding #3 — code review)
-- [ ] T017 [P] [US4] Verify solune/backend/Dockerfile runs as non-root appuser (Finding #3 — code review)
-- [ ] T018 [P] [US4] Verify docker-compose.yml binds backend to 127.0.0.1:8000 and frontend to 127.0.0.1:5173 (Finding #10 — code review)
-- [ ] T019 [P] [US4] Verify docker-compose.yml mounts data volume at /var/lib/solune/data via solune-data named volume, outside application root (Finding #17 — code review)
-- [ ] T020 [P] [US4] Verify solune/backend/src/services/database.py creates database directory with 0o700 and database files with 0o600 permissions (Finding #15 — code review)
+- [x] T016 [P] [US4] Verify solune/frontend/Dockerfile creates a non-root user (nginx-app) and runs nginx on unprivileged port 8080 (Finding #3 — code review)
+- [x] T017 [P] [US4] Verify solune/backend/Dockerfile runs as non-root appuser (Finding #3 — code review)
+- [x] T018 [P] [US4] Verify docker-compose.yml binds backend to 127.0.0.1:8000 and frontend to 127.0.0.1:5173 (Finding #10 — code review)
+- [x] T019 [P] [US4] Verify docker-compose.yml mounts data volume at /var/lib/solune/data via solune-data named volume, outside application root (Finding #17 — code review)
+- [x] T020 [P] [US4] Verify solune/backend/src/services/database.py creates database directory with 0o700 and database files with 0o600 permissions (Finding #15 — code review)
 
 **Checkpoint**: User Story 4 verified — containers are hardened, infrastructure follows least privilege.
 
@@ -128,10 +128,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T021 [US5] Add explicit `server_tokens off;` directive to solune/frontend/nginx.conf in the server block — do not rely on alpine defaults (Finding #6 gap)
-- [ ] T022 [P] [US5] Verify solune/frontend/nginx.conf includes Content-Security-Policy, Strict-Transport-Security, Referrer-Policy, Permissions-Policy, X-Frame-Options, X-Content-Type-Options headers and does NOT include deprecated X-XSS-Protection (Finding #6 — code review)
-- [ ] T023 [P] [US5] Verify solune/backend/src/api/signal.py uses hmac.compare_digest for secret comparison (Finding #5 — code review)
-- [ ] T024 [P] [US5] Verify solune/backend/src/api/webhooks.py enforces HMAC-SHA256 signature verification regardless of DEBUG mode (Finding #13 — code review)
+- [x] T021 [US5] Add explicit `server_tokens off;` directive to solune/frontend/nginx.conf in the server block — do not rely on alpine defaults (Finding #6 gap)
+- [x] T022 [P] [US5] Verify solune/frontend/nginx.conf includes Content-Security-Policy, Strict-Transport-Security, Referrer-Policy, Permissions-Policy, X-Frame-Options, X-Content-Type-Options headers and does NOT include deprecated X-XSS-Protection (Finding #6 — code review)
+- [x] T023 [P] [US5] Verify solune/backend/src/api/signal.py uses hmac.compare_digest for secret comparison (Finding #5 — code review)
+- [x] T024 [P] [US5] Verify solune/backend/src/api/webhooks.py enforces HMAC-SHA256 signature verification regardless of DEBUG mode (Finding #13 — code review)
 
 **Checkpoint**: User Story 5 complete — security headers hardened, webhook integrity confirmed.
 
@@ -147,11 +147,11 @@
 
 ### Implementation for User Story 6
 
-- [ ] T025 [US6] Verify solune/backend/src/middleware/rate_limit.py is properly configured with slowapi and per-user/per-IP key functions (Finding #11 — code review)
-- [ ] T026 [P] [US6] Audit solune/backend/src/api/chat.py for rate limit decorators on all message-sending endpoints (Finding #11 — add @limiter.limit() if missing)
-- [ ] T027 [P] [US6] Audit solune/backend/src/api/agents.py for rate limit decorators on agent invocation endpoints (Finding #11 — add @limiter.limit() if missing)
-- [ ] T028 [P] [US6] Audit solune/backend/src/api/workflow.py for rate limit decorators on workflow trigger endpoints (Finding #11 — add @limiter.limit() if missing)
-- [ ] T029 [US6] Audit solune/backend/src/api/auth.py for per-IP rate limit on OAuth callback endpoint (Finding #11 — add @limiter.limit() if missing)
+- [x] T025 [US6] Verify solune/backend/src/middleware/rate_limit.py is properly configured with slowapi and per-user/per-IP key functions (Finding #11 — code review)
+- [x] T026 [P] [US6] Audit solune/backend/src/api/chat.py for rate limit decorators on all message-sending endpoints (Finding #11 — add @limiter.limit() if missing)
+- [x] T027 [P] [US6] Audit solune/backend/src/api/agents.py for rate limit decorators on agent invocation endpoints (Finding #11 — add @limiter.limit() if missing)
+- [x] T028 [P] [US6] Audit solune/backend/src/api/workflow.py for rate limit decorators on workflow trigger endpoints (Finding #11 — add @limiter.limit() if missing)
+- [x] T029 [US6] Audit solune/backend/src/api/auth.py for per-IP rate limit on OAuth callback endpoint (Finding #11 — add @limiter.limit() if missing)
 
 **Checkpoint**: User Story 6 complete — all sensitive endpoints have rate limits applied.
 
@@ -167,8 +167,8 @@
 
 ### Implementation for User Story 7
 
-- [ ] T030 [US7] Verify solune/frontend/src/hooks/useChatHistory.ts stores messages in React state only (in-memory), not localStorage — localStorage may contain only lightweight message IDs with bounded history (max 100, FIFO) (Finding #18 — code review)
-- [ ] T031 [US7] Verify solune/frontend/src/hooks/useChatHistory.ts clears all local data on logout, including legacy localStorage entries (Finding #18 — code review)
+- [x] T030 [US7] Verify solune/frontend/src/hooks/useChatHistory.ts stores messages in React state only (in-memory), not localStorage — localStorage may contain only lightweight message IDs with bounded history (max 100, FIFO) (Finding #18 — code review)
+- [x] T031 [US7] Verify solune/frontend/src/hooks/useChatHistory.ts clears all local data on logout, including legacy localStorage entries (Finding #18 — code review)
 
 **Checkpoint**: User Story 7 verified — client-side storage is privacy-respecting.
 
@@ -184,13 +184,13 @@
 
 ### Implementation for User Story 8
 
-- [ ] T032 [US8] Add explanatory comment in solune/backend/src/services/github_auth.py near the OAuth scope definition documenting why `repo` scope is still required (GitHub Projects V2 needs it for issue writes) and noting it as a known limitation (Finding #8)
-- [ ] T033 [P] [US8] Verify solune/backend/src/config.py validates CORS origins as well-formed URLs with scheme and hostname at startup, failing on malformed values (Finding #16 — code review)
-- [ ] T034 [P] [US8] Verify solune/backend/src/config.py enforces COOKIE_SECURE=true in production mode (Finding #12 — code review)
-- [ ] T035 [P] [US8] Verify solune/backend/src/main.py gates API docs on ENABLE_DOCS env var, independent of DEBUG (Finding #14 — code review)
-- [ ] T036 [P] [US8] Verify solune/backend/src/services/github_projects/service.py logs full GraphQL errors internally but raises only generic ValueError to API callers (Finding #19 — code review)
-- [ ] T037 [P] [US8] Verify .github/workflows/branch-issue-link.yml uses permissions: {} default with per-job minimum grants and justification comments (Finding #20 — code review)
-- [ ] T038 [P] [US8] Verify solune/frontend/src/components/board/IssueCard.tsx validates avatar URLs use HTTPS and originate from avatars.githubusercontent.com, falling back to placeholder on failure (Finding #21 — code review)
+- [x] T032 [US8] Add explanatory comment in solune/backend/src/services/github_auth.py near the OAuth scope definition documenting why `repo` scope is still required (GitHub Projects V2 needs it for issue writes) and noting it as a known limitation (Finding #8)
+- [x] T033 [P] [US8] Verify solune/backend/src/config.py validates CORS origins as well-formed URLs with scheme and hostname at startup, failing on malformed values (Finding #16 — code review)
+- [x] T034 [P] [US8] Verify solune/backend/src/config.py enforces COOKIE_SECURE=true in production mode (Finding #12 — code review)
+- [x] T035 [P] [US8] Verify solune/backend/src/main.py gates API docs on ENABLE_DOCS env var, independent of DEBUG (Finding #14 — code review)
+- [x] T036 [P] [US8] Verify solune/backend/src/services/github_projects/service.py logs full GraphQL errors internally but raises only generic ValueError to API callers (Finding #19 — code review)
+- [x] T037 [P] [US8] Verify .github/workflows/branch-issue-link.yml uses permissions: {} default with per-job minimum grants and justification comments (Finding #20 — code review)
+- [x] T038 [P] [US8] Verify solune/frontend/src/components/board/IssueCard.tsx validates avatar URLs use HTTPS and originate from avatars.githubusercontent.com, falling back to placeholder on failure (Finding #21 — code review)
 
 **Checkpoint**: User Story 8 complete — all configuration, error handling, and low-priority items verified.
 
@@ -200,18 +200,18 @@
 
 **Purpose**: Execute the full 10-item verification matrix from the spec, confirm all remediations are effective, and finalize documentation.
 
-- [ ] T039 Execute verification check #1: After login, no credentials appear in browser URL bar, history, or server access logs (nginx + application logs) (FR-001, FR-002, SC-001)
-- [ ] T040 Execute verification check #2: Backend refuses to start in non-debug mode without ENCRYPTION_KEY set (FR-003, SC-002)
-- [ ] T041 Execute verification check #3: docker exec into frontend container — id must return non-root UID (FR-005, SC-004)
-- [ ] T042 Execute verification check #4: Authenticated request with unowned project_id returns 403 (FR-006, FR-007, SC-003)
-- [ ] T043 Execute verification check #5: WebSocket connection to unowned project ID is rejected before any data is sent (FR-006, SC-003)
-- [ ] T044 Execute verification check #6: All webhook secret comparisons use constant-time function (FR-008, SC-006)
-- [ ] T045 Execute verification check #7: curl -I frontend returns CSP, HSTS, Referrer-Policy; no nginx version in Server header (FR-009, FR-010, SC-005)
-- [ ] T046 Execute verification check #8: After rate limit threshold, expensive endpoints return 429 (FR-015, FR-016, SC-007)
-- [ ] T047 Execute verification check #9: After logout, localStorage contains no message content (FR-024, FR-025, SC-008)
-- [ ] T048 Execute verification check #10: DB directory permissions are 0700; file permissions are 0600 (FR-021, SC-009)
-- [ ] T049 Update specs/001-security-review/research.md with final verification results for all 21 findings
-- [ ] T050 Run quickstart.md validation: execute all steps in specs/001-security-review/quickstart.md and confirm expected outputs
+- [x] T039 Execute verification check #1: After login, no credentials appear in browser URL bar, history, or server access logs (nginx + application logs) (FR-001, FR-002, SC-001)
+- [x] T040 Execute verification check #2: Backend refuses to start in non-debug mode without ENCRYPTION_KEY set (FR-003, SC-002)
+- [x] T041 Execute verification check #3: docker exec into frontend container — id must return non-root UID (FR-005, SC-004)
+- [x] T042 Execute verification check #4: Authenticated request with unowned project_id returns 403 (FR-006, FR-007, SC-003)
+- [x] T043 Execute verification check #5: WebSocket connection to unowned project ID is rejected before any data is sent (FR-006, SC-003)
+- [x] T044 Execute verification check #6: All webhook secret comparisons use constant-time function (FR-008, SC-006)
+- [x] T045 Execute verification check #7: curl -I frontend returns CSP, HSTS, Referrer-Policy; no nginx version in Server header (FR-009, FR-010, SC-005)
+- [x] T046 Execute verification check #8: After rate limit threshold, expensive endpoints return 429 (FR-015, FR-016, SC-007)
+- [x] T047 Execute verification check #9: After logout, localStorage contains no message content (FR-024, FR-025, SC-008)
+- [x] T048 Execute verification check #10: DB directory permissions are 0700; file permissions are 0600 (FR-021, SC-009)
+- [x] T049 Update specs/001-security-review/research.md with final verification results for all 21 findings
+- [x] T050 Run quickstart.md validation: execute all steps in specs/001-security-review/quickstart.md and confirm expected outputs
 
 ---
 
