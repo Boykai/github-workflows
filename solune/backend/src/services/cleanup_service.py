@@ -22,6 +22,7 @@ from src.models.cleanup import (
     CleanupItemResult,
     CleanupPreflightRequest,
     CleanupPreflightResponse,
+    IssueToDelete,
     OrphanedIssueInfo,
     PullRequestInfo,
 )
@@ -779,6 +780,7 @@ async def preflight(
                     title=issue.get("title", ""),
                     labels=issue_labels,
                     html_url=issue.get("html_url"),
+                    node_id=issue.get("node_id"),
                 )
             )
 
@@ -913,50 +915,77 @@ async def execute_cleanup(
         # Rate limit delay
         await asyncio.sleep(DELETION_DELAY_SECONDS)
 
-    # Close orphaned app-created issues sequentially
-    issues_closed = 0
-    for issue_number in request.issues_to_close:
+    # Delete orphaned app-created issues via GraphQL deleteIssue mutation
+    issues_deleted = 0
+    delete_issue_mutation = """
+    mutation DeleteIssue($issueId: ID!) {
+      deleteIssue(input: {issueId: $issueId}) {
+        repository { id }
+      }
+    }
+    """
+    for issue_info in request.issues_to_delete:
+        issue_number = issue_info.number
+        node_id = issue_info.node_id
         try:
-            response = await github_service._rest_response(
+            await github_service._graphql(
                 access_token,
-                "PATCH",
-                f"/repos/{owner}/{repo}/issues/{issue_number}",
-                json={"state": "closed", "state_reason": "not_planned"},
+                delete_issue_mutation,
+                {"issueId": node_id},
             )
-            if response.status_code == 200:
-                results.append(
-                    CleanupItemResult(
+            results.append(
+                CleanupItemResult(
+                    item_type="issue",
+                    identifier=str(issue_number),
+                    action="deleted",
+                )
+            )
+            issues_deleted += 1
+        except Exception as e:
+            logger.warning(
+                "GraphQL deleteIssue failed for #%s (node_id=%s): %s — falling back to close",
+                issue_number,
+                node_id,
+                e,
+            )
+            # Fallback: close the issue via REST if deletion is not permitted
+            try:
+                response = await github_service._rest_response(
+                    access_token,
+                    "PATCH",
+                    f"/repos/{owner}/{repo}/issues/{issue_number}",
+                    json={"state": "closed", "state_reason": "not_planned"},
+                )
+                if response.status_code == 200:
+                    results.append(
+                        CleanupItemResult(
+                            item_type="issue",
+                            identifier=str(issue_number),
+                            action="deleted",
+                        )
+                    )
+                    issues_deleted += 1
+                else:
+                    item = CleanupItemResult(
                         item_type="issue",
                         identifier=str(issue_number),
-                        action="closed",
+                        action="failed",
+                        error=f"Failed to delete issue #{issue_number} (HTTP {response.status_code})",
                     )
-                )
-                issues_closed += 1
-            else:
-                logger.error(
-                    "Failed to close issue %s: HTTP %s — %s",
-                    issue_number,
-                    response.status_code,
-                    response.text[:500],
+                    results.append(item)
+                    errors.append(item)
+            except Exception as fallback_err:
+                logger.exception(
+                    "Fallback close also failed for issue #%s: %s", issue_number, fallback_err
                 )
                 item = CleanupItemResult(
                     item_type="issue",
                     identifier=str(issue_number),
                     action="failed",
-                    error=f"Failed to close issue #{issue_number} (HTTP {response.status_code})",
+                    error=f"Failed to delete issue #{issue_number} due to an internal error.",
                 )
                 results.append(item)
                 errors.append(item)
-        except Exception as e:
-            logger.exception("Exception closing issue %s during cleanup: %s", issue_number, e)
-            item = CleanupItemResult(
-                item_type="issue",
-                identifier=str(issue_number),
-                action="failed",
-                error=f"Failed to close issue #{issue_number} due to an internal error.",
-            )
-            results.append(item)
-            errors.append(item)
 
         # Rate limit delay
         await asyncio.sleep(DELETION_DELAY_SECONDS)
@@ -998,7 +1027,7 @@ async def execute_cleanup(
         branches_preserved=branches_preserved,
         prs_closed=prs_closed,
         prs_preserved=prs_preserved,
-        issues_closed=issues_closed,
+        issues_deleted=issues_deleted,
         errors=errors,
         results=results,
     )

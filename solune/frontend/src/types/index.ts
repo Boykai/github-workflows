@@ -802,6 +802,12 @@ export interface OrphanedIssueInfo {
   title: string;
   labels: string[];
   html_url: string | null;
+  node_id: string | null;
+}
+
+export interface IssueToDelete {
+  number: number;
+  node_id: string;
 }
 
 export interface CleanupPreflightResponse {
@@ -829,14 +835,14 @@ export interface CleanupExecuteRequest {
   project_id: string;
   branches_to_delete: string[];
   prs_to_close: number[];
-  issues_to_close: number[];
+  issues_to_delete: IssueToDelete[];
 }
 
 /** Payload from the confirm modal — the user's final selections after toggling. */
 export interface CleanupConfirmPayload {
   branches_to_delete: string[];
   prs_to_close: number[];
-  issues_to_close: number[];
+  issues_to_delete: IssueToDelete[];
 }
 
 export interface CleanupExecuteResponse {
@@ -845,7 +851,7 @@ export interface CleanupExecuteResponse {
   branches_preserved: number;
   prs_closed: number;
   prs_preserved: number;
-  issues_closed: number;
+  issues_deleted: number;
   errors: CleanupItemResult[];
   results: CleanupItemResult[];
 }

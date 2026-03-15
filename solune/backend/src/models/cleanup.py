@@ -15,6 +15,13 @@ class CleanupPreflightRequest(BaseModel):
     project_id: str = Field(min_length=1, description="GitHub Projects v2 project node ID")
 
 
+class IssueToDelete(BaseModel):
+    """An orphaned issue to permanently delete."""
+
+    number: int = Field(description="GitHub issue number")
+    node_id: str = Field(min_length=1, description="GitHub GraphQL node ID")
+
+
 class CleanupExecuteRequest(BaseModel):
     """Request body to execute the cleanup operation."""
 
@@ -23,9 +30,9 @@ class CleanupExecuteRequest(BaseModel):
     project_id: str = Field(min_length=1, description="Project board ID (for audit trail)")
     branches_to_delete: list[str] = Field(description="Branch names to delete")
     prs_to_close: list[int] = Field(description="PR numbers to close")
-    issues_to_close: list[int] = Field(
+    issues_to_delete: list[IssueToDelete] = Field(
         default=[],
-        description="Orphaned issue numbers to close",
+        description="Orphaned issues to permanently delete (requires node_id)",
     )
 
 
@@ -63,6 +70,7 @@ class OrphanedIssueInfo(BaseModel):
     title: str
     labels: list[str] = []
     html_url: str | None = None
+    node_id: str | None = None
 
 
 class CleanupPreflightResponse(BaseModel):
@@ -96,7 +104,7 @@ class CleanupExecuteResponse(BaseModel):
     branches_preserved: int
     prs_closed: int
     prs_preserved: int
-    issues_closed: int = 0
+    issues_deleted: int = 0
     errors: list[CleanupItemResult]
     results: list[CleanupItemResult]
 

@@ -610,7 +610,7 @@ export const cleanupApi = {
   },
 
   /**
-   * Execute the cleanup operation: delete branches and close PRs.
+   * Execute the cleanup operation: delete branches, close PRs, and delete orphaned issues.
    */
   execute(data: CleanupExecuteRequest): Promise<CleanupExecuteResponse> {
     return request<CleanupExecuteResponse>('/cleanup/execute', {
