@@ -117,4 +117,4 @@ class TestTokenEncryptionAtRest:
         passthrough mode, storing tokens unencrypted without any error.
         """
         with pytest.raises(ValueError, match="not a valid Fernet key"):
-            EncryptionService(key="not-a-valid-fernet-key")
+            EncryptionService(key="not-a-valid-fernet-key", debug=False)

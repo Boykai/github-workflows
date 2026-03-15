@@ -303,9 +303,8 @@ async def websocket_subscribe(
     async def send_tasks(*, force_refresh: bool = False):
         """Fetch and send current tasks, using cache when possible."""
         nonlocal stale_revalidation_count
+        cache_key = get_project_items_cache_key(project_id)
         try:
-            cache_key = get_project_items_cache_key(project_id)
-
             # Use cache for periodic refreshes to avoid hammering the API.
             # Only bypass cache on initial connection (force_refresh=True).
             if not force_refresh:
