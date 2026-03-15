@@ -31,7 +31,7 @@ Invalid entries cause startup failure with a message identifying the malformed o
 
 ```
 HTTP/1.1 302 Found
-Location: {FRONTEND_URL}/
+Location: {FRONTEND_URL}/auth/callback
 Set-Cookie: session={session_id}; HttpOnly; SameSite=Strict; Secure; Path=/; Max-Age=28800
 ```
 
@@ -43,11 +43,11 @@ Set-Cookie: session={session_id}; HttpOnly; SameSite=Strict; Secure; Path=/; Max
 ### Dev Login (Development Only)
 
 ```
-POST /api/v1/auth/dev/login
+POST /api/v1/auth/dev-login
 Content-Type: application/json
 
 {
-  "token": "<github_personal_access_token>"
+  "github_token": "<github_personal_access_token>"
 }
 ```
 
@@ -114,9 +114,9 @@ Same pattern: HMAC-SHA256 verification with `hmac.compare_digest`.
 
 | Endpoint Pattern | Limit | Key Function |
 |-----------------|-------|--------------|
-| `POST /api/v1/chat/*/messages` | 10/minute | Session user ID |
-| `POST /api/v1/agents/*` | 10/minute | Session user ID |
-| `POST /api/v1/workflow/*` | 10/minute | Session user ID |
+| `POST /api/v1/chat/*/messages` | 10/minute | Session cookie (per-session) |
+| `POST /api/v1/agents/*` | 5/minute | Session cookie (per-session) |
+| `POST /api/v1/workflow/*` | 10/minute | Session cookie (per-session) |
 
 ### Per-IP Endpoints
 

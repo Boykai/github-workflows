@@ -76,42 +76,39 @@ curl -X POST http://localhost:8000/api/v1/projects/{user_a_project_id}/tasks \
 # Expected: 403 Forbidden
 ```
 
-## Remaining Implementation Items
+## Addressed Gaps (Verified Complete)
 
-### Gap 1: Invalid Encryption Key Handling
+The following gaps were identified during the initial audit research and have since been closed:
+
+### Gap 1: Invalid Encryption Key Handling ✅
 
 **File**: `solune/backend/src/services/encryption.py`
 
-Currently, an invalid `ENCRYPTION_KEY` (set but malformed) silently falls back to plaintext mode. It should raise a startup error.
+Resolved: `EncryptionService` now raises `ValueError` on invalid key when `debug=False` (production mode). In debug mode, it logs a warning and falls back to plaintext for local development.
 
-```python
-# Current (lines 31-36): silent fallback
-# Desired: raise ValueError on invalid key in production
-```
-
-### Gap 2: Dev Login Endpoint Verification
+### Gap 2: Dev Login Endpoint Verification ✅
 
 **File**: `solune/backend/src/api/auth.py`
 
-Verify the dev login endpoint accepts credentials via POST body, not URL query parameters. If URL params are accepted, migrate to JSON body.
+Verified: Dev login endpoint (`POST /api/v1/auth/dev-login`) accepts credentials via `DevLoginRequest` POST body (`github_token` field) only. No URL query parameters accepted. Endpoint returns 404 when `DEBUG=false`.
 
-### Gap 3: OAuth Scope Documentation
+### Gap 3: OAuth Scope Documentation ✅
 
 **File**: `solune/backend/src/services/github_auth.py`
 
-The `repo` scope is still included. Document as a known limitation with a comment explaining why it's required (GitHub Projects V2 needs it for issue writes).
+Resolved: The `repo` scope is documented as a known limitation — GitHub Projects V2 requires it for issue write operations. Comment added explaining the dependency.
 
-### Gap 4: Explicit `server_tokens off`
+### Gap 4: Explicit `server_tokens off` ✅
 
 **File**: `solune/frontend/nginx.conf`
 
-Add explicit `server_tokens off;` directive rather than relying on alpine defaults.
+Resolved: Explicit `server_tokens off;` directive added to nginx configuration.
 
-### Gap 5: Rate Limit Coverage Audit
+### Gap 5: Rate Limit Coverage Audit ✅
 
 **Files**: Various endpoint files in `solune/backend/src/api/`
 
-Verify rate limits are applied to all endpoints identified in the audit (chat, agents, workflow, OAuth callback).
+Verified: Rate limits applied to all endpoints identified in the audit — chat (10/min), agents (5/min), workflow (10/min), OAuth callback (20/min per-IP).
 
 ## Running Tests
 

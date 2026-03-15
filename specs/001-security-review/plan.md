@@ -5,9 +5,9 @@
 
 ## Summary
 
-Address 21 OWASP Top 10 security findings (3 Critical, 8 High, 9 Medium, 2 Low) identified in a security, privacy, and vulnerability audit. Research against the live codebase reveals that **approximately 19 of 21 findings have already been remediated**. The remaining work focuses on closing 2–5 minor gaps (invalid encryption key handling, dev login verification, OAuth scope documentation, explicit `server_tokens off`, rate limit coverage audit) and performing a comprehensive verification pass to confirm all remediations are complete and effective.
+Address 21 OWASP Top 10 security findings (3 Critical, 8 High, 9 Medium, 2 Low) identified in a security, privacy, and vulnerability audit. Research against the live codebase revealed that approximately 19 of 21 findings were already remediated. The remaining gaps (invalid encryption key handling, dev login verification, OAuth scope documentation, explicit `server_tokens off`, rate limit coverage audit) have been closed. All findings are now verified — 20 fully remediated, 1 documented as a known limitation (OAuth `repo` scope required for GitHub Projects V2).
 
-**Approach**: Verification-first — systematically confirm each existing remediation, then implement targeted fixes for the remaining gaps.
+**Approach**: Verification-first — systematically confirmed each existing remediation, then implemented targeted fixes for the remaining gaps.
 
 ## Technical Context
 
@@ -55,83 +55,66 @@ Address 21 OWASP Top 10 security findings (3 Critical, 8 High, 9 Medium, 2 Low) 
 
 | # | Finding | Severity | OWASP | Status | Action Required |
 |---|---------|----------|-------|--------|-----------------|
-| 1 | Session token in URL | Critical | A02 | ✅ Remediated | Verification only |
-| 2 | At-rest encryption not enforced | Critical | A02 | ⚠️ Partial | Fix: invalid key fallback |
-| 3 | Frontend container runs as root | Critical | A05 | ✅ Remediated | Verification only |
-| 4 | Project resources not scoped | High | A01 | ✅ Remediated | Verification only |
-| 5 | Timing attack on Signal webhook | High | A07 | ✅ Remediated | Verification only |
-| 6 | Missing HTTP security headers | High | A05 | ⚠️ Partial | Fix: explicit `server_tokens off` |
-| 7 | Dev endpoint PAT in URL | High | A02 | 🔍 Verify | Inspect dev login endpoint |
-| 8 | OAuth overly broad `repo` scope | High | A01 | ⚠️ Known limitation | Document + scope test plan |
-| 9 | Session secret no entropy check | High | A07 | ✅ Remediated | Verification only |
-| 10 | Docker services on all interfaces | High | A05 | ✅ Remediated | Verification only |
-| 11 | No rate limiting | Medium | A04 | ⚠️ Partial | Audit coverage completeness |
-| 12 | Cookie Secure flag not enforced | Medium | A02 | ✅ Remediated | Verification only |
-| 13 | Debug bypasses webhook verification | Medium | A05 | ✅ Remediated | Verification only |
-| 14 | API docs exposed via DEBUG | Medium | A05 | ✅ Remediated | Verification only |
-| 15 | SQLite dir world-readable | Medium | A02 | ✅ Remediated | Verification only |
-| 16 | CORS origins not validated | Medium | A05 | ✅ Remediated | Verification only |
-| 17 | Data volume inside app dir | Medium | A05 | ✅ Remediated | Verification only |
-| 18 | Chat history in localStorage | Medium | A02 | ✅ Remediated | Verification only |
-| 19 | GraphQL error messages exposed | Medium | A09 | ✅ Remediated | Verification only |
-| 20 | GH Actions broad permissions | Low | Supply chain | ✅ Remediated | Verification only |
-| 21 | Avatar URLs no domain validation | Low | A03 | ✅ Remediated | Verification only |
+| 1 | Session token in URL | Critical | A02 | ✅ Remediated | Verified |
+| 2 | At-rest encryption not enforced | Critical | A02 | ✅ Remediated | Fixed: invalid key raises ValueError in production |
+| 3 | Frontend container runs as root | Critical | A05 | ✅ Remediated | Verified |
+| 4 | Project resources not scoped | High | A01 | ✅ Remediated | Verified |
+| 5 | Timing attack on Signal webhook | High | A07 | ✅ Remediated | Verified |
+| 6 | Missing HTTP security headers | High | A05 | ✅ Remediated | Fixed: explicit `server_tokens off` added |
+| 7 | Dev endpoint PAT in URL | High | A02 | ✅ Remediated | Verified: POST body only via DevLoginRequest |
+| 8 | OAuth overly broad `repo` scope | High | A01 | ℹ️ Known limitation | Documented: required for GitHub Projects V2 |
+| 9 | Session secret no entropy check | High | A07 | ✅ Remediated | Verified |
+| 10 | Docker services on all interfaces | High | A05 | ✅ Remediated | Verified |
+| 11 | No rate limiting | Medium | A04 | ✅ Remediated | Verified: all endpoints covered |
+| 12 | Cookie Secure flag not enforced | Medium | A02 | ✅ Remediated | Verified |
+| 13 | Debug bypasses webhook verification | Medium | A05 | ✅ Remediated | Verified |
+| 14 | API docs exposed via DEBUG | Medium | A05 | ✅ Remediated | Verified |
+| 15 | SQLite dir world-readable | Medium | A02 | ✅ Remediated | Verified |
+| 16 | CORS origins not validated | Medium | A05 | ✅ Remediated | Verified |
+| 17 | Data volume inside app dir | Medium | A05 | ✅ Remediated | Verified |
+| 18 | Chat history in localStorage | Medium | A02 | ✅ Remediated | Verified |
+| 19 | GraphQL error messages exposed | Medium | A09 | ✅ Remediated | Verified |
+| 20 | GH Actions broad permissions | Low | Supply chain | ✅ Remediated | Verified |
+| 21 | Avatar URLs no domain validation | Low | A03 | ✅ Remediated | Verified |
 
-**Summary**: 16 fully remediated, 3 partially remediated, 1 needs verification, 1 known limitation.
+**Summary**: 20 fully remediated and verified, 1 known limitation (OAuth `repo` scope — documented with justification).
 
 ## Implementation Phases
 
-### Phase 1 — Critical Fixes (Remaining Gaps)
+### Phase 1 — Critical Fixes (Completed)
 
-#### Task 1.1: Harden Invalid Encryption Key Handling
+#### Task 1.1: Harden Invalid Encryption Key Handling ✅
 
-**Finding**: #2 (partial gap)
+**Finding**: #2
 **File**: `solune/backend/src/services/encryption.py`
-**Current behavior**: Invalid `ENCRYPTION_KEY` (set but malformed) silently falls back to plaintext mode with a warning log.
-**Required behavior**: In production mode (`DEBUG=false`), an invalid `ENCRYPTION_KEY` must cause startup failure, not silent fallback.
-**Change**: Add validation in `encryption.py` initialization to raise `ValueError` when the key is present but not a valid Fernet key, when not in debug mode.
-**Dependencies**: `config.py` (reads `DEBUG` flag)
-**Risk**: Low — only affects production with misconfigured keys (which is the intended behavior).
+**Resolution**: `EncryptionService` now accepts a `debug` parameter. In production mode (`debug=False`), an invalid `ENCRYPTION_KEY` raises `ValueError`. In debug mode, it falls back to plaintext with a warning.
+**Note**: Validation occurs at service instantiation time (lazy, on first use via `session_store._get_encryption_service()`), not at application startup. For a true startup gate, validation would need to move to `Settings` initialization. This is documented as a known design trade-off.
 
-#### Task 1.2: Verify Dev Login Endpoint
+#### Task 1.2: Verify Dev Login Endpoint ✅
 
 **Finding**: #7
 **File**: `solune/backend/src/api/auth.py`
-**Action**: Code review to confirm credentials arrive in POST body (JSON), not URL query parameters.
-**Change**: If URL params are accepted, migrate to POST-body-only. If already correct, document as verified.
-**Dependencies**: None
-**Risk**: Low — dev-only endpoint, no production impact.
+**Resolution**: Verified — `POST /api/v1/auth/dev-login` accepts `DevLoginRequest` model with `github_token` field in POST body. No URL query parameters accepted. Endpoint returns 404 when `DEBUG=false`.
 
-### Phase 2 — High Priority Hardening
+### Phase 2 — High Priority Hardening (Completed)
 
-#### Task 2.1: Explicit `server_tokens off` in nginx
+#### Task 2.1: Explicit `server_tokens off` in nginx ✅
 
-**Finding**: #6 (partial gap)
+**Finding**: #6
 **File**: `solune/frontend/nginx.conf`
-**Current behavior**: Relies on alpine nginx defaults to suppress version disclosure.
-**Required behavior**: Explicit `server_tokens off;` directive in the `http` or `server` block.
-**Change**: Add `server_tokens off;` to the nginx configuration.
-**Dependencies**: None
-**Risk**: None — purely additive, does not change existing behavior.
+**Resolution**: Explicit `server_tokens off;` directive added to the nginx configuration.
 
-#### Task 2.2: Document OAuth `repo` Scope Limitation
+#### Task 2.2: Document OAuth `repo` Scope Limitation ✅
 
 **Finding**: #8 (known limitation)
 **File**: `solune/backend/src/services/github_auth.py`
-**Current behavior**: Requests `"read:user read:org project repo"` scope.
-**Required behavior**: Document why `repo` is still required (GitHub Projects V2 needs it for issue writes) with a code comment and a note in the plan.
-**Change**: Add explanatory comment in `github_auth.py` near the scope definition.
-**Dependencies**: None — staging scope testing is out of scope for this plan.
-**Risk**: None — documentation only.
+**Resolution**: Comment added explaining `repo` scope is required for GitHub Projects V2 issue write operations. Documented as a known limitation — removing it would break write operations.
 
-#### Task 2.3: Audit Rate Limit Coverage
+#### Task 2.3: Audit Rate Limit Coverage ✅
 
-**Finding**: #11 (partial gap)
+**Finding**: #11
 **Files**: `solune/backend/src/api/chat.py`, `agents.py`, `workflow.py`, `auth.py`
-**Action**: Verify all endpoints listed in the audit finding have rate limits applied. Add missing rate limit decorators if any are found.
-**Change**: Add `@limiter.limit()` decorators to any unprotected sensitive endpoint.
-**Dependencies**: `slowapi` already integrated via `src/middleware/rate_limit.py`
-**Risk**: Low — adding rate limits to unprotected endpoints only.
+**Resolution**: Verified — rate limits applied to all sensitive endpoints: chat (10/min), agents (5/min), workflow (10/min), OAuth callback (20/min per-IP).
 
 ### Phase 3 — Comprehensive Verification Pass
 

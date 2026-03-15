@@ -5,7 +5,9 @@
 
 **Tests**: Not explicitly requested in the feature specification. The 10-item behavior-based verification matrix (spec.md) serves as acceptance criteria. No test tasks are generated.
 
-**Organization**: Tasks are grouped by user story to enable independent implementation and verification of each story. Most findings (~19/21) are already remediated — tasks focus on closing remaining gaps and performing comprehensive verification.
+**Organization**: Tasks are grouped by user story to enable independent implementation and verification of each story. Most findings (~19/21) were already remediated — tasks focused on closing remaining gaps and performing comprehensive verification. All tasks have been executed and verified.
+
+> **Note**: All tasks are marked complete (`[x]`) because they were executed during the audit process. This document serves as the execution record. The 10-item behavior-based verification matrix in spec.md provides the acceptance criteria.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -54,7 +56,7 @@
 - [x] T004 [US1] Verify OAuth callback in solune/backend/src/api/auth.py sets HttpOnly; SameSite=Strict; Secure cookie and redirects with no credentials in URL (Finding #1 — code review, confirm remediation)
 - [x] T005 [P] [US1] Verify solune/frontend/src/hooks/useAuth.ts cleans OAuth callback URL via history.replaceState and never reads credentials from URL params (Finding #1 — code review, confirm remediation)
 - [x] T006 [US1] Verify dev login endpoint in solune/backend/src/api/auth.py accepts credentials via POST JSON body only, not URL query parameters (Finding #7 — code review; if URL params accepted, migrate to POST body)
-- [x] T007 [US1] Verify dev login contract matches specs/001-security-review/contracts/security-contracts.md: POST /api/v1/auth/dev/login with JSON body, endpoint absent when DEBUG=false
+- [x] T007 [US1] Verify dev login contract matches specs/001-security-review/contracts/security-contracts.md: POST /api/v1/auth/dev-login with JSON body (`github_token` field), endpoint absent when DEBUG=false
 
 **Checkpoint**: User Story 1 verified — authentication flow is secure, no credentials in URLs.
 
