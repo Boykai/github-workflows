@@ -3,12 +3,12 @@
 [![CI](https://github.com/Boykai/github-workflows/actions/workflows/ci.yml/badge.svg)](https://github.com/Boykai/github-workflows/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/github/license/Boykai/github-workflows?color=0f766e)](https://github.com/Boykai/github-workflows/blob/main/LICENSE)
 
-> Agent-driven development platform. Define Agent Pipelines, compose specialized Agents, build applications from specs via chat, iterate through GitHub DevOps tracking.
+> Agent-driven development platform. Design customizable Agent Pipelines via a visual GUI, compose AI Custom GitHub Agents to execute remote work in series or parallel, and track everything through GitHub Projects.
 
 ## What It Does
 
 - **Build apps from conversation** — Describe what you want, Solune scaffolds the project, creates GitHub Issues, and wires up an agent pipeline
-- **Automated agent pipeline** — `specify` → `plan` → `tasks` → `implement` → `review`
+- **Customizable Agent Pipelines** — Visual drag-and-drop GUI to compose any combination of AI agents into execution stages, with series and parallel execution groups, integrated with GitHub Projects for real-time tracking
 - **Multi-app management** — Create, preview, start/stop applications from a unified dashboard
 - **Live preview** — Embedded iframe preview for running applications with start/stop controls
 - **Real-time board** — Kanban view with drag-and-drop agent configuration
@@ -69,3 +69,7 @@ See [solune/docs/setup.md](solune/docs/setup.md) for full instructions including
 ## License
 
 [MIT](LICENSE)
+
+---
+
+<sub>This application was built with the assistance of AI.</sub>

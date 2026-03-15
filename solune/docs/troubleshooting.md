@@ -60,16 +60,16 @@
 - Case-variant status keys are deduplicated automatically on save
 - Verify with `GET /api/v1/workflow/config`
 
-**speckit.implement not starting or completing:**
+**Implementation agent not starting or completing:**
 
-- Check that `speckit.tasks: Done!` was posted
+- Check that the preceding agent’s `Done!` marker was posted
 - Verify issue transitioned to "In Progress"
 - System waits for child PR targeting the main branch
 - Check for Copilot delay — agent was correctly assigned
 
 **Issue stuck in "In Progress":**
 
-- System waits for `speckit.implement` child PR
+- System waits for the implementation agent’s child PR
 - Detects `copilot_work_finished` timeline events or PR no longer draft
 - Once detected: child PR merged → main PR ready → status "In Review"
 

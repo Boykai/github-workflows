@@ -188,41 +188,41 @@
 
 @layer base {
   :root {
-    --background: 41 82% 95%;
-    --foreground: 228 24% 16%;
+    --background: 30 8% 96%;
+    --foreground: 225 18% 18%;
 
-    --card: 40 88% 97%;
-    --card-foreground: 228 24% 16%;
+    --card: 30 10% 98%;
+    --card-foreground: 225 18% 18%;
 
-    --popover: 39 82% 96%;
-    --popover-foreground: 228 24% 16%;
+    --popover: 30 8% 97%;
+    --popover-foreground: 225 18% 18%;
 
-    --primary: 42 90% 38%;
-    --primary-foreground: 32 36% 12%;
+    --primary: 24 78% 38%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 38 52% 89%;
-    --secondary-foreground: 228 16% 24%;
+    --secondary: 28 10% 91%;
+    --secondary-foreground: 225 14% 24%;
 
-    --muted: 39 44% 90%;
-    --muted-foreground: 228 10% 40%;
+    --muted: 28 8% 91%;
+    --muted-foreground: 225 10% 38%;
 
-    --accent: 230 34% 40%;
-    --accent-foreground: 40 90% 97%;
+    --accent: 225 18% 36%;
+    --accent-foreground: 30 10% 97%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 37 36% 49%;
-    --input: 39 50% 93%;
-    --ring: 42 90% 38%;
+    --border: 25 12% 52%;
+    --input: 28 8% 94%;
+    --ring: 24 78% 38%;
 
-    --panel: 40 78% 95%;
-    --panel-foreground: 228 24% 16%;
-    --glow: 47 100% 79%;
-    --gold: 42 92% 52%;
-    --night: 226 28% 19%;
-    --star: 38 72% 42%;
-    --star-soft: 43 84% 62%;
+    --panel: 30 8% 96%;
+    --panel-foreground: 225 18% 18%;
+    --glow: 28 65% 74%;
+    --gold: 24 78% 52%;
+    --night: 225 20% 20%;
+    --star: 24 55% 48%;
+    --star-soft: 28 62% 60%;
 
     --radius: 1rem;
 
@@ -302,12 +302,12 @@
   body {
     @apply bg-background text-foreground;
     background-image:
-      radial-gradient(circle at 18% 14%, hsl(var(--glow) / 0.34), transparent 18%),
-      radial-gradient(circle at 82% 12%, hsl(var(--gold) / 0.16), transparent 14%),
-      radial-gradient(circle at 50% 120%, hsl(var(--accent) / 0.08), transparent 32%),
+      radial-gradient(circle at 18% 14%, hsl(var(--glow) / 0.12), transparent 22%),
+      radial-gradient(circle at 82% 12%, hsl(var(--gold) / 0.06), transparent 18%),
+      radial-gradient(circle at 50% 120%, hsl(var(--accent) / 0.03), transparent 36%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--background)) 96%, white) 0%,
+        color-mix(in srgb, hsl(var(--background)) 98%, white) 0%,
         hsl(var(--background)) 42%,
         color-mix(in srgb, hsl(var(--background)) 88%, black) 100%
       );
@@ -344,39 +344,39 @@
 @layer utilities {
   .celestial-panel {
     background:
-      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.18), transparent 28%),
-      radial-gradient(circle at 82% 8%, hsl(var(--gold) / 0.1), transparent 22%),
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.06), transparent 30%),
+      radial-gradient(circle at 82% 8%, hsl(var(--gold) / 0.04), transparent 24%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 94%, white) 0%,
+        color-mix(in srgb, hsl(var(--panel)) 97%, white) 0%,
         hsl(var(--panel)) 56%,
-        color-mix(in srgb, hsl(var(--panel)) 88%, black) 100%
+        color-mix(in srgb, hsl(var(--panel)) 94%, black) 100%
       );
   }
 
   .celestial-shell {
     background:
-      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.22), transparent 24%),
-      radial-gradient(circle at 88% 4%, hsl(var(--gold) / 0.1), transparent 18%),
-      radial-gradient(circle at 82% 88%, hsl(var(--accent) / 0.1), transparent 20%),
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.08), transparent 26%),
+      radial-gradient(circle at 88% 4%, hsl(var(--gold) / 0.04), transparent 20%),
+      radial-gradient(circle at 82% 88%, hsl(var(--accent) / 0.04), transparent 22%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--background)) 96%, white) 0%,
+        color-mix(in srgb, hsl(var(--background)) 98%, white) 0%,
         hsl(var(--background)) 42%,
-        color-mix(in srgb, hsl(var(--background)) 92%, black) 100%
+        color-mix(in srgb, hsl(var(--background)) 96%, black) 100%
       );
   }
 
   .section-aurora {
     background:
-      radial-gradient(circle at 18% 18%, hsl(var(--glow) / 0.22), transparent 18%),
-      radial-gradient(circle at 82% 22%, hsl(var(--gold) / 0.14), transparent 20%),
-      radial-gradient(circle at 55% 72%, hsl(var(--accent) / 0.1), transparent 28%),
+      radial-gradient(circle at 18% 18%, hsl(var(--glow) / 0.08), transparent 22%),
+      radial-gradient(circle at 82% 22%, hsl(var(--gold) / 0.05), transparent 22%),
+      radial-gradient(circle at 55% 72%, hsl(var(--accent) / 0.04), transparent 30%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 94%, white) 0%,
+        color-mix(in srgb, hsl(var(--panel)) 97%, white) 0%,
         hsl(var(--panel)) 52%,
-        color-mix(in srgb, hsl(var(--panel)) 86%, black) 100%
+        color-mix(in srgb, hsl(var(--panel)) 94%, black) 100%
       );
   }
 
@@ -543,11 +543,11 @@
 
   .ritual-stage {
     position: relative;
-    border: 1px solid hsl(var(--border) / 0.72);
+    border: 1px solid hsl(var(--border) / 0.5);
     background:
-      radial-gradient(circle at 12% 18%, hsl(var(--glow) / 0.14), transparent 16%),
-      radial-gradient(circle at 88% 18%, hsl(var(--gold) / 0.1), transparent 18%),
-      linear-gradient(180deg, hsl(var(--background) / 0.42) 0%, hsl(var(--background) / 0.22) 100%);
+      radial-gradient(circle at 12% 18%, hsl(var(--glow) / 0.05), transparent 18%),
+      radial-gradient(circle at 88% 18%, hsl(var(--gold) / 0.03), transparent 20%),
+      linear-gradient(180deg, hsl(var(--background) / 0.52) 0%, hsl(var(--background) / 0.3) 100%);
     backdrop-filter: blur(14px);
   }
 
@@ -557,40 +557,40 @@
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.16);
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.3);
   }
 
   .moonwell {
     background:
-      radial-gradient(circle at 50% 0%, hsl(var(--glow) / 0.16), transparent 55%),
-      radial-gradient(circle at 85% 18%, hsl(var(--gold) / 0.08), transparent 24%),
-      linear-gradient(180deg, hsl(var(--background) / 0.66) 0%, hsl(var(--background) / 0.4) 100%);
+      radial-gradient(circle at 50% 0%, hsl(var(--glow) / 0.06), transparent 55%),
+      radial-gradient(circle at 85% 18%, hsl(var(--gold) / 0.03), transparent 24%),
+      linear-gradient(180deg, hsl(var(--background) / 0.76) 0%, hsl(var(--background) / 0.52) 100%);
     backdrop-filter: blur(10px);
   }
 
-  /* Light theme: warm sky with cloud puffs and sunshine */
+  /* Light theme: clean architectural surfaces with subtle copper warmth */
   .pipeline-column-surface {
     position: relative;
     overflow: hidden;
     background:
-      radial-gradient(ellipse at 82% 0%, hsl(45 100% 72% / 0.28), transparent 38%),
-      radial-gradient(circle at 12% 8%, hsl(200 64% 84% / 0.16), transparent 28%),
+      radial-gradient(ellipse at 82% 0%, hsl(var(--glow) / 0.08), transparent 38%),
+      radial-gradient(circle at 12% 8%, hsl(225 20% 92% / 0.12), transparent 28%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 72%, white 10%) 0%,
-        hsl(var(--panel) / 0.68) 54%,
-        color-mix(in srgb, hsl(var(--panel)) 70%, hsl(var(--gold)) 13%) 100%
+        color-mix(in srgb, hsl(var(--panel)) 86%, white 14%) 0%,
+        hsl(var(--panel) / 0.78) 54%,
+        color-mix(in srgb, hsl(var(--panel)) 88%, hsl(var(--gold)) 4%) 100%
       );
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.22),
-      0 14px 28px hsl(var(--night) / 0.08);
+      inset 0 1px 0 hsl(var(--glow) / 0.08),
+      0 10px 24px hsl(var(--night) / 0.05);
     isolation: isolate;
   }
 
   .pipeline-stage-card {
     box-shadow:
-      inset 0 2px 0 hsl(0 0% 100% / 0.62),
-      0 16px 30px hsl(var(--night) / 0.07);
+      inset 0 1px 0 hsl(0 0% 100% / 0.5),
+      0 8px 20px hsl(var(--night) / 0.05);
   }
 
   .project-board-column {
@@ -598,8 +598,8 @@
     isolation: isolate;
     backdrop-filter: blur(18px);
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.14),
-      0 20px 40px hsl(var(--night) / 0.16);
+      inset 0 1px 0 hsl(var(--glow) / 0.06),
+      0 12px 28px hsl(var(--night) / 0.06);
   }
 
   .project-board-column::before {
@@ -609,12 +609,11 @@
     border-radius: inherit;
     pointer-events: none;
     background:
-      radial-gradient(circle at 12% 10%, hsl(var(--star-soft) / 0.9) 0 1px, transparent 1.7px),
-      radial-gradient(circle at 76% 8%, hsl(var(--gold) / 0.82) 0 1.2px, transparent 2px),
-      radial-gradient(circle at 88% 24%, hsl(var(--gold) / 0.12) 0%, transparent 16%),
-      radial-gradient(circle at 18% 82%, hsl(var(--glow) / 0.16) 0%, transparent 22%),
-      linear-gradient(132deg, transparent 0 64%, hsl(var(--star-soft) / 0.12) 64.3%, transparent 65%);
-    opacity: 0.88;
+      radial-gradient(circle at 12% 10%, hsl(var(--star-soft) / 0.2) 0 1px, transparent 2px),
+      radial-gradient(circle at 76% 8%, hsl(var(--gold) / 0.16) 0 1.2px, transparent 2.5px),
+      radial-gradient(circle at 88% 24%, hsl(var(--gold) / 0.04) 0%, transparent 18%),
+      radial-gradient(circle at 18% 82%, hsl(var(--glow) / 0.06) 0%, transparent 24%);
+    opacity: 0.5;
   }
 
   .project-board-column::after {
@@ -624,37 +623,35 @@
     border-radius: inherit;
     pointer-events: none;
     background:
-      linear-gradient(112deg, transparent 0 15%, hsl(var(--star-soft) / 0.18) 15.2% 15.45%, transparent 15.7%),
-      linear-gradient(154deg, transparent 0 24%, hsl(var(--gold) / 0.16) 24.2% 24.45%, transparent 24.7%),
-      radial-gradient(ellipse 58% 38% at 72% 68%, hsl(var(--gold) / 0.08) 0%, transparent 78%);
-    opacity: 0.64;
+      radial-gradient(ellipse 58% 38% at 72% 68%, hsl(var(--gold) / 0.03) 0%, transparent 78%);
+    opacity: 0.3;
   }
 
   .project-board-column-header {
     position: relative;
     z-index: 1;
     background:
-      linear-gradient(180deg, hsl(var(--background) / 0.76) 0%, hsl(var(--background) / 0.46) 100%);
-    box-shadow: inset 0 -1px 0 hsl(var(--border) / 0.45);
+      linear-gradient(180deg, hsl(var(--background) / 0.88) 0%, hsl(var(--background) / 0.62) 100%);
+    box-shadow: inset 0 -1px 0 hsl(var(--border) / 0.25);
   }
 
   .project-board-column-list {
     position: relative;
     z-index: 1;
     background:
-      linear-gradient(180deg, hsl(var(--background) / 0.08) 0%, hsl(var(--background) / 0.18) 100%);
+      linear-gradient(180deg, hsl(var(--background) / 0.04) 0%, hsl(var(--background) / 0.1) 100%);
   }
 
   .project-board-card {
     position: relative;
     overflow: hidden;
     background:
-      radial-gradient(circle at 86% 14%, hsl(var(--gold) / 0.14), transparent 18%),
-      radial-gradient(circle at 14% 10%, hsl(var(--glow) / 0.12), transparent 18%),
-      linear-gradient(180deg, hsl(var(--card) / 0.9) 0%, hsl(var(--card) / 0.78) 100%);
+      radial-gradient(circle at 86% 14%, hsl(var(--gold) / 0.04), transparent 20%),
+      radial-gradient(circle at 14% 10%, hsl(var(--glow) / 0.04), transparent 20%),
+      linear-gradient(180deg, hsl(var(--card) / 0.96) 0%, hsl(var(--card) / 0.88) 100%);
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.14),
-      0 14px 28px hsl(var(--night) / 0.12);
+      inset 0 1px 0 hsl(0 0% 100% / 0.5),
+      0 6px 18px hsl(var(--night) / 0.06);
   }
 
   .project-board-card::before {
@@ -663,61 +660,45 @@
     inset: 0;
     border-radius: inherit;
     pointer-events: none;
-    background:
-      radial-gradient(circle at 18% 18%, hsl(var(--star-soft) / 0.7) 0 0.9px, transparent 1.6px),
-      radial-gradient(circle at 76% 12%, hsl(var(--gold) / 0.78) 0 1px, transparent 1.7px),
-      linear-gradient(124deg, transparent 0 70%, hsl(var(--gold) / 0.08) 70.4%, transparent 71%);
-    opacity: 0.82;
+    background: none;
+    opacity: 0;
   }
 
-  /* Cloud puffs + sun disc (light theme) */
+  /* Subtle copper accent detail (light theme) */
   .pipeline-stage-card::before {
     content: '';
     position: absolute;
     inset: 0;
     pointer-events: none;
     background:
-      /* Sun disc with warm corona */
       radial-gradient(
         circle at 86% 14%,
-        hsl(45 100% 74% / 0.96) 0 5px,
-        hsl(45 100% 74% / 0.42) 6px 14px,
-        hsl(45 100% 74% / 0.14) 15px 22px,
-        transparent 23px
+        hsl(var(--gold) / 0.12) 0 4px,
+        hsl(var(--gold) / 0.04) 5px 12px,
+        transparent 13px
       ),
-      /* Main cloud bank upper-right */
-        radial-gradient(
-          ellipse 74% 46% at 80% 24%,
-          hsl(0 0% 100% / 0.7) 0%,
-          hsl(0 0% 100% / 0.32) 42%,
-          transparent 68%
-        ),
-      /* Secondary cloud puff upper-left */
-        radial-gradient(
-          ellipse 52% 38% at 16% 30%,
-          hsl(0 0% 100% / 0.54) 0%,
-          hsl(0 0% 98% / 0.22) 48%,
-          transparent 72%
-        ),
-      /* Cloud wisp lower centre */
-        radial-gradient(ellipse 58% 28% at 54% 86%, hsl(0 0% 100% / 0.4) 0%, transparent 62%),
-      /* Warm sky tint */ linear-gradient(180deg, hsl(43 68% 94% / 0.44) 0%, transparent 50%);
-    opacity: 0.96;
+      radial-gradient(
+        ellipse 60% 40% at 80% 24%,
+        hsl(0 0% 100% / 0.32) 0%,
+        transparent 58%
+      ),
+      radial-gradient(
+        ellipse 44% 30% at 16% 30%,
+        hsl(0 0% 100% / 0.2) 0%,
+        transparent 62%
+      );
+    opacity: 0.6;
   }
 
-  /* Sun rays fanning from upper-right (light theme) */
+  /* Fine line accent (light theme) */
   .pipeline-stage-card::after {
     content: '';
     position: absolute;
     inset: 0;
     pointer-events: none;
     background:
-      linear-gradient(210deg, hsl(45 92% 78% / 0.18) 0 7%, transparent 7.8%),
-      linear-gradient(198deg, hsl(45 92% 78% / 0.14) 0 9.8%, transparent 10.6%),
-      linear-gradient(222deg, hsl(45 92% 78% / 0.15) 0 5.2%, transparent 6%),
-      linear-gradient(234deg, hsl(45 92% 78% / 0.11) 0 3.8%, transparent 4.6%),
-      /* Soft blue sky wash */ linear-gradient(180deg, hsl(210 48% 88% / 0.18) 0%, transparent 44%);
-    opacity: 0.84;
+      linear-gradient(180deg, hsl(var(--gold) / 0.04) 0%, transparent 36%);
+    opacity: 0.5;
   }
 
   .pipeline-agent-node {
@@ -725,10 +706,10 @@
     overflow: hidden;
     background: linear-gradient(
       180deg,
-      hsl(var(--background) / 0.88) 0%,
-      hsl(var(--background) / 0.78) 100%
+      hsl(var(--background) / 0.94) 0%,
+      hsl(var(--background) / 0.86) 100%
     );
-    box-shadow: inset 0 1px 0 hsl(var(--glow) / 0.12);
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.4);
   }
 
   .pipeline-agent-node::before {
@@ -737,20 +718,8 @@
     inset: 0;
     pointer-events: none;
     background:
-      radial-gradient(
-        ellipse at 18% 86%,
-        hsl(var(--background) / 0.78) 0%,
-        hsl(var(--background) / 0.74) 10%,
-        transparent 11%
-      ),
-      radial-gradient(
-        ellipse at 34% 88%,
-        hsl(var(--background) / 0.74) 0%,
-        hsl(var(--background) / 0.68) 9%,
-        transparent 10%
-      ),
-      radial-gradient(circle at 88% 18%, hsl(var(--glow) / 0.08) 0%, transparent 18%);
-    opacity: 0.75;
+      radial-gradient(circle at 88% 18%, hsl(var(--glow) / 0.04) 0%, transparent 20%);
+    opacity: 0.5;
   }
 
   .pipeline-stage-add {
@@ -758,8 +727,8 @@
     overflow: hidden;
     background: linear-gradient(
       180deg,
-      hsl(var(--background) / 0.36) 0%,
-      hsl(var(--background) / 0.2) 100%
+      hsl(var(--background) / 0.44) 0%,
+      hsl(var(--background) / 0.26) 100%
     );
   }
 
@@ -769,14 +738,8 @@
     inset: 0;
     pointer-events: none;
     background:
-      radial-gradient(circle at 82% 24%, hsl(var(--gold) / 0.12) 0%, transparent 16%),
-      radial-gradient(
-        ellipse at 24% 88%,
-        hsl(var(--background) / 0.5) 0%,
-        hsl(var(--background) / 0.42) 10%,
-        transparent 11%
-      );
-    opacity: 0.8;
+      radial-gradient(circle at 82% 24%, hsl(var(--gold) / 0.04) 0%, transparent 18%);
+    opacity: 0.5;
   }
 
   /* Dark theme: deep space base with nebula glow */
@@ -949,48 +912,48 @@
 
   .golden-ring {
     box-shadow:
-      0 0 0 1px hsl(var(--gold) / 0.28),
-      0 20px 56px hsl(var(--night) / 0.22),
-      0 0 0 10px hsl(var(--glow) / 0.04);
+      0 0 0 1px hsl(var(--gold) / 0.18),
+      0 12px 36px hsl(var(--night) / 0.08),
+      0 0 0 8px hsl(var(--glow) / 0.02);
   }
 
   .solar-chip {
-    border: 1px solid hsl(var(--primary) / 0.42);
+    border: 1px solid hsl(var(--primary) / 0.3);
     background: linear-gradient(
       180deg,
-      hsl(var(--primary) / 0.28) 0%,
-      hsl(var(--primary) / 0.16) 100%
+      hsl(var(--primary) / 0.14) 0%,
+      hsl(var(--primary) / 0.08) 100%
     );
     color: hsl(var(--primary));
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.28),
-      0 10px 22px hsl(var(--gold) / 0.12);
+      inset 0 1px 0 hsl(0 0% 100% / 0.4),
+      0 4px 12px hsl(var(--night) / 0.04);
   }
 
   .solar-chip-soft {
-    border: 1px solid hsl(var(--border) / 0.92);
+    border: 1px solid hsl(var(--border) / 0.65);
     background: linear-gradient(
       180deg,
       hsl(var(--background) / 0.98) 0%,
-      hsl(var(--background) / 0.8) 100%
+      hsl(var(--background) / 0.88) 100%
     );
     color: hsl(var(--foreground));
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.2),
-      0 8px 18px hsl(var(--night) / 0.08);
+      inset 0 1px 0 hsl(0 0% 100% / 0.5),
+      0 4px 12px hsl(var(--night) / 0.04);
   }
 
   .solar-chip-neutral {
-    border: 1px solid hsl(var(--border) / 0.86);
+    border: 1px solid hsl(var(--border) / 0.6);
     background: linear-gradient(
       180deg,
-      color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--glow)) 8%) 0%,
-      hsl(var(--background) / 0.84) 100%
+      color-mix(in srgb, hsl(var(--background)) 96%, hsl(var(--glow)) 4%) 0%,
+      hsl(var(--background) / 0.9) 100%
     );
     color: hsl(var(--foreground));
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.2),
-      0 8px 20px hsl(var(--night) / 0.06);
+      inset 0 1px 0 hsl(0 0% 100% / 0.4),
+      0 4px 12px hsl(var(--night) / 0.03);
   }
 
   .solar-chip-success {
@@ -1034,16 +997,16 @@
   }
 
   .solar-action {
-    border: 1px solid hsl(var(--border) / 0.88);
+    border: 1px solid hsl(var(--border) / 0.6);
     background: linear-gradient(
       180deg,
-      hsl(var(--background) / 0.92) 0%,
-      hsl(var(--background) / 0.8) 100%
+      hsl(var(--background) / 0.96) 0%,
+      hsl(var(--background) / 0.88) 100%
     );
     color: hsl(var(--foreground));
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.18),
-      0 8px 22px hsl(var(--night) / 0.05);
+      inset 0 1px 0 hsl(0 0% 100% / 0.4),
+      0 4px 14px hsl(var(--night) / 0.03);
   }
 
   .solar-action:hover {
@@ -1073,13 +1036,13 @@
 
   .project-pipeline-select {
     appearance: none;
-    border: 1px solid hsl(var(--border) / 0.7);
+    border: 1px solid hsl(var(--border) / 0.5);
     background:
-      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.14), transparent 42%),
-      linear-gradient(180deg, hsl(var(--background) / 0.88) 0%, hsl(var(--background) / 0.72) 100%);
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.05), transparent 42%),
+      linear-gradient(180deg, hsl(var(--background) / 0.94) 0%, hsl(var(--background) / 0.82) 100%);
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.16),
-      0 8px 20px hsl(var(--night) / 0.05);
+      inset 0 1px 0 hsl(0 0% 100% / 0.4),
+      0 4px 12px hsl(var(--night) / 0.03);
     transition:
       border-color 180ms ease,
       box-shadow 180ms ease,
@@ -1087,10 +1050,10 @@
   }
 
   .project-pipeline-select:hover {
-    border-color: hsl(var(--primary) / 0.38);
+    border-color: hsl(var(--primary) / 0.3);
     background:
-      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.18), transparent 42%),
-      linear-gradient(180deg, hsl(var(--background) / 0.94) 0%, hsl(var(--background) / 0.78) 100%);
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.06), transparent 42%),
+      linear-gradient(180deg, hsl(var(--background) / 0.98) 0%, hsl(var(--background) / 0.86) 100%);
   }
 
   .project-pipeline-select:focus-visible {
@@ -1103,19 +1066,19 @@
   }
 
   .project-pipeline-select-active {
-    border-color: hsl(var(--gold) / 0.82);
+    border-color: hsl(var(--gold) / 0.6);
     background:
-      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.22), transparent 44%),
-      radial-gradient(circle at 86% 18%, hsl(var(--gold) / 0.14), transparent 24%),
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.08), transparent 44%),
+      radial-gradient(circle at 86% 18%, hsl(var(--gold) / 0.05), transparent 24%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--gold)) 8%) 0%,
-        hsl(var(--background) / 0.78) 100%
+        color-mix(in srgb, hsl(var(--background)) 96%, hsl(var(--gold)) 4%) 0%,
+        hsl(var(--background) / 0.86) 100%
       );
     box-shadow:
-      0 0 0 1px hsl(var(--gold) / 0.3),
-      inset 0 1px 0 hsl(var(--glow) / 0.28),
-      0 14px 28px hsl(var(--gold) / 0.12);
+      0 0 0 1px hsl(var(--gold) / 0.18),
+      inset 0 1px 0 hsl(0 0% 100% / 0.4),
+      0 6px 16px hsl(var(--gold) / 0.06);
   }
 
   .project-pipeline-trigger {
@@ -1132,12 +1095,12 @@
 
   .project-pipeline-menu {
     background:
-      radial-gradient(circle at top left, hsl(var(--glow) / 0.16), transparent 34%),
-      linear-gradient(180deg, hsl(var(--background) / 0.97) 0%, hsl(var(--background) / 0.92) 100%);
+      radial-gradient(circle at top left, hsl(var(--glow) / 0.05), transparent 34%),
+      linear-gradient(180deg, hsl(var(--background) / 0.98) 0%, hsl(var(--background) / 0.96) 100%);
     box-shadow:
-      0 20px 44px hsl(var(--night) / 0.16),
-      0 0 0 1px hsl(var(--glow) / 0.06),
-      inset 0 1px 0 hsl(var(--glow) / 0.16);
+      0 12px 32px hsl(var(--night) / 0.08),
+      0 0 0 1px hsl(var(--border) / 0.2),
+      inset 0 1px 0 hsl(0 0% 100% / 0.4);
     backdrop-filter: blur(18px);
   }
 
@@ -1162,14 +1125,14 @@
 
   .project-pipeline-option-active {
     background:
-      radial-gradient(circle at 88% 18%, hsl(var(--gold) / 0.16), transparent 24%),
+      radial-gradient(circle at 88% 18%, hsl(var(--gold) / 0.06), transparent 24%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--gold)) 8%) 0%,
-        hsl(var(--background) / 0.84) 100%
+        color-mix(in srgb, hsl(var(--background)) 96%, hsl(var(--gold)) 4%) 0%,
+        hsl(var(--background) / 0.9) 100%
       );
     color: hsl(var(--foreground));
-    box-shadow: inset 0 0 0 1px hsl(var(--gold) / 0.26);
+    box-shadow: inset 0 0 0 1px hsl(var(--gold) / 0.16);
   }
 
   .dark .project-pipeline-select {

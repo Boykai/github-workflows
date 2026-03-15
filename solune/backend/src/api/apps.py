@@ -4,9 +4,10 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
+from src.dependencies import get_github_service
 from src.logging_utils import get_logger
 from src.models.app import App, AppCreate, AppStatus, AppStatusResponse, AppUpdate
 from src.models.user import UserSession
@@ -41,12 +42,19 @@ async def list_apps_endpoint(
 
 @router.post("", response_model=App, status_code=201)
 async def create_app_endpoint(
+    request: Request,
     payload: AppCreate,
-    _session: _SessionDep,
+    session: _SessionDep,
 ) -> App:
-    """Create a new application with directory scaffolding."""
+    """Create a new application with directory scaffolding on the target branch."""
     db = get_db()
-    return await create_app(db, payload)
+    github_service = get_github_service(request)
+    return await create_app(
+        db,
+        payload,
+        access_token=session.access_token,
+        github_service=github_service,
+    )
 
 
 @router.get("/{app_name}", response_model=App)
