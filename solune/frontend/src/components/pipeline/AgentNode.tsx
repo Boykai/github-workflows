@@ -106,7 +106,7 @@ export function AgentNode({
             onClick={onToolsClick}
             onPointerDown={stopDragPointerPropagation}
             className="celestial-focus inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors hover:bg-primary/10 focus-visible:outline-none"
-            title="Select tools"
+            aria-label="Select tools"
           >
             <Wrench className="h-3 w-3 text-muted-foreground" />
             {toolCount > 0 ? (
@@ -122,27 +122,31 @@ export function AgentNode({
 
       {/* Clone button */}
       {onClone && (
-        <button
-          type="button"
-          onClick={onClone}
-          onPointerDown={stopDragPointerPropagation}
-          className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none"
-          title="Clone agent"
-        >
-          <Copy className="h-3.5 w-3.5" />
-        </button>
+        <Tooltip contentKey="pipeline.agent.clone">
+          <button
+            type="button"
+            onClick={onClone}
+            onPointerDown={stopDragPointerPropagation}
+            className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none"
+            aria-label="Clone agent"
+          >
+            <Copy className="h-3.5 w-3.5" />
+          </button>
+        </Tooltip>
       )}
 
       {/* Remove button */}
-      <button
-        type="button"
-        onClick={onRemove}
-        onPointerDown={stopDragPointerPropagation}
-        className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none"
-        title="Remove agent"
-      >
-        <X className="h-3.5 w-3.5" />
-      </button>
+      <Tooltip content="Remove this agent from the stage">
+        <button
+          type="button"
+          onClick={onRemove}
+          onPointerDown={stopDragPointerPropagation}
+          className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none"
+          aria-label="Remove agent"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </Tooltip>
     </div>
     </Tooltip>
   );
