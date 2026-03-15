@@ -1,3 +1,6 @@
+# ruff: noqa: PTH103,PTH110,PTH118,PTH123
+# ^^^ os.path used intentionally — CodeQL recognises os.path.realpath+startswith
+# as a path-traversal sanitiser but does not recognise pathlib.Path.is_relative_to.
 """App lifecycle service for Solune multi-app management.
 
 Handles CRUD operations, state transitions, directory scaffolding,
@@ -7,6 +10,7 @@ and path validation for applications managed by the platform.
 from __future__ import annotations
 
 import json
+import os
 import re
 import shutil
 from datetime import UTC, datetime
@@ -31,7 +35,7 @@ logger = get_logger(__name__)
 # Resolve the repository root (three levels up from this file)
 _REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 _APPS_DIR = _REPO_ROOT / "apps"
-_APPS_DIR_RESOLVED = _APPS_DIR.resolve()
+_APPS_DIR_REALPATH = os.path.realpath(str(_APPS_DIR)) + os.sep
 
 # Valid state transitions: mapping from current status to set of allowed next statuses
 _VALID_TRANSITIONS: dict[AppStatus, set[AppStatus]] = {
@@ -63,71 +67,68 @@ def validate_app_name(name: str) -> None:
         raise ValidationError(f"Invalid app name '{name}': path traversal characters not allowed.")
 
 
-def _safe_app_path(name: str) -> Path:
-    """Return a resolved app directory path, raising on any traversal attempt.
+def _safe_app_path(name: str) -> str:
+    """Return a realpath-resolved app directory string, raising on any traversal.
 
-    This is a defence-in-depth check: even after ``validate_app_name``
-    rejects obviously bad names, we verify that the resolved path is
-    still within the expected ``apps/`` tree.
+    Uses ``os.path.realpath`` + ``str.startswith`` so that static analysis
+    tools (CodeQL) can verify the path is confined to the ``apps/`` tree.
     """
     validate_app_name(name)
-    app_dir = (_APPS_DIR / name).resolve()
-    if not app_dir.is_relative_to(_APPS_DIR_RESOLVED):
+    candidate = os.path.join(str(_APPS_DIR), name)
+    real = os.path.realpath(candidate)
+    if not real.startswith(_APPS_DIR_REALPATH):
         raise ValidationError(f"Invalid app name '{name}': resolved path escapes apps directory.")
-    return app_dir
+    return real
 
 
-def _scaffold_app_directory(safe_dir: Path, name: str, display_name: str, description: str) -> None:
+def _scaffold_app_directory(safe_dir: str, name: str, display_name: str, description: str) -> None:
     """Create the on-disk scaffold for a new application.
 
     ``safe_dir`` must already be validated via ``_safe_app_path``.
     """
-    if safe_dir.exists():
+    if os.path.exists(safe_dir):
         raise ConflictError(f"Directory already exists for app '{name}'.")
 
-    safe_dir.mkdir(parents=True, exist_ok=False)
+    os.makedirs(safe_dir)
 
     # README.md
-    readme = safe_dir / "README.md"
-    readme.write_text(
-        f"# {display_name}\n\n{description}\n\nCreated by the Solune platform.\n",
-        encoding="utf-8",
-    )
+    readme_path = os.path.join(safe_dir, "README.md")
+    with open(readme_path, "w", encoding="utf-8") as f:
+        f.write(f"# {display_name}\n\n{description}\n\nCreated by the Solune platform.\n")
 
     # config.json
-    config = safe_dir / "config.json"
-    config.write_text(
-        json.dumps(
+    config_path = os.path.join(safe_dir, "config.json")
+    with open(config_path, "w", encoding="utf-8") as f:
+        json.dump(
             {
                 "name": name,
                 "display_name": display_name,
                 "version": "0.1.0",
                 "created_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
             },
+            f,
             indent=2,
         )
-        + "\n",
-        encoding="utf-8",
-    )
+        f.write("\n")
 
     # src/.gitkeep
-    src_dir = safe_dir / "src"
-    src_dir.mkdir()
-    (src_dir / ".gitkeep").touch()
+    src_dir = os.path.join(safe_dir, "src")
+    os.makedirs(src_dir)
+    gitkeep = os.path.join(src_dir, ".gitkeep")
+    with open(gitkeep, "w"):
+        pass
 
     # CHANGELOG.md
-    changelog = safe_dir / "CHANGELOG.md"
-    changelog.write_text(
-        f"# Changelog — {display_name}\n\nAll notable changes will be documented here.\n",
-        encoding="utf-8",
-    )
+    changelog_path = os.path.join(safe_dir, "CHANGELOG.md")
+    with open(changelog_path, "w", encoding="utf-8") as f:
+        f.write(f"# Changelog — {display_name}\n\nAll notable changes will be documented here.\n")
 
     # docker-compose.yml template
-    compose = safe_dir / "docker-compose.yml"
-    compose.write_text(
-        f"# Docker Compose for {display_name}\n# Extend or customize as needed.\nservices: {{}}\n",
-        encoding="utf-8",
-    )
+    compose_path = os.path.join(safe_dir, "docker-compose.yml")
+    with open(compose_path, "w", encoding="utf-8") as f:
+        f.write(
+            f"# Docker Compose for {display_name}\n# Extend or customize as needed.\nservices: {{}}\n"
+        )
 
 
 def _row_to_app(row: aiosqlite.Row) -> App:
@@ -327,13 +328,14 @@ async def delete_app(db: aiosqlite.Connection, name: str) -> None:
 
     # Remove directory with traversal-safe path resolution
     validate_app_name(app.name)
-    app_dir = (_APPS_DIR / app.name).resolve()
-    if not app_dir.is_relative_to(_APPS_DIR_RESOLVED):
+    candidate = os.path.join(str(_APPS_DIR), app.name)
+    real = os.path.realpath(candidate)
+    if not real.startswith(_APPS_DIR_REALPATH):
         raise ValidationError(
             f"Invalid app name '{app.name}': resolved path escapes apps directory."
         )
-    if app_dir.exists():
-        shutil.rmtree(app_dir)
+    if os.path.exists(real):
+        shutil.rmtree(real)
         logger.info("Removed directory for app '%s'", name)
 
     await db.execute("DELETE FROM apps WHERE name = ?", (name,))
