@@ -200,7 +200,7 @@
 
 **Purpose**: Execute the full 10-item verification matrix from the spec, confirm all remediations are effective, and finalize documentation.
 
-- [ ] T039 Execute verification check #1: After login, no credentials appear in browser URL bar, history, or access logs (FR-001, FR-002, SC-001)
+- [ ] T039 Execute verification check #1: After login, no credentials appear in browser URL bar, history, or server access logs (nginx + application logs) (FR-001, FR-002, SC-001)
 - [ ] T040 Execute verification check #2: Backend refuses to start in non-debug mode without ENCRYPTION_KEY set (FR-003, SC-002)
 - [ ] T041 Execute verification check #3: docker exec into frontend container — id must return non-root UID (FR-005, SC-004)
 - [ ] T042 Execute verification check #4: Authenticated request with unowned project_id returns 403 (FR-006, FR-007, SC-003)
@@ -319,9 +319,8 @@ With multiple developers:
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
 - ~19/21 findings already remediated — most tasks are verification (code review) not implementation
-- Only 3 tasks produce code changes: T008 (encryption.py), T021 (nginx.conf), T032 (github_auth.py)
-- T026–T029 (rate limit audit) may produce code changes if gaps are discovered
-- T006 (dev login) may produce a code change if URL params are still accepted
+- 3 tasks produce definite code changes: T008 (encryption.py), T021 (nginx.conf), T032 (github_auth.py)
+- 2 tasks may produce conditional code changes: T006 (dev login — if URL params still accepted), T026–T029 (rate limit audit — if coverage gaps found)
 - Tests are not mandated; the 10-item verification matrix (Phase 11) serves as acceptance criteria
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
