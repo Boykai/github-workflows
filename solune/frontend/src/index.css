@@ -4,10 +4,10 @@
 @theme {
   --font-display: 'Plus Jakarta Sans', 'Inter', 'system-ui', sans-serif;
   --font-sans: 'Inter', 'system-ui', sans-serif;
-  --shadow-sm: 0 10px 26px rgba(41, 29, 12, 0.08);
-  --shadow-default: 0 18px 44px rgba(41, 29, 12, 0.12);
-  --shadow-md: 0 26px 58px rgba(29, 21, 10, 0.16);
-  --shadow-lg: 0 34px 84px rgba(9, 8, 18, 0.24);
+  --shadow-sm: 0 10px 26px rgba(48, 36, 8, 0.08);
+  --shadow-default: 0 18px 44px rgba(48, 36, 8, 0.12);
+  --shadow-md: 0 26px 58px rgba(38, 28, 6, 0.16);
+  --shadow-lg: 0 34px 84px rgba(16, 14, 28, 0.24);
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
@@ -188,41 +188,41 @@
 
 @layer base {
   :root {
-    --background: 30 8% 96%;
-    --foreground: 225 18% 18%;
+    --background: 42 30% 96%;
+    --foreground: 30 14% 14%;
 
-    --card: 30 10% 98%;
-    --card-foreground: 225 18% 18%;
+    --card: 40 24% 97%;
+    --card-foreground: 30 14% 14%;
 
-    --popover: 30 8% 97%;
-    --popover-foreground: 225 18% 18%;
+    --popover: 42 26% 97%;
+    --popover-foreground: 30 14% 14%;
 
-    --primary: 24 78% 38%;
+    --primary: 36 78% 35%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 28 10% 91%;
-    --secondary-foreground: 225 14% 24%;
+    --secondary: 36 18% 90%;
+    --secondary-foreground: 30 12% 22%;
 
-    --muted: 28 8% 91%;
-    --muted-foreground: 225 10% 38%;
+    --muted: 38 14% 90%;
+    --muted-foreground: 30 10% 38%;
 
-    --accent: 225 18% 36%;
-    --accent-foreground: 30 10% 97%;
+    --accent: 232 26% 30%;
+    --accent-foreground: 40 22% 96%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 25 12% 52%;
-    --input: 28 8% 94%;
-    --ring: 24 78% 38%;
+    --border: 34 24% 50%;
+    --input: 38 12% 93%;
+    --ring: 36 78% 35%;
 
-    --panel: 30 8% 96%;
-    --panel-foreground: 225 18% 18%;
-    --glow: 28 65% 74%;
-    --gold: 24 78% 52%;
-    --night: 225 20% 20%;
-    --star: 24 55% 48%;
-    --star-soft: 28 62% 60%;
+    --panel: 42 26% 96%;
+    --panel-foreground: 30 14% 14%;
+    --glow: 38 68% 68%;
+    --gold: 42 86% 54%;
+    --night: 232 22% 16%;
+    --star: 38 58% 48%;
+    --star-soft: 36 64% 60%;
 
     --radius: 1rem;
 
@@ -302,14 +302,14 @@
   body {
     @apply bg-background text-foreground;
     background-image:
-      radial-gradient(circle at 18% 14%, hsl(var(--glow) / 0.12), transparent 22%),
-      radial-gradient(circle at 82% 12%, hsl(var(--gold) / 0.06), transparent 18%),
-      radial-gradient(circle at 50% 120%, hsl(var(--accent) / 0.03), transparent 36%),
+      radial-gradient(circle at 18% 14%, hsl(var(--glow) / 0.18), transparent 26%),
+      radial-gradient(circle at 82% 12%, hsl(var(--gold) / 0.12), transparent 22%),
+      radial-gradient(circle at 50% 120%, hsl(var(--accent) / 0.05), transparent 40%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--background)) 98%, white) 0%,
+        color-mix(in srgb, hsl(var(--background)) 96%, hsl(var(--gold)) 4%) 0%,
         hsl(var(--background)) 42%,
-        color-mix(in srgb, hsl(var(--background)) 88%, black) 100%
+        color-mix(in srgb, hsl(var(--background)) 92%, hsl(var(--night)) 8%) 100%
       );
     min-height: 100vh;
   }
@@ -344,39 +344,39 @@
 @layer utilities {
   .celestial-panel {
     background:
-      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.06), transparent 30%),
-      radial-gradient(circle at 82% 8%, hsl(var(--gold) / 0.04), transparent 24%),
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.12), transparent 32%),
+      radial-gradient(circle at 82% 8%, hsl(var(--gold) / 0.08), transparent 26%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 97%, white) 0%,
+        color-mix(in srgb, hsl(var(--panel)) 96%, hsl(var(--gold)) 4%) 0%,
         hsl(var(--panel)) 56%,
-        color-mix(in srgb, hsl(var(--panel)) 94%, black) 100%
+        color-mix(in srgb, hsl(var(--panel)) 94%, hsl(var(--night)) 4%) 100%
       );
   }
 
   .celestial-shell {
     background:
-      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.08), transparent 26%),
-      radial-gradient(circle at 88% 4%, hsl(var(--gold) / 0.04), transparent 20%),
-      radial-gradient(circle at 82% 88%, hsl(var(--accent) / 0.04), transparent 22%),
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.14), transparent 28%),
+      radial-gradient(circle at 88% 4%, hsl(var(--gold) / 0.08), transparent 22%),
+      radial-gradient(circle at 82% 88%, hsl(var(--accent) / 0.05), transparent 24%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--background)) 98%, white) 0%,
+        color-mix(in srgb, hsl(var(--background)) 96%, hsl(var(--gold)) 4%) 0%,
         hsl(var(--background)) 42%,
-        color-mix(in srgb, hsl(var(--background)) 96%, black) 100%
+        color-mix(in srgb, hsl(var(--background)) 94%, hsl(var(--night)) 4%) 100%
       );
   }
 
   .section-aurora {
     background:
-      radial-gradient(circle at 18% 18%, hsl(var(--glow) / 0.08), transparent 22%),
-      radial-gradient(circle at 82% 22%, hsl(var(--gold) / 0.05), transparent 22%),
-      radial-gradient(circle at 55% 72%, hsl(var(--accent) / 0.04), transparent 30%),
+      radial-gradient(circle at 18% 18%, hsl(var(--glow) / 0.14), transparent 26%),
+      radial-gradient(circle at 82% 22%, hsl(var(--gold) / 0.09), transparent 26%),
+      radial-gradient(circle at 55% 72%, hsl(var(--accent) / 0.05), transparent 34%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 97%, white) 0%,
+        color-mix(in srgb, hsl(var(--panel)) 96%, hsl(var(--gold)) 4%) 0%,
         hsl(var(--panel)) 52%,
-        color-mix(in srgb, hsl(var(--panel)) 94%, black) 100%
+        color-mix(in srgb, hsl(var(--panel)) 93%, hsl(var(--night)) 4%) 100%
       );
   }
 
@@ -568,22 +568,22 @@
     backdrop-filter: blur(10px);
   }
 
-  /* Light theme: clean architectural surfaces with subtle copper warmth */
+  /* Light theme: warm celestial surfaces with golden sun glow */
   .pipeline-column-surface {
     position: relative;
     overflow: hidden;
     background:
-      radial-gradient(ellipse at 82% 0%, hsl(var(--glow) / 0.08), transparent 38%),
-      radial-gradient(circle at 12% 8%, hsl(225 20% 92% / 0.12), transparent 28%),
+      radial-gradient(ellipse at 82% 0%, hsl(var(--glow) / 0.14), transparent 40%),
+      radial-gradient(circle at 12% 8%, hsl(var(--gold) / 0.06), transparent 30%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 86%, white 14%) 0%,
+        color-mix(in srgb, hsl(var(--panel)) 84%, hsl(var(--gold)) 6%) 0%,
         hsl(var(--panel) / 0.78) 54%,
-        color-mix(in srgb, hsl(var(--panel)) 88%, hsl(var(--gold)) 4%) 100%
+        color-mix(in srgb, hsl(var(--panel)) 86%, hsl(var(--gold)) 6%) 100%
       );
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.08),
-      0 10px 24px hsl(var(--night) / 0.05);
+      inset 0 1px 0 hsl(var(--glow) / 0.12),
+      0 10px 24px hsl(var(--night) / 0.06);
     isolation: isolate;
   }
 
@@ -646,12 +646,12 @@
     position: relative;
     overflow: hidden;
     background:
-      radial-gradient(circle at 86% 14%, hsl(var(--gold) / 0.04), transparent 20%),
-      radial-gradient(circle at 14% 10%, hsl(var(--glow) / 0.04), transparent 20%),
+      radial-gradient(circle at 86% 14%, hsl(var(--gold) / 0.08), transparent 24%),
+      radial-gradient(circle at 14% 10%, hsl(var(--glow) / 0.08), transparent 24%),
       linear-gradient(180deg, hsl(var(--card) / 0.96) 0%, hsl(var(--card) / 0.88) 100%);
     box-shadow:
       inset 0 1px 0 hsl(0 0% 100% / 0.5),
-      0 6px 18px hsl(var(--night) / 0.06);
+      0 6px 18px hsl(var(--night) / 0.07);
   }
 
   .project-board-card::before {
@@ -664,7 +664,7 @@
     opacity: 0;
   }
 
-  /* Subtle copper accent detail (light theme) */
+  /* Subtle golden sun accent detail (light theme) */
   .pipeline-stage-card::before {
     content: '';
     position: absolute;
