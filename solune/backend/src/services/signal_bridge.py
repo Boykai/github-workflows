@@ -502,16 +502,24 @@ async def stop_signal_ws_listener() -> None:
 
 
 async def _ws_listen_loop(phone: str) -> None:
-    """Persistent WebSocket listener with reconnection (5s/10s backoff)."""
+    """Persistent WebSocket listener with exponential backoff reconnection."""
+    import random
+
     base = _signal_base_url()
     ws_scheme = "wss" if base.startswith("https://") else "ws"
     netloc = base.split("://", 1)[-1].rstrip("/")
     url = f"{ws_scheme}://{netloc}/v1/receive/{phone}"
 
+    backoff_base = 1.0
+    backoff_cap = 300.0
+    consecutive_failures = 0
+
     while True:
         try:
             async with websockets.connect(url, ping_interval=30) as ws:
                 logger.info("Connected to Signal WebSocket at %s", url)
+                # Reset backoff on successful connection.
+                consecutive_failures = 0
                 async for raw_message in ws:
                     try:
                         data = json.loads(raw_message)
@@ -523,14 +531,18 @@ async def _ws_listen_loop(phone: str) -> None:
         except asyncio.CancelledError:
             logger.info("Signal WebSocket listener cancelled")
             return
-        except (websockets.ConnectionClosed, ConnectionError) as e:
-            logger.warning("Signal WebSocket disconnected: %s. Reconnecting in 5s...", e)
-            await asyncio.sleep(5)
-        except Exception as e:
-            logger.exception(
-                "Unexpected error in Signal WebSocket listener. Reconnecting in 10s...: %s", e
+        except (websockets.ConnectionClosed, ConnectionError, Exception) as e:
+            consecutive_failures += 1
+            delay = min(backoff_base * (2 ** (consecutive_failures - 1)), backoff_cap)
+            jitter = random.uniform(0, delay * 0.25)
+            wait = delay + jitter
+            logger.warning(
+                "Signal WebSocket error (attempt %d): %s. Reconnecting in %.1fs…",
+                consecutive_failures,
+                e,
+                wait,
             )
-            await asyncio.sleep(10)
+            await asyncio.sleep(wait)
 
 
 # ── Inbound Message Processing (T019) ───────────────────────────────────

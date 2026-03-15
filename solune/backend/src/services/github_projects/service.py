@@ -298,32 +298,46 @@ class GitHubProjectsService(
             return await inflight
 
         async def _execute_graphql() -> dict:
+            from src.config import get_settings
+
+            timeout = get_settings().api_timeout_seconds
             client = await self._client_factory.get_client(access_token)
 
-            if graphql_features or extra_headers:
-                # Custom headers required — use arequest() for full control
-                headers: dict[str, str] = {}
-                if extra_headers:
-                    headers.update(extra_headers)
-                if graphql_features:
-                    headers["GraphQL-Features"] = ",".join(graphql_features)
-                response = await client.arequest(
-                    "POST",
-                    "/graphql",
-                    json={"query": query, "variables": variables},
-                    headers=headers,
-                )
-                result = response.json()
-                if "errors" in result:
-                    error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])
-                    logger.error("GraphQL error: %s", error_msg)
-                    raise ValueError("GitHub API request failed")
-                data = result.get("data", {})
-            else:
-                # Standard GraphQL — SDK handles auth, retry, cache, errors
-                data = await client.async_graphql(query, variables=variables)
+            async def _inner() -> dict:
+                if graphql_features or extra_headers:
+                    # Custom headers required — use arequest() for full control
+                    headers: dict[str, str] = {}
+                    if extra_headers:
+                        headers.update(extra_headers)
+                    if graphql_features:
+                        headers["GraphQL-Features"] = ",".join(graphql_features)
+                    response = await client.arequest(
+                        "POST",
+                        "/graphql",
+                        json={"query": query, "variables": variables},
+                        headers=headers,
+                    )
+                    result = response.json()
+                    if "errors" in result:
+                        error_msg = "; ".join(
+                            e.get("message", str(e)) for e in result["errors"]
+                        )
+                        logger.error("GraphQL error: %s", error_msg)
+                        raise ValueError("GitHub API request failed")
+                    return result.get("data", {})
+                else:
+                    # Standard GraphQL — SDK handles auth, retry, cache, errors
+                    return await client.async_graphql(query, variables=variables)
 
-            return data
+            try:
+                return await asyncio.wait_for(_inner(), timeout=timeout)
+            except TimeoutError:
+                from src.exceptions import GitHubAPIError
+
+                raise GitHubAPIError(
+                    "GitHub GraphQL request timed out",
+                    details={"timeout_seconds": timeout},
+                ) from None
 
         from src.services.task_registry import task_registry
 

@@ -52,7 +52,7 @@ class TaskRegistry:
         task.add_done_callback(self._task_done)
         return task
 
-    async def drain(self, timeout: float = 30.0) -> list[asyncio.Task]:  # type: ignore[type-arg]  # noqa: ASYNC109
+    async def drain(self, timeout: float = 30.0) -> list[asyncio.Task]:  # type: ignore[type-arg]
         """Await all pending tasks up to *timeout* seconds.
 
         Tasks that do not complete in time are cancelled and returned so the

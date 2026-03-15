@@ -341,7 +341,10 @@ class ModelFetcherService:
 
         async def _fetch_and_cache() -> ModelsResponse:
             try:
-                models = await fetcher.fetch_models(token)
+                from src.config import get_settings
+
+                timeout = get_settings().api_timeout_seconds
+                models = await asyncio.wait_for(fetcher.fetch_models(token), timeout=timeout)
                 now = datetime.now(UTC)
                 self._cache[cache_key] = CacheEntry(
                     models=models,
@@ -417,10 +420,13 @@ class ModelFetcherService:
     async def _background_refresh(self, provider: str, token: str | None, cache_key: str) -> None:
         """Refresh cache in background without blocking the caller."""
         try:
+            from src.config import get_settings
+
+            timeout = get_settings().api_timeout_seconds
             fetcher = PROVIDER_REGISTRY.get(provider)
             if not fetcher:
                 return
-            models = await fetcher.fetch_models(token)
+            models = await asyncio.wait_for(fetcher.fetch_models(token), timeout=timeout)
             now = datetime.now(UTC)
             self._cache[cache_key] = CacheEntry(
                 models=models,
