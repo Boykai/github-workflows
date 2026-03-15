@@ -62,6 +62,12 @@ class TestLifespan:
         mock_db = AsyncMock()
         mock_app = MagicMock()
 
+        # The background loops (_session_cleanup_loop, _polling_watchdog_loop)
+        # run inside an asyncio.TaskGroup, so they must be mocked out.
+        async def _noop_loop():
+            """Coroutine that yields immediately so the TaskGroup can exit."""
+            return
+
         with (
             patch("src.main.get_settings") as mock_s,
             patch("src.main.setup_logging"),
@@ -78,6 +84,21 @@ class TestLifespan:
                 "src.services.database.close_database",
                 new_callable=AsyncMock,
             ) as mock_close,
+            patch("src.main._session_cleanup_loop", side_effect=_noop_loop),
+            patch("src.main._polling_watchdog_loop", side_effect=_noop_loop),
+            patch("src.main._auto_start_copilot_polling", new_callable=AsyncMock),
+            patch(
+                "src.services.signal_bridge.start_signal_ws_listener",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "src.services.signal_bridge.stop_signal_ws_listener",
+                new_callable=AsyncMock,
+            ),
+            patch(
+                "src.services.pipeline_state_store.init_pipeline_state_store",
+                new_callable=AsyncMock,
+            ),
         ):
             mock_s.return_value = MagicMock(
                 debug=True,
@@ -127,6 +148,10 @@ class TestLifespan:
                 "src.services.signal_bridge.stop_signal_ws_listener",
                 new_callable=AsyncMock,
             ) as mock_stop_signal,
+            patch(
+                "src.services.pipeline_state_store.init_pipeline_state_store",
+                new_callable=AsyncMock,
+            ),
         ):
             mock_s.return_value = MagicMock(
                 debug=True,
@@ -289,6 +314,9 @@ class TestShutdownPollingLogging:
         mock_db = AsyncMock()
         mock_app = MagicMock()
 
+        async def _noop_loop():
+            return
+
         with (
             patch("src.main.get_settings") as mock_s,
             patch("src.main.setup_logging"),
@@ -314,6 +342,12 @@ class TestShutdownPollingLogging:
                 new_callable=AsyncMock,
             ),
             patch("src.main._auto_start_copilot_polling", new_callable=AsyncMock),
+            patch("src.main._session_cleanup_loop", side_effect=_noop_loop),
+            patch("src.main._polling_watchdog_loop", side_effect=_noop_loop),
+            patch(
+                "src.services.pipeline_state_store.init_pipeline_state_store",
+                new_callable=AsyncMock,
+            ),
             patch(
                 "src.services.copilot_polling.get_polling_status",
                 return_value={"is_running": True},

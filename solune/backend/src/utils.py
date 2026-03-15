@@ -69,13 +69,21 @@ class BoundedDict[K, V]:
     """Dict with a maximum capacity that evicts oldest entries (FIFO).
 
     Backed by an ``OrderedDict`` to maintain insertion order.
+
+    An optional *on_evict* callback is called with ``(key, value)`` just
+    before an entry is evicted to make room for a new one.
     """
 
-    def __init__(self, maxlen: int) -> None:
+    def __init__(
+        self,
+        maxlen: int,
+        on_evict: Callable[[K, V], object] | None = None,
+    ) -> None:
         if maxlen <= 0:
             raise ValueError("maxlen must be > 0")
         self._maxlen = maxlen
         self._data: OrderedDict[K, V] = OrderedDict()
+        self._on_evict = on_evict
 
     @property
     def maxlen(self) -> int:
@@ -88,7 +96,15 @@ class BoundedDict[K, V]:
             self._data[key] = value
             return
         if len(self._data) >= self._maxlen:
-            self._data.popitem(last=False)
+            evicted_key, evicted_value = self._data.popitem(last=False)
+            if self._on_evict is not None:
+                try:
+                    self._on_evict(evicted_key, evicted_value)
+                except Exception:
+                    logger.debug(
+                        "BoundedDict on_evict callback failed for key %s", evicted_key,
+                        exc_info=True,
+                    )
         self._data[key] = value
 
     def __getitem__(self, key: K) -> V:

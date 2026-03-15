@@ -280,16 +280,17 @@ async def ensure_polling_started(
         if status["is_running"]:
             return False
 
-        import asyncio as _aio
+        from src.services.task_registry import task_registry
 
-        task = _aio.create_task(
+        task = task_registry.create_task(
             poll_for_copilot_completion(
                 access_token=access_token,
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
                 interval_seconds=interval_seconds,
-            )
+            ),
+            name="copilot-polling",
         )
 
         # Store on the package namespace so stop_polling() can cancel it and
