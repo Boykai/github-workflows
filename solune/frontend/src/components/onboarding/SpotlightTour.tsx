@@ -109,7 +109,7 @@ export function SpotlightTour({ isSidebarCollapsed, onToggleSidebar }: Spotlight
 
   const step = TOUR_STEPS[currentStep];
 
-  // Compute target element rect
+  // Compute target element bounding rect (called on scroll/resize — no scrollIntoView here)
   const updateRect = useCallback(() => {
     if (!step?.targetSelector) {
       setTargetRect(null);
@@ -118,13 +118,23 @@ export function SpotlightTour({ isSidebarCollapsed, onToggleSidebar }: Spotlight
     const el = document.querySelector(`[data-tour-step="${step.targetSelector}"]`);
     if (el) {
       setTargetRect(el.getBoundingClientRect());
-      // Scroll into view if needed
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     } else {
-      // Target not found — skip to next step
       setTargetRect(null);
     }
   }, [step]);
+
+  // On step change: scroll target into view and skip missing targets
+  useEffect(() => {
+    if (!isActive || !step?.targetSelector) return;
+
+    const el = document.querySelector(`[data-tour-step="${step.targetSelector}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      // Target not found — advance past this step so the user isn't stranded
+      next();
+    }
+  }, [isActive, step, next]);
 
   // Auto-expand sidebar for sidebar-related steps (steps 2–9)
   useEffect(() => {
