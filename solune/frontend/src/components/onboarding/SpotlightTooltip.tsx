@@ -170,7 +170,7 @@ export function SpotlightTooltip({
         aria-modal="true"
         aria-label={`Tour step ${currentStep + 1}: ${step.title}`}
         tabIndex={-1}
-        className="celestial-panel golden-ring celestial-fade-in fixed bottom-0 left-0 right-0 z-[101] overflow-hidden rounded-t-2xl border-t border-border/70 p-6"
+        className="celestial-panel golden-ring celestial-fade-in fixed bottom-0 left-0 right-0 z-[101] rounded-t-2xl border-t border-border/70 p-6"
       >
         {/* Drag handle indicator */}
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted-foreground/30" />
@@ -186,9 +186,9 @@ export function SpotlightTooltip({
             <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
           </div>
         </div>
-        <div className="mt-4 flex items-center justify-between">
+        <div className="mt-4 flex flex-col gap-3">
           <TourProgress currentStep={currentStep} totalSteps={totalSteps} />
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-2">
             <Button variant="ghost" size="sm" onClick={onSkip}>
               Skip Tour
             </Button>
@@ -216,7 +216,7 @@ export function SpotlightTooltip({
       aria-label={`Tour step ${currentStep + 1}: ${step.title}`}
       tabIndex={-1}
       className={cn(
-        'celestial-panel golden-ring celestial-fade-in fixed z-[101] w-[340px] overflow-hidden rounded-2xl border border-border/70 p-5',
+        'celestial-panel golden-ring celestial-fade-in fixed z-[101] w-[340px] rounded-2xl border border-border/70 p-5',
       )}
       style={{
         top: position.top,
@@ -235,9 +235,9 @@ export function SpotlightTooltip({
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.description}</p>
         </div>
       </div>
-      <div className="mt-4 flex items-center justify-between">
+      <div className="mt-4 flex flex-col gap-3">
         <TourProgress currentStep={currentStep} totalSteps={totalSteps} />
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onSkip}>
             Skip Tour
           </Button>
