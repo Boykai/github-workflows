@@ -474,6 +474,32 @@ describe('useBoardRefresh', () => {
     expect(invalidateSpy).not.toHaveBeenCalled();
   });
 
+  // ---------- 403 without rate_limit data (bug-bash regression) ----------
+
+  it('should classify a 403 error without rate_limit details as rate_limit type', async () => {
+    const { ApiError } = await import('@/services/api');
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
+    // Simulate a 403 response with NO rate_limit details — GitHub uses 403
+    // for secondary rate limits and may omit the rate_limit payload.
+    mockGetBoardData.mockRejectedValueOnce(new ApiError(403, { error: 'Forbidden' }));
+
+    const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_403' }), {
+      wrapper: createWrapper(queryClient),
+    });
+
+    await act(async () => {
+      result.current.refresh();
+    });
+
+    // Before the fix, a 403 without rate_limit details would fall through
+    // to the generic 'unknown' error type.
+    expect(result.current.error).not.toBeNull();
+    expect(result.current.error!.type).toBe('rate_limit');
+  });
+
   // ---------- requestBoardReload debouncing (refresh contract Rule 3) ----------
 
   it('should expose requestBoardReload function', () => {

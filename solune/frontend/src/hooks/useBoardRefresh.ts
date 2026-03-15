@@ -234,16 +234,16 @@ export function useBoardRefresh({
 function parseRefreshError(err: unknown): RefreshError {
   if (err instanceof ApiError) {
     if (err.status === 429 || err.status === 403) {
-      // Try to extract rate_limit from the error details
+      // Both 429 and 403 can indicate rate limiting (GitHub uses 403 for
+      // secondary rate limits).  Always classify as rate_limit even when the
+      // response omits the rate_limit details payload.
       const rl = err.error?.details?.rate_limit as RateLimitInfo | undefined;
-      if (err.status === 429 || rl) {
-        return {
-          type: 'rate_limit',
-          message: 'GitHub API rate limit exceeded.',
-          rateLimitInfo: rl,
-          retryAfter: rl ? new Date(rl.reset_at * 1000) : undefined,
-        };
-      }
+      return {
+        type: 'rate_limit',
+        message: 'GitHub API rate limit exceeded.',
+        rateLimitInfo: rl,
+        retryAfter: rl ? new Date(rl.reset_at * 1000) : undefined,
+      };
     }
     if (err.status === 401) {
       return { type: 'auth', message: 'Authentication failed. Please sign in again.' };

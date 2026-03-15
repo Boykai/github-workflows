@@ -5,7 +5,7 @@
  * repository, with a refresh() function for on-demand cache invalidation.
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RepositoryMetadata } from '@/types';
 import { metadataApi } from '@/services/api';
 
@@ -20,6 +20,13 @@ export function useMetadata(owner: string | null, repo: string | null): UseMetad
   const [metadata, setMetadata] = useState<RepositoryMetadata | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   const fetchMetadata = useCallback(async () => {
     if (!owner || !repo) return;
@@ -27,11 +34,12 @@ export function useMetadata(owner: string | null, repo: string | null): UseMetad
     setError(null);
     try {
       const data = await metadataApi.getMetadata(owner, repo);
-      setMetadata(data);
+      if (isMountedRef.current) setMetadata(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch metadata');
+      if (isMountedRef.current)
+        setError(err instanceof Error ? err.message : 'Failed to fetch metadata');
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   }, [owner, repo]);
 
@@ -41,11 +49,12 @@ export function useMetadata(owner: string | null, repo: string | null): UseMetad
     setError(null);
     try {
       const data = await metadataApi.refreshMetadata(owner, repo);
-      setMetadata(data);
+      if (isMountedRef.current) setMetadata(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to refresh metadata');
+      if (isMountedRef.current)
+        setError(err instanceof Error ? err.message : 'Failed to refresh metadata');
     } finally {
-      setLoading(false);
+      if (isMountedRef.current) setLoading(false);
     }
   }, [owner, repo]);
 
