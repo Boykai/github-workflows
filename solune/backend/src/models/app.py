@@ -53,6 +53,9 @@ class AppCreate(BaseModel):
     name: str = Field(..., pattern=APP_NAME_PATTERN, min_length=2, max_length=64)
     display_name: str = Field(..., min_length=1, max_length=128)
     description: str = Field(default="")
+    branch: str = Field(
+        ..., min_length=1, max_length=256, description="Target branch for app scaffold commit"
+    )
     pipeline_id: str | None = None
     repo_type: RepoType = RepoType.SAME_REPO
     external_repo_url: str | None = None

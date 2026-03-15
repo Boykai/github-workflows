@@ -76,7 +76,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
   );
   const successfulPRs = result.results.filter((r) => r.item_type === 'pr' && r.action === 'closed');
   const successfulIssues = result.results.filter(
-    (r) => r.item_type === 'issue' && r.action === 'closed'
+    (r) => r.item_type === 'issue' && r.action === 'deleted'
   );
   const failedItems = result.results.filter((r) => r.action === 'failed');
 
@@ -117,9 +117,9 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
           </div>
           <div className="p-3 rounded bg-green-100/80 dark:bg-green-900/30 text-center">
             <div className="text-2xl font-bold text-green-800 dark:text-green-400">
-              {result.issues_closed ?? 0}
+              {result.issues_deleted ?? 0}
             </div>
-            <div className="text-xs text-muted-foreground">Issues Closed</div>
+            <div className="text-xs text-muted-foreground">Issues Deleted</div>
           </div>
         </div>
 
@@ -160,7 +160,7 @@ export function CleanUpSummary({ result, error, onDismiss, onViewHistory }: Clea
 
         {successfulIssues.length > 0 && (
           <div className="mb-3">
-            <h3 className="text-sm font-medium mb-1">Closed Orphaned Issues</h3>
+            <h3 className="text-sm font-medium mb-1">Deleted Orphaned Issues</h3>
             <ul className="space-y-1 text-sm">
               {successfulIssues.map((item) => (
                 <li

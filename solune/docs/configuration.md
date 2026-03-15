@@ -145,7 +145,7 @@ SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via nu
 
 ## Workflow Settings
 
-Agent pipeline mappings are configurable through the Settings UI or `PUT /api/v1/workflow/config`:
+Agent pipeline mappings are fully customizable through the pipeline GUI, the Settings UI, or `PUT /api/v1/workflow/config`. The default **Spec Kit** preset ships with:
 
 ```json
 {
@@ -157,6 +157,10 @@ Agent pipeline mappings are configurable through the Settings UI or `PUT /api/v1
   }
 }
 ```
+
+Replace these with any custom agents from your `.github/agents/` directory. You can add or remove stages and configure series/parallel execution groups via the drag-and-drop pipeline GUI.
+
+```text
 
 Settings are stored per-user in SQLite with a 3-tier fallback:
 

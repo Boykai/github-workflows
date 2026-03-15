@@ -1,4 +1,4 @@
-"""Cleanup API endpoints for deleting stale branches and closing stale PRs."""
+"""Cleanup API endpoints for deleting stale branches, closing stale PRs, and deleting orphaned issues."""
 
 from typing import Annotated
 
@@ -56,7 +56,7 @@ async def cleanup_execute(
     github_service=Depends(get_github_service),  # noqa: B008
     db=Depends(get_database),  # noqa: B008
 ) -> CleanupExecuteResponse:
-    """Execute the cleanup operation: delete branches and close PRs.
+    """Execute the cleanup operation: delete branches, close PRs, and delete orphaned issues.
 
     The main branch is rejected server-side even if included in the request.
     """
@@ -74,12 +74,13 @@ async def cleanup_execute(
         )
 
     logger.info(
-        "Cleanup execute for %s/%s by user %s: %d branches, %d PRs",
+        "Cleanup execute for %s/%s by user %s: %d branches, %d PRs, %d issues",
         request.owner,
         request.repo,
         session.github_username,
         len(request.branches_to_delete),
         len(request.prs_to_close),
+        len(request.issues_to_delete),
     )
     try:
         return await cleanup_service.execute_cleanup(

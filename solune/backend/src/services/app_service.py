@@ -1,23 +1,21 @@
-# ruff: noqa: PTH103,PTH110,PTH118,PTH123
 # ^^^ os.path used intentionally — CodeQL recognises os.path.realpath+startswith
 # as a path-traversal sanitiser but does not recognise pathlib.Path.is_relative_to.
 """App lifecycle service for Solune multi-app management.
 
-Handles CRUD operations, state transitions, directory scaffolding,
+Handles CRUD operations, state transitions, GitHub-based directory scaffolding,
 and path validation for applications managed by the platform.
 """
 
 from __future__ import annotations
 
 import json
-import os
 import re
-import shutil
 from datetime import UTC, datetime
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import aiosqlite
 
+from src.config import get_settings
 from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
 from src.models.app import (
@@ -30,12 +28,10 @@ from src.models.app import (
     AppUpdate,
 )
 
-logger = get_logger(__name__)
+if TYPE_CHECKING:
+    from src.services.github_projects import GitHubProjectsService
 
-# Resolve the repository root (three levels up from this file)
-_REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
-_APPS_DIR = _REPO_ROOT / "apps"
-_APPS_DIR_REALPATH = os.path.realpath(str(_APPS_DIR)) + os.sep
+logger = get_logger(__name__)
 
 # Valid state transitions: mapping from current status to set of allowed next statuses
 _VALID_TRANSITIONS: dict[AppStatus, set[AppStatus]] = {
@@ -67,68 +63,48 @@ def validate_app_name(name: str) -> None:
         raise ValidationError(f"Invalid app name '{name}': path traversal characters not allowed.")
 
 
-def _safe_app_path(name: str) -> str:
-    """Return a realpath-resolved app directory string, raising on any traversal.
+def _build_scaffold_files(
+    name: str,
+    display_name: str,
+    description: str,
+) -> list[dict[str, str]]:
+    """Build the list of files for a new application scaffold.
 
-    Uses ``os.path.realpath`` + ``str.startswith`` so that static analysis
-    tools (CodeQL) can verify the path is confined to the ``apps/`` tree.
+    Returns ``[{"path": "apps/<name>/...", "content": "..."}]``.
     """
-    validate_app_name(name)
-    candidate = os.path.join(str(_APPS_DIR), name)
-    real = os.path.realpath(candidate)
-    if not real.startswith(_APPS_DIR_REALPATH):
-        raise ValidationError(f"Invalid app name '{name}': resolved path escapes apps directory.")
-    return real
-
-
-def _scaffold_app_directory(safe_dir: str, name: str, display_name: str, description: str) -> None:
-    """Create the on-disk scaffold for a new application.
-
-    ``safe_dir`` must already be validated via ``_safe_app_path``.
-    """
-    if os.path.exists(safe_dir):
-        raise ConflictError(f"Directory already exists for app '{name}'.")
-
-    os.makedirs(safe_dir)
-
-    # README.md
-    readme_path = os.path.join(safe_dir, "README.md")
-    with open(readme_path, "w", encoding="utf-8") as f:
-        f.write(f"# {display_name}\n\n{description}\n\nCreated by the Solune platform.\n")
-
-    # config.json
-    config_path = os.path.join(safe_dir, "config.json")
-    with open(config_path, "w", encoding="utf-8") as f:
-        json.dump(
-            {
-                "name": name,
-                "display_name": display_name,
-                "version": "0.1.0",
-                "created_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
-            },
-            f,
-            indent=2,
-        )
-        f.write("\n")
-
-    # src/.gitkeep
-    src_dir = os.path.join(safe_dir, "src")
-    os.makedirs(src_dir)
-    gitkeep = os.path.join(src_dir, ".gitkeep")
-    with open(gitkeep, "w"):
-        pass
-
-    # CHANGELOG.md
-    changelog_path = os.path.join(safe_dir, "CHANGELOG.md")
-    with open(changelog_path, "w", encoding="utf-8") as f:
-        f.write(f"# Changelog — {display_name}\n\nAll notable changes will be documented here.\n")
-
-    # docker-compose.yml template
-    compose_path = os.path.join(safe_dir, "docker-compose.yml")
-    with open(compose_path, "w", encoding="utf-8") as f:
-        f.write(
-            f"# Docker Compose for {display_name}\n# Extend or customize as needed.\nservices: {{}}\n"
-        )
+    prefix = f"apps/{name}"
+    now_str = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return [
+        {
+            "path": f"{prefix}/README.md",
+            "content": f"# {display_name}\n\n{description}\n\nCreated by the Solune platform.\n",
+        },
+        {
+            "path": f"{prefix}/config.json",
+            "content": json.dumps(
+                {
+                    "name": name,
+                    "display_name": display_name,
+                    "version": "0.1.0",
+                    "created_at": now_str,
+                },
+                indent=2,
+            )
+            + "\n",
+        },
+        {
+            "path": f"{prefix}/src/.gitkeep",
+            "content": "",
+        },
+        {
+            "path": f"{prefix}/CHANGELOG.md",
+            "content": f"# Changelog — {display_name}\n\nAll notable changes will be documented here.\n",
+        },
+        {
+            "path": f"{prefix}/docker-compose.yml",
+            "content": f"# Docker Compose for {display_name}\n# Extend or customize as needed.\nservices: {{}}\n",
+        },
+    ]
 
 
 def _row_to_app(row: aiosqlite.Row) -> App:
@@ -154,8 +130,14 @@ def _row_to_app(row: aiosqlite.Row) -> App:
 # ---------------------------------------------------------------------------
 
 
-async def create_app(db: aiosqlite.Connection, payload: AppCreate) -> App:
-    """Create a new application with directory scaffolding."""
+async def create_app(
+    db: aiosqlite.Connection,
+    payload: AppCreate,
+    *,
+    access_token: str,
+    github_service: GitHubProjectsService,
+) -> App:
+    """Create a new application by committing scaffold files to a GitHub branch."""
     validate_app_name(payload.name)
 
     # Check for duplicate
@@ -163,11 +145,44 @@ async def create_app(db: aiosqlite.Connection, payload: AppCreate) -> App:
     if await cursor.fetchone():
         raise ConflictError(f"App '{payload.name}' already exists.")
 
-    directory_path = f"apps/{payload.name}"
+    settings = get_settings()
+    owner = settings.default_repo_owner
+    repo = settings.default_repo_name
+    if not owner or not repo:
+        raise ValidationError("Default repository not configured (DEFAULT_REPOSITORY).")
 
-    # Validate and scaffold the directory
-    safe_dir = _safe_app_path(payload.name)
-    _scaffold_app_directory(safe_dir, payload.name, payload.display_name, payload.description)
+    branch_name = payload.branch
+
+    # Resolve branch HEAD
+    head_oid = await github_service.get_branch_head_oid(
+        access_token,
+        owner,
+        repo,
+        branch_name,
+    )
+    if not head_oid:
+        raise ValidationError(
+            f"Branch '{branch_name}' not found in {owner}/{repo}. "
+            "Ensure the parent issue branch exists before creating an app."
+        )
+
+    # Build scaffold files and commit to the branch
+    files = _build_scaffold_files(payload.name, payload.display_name, payload.description)
+    commit_oid = await github_service.commit_files(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        branch_name=branch_name,
+        head_oid=head_oid,
+        files=files,
+        message=f"scaffold: create app `{payload.name}`",
+    )
+    if not commit_oid:
+        raise ValidationError(
+            f"Failed to commit scaffold files for app '{payload.name}' to branch '{branch_name}'."
+        )
+
+    directory_path = f"apps/{payload.name}"
 
     # Insert into database
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -185,7 +200,7 @@ async def create_app(db: aiosqlite.Connection, payload: AppCreate) -> App:
             payload.description,
             directory_path,
             payload.pipeline_id,
-            AppStatus.ACTIVE.value,  # Scaffold completes immediately
+            AppStatus.ACTIVE.value,
             payload.repo_type.value,
             payload.external_repo_url,
             now,
@@ -194,7 +209,14 @@ async def create_app(db: aiosqlite.Connection, payload: AppCreate) -> App:
     )
     await db.commit()
 
-    logger.info("Created app '%s' at %s", payload.name, directory_path)
+    logger.info(
+        "Created app '%s' — scaffold committed to %s/%s:%s (oid=%s)",
+        payload.name,
+        owner,
+        repo,
+        branch_name,
+        commit_oid,
+    )
 
     cursor = await db.execute("SELECT * FROM apps WHERE name = ?", (payload.name,))
     row = await cursor.fetchone()
@@ -326,17 +348,7 @@ async def delete_app(db: aiosqlite.Connection, name: str) -> None:
     if app.status == AppStatus.ACTIVE:
         raise ValidationError(f"Cannot delete app '{name}': must stop the app first.")
 
-    # Remove directory with traversal-safe path resolution
     validate_app_name(app.name)
-    candidate = os.path.join(str(_APPS_DIR), app.name)
-    real = os.path.realpath(candidate)
-    if not real.startswith(_APPS_DIR_REALPATH):
-        raise ValidationError(
-            f"Invalid app name '{app.name}': resolved path escapes apps directory."
-        )
-    if os.path.exists(real):
-        shutil.rmtree(real)
-        logger.info("Removed directory for app '%s'", name)
 
     await db.execute("DELETE FROM apps WHERE name = ?", (name,))
     await db.commit()

@@ -98,7 +98,7 @@ export function useCleanup(): UseCleanupReturn {
           project_id: projectId,
           branches_to_delete: payload.branches_to_delete,
           prs_to_close: payload.prs_to_close,
-          issues_to_close: payload.issues_to_close,
+          issues_to_delete: payload.issues_to_delete,
         });
 
         setExecuteResult(result);

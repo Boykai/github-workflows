@@ -113,7 +113,9 @@ export function CleanUpConfirmModal({
         ...finalPrsToClose.map((p) => p.number),
         ...finalPrsToCloseFromPreserve.map((p) => p.number),
       ],
-      issues_to_close: finalIssuesToClose.map((i) => i.number),
+      issues_to_delete: finalIssuesToClose
+        .filter((i) => i.node_id != null)
+        .map((i) => ({ number: i.number, node_id: i.node_id! })),
     });
   };
 
@@ -152,17 +154,18 @@ export function CleanUpConfirmModal({
           will be preserved. This operation cannot be undone.
         </p>
 
-        {/* ─── Orphaned Issues to Close ─── */}
+        {/* ─── Orphaned Issues to Delete ─── */}
         {(data.orphaned_issues ?? []).length > 0 && (
           <section className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
               <span className="inline-flex items-center gap-2">
                 <Trash2 className="h-4 w-4" />
-                Orphaned Issues to Close ({data.orphaned_issues.length})
+                Orphaned Issues to Delete ({data.orphaned_issues.length})
               </span>
             </h3>
             <p className="text-xs text-muted-foreground mb-2">
-              App-created issues no longer attached to the project board.
+              App-created issues no longer attached to the project board. These will be permanently
+              deleted from GitHub.
             </p>
             <ul className="space-y-1 text-sm">
               {data.orphaned_issues.map((issue) => {

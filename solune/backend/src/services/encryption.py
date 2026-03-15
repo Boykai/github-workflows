@@ -44,9 +44,7 @@ class EncryptionService:
                         '"from cryptography.fernet import Fernet; '
                         'print(Fernet.generate_key().decode())"'
                     ) from e
-                logger.exception(
-                    "Invalid ENCRYPTION_KEY — falling back to passthrough mode: %s", e
-                )
+                logger.exception("Invalid ENCRYPTION_KEY — falling back to passthrough mode: %s", e)
         else:
             logger.warning(
                 "ENCRYPTION_KEY not set — tokens will be stored in plaintext. "

@@ -2,7 +2,9 @@
 
 ## Overview
 
-The Spec Kit agent pipeline automates the journey from a feature idea to a code review. When a user confirms an issue proposal, the system creates a GitHub Issue, attaches it to a Project Board, and kicks off a sequential pipeline of custom GitHub Copilot agents.
+Agent Pipelines are customizable execution plans that orchestrate AI Custom GitHub Agents to perform remote work in series or parallel. Through the visual pipeline GUI, you compose any combination of agents into stages, assign AI models, and choose execution modes (series or parallel). When a pipeline is launched, the system creates a GitHub Issue, attaches it to a **GitHub Project** board, and executes each agent stage automatically — advancing the issue across board columns as agents complete their work.
+
+Pipelines are not limited to any single agent set. The **Spec Kit** preset ships as a default (`specify` → `plan` → `tasks` → `implement` → `review`), but you can create pipelines with entirely custom agents, different stage counts, and mixed series/parallel execution groups.
 
 ## Pipeline Flow
 
@@ -11,38 +13,42 @@ User describes feature     →   AI generates Issue (Copilot SDK or Azure OpenAI
 User clicks Confirm        →   GitHub Issue + sub-issues created, added to Project
                                Status: 📋 Backlog
 
-  ┌─────────────────── AUTOMATED AGENT PIPELINE ───────────────────┐
-  │                                                                 │
-  │  📋 Backlog ─── speckit.specify ──▶ spec.md                     │
-  │       │         Creates first PR (= main branch for the issue)  │
-  │       ▼                                                         │
-  │  📝 Ready ─── speckit.plan ──▶ plan.md, research.md, data-model │
-  │       │        Branches FROM main; child PR merged + deleted     │
-  │       │                                                         │
-  │       ├─── speckit.tasks ──▶ tasks.md                           │
-  │       │     Branches FROM main; child PR merged + deleted        │
-  │       ▼                                                         │
-  │  🔄 In Progress ─── speckit.implement ──▶ Code changes          │
-  │       │               Child PR merged + branch deleted           │
-  │       ▼                                                         │
-  │  👀 In Review ─── Main PR ready for human review                │
-  │                    Copilot code review requested                 │
-  └─────────────────────────────────────────────────────────────────┘
+  ┌───────────────── CUSTOMIZABLE AGENT PIPELINE ────────────────┐
+  │                                                              │
+  │  Stage 1 (series)   ── Agent A  ──▶ output files              │
+  │       │              Creates first PR (= main branch)         │
+  │       ▼                                                      │
+  │  Stage 2 (parallel) ─┬ Agent B  ──▶ output files              │
+  │                      └ Agent C  ──▶ output files              │
+  │       │              Child PRs merged + branches deleted      │
+  │       ▼                                                      │
+  │  Stage 3 (series)   ── Agent D  ──▶ code changes             │
+  │       │              Child PR merged + branch deleted         │
+  │       ▼                                                      │
+  │  Review             ── Copilot code review requested          │
+  │                      Main PR ready for human review           │
+  └──────────────────────────────────────────────────────────────┘
 ```
+
+Agents in the diagram are placeholders — replace them with any agents from your repository’s `.github/agents/` directory or from preset configurations.
 
 ## Status Transitions
 
+The pipeline advances issues through GitHub Project board columns. The exact agents in each status depend on your pipeline configuration. Using the default **Spec Kit** preset as an example:
+
 | Status | Agent(s) | What Happens | Transition Trigger |
 |--------|----------|--------------|-------------------|
-| 📋 **Backlog** | `speckit.specify` | Sub-issue created, agent assigned; creates first PR (establishes main branch) and writes `spec.md`; sub-issue closed on completion | `speckit.specify: Done!` on sub-issue |
-| 📝 **Ready** | `speckit.plan` → `speckit.tasks` | Sequential: each agent gets its sub-issue, branches from main branch, child PR merged + deleted, sub-issue closed | Both agents post `Done!` markers |
-| 🔄 **In Progress** | `speckit.implement` | Agent branches from main, implements code from `tasks.md`, child PR merged + deleted, main PR converted from draft to ready | Child PR completion detected via timeline events or PR no longer draft |
-| 👀 **In Review** | `copilot-review` | **Not a coding agent.** The pipeline calls the GitHub API to request a Copilot code review directly on the parent issue's **main branch PR** (the branch established by `speckit.specify`). The `copilot-review` sub-issue is a tracking issue only — Copilot is **never** assigned to it as a coding agent. Sub-issue closed when review completes. | Manual merge |
+| 📋 **Backlog** | First stage agent (e.g. `speckit.specify`) | Sub-issue created, agent assigned; creates first PR (establishes main branch); sub-issue closed on completion | `<agent>: Done!` on sub-issue |
+| 📝 **Ready** | Middle stage agents (e.g. `speckit.plan` → `speckit.tasks`) | Sequential or parallel: each agent gets its sub-issue, branches from main branch, child PR merged + deleted, sub-issue closed | All agents in group post `Done!` markers |
+| 🔄 **In Progress** | Implementation agent (e.g. `speckit.implement`) | Agent branches from main, implements code, child PR merged + deleted, main PR converted from draft to ready | Child PR completion detected via timeline events or PR no longer draft |
+| 👀 **In Review** | `copilot-review` | **Not a coding agent.** The pipeline calls the GitHub API to request a Copilot code review directly on the parent issue's **main branch PR**. The `copilot-review` sub-issue is a tracking issue only — Copilot is **never** assigned to it as a coding agent. Sub-issue closed when review completes. | Manual merge |
 | ✅ **Done** | — | Work merged | Manual or webhook on PR merge |
 
-## Spec Kit Agents
+Custom pipelines can map any agents to any board column. The status names correspond to columns on your GitHub Project board.
 
-Defined in `.github/agents/*.agent.md`:
+## Built-in Agents (Spec Kit Preset)
+
+The **Spec Kit** preset ships with these agents, defined in `.github/agents/*.agent.md`:
 
 | Agent | Purpose | Output Files |
 |-------|---------|-------------|
@@ -56,6 +62,8 @@ Defined in `.github/agents/*.agent.md`:
 | `speckit.constitution` | Project constitution management | `.specify/memory/constitution.md` |
 | `speckit.taskstoissues` | Converts `tasks.md` entries into GitHub Issues | GitHub Issues |
 
+Custom agents can be added to `.github/agents/` and will appear in the pipeline GUI for drag-and-drop composition. See [Custom Agents Best Practices](custom-agents-best-practices.md) for guidance on creating your own.
+
 ## Sub-Issue-Per-Agent Workflow
 
 When an issue is confirmed, the system creates **sub-issues upfront** for every agent in the pipeline:
@@ -67,7 +75,7 @@ When an issue is confirmed, the system creates **sub-issues upfront** for every 
 - The `<agent>: Done!` marker is posted on the **parent issue** to advance the pipeline
 - When an agent completes, its sub-issue is closed as completed (`state=closed`, `state_reason=completed`)
 
-> **`copilot-review` is a special-case agent.** It does NOT assign Copilot to the sub-issue as a coding task. Instead, the pipeline directly requests a Copilot code review on the **parent issue's main branch PR** (the branch created by `speckit.specify` and merged into by all subsequent agents) via the GitHub GraphQL API. The sub-issue is a tracking issue only — it is marked active when the review is requested and closed when the review completes.
+> **`copilot-review` is a special-case agent.** It does NOT assign Copilot to the sub-issue as a coding task. Instead, the pipeline directly requests a Copilot code review on the **parent issue’s main branch PR** (the branch created by the first agent and merged into by all subsequent agents) via the GitHub GraphQL API. The sub-issue is a tracking issue only — it is marked active when the review is requested and closed when the review completes.
 
 Label lifecycle: created with `ai-generated` + `sub-issue` → `in-progress` added on assignment → `done` added + `in-progress` removed on completion.
 
@@ -75,12 +83,12 @@ Label lifecycle: created with `ai-generated` + `sub-issue` → `in-progress` add
 
 ```text
 main (repo default)
-  └── feature/issue-42-my-feature        ← speckit.specify creates this (= main branch)
-       ├── copilot/issue-42-plan         ← speckit.plan branches from main branch
+  └── feature/issue-42-my-feature        ← first agent creates this (= main branch)
+       ├── copilot/issue-42-<agent-b>      ← second agent branches from main branch
        │     └── (squash-merged back, branch deleted)
-       ├── copilot/issue-42-tasks        ← speckit.tasks branches from main branch
+       ├── copilot/issue-42-<agent-c>      ← third agent branches from main branch
        │     └── (squash-merged back, branch deleted)
-       └── copilot/issue-42-implement    ← speckit.implement branches from main branch
+       └── copilot/issue-42-<agent-d>      ← fourth agent branches from main branch
              └── (squash-merged back, branch deleted)
 ```
 
@@ -109,23 +117,23 @@ This flow reuses the same sub-issue-per-agent workflow, polling service, and hie
 
 ## Pipeline Tracking
 
-Each issue maintains a durable **tracking table** in its body:
+Each issue maintains a durable **tracking table** in its body, visible directly on the GitHub Issue:
 
 ```markdown
 ## 🤖 Agent Pipeline
 
 | # | Status | Agent | State |
 |---|--------|-------|-------|
-| 1 | Backlog | `speckit.specify` | ✅ Done |
-| 2 | Ready | `speckit.plan` | ✅ Done |
-| 3 | Ready | `speckit.tasks` | 🔄 Active |
-| 4 | In Progress | `speckit.implement` | ⏳ Pending |
+| 1 | Backlog | `agent-a` | ✅ Done |
+| 2 | Ready | `agent-b` | ✅ Done |
+| 3 | Ready | `agent-c` | 🔄 Active |
+| 4 | In Progress | `agent-d` | ⏳ Pending |
 | 5 | In Review | `copilot-review` | ⏳ Pending |
 ```
 
 States: **⏳ Pending** (not started), **🔄 Active** (assigned to Copilot), **✅ Done** (completed).
 
-This table survives server restarts and provides visibility directly on the GitHub Issue.
+This table survives server restarts and provides visibility into pipeline progress directly on GitHub.
 
 ### Group-Aware Tracking Table
 
@@ -136,10 +144,10 @@ Pipelines that use **execution groups** display a 6-column tracking table with a
 
 | # | Group | Status | Agent | Model | State |
 |---|-------|--------|-------|-------|-------|
-| 1 | G1 (series) | Backlog | `speckit.specify` | gpt-4o | ✅ Done |
-| 2 | G2 (parallel) | Ready | `speckit.plan` | gpt-4o | 🔄 Active |
-| 3 | G2 (parallel) | Ready | `speckit.tasks` | gpt-4o | 🔄 Active |
-| 4 | G3 (series) | In Progress | `speckit.implement` | gpt-4o | ⏳ Pending |
+| 1 | G1 (series) | Backlog | `agent-a` | gpt-4o | ✅ Done |
+| 2 | G2 (parallel) | Ready | `agent-b` | gpt-4o | 🔄 Active |
+| 3 | G2 (parallel) | Ready | `agent-c` | gpt-4o | 🔄 Active |
+| 4 | G3 (series) | In Progress | `agent-d` | gpt-4o | ⏳ Pending |
 | 5 | G4 (series) | In Review | `copilot-review` | gpt-4o | ⏳ Pending |
 ```
 
@@ -159,9 +167,9 @@ The **Pipeline Analytics** dashboard replaces the former Recent Activity section
 The background polling service runs every 60 seconds (configurable via `COPILOT_POLLING_INTERVAL`) and executes in order:
 
 1. **Post Agent Outputs** — Detect completed PRs, merge child PRs, extract `.md` files, post to sub-issues, close sub-issues, update tracking table
-2. **Check Backlog** — Scan for `speckit.specify: Done!` → transition to Ready, assign `speckit.plan`
-3. **Check Ready** — Scan for `speckit.plan: Done!` / `speckit.tasks: Done!` → advance or transition to In Progress
-4. **Check In Progress** — Detect `speckit.implement` completion (timeline events or PR not draft) → merge, convert main PR, transition to In Review
+2. **Check Backlog** — Scan for first-stage agent `Done!` markers → transition to next status, assign next agent(s)
+3. **Check Ready** — Scan for middle-stage agent `Done!` markers → advance pipeline or transition to In Progress
+4. **Check In Progress** — Detect implementation agent completion (timeline events or PR not draft) → merge, convert main PR, transition to In Review
 5. **Check In Review** — Ensure Copilot code review has been requested
 6. **Self-Healing Recovery** — Detect stalled pipelines, re-assign agents with per-issue cooldown (5 minutes)
 
@@ -171,7 +179,7 @@ The background polling service runs every 60 seconds (configurable via `COPILOT_
 - **Double-assignment prevention**: pending flags set BEFORE the API call, cleared only on failure
 - **Copilot status acceptance**: when Copilot naturally moves issues to "In Progress", the polling service accepts it rather than reverting (which would re-trigger the agent)
 
-### speckit.implement Completion Flow
+### Implementation Agent Completion Flow
 
 1. Child PR squash-merged into main branch
 2. Child branch deleted
@@ -184,7 +192,7 @@ The background polling service runs every 60 seconds (configurable via `COPILOT_
 The `copilot-review` step is a **non-coding** agent. It does NOT assign Copilot
 to the sub-issue as a coding agent. Instead the pipeline:
 
-1. Resolves the main PR for the parent issue (branch created by `speckit.specify`)
+1. Resolves the main PR for the parent issue (branch created by the first pipeline agent)
 2. **Converts draft → ready for review** — GitHub does not allow requesting reviews
    on draft PRs, so the pipeline ensures the PR is marked ready first
 3. Uses the GitHub REST API `POST /repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers`
@@ -211,7 +219,7 @@ On server restart, the system reconstructs state from:
 
 ## Configuration
 
-Agent-to-status mappings are configurable per user via the Settings UI:
+Agent-to-status mappings are fully customizable through the **pipeline GUI**, the Settings UI, or `PUT /api/v1/workflow/config`. The default **Spec Kit** preset ships with:
 
 | Status | Default Agents |
 |--------|---------------|
@@ -220,4 +228,16 @@ Agent-to-status mappings are configurable per user via the Settings UI:
 | In Progress | `speckit.implement` |
 | In Review | `copilot-review` |
 
+You can replace these with any custom agents, add or remove stages, and configure execution groups (series or parallel) for each stage. Pipeline configurations are saved and reusable — select a saved pipeline when launching from the Projects page.
+
 Mappings are persisted to SQLite with a 3-tier fallback: user-specific → canonical `__workflow__` row → any-user with automatic backfill. The Settings UI syncs changes to the canonical row and invalidates the in-memory config cache.
+
+## GitHub Projects Integration
+
+Agent Pipelines are fully integrated with **GitHub Projects**:
+
+- Issues are automatically added to the selected GitHub Project board on pipeline launch
+- Issue status (board column) advances as agents complete their stages
+- Sub-issues appear on the same project board with `ai-generated` + `sub-issue` labels
+- The durable tracking table is embedded directly in the GitHub Issue body, providing visibility without needing the Solune UI
+- Pipeline progress is reflected in real-time on the Solune Kanban board, synced bidirectionally with GitHub Project columns

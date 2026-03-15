@@ -5,7 +5,7 @@
 
 ## Context
 
-The Spec Kit pipeline assigns multiple Copilot agents to work on an issue sequentially. Without visibility into which agent is active or what state the pipeline is in, restarts and debugging are opaque. Options evaluated:
+Agent Pipelines assign multiple custom GitHub agents to work on an issue in series or parallel. Without visibility into which agent is active or what state the pipeline is in, restarts and debugging are opaque. Options evaluated:
 
 - **In-memory state only** — Simple, but lost on restart. Requires polling to reconstruct.
 - **Database state table** — Durable, but adds a migration and coupling between the backend and GitHub.

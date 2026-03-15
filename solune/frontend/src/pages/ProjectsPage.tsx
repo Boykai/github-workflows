@@ -250,9 +250,9 @@ export function ProjectsPage() {
           </>
         }
       />
-      {/* Page Header */}
-      <div className="flex shrink-0 flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground lg:justify-end">
+      {/* Page Header + Toolbar */}
+      <div className="flex shrink-0 flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           {selectedProjectId && (
             <span
               className="solar-chip-soft inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground"
@@ -281,30 +281,29 @@ export function ProjectsPage() {
             </span>
           )}
         </div>
-      </div>
 
-      {/* Toolbar */}
-      {selectedProjectId && boardData && (
-        <div className="flex flex-wrap items-start gap-2">
-          <BoardToolbar
-            filters={boardControls.controls.filters}
-            sort={boardControls.controls.sort}
-            group={boardControls.controls.group}
-            onFiltersChange={boardControls.setFilters}
-            onSortChange={boardControls.setSort}
-            onGroupChange={boardControls.setGroup}
-            onClearAll={boardControls.clearAll}
-            availableLabels={boardControls.availableLabels}
-            availableAssignees={boardControls.availableAssignees}
-            availableMilestones={boardControls.availableMilestones}
-            availablePipelineConfigs={boardControls.availablePipelineConfigs}
-            hasActiveFilters={boardControls.hasActiveFilters}
-            hasActiveSort={boardControls.hasActiveSort}
-            hasActiveGroup={boardControls.hasActiveGroup}
-            hasActiveControls={boardControls.hasActiveControls}
-          />
-        </div>
-      )}
+        {selectedProjectId && boardData && (
+          <div className="flex flex-wrap items-start gap-2">
+            <BoardToolbar
+              filters={boardControls.controls.filters}
+              sort={boardControls.controls.sort}
+              group={boardControls.controls.group}
+              onFiltersChange={boardControls.setFilters}
+              onSortChange={boardControls.setSort}
+              onGroupChange={boardControls.setGroup}
+              onClearAll={boardControls.clearAll}
+              availableLabels={boardControls.availableLabels}
+              availableAssignees={boardControls.availableAssignees}
+              availableMilestones={boardControls.availableMilestones}
+              availablePipelineConfigs={boardControls.availablePipelineConfigs}
+              hasActiveFilters={boardControls.hasActiveFilters}
+              hasActiveSort={boardControls.hasActiveSort}
+              hasActiveGroup={boardControls.hasActiveGroup}
+              hasActiveControls={boardControls.hasActiveControls}
+            />
+          </div>
+        )}
+      </div>
 
       {/* Rate limit / error banners */}
       {showRateLimitBanner && (

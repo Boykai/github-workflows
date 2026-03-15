@@ -17,6 +17,7 @@ import pytest
 from src.models.cleanup import (
     CleanupExecuteRequest,
     CleanupPreflightRequest,
+    IssueToDelete,
 )
 from src.services import cleanup_service
 from src.services.cleanup_service import (
@@ -732,14 +733,12 @@ class TestOrphanedIssues:
         assert 200 not in orphan_numbers
         assert 201 in orphan_numbers
 
-    async def test_execute_closes_orphaned_issues(self):
-        """Execute should close issues listed in issues_to_close."""
+    async def test_execute_deletes_orphaned_issues(self):
+        """Execute should delete issues listed in issues_to_delete via GraphQL."""
         service = _make_github_service()
 
-        close_response = MagicMock()
-        close_response.status_code = 200
-        close_response.json.return_value = {"number": 100, "state": "closed"}
-        service._rest_response = AsyncMock(return_value=close_response)
+        # GraphQL deleteIssue succeeds
+        service._graphql = AsyncMock(return_value={"deleteIssue": {"repository": {"id": "R_1"}}})
 
         db = AsyncMock()
         db.execute = AsyncMock()
@@ -751,22 +750,29 @@ class TestOrphanedIssues:
             project_id="PVT_123",
             branches_to_delete=[],
             prs_to_close=[],
-            issues_to_close=[100, 101],
+            issues_to_delete=[
+                IssueToDelete(number=100, node_id="I_node100"),
+                IssueToDelete(number=101, node_id="I_node101"),
+            ],
         )
 
         result = await cleanup_service.execute_cleanup(
             service, "token", "test", "repo", request, db, "user123"
         )
 
-        assert result.issues_closed == 2
+        assert result.issues_deleted == 2
         issue_results = [r for r in result.results if r.item_type == "issue"]
         assert len(issue_results) == 2
-        assert all(r.action == "closed" for r in issue_results)
+        assert all(r.action == "deleted" for r in issue_results)
 
-    async def test_execute_handles_issue_close_failure(self):
-        """Failed issue closure should be recorded as an error, not crash."""
+    async def test_execute_handles_issue_delete_failure(self):
+        """Failed issue deletion should fall back to close, and record error if both fail."""
         service = _make_github_service()
 
+        # GraphQL deleteIssue fails
+        service._graphql = AsyncMock(side_effect=Exception("Forbidden"))
+
+        # REST fallback also fails
         fail_response = MagicMock()
         fail_response.status_code = 404
         fail_response.text = "Not Found"
@@ -782,14 +788,16 @@ class TestOrphanedIssues:
             project_id="PVT_123",
             branches_to_delete=[],
             prs_to_close=[],
-            issues_to_close=[999],
+            issues_to_delete=[
+                IssueToDelete(number=999, node_id="I_node999"),
+            ],
         )
 
         result = await cleanup_service.execute_cleanup(
             service, "token", "test", "repo", request, db, "user123"
         )
 
-        assert result.issues_closed == 0
+        assert result.issues_deleted == 0
         assert len(result.errors) == 1
         assert result.errors[0].item_type == "issue"
         assert result.errors[0].action == "failed"

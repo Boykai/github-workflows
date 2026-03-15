@@ -1,6 +1,6 @@
 # Solune — Backend
 
-FastAPI backend that powers Solune and the **Spec Kit agent pipeline**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (GitHub Copilot SDK by default, Azure OpenAI optional), real-time WebSocket updates, **sub-issue-per-agent workflow** with automatic lifecycle management, **SQLite-backed workflow config persistence**, and the background polling service that orchestrates custom Copilot agents with hierarchical PR branching.
+FastAPI backend that powers Solune and its **customizable Agent Pipelines**. This service manages GitHub OAuth, issue/project CRUD via the GitHub GraphQL & REST APIs, AI-powered issue generation (GitHub Copilot SDK by default, Azure OpenAI optional), real-time WebSocket updates, **sub-issue-per-agent workflow** with automatic lifecycle management, **SQLite-backed workflow config persistence**, and the background polling service that orchestrates custom GitHub agents with hierarchical PR branching, all integrated with **GitHub Projects** for real-time tracking.
 
 ## Setup
 
@@ -117,11 +117,11 @@ Decomposed into 7 focused sub-modules. A background `asyncio.Task` that runs eve
    - **Close the sub-issue** as completed (`state=closed, state_reason=completed`), verified via GitHub API
    - Update the tracking table in the **parent issue** body (mark agent as ✅ Done)
    - Also captures the first PR's branch as the "main branch" for the issue
-   - (Only applies to `speckit.specify`, `speckit.plan`, `speckit.tasks` — not `speckit.implement`.)
-2. **Step 1 — Check Backlog**: Look for `speckit.specify: Done!` on Backlog issues (checking sub-issues) → transition to Ready and assign `speckit.plan` (branching from the main branch).
-3. **Step 2 — Check Ready**: Look for `speckit.plan: Done!` / `speckit.tasks: Done!` → advance the internal pipeline or transition to In Progress and assign `speckit.implement`.
-4. **Step 3 — Check In Progress**: For issues with active `speckit.implement` pipeline, detect child PR completion via timeline events (`copilot_work_finished`, `review_requested`) or when PR is no longer a draft. When detected:
-   - Merge `speckit.implement` child PR into main branch
+   - (Only applies to agents whose work produces `.md` output files — not the final implementation agent.)
+2. **Step 1 — Check Backlog**: Look for first-stage agent `Done!` markers on Backlog issues (checking sub-issues) → transition to Ready and assign next agent(s) (branching from the main branch).
+3. **Step 2 — Check Ready**: Look for middle-stage agent `Done!` markers → advance the internal pipeline or transition to In Progress and assign the implementation agent.
+4. **Step 3 — Check In Progress**: For issues with an active implementation agent, detect child PR completion via timeline events (`copilot_work_finished`, `review_requested`) or when PR is no longer a draft. When detected:
+   - Merge implementation agent's child PR into main branch
    - Delete child branch
    - Convert the **main PR** (first PR for the issue) from draft to ready for review
    - Transition status to "In Review"
@@ -181,9 +181,9 @@ Decomposed into 4 focused sub-modules managing per-issue pipeline state, hierarc
 #### `orchestrator.py` — WorkflowOrchestrator Class
 
 - `assign_agent_for_status(issue, status)` — Finds the correct agent(s) for a status column, manages branch refs
-- `handle_ready_status()` — Handles the Ready column's sequential pipeline (`speckit.plan` → `speckit.tasks`)
+- `handle_ready_status()` — Handles the Ready column’s sequential or parallel pipeline (executing agents within the current execution group)
 - `create_all_sub_issues()` — Creates one sub-issue per agent upfront when a workflow is confirmed
-- `_check_child_pr_completion()` — For `speckit.implement`, checks child PR targeting the main branch
+- `_check_child_pr_completion()` — For the implementation agent, checks child PR targeting the main branch
 - **Retry-with-Backoff**: Agent assignments retry up to 3 times with exponential backoff (3s → 6s → 12s)
 - **Early Pending Flags**: Set BEFORE the GitHub API call and cleared only on failure to prevent race conditions
 - Singleton factory via `get_workflow_orchestrator()`

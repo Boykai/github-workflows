@@ -37,10 +37,11 @@ export function AppsPage() {
     const name = (formData.get('name') as string).trim();
     const displayName = (formData.get('display_name') as string).trim();
     const description = (formData.get('description') as string).trim();
+    const branch = (formData.get('branch') as string).trim();
 
-    if (!name || !displayName) return;
+    if (!name || !displayName || !branch) return;
 
-    const payload: AppCreate = { name, display_name: displayName, description };
+    const payload: AppCreate = { name, display_name: displayName, description, branch };
     createMutation.mutate(payload, {
       onSuccess: () => setShowCreateDialog(false),
     });
@@ -157,6 +158,23 @@ export function AppsPage() {
                   placeholder="A brief description of your app…"
                   className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                 />
+              </div>
+              <div>
+                <label htmlFor="app-branch" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Target Branch
+                </label>
+                <input
+                  id="app-branch"
+                  name="branch"
+                  type="text"
+                  required
+                  maxLength={256}
+                  placeholder="parent-issue/my-feature"
+                  className="w-full rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                />
+                <p className="mt-1 text-xs text-zinc-400">
+                  The parent issue branch where the app scaffold will be committed.
+                </p>
               </div>
             </div>
             <div className="mt-6 flex justify-end gap-3">
