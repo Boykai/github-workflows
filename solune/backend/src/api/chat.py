@@ -731,10 +731,21 @@ def _trigger_signal_delivery(
 @router.get("/messages", response_model=ChatMessagesResponse)
 async def get_messages(
     session: Annotated[UserSession, Depends(get_session_dep)],
+    limit: int = 50,
+    offset: int = 0,
 ) -> ChatMessagesResponse:
-    """Get chat messages for current session."""
+    """Get chat messages for current session with pagination."""
+    limit = max(1, min(limit, 200))
+    offset = max(0, offset)
     messages = await get_session_messages(session.session_id)
-    return ChatMessagesResponse(messages=messages)
+    total = len(messages)
+    paginated = messages[offset : offset + limit]
+    return ChatMessagesResponse(
+        messages=paginated,
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.delete("/messages")

@@ -25,6 +25,13 @@ MAX_BACKOFF = 900  # 15 minutes
 DEFAULT_BACKOFF = 60  # 1 minute
 
 
+def _cancel_evicted_task(_key: str, task: asyncio.Task) -> None:  # type: ignore[type-arg]
+    """Cancel an evicted asyncio.Task that hasn't finished yet."""
+    if not task.done():
+        task.cancel()
+        logger.debug("Cancelled evicted inflight task: %s", _key)
+
+
 # ── Provider Interface ──
 
 
@@ -252,7 +259,8 @@ class ModelFetcherService:
         self._backoff_duration: dict[str, float] = {}  # cache_key → current backoff
         self._rate_limit_remaining: dict[str, int | None] = {}  # cache_key → remaining
         self._inflight_fetches: BoundedDict[str, asyncio.Task[ModelsResponse]] = BoundedDict(
-            maxlen=64
+            maxlen=64,
+            on_evict=_cancel_evicted_task,
         )
         _ensure_registry()
 

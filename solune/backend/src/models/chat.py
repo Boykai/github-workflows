@@ -129,3 +129,6 @@ class ChatMessagesResponse(BaseModel):
     """Response for listing chat messages."""
 
     messages: list[ChatMessage]
+    total: int | None = None
+    limit: int | None = None
+    offset: int | None = None

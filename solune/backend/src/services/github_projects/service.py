@@ -62,7 +62,10 @@ class GitHubProjectsService(
             client_factory = GitHubClientFactory()
         self._client_factory = client_factory
         self._last_rate_limit: dict[str, int] | None = None
-        self._inflight_graphql: BoundedDict[str, asyncio.Task[dict]] = BoundedDict(maxlen=256)
+        self._inflight_graphql: BoundedDict[str, asyncio.Task[dict]] = BoundedDict(
+            maxlen=256,
+            on_evict=self._cancel_evicted_graphql,
+        )
         self._coalesced_hit_count: int = 0
         self._cycle_cache_hit_count: int = 0
         self._cycle_cache: dict[str, object] = {}
@@ -81,6 +84,12 @@ class GitHubProjectsService(
             )
         self._cycle_cache.clear()
         self._cycle_cache_hit_count = 0
+
+    @staticmethod
+    def _cancel_evicted_graphql(_key: str, task: asyncio.Task) -> None:  # type: ignore[type-arg]
+        """Cancel an evicted GraphQL task that hasn't finished yet."""
+        if not task.done():
+            task.cancel()
 
     def _invalidate_cycle_cache(self, *keys: str) -> None:
         """Remove specific entries from the cycle cache after a write."""

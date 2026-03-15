@@ -117,6 +117,7 @@ async def _auto_start_copilot_polling() -> bool:
                 SELECT project_id, workflow_config FROM project_settings
                 WHERE workflow_config IS NOT NULL
                 ORDER BY updated_at DESC
+                LIMIT 50
                 """,
             )
             owner_only_fallback: str | None = None
