@@ -68,6 +68,7 @@ import {
   ListChecks,
   Settings,
   Boxes,
+  HelpCircle,
 } from 'lucide-react';
 import type { NavRoute } from '@/types';
 
@@ -80,6 +81,7 @@ export const NAV_ROUTES: NavRoute[] = [
   { path: '/tools', label: 'Tools', icon: Wrench },
   { path: '/chores', label: 'Chores', icon: ListChecks },
   { path: '/apps', label: 'Apps', icon: Boxes },
+  { path: '/help', label: 'Help', icon: HelpCircle },
   { path: '/settings', label: 'Settings', icon: Settings },
 ];
 

@@ -20,6 +20,10 @@ os.environ.setdefault("GITHUB_CLIENT_ID", "test-client-id")
 os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-that-is-long-enough")
 os.environ.setdefault("DATABASE_PATH", ":memory:")
+# Pin COPILOT_MODEL so seed_global_settings (which reads the @lru_cache'd
+# get_settings()) always produces the value the tests expect, regardless
+# of the host environment.
+os.environ["COPILOT_MODEL"] = "gpt-4o"
 # Tests run in debug mode to bypass production secret requirements.
 os.environ.setdefault("DEBUG", "true")
 # Disable rate limiting during tests.

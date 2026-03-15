@@ -51,6 +51,7 @@ export function Sidebar({
           <button
             type="button"
             onClick={onToggleTheme}
+            data-tour-step="theme-toggle"
             className={cn('celestial-sigil golden-ring flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_30px_hsl(var(--glow)/0.16)] transition-all hover:scale-[1.03] hover:border-primary/45 hover:bg-primary/14', isDarkMode ? 'text-primary' : 'text-gold')}
             aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -81,12 +82,18 @@ export function Sidebar({
       </div>
 
       {/* Navigation */}
-      <nav className="flex flex-1 flex-col gap-1 px-2 py-4">
+      <nav data-tour-step="sidebar-nav" className="flex flex-1 flex-col gap-1 px-2 py-4">
         {NAV_ROUTES.map((route) => (
           <NavLink
             key={route.path}
             to={route.path}
             end={route.path === '/'}
+            data-tour-step={{
+              '/projects': 'projects-link',
+              '/pipeline': 'pipeline-link',
+              '/agents': 'agents-link',
+              '/help': 'help-link',
+            }[route.path] ?? undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all ${
                 isActive
@@ -138,6 +145,7 @@ export function Sidebar({
         )}
         <button
           onClick={() => setSelectorOpen(!selectorOpen)}
+          data-tour-step="project-selector"
           className={cn('flex w-full items-center gap-2 rounded-full px-3 py-2.5 text-sm transition-colors hover:bg-accent/14', isCollapsed ? 'justify-center' : '')}
           title={
             selectedProject
