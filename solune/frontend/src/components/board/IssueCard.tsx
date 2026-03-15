@@ -9,6 +9,7 @@ import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
 import { cn } from '@/lib/utils';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 
 /** Allowed avatar URL hostnames from GitHub. */
 const ALLOWED_AVATAR_HOSTS = ['avatars.githubusercontent.com'];
@@ -163,7 +164,47 @@ export const IssueCard = memo(function IssueCard({
       )}
 
       {/* Title */}
-      <div className="text-sm font-semibold leading-snug text-foreground">{item.title}</div>
+      <HoverCard openDelay={300} closeDelay={150}>
+        <HoverCardTrigger asChild>
+          <div className="text-sm font-semibold leading-snug text-foreground cursor-default">{item.title}</div>
+        </HoverCardTrigger>
+        <HoverCardContent side="right" align="start" className="w-80">
+          <div className="space-y-2">
+            <p className="text-sm font-medium leading-snug">{item.title}</p>
+            {item.number != null && (
+              <span className="text-xs text-muted-foreground">#{item.number}</span>
+            )}
+            {item.labels && item.labels.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {item.labels.map((label) => (
+                  <span
+                    key={label.name}
+                    className="rounded-full px-2 py-0.5 text-[10px] font-medium"
+                    style={{
+                      backgroundColor: `#${label.color}20`,
+                      color: `#${label.color}`,
+                      boxShadow: `inset 0 0 0 1px #${label.color}40`,
+                    }}
+                  >
+                    {label.name}
+                  </span>
+                ))}
+              </div>
+            )}
+            {item.assignees && item.assignees.length > 0 && (
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-muted-foreground">Assignees:</span>
+                {item.assignees.slice(0, 3).map((assignee) => (
+                  <span key={assignee.login} className="text-xs font-medium">{assignee.login}</span>
+                ))}
+                {item.assignees.length > 3 && (
+                  <span className="text-[10px] text-muted-foreground">+{item.assignees.length - 3}</span>
+                )}
+              </div>
+            )}
+          </div>
+        </HoverCardContent>
+      </HoverCard>
 
       {/* Pipeline Status Badges */}
       {(agentSlug || pipelineConfig || isStalled) && (
