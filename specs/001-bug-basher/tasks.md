@@ -72,7 +72,7 @@ See `specs/001-bug-basher/contracts/bug-report-schema.md` for the full contract.
 
 ### Audit & Fix: Backend Security — Services
 
-- [ ] T014 [US1] Audit `solune/backend/src/services/encryption.py` for key management flaws, fallback-to-plaintext behavior, and algorithm weaknesses — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/test_token_encryption.py`
+- [x] T014 [US1] Audit `solune/backend/src/services/encryption.py` for key management flaws, fallback-to-plaintext behavior, and algorithm weaknesses — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/test_token_encryption.py`
 - [ ] T015 [P] [US1] Audit `solune/backend/src/services/github_auth.py` for OAuth scope issues, token handling, and authentication bypass risks — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/test_github_auth.py`
 - [ ] T016 [P] [US1] Audit `solune/backend/src/services/guard_service.py` for path protection bypass risks and guard evaluation logic — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/test_admin_authorization.py`
 - [ ] T017 [P] [US1] Audit `solune/backend/src/services/app_service.py` for path traversal vulnerabilities in `_safe_app_path()` and filesystem operations — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/`
@@ -81,7 +81,7 @@ See `specs/001-bug-basher/contracts/bug-report-schema.md` for the full contract.
 
 ### Audit & Fix: Backend Security — Middleware & Core
 
-- [ ] T020 [US1] Audit `solune/backend/src/middleware/admin_guard.py` for authentication bypass via missing or spoofable `X-Target-Paths` header validation — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/test_middleware.py`
+- [x] T020 [US1] Audit `solune/backend/src/middleware/admin_guard.py` for authentication bypass via missing or spoofable `X-Target-Paths` header validation — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/test_middleware.py`
 - [ ] T021 [P] [US1] Audit `solune/backend/src/middleware/csp.py` for Content Security Policy header completeness and correctness — fix confirmed bugs, add regression tests
 - [ ] T022 [P] [US1] Audit `solune/backend/src/middleware/rate_limit.py` for bypass risks and coverage gaps — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/test_rate_limiting.py`
 - [ ] T023 [P] [US1] Audit `solune/backend/src/config.py` for hardcoded secrets, insecure defaults, and missing environment variable validation — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/test_config.py`
@@ -104,7 +104,7 @@ See `specs/001-bug-basher/contracts/bug-report-schema.md` for the full contract.
 
 ### Security Summary & TODO Flags
 
-- [ ] T031 [US1] For each ambiguous security finding, add `# TODO(bug-bash):` comment per contract format in `specs/001-bug-basher/contracts/bug-report-schema.md` — document issue, options, and rationale for deferral
+- [x] T031 [US1] For each ambiguous security finding, add `# TODO(bug-bash):` comment per contract format in `specs/001-bug-basher/contracts/bug-report-schema.md` — document issue, options, and rationale for deferral
 - [ ] T032 [US1] Run full backend test suite `cd solune/backend && python -m pytest tests/ -v` and frontend test suite `cd solune/frontend && npm test` — verify all pass including new security regression tests
 - [ ] T033 [US1] Run linting `cd solune/backend && python -m ruff check src tests` and `cd solune/frontend && npm run lint` — verify clean after security fixes
 
@@ -137,7 +137,7 @@ See `specs/001-bug-basher/contracts/bug-report-schema.md` for the full contract.
 ### Audit & Fix: Backend Runtime — Async & Timestamps
 
 - [ ] T041 [US2] Audit `solune/backend/src/services/websocket.py`, `solune/backend/src/services/signal_bridge.py`, and `solune/backend/src/services/copilot_polling/` for race conditions on shared mutable state — focus on `polling_loop.py`, `state.py`, `recovery.py` — fix confirmed bugs, add regression tests
-- [ ] T042 [P] [US2] Audit all `datetime.fromisoformat()` calls across backend for trailing `Z` handling — verify Python 3.13 compatibility and check for incorrect manual Z-stripping workarounds — fix confirmed bugs, add regression tests
+- [x] T042 [P] [US2] Audit all `datetime.fromisoformat()` calls across backend for trailing `Z` handling — verify Python 3.13 compatibility and check for incorrect manual Z-stripping workarounds — fix confirmed bugs, add regression tests
 - [ ] T043 [P] [US2] Audit `solune/backend/src/services/cleanup_service.py` for resource cleanup edge cases and unhandled errors during cleanup operations — fix confirmed bugs, add regression tests in `solune/backend/tests/unit/test_cleanup_service.py`
 
 ### Audit & Fix: Frontend Runtime
@@ -266,7 +266,7 @@ See `specs/001-bug-basher/contracts/bug-report-schema.md` for the full contract.
 
 ### Code Quality TODO Flags & Validation
 
-- [ ] T090 [US5] For each ambiguous code quality finding that would require API changes or architectural modification, add `# TODO(bug-bash):` comment per contract format
+- [x] T090 [US5] For each ambiguous code quality finding that would require API changes or architectural modification, add `# TODO(bug-bash):` comment per contract format
 - [ ] T091 [US5] Run full backend and frontend test suites — verify all pass after code quality fixes
 - [ ] T092 [US5] Run linting and formatting checks — `cd solune/backend && python -m ruff check src tests && python -m ruff format --check src tests` and `cd solune/frontend && npm run lint` — verify clean
 
