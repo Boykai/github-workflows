@@ -1,5 +1,5 @@
 # Test App
 
-desc
+A test application
 
 Created by the Solune platform.
