@@ -275,6 +275,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite (async); consolidated schema at `solune/backend/src/migrations/023_consolidated_schema.sql` (001-bug-basher)
 - Python ≥ 3.12 (Ruff targets 3.13, Pyright targets 3.13) · TypeScript ~5.9 (strict mode, ES2022 target) + FastAPI ≥ 0.135, githubkit ≥ 0.14.6, httpx ≥ 0.28, Pydantic ≥ 2.12 (backend) · React 19.2, TanStack React Query 5.90, Vite, @dnd-kit (frontend) (001-performance-review)
 - SQLite via aiosqlite (session/config) · In-memory TTL cache (`InMemoryCache` in `services/cache.py`) (001-performance-review)
+- TypeScript 5.9 (frontend), React 19.2.0 + `@radix-ui/react-tooltip@^1.2.8` (existing), `@radix-ui/react-hover-card` (new — Phase 1), `@radix-ui/react-popover` (new — Phase 1), `@radix-ui/react-slot@^1.2.4` (existing), `@dnd-kit/core` (existing, for drag-and-drop), Tailwind CSS 4.2 (existing) (002-tooltip-hover-coverage)
+- N/A — frontend-only feature; no backend changes (002-tooltip-hover-coverage)
 - Python 3.12+ (target: 3.13 per pyproject.toml `target-version = "py313"`) + FastAPI ≥0.135, Pydantic ≥2.12, aiosqlite ≥0.22, httpx (via githubkit), slowapi ≥0.1.9, websockets ≥16.0, uvicorn ≥0.41 (002-backend-modernization)
 - SQLite via aiosqlite (WAL mode) at `/var/lib/solune/data/settings.db` (002-backend-modernization)
 - TypeScript ~5.9.0, React ^19.2.0 + React Router ^7.13.1, Tailwind CSS ^4.2.0, Lucide React ^0.577.0, class-variance-authority ^0.7.1, Radix UI (tooltip ^1.2.8, slot ^1.2.4) (042-onboarding-help-faq)

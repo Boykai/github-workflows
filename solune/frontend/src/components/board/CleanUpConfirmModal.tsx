@@ -354,7 +354,6 @@ function ToggleButton({ willDelete, onClick }: { willDelete: boolean; onClick: (
       onClick={onClick}
       className="shrink-0 rounded p-1 transition-colors hover:bg-primary/10"
       aria-label={willDelete ? 'Preserve this item' : 'Mark for deletion'}
-      title={willDelete ? 'Click to preserve' : 'Click to delete'}
     >
       {willDelete ? (
         <ShieldOff className="h-3.5 w-3.5 text-destructive" />

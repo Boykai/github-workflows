@@ -7,6 +7,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { NAV_ROUTES } from '@/constants';
 import { Moon, PanelLeftClose, PanelLeft, Sun } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
+import { Tooltip } from '@/components/ui/tooltip';
+import type { TooltipContentKey } from '@/constants/tooltip-content';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import type { RecentInteraction } from '@/types';
 import type { Project } from '@/types';
@@ -48,16 +50,16 @@ export function Sidebar({
       {/* Brand */}
       <div className={cn('relative flex border-b border-border/70 px-4 py-4', isCollapsed ? 'flex-col items-center gap-3' : 'items-center justify-between')}>
         <div className={cn('flex items-center gap-3', isCollapsed && 'justify-center')}>
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            data-tour-step="theme-toggle"
-            className={cn('celestial-sigil golden-ring flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_30px_hsl(var(--glow)/0.16)] transition-all hover:scale-[1.03] hover:border-primary/45 hover:bg-primary/14', isDarkMode ? 'text-primary' : 'text-gold')}
-            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-          </button>
+          <Tooltip contentKey="settings.theme.toggle">
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              className={cn('celestial-sigil golden-ring flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_30px_hsl(var(--glow)/0.16)] transition-all hover:scale-[1.03] hover:border-primary/45 hover:bg-primary/14', isDarkMode ? 'text-primary' : 'text-gold')}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            </button>
+          </Tooltip>
           {!isCollapsed && (
             <div>
               <span className="block text-lg font-display font-medium tracking-[0.08em] text-foreground">
@@ -72,13 +74,15 @@ export function Sidebar({
             </div>
           )}
         </div>
-        <button
-          onClick={onToggle}
-          className="celestial-focus rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground focus-visible:outline-none"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-        </button>
+        <Tooltip contentKey="nav.sidebar.toggle">
+          <button
+            onClick={onToggle}
+            className="celestial-focus rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground focus-visible:outline-none"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
+          </button>
+        </Tooltip>
       </div>
 
       {/* Navigation */}

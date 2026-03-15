@@ -40,7 +40,7 @@ function SyncStatusBadge({ status, error }: { status: string; error?: string }) 
 
 export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting }: ToolCardProps) {
   return (
-    <Card className="moonwell rounded-[1.35rem] border-border/75 shadow-none transition-colors hover:border-primary/20">
+    <Card className="moonwell rounded-[1.35rem] border-border/75 shadow-none transition-all hover:border-primary/20 hover:ring-1 hover:ring-border hover:bg-accent/50">
       <CardContent className="p-4 sm:p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 min-w-0">
