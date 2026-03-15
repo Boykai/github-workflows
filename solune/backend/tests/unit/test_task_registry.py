@@ -68,22 +68,24 @@ class TestDrain:
 
     async def test_drain_empty_registry(self) -> None:
         reg = TaskRegistry()
-        undrained = await reg.drain(timeout=1.0)
+        undrained = await reg.drain(drain_timeout=1.0)
         assert undrained == []
 
     async def test_drain_completes_fast_tasks(self) -> None:
         reg = TaskRegistry()
         reg.create_task(_noop(), name="fast")
-        undrained = await reg.drain(timeout=5.0)
+        undrained = await reg.drain(drain_timeout=5.0)
         assert undrained == []
         assert reg.pending_count == 0
 
     async def test_drain_cancels_slow_tasks(self) -> None:
         reg = TaskRegistry()
         reg.create_task(_sleep_forever(), name="slow")
-        undrained = await reg.drain(timeout=0.1)
-        # The slow task should have been cancelled (and thus complete).
-        assert undrained == []
+        undrained = await reg.drain(drain_timeout=0.1)
+        # The slow task exceeded the drain timeout so it should be reported
+        # even though cancellation eventually succeeds.
+        assert len(undrained) == 1
+        assert undrained[0].get_name() == "slow"
         await asyncio.sleep(0.05)
         assert reg.pending_count == 0
 
@@ -125,7 +127,7 @@ class TestConcurrentCreateDuringDrain:
 
         helper = TaskRegistry()
         helper.create_task(_add_during_drain(), name="helper")
-        await reg.drain(timeout=0.2)
+        await reg.drain(drain_timeout=0.2)
         # The new task should have completed on its own.
         await asyncio.sleep(0.05)
         assert reg.pending_count == 0

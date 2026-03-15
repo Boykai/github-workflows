@@ -29,6 +29,13 @@ class TestCacheKeyScoping:
         assert key_a != key_b
 
     def test_backward_compatible_without_project_id(self) -> None:
-        """When project_id is omitted, keys match the old format."""
-        key = cache_key_issue_pr(42, 101)
-        assert key == "42:101"
+        """When project_id is omitted, keys match the old format but emit a deprecation warning."""
+        import warnings
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            key = cache_key_issue_pr(42, 101)
+            assert key == "42:101"
+            assert len(w) == 1
+            assert issubclass(w[0].category, DeprecationWarning)
+            assert "project_id" in str(w[0].message)

@@ -47,7 +47,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         # Validate state-changing requests.
         if request.method not in _SAFE_METHODS and not self._is_exempt(request.url.path):
             header_token = request.headers.get(_CSRF_HEADER, "")
-            if not header_token or header_token != csrf_cookie:
+            if not header_token or not secrets.compare_digest(header_token, csrf_cookie):
                 from fastapi.responses import JSONResponse
 
                 return JSONResponse(

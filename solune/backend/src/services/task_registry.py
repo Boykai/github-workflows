@@ -52,8 +52,8 @@ class TaskRegistry:
         task.add_done_callback(self._task_done)
         return task
 
-    async def drain(self, timeout: float = 30.0) -> list[asyncio.Task]:  # type: ignore[type-arg]
-        """Await all pending tasks up to *timeout* seconds.
+    async def drain(self, drain_timeout: float = 30.0) -> list[asyncio.Task]:  # type: ignore[type-arg]
+        """Await all pending tasks up to *drain_timeout* seconds.
 
         Tasks that do not complete in time are cancelled and returned so the
         caller can inspect them.
@@ -63,7 +63,7 @@ class TaskRegistry:
             return []
 
         logger.info("TaskRegistry draining %d pending task(s) …", len(pending))
-        _done, still_pending = await asyncio.wait(pending, timeout=timeout)
+        _done, still_pending = await asyncio.wait(pending, timeout=drain_timeout)
 
         # Cancel tasks that exceeded the timeout.
         for t in still_pending:
@@ -72,14 +72,16 @@ class TaskRegistry:
         if still_pending:
             await asyncio.wait(still_pending, timeout=5.0)
 
-        undrained = [t for t in still_pending if not t.done()]
-        if undrained:
+        # Return all tasks that exceeded the initial timeout so callers
+        # have full visibility, even if cancellation eventually succeeded.
+        timed_out = list(still_pending)
+        if timed_out:
             logger.warning(
-                "TaskRegistry: %d task(s) did not complete after drain: %s",
-                len(undrained),
-                [t.get_name() for t in undrained],
+                "TaskRegistry: %d task(s) exceeded drain timeout: %s",
+                len(timed_out),
+                [t.get_name() for t in timed_out],
             )
-        return undrained
+        return timed_out
 
     def cancel_all(self) -> None:
         """Cancel every non-done task in the registry."""

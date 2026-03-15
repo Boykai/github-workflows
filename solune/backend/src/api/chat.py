@@ -734,12 +734,38 @@ async def get_messages(
     limit: int = 50,
     offset: int = 0,
 ) -> ChatMessagesResponse:
-    """Get chat messages for current session with pagination."""
+    """Get chat messages for current session with pagination.
+
+    Pagination is performed at the database level to avoid loading all
+    rows into memory for sessions with large message histories.
+    """
+    from src.services import chat_store
+
     limit = max(1, min(limit, 200))
     offset = max(0, offset)
-    messages = await get_session_messages(session.session_id)
-    total = len(messages)
-    paginated = messages[offset : offset + limit]
+    key = str(session.session_id)
+
+    db = get_db()
+    total = await chat_store.count_messages(db, key)
+    rows = await chat_store.get_messages(db, key, limit=limit, offset=offset)
+    paginated: list[ChatMessage] = []
+    for row in rows:
+        action_data = None
+        if row.get("action_data"):
+            try:
+                action_data = json.loads(row["action_data"])
+            except (json.JSONDecodeError, TypeError):
+                action_data = None
+        paginated.append(
+            ChatMessage(
+                message_id=row["message_id"],
+                session_id=row["session_id"],
+                sender_type=SenderType(row["sender_type"]),
+                content=row["content"],
+                action_type=ActionType(row["action_type"]) if row.get("action_type") else None,
+                action_data=action_data,
+            )
+        )
     return ChatMessagesResponse(
         messages=paginated,
         total=total,

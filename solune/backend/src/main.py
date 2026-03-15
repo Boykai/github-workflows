@@ -403,12 +403,13 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
             for exc in eg.exceptions:
                 logger.error("Background task failed during lifespan: %s", exc, exc_info=exc)
     finally:
-        # Drain fire-and-forget tasks tracked by the registry before
-        # tearing down the database connection.
-        await task_registry.drain(timeout=30.0)
-
+        # Stop known long-lived tasks first so they don't block the drain.
         if signal_started:
             await stop_signal_ws_listener()
+
+        # Drain remaining fire-and-forget tasks tracked by the registry
+        # before tearing down the database connection.
+        await task_registry.drain(drain_timeout=30.0)
 
         # Stop Copilot polling if it was auto-started or started via the UI
         try:

@@ -1,5 +1,7 @@
 """Application-wide constants."""
 
+import warnings
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Workflow Status Names
@@ -102,6 +104,13 @@ def cache_key_issue_pr(
     Scoped to *project_id* to prevent collisions across projects with
     the same issue/PR numbers.
     """
+    if not project_id:
+        warnings.warn(
+            "cache_key_issue_pr() called without project_id — cache key is unscoped "
+            "and may collide across projects. Pass project_id explicitly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     prefix = f"{project_id}:" if project_id else ""
     return f"{prefix}{issue_number}:{pr_number}"
 
@@ -113,12 +122,26 @@ def cache_key_agent_output(
     project_id: str = "",
 ) -> str:
     """Generate cache key for posted agent outputs."""
+    if not project_id:
+        warnings.warn(
+            "cache_key_agent_output() called without project_id — cache key is unscoped "
+            "and may collide across projects. Pass project_id explicitly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     prefix = f"{project_id}:" if project_id else ""
     return f"{prefix}{issue_number}:{agent}:{pr_number}"
 
 
 def cache_key_review_requested(issue_number: int, project_id: str = "") -> str:
     """Generate cache key for Copilot review request tracking."""
+    if not project_id:
+        warnings.warn(
+            "cache_key_review_requested() called without project_id — cache key is unscoped "
+            "and may collide across projects. Pass project_id explicitly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
     prefix = f"{project_id}:" if project_id else ""
     return f"{prefix}copilot_review_requested:{issue_number}"
 

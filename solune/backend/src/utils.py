@@ -70,8 +70,8 @@ class BoundedDict[K, V]:
 
     Backed by an ``OrderedDict`` to maintain insertion order.
 
-    An optional *on_evict* callback is called with ``(key, value)`` just
-    before an entry is evicted to make room for a new one.
+    An optional *on_evict* callback is called with ``(key, value)`` when
+    an entry is evicted to make room for a new one (after removal).
     """
 
     def __init__(

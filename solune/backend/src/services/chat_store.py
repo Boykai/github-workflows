@@ -60,14 +60,30 @@ async def save_message(
 async def get_messages(
     db: aiosqlite.Connection,
     session_id: str,
+    *,
+    limit: int | None = None,
+    offset: int = 0,
 ) -> list[dict]:
-    """Retrieve all messages for a session, ordered by timestamp."""
-    cursor = await db.execute(
-        """SELECT message_id, session_id, sender_type, content,
-                  action_type, action_data, timestamp
-           FROM chat_messages WHERE session_id = ? ORDER BY timestamp""",
-        (session_id,),
-    )
+    """Retrieve messages for a session, ordered by timestamp.
+
+    When *limit* is provided, only *limit* rows starting at *offset* are
+    returned (SQL-level pagination).  Otherwise all rows are fetched.
+    """
+    if limit is not None:
+        cursor = await db.execute(
+            """SELECT message_id, session_id, sender_type, content,
+                      action_type, action_data, timestamp
+               FROM chat_messages WHERE session_id = ? ORDER BY timestamp
+               LIMIT ? OFFSET ?""",
+            (session_id, limit, offset),
+        )
+    else:
+        cursor = await db.execute(
+            """SELECT message_id, session_id, sender_type, content,
+                      action_type, action_data, timestamp
+               FROM chat_messages WHERE session_id = ? ORDER BY timestamp""",
+            (session_id,),
+        )
     rows = await cursor.fetchall()
     result = []
     for row in rows:
@@ -86,6 +102,19 @@ async def get_messages(
         else:
             result.append(dict(row))
     return result
+
+
+async def count_messages(
+    db: aiosqlite.Connection,
+    session_id: str,
+) -> int:
+    """Return the total number of messages for a session."""
+    cursor = await db.execute(
+        "SELECT COUNT(*) FROM chat_messages WHERE session_id = ?",
+        (session_id,),
+    )
+    row = await cursor.fetchone()
+    return row[0] if row else 0
 
 
 async def clear_messages(
