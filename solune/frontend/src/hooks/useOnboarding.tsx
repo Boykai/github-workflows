@@ -1,9 +1,10 @@
 /**
  * useOnboarding — manages onboarding spotlight tour state with localStorage persistence.
+ * Uses React Context so all consumers (SpotlightTour, HelpPage) share the same state.
  * Follows the useSidebarState try/catch pattern for localStorage access.
  */
 
-import { useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'solune-onboarding-completed';
 const TOTAL_STEPS = 9;
@@ -24,7 +25,20 @@ function saveCompleted(value: boolean): void {
   }
 }
 
-export function useOnboarding() {
+interface OnboardingContextValue {
+  isActive: boolean;
+  hasCompleted: boolean;
+  currentStep: number;
+  totalSteps: number;
+  next: () => void;
+  prev: () => void;
+  skip: () => void;
+  restart: () => void;
+}
+
+const OnboardingContext = createContext<OnboardingContextValue | undefined>(undefined);
+
+export function OnboardingProvider({ children }: { children: React.ReactNode }) {
   const [hasCompleted, setHasCompleted] = useState(loadCompleted);
   const [isActive, setIsActive] = useState(() => !loadCompleted());
   const [currentStep, setCurrentStep] = useState(0);
@@ -56,14 +70,19 @@ export function useOnboarding() {
     setIsActive(true);
   }, []);
 
-  return {
-    isActive,
-    hasCompleted,
-    currentStep,
-    totalSteps: TOTAL_STEPS,
-    next,
-    prev,
-    skip,
-    restart,
-  };
+  return (
+    <OnboardingContext.Provider
+      value={{ isActive, hasCompleted, currentStep, totalSteps: TOTAL_STEPS, next, prev, skip, restart }}
+    >
+      {children}
+    </OnboardingContext.Provider>
+  );
+}
+
+export function useOnboarding(): OnboardingContextValue {
+  const ctx = useContext(OnboardingContext);
+  if (!ctx) {
+    throw new Error('useOnboarding must be used within an OnboardingProvider');
+  }
+  return ctx;
 }

@@ -170,13 +170,13 @@ export function SpotlightTooltip({
         aria-modal="true"
         aria-label={`Tour step ${currentStep + 1}: ${step.title}`}
         tabIndex={-1}
-        className="celestial-panel golden-ring celestial-fade-in fixed bottom-0 left-0 right-0 z-[101] rounded-t-2xl border-t border-border/70 p-6"
+        className="celestial-panel golden-ring celestial-fade-in fixed bottom-0 left-0 right-0 z-[101] overflow-hidden rounded-t-2xl border-t border-border/70 p-6"
       >
         {/* Drag handle indicator */}
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted-foreground/30" />
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-            <Icon className="h-5 w-5" />
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-primary">
+            <Icon className="h-5 w-5 shrink-0" />
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground">
@@ -216,7 +216,7 @@ export function SpotlightTooltip({
       aria-label={`Tour step ${currentStep + 1}: ${step.title}`}
       tabIndex={-1}
       className={cn(
-        'celestial-panel golden-ring celestial-fade-in fixed z-[101] w-[340px] rounded-2xl border border-border/70 p-5',
+        'celestial-panel golden-ring celestial-fade-in fixed z-[101] w-[340px] overflow-hidden rounded-2xl border border-border/70 p-5',
       )}
       style={{
         top: position.top,
@@ -224,8 +224,8 @@ export function SpotlightTooltip({
       }}
     >
       <div className="flex items-start gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
-          <Icon className="h-5 w-5" />
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-primary">
+          <Icon className="h-5 w-5 shrink-0" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">

@@ -22,8 +22,8 @@ export function FeatureGuideCard({ title, description, icon: Icon, href }: Featu
         'transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:shadow-md',
       )}
     >
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary">
-        <Icon className="h-5 w-5" />
+      <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/15 text-primary">
+        <Icon className="h-5 w-5 shrink-0" />
       </div>
       <div>
         <h4 className="text-sm font-semibold text-foreground">{title}</h4>

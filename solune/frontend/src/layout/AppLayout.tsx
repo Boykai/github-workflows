@@ -19,6 +19,7 @@ import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ChatPopup } from '@/components/chat/ChatPopup';
 import { SpotlightTour } from '@/components/onboarding/SpotlightTour';
+import { OnboardingProvider } from '@/hooks/useOnboarding';
 import { RateLimitProvider } from '@/context/RateLimitContext';
 
 /** Dismissible Signal conflict banner bar. */
@@ -84,6 +85,7 @@ export function AppLayout() {
   const { confirmRecommendation, rejectRecommendation } = useWorkflow();
 
   return (
+    <OnboardingProvider>
     <RateLimitProvider>
       <div className="celestial-shell starfield relative flex h-screen overflow-hidden bg-background text-foreground">
         <div className="pointer-events-none absolute inset-0 opacity-90">
@@ -165,5 +167,6 @@ export function AppLayout() {
         />
       </div>
     </RateLimitProvider>
+    </OnboardingProvider>
   );
 }

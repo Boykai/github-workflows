@@ -10,7 +10,7 @@ interface IconProps {
 /** Welcome step — sun left, crescent moon right */
 export function SunMoonIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
       <circle cx={8} cy={12} r={4} />
       <line x1={8} y1={4} x2={8} y2={2} />
       <line x1={8} y1={22} x2={8} y2={20} />
@@ -25,7 +25,7 @@ export function SunMoonIcon({ className }: IconProps) {
 /** Sidebar navigation — compass rose */
 export function CompassRoseIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
       <circle cx={12} cy={12} r={9} />
       <polygon points="12,3.5 13.5,10.5 12,9 10.5,10.5" />
       <polygon points="12,20.5 13.5,13.5 12,15 10.5,13.5" />
@@ -38,7 +38,7 @@ export function CompassRoseIcon({ className }: IconProps) {
 /** Project selector — star chart */
 export function StarChartIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
       <rect x={3} y={3} width={18} height={18} rx={2} />
       <circle cx={8} cy={8} r={1} />
       <circle cx={16} cy={7} r={1} />
@@ -56,7 +56,7 @@ export function StarChartIcon({ className }: IconProps) {
 /** Chat toggle — chat bubble with stars */
 export function ChatStarsIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
       <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
       <circle cx={9} cy={10} r={0.75} />
       <circle cx={15} cy={8} r={0.75} />
@@ -68,7 +68,7 @@ export function ChatStarsIcon({ className }: IconProps) {
 /** Projects board — constellation grid */
 export function ConstellationGridIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
       <rect x={3} y={3} width={7} height={7} rx={1} />
       <rect x={14} y={3} width={7} height={7} rx={1} />
       <rect x={3} y={14} width={7} height={7} rx={1} />
@@ -83,7 +83,7 @@ export function ConstellationGridIcon({ className }: IconProps) {
 /** Agent pipelines — orbital rings */
 export function OrbitalRingsIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
       <circle cx={12} cy={12} r={3} />
       <ellipse cx={12} cy={12} rx={10} ry={4} />
       <ellipse cx={12} cy={12} rx={10} ry={4} transform="rotate(60 12 12)" />
@@ -95,7 +95,7 @@ export function OrbitalRingsIcon({ className }: IconProps) {
 /** Agents — celestial hand (open palm with rays) */
 export function CelestialHandIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
       <path d="M8 13V6.5a1.5 1.5 0 0 1 3 0V11" />
       <path d="M11 10.5V5a1.5 1.5 0 0 1 3 0v6" />
       <path d="M14 11V6.5a1.5 1.5 0 0 1 3 0v5.5" />
@@ -110,7 +110,7 @@ export function CelestialHandIcon({ className }: IconProps) {
 /** Theme toggle — half sun, half moon */
 export function SunMoonToggleIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
       <circle cx={12} cy={12} r={5} />
       <path d="M12 7V2" />
       <path d="M12 22v-5" />
@@ -124,7 +124,7 @@ export function SunMoonToggleIcon({ className }: IconProps) {
 /** Help link — open book with stars */
 export function BookStarsIcon({ className }: IconProps) {
   return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
       <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
       <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
       <circle cx={6} cy={8} r={0.75} />
