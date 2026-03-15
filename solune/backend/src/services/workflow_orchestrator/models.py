@@ -200,7 +200,8 @@ class PipelineState:
                 if len(group.agent_statuses) < len(group.agents):
                     return False
                 return all(s in ("completed", "failed") for s in group.agent_statuses.values())
-            return False
+            # Sequential group: complete when index is past all agents
+            return self.current_agent_index_in_group >= len(group.agents)
         # Flat fallback (existing behavior)
         if self.execution_mode == "parallel" and self.parallel_agent_statuses:
             return all(s in ("completed", "failed") for s in self.parallel_agent_statuses.values())
