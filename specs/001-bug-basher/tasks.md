@@ -13,6 +13,18 @@
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
 - Include exact file paths in descriptions
 
+## TODO Comment Format (Quick Reference)
+
+For ambiguous bugs, use this format at the relevant code location:
+
+```python
+# TODO(bug-bash): <issue description>.
+# Options: (a) <option 1>, (b) <option 2>.
+# Deferred because: <rationale for human review>.
+```
+
+See `specs/001-bug-basher/contracts/bug-report-schema.md` for the full contract.
+
 ## Path Conventions
 
 - **Backend**: `solune/backend/src/`, `solune/backend/tests/`
