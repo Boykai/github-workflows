@@ -156,6 +156,21 @@ def _row_to_pipeline_state(row) -> Any:
 
     # Reconstruct PipelineState with stored + metadata fields
     agents = metadata.get("agents", [agent_name] if agent_name else [])
+
+    # Parse started_at defensively — malformed timestamps in persisted
+    # metadata must not crash the entire state reload.
+    started_at_val = None
+    if metadata.get("started_at"):
+        try:
+            started_at_val = datetime.fromisoformat(metadata["started_at"])
+        except (ValueError, TypeError):
+            logger.error(
+                "Corrupt started_at timestamp for issue %d: %r",
+                issue_number,
+                metadata["started_at"],
+                exc_info=True,
+            )
+
     return PipelineState(
         issue_number=issue_number,
         project_id=project_id,
@@ -163,9 +178,7 @@ def _row_to_pipeline_state(row) -> Any:
         agents=agents,
         current_agent_index=metadata.get("current_agent_index", 0),
         completed_agents=metadata.get("completed_agents", []),
-        started_at=datetime.fromisoformat(metadata["started_at"])
-        if metadata.get("started_at")
-        else None,
+        started_at=started_at_val,
         error=metadata.get("error"),
         agent_assigned_sha=metadata.get("agent_assigned_sha", ""),
         agent_sub_issues=sub_issues,

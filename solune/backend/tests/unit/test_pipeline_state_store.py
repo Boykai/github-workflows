@@ -663,3 +663,53 @@ class TestErrorHandling:
 
         result = await store.get_main_branch_async(999)
         assert result is None
+
+
+class TestRowConversionCorruptTimestamp:
+    """Bug-bash regression: _row_to_pipeline_state must not crash on a
+    malformed ``started_at`` timestamp in persisted metadata JSON.
+
+    Previously, ``datetime.fromisoformat()`` was called without a
+    try/except, so a corrupt value would raise ``ValueError`` and
+    prevent the entire state reload from completing.
+    """
+
+    async def test_corrupt_started_at_returns_none(self, mock_db: aiosqlite.Connection):
+        """A pipeline with a malformed started_at should load with started_at=None."""
+        metadata = {
+            "agents": ["tester"],
+            "current_agent_index": 0,
+            "completed_agents": [],
+            "started_at": "not-a-valid-date",
+            "error": None,
+            "agent_assigned_sha": "",
+        }
+        await mock_db.execute(
+            """INSERT INTO pipeline_states
+               (issue_number, project_id, status, agent_name, agent_instance_id,
+                pr_number, pr_url, sub_issues, metadata, created_at, updated_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'))""",
+            (
+                999,
+                "PVT_test",
+                "In Progress",
+                "tester",
+                None,
+                None,
+                None,
+                "{}",
+                json.dumps(metadata),
+            ),
+        )
+        await mock_db.commit()
+
+        cursor = await mock_db.execute(
+            "SELECT * FROM pipeline_states WHERE issue_number = ?", (999,)
+        )
+        row = await cursor.fetchone()
+        assert row is not None
+
+        state = store._row_to_pipeline_state(row)
+        # Must not crash; started_at should gracefully fall back to None
+        assert state.started_at is None
+        assert state.issue_number == 999
