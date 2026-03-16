@@ -49,16 +49,17 @@ export function Sidebar({
       {/* Brand */}
       <div className={cn('relative flex border-b border-border/70 px-4 py-4', isCollapsed ? 'flex-col items-center gap-3' : 'items-center justify-between')}>
         <div className={cn('flex items-center gap-3', isCollapsed && 'justify-center')}>
-          <button
-            type="button"
-            onClick={onToggleTheme}
-            data-tour-step="theme-toggle"
-            className={cn('celestial-sigil golden-ring flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_30px_hsl(var(--glow)/0.16)] transition-all hover:scale-[1.03] hover:border-primary/45 hover:bg-primary/14', isDarkMode ? 'text-primary' : 'text-gold')}
-            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-            title={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-          </button>
+          <Tooltip contentKey="settings.theme.toggle">
+            <button
+              type="button"
+              onClick={onToggleTheme}
+              data-tour-step="theme-toggle"
+              className={cn('celestial-sigil golden-ring flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_30px_hsl(var(--glow)/0.16)] transition-all hover:scale-[1.03] hover:border-primary/45 hover:bg-primary/14', isDarkMode ? 'text-primary' : 'text-gold')}
+              aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {isDarkMode ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
+            </button>
+          </Tooltip>
           {!isCollapsed && (
             <div>
               <span className="block text-lg font-display font-medium tracking-[0.08em] text-foreground">

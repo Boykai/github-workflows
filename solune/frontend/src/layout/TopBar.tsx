@@ -3,7 +3,7 @@
  */
 
 import { HelpCircle } from 'lucide-react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { Breadcrumb } from './Breadcrumb';
 import { NotificationBell } from './NotificationBell';
 import { LoginButton } from '@/components/auth/LoginButton';
@@ -21,24 +21,22 @@ interface TopBarProps {
 }
 
 function HelpButton() {
-  const navigate = useNavigate();
-  const { pathname } = useLocation();
-  const isActive = pathname === '/help';
-
   return (
-    <button
-      type="button"
-      onClick={() => navigate('/help')}
+    <NavLink
+      to="/help"
+      data-tour-step="help-link"
       aria-label="Help"
-      className={cn(
-        'celestial-focus flex h-9 w-9 items-center justify-center rounded-full border transition-colors',
-        isActive
-          ? 'border-primary/30 bg-primary/14 text-primary'
-          : 'border-transparent text-muted-foreground hover:border-border hover:bg-primary/10 hover:text-foreground',
-      )}
+      className={({ isActive }) =>
+        cn(
+          'celestial-focus flex h-9 w-9 items-center justify-center rounded-full border transition-colors',
+          isActive
+            ? 'border-primary/30 bg-primary/14 text-primary'
+            : 'border-transparent text-muted-foreground hover:border-border hover:bg-primary/10 hover:text-foreground',
+        )
+      }
     >
       <HelpCircle className="h-5 w-5" />
-    </button>
+    </NavLink>
   );
 }
 
