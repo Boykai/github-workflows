@@ -59,7 +59,7 @@ describe('AppsPage', () => {
     render(<AppsPage />);
 
     await userEvent.click(screen.getByRole('button', { name: /new app/i }));
-  await userEvent.type(screen.getByLabelText(/^name$/i), 'my-awesome-app');
+    await userEvent.type(screen.getByLabelText(/^name$/i), 'my-awesome-app');
     await userEvent.type(screen.getByLabelText(/display name/i), '  My Awesome App  ');
     await userEvent.type(screen.getByLabelText(/description/i), '  Sample app  ');
     await userEvent.type(screen.getByLabelText(/target branch/i), '  feature/my-app  ');

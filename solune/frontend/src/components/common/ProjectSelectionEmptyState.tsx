@@ -65,15 +65,17 @@ export function ProjectSelectionEmptyState({
       <div ref={containerRef} className="flex w-full max-w-xl flex-col items-center">
         <button
           type="button"
-          onClick={() => {
-            if (showProjectPicker) {
-              setIsOpen((current) => !current);
-            }
-          }}
+          onClick={showProjectPicker ? () => setIsOpen((current) => !current) : undefined}
+          disabled={!showProjectPicker}
           aria-expanded={showProjectPicker ? isOpen : undefined}
           aria-haspopup={showProjectPicker ? 'listbox' : undefined}
           aria-label={showProjectPicker ? 'Choose a GitHub project' : 'Project orbit'}
-          className="group relative mb-5 flex h-24 w-24 items-center justify-center rounded-full transition-transform duration-200 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className={cn(
+            'group relative mb-5 flex h-24 w-24 items-center justify-center rounded-full',
+            showProjectPicker
+              ? 'transition-transform duration-200 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background'
+              : 'cursor-default',
+          )}
         >
           <div className="absolute inset-0 rounded-full border border-border/40 bg-[radial-gradient(circle_at_center,hsl(var(--glow)/0.18)_0%,transparent_64%)] transition-colors duration-200 group-hover:border-primary/30 group-hover:bg-[radial-gradient(circle_at_center,hsl(var(--glow)/0.28)_0%,transparent_64%)]" />
           <div className="absolute inset-[10px] rounded-full border border-primary/18 transition-colors duration-200 group-hover:border-primary/34" />
