@@ -7,6 +7,7 @@ import { AgentsPipelinePage } from './AgentsPipelinePage';
 const mockInvalidateQueries = vi.fn();
 const mockNewPipeline = vi.fn();
 const mockLoadPipeline = vi.fn();
+const mockDuplicatePipeline = vi.fn();
 const mockDeletePipeline = vi.fn();
 const mockSavePipeline = vi.fn();
 const mockDiscardChanges = vi.fn();
@@ -47,6 +48,7 @@ const mockPipelineConfig = {
   saveError: null as string | null,
   newPipeline: mockNewPipeline,
   loadPipeline: mockLoadPipeline,
+  duplicatePipeline: mockDuplicatePipeline,
   deletePipeline: mockDeletePipeline,
   savePipeline: mockSavePipeline,
   discardChanges: mockDiscardChanges,
@@ -173,7 +175,22 @@ vi.mock('@/components/pipeline/PipelineToolbar', () => ({
 }));
 
 vi.mock('@/components/pipeline/SavedWorkflowsList', () => ({
-  SavedWorkflowsList: () => <div id="saved-pipelines">Saved Workflows</div>,
+  SavedWorkflowsList: ({
+    onSelect,
+    onCopy,
+  }: {
+    onSelect: (pipelineId: string) => void;
+    onCopy?: (pipelineId: string) => void;
+  }) => (
+    <div id="saved-pipelines">
+      <button type="button" onClick={() => onSelect('pipeline-2')}>
+        Select Workflow
+      </button>
+      <button type="button" onClick={() => onCopy?.('pipeline-2')}>
+        Copy Workflow
+      </button>
+    </div>
+  ),
 }));
 
 vi.mock('@/components/pipeline/UnsavedChangesDialog', () => ({
@@ -240,6 +257,19 @@ describe('AgentsPipelinePage', () => {
     expect(mockNewPipeline).not.toHaveBeenCalled();
     expect(
       screen.getByText('Creating a new pipeline will discard your changes')
+    ).toBeInTheDocument();
+  });
+
+  it('guards copying a saved workflow when there are unsaved changes', async () => {
+    const user = userEvent.setup();
+
+    render(<AgentsPipelinePage />);
+
+    await user.click(screen.getByRole('button', { name: 'Copy Workflow' }));
+
+    expect(mockDuplicatePipeline).not.toHaveBeenCalled();
+    expect(
+      screen.getByText('Copying a saved workflow will discard your changes')
     ).toBeInTheDocument();
   });
 

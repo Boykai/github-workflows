@@ -150,7 +150,7 @@ export function PipelineBoard({
                   setIsEditingName(false);
                 }
               }}
-              className={cn('rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none', validationErrors.name ? 'border-red-500' : 'border-primary/30')}
+              className={cn('rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none dark:bg-background/80', validationErrors.name ? 'border-red-500' : 'border-primary/30 dark:border-primary/45')}
               placeholder="Pipeline name"
               maxLength={100}
             />
@@ -180,7 +180,7 @@ export function PipelineBoard({
         />
 
         {/* Empty board CTA */}
-        <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 bg-background/24 p-8 text-center">
+        <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 bg-background/24 p-8 text-center dark:border-border/75 dark:bg-background/40">
           <Layers className="h-8 w-8 text-muted-foreground/40" />
           <h3 className="text-sm font-semibold text-foreground">No stages yet</h3>
           <p className="text-xs text-muted-foreground">
@@ -226,7 +226,7 @@ export function PipelineBoard({
                 setIsEditingName(false);
               }
             }}
-            className={cn('rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none', validationErrors.name ? 'border-red-500' : 'border-primary/30')}
+            className={cn('rounded-lg border bg-background/70 px-3 py-1.5 text-lg font-semibold outline-none dark:bg-background/80', validationErrors.name ? 'border-red-500' : 'border-primary/30 dark:border-primary/45')}
             placeholder="Pipeline name"
             maxLength={100}
           />

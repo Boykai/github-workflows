@@ -71,7 +71,7 @@ export function PipelineToolbar({
   }, [showCopyDialog]);
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-2 rounded-[1rem] border border-border/65 bg-background/35 p-1.5 dark:border-border/80 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.94)_0%,hsl(var(--panel)/0.86)_100%)]">
       <div className="flex items-center gap-2">
         {isPreset && boardState === 'editing' ? (
           <>
@@ -99,7 +99,7 @@ export function PipelineToolbar({
                 }}
               >
                 <div
-                  className="celestial-fade-in bg-card rounded-lg border border-border shadow-lg p-4 w-80"
+                  className="celestial-fade-in w-80 rounded-lg border border-border bg-card p-4 shadow-lg dark:border-border/80 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.97)_0%,hsl(var(--panel)/0.92)_100%)]"
                   role="dialog"
                   aria-modal="true"
                   aria-labelledby="copy-dialog-title"
@@ -114,7 +114,7 @@ export function PipelineToolbar({
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') handleSaveAsCopy();
                     }}
-                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm"
+                    className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm dark:border-border/80 dark:bg-background/80"
                     placeholder="New pipeline name"
                     maxLength={100}
                   />

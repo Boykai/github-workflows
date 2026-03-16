@@ -127,6 +127,28 @@ export function AgentsPipelinePage() {
     [focusPipelineEditor, pipelineConfig]
   );
 
+  const handleWorkflowCopy = useCallback(
+    (pipelineId: string) => {
+      if (pipelineConfig.isDirty) {
+        setUnsavedDialog({
+          isOpen: true,
+          pendingAction: async () => {
+            await pipelineConfig.duplicatePipeline(pipelineId);
+            focusPipelineEditor();
+          },
+          description: 'Copying a saved workflow will discard your changes',
+        });
+      } else {
+        pipelineConfig.duplicatePipeline(pipelineId).then((copiedPipeline) => {
+          if (copiedPipeline) {
+            focusPipelineEditor();
+          }
+        });
+      }
+    },
+    [focusPipelineEditor, pipelineConfig]
+  );
+
   // Handle new pipeline with unsaved changes check
   const handleNewPipeline = useCallback(() => {
     const initialStageNames = columns.map((column) => column.status.name);
@@ -177,7 +199,7 @@ export function AgentsPipelinePage() {
   }, []);
 
   return (
-    <div className="celestial-fade-in flex h-full flex-col gap-6 rounded-[1.75rem] border border-border/70 bg-background/42 p-6 backdrop-blur-sm overflow-auto">
+    <div className="celestial-fade-in flex h-full flex-col gap-6 overflow-auto rounded-[1.75rem] border border-border/70 bg-background/42 p-6 backdrop-blur-sm dark:border-border/85 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.96)_0%,hsl(var(--panel)/0.9)_100%)]">
       {/* Page Header */}
       <CelestialCatalogHero
         eyebrow="Constellation Flow"
@@ -373,6 +395,7 @@ export function AgentsPipelinePage() {
             assignedPipelineId={pipelineConfig.assignedPipelineId}
             isLoading={pipelineConfig.pipelinesLoading}
             onSelect={handleWorkflowSelect}
+            onCopy={handleWorkflowCopy}
             onAssign={pipelineConfig.assignPipeline}
           />
 

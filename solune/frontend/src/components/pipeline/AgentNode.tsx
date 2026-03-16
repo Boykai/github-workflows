@@ -65,7 +65,7 @@ export function AgentNode({
         style={dragStyle}
         {...(dragHandleAttributes ?? {})}
         {...(dragHandleListeners ?? {})}
-        className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)] dark:hover:border-primary/45 dark:hover:shadow-[0_0_16px_hsl(var(--glow)/0.24)]', agentStatus === 'failed' ? 'border-destructive/50 bg-destructive/5' : agentStatus === 'completed' ? 'border-green-500/30 dark:border-green-400/45' : 'border-border/50 dark:border-border/70', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
+        className={cn('pipeline-agent-node flex items-center gap-2 rounded-lg border px-2.5 py-2 transition-[color,background-color,border-color,box-shadow] hover:border-primary/30 hover:shadow-[0_0_12px_hsl(var(--glow)/0.18)] dark:hover:border-primary/50 dark:hover:shadow-[0_0_18px_hsl(var(--glow)/0.28)]', agentStatus === 'failed' ? 'border-destructive/50 bg-destructive/5 dark:bg-destructive/12' : agentStatus === 'completed' ? 'border-green-500/30 dark:border-green-400/50' : 'border-border/50 dark:border-border/80', dragHandleListeners ? ' cursor-grab active:cursor-grabbing touch-none' : '', isDragging ? ' opacity-50 scale-[0.98]' : '')}
     >
       {/* Drag handle removed — entire card is the drag target */}
 
@@ -139,7 +139,7 @@ export function AgentNode({
             type="button"
             onClick={onToolsClick}
             onPointerDown={stopDragPointerPropagation}
-            className="celestial-focus inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors hover:bg-primary/10 focus-visible:outline-none"
+            className="celestial-focus inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] transition-colors hover:bg-primary/10 focus-visible:outline-none dark:bg-background/42 dark:hover:bg-primary/14"
             aria-label="Select tools"
           >
             <Wrench className="h-3 w-3 text-muted-foreground" />
@@ -161,7 +161,7 @@ export function AgentNode({
             type="button"
             onClick={onClone}
             onPointerDown={stopDragPointerPropagation}
-            className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none"
+            className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-primary/10 hover:text-primary focus-visible:outline-none dark:bg-background/42 dark:hover:bg-primary/14"
             aria-label="Clone agent"
           >
             <Copy className="h-3.5 w-3.5" />
@@ -175,7 +175,7 @@ export function AgentNode({
           type="button"
           onClick={onRemove}
           onPointerDown={stopDragPointerPropagation}
-          className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none"
+          className="celestial-focus shrink-0 rounded-md p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none dark:bg-background/42 dark:hover:bg-destructive/14"
           aria-label="Remove agent"
         >
           <X className="h-3.5 w-3.5" />

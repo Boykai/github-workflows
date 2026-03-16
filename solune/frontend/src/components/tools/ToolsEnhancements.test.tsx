@@ -136,8 +136,11 @@ describe('GitHubMcpConfigGenerator', () => {
     expect(screen.getByText('MCP Configuration for GitHub Agents')).toBeInTheDocument();
     expect(screen.getByText('context7')).toBeInTheDocument();
     expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
-    expect(screen.getAllByText('Built-In')).toHaveLength(4);
-    expect(screen.getByText('No active project MCPs yet')).toBeInTheDocument();
+    expect(screen.getAllByText('Built-In', { selector: 'span' })).toHaveLength(4);
+    expect(screen.getByText('No custom project MCPs yet')).toBeInTheDocument();
+    const activeProjectCard = screen.getByText('Active project MCPs').closest('div');
+    expect(activeProjectCard).not.toBeNull();
+    expect(within(activeProjectCard!).getByText('2')).toBeInTheDocument();
   });
 
   it('includes user tools alongside built-in MCPs in generated config', () => {
@@ -162,9 +165,9 @@ describe('GitHubMcpConfigGenerator', () => {
     expect(screen.getByText('my-server')).toBeInTheDocument();
     expect(screen.getByText('context7')).toBeInTheDocument();
     expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
-    expect(screen.getAllByText('Built-In')).toHaveLength(4);
+    expect(screen.getAllByText('Built-In', { selector: 'span' })).toHaveLength(4);
     // No empty state guidance when user tools are present
-    expect(screen.queryByText(/No project MCP tools are active yet/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No custom project MCPs yet/i)).not.toBeInTheDocument();
   });
 
   it('only includes active project MCPs in the generated config', () => {
@@ -227,7 +230,7 @@ describe('GitHubMcpConfigGenerator', () => {
 
     expect(screen.getByText('context7')).toBeInTheDocument();
     expect(screen.getByText('CodeGraphContext')).toBeInTheDocument();
-    expect(screen.getAllByText('Built-In')).toHaveLength(2);
+    expect(screen.getAllByText('Built-In', { selector: 'span' })).toHaveLength(2);
   });
 
   it('shows copy to clipboard button', async () => {
@@ -321,7 +324,7 @@ describe('GitHubMcpConfigGenerator', () => {
     render(<GitHubMcpConfigGenerator tools={[]} />);
 
     expect(screen.getByText('Syntax-highlighted JSON ready to copy into GitHub.com.')).toBeInTheDocument();
-    expect(screen.getByText('Always included')).toBeInTheDocument();
+    expect(screen.getByText('Built-In', { selector: 'p' })).toBeInTheDocument();
   });
 
   it('labels built-in MCPs inside the rendered configuration output', () => {
@@ -361,14 +364,14 @@ describe('GitHubMcpConfigGenerator', () => {
 
     const { rerender } = render(<GitHubMcpConfigGenerator tools={[inactiveTool]} />);
     expect(screen.queryByText('realtimeServer')).not.toBeInTheDocument();
-    expect(screen.getByText('No active project MCPs yet')).toBeInTheDocument();
+    expect(screen.getByText('No custom project MCPs yet')).toBeInTheDocument();
 
     rerender(<GitHubMcpConfigGenerator tools={[{ ...inactiveTool, is_active: true }]} />);
 
     expect(screen.getByText('realtimeServer')).toBeInTheDocument();
-    expect(screen.queryByText('No active project MCPs yet')).not.toBeInTheDocument();
+    expect(screen.queryByText('No custom project MCPs yet')).not.toBeInTheDocument();
     const activeProjectCard = screen.getByText('Active project MCPs').closest('div');
     expect(activeProjectCard).not.toBeNull();
-    expect(within(activeProjectCard!).getByText('1')).toBeInTheDocument();
+    expect(within(activeProjectCard!).getByText('3')).toBeInTheDocument();
   });
 });

@@ -26,7 +26,7 @@ export const BoardColumn = memo(function BoardColumn({
   const groups = getGroups?.(column.items);
 
   return (
-    <div className="project-board-column pipeline-column-surface flex h-full min-h-[44rem] min-w-0 shrink-0 flex-col overflow-x-hidden rounded-[1.4rem] border border-border/70 shadow-sm">
+    <div className="project-board-column pipeline-column-surface flex h-[72rem] max-h-[72rem] min-h-[44rem] min-w-0 shrink-0 flex-col overflow-x-hidden rounded-[1.4rem] border border-border/70 shadow-sm xl:h-[95rem] xl:max-h-[95rem]">
       {/* Column Header */}
       <div className="project-board-column-header flex items-center justify-between border-b border-border/70 p-4 backdrop-blur-sm">
         <div className="flex items-center gap-2">

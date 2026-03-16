@@ -3,7 +3,7 @@
  * Shows pipeline name, flow graph, stage details, tool counts, and preset badges.
  */
 
-import { Clock, Layers, Bot, Workflow, Wrench, CheckCircle2 } from 'lucide-react';
+import { Clock, Layers, Bot, Workflow, Wrench, CheckCircle2, Copy } from 'lucide-react';
 import { PipelineFlowGraph } from './PipelineFlowGraph';
 import { PresetBadge } from './PresetBadge';
 import type { PipelineConfigSummary } from '@/types';
@@ -16,6 +16,7 @@ interface SavedWorkflowsListProps {
   assignedPipelineId?: string;
   isLoading: boolean;
   onSelect: (pipelineId: string) => void;
+  onCopy?: (pipelineId: string) => void;
   onAssign?: (pipelineId: string) => void;
 }
 
@@ -44,6 +45,7 @@ export function SavedWorkflowsList({
   assignedPipelineId = '',
   isLoading,
   onSelect,
+  onCopy,
   onAssign,
 }: SavedWorkflowsListProps) {
   return (
@@ -196,18 +198,34 @@ export function SavedWorkflowsList({
                   </span>
                 </div>
 
-                {/* Assign action */}
-                {onAssign && !isAssigned && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAssign(pipeline.id);
-                    }}
-                    className="mt-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/80 transition-colors hover:text-primary"
-                  >
-                    Assign to Project
-                  </button>
+                {(onCopy || (onAssign && !isAssigned)) && (
+                  <div className="mt-1 flex items-center gap-3">
+                    {onCopy && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onCopy(pipeline.id);
+                        }}
+                        className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/80 transition-colors hover:text-primary"
+                      >
+                        <Copy className="h-3 w-3" />
+                        Copy
+                      </button>
+                    )}
+                    {onAssign && !isAssigned && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onAssign(pipeline.id);
+                        }}
+                        className="text-[10px] font-semibold uppercase tracking-[0.12em] text-primary/80 transition-colors hover:text-primary"
+                      >
+                        Assign to Project
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             );

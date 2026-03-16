@@ -88,4 +88,27 @@ describe('SavedWorkflowsList', () => {
     expect(tooltip).toBeInTheDocument();
     expect(within(tooltip).getByText(pipeline.name)).toBeInTheDocument();
   });
+
+  it('copies a saved pipeline without selecting the card', async () => {
+    const user = userEvent.setup();
+    const pipeline = createPipeline();
+    const onSelect = vi.fn();
+    const onCopy = vi.fn();
+
+    render(
+      <SavedWorkflowsList
+        pipelines={[pipeline]}
+        activePipelineId={null}
+        assignedPipelineId=""
+        isLoading={false}
+        onSelect={onSelect}
+        onCopy={onCopy}
+      />
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Copy' }));
+
+    expect(onCopy).toHaveBeenCalledWith(pipeline.id);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
 });
