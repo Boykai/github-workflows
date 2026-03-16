@@ -4,8 +4,7 @@
 
 ## Prerequisites
 
-- Node.js 22+ (see `solune/frontend/package.json` engines)
-- npm 10+
+- Node.js 22+ and npm 10+
 - Access to the Solune frontend development environment
 
 ## Setup
@@ -29,32 +28,32 @@ The frontend runs at `http://localhost:5173` by default.
 
 | File | Path | Priority |
 |------|------|----------|
-| ToolsPanel | `src/components/tools/ToolsPanel.tsx` | Phase 1–3 |
-| ToolCard | `src/components/tools/ToolCard.tsx` | Phase 2–3 |
-| RepoConfigPanel | `src/components/tools/RepoConfigPanel.tsx` | Phase 1 |
-| McpPresetsGallery | `src/components/tools/McpPresetsGallery.tsx` | Phase 1–2 |
-| UploadMcpModal | `src/components/tools/UploadMcpModal.tsx` | Phase 2 |
-| GitHubMcpConfigGenerator | `src/components/tools/GitHubMcpConfigGenerator.tsx` | Phase 4 |
-| useTools hook | `src/hooks/useTools.ts` | Phase 1 |
+| ToolsPanel | `solune/frontend/src/components/tools/ToolsPanel.tsx` | Phase 1–3 |
+| ToolCard | `solune/frontend/src/components/tools/ToolCard.tsx` | Phase 2–3 |
+| RepoConfigPanel | `solune/frontend/src/components/tools/RepoConfigPanel.tsx` | Phase 1 |
+| McpPresetsGallery | `solune/frontend/src/components/tools/McpPresetsGallery.tsx` | Phase 1–2 |
+| UploadMcpModal | `solune/frontend/src/components/tools/UploadMcpModal.tsx` | Phase 2 |
+| GitHubMcpConfigGenerator | `solune/frontend/src/components/tools/GitHubMcpConfigGenerator.tsx` | Phase 4 |
+| useTools hook | `solune/frontend/src/hooks/useTools.ts` | Phase 1 |
 
 ### Reference files (read but don't modify)
 
 | File | Path | Purpose |
 |------|------|---------|
-| CelestialLoader | `src/components/common/CelestialLoader.tsx` | Loading state component |
-| ConfirmationDialog | `src/components/ui/confirmation-dialog.tsx` | Confirmation dialog API |
-| Tooltip | `src/components/ui/tooltip.tsx` | Tooltip component API |
-| ErrorBoundary | `src/components/common/ErrorBoundary.tsx` | Error boundary pattern |
-| API service | `src/services/api.ts` | Tool API endpoints |
-| Rate limit utility | `src/utils/rateLimit.ts` | `isRateLimitApiError()` helper |
-| Types | `src/types/index.ts` | Tool type definitions |
+| CelestialLoader | `solune/frontend/src/components/common/CelestialLoader.tsx` | Loading state component |
+| ConfirmationDialog | `solune/frontend/src/components/ui/confirmation-dialog.tsx` | Confirmation dialog API |
+| Tooltip | `solune/frontend/src/components/ui/tooltip.tsx` | Tooltip component API |
+| ErrorBoundary | `solune/frontend/src/components/common/ErrorBoundary.tsx` | Error boundary pattern |
+| API service | `solune/frontend/src/services/api.ts` | Tool API endpoints |
+| Rate limit utility | `solune/frontend/src/utils/rateLimit.ts` | `isRateLimitApiError()` helper |
+| Types | `solune/frontend/src/types/index.ts` | Tool type definitions |
 
 ### Test files (extend existing)
 
 | File | Path | Purpose |
 |------|------|---------|
-| Existing tests | `src/components/tools/ToolsEnhancements.test.tsx` | Extend with new test cases |
-| New hook tests | `src/hooks/useTools.test.ts` | Create new — hook tests |
+| Existing tests | `solune/frontend/src/components/tools/ToolsEnhancements.test.tsx` | Extend with new test cases |
+| New hook tests | `solune/frontend/src/hooks/useTools.test.ts` | Create new — hook tests |
 
 ## Verification Commands
 

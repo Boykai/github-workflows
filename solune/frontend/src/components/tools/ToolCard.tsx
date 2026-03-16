@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
-function formatRelativeTime(dateString: string): string {
+function formatToolTimestamp(dateString: string): string {
   const date = new Date(dateString);
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -100,8 +100,8 @@ export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting
         <div className="mt-3 flex items-center justify-between">
           <span className="text-[10px] text-muted-foreground/60">
             {tool.synced_at
-              ? `Synced ${formatRelativeTime(tool.synced_at)}`
-              : `Created ${formatRelativeTime(tool.created_at)}`}
+              ? `Synced ${formatToolTimestamp(tool.synced_at)}`
+              : `Created ${formatToolTimestamp(tool.created_at)}`}
           </span>
           <div className="flex items-center gap-1">
             <Tooltip contentKey="tools.card.editButton">

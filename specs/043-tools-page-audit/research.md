@@ -8,7 +8,7 @@
 
 **Decision**: Use existing shared components as-is for loading, confirmation, and error boundary patterns.
 
-**Rationale**: All three components are stable, well-tested, and used across multiple pages in the application. CelestialLoader accepts a `size` prop ("sm" | "md" | "lg"), ConfirmationDialog wraps Radix AlertDialog with `title`, `description`, `onConfirm`, `onCancel` props, and ErrorBoundary wraps React error boundaries with fallback UI. Using these ensures visual and behavioral consistency with other pages.
+**Rationale**: All three components are stable, well-tested, and used across multiple pages in the application. CelestialLoader accepts `size`, `label`, and `className` props. ConfirmationDialog is a custom accessible dialog with focus trapping, ARIA attributes, and `danger`/`warning`/`info` variant support — typically consumed via the `useConfirmation()` hook. ErrorBoundary wraps React error boundaries with fallback UI. Using these ensures visual and behavioral consistency with other pages.
 
 **Alternatives considered**:
 - Custom loading skeleton specific to tools page → Rejected: Adds maintenance burden; CelestialLoader already provides appropriate visual feedback
@@ -16,8 +16,8 @@
 - No error boundary (rely on page-level error handling) → Rejected: Spec requires partial error handling where one failed section doesn't block others (FR-005)
 
 **Findings**:
-- `CelestialLoader` lives at `src/components/common/CelestialLoader.tsx`; accepts `size` prop with "md" as default
-- `ConfirmationDialog` lives at `src/components/ui/confirmation-dialog.tsx`; built on Radix AlertDialog with proper focus management
+- `CelestialLoader` lives at `src/components/common/CelestialLoader.tsx`; accepts `size` (default "md"), `label` (sr-only, default "Loading…"), and `className` props
+- `ConfirmationDialog` lives at `src/components/ui/confirmation-dialog.tsx`; custom accessible dialog with focus trapping, supports `danger`/`warning`/`info` variants; consumed via `useConfirmation()` hook
 - `ErrorBoundary` lives at `src/components/common/ErrorBoundary.tsx`; wraps children with fallback error UI
 - `isRateLimitApiError()` utility exists in `src/utils/rateLimit.ts` for detecting rate-limit errors
 

@@ -5,7 +5,7 @@
  * Mirrors AgentsPanel pattern.
  */
 
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Search, Wrench } from 'lucide-react';
 import { useToolsList } from '@/hooks/useTools';
 import { useRepoMcpConfig } from '@/hooks/useRepoMcpConfig';
@@ -45,8 +45,10 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     resetUpdateError,
     syncTool,
     syncingId,
+    syncError,
     deleteTool,
     deletingId,
+    deleteError,
   } = useToolsList(projectId);
 
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -55,6 +57,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
   const [draftTool, setDraftTool] = useState<Partial<McpToolConfigCreate> | null>(null);
   const [search, setSearch] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deferredSearch = useDeferredValue(search);
   const {
     repoConfig,
@@ -133,10 +136,17 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     setShowUploadModal(true);
   };
 
-  const showSuccess = (message: string) => {
+  const showSuccess = useCallback((message: string) => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
     setSuccessMessage(message);
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
+    successTimerRef.current = setTimeout(() => setSuccessMessage(null), 3000);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   const filteredTools = tools.filter((tool) => {
     const query = deferredSearch.trim().toLowerCase();
@@ -274,6 +284,13 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
         </div>
       )}
 
+      {/* Mutation error feedback (sync / delete) */}
+      {(syncError || deleteError) && (
+        <div className="rounded-[1.25rem] border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive" role="alert">
+          {syncError ?? deleteError}
+        </div>
+      )}
+
       {/* Loading state */}
       {isLoading && (
         <div className="flex items-center justify-center py-10">
@@ -350,8 +367,13 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
                   key={tool.id}
                   tool={tool}
                   onEdit={handleOpenEdit}
-                  onSync={(id) => {
-                    void syncTool(id).then(() => showSuccess('Tool synced successfully.'));
+                  onSync={async (id) => {
+                    try {
+                      await syncTool(id);
+                      showSuccess('Tool synced successfully.');
+                    } catch {
+                      // syncError state surfaces the message below.
+                    }
                   }}
                   onDelete={handleDelete}
                   isSyncing={syncingId === tool.id}

@@ -16,10 +16,12 @@ This document defines the component API contracts for all changes in the Tools p
 ```typescript
 interface CelestialLoaderProps {
   size?: 'sm' | 'md' | 'lg';  // Default: 'md'
+  label?: string;               // Screen-reader label (default: 'Loading…')
+  className?: string;            // Additional CSS classes
 }
 
 // Usage pattern for section-level loading:
-<CelestialLoader size="md" />
+<CelestialLoader size="md" label="Loading MCP tools" />
 ```
 
 **Contract**: When a data-dependent section is loading (`isLoading === true`), render `<CelestialLoader size="md" />` instead of the section content. Never show a blank area while data is loading.
@@ -33,29 +35,27 @@ interface CelestialLoaderProps {
 
 ```typescript
 interface ConfirmationDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  isOpen: boolean;
   title: string;
-  description: string | ReactNode;
-  confirmLabel?: string;      // Default: "Confirm"
-  cancelLabel?: string;       // Default: "Cancel"
+  description: string;
+  variant: 'danger' | 'warning' | 'info';  // Default: 'danger'
+  confirmLabel: string;
+  cancelLabel: string;
+  isLoading: boolean;
+  error: string | null;
   onConfirm: () => void;
-  onCancel?: () => void;
-  variant?: 'default' | 'destructive';  // Default: 'default'
-  isLoading?: boolean;        // Shows spinner on confirm button
+  onCancel: () => void;
 }
 
-// Usage pattern for destructive tool delete:
-<ConfirmationDialog
-  open={showDeleteDialog}
-  onOpenChange={setShowDeleteDialog}
-  title="Delete Tool"
-  description={`Are you sure you want to delete "${toolName}"? ${affectedAgents.length > 0 ? `This will affect ${affectedAgents.length} agent(s): ${agentNames}.` : ''}`}
-  confirmLabel="Delete Tool"
-  variant="destructive"
-  onConfirm={handleConfirmDelete}
-  isLoading={isDeleting}
-/>
+// Usage pattern for destructive tool delete (via useConfirmation hook):
+const { confirm } = useConfirmation();
+const confirmed = await confirm({
+  title: 'Delete Tool',
+  description: `Are you sure you want to delete "${toolName}"? ${affectedAgents.length > 0 ? `This will affect ${affectedAgents.length} agent(s): ${agentNames}.` : ''}`,
+  confirmLabel: 'Delete Tool',
+  variant: 'danger',
+  onConfirm: async () => { await deleteTool({ toolId, confirm: true }); },
+});
 ```
 
 **Contract**: All destructive actions (delete tool, delete repo server) MUST use ConfirmationDialog. The dialog MUST display:
@@ -73,16 +73,24 @@ interface ConfirmationDialogProps {
 
 ```typescript
 interface TooltipProps {
-  content: ReactNode;
-  children: ReactNode;
-  contentKey?: string;  // Optional: use centralized registry
+  contentKey?: string;          // Registry key (primary — use centralized registry)
+  content?: string;             // Direct tooltip text (escape-hatch for dynamic content)
+  title?: string;               // Direct title (used with `content`)
+  learnMoreUrl?: string;        // Direct learn-more link (used with `content`)
   side?: 'top' | 'right' | 'bottom' | 'left';
   align?: 'start' | 'center' | 'end';
+  delayDuration?: number;       // Override default hover delay (ms)
+  children: ReactNode;
 }
 
 // Usage pattern for truncated text:
 <Tooltip content={tool.name}>
   <span className="truncate max-w-[200px]">{tool.name}</span>
+</Tooltip>
+
+// Usage pattern for registry-based tooltip:
+<Tooltip contentKey="tools.card.editButton">
+  <Button>Edit</Button>
 </Tooltip>
 ```
 
