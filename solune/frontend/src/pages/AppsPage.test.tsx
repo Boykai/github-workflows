@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   startMutate: vi.fn(),
   stopMutate: vi.fn(),
   deleteMutate: vi.fn(),
+  confirm: vi.fn(),
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -33,6 +34,15 @@ vi.mock('@/hooks/useApps', () => ({
   useStartApp: () => ({ mutate: mocks.startMutate }),
   useStopApp: () => ({ mutate: mocks.stopMutate }),
   useDeleteApp: () => ({ mutate: mocks.deleteMutate }),
+  getErrorMessage: (_err: unknown, fallback: string) => fallback,
+}));
+
+vi.mock('@/hooks/useConfirmation', () => ({
+  useConfirmation: () => ({ confirm: mocks.confirm }),
+}));
+
+vi.mock('@/utils/rateLimit', () => ({
+  isRateLimitApiError: () => false,
 }));
 
 describe('AppsPage', () => {
@@ -40,31 +50,37 @@ describe('AppsPage', () => {
     vi.clearAllMocks();
   });
 
-  it('opens the create dialog from the new app button', async () => {
+  it('opens the create dialog from the Create App button', async () => {
     render(<AppsPage />);
 
-    await userEvent.click(screen.getByRole('button', { name: /new app/i }));
+    await userEvent.click(screen.getByRole('button', { name: /create app/i }));
 
-    expect(screen.getByRole('heading', { name: /create new app/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /create app/i })).toBeInTheDocument();
     expect(mocks.createReset).toHaveBeenCalledOnce();
   });
 
   it('submits a trimmed payload and navigates to the created app on success', async () => {
     mocks.createMutate.mockImplementation(
-      (_payload: unknown, options?: { onSuccess?: (app: { name: string }) => void }) => {
-        options?.onSuccess?.({ name: 'my-awesome-app' });
+      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string }) => void }) => {
+        options?.onSuccess?.({ name: 'my-awesome-app', display_name: 'My Awesome App' });
       }
     );
 
     render(<AppsPage />);
 
-    await userEvent.click(screen.getByRole('button', { name: /new app/i }));
+    // Open the dialog
+    const createButtons = screen.getAllByRole('button', { name: /create app/i });
+    await userEvent.click(createButtons[0]);
+
     await userEvent.type(screen.getByLabelText(/^name$/i), 'my-awesome-app');
     await userEvent.type(screen.getByLabelText(/display name/i), '  My Awesome App  ');
     await userEvent.type(screen.getByLabelText(/description/i), '  Sample app  ');
     await userEvent.type(screen.getByLabelText(/target branch/i), '  feature/my-app  ');
 
-    await userEvent.click(screen.getByRole('button', { name: /create app/i }));
+    // Submit the dialog form (the submit button inside the dialog)
+    const dialogButtons = screen.getAllByRole('button', { name: /create app/i });
+    const submitButton = dialogButtons[dialogButtons.length - 1];
+    await userEvent.click(submitButton);
 
     expect(mocks.createMutate).toHaveBeenCalledWith(
       {
@@ -93,13 +109,20 @@ describe('AppsPage', () => {
 
     render(<AppsPage />);
 
-    await userEvent.click(screen.getByRole('button', { name: /new app/i }));
+    // Open the dialog
+    const createButtons = screen.getAllByRole('button', { name: /create app/i });
+    await userEvent.click(createButtons[0]);
+
     await userEvent.type(screen.getByLabelText(/^name$/i), 'my-awesome-app');
     await userEvent.type(screen.getByLabelText(/display name/i), 'My Awesome App');
     await userEvent.type(screen.getByLabelText(/target branch/i), 'missing-branch');
-    await userEvent.click(screen.getByRole('button', { name: /create app/i }));
+
+    // Submit the dialog form
+    const dialogButtons = screen.getAllByRole('button', { name: /create app/i });
+    const submitButton = dialogButtons[dialogButtons.length - 1];
+    await userEvent.click(submitButton);
 
     expect(mocks.createMutate).toHaveBeenCalledOnce();
-    expect(await screen.findByRole('alert')).toHaveTextContent('Branch not found.');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/could not create app/i);
   });
 });

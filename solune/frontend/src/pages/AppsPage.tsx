@@ -4,7 +4,7 @@
  * and navigation to the detail view.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useApps, useCreateApp, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
@@ -29,6 +29,19 @@ export function AppsPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Close dialog on Escape key
+  useEffect(() => {
+    if (!showCreateDialog) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeCreateDialog();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showCreateDialog]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const showSuccess = useCallback((message: string) => {
     setSuccessMessage(message);
@@ -217,25 +230,20 @@ export function AppsPage() {
 
         {/* Create dialog */}
         {showCreateDialog && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-app-dialog-title"
-            onPointerDown={(event) => {
-              if (event.target === event.currentTarget) {
-                closeCreateDialog();
-              }
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                closeCreateDialog();
-              }
-            }}
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={closeCreateDialog}
+              role="presentation"
+              aria-hidden="true"
+            />
             <form
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-app-dialog-title"
               onSubmit={handleCreate}
-              className="w-full max-w-md rounded-xl border border-border/80 bg-card p-6 shadow-xl"
+              className="relative z-10 w-full max-w-md rounded-xl border border-border/80 bg-card p-6 shadow-xl"
             >
               <h2 id="create-app-dialog-title" className="mb-4 text-lg font-bold text-foreground">
                 Create App

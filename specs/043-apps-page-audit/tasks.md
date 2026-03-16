@@ -28,13 +28,13 @@
 
 | File | Lines | Role |
 |------|-------|------|
-| AppsPage.tsx | 242 | Main page — list view, detail routing, create dialog |
-| AppCard.tsx | 101 | Card component — status badge, action buttons |
-| AppDetailView.tsx | 141 | Detail view — metadata grid, lifecycle controls, preview |
+| AppsPage.tsx | 345 | Main page — list view, detail routing, create dialog |
+| AppCard.tsx | 127 | Card component — status badge, action buttons, tooltip |
+| AppDetailView.tsx | 242 | Detail view — metadata grid, lifecycle controls, preview |
 | AppPreview.tsx | 63 | Live preview iframe with sandbox security |
-| useApps.ts | 92 | 7 hooks (useApps, useApp, useCreateApp, useUpdateApp, useDeleteApp, useStartApp, useStopApp) |
+| useApps.ts | 108 | 7 hooks (useApps, useApp, useCreateApp, useUpdateApp, useDeleteApp, useStartApp, useStopApp) + isApiError, getErrorMessage |
 | types/apps.ts | 42 | App, AppCreate, AppUpdate, AppStatusResponse, AppStatus, RepoType |
-| AppsPage.test.tsx | 104 | 3 tests (create dialog, submit, error handling) |
+| AppsPage.test.tsx | 127 | 3 tests (create dialog open, submit, error handling) |
 | AppPage.test.tsx | 34 | 2 tests (launcher button, navigation) |
 
 ---
