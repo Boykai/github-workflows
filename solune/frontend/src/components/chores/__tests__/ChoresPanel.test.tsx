@@ -275,9 +275,12 @@ describe('ChoresPanel', () => {
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
+    expect(await screen.findByText('Repo template')).toBeInTheDocument();
+
     await user.click(await screen.findByRole('button', { name: /Weekly triage/i }));
 
     await waitFor(() => {
+      expect(screen.getByText('Add Chore')).toBeInTheDocument();
       expect(screen.getByLabelText('Name')).toHaveValue('Weekly triage');
       expect(screen.getByLabelText('Template Content')).toHaveValue(
         '## Weekly triage\nReview open issues'
