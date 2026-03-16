@@ -24,10 +24,10 @@
 
 **Purpose**: Add new dependency and prepare project for secrets feature
 
-- [ ] T001 Add `pynacl` dependency to `solune/backend/pyproject.toml` under `[project.dependencies]`
-- [ ] T002 [P] Install backend dependencies via `cd solune/backend && uv sync --dev` and verify no conflicts
-- [ ] T003 [P] Run backend baseline tests via `cd solune/backend && python -m pytest tests/ -v` and record current state
-- [ ] T004 [P] Run frontend baseline tests via `cd solune/frontend && npm test` and record current state
+- [x] T001 Add `pynacl` dependency to `solune/backend/pyproject.toml` under `[project.dependencies]`
+- [x] T002 [P] Install backend dependencies via `cd solune/backend && uv sync --dev` and verify no conflicts
+- [x] T003 [P] Run backend baseline tests via `cd solune/backend && python -m pytest tests/ -v` and record current state
+- [x] T004 [P] Run frontend baseline tests via `cd solune/frontend && npm test` and record current state
 
 ---
 
@@ -39,44 +39,44 @@
 
 ### 2A: Secrets Service
 
-- [ ] T005 Create `solune/backend/src/services/secrets_service.py` with `SecretsService` class — constructor accepts `GitHubClientFactory` instance, following singleton pattern from `solune/backend/src/services/github_projects/__init__.py`
-- [ ] T006 Implement `get_or_create_environment(access_token, owner, repo, environment_name)` method in `solune/backend/src/services/secrets_service.py` — calls `client.rest.repos.async_create_or_update_environment()` to ensure the `copilot` environment exists
-- [ ] T007 Implement `list_secrets(access_token, owner, repo, environment_name)` method in `solune/backend/src/services/secrets_service.py` — calls `client.rest.actions.async_list_environment_secrets()`, returns list of secret names + metadata (never values)
-- [ ] T008 Implement `_encrypt_secret_value(access_token, owner, repo, environment_name, plaintext)` private method in `solune/backend/src/services/secrets_service.py` — fetches repo public key via `client.rest.actions.async_get_environment_public_key()`, encrypts with `nacl.public.SealedBox`, returns base64-encoded ciphertext + key_id
-- [ ] T009 Implement `set_secret(access_token, owner, repo, environment_name, secret_name, secret_value)` method in `solune/backend/src/services/secrets_service.py` — encrypts value via `_encrypt_secret_value()`, then calls `client.rest.actions.async_create_or_update_environment_secret()`
-- [ ] T010 Implement `delete_secret(access_token, owner, repo, environment_name, secret_name)` method in `solune/backend/src/services/secrets_service.py` — calls `client.rest.actions.async_delete_environment_secret()`
-- [ ] T011 Implement `check_secrets(access_token, owner, repo, environment_name, secret_names)` method in `solune/backend/src/services/secrets_service.py` — calls `list_secrets()` and returns `dict[str, bool]` map of which requested names exist
+- [x] T005 Create `solune/backend/src/services/secrets_service.py` with `SecretsService` class — constructor accepts `GitHubClientFactory` instance, following singleton pattern from `solune/backend/src/services/github_projects/__init__.py`
+- [x] T006 Implement `get_or_create_environment(access_token, owner, repo, environment_name)` method in `solune/backend/src/services/secrets_service.py` — calls `client.rest.repos.async_create_or_update_environment()` to ensure the `copilot` environment exists
+- [x] T007 Implement `list_secrets(access_token, owner, repo, environment_name)` method in `solune/backend/src/services/secrets_service.py` — calls `client.rest.actions.async_list_environment_secrets()`, returns list of secret names + metadata (never values)
+- [x] T008 Implement `_encrypt_secret_value(access_token, owner, repo, environment_name, plaintext)` private method in `solune/backend/src/services/secrets_service.py` — fetches repo public key via `client.rest.actions.async_get_environment_public_key()`, encrypts with `nacl.public.SealedBox`, returns base64-encoded ciphertext + key_id
+- [x] T009 Implement `set_secret(access_token, owner, repo, environment_name, secret_name, secret_value)` method in `solune/backend/src/services/secrets_service.py` — encrypts value via `_encrypt_secret_value()`, then calls `client.rest.actions.async_create_or_update_environment_secret()`
+- [x] T010 Implement `delete_secret(access_token, owner, repo, environment_name, secret_name)` method in `solune/backend/src/services/secrets_service.py` — calls `client.rest.actions.async_delete_environment_secret()`
+- [x] T011 Implement `check_secrets(access_token, owner, repo, environment_name, secret_names)` method in `solune/backend/src/services/secrets_service.py` — calls `list_secrets()` and returns `dict[str, bool]` map of which requested names exist
 
 ### 2B: Secrets API Router
 
-- [ ] T012 Create `solune/backend/src/api/secrets.py` with `router = APIRouter(tags=["secrets"])` and import `require_session` dependency from `solune/backend/src/api/dependencies.py`
-- [ ] T013 Add Pydantic request/response models in `solune/backend/src/api/secrets.py`: `SecretSetRequest(value: str)` with max 64KB validation, `SecretListResponse(total_count: int, secrets: list[SecretListItem])`, `SecretListItem(name: str, created_at: str, updated_at: str)`, `SecretCheckResponse(results: dict[str, bool])`
-- [ ] T014 Implement `GET /secrets/{owner}/{repo}/{environment}` endpoint in `solune/backend/src/api/secrets.py` — calls `secrets_service.list_secrets()`, requires authenticated session
-- [ ] T015 [P] Implement `PUT /secrets/{owner}/{repo}/{environment}/{secret_name}` endpoint in `solune/backend/src/api/secrets.py` — validates `secret_name` matches `^[A-Z][A-Z0-9_]*$` (max 255 chars), calls `secrets_service.get_or_create_environment()` then `secrets_service.set_secret()`, requires authenticated session
-- [ ] T016 [P] Implement `DELETE /secrets/{owner}/{repo}/{environment}/{secret_name}` endpoint in `solune/backend/src/api/secrets.py` — validates `secret_name`, calls `secrets_service.delete_secret()`, requires authenticated session
-- [ ] T017 Implement `GET /secrets/{owner}/{repo}/{environment}/check` endpoint in `solune/backend/src/api/secrets.py` — accepts `names` query parameter (comma-separated), calls `secrets_service.check_secrets()`, returns name-to-boolean map
+- [x] T012 Create `solune/backend/src/api/secrets.py` with `router = APIRouter(tags=["secrets"])` and import `require_session` dependency from `solune/backend/src/api/dependencies.py`
+- [x] T013 Add Pydantic request/response models in `solune/backend/src/api/secrets.py`: `SecretSetRequest(value: str)` with max 64KB validation, `SecretListResponse(total_count: int, secrets: list[SecretListItem])`, `SecretListItem(name: str, created_at: str, updated_at: str)`, `SecretCheckResponse(results: dict[str, bool])`
+- [x] T014 Implement `GET /secrets/{owner}/{repo}/{environment}` endpoint in `solune/backend/src/api/secrets.py` — calls `secrets_service.list_secrets()`, requires authenticated session
+- [x] T015 [P] Implement `PUT /secrets/{owner}/{repo}/{environment}/{secret_name}` endpoint in `solune/backend/src/api/secrets.py` — validates `secret_name` matches `^[A-Z][A-Z0-9_]*$` (max 255 chars), calls `secrets_service.get_or_create_environment()` then `secrets_service.set_secret()`, requires authenticated session
+- [x] T016 [P] Implement `DELETE /secrets/{owner}/{repo}/{environment}/{secret_name}` endpoint in `solune/backend/src/api/secrets.py` — validates `secret_name`, calls `secrets_service.delete_secret()`, requires authenticated session
+- [x] T017 Implement `GET /secrets/{owner}/{repo}/{environment}/check` endpoint in `solune/backend/src/api/secrets.py` — accepts `names` query parameter (comma-separated), calls `secrets_service.check_secrets()`, returns name-to-boolean map
 
 ### 2C: Router Registration
 
-- [ ] T018 Register secrets router in `solune/backend/src/api/__init__.py` — import `secrets.router` and include with prefix `/secrets` following existing pattern for settings, tools, etc.
+- [x] T018 Register secrets router in `solune/backend/src/api/__init__.py` — import `secrets.router` and include with prefix `/secrets` following existing pattern for settings, tools, etc.
 
 ### 2D: Secrets Types (Frontend)
 
-- [ ] T019 [P] Add `SecretListItem` interface (`name: string`, `created_at: string`, `updated_at: string`) to `solune/frontend/src/types/index.ts`
-- [ ] T020 [P] Add `SecretsListResponse` interface (`total_count: number`, `secrets: SecretListItem[]`) to `solune/frontend/src/types/index.ts`
-- [ ] T021 [P] Add `SecretCheckResponse` interface (`results: Record<string, boolean>`) to `solune/frontend/src/types/index.ts`
+- [x] T019 [P] Add `SecretListItem` interface (`name: string`, `created_at: string`, `updated_at: string`) to `solune/frontend/src/types/index.ts`
+- [x] T020 [P] Add `SecretsListResponse` interface (`total_count: number`, `secrets: SecretListItem[]`) to `solune/frontend/src/types/index.ts`
+- [x] T021 [P] Add `SecretCheckResponse` interface (`results: Record<string, boolean>`) to `solune/frontend/src/types/index.ts`
 
 ### 2E: Secrets API Client (Frontend)
 
-- [ ] T022 Add `secretsApi` object to `solune/frontend/src/services/api.ts` following the `settingsApi` pattern — methods: `listSecrets(owner, repo, env)`, `setSecret(owner, repo, env, name, value)`, `deleteSecret(owner, repo, env, name)`, `checkSecrets(owner, repo, env, names[])`
+- [x] T022 Add `secretsApi` object to `solune/frontend/src/services/api.ts` following the `settingsApi` pattern — methods: `listSecrets(owner, repo, env)`, `setSecret(owner, repo, env, name, value)`, `deleteSecret(owner, repo, env, name)`, `checkSecrets(owner, repo, env, names[])`
 
 ### 2F: Secrets Query Hooks (Frontend)
 
-- [ ] T023 Create `solune/frontend/src/hooks/useSecrets.ts` with `secretsKeys` factory pattern: `all: ['secrets']`, `list: (owner, repo, env) => [...all, 'list', owner, repo, env]`, `check: (owner, repo, env, names) => [...all, 'check', owner, repo, env, ...names]`
-- [ ] T024 Implement `useSecrets(owner, repo, env)` query hook in `solune/frontend/src/hooks/useSecrets.ts` — calls `secretsApi.listSecrets()`, enabled when all params are defined, returns `{ secrets, isLoading, error }`
-- [ ] T025 [P] Implement `useSetSecret()` mutation hook in `solune/frontend/src/hooks/useSecrets.ts` — calls `secretsApi.setSecret()`, invalidates `secretsKeys.list` and `secretsKeys.check` on success
-- [ ] T026 [P] Implement `useDeleteSecret()` mutation hook in `solune/frontend/src/hooks/useSecrets.ts` — calls `secretsApi.deleteSecret()`, invalidates `secretsKeys.list` and `secretsKeys.check` on success
-- [ ] T027 [P] Implement `useCheckSecrets(owner, repo, env, names[])` query hook in `solune/frontend/src/hooks/useSecrets.ts` — calls `secretsApi.checkSecrets()`, enabled when all params are defined
+- [x] T023 Create `solune/frontend/src/hooks/useSecrets.ts` with `secretsKeys` factory pattern: `all: ['secrets']`, `list: (owner, repo, env) => [...all, 'list', owner, repo, env]`, `check: (owner, repo, env, names) => [...all, 'check', owner, repo, env, ...names]`
+- [x] T024 Implement `useSecrets(owner, repo, env)` query hook in `solune/frontend/src/hooks/useSecrets.ts` — calls `secretsApi.listSecrets()`, enabled when all params are defined, returns `{ secrets, isLoading, error }`
+- [x] T025 [P] Implement `useSetSecret()` mutation hook in `solune/frontend/src/hooks/useSecrets.ts` — calls `secretsApi.setSecret()`, invalidates `secretsKeys.list` and `secretsKeys.check` on success
+- [x] T026 [P] Implement `useDeleteSecret()` mutation hook in `solune/frontend/src/hooks/useSecrets.ts` — calls `secretsApi.deleteSecret()`, invalidates `secretsKeys.list` and `secretsKeys.check` on success
+- [x] T027 [P] Implement `useCheckSecrets(owner, repo, env, names[])` query hook in `solune/frontend/src/hooks/useSecrets.ts` — calls `secretsApi.checkSecrets()`, enabled when all params are defined
 
 **Checkpoint**: Foundation ready — backend secrets service, API, frontend types, API client, and hooks are complete. User story implementation can now begin.
 
@@ -90,9 +90,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T028 [US1] Rename `solune/frontend/src/components/settings/PrimarySettings.tsx` to `solune/frontend/src/components/settings/EssentialSettings.tsx` — update component name and all imports
-- [ ] T029 [US1] Remove `SignalConnection` import and rendering from `EssentialSettings.tsx` — Signal moves to Preferences tab (FR-009)
-- [ ] T030 [US1] Update `solune/frontend/src/pages/SettingsPage.tsx` to import `EssentialSettings` instead of `PrimarySettings` and render it as the content of the "Essential" tab panel
+- [x] T028 [US1] Rename `solune/frontend/src/components/settings/PrimarySettings.tsx` to `solune/frontend/src/components/settings/EssentialSettings.tsx` — update component name and all imports
+- [x] T029 [US1] Remove `SignalConnection` import and rendering from `EssentialSettings.tsx` — Signal moves to Preferences tab (FR-009)
+- [x] T030 [US1] Update `solune/frontend/src/pages/SettingsPage.tsx` to import `EssentialSettings` instead of `PrimarySettings` and render it as the content of the "Essential" tab panel
 
 **Checkpoint**: Essential tab renders AI config only — FR-008, FR-009 satisfied
 
@@ -106,13 +106,13 @@
 
 ### Implementation for User Story 2
 
-- [ ] T031 [US2] Rewrite `solune/frontend/src/pages/SettingsPage.tsx` to use Shadcn `Tabs` component with 4 tabs: "Essential" (default), "Secrets", "Preferences", "Admin" — tab values map to URL hash fragments `#essential`, `#secrets`, `#preferences`, `#admin` (FR-001, FR-002, FR-003)
-- [ ] T032 [US2] Add URL hash read logic in `SettingsPage.tsx` — on mount, read `window.location.hash` and set active tab accordingly; if hash is `#admin` and user is not admin, fall back to `#essential` (FR-004, FR-014)
-- [ ] T033 [US2] Add URL hash write logic in `SettingsPage.tsx` — on tab change, update `window.location.hash` without triggering page navigation (FR-003)
-- [ ] T034 [US2] Conditionally render "Admin" tab trigger in `SettingsPage.tsx` — visible only when `github_user_id === admin_github_user_id` from auth context (FR-005)
-- [ ] T035 [US2] Preserve unsaved changes across tab switches in `SettingsPage.tsx` — use controlled tab state so tab content is not unmounted on switch, or use local state persistence (FR-006)
-- [ ] T036 [US2] Add `role="tabpanel"` and `aria-labelledby` attributes to each tab panel in `SettingsPage.tsx` — Shadcn Tabs should provide this by default, verify and add if missing (FR-031)
-- [ ] T037 [US2] Add auto-focus behavior on tab switch in `SettingsPage.tsx` — focus moves to the active tab panel content when a tab is selected (FR-033)
+- [x] T031 [US2] Rewrite `solune/frontend/src/pages/SettingsPage.tsx` to use Shadcn `Tabs` component with 4 tabs: "Essential" (default), "Secrets", "Preferences", "Admin" — tab values map to URL hash fragments `#essential`, `#secrets`, `#preferences`, `#admin` (FR-001, FR-002, FR-003)
+- [x] T032 [US2] Add URL hash read logic in `SettingsPage.tsx` — on mount, read `window.location.hash` and set active tab accordingly; if hash is `#admin` and user is not admin, fall back to `#essential` (FR-004, FR-014)
+- [x] T033 [US2] Add URL hash write logic in `SettingsPage.tsx` — on tab change, update `window.location.hash` without triggering page navigation (FR-003)
+- [x] T034 [US2] Conditionally render "Admin" tab trigger in `SettingsPage.tsx` — visible only when `github_user_id === admin_github_user_id` from auth context (FR-005)
+- [x] T035 [US2] Preserve unsaved changes across tab switches in `SettingsPage.tsx` — use controlled tab state so tab content is not unmounted on switch, or use local state persistence (FR-006)
+- [x] T036 [US2] Add `role="tabpanel"` and `aria-labelledby` attributes to each tab panel in `SettingsPage.tsx` — Shadcn Tabs should provide this by default, verify and add if missing (FR-031)
+- [x] T037 [US2] Add auto-focus behavior on tab switch in `SettingsPage.tsx` — focus moves to the active tab panel content when a tab is selected (FR-033)
 
 **Checkpoint**: Tab navigation works with URL hash routing, admin visibility control, and unsaved changes preservation — FR-001 through FR-007, FR-014, FR-031, FR-033 satisfied
 
@@ -126,17 +126,17 @@
 
 ### Implementation for User Story 3
 
-- [ ] T038 [US3] Create `solune/frontend/src/components/settings/SecretsManager.tsx` scaffold — export `SecretsManager` component accepting no required props, with internal state for selected `owner`, `repo`, and `environment` (defaults to `"copilot"`)
-- [ ] T039 [US3] Add repository selector dropdown to `SecretsManager.tsx` — populate from user's available projects/repos using existing `useProjects()` or `projectsApi.listProjects()` hook (FR-022)
-- [ ] T040 [US3] Define `KNOWN_SECRETS` constant in `SecretsManager.tsx` — array of `{ key: string, label: string }` entries, e.g. `{ key: "COPILOT_MCP_CONTEXT7_API_KEY", label: "Context7 API Key" }` (FR-023)
-- [ ] T041 [US3] Implement Known Secrets section in `SecretsManager.tsx` — for each `KNOWN_SECRETS` entry, display friendly label, status badge ("Set ✓" if secret exists in `useSecrets()` data, "Not Set" otherwise), and Set/Update/Remove action buttons (FR-023, FR-024)
-- [ ] T042 [US3] Implement secret value input in `SecretsManager.tsx` — password-type input with show/hide toggle, `autocomplete="off"`, `aria-label` attribute, never pre-filled from server (FR-026, FR-032)
-- [ ] T043 [US3] Implement Set/Update action in `SecretsManager.tsx` — on submit, call `useSetSecret()` mutation with selected repo, environment, secret name, and entered value; show success/error feedback (FR-024)
-- [ ] T044 [US3] Implement Remove action in `SecretsManager.tsx` — on confirm, call `useDeleteSecret()` mutation; show confirmation dialog before deletion (FR-024)
-- [ ] T045 [US3] Implement "Add Custom Secret" form in `SecretsManager.tsx` — text input for secret name (validate `^[A-Z][A-Z0-9_]*$`, max 255 chars), password input for value (max 64KB), warning if name doesn't start with `COPILOT_MCP_` (FR-025, FR-027)
-- [ ] T046 [US3] Wire `SecretsManager` into `SettingsPage.tsx` as the content of the "Secrets" tab panel
-- [ ] T047 [US3] Handle empty state in `SecretsManager.tsx` — if user has no repositories, display "No repositories available" message and disable secret management controls (edge case from spec.md)
-- [ ] T048 [US3] Handle API errors in `SecretsManager.tsx` — rate limit errors show user-friendly message with retry option and rate-limit reset time; encryption public key errors prevent save with clear message (edge cases from spec.md)
+- [x] T038 [US3] Create `solune/frontend/src/components/settings/SecretsManager.tsx` scaffold — export `SecretsManager` component accepting no required props, with internal state for selected `owner`, `repo`, and `environment` (defaults to `"copilot"`)
+- [x] T039 [US3] Add repository selector dropdown to `SecretsManager.tsx` — populate from user's available projects/repos using existing `useProjects()` or `projectsApi.listProjects()` hook (FR-022)
+- [x] T040 [US3] Define `KNOWN_SECRETS` constant in `SecretsManager.tsx` — array of `{ key: string, label: string }` entries, e.g. `{ key: "COPILOT_MCP_CONTEXT7_API_KEY", label: "Context7 API Key" }` (FR-023)
+- [x] T041 [US3] Implement Known Secrets section in `SecretsManager.tsx` — for each `KNOWN_SECRETS` entry, display friendly label, status badge ("Set ✓" if secret exists in `useSecrets()` data, "Not Set" otherwise), and Set/Update/Remove action buttons (FR-023, FR-024)
+- [x] T042 [US3] Implement secret value input in `SecretsManager.tsx` — password-type input with show/hide toggle, `autocomplete="off"`, `aria-label` attribute, never pre-filled from server (FR-026, FR-032)
+- [x] T043 [US3] Implement Set/Update action in `SecretsManager.tsx` — on submit, call `useSetSecret()` mutation with selected repo, environment, secret name, and entered value; show success/error feedback (FR-024)
+- [x] T044 [US3] Implement Remove action in `SecretsManager.tsx` — on confirm, call `useDeleteSecret()` mutation; show confirmation dialog before deletion (FR-024)
+- [x] T045 [US3] Implement "Add Custom Secret" form in `SecretsManager.tsx` — text input for secret name (validate `^[A-Z][A-Z0-9_]*$`, max 255 chars), password input for value (max 64KB), warning if name doesn't start with `COPILOT_MCP_` (FR-025, FR-027)
+- [x] T046 [US3] Wire `SecretsManager` into `SettingsPage.tsx` as the content of the "Secrets" tab panel
+- [x] T047 [US3] Handle empty state in `SecretsManager.tsx` — if user has no repositories, display "No repositories available" message and disable secret management controls (edge case from spec.md)
+- [x] T048 [US3] Handle API errors in `SecretsManager.tsx` — rate limit errors show user-friendly message with retry option and rate-limit reset time; encryption public key errors prevent save with clear message (edge cases from spec.md)
 
 **Checkpoint**: Full secrets CRUD via UI — FR-015 through FR-027 satisfied
 
@@ -150,10 +150,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T049 [US4] Create `solune/frontend/src/components/settings/PreferencesTab.tsx` — import and render `DisplayPreferences`, `WorkflowDefaults`, `NotificationPreferences`, and `SignalConnection` components, each wrapped in `SettingsSection` card (FR-010)
-- [ ] T050 [US4] Pass correct props to each sub-component in `PreferencesTab.tsx` — `settings`, `onSave` callbacks for display/workflow/notification sections using `useUserSettings()` mutation; Signal components use their own hooks (FR-011)
-- [ ] T051 [US4] Ensure per-section save buttons are preserved in `PreferencesTab.tsx` — each `SettingsSection` has its own Save button that only saves that section's data (FR-007, FR-011)
-- [ ] T052 [US4] Wire `PreferencesTab` into `SettingsPage.tsx` as the content of the "Preferences" tab panel
+- [x] T049 [US4] Create `solune/frontend/src/components/settings/PreferencesTab.tsx` — import and render `DisplayPreferences`, `WorkflowDefaults`, `NotificationPreferences`, and `SignalConnection` components, each wrapped in `SettingsSection` card (FR-010)
+- [x] T050 [US4] Pass correct props to each sub-component in `PreferencesTab.tsx` — `settings`, `onSave` callbacks for display/workflow/notification sections using `useUserSettings()` mutation; Signal components use their own hooks (FR-011)
+- [x] T051 [US4] Ensure per-section save buttons are preserved in `PreferencesTab.tsx` — each `SettingsSection` has its own Save button that only saves that section's data (FR-007, FR-011)
+- [x] T052 [US4] Wire `PreferencesTab` into `SettingsPage.tsx` as the content of the "Preferences" tab panel
 
 **Checkpoint**: Preferences tab consolidates all personal settings with independent saves — FR-010, FR-011 satisfied
 
@@ -167,10 +167,10 @@
 
 ### Implementation for User Story 5
 
-- [ ] T053 [US5] Create `solune/frontend/src/components/settings/AdminTab.tsx` — import and render `GlobalSettings` and `ProjectSettings` components (FR-012)
-- [ ] T054 [US5] Pass correct props to `GlobalSettings` in `AdminTab.tsx` — `settings` from `useGlobalSettings()`, `onSave` callback using global settings mutation, reuse `globalSettingsSchema.ts` Zod validation + `flatten()`/`toUpdate()` converters (FR-013)
-- [ ] T055 [US5] Pass correct props to `ProjectSettings` in `AdminTab.tsx` — `projects` list, `selectedProjectId`, project settings hooks
-- [ ] T056 [US5] Wire `AdminTab` into `SettingsPage.tsx` as the content of the "Admin" tab panel — already conditionally rendered from US2 (T034)
+- [x] T053 [US5] Create `solune/frontend/src/components/settings/AdminTab.tsx` — import and render `GlobalSettings` and `ProjectSettings` components (FR-012)
+- [x] T054 [US5] Pass correct props to `GlobalSettings` in `AdminTab.tsx` — `settings` from `useGlobalSettings()`, `onSave` callback using global settings mutation, reuse `globalSettingsSchema.ts` Zod validation + `flatten()`/`toUpdate()` converters (FR-013)
+- [x] T055 [US5] Pass correct props to `ProjectSettings` in `AdminTab.tsx` — `projects` list, `selectedProjectId`, project settings hooks
+- [x] T056 [US5] Wire `AdminTab` into `SettingsPage.tsx` as the content of the "Admin" tab panel — already conditionally rendered from US2 (T034)
 
 **Checkpoint**: Admin tab works with existing validation and is hidden from non-admin users — FR-012, FR-013, FR-005 satisfied
 
@@ -184,10 +184,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T057 [US6] Add `required_secrets: list[str]` field to `McpPresetResponse` model in `solune/backend/src/models/tools.py` with `default_factory=list` (FR-028)
-- [ ] T058 [US6] Update Context7 preset definition in `solune/backend/src/services/tools/presets.py` to include `required_secrets=["COPILOT_MCP_CONTEXT7_API_KEY"]` (FR-028)
-- [ ] T059 [US6] Update `McpPresetsGallery` component in `solune/frontend/src/components/tools/McpPresetsGallery.tsx` — for each preset with `required_secrets`, call `useCheckSecrets()` hook and display "⚠ API key not configured" badge if any required secret is not set (FR-030)
-- [ ] T060 [US6] Add deep-link from warning badge in `McpPresetsGallery.tsx` — clicking the warning navigates to `/settings#secrets` (optional enhancement)
+- [x] T057 [US6] Add `required_secrets: list[str]` field to `McpPresetResponse` model in `solune/backend/src/models/tools.py` with `default_factory=list` (FR-028)
+- [x] T058 [US6] Update Context7 preset definition in `solune/backend/src/services/tools/presets.py` to include `required_secrets=["COPILOT_MCP_CONTEXT7_API_KEY"]` (FR-028)
+- [x] T059 [US6] Update `McpPresetsGallery` component in `solune/frontend/src/components/tools/McpPresetsGallery.tsx` — for each preset with `required_secrets`, call `useCheckSecrets()` hook and display "⚠ API key not configured" badge if any required secret is not set (FR-030)
+- [x] T060 [US6] Add deep-link from warning badge in `McpPresetsGallery.tsx` — clicking the warning navigates to `/settings#secrets` (optional enhancement)
 
 **Checkpoint**: MCP presets show secret configuration warnings — FR-028, FR-029, FR-030 satisfied
 
@@ -201,14 +201,14 @@
 
 ### Implementation for User Story 7
 
-- [ ] T061 [US7] Delete `solune/frontend/src/components/settings/AdvancedSettings.tsx` — functionality replaced by tab layout (FR-034)
-- [ ] T062 [P] [US7] Delete `solune/frontend/src/components/settings/AIPreferences.tsx` — functionality consolidated into `EssentialSettings.tsx` (FR-034)
+- [x] T061 [US7] Delete `solune/frontend/src/components/settings/AdvancedSettings.tsx` — functionality replaced by tab layout (FR-034)
+- [x] T062 [P] [US7] Delete `solune/frontend/src/components/settings/AIPreferences.tsx` — functionality consolidated into `EssentialSettings.tsx` (FR-034)
 - [ ] T063 [P] [US7] Delete `solune/frontend/src/components/settings/AISettingsSection.tsx` — functionality consolidated into `GlobalSettings.tsx` via `AdminTab` (FR-034)
 - [ ] T064 [P] [US7] Delete `solune/frontend/src/components/settings/DisplaySettings.tsx` — functionality consolidated via `DisplayPreferences` in `PreferencesTab` (FR-034)
 - [ ] T065 [P] [US7] Delete `solune/frontend/src/components/settings/WorkflowSettings.tsx` — functionality consolidated via `WorkflowDefaults` in `PreferencesTab` (FR-034)
 - [ ] T066 [P] [US7] Delete `solune/frontend/src/components/settings/NotificationSettings.tsx` — functionality consolidated via `NotificationPreferences` in `PreferencesTab` (FR-034)
-- [ ] T067 [US7] Remove all import references to deleted components — search all `.tsx`, `.ts` files for imports of `AdvancedSettings`, `AIPreferences`, `AISettingsSection`, `DisplaySettings`, `WorkflowSettings`, `NotificationSettings` and remove/update them
-- [ ] T068 [US7] Update or remove tests referencing deleted components — update `solune/frontend/src/components/settings/` test files that import or test deleted components (FR-035)
+- [x] T067 [US7] Remove all import references to deleted components — search all `.tsx`, `.ts` files for imports of `AdvancedSettings`, `AIPreferences`, `AISettingsSection`, `DisplaySettings`, `WorkflowSettings`, `NotificationSettings` and remove/update them
+- [x] T068 [US7] Update or remove tests referencing deleted components — update `solune/frontend/src/components/settings/` test files that import or test deleted components (FR-035)
 
 **Checkpoint**: Dead code removed, no broken imports — FR-034, FR-035 satisfied
 
@@ -220,27 +220,27 @@
 
 ### Backend Tests
 
-- [ ] T069 [P] Create `solune/backend/tests/unit/test_secrets_service.py` — mock githubkit client, test `list_secrets()`, `set_secret()` (verify NaCl encryption), `delete_secret()`, `get_or_create_environment()`, `check_secrets()` method
-- [ ] T070 [P] Create `solune/backend/tests/integration/test_secrets_api.py` — test endpoint routing (`GET`, `PUT`, `DELETE`), authentication requirement (401 without session), secret name validation (reject invalid names), value size validation (reject >64KB)
+- [x] T069 [P] Create `solune/backend/tests/unit/test_secrets_service.py` — mock githubkit client, test `list_secrets()`, `set_secret()` (verify NaCl encryption), `delete_secret()`, `get_or_create_environment()`, `check_secrets()` method
+- [x] T070 [P] Create `solune/backend/tests/integration/test_secrets_api.py` — test endpoint routing (`GET`, `PUT`, `DELETE`), authentication requirement (401 without session), secret name validation (reject invalid names), value size validation (reject >64KB)
 
 ### Frontend Tests
 
 - [ ] T071 [P] Create unit tests for `SecretsManager` in `solune/frontend/src/components/settings/SecretsManager.test.tsx` — test list display, set secret flow, delete secret flow, error states, empty repo state, custom secret form validation
 - [ ] T072 [P] Create unit tests for `EssentialSettings` in `solune/frontend/src/components/settings/EssentialSettings.test.tsx` — test provider switch triggers model refresh, temperature slider persistence, no Signal connection rendered
-- [ ] T073 [P] Verify existing settings tests still pass — run `cd solune/frontend && npx vitest run src/components/settings/` and fix any failures caused by renamed/deleted components
+- [x] T073 [P] Verify existing settings tests still pass — run `cd solune/frontend && npx vitest run src/components/settings/` and fix any failures caused by renamed/deleted components
 
 ### Accessibility
 
-- [ ] T074 [P] Verify tab panels in `SettingsPage.tsx` have `role="tabpanel"` and `aria-labelledby` linked to tab triggers — Shadcn Tabs should provide this, verify with DOM inspection (FR-031)
-- [ ] T075 [P] Verify all secret inputs in `SecretsManager.tsx` have `aria-label` attributes and `autocomplete="off"` (FR-032)
-- [ ] T076 Verify `celestial-focus` class is preserved on all interactive elements across new and refactored components
+- [x] T074 [P] Verify tab panels in `SettingsPage.tsx` have `role="tabpanel"` and `aria-labelledby` linked to tab triggers — Shadcn Tabs should provide this, verify with DOM inspection (FR-031)
+- [x] T075 [P] Verify all secret inputs in `SecretsManager.tsx` have `aria-label` attributes and `autocomplete="off"` (FR-032)
+- [x] T076 Verify `celestial-focus` class is preserved on all interactive elements across new and refactored components
 
 ### Final Validation
 
-- [ ] T077 Run full backend test suite: `cd solune/backend && python -m pytest tests/ -v`
-- [ ] T078 [P] Run full frontend test suite: `cd solune/frontend && npm test`
-- [ ] T079 [P] Run frontend lint: `cd solune/frontend && npm run lint`
-- [ ] T080 Manual verification: Settings page renders 4 tabs; Essential shows AI config only; Admin tab hidden for non-admin; navigate to `/settings#secrets` → Secrets tab auto-selected; existing settings save/load works with no regressions
+- [x] T077 Run full backend test suite: `cd solune/backend && python -m pytest tests/ -v`
+- [x] T078 [P] Run full frontend test suite: `cd solune/frontend && npm test`
+- [x] T079 [P] Run frontend lint: `cd solune/frontend && npm run lint`
+- [x] T080 Manual verification: Settings page renders 4 tabs; Essential shows AI config only; Admin tab hidden for non-admin; navigate to `/settings#secrets` → Secrets tab auto-selected; existing settings save/load works with no regressions
 
 ---
 

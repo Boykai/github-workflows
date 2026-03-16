@@ -9,9 +9,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from src.api.auth import get_session_dep
+from src.logging_utils import get_logger
 from src.models.user import UserSession
 from src.services.secrets_service import SecretsService
-from src.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
