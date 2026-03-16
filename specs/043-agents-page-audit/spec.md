@@ -217,7 +217,7 @@ As a developer and end user, I need the Agents page to perform efficiently with 
 
 ### In Scope
 
-- All files directly related to the Agents page: `AgentsPage.tsx`, all components in `src/components/agents/`, hooks (`useAgents.ts`, `useAgentConfig.ts`, `useAgentTools.ts`), and related type definitions.
+- All files directly related to the Agents page: `AgentsPage.tsx`, all components in `src/components/agents/` and `src/components/board/`, hooks (`useAgents.ts`, `useAgentConfig.ts`, `useAgentTools.ts`, `useProjectBoard.ts`), and related type definitions.
 - Component decomposition and code organization improvements.
 - Loading, error, and empty state implementation or fixes.
 - Accessibility improvements (keyboard navigation, ARIA attributes, focus management, contrast).
