@@ -26,10 +26,11 @@ import type { GlobalSettings as GlobalSettingsType, GlobalSettingsUpdate } from 
 interface GlobalSettingsProps {
   settings: GlobalSettingsType | undefined;
   isLoading: boolean;
+  error: Error | null;
   onSave: (update: GlobalSettingsUpdate) => Promise<void>;
 }
 
-export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsProps) {
+export function GlobalSettings({ settings, isLoading, error, onSave }: GlobalSettingsProps) {
   const form = useForm<GlobalFormState>({
     resolver: zodResolver(globalSettingsSchema),
     defaultValues: settings ? flatten(settings) : DEFAULTS,
@@ -41,11 +42,23 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
     }
   }, [settings, form]);
 
-  if (isLoading || !settings) {
+  if (isLoading) {
     return (
       <SettingsSection title="Global Settings" description="Instance-wide defaults" hideSave>
         <div className="flex items-center justify-center py-8">
           <CelestialLoader size="md" label="Loading global settings…" />
+        </div>
+      </SettingsSection>
+    );
+  }
+
+  if (!settings) {
+    return (
+      <SettingsSection title="Global Settings" description="Instance-wide defaults" hideSave>
+        <div className="flex flex-col items-center justify-center gap-3 py-8" role="alert">
+          <p className="text-sm text-destructive">
+            {error ? 'Could not load global settings. Please try again.' : 'No settings available.'}
+          </p>
         </div>
       </SettingsSection>
     );

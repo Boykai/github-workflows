@@ -24,6 +24,7 @@ interface AdvancedSettingsProps {
   userSettings: EffectiveUserSettings;
   globalSettings: GlobalSettingsType | undefined;
   globalLoading: boolean;
+  globalError: Error | null;
   onUserSave: (update: UserPreferencesUpdate) => Promise<void>;
   onGlobalSave: (update: GlobalSettingsUpdate) => Promise<void>;
   projects?: Array<{ project_id: string; name: string }>;
@@ -34,6 +35,7 @@ export function AdvancedSettings({
   userSettings,
   globalSettings,
   globalLoading,
+  globalError,
   onUserSave,
   onGlobalSave,
   projects = [],
@@ -81,6 +83,7 @@ export function AdvancedSettings({
           <GlobalSettings
             settings={globalSettings}
             isLoading={globalLoading}
+            error={globalError}
             onSave={onGlobalSave}
           />
         </div>

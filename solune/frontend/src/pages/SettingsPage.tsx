@@ -49,6 +49,7 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
   const {
     settings: globalSettings,
     isLoading: globalLoading,
+    error: globalError,
     updateSettings: updateGlobalSettings,
     isUpdating: isGlobalUpdating,
   } = useGlobalSettings();
@@ -95,6 +96,7 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
             userSettings={userSettings}
             globalSettings={globalSettings}
             globalLoading={globalLoading}
+            globalError={globalError}
             onUserSave={handleUserSave}
             onGlobalSave={handleGlobalSave}
             projects={projects}
