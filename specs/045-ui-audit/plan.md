@@ -29,7 +29,7 @@ Review and merge the GitHub issue template for **UI Audit** — a reusable check
 
 | # | Principle | Status | Notes |
 |---|-----------|--------|-------|
-| I | Specification-First Development | ✅ PASS | `spec.md` exists with 6 prioritized user stories (P1–P3), Given-When-Then acceptance scenarios, edge cases, and scope boundaries |
+| I | Specification-First Development | ✅ PASS | `spec.md` exists with 6 prioritized user stories (P1–P3), Given-When-Then acceptance scenarios, edge cases, and explicit in/out-of-scope boundaries |
 | II | Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates from `.specify/templates/` |
 | III | Agent-Orchestrated Execution | ✅ PASS | Single-responsibility agent (`speckit.plan`) producing well-defined outputs (plan.md, research.md, data-model.md, contracts/, quickstart.md) |
 | IV | Test Optionality with Clarity | ✅ PASS | Tests are not explicitly mandated in the spec. This is a static Markdown template — validation is manual (create issue, verify output). No automated tests required |
@@ -48,7 +48,7 @@ Review and merge the GitHub issue template for **UI Audit** — a reusable check
 |---|-----------|--------|-------|
 | I | Specification-First Development | ✅ PASS | Research confirms template content satisfies all 12 FRs. No spec changes needed |
 | II | Template-Driven Workflow | ✅ PASS | `research.md`, `data-model.md`, `contracts/`, `quickstart.md` all generated |
-| III | Agent-Orchestrated Execution | ✅ PASS | Plan complete; ready for `speckit.tasks` handoff |
+| III | Agent-Orchestrated Execution | ✅ PASS | Plan complete and aligned with the generated tasks/review artifacts |
 | IV | Test Optionality with Clarity | ✅ PASS | No automated tests mandated. Manual verification steps documented in quickstart.md |
 | V | Simplicity and DRY | ✅ PASS | Single Markdown file, no code, no dependencies, no abstraction layers |
 

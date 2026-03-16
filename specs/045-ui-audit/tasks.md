@@ -45,7 +45,7 @@
 - [ ] T010 [P] Verify the template contains an "Implementation Steps" section with exactly 6 phases (FR-006) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T011 [P] Verify the template contains a "Relevant Files" section with placeholder paths (FR-007) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T012 [P] Verify the template contains a "Verification" section with lint, type-check, test, and manual browser validation commands (FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T013 Verify all three placeholder tokens (`[PAGE_NAME]`, `[PageName]`, `[feature]`) appear in the template body (FR-005) per contracts/template-contract.md placeholder contract in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T013 Verify all four placeholder tokens (`[PAGE_NAME]`, `[PageName]`, `[Feature]`, `[feature]`) appear in the template body (FR-005) per contracts/template-contract.md placeholder contract in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: Template structure confirmed — per-story content validation can now begin in parallel.
 
@@ -61,9 +61,9 @@
 
 - [ ] T014 [US1] Verify the template is selectable from GitHub's "New Issue" page by confirming it resides in `.github/ISSUE_TEMPLATE/` with valid YAML front matter (FR-001) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T015 [P] [US1] Verify the issue form is pre-filled with the full audit checklist containing all 10 categories when the template is selected (US1-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T016 [P] [US1] Verify every `[PAGE_NAME]` placeholder is replaceable with an actual page name and the resulting issue clearly identifies the audited page (US1-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T016 [P] [US1] Verify every placeholder (`[PAGE_NAME]`, `[PageName]`, `[Feature]`, `[feature]`) is replaceable with page-specific values and the resulting issue clearly identifies the audited page (US1-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T017 [P] [US1] Verify the `labels: chore` front matter ensures the "chore" label is applied automatically on issue creation (US1-AC3, FR-009) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T018 [US1] Verify the default title `[CHORE] UI Audit` is filterable in the issue list and follows the expected format (US1-AC4, FR-010) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T018 [US1] Verify the template instructs the creator to append the audited page name to the default title `[CHORE] UI Audit` so the final issue remains filterable and page-specific in the issue list (US1-AC4, FR-010) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: User Story 1 validated — the template is selectable, pre-filled, and produces correctly labelled and titled issues.
 
@@ -89,7 +89,7 @@
 - [ ] T028 [P] [US2] Review all items in "10. Code Hygiene" (6 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T029 [US2] Verify all checklist items use clear, unambiguous language that does not require external documentation to understand (FR-011, SC-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T030 [US2] Verify no category has fewer than 4 items (SC-003) and total items ≥59 (FR-012) — cross-reference with research.md item distribution table in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T031 [US2] Confirm that checking/unchecking items in a created issue from `.github/ISSUE_TEMPLATE/chore-ui-audit.md` updates GitHub's checkbox progress counter per section (US2-AC4, US2-AC5) — manual verification after issue creation
+- [ ] T031 [US2] Confirm that checking/unchecking items in a created issue from `.github/ISSUE_TEMPLATE/chore-ui-audit.md` updates GitHub's checklist progress in the issue UI (US2-AC4, US2-AC5) — manual verification after issue creation
 
 **Checkpoint**: User Story 2 validated — all 60 checklist items are clear, pass/fail, and progress-trackable.
 
@@ -124,10 +124,10 @@
 ### Implementation for User Story 4
 
 - [ ] T039 [P] [US4] Verify "Page & Components" paths use `[PageName]` and `[feature]` placeholders that resolve to valid `solune/frontend/src/` locations (US4-AC1, FR-007) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T040 [P] [US4] Verify "Hooks & API" paths reference `src/hooks/use[Feature].ts` and `src/services/api.ts` with correct placeholder usage in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T041 [P] [US4] Verify "Types" paths reference `src/types/index.ts` or `src/types/[feature].ts` in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T040 [P] [US4] Verify "Hooks & API" paths reference `solune/frontend/src/hooks/use[Feature].ts` and `solune/frontend/src/services/api.ts` with correct placeholder usage in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T041 [P] [US4] Verify "Types" paths reference `solune/frontend/src/types/index.ts` or `solune/frontend/src/types/[feature].ts` in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T042 [P] [US4] Verify "Shared" section references actual UI primitives (Button, Card, Input, Tooltip, ConfirmationDialog) and common components (CelestialLoader, ErrorBoundary, ProjectSelectionEmptyState) from contracts/template-contract.md (US4-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T043 [P] [US4] Verify "Tests" paths reference `src/hooks/use[Feature].test.ts` and `src/components/[feature]/*.test.tsx` in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T043 [P] [US4] Verify "Tests" paths reference `solune/frontend/src/hooks/use[Feature].test.ts`, `solune/frontend/src/pages/[PageName].test.tsx`, and `solune/frontend/src/components/[feature]/**/*.test.tsx` in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T044 [US4] Substitute placeholders with a real page (e.g., `[PageName]=ProjectsPage`, `[feature]=board`) and confirm all resulting paths point to valid `solune/frontend/src/` directories (US4-AC1, US4-AC3) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: User Story 4 validated — the Relevant Files section produces a complete file inventory when placeholders are substituted.
@@ -142,9 +142,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T045 [P] [US5] Verify the lint command (`npx eslint src/pages/[PageName].tsx src/components/[feature]/`) is present and produces pass/fail output (US5-AC1, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T046 [P] [US5] Verify the type-check command (`npx tsc --noEmit`) is present and produces pass/fail output (US5-AC2, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T047 [P] [US5] Verify the test command (`npx vitest run`) is present and produces pass/fail output (US5-AC3, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T045 [P] [US5] Verify the lint command (`cd solune/frontend && npx eslint src/pages/[PageName].tsx src/components/[feature]/ src/hooks/use[Feature].ts`) is present and produces pass/fail output (US5-AC1, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T046 [P] [US5] Verify the type-check command (`cd solune/frontend && npx tsc --noEmit`) is present and produces pass/fail output (US5-AC2, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T047 [P] [US5] Verify the test command (`cd solune/frontend && npx vitest run`) is present and produces pass/fail output (US5-AC3, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T048 [P] [US5] Verify manual browser checks are listed: light mode, dark mode, responsive viewport, keyboard-only navigation (US5-AC4, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - [ ] T049 [US5] Verify the Verification section contains at least 6 verification items matching the contract (contracts/template-contract.md) — lint, type-check, tests, visual light, visual dark, keyboard (SC-006) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
@@ -160,9 +160,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T050 [P] [US6] Substitute all placeholders for the Projects page (`[PAGE_NAME]=Projects`, `[PageName]=ProjectsPage`, `[feature]=board`) and verify all checklist items, file paths, and commands are applicable (US6-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T051 [P] [US6] Substitute all placeholders for the Agents page (`[PAGE_NAME]=Agents`, `[PageName]=AgentsPanel`, `[feature]=agents`) and verify all checklist items, file paths, and commands are applicable (US6-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
-- [ ] T052 [US6] Confirm that the two audit instances are distinguishable by page name in the title and body (US6-AC3) and that no template modification was required (SC-007) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T050 [P] [US6] Substitute all placeholders for the Projects page (`[PAGE_NAME]=Projects`, `[PageName]=ProjectsPage`, `[Feature]=Projects`, `[feature]=board`) and verify all checklist items, file paths, and commands are applicable (US6-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T051 [P] [US6] Substitute all placeholders for the Agents page (`[PAGE_NAME]=Agents`, `[PageName]=AgentsPage`, `[Feature]=Agents`, `[feature]=agents`) and verify all checklist items, file paths, and commands are applicable (US6-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T052 [US6] Confirm that the two audit instances are distinguishable by page name in the title and body after the creator appends the page name to the default title and fills in the placeholders (US6-AC3) and that no template modification was required (SC-007) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: User Story 6 validated — the template is reusable across different pages without modification.
 

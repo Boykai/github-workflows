@@ -12,26 +12,28 @@ assignees: ''
 
 Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices, modular design, accurate text/copy, and zero bugs. Covers component decomposition, accessibility, error/loading/empty states, type safety, test coverage, and UI/UX polish.
 
+Before submitting the issue, replace `[PAGE_NAME]`, `[PageName]`, `[Feature]`, and `[feature]`, then append the audited page name to the default title (for example, `[CHORE] UI Audit — Agents`).
+
 ---
 
 ## Audit Checklist
 
 ### 1. Component Architecture & Modularity
 
-- [ ] **Single Responsibility**: Page file is ≤250 lines. If larger, extract sub-components into `src/components/[feature]/`
-- [ ] **Feature folder structure**: All sub-components live in `src/components/[feature]/` (not inline in the page file)
+- [ ] **Single Responsibility**: Page file is ≤250 lines. If larger, extract sub-components into `solune/frontend/src/components/[feature]/`
+- [ ] **Feature folder structure**: All sub-components live in `solune/frontend/src/components/[feature]/` (not inline in the page file)
 - [ ] **No prop drilling >2 levels**: Use composition, context, or hook extraction instead
-- [ ] **Reusable primitives**: Use existing `src/components/ui/` (Button, Card, Input, Tooltip, ConfirmationDialog, HoverCard) — don't reimplement
-- [ ] **Shared components**: Use `CelestialLoader`, `ErrorBoundary`, `ProjectSelectionEmptyState`, `ThemedAgentIcon` from `src/components/common/` where applicable
-- [ ] **Hook extraction**: Complex state logic (>15 lines of useState/useEffect/useCallback) extracted into `src/hooks/use[Feature].ts`
+- [ ] **Reusable primitives**: Use existing `solune/frontend/src/components/ui/` (Button, Card, Input, Tooltip, ConfirmationDialog, HoverCard) — don't reimplement
+- [ ] **Shared components**: Use `CelestialLoader`, `ErrorBoundary`, `ProjectSelectionEmptyState`, `ThemedAgentIcon` from `solune/frontend/src/components/common/` where applicable
+- [ ] **Hook extraction**: Complex state logic (>15 lines of useState/useEffect/useCallback) extracted into `solune/frontend/src/hooks/use[Feature].ts`
 - [ ] **No business logic in JSX**: Computation and data transformation happens in hooks or helper functions, not inline in the render tree
 
 ### 2. Data Fetching & State Management
 
 - [ ] **React Query for all API calls**: Uses `useQuery` / `useMutation` from TanStack Query — no raw `useEffect` + `fetch`
 - [ ] **Query key conventions**: Follows `[feature].all / .list(id) / .detail(id)` pattern (see `pipelineKeys`, `appKeys` examples)
-- [ ] **Optimistic updates where appropriate**: Mutations that update lists should `invalidateQueries` on success
-- [ ] **staleTime configured**: Data that doesn't change frequently has a reasonable `staleTime` (e.g., 30s for lists, 60s for settings)
+- [ ] **List mutations invalidate queries**: Mutations that create, update, or delete list data call `invalidateQueries` for the affected list/detail keys on success
+- [ ] **staleTime configured**: Lists use `staleTime >= 30_000` and settings use `staleTime >= 60_000` unless the file documents a stricter refresh requirement
 - [ ] **No duplicate API calls**: Check that the same data isn't fetched in both the page and a child component independently
 - [ ] **Mutation error handling**: All `useMutation` calls have `onError` that surfaces user-visible feedback (toast, inline error, etc.)
 
@@ -39,7 +41,7 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 
 - [ ] **Loading state**: Shows `<CelestialLoader size="md" />` or skeleton while data loads — never a blank screen
 - [ ] **Error state**: API errors render a clear message with a retry action. Uses `isRateLimitApiError()` for rate limit detection
-- [ ] **Empty state**: When data is loaded but collection is empty, shows a meaningful empty state (not just nothing)
+- [ ] **Empty state**: When data is loaded but a collection is empty, renders explanatory empty-state copy or a call to action — not a blank section
 - [ ] **Partial loading**: If page has multiple data sources, independent sections show their own loading/error states (don't let one failed section block the whole page)
 - [ ] **Error boundary**: Page is wrapped in `<ErrorBoundary>` (either at route level in App.tsx or within the page)
 
@@ -47,7 +49,7 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 
 - [ ] **No `any` types**: All props, state, API responses fully typed
 - [ ] **No type assertions (`as`)**: Prefer type guards or discriminated unions
-- [ ] **API response types match backend**: Types in `src/types/` aligned with Pydantic models. Date fields are `string` (ISO), nullable fields use `| null`
+- [ ] **API response types match backend**: Types in `solune/frontend/src/types/` aligned with Pydantic models. Date fields are `string` (ISO), nullable fields use `| null`
 - [ ] **Event handler types explicit**: Form events use `React.FormEvent<HTMLFormElement>`, not generic `any`
 - [ ] **Hook return types**: Custom hooks have explicit return type annotations or are inferrable without ambiguity
 
@@ -68,7 +70,7 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 - [ ] **Action button labels are verbs**: "Create Agent" not "New Agent", "Save Settings" not "Settings", "Delete" not "Remove"
 - [ ] **Confirmation on destructive actions**: All delete/remove/stop actions use `<ConfirmationDialog>` — never immediate
 - [ ] **Success feedback**: Mutations show success state (toast, status change, or inline message)
-- [ ] **Error messages are user-friendly**: No raw error codes or stack traces. Format: "Could not [action]. [Reason, if known]. [Suggested next step]."
+- [ ] **Formatted error messages**: No raw error codes or stack traces. Message follows `Could not [action]. [Reason, if known]. [Suggested next step].`
 - [ ] **Timestamps formatted consistently**: Use relative time ("2 hours ago") for recent, absolute for older
 - [ ] **Truncation with tooltip**: Long text (names, descriptions, URLs) truncated with `text-ellipsis` and full text in a `<Tooltip>`
 
@@ -78,14 +80,14 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 - [ ] **Responsive design**: Page isn't broken at viewport widths 768px–1920px. Grid/flex layouts adapt
 - [ ] **Dark mode support**: Uses Tailwind `dark:` variants or CSS variables from the theme. No hardcoded colors like `#fff` or `bg-white`
 - [ ] **Consistent spacing**: Uses Tailwind spacing scale (e.g., `gap-4`, `p-6`) — no arbitrary values like `p-[13px]`
-- [ ] **Card/section consistency**: Content sections use `<Card>` from `src/components/ui/card.tsx` with consistent padding/rounding
-- [ ] **Loading shimmer/skeleton**: Consider skeleton loading states instead of spinners for content areas
+- [ ] **Card/section consistency**: Content sections use `<Card>` from `solune/frontend/src/components/ui/card.tsx` with the same padding and rounding classes used by sibling sections on the page
+- [ ] **Loading shimmer/skeleton**: Content-heavy loading states (lists, cards, tables) use skeletons instead of spinner-only placeholders
 
 ### 8. Performance
 
 - [ ] **No unnecessary re-renders**: Expensive components wrapped in `React.memo()` where props are stable. Callbacks use `useCallback` only when passed to memoized children
 - [ ] **Lists have stable keys**: Array renders use `key={item.id}` — never `key={index}`
-- [ ] **Large lists virtualized**: If rendering >50 items, consider `react-window` or pagination
+- [ ] **Large lists virtualized**: Lists with more than 50 visible items use virtualization or pagination
 - [ ] **No sync computation in render**: Heavy transforms (sorting, filtering, grouping) wrapped in `useMemo`
 - [ ] **Images/icons lazy loaded**: Non-critical images use `loading="lazy"`
 
@@ -104,7 +106,7 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 - [ ] **Imports use `@/` alias**: All project imports use `@/components/...`, `@/hooks/...`, `@/services/...` — not relative `../../`
 - [ ] **File naming**: Components are PascalCase `.tsx`, hooks are `use*.ts`, types in `types/`, utilities in `lib/`
 - [ ] **No magic strings**: Repeated strings (status values, route paths, query keys) defined as constants
-- [ ] **ESLint clean**: `npx eslint src/pages/[PageName].tsx src/components/[feature]/ src/hooks/use[Feature].ts` — 0 warnings
+- [ ] **ESLint clean**: `cd solune/frontend && npx eslint src/pages/[PageName].tsx src/components/[feature]/ src/hooks/use[Feature].ts` — 0 warnings
 
 ---
 
@@ -113,21 +115,21 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 ### Phase 1: Discovery & Assessment
 
 1. **Read the page file** — Note line count, identify sub-components, hooks used, API calls made
-2. **Read all related components** in `src/components/[feature]/`
-3. **Read the related hook(s)** in `src/hooks/`
-4. **Read the related API group** in `src/services/api.ts`
-5. **Read the related types** in `src/types/`
+2. **Read all related components** in `solune/frontend/src/components/[feature]/`
+3. **Read the related hook(s)** in `solune/frontend/src/hooks/`
+4. **Read the related API group** in `solune/frontend/src/services/api.ts`
+5. **Read the related types** in `solune/frontend/src/types/`
 6. **Run the page in browser** — Note visual issues, check dark mode, resize viewport
-7. **Run existing tests** — `npx vitest run src/**/*[feature]*` — note what's covered
-8. **Run lint** — `npx eslint src/pages/[PageName].tsx src/components/[feature]/` — note violations
+7. **Run existing tests** — `cd solune/frontend && npx vitest run src/**/*[feature]*` — note what's covered
+8. **Run lint** — `cd solune/frontend && npx eslint src/pages/[PageName].tsx src/components/[feature]/ src/hooks/use[Feature].ts` — note violations
 9. **Score each checklist item** — Pass / Fail / N/A — produce a findings table
 
 ### Phase 2: Structural Fixes (if needed)
 
-1. **Extract oversized page into sub-components** — Move self-contained sections into `src/components/[feature]/[SectionName].tsx`
-2. **Extract complex state into hooks** — Move >15-line state blocks into `src/hooks/use[Feature].ts`
+1. **Extract oversized page into sub-components** — Move self-contained sections into `solune/frontend/src/components/[feature]/[SectionName].tsx`
+2. **Extract complex state into hooks** — Move >15-line state blocks into `solune/frontend/src/hooks/use[Feature].ts`
 3. **Replace raw fetches with React Query** — If any `useEffect` + `fetch` patterns exist
-4. **Add missing types** — Eliminate `any`, add explicit return types to hooks
+4. **Add missing types** — Eliminate `any`, add explicit return types to hooks in `solune/frontend/src/types/` where needed
 
 ### Phase 3: States & Error Handling
 
@@ -152,9 +154,9 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 
 ### Phase 6: Validation
 
-1. **`npx eslint src/pages/[PageName].tsx src/components/[feature]/`** — 0 warnings
-2. **`npx tsc --noEmit`** — 0 type errors
-3. **`npx vitest run`** — all tests pass
+1. **`cd solune/frontend && npx eslint src/pages/[PageName].tsx src/components/[feature]/ src/hooks/use[Feature].ts`** — 0 warnings
+2. **`cd solune/frontend && npx tsc --noEmit`** — 0 type errors
+3. **`cd solune/frontend && npx vitest run`** — all tests pass
 4. **Manual browser check** — light mode, dark mode, responsive, keyboard-only navigation
 
 ---
@@ -184,15 +186,16 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 ### Tests
 
 - `solune/frontend/src/hooks/use[Feature].test.ts`
-- `solune/frontend/src/components/[feature]/*.test.tsx`
+- `solune/frontend/src/pages/[PageName].test.tsx`
+- `solune/frontend/src/components/[feature]/**/*.test.tsx`
 
 ---
 
 ## Verification
 
-1. `npx eslint src/pages/[PageName].tsx src/components/[feature]/` — 0 warnings
-2. `npx tsc --noEmit` — 0 errors
-3. `npx vitest run` — all tests pass
+1. `cd solune/frontend && npx eslint src/pages/[PageName].tsx src/components/[feature]/ src/hooks/use[Feature].ts` — 0 warnings
+2. `cd solune/frontend && npx tsc --noEmit` — 0 errors
+3. `cd solune/frontend && npx vitest run` — all tests pass
 4. Browser: light mode, dark mode, viewport 768px → 1920px
 5. Keyboard: Tab through all interactive elements, Enter/Space to activate
 6. Screen reader: Verify labels read correctly (or use axe DevTools audit)

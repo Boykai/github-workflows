@@ -113,11 +113,12 @@ A reference section with placeholder paths mapping to the repository's frontend 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
 | `category` | String | One of: Page & Components, Hooks & API, Types, Shared, Tests | File grouping |
-| `paths` | List[String] | Uses `[PageName]` and `[feature]` placeholders | File or directory paths |
+| `paths` | List[String] | Uses `[PageName]`, `[Feature]`, and `[feature]` placeholders | File or directory paths |
 
 **Validation Rules**:
 
 - Paths must be valid when placeholders are replaced with actual page/feature names per FR-007.
+- Hook file paths use the PascalCase `[Feature]` token after the `use` prefix (for example, `useAgents.ts`).
 - Shared component paths must reference actual shared UI primitives (Button, Card, Input, Tooltip, ConfirmationDialog) and common components (CelestialLoader, ErrorBoundary) per US4-AC2.
 
 ---

@@ -4,7 +4,7 @@
 
 ## Overview
 
-This feature delivers a GitHub issue template for standardised UI page audits. The template is a static Markdown file — there is no build step, no runtime component, and no automated tests. Validation is manual: create an issue from the template and verify the output.
+This feature delivers a GitHub issue template for standardised UI page audits. The template is a static Markdown file — there is no build step, no runtime component, and no automated tests. Validation is manual: create an issue from the template, replace the placeholders, update the title with the audited page name, and verify the output.
 
 ## Prerequisites
 
@@ -88,6 +88,10 @@ grep -c '\[PAGE_NAME\]' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 grep -c '\[PageName\]' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected: ≥3 (file paths in multiple sections)
 
+# Check for [Feature] placeholder (PascalCase hook references)
+grep -c '\[Feature\]' .github/ISSUE_TEMPLATE/chore-ui-audit.md
+# Expected: ≥2 (hook file paths in multiple sections)
+
 # Check for [feature] placeholder (directory references)
 grep -c '\[feature\]' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected: ≥5 (component paths, test paths, etc.)
@@ -110,12 +114,14 @@ After the branch is merged, verify the template works end-to-end:
 3. **Verify** the issue body contains all 10 audit category sections with checkbox items
 4. **Replace** all `[PAGE_NAME]` placeholders with a real page name (e.g., "Projects")
 5. **Replace** all `[PageName]` placeholders with the PascalCase name (e.g., "ProjectsPage")
-6. **Replace** all `[feature]` placeholders with the feature directory (e.g., "board")
-7. **Submit** the issue
-8. **Verify** the "chore" label is automatically applied
-9. **Verify** the issue title shows `[CHORE] UI Audit`
-10. **Verify** checkbox counters display correctly (e.g., "0/7" per section)
-11. **Check** one checkbox item and verify the counter updates (e.g., "1/7")
+6. **Replace** all `[Feature]` placeholders with the PascalCase hook suffix (e.g., "Projects")
+7. **Replace** all `[feature]` placeholders with the feature directory (e.g., "board")
+8. **Append** the audited page name to the default title (e.g., `[CHORE] UI Audit — Projects`)
+9. **Submit** the issue
+10. **Verify** the "chore" label is automatically applied
+11. **Verify** the issue title shows `[CHORE] UI Audit — Projects`
+12. **Verify** GitHub reflects checklist progress in the issue UI after the issue is created
+13. **Check** one checkbox item and verify the visible progress updates in the issue UI
 
 ## Using the Template for a Page Audit
 
@@ -125,7 +131,8 @@ After the branch is merged, verify the template works end-to-end:
 # 2. Replace placeholders:
 #    [PAGE_NAME] → Projects
 #    [PageName] → ProjectsPage
-#    [feature]  → board
+#    [Feature] → Projects
+#    [feature] → board
 # 3. Work through Phase 1 (Discovery) to understand the page
 # 4. Score each checklist item (Pass/Fail/N/A)
 # 5. Fix issues in Phase 2–5 order
