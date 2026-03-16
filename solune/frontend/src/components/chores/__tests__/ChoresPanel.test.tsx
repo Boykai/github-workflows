@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 import { ChoresPanel } from '../ChoresPanel';
+import { ApiError } from '@/services/api';
 import type { Chore } from '@/types';
 import type { ReactNode } from 'react';
 
@@ -155,6 +156,27 @@ describe('ChoresPanel', () => {
     });
   });
 
+  it('renders a rate limit message and retries when the chores query is throttled', async () => {
+    const user = userEvent.setup();
+    mockList
+      .mockRejectedValueOnce(new ApiError(429, { error: 'Too many requests' }))
+      .mockResolvedValueOnce([]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText('Rate limit reached')).toBeInTheDocument();
+    expect(
+      screen.getByText('Too many requests. Please wait a moment and try again.')
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(mockList).toHaveBeenCalledTimes(2);
+      expect(screen.getByText('No chores yet')).toBeInTheDocument();
+    });
+  });
+
   it('displays the Chores header', async () => {
     mockList.mockResolvedValue([]);
 
@@ -236,6 +258,56 @@ describe('ChoresPanel', () => {
       expect(mockUpdate).toHaveBeenCalledWith('PVT_1', 'c1', {
         agent_pipeline_id: 'pipe-1',
       });
+    });
+  });
+
+  it('opens the add-chore modal with a spotlighted repository template prefilled', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([createChore({ id: 'c1', name: 'Existing chore' })]);
+    mockListTemplates.mockResolvedValue([
+      {
+        name: 'Weekly triage',
+        path: '.github/ISSUE_TEMPLATE/weekly-triage.md',
+        content: '## Weekly triage\nReview open issues',
+        about: 'Keep the backlog healthy each week.',
+      },
+    ]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole('button', { name: /Weekly triage/i }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Name')).toHaveValue('Weekly triage');
+      expect(screen.getByLabelText('Template Content')).toHaveValue(
+        '## Weekly triage\nReview open issues'
+      );
+    });
+  });
+
+  it('shows the no-results state for filters and resets back to the full catalog', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([
+      createChore({ id: 'c1', name: 'Alpha upkeep' }),
+      createChore({ id: 'c2', name: 'Beta cleanup', template_path: '.github/ISSUE_TEMPLATE/beta.md' }),
+    ]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    const searchInput = await screen.findByLabelText('Search chores by name or template path');
+    await user.type(searchInput, 'zzz');
+
+    await waitFor(() => {
+      expect(screen.getByText('No chores match the current filters.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('No chores match the current filters.')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Alpha upkeep').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Beta cleanup').length).toBeGreaterThan(0);
+      expect(searchInput).toHaveValue('');
     });
   });
 });
