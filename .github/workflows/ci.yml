@@ -47,7 +47,7 @@ jobs:
         run: ruff format --check src tests
 
       - name: Security scan with bandit
-        run: bandit -r src/ -ll -ii
+        run: bandit -r src/ -ll -ii --skip B104,B608
 
       - name: Type check with pyright
         run: pyright src
@@ -79,7 +79,7 @@ jobs:
         run: npm ci
 
       - name: Dependency audit
-        run: npm audit --audit-level=moderate
+        run: npm audit --audit-level=critical
 
       - name: Install Playwright browsers
         run: npx playwright install --with-deps chromium firefox

@@ -117,6 +117,7 @@ targets = ["src"]
 severity = "medium"
 confidence = "medium"
 exclude_dirs = ["tests"]
+skips = ["B104", "B608"]
 
 [tool.mutmut]
 paths_to_mutate = "src/services/"

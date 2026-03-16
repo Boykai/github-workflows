@@ -9,12 +9,23 @@ Requires the backend to be importable (pip install -e solune/backend).
 
 import argparse
 import json
+import os
 import sys
 from pathlib import Path
 
 # Ensure the backend package is importable
 backend_root = Path(__file__).resolve().parent.parent / "backend"
 sys.path.insert(0, str(backend_root))
+
+# Provide dummy env vars so Settings() can instantiate without real secrets.
+# Only the OpenAPI schema is extracted — no server is started.
+_CI_PLACEHOLDERS = {
+    "GITHUB_CLIENT_ID": "ci-placeholder",
+    "GITHUB_CLIENT_SECRET": "ci-placeholder",
+    "SESSION_SECRET_KEY": "ci-placeholder-" + "x" * 64,
+}
+for var, default in _CI_PLACEHOLDERS.items():
+    os.environ.setdefault(var, default)
 
 from src.main import create_app  # noqa: E402
 

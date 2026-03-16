@@ -86,6 +86,7 @@ stryker-tmp/
 
 # OpenAPI generated artifacts
 openapi.json
+openapi-generated.d.ts
 
 # SQLite database files
 *.db
