@@ -39,7 +39,7 @@ export function useToolsList(projectId: string | null | undefined) {
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const query = useQuery<McpToolConfigListResponse>({
+  const query = useQuery<McpToolConfigListResponse, ApiError>({
     queryKey: toolKeys.list(projectId ?? ''),
     queryFn: () => toolsApi.list(projectId!),
     staleTime: STALE_TIME_TOOLS,
@@ -109,7 +109,7 @@ export function useToolsList(projectId: string | null | undefined) {
   return {
     tools: query.data?.tools ?? [],
     isLoading: query.isLoading,
-    error: query.error ? (query.error as Error).message : null,
+    error: query.error?.message ?? null,
     rawError: query.error ?? null,
     refetch: query.refetch,
 

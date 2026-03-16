@@ -60,6 +60,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     repoConfig,
     isLoading: isRepoConfigLoading,
     error: repoConfigError,
+    rawError: repoConfigRawError,
     refetch: refetchRepoConfig,
     updateRepoServer,
     isUpdating: isRepoServerUpdating,
@@ -72,7 +73,13 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     deleteError: repoServerDeleteError,
     resetDeleteError: resetRepoServerDeleteError,
   } = useRepoMcpConfig(projectId);
-  const { presets, isLoading: arePresetsLoading, error: presetsError } = useMcpPresets();
+  const {
+    presets,
+    isLoading: arePresetsLoading,
+    error: presetsError,
+    rawError: presetsRawError,
+    refetch: refetchPresets,
+  } = useMcpPresets();
 
   const managedToolByServerName = useMemo(() => {
     const index = new Map<string, McpToolConfig>();
@@ -208,6 +215,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
         repoConfig={repoConfig}
         isLoading={isRepoConfigLoading}
         error={repoConfigError}
+        rawError={repoConfigRawError}
         onRefresh={() => {
           void refetchRepoConfig();
         }}
@@ -231,7 +239,11 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
           presets={presets}
           isLoading={arePresetsLoading}
           error={presetsError}
+          rawError={presetsRawError}
           onSelectPreset={handlePresetSelect}
+          onRetry={() => {
+            void refetchPresets();
+          }}
         />
         <GitHubMcpConfigGenerator tools={tools} />
       </div>
