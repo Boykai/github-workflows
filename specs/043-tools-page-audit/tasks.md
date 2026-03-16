@@ -25,7 +25,7 @@
 
 - [ ] T001 Install frontend dependencies via `cd solune/frontend && npm install`
 - [ ] T002 [P] Run existing tests baseline via `cd solune/frontend && npx vitest run src/components/tools/ src/hooks/useTools.ts` and record current pass/fail state
-- [ ] T003 [P] Run linter baseline via `cd solune/frontend && npx eslint src/pages/ToolsPage.tsx src/components/tools/ src/hooks/useTools.ts src/hooks/useAgentTools.ts` and record current warnings
+- [ ] T003 [P] Run linter baseline via `cd solune/frontend && npx eslint src/pages/ToolsPage.tsx src/components/tools/ src/hooks/useTools.ts src/hooks/useAgentTools.ts src/hooks/useRepoMcpConfig.ts src/hooks/useMcpPresets.ts` and record current warnings
 
 ---
 
@@ -36,7 +36,7 @@
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
 - [ ] T004 Read and audit all tools page files — note line counts, identify loading/error/empty state gaps, accessibility gaps, and type safety issues across `solune/frontend/src/pages/ToolsPage.tsx`, `solune/frontend/src/components/tools/`, and `solune/frontend/src/hooks/useTools.ts`
-- [ ] T005 [P] Read shared component APIs (CelestialLoader, ConfirmationDialog, ErrorBoundary, Tooltip, `isRateLimitApiError()`) in `solune/frontend/src/components/common/`, `solune/frontend/src/components/ui/`, and `solune/frontend/src/services/api.ts` for integration reference
+- [ ] T005 [P] Read shared component APIs (CelestialLoader, ConfirmationDialog, ErrorBoundary, Tooltip, `isRateLimitApiError()`) in `solune/frontend/src/components/common/`, `solune/frontend/src/components/ui/`, and `solune/frontend/src/utils/rateLimit.ts` for integration reference
 
 **Checkpoint**: Foundation ready — audit findings documented, shared component contracts understood. User story implementation can now begin.
 
@@ -52,7 +52,7 @@
 
 - [ ] T006 [P] [US1] Add `<CelestialLoader size="md" />` loading state, error state with retry action button, and `isRateLimitApiError()` rate-limit detection to RepoConfigPanel in `solune/frontend/src/components/tools/RepoConfigPanel.tsx`
 - [ ] T007 [P] [US1] Add `<CelestialLoader size="md" />` loading state, error state with retry action button, `isRateLimitApiError()` rate-limit detection, and meaningful empty state with call-to-action to McpPresetsGallery in `solune/frontend/src/components/tools/McpPresetsGallery.tsx`
-- [ ] T008 [US1] Add rate-limit error detection using `isRateLimitApiError()` from `@/services/api` and format all mutation error messages to "Could not [action]. [Reason]. [Suggested next step]." pattern in `solune/frontend/src/hooks/useTools.ts`
+- [ ] T008 [US1] Add rate-limit error detection using `isRateLimitApiError()` from `@/utils/rateLimit` and format all mutation error messages to "Could not [action]. [Reason]. [Suggested next step]." pattern in `solune/frontend/src/hooks/useTools.ts`
 - [ ] T009 [US1] Add loading state with `<CelestialLoader>`, error state with retry action and rate-limit message, and meaningful empty state with call-to-action for the tools list section in `solune/frontend/src/components/tools/ToolsPanel.tsx`
 - [ ] T010 [US1] Ensure independent section loading — tools list, repo config, and presets each display their own loading/error states without one failed section blocking others in `solune/frontend/src/components/tools/ToolsPanel.tsx`
 - [ ] T011 [US1] Replace inline delete confirmation with `<ConfirmationDialog>` component for tool deletion — display tool name and list of affected agents in the dialog in `solune/frontend/src/components/tools/ToolsPanel.tsx`
@@ -133,10 +133,12 @@
 - [ ] T034 [US5] Remove all `any` types, unnecessary type assertions (`as`), dead code (unused imports, commented-out blocks), `console.log` statements, and magic strings across all tools files in `solune/frontend/src/components/tools/` and `solune/frontend/src/hooks/useTools.ts`
 - [ ] T035 [US5] Ensure all project imports use `@/` alias paths (e.g., `@/components/...`, `@/hooks/...`) — replace any relative `../../` imports across tools files in `solune/frontend/src/components/tools/` and `solune/frontend/src/hooks/`
 - [ ] T036 [P] [US5] Write hook tests for `useToolsList` covering happy path (tools loaded), error state (API failure), loading state, empty state (no tools), and rate-limit error detection in `solune/frontend/src/hooks/useTools.test.ts`
+- [ ] T036a [P] [US5] Write hook tests for `useRepoMcpConfig` covering happy path (config loaded), error state (API failure), loading state, empty config, and CRUD operations in `solune/frontend/src/hooks/useRepoMcpConfig.test.ts`
+- [ ] T036b [P] [US5] Write hook tests for `useMcpPresets` covering happy path (presets loaded), error state (API failure), loading state, and empty presets list in `solune/frontend/src/hooks/useMcpPresets.test.ts`
 - [ ] T037 [P] [US5] Write component tests for ToolsPanel covering tool upload flow, tool edit flow, tool delete with confirmation dialog, and success/error feedback display in `solune/frontend/src/components/tools/ToolsPanel.test.tsx`
 - [ ] T038 [P] [US5] Write component tests for ToolCard covering sync status display, action button interactions, and truncated text tooltip behavior in `solune/frontend/src/components/tools/ToolCard.test.tsx`
 - [ ] T039 [P] [US5] Write edge case tests — rate-limit error rendering, null/missing data handling, extremely long strings (500+ chars), and rapid click protection — in `solune/frontend/src/components/tools/ToolsEnhancements.test.tsx`
-- [ ] T040 [US5] Run linter via `cd solune/frontend && npx eslint src/pages/ToolsPage.tsx src/components/tools/ src/hooks/useTools.ts src/hooks/useAgentTools.ts` and fix all warnings to reach zero violations
+- [ ] T040 [US5] Run linter via `cd solune/frontend && npx eslint src/pages/ToolsPage.tsx src/components/tools/ src/hooks/useTools.ts src/hooks/useAgentTools.ts src/hooks/useRepoMcpConfig.ts src/hooks/useMcpPresets.ts` and fix all warnings to reach zero violations
 
 **Checkpoint**: At this point, User Story 5 should be complete — page file is within line limit, state is properly extracted into hooks, type safety is enforced, lint is clean, and comprehensive tests cover hooks, components, and edge cases.
 

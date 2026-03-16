@@ -19,7 +19,7 @@
 - `CelestialLoader` lives at `src/components/common/CelestialLoader.tsx`; accepts `size` prop with "md" as default
 - `ConfirmationDialog` lives at `src/components/ui/confirmation-dialog.tsx`; built on Radix AlertDialog with proper focus management
 - `ErrorBoundary` lives at `src/components/common/ErrorBoundary.tsx`; wraps children with fallback error UI
-- `isRateLimitApiError()` utility exists in `src/services/api.ts` for detecting rate-limit errors
+- `isRateLimitApiError()` utility exists in `src/utils/rateLimit.ts` for detecting rate-limit errors
 
 ---
 
@@ -37,7 +37,7 @@
 - `isRateLimitApiError()` checks `error.status === 429`
 - The `ApiError` class includes `status`, `message`, and optional `detail` fields
 - Rate-limit errors should display: "Rate limit reached. Please wait a moment before trying again."
-- The utility is importable from `@/services/api`
+- The utility is importable from `@/utils/rateLimit`
 
 ---
 
@@ -179,7 +179,7 @@
 | # | Unknown | Resolution |
 |---|---------|-----------|
 | R1 | Which shared components to use for states? | CelestialLoader (loading), ConfirmationDialog (confirmations), ErrorBoundary (error boundaries) |
-| R2 | How to detect rate-limit errors? | `isRateLimitApiError()` from `@/services/api` checks HTTP 429 |
+| R2 | How to detect rate-limit errors? | `isRateLimitApiError()` from `@/utils/rateLimit` checks HTTP 429 |
 | R3 | What test patterns to follow? | Existing `vi.mock()` + `render()` + `userEvent` + `waitFor` pattern from ToolsEnhancements.test.tsx |
 | R4 | How to replace inline delete confirmation? | ConfirmationDialog with two-step delete flow (get affected agents → confirm → execute) |
 | R5 | How to format timestamps? | Relative for <24h, absolute for ≥24h; simple utility function |

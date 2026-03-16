@@ -62,10 +62,10 @@
 | I. Specification-First Development | ✅ PASS | spec.md contains 5 prioritized user stories (P1–P3), Given-When-Then scenarios, 7 edge cases, 24 FRs, 12 success criteria |
 | II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates; no unjustified custom sections |
 | III. Agent-Orchestrated Execution | ✅ PASS | Specify → Plan → Tasks → Analyze chain followed correctly |
-| IV. Test Optionality with Clarity | ⚠️ PARTIAL | Tests are explicitly mandated by FR-022. Plan correctly identifies hooks needing tests (useToolsList, useRepoMcpConfig, useMcpPresets) but tasks.md only covers useToolsList. Two of three required hook test tasks are missing (C1) |
+| IV. Test Optionality with Clarity | ✅ PASS | Tests are explicitly mandated by FR-022. Plan correctly identifies hooks needing tests (useToolsList, useRepoMcpConfig, useMcpPresets) and tasks now cover all three hooks (T036, T036a, T036b) after C1 remediation |
 | V. Simplicity and DRY | ✅ PASS | All improvements use existing shared components. No new dependencies or abstractions. Complexity Tracking section confirms no violations |
 
-**Constitution Conflicts**: None at CRITICAL severity. Principle IV has a gap (C1) at HIGH severity — plan acknowledges test requirements for 3 hooks but tasks only implement 1.
+**Constitution Conflicts**: None. All HIGH severity issues (F1, C1, C2, C3) have been remediated. Principle IV gap resolved by adding T036a and T036b.
 
 ---
 
@@ -91,23 +91,23 @@ All 44 tasks (T001–T044) map to at least one requirement, user story, or cross
 | Metric | Value |
 |--------|-------|
 | Total Functional Requirements | 24 |
-| Total Tasks | 44 |
+| Total Tasks | 46 (44 original + T036a, T036b added via remediation) |
 | Coverage % (FRs with ≥1 task) | 100% (24/24) |
-| Coverage % (FRs with complete task coverage) | 87.5% (21/24) — FR-018, FR-020, FR-022 have partial gaps |
+| Coverage % (FRs with complete task coverage) | 91.7% (22/24) — FR-018 scope unclear (U1), FR-022 now has full hook coverage after C1 remediation |
 | Ambiguity Count | 2 (A1, U2) |
 | Duplication Count | 0 |
 | Underspecification Count | 4 (U1, U2, U3, D1) |
 | Inconsistency Count | 3 (F1, F2, F3) |
 | Coverage Gap Count | 4 (C1, C2, C3, C4) |
 | Critical Issues | 0 |
-| High Issues | 4 (F1, C1, C2, C3) |
+| High Issues | 4 (F1, C1, C2, C3) — all remediated |
 | Medium Issues | 5 (U1, A1, C4, U2, D1) |
 | Low Issues | 3 (F2, F3, U3) |
 | Total Findings | 12 |
 | User Stories | 5 |
 | Edge Cases in Spec | 7 |
 | Edge Cases with Task Coverage | 3 of 7 (43%) |
-| Constitution Principles Satisfied | 5/5 (1 partial: Principle IV) |
+| Constitution Principles Satisfied | 5/5 (Principle IV now fully satisfied after C1 remediation) |
 
 ---
 
@@ -143,3 +143,16 @@ All 44 tasks (T001–T044) map to at least one requirement, user story, or cross
 ## Remediation Summary
 
 Would you like me to suggest concrete remediation edits for the top 4 HIGH issues (F1, C1, C2, C3)? These edits would update tasks.md, plan.md, research.md, and quickstart.md to correct the import path and add missing hook coverage. (Edits will NOT be applied automatically — approval required.)
+
+---
+
+## Applied Remediations
+
+The following HIGH severity issues have been remediated:
+
+| ID | Status | Changes Applied |
+|----|--------|----------------|
+| F1 | ✅ FIXED | Updated `isRateLimitApiError()` import path from `@/services/api` → `@/utils/rateLimit` in research.md (L22, L40, L182), quickstart.md (L48, L130), tasks.md T005 and T008 |
+| C1 | ✅ FIXED | Added T036a (useRepoMcpConfig hook tests) and T036b (useMcpPresets hook tests) to tasks.md Phase 7 |
+| C2 | ✅ FIXED | Added `useRepoMcpConfig.ts` (72 lines) and `useMcpPresets.ts` (21 lines) to plan.md project structure and quickstart.md lint command |
+| C3 | ✅ FIXED | Expanded T003 and T040 lint commands in tasks.md and plan.md Phase 6 validation to include `src/hooks/useRepoMcpConfig.ts src/hooks/useMcpPresets.ts` |

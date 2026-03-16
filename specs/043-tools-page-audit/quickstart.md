@@ -45,7 +45,8 @@ The frontend runs at `http://localhost:5173` by default.
 | ConfirmationDialog | `src/components/ui/confirmation-dialog.tsx` | Confirmation dialog API |
 | Tooltip | `src/components/ui/tooltip.tsx` | Tooltip component API |
 | ErrorBoundary | `src/components/common/ErrorBoundary.tsx` | Error boundary pattern |
-| API service | `src/services/api.ts` | Tool API endpoints + `isRateLimitApiError()` |
+| API service | `src/services/api.ts` | Tool API endpoints |
+| Rate limit utility | `src/utils/rateLimit.ts` | `isRateLimitApiError()` helper |
 | Types | `src/types/index.ts` | Tool type definitions |
 
 ### Test files (extend existing)
@@ -62,7 +63,7 @@ The frontend runs at `http://localhost:5173` by default.
 cd solune/frontend
 
 # Run linter on tools-related files
-npx eslint src/pages/ToolsPage.tsx src/components/tools/ src/hooks/useTools.ts src/hooks/useAgentTools.ts
+npx eslint src/pages/ToolsPage.tsx src/components/tools/ src/hooks/useTools.ts src/hooks/useAgentTools.ts src/hooks/useRepoMcpConfig.ts src/hooks/useMcpPresets.ts
 
 # Run type checker
 npm run type-check
@@ -127,7 +128,7 @@ npm run build
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { Tooltip } from '@/components/ui/tooltip';
-import { isRateLimitApiError } from '@/services/api';
+import { isRateLimitApiError } from '@/utils/rateLimit';
 ```
 
 ### Loading state pattern
