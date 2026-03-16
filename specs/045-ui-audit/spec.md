@@ -18,7 +18,7 @@ As a developer preparing to audit a UI page, I open the repository's issue creat
 **Acceptance Scenarios**:
 
 1. **Given** a developer is on the "New Issue" page, **When** they choose the "UI Audit" template, **Then** the issue form is pre-filled with the full audit checklist containing all ten categories
-2. **Given** the template is loaded, **When** the developer replaces every `[PAGE_NAME]` placeholder with the actual page name, **Then** the resulting issue clearly identifies which page is being audited
+2. **Given** the template is loaded, **When** the developer replaces every `[PAGE_NAME]` placeholder with the actual page name and updates the default title to append that page name, **Then** the resulting issue clearly identifies which page is being audited
 3. **Given** the developer has filled in the page name, **When** they submit the issue, **Then** the issue is created with the "chore" label applied automatically
 4. **Given** the created issue, **When** viewing it in the issue list, **Then** the title follows the format `[CHORE] UI Audit` so it is easily filterable
 
@@ -37,7 +37,7 @@ As a developer performing a page audit, I use the checklist items within the iss
 1. **Given** an open audit issue, **When** a developer reviews a page against the "Component Architecture & Modularity" section, **Then** every item describes a concrete, observable condition (e.g., "Page file is ≤250 lines")
 2. **Given** an open audit issue, **When** a developer checks off items in "Data Fetching & State Management", **Then** each item references a specific pattern to verify (e.g., React Query usage, query key conventions)
 3. **Given** an open audit issue, **When** a developer reaches the "Accessibility" section, **Then** each item maps to a verifiable keyboard-navigation or assistive-technology criterion
-4. **Given** an open audit issue, **When** a developer completes all items in a category, **Then** the issue's checkbox counter reflects the progress (e.g., "7/7" for that section)
+4. **Given** an open audit issue, **When** a developer checks or unchecks checklist items, **Then** GitHub reflects the updated checklist progress in the issue UI
 5. **Given** an open audit issue, **When** all items across all ten categories are checked, **Then** the audit is considered complete
 
 ---
@@ -69,7 +69,7 @@ As a developer starting an audit, I use the "Relevant Files" section of the temp
 
 **Acceptance Scenarios**:
 
-1. **Given** the "Relevant Files" section, **When** a developer substitutes `[PageName]` and `[feature]` placeholders, **Then** the resulting paths point to valid locations in the frontend source directory tree
+1. **Given** the "Relevant Files" section, **When** a developer substitutes `[PageName]`, `[Feature]`, and `[feature]` placeholders, **Then** the resulting paths point to valid page, hook, component, and test locations in the frontend source directory tree
 2. **Given** the "Relevant Files" section, **When** a developer reviews the shared components list, **Then** it references actual shared UI primitives (Button, Card, Input, Tooltip, ConfirmationDialog) and common components (CelestialLoader, ErrorBoundary)
 3. **Given** a completed "Relevant Files" section, **When** a developer starts the audit, **Then** they have a complete inventory of page, component, hook, API, type, and test files to review
 
@@ -104,7 +104,7 @@ As a team lead, I create multiple audit issues — one per page in the applicati
 
 1. **Given** the UI Audit template, **When** a team lead creates an audit issue for one page, **Then** the checklist items are relevant and applicable to that page
 2. **Given** the UI Audit template, **When** a team lead creates an audit issue for a different page, **Then** the same checklist items are relevant and applicable
-3. **Given** multiple audit issues created from the template, **When** viewing them in the issue list, **Then** each issue is distinguishable by its page name in the title and body
+3. **Given** multiple audit issues created from the template, **When** the creator appends the audited page name to the default title and fills in the placeholders, **Then** each issue is distinguishable by its page name in the title and body
 
 ---
 
@@ -116,6 +116,20 @@ As a team lead, I create multiple audit issues — one per page in the applicati
 - What happens when the template references shared components that do not yet exist in the codebase? The developer flags this as a prerequisite and creates a separate issue to add the missing shared component.
 - What happens when a checklist item is not applicable to a specific page (e.g., "Large lists virtualized" for a settings page with no lists)? The developer checks the item and adds a note indicating it is not applicable.
 
+## Scope Boundaries
+
+### In Scope
+
+- Reviewing and correcting the Markdown issue template at `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- Ensuring the template's placeholder instructions, file references, and verification commands match the current `solune/frontend/` layout
+- Documenting the manual issue-creation workflow required to personalise the template for a specific page, including title updates
+
+### Out of Scope
+
+- Implementing or refactoring frontend pages, hooks, or shared UI components referenced by the template
+- Adding repository-wide automation for Markdown or issue-template validation
+- Changing the backend chore-template generation flow or GitHub issue-template infrastructure
+
 ## Requirements *(mandatory)*
 
 ### Functional Requirements
@@ -124,7 +138,7 @@ As a team lead, I create multiple audit issues — one per page in the applicati
 - **FR-002**: The template MUST pre-populate the issue body with all ten audit categories: Component Architecture & Modularity, Data Fetching & State Management, Loading/Error/Empty States, Type Safety, Accessibility, Text/Copy & UX Polish, Styling & Layout, Performance, Test Coverage, and Code Hygiene
 - **FR-003**: Each audit category MUST contain actionable checklist items formatted as GitHub-compatible checkboxes (`- [ ]`)
 - **FR-004**: Every checklist item MUST describe a single, pass/fail condition that a developer can evaluate against a specific page
-- **FR-005**: The template MUST include `[PAGE_NAME]` placeholders that developers replace with the actual page name when creating an issue
+- **FR-005**: The template MUST include `[PAGE_NAME]`, `[PageName]`, `[Feature]`, and `[feature]` placeholders that developers replace with page-specific values when creating an issue
 - **FR-006**: The template MUST include a six-phase implementation guide (Discovery, Structural Fixes, States & Error Handling, Accessibility & UX Polish, Testing, Validation) with numbered steps
 - **FR-007**: The template MUST include a "Relevant Files" section with placeholder paths that map to the repository's frontend source directory structure
 - **FR-008**: The template MUST include a "Verification" section with specific commands for linting, type-checking, testing, and manual browser validation

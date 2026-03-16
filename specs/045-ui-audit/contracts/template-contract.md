@@ -73,7 +73,7 @@ Each item MUST follow:
 ```
 
 **Valid examples**:
-- `- [ ] **Single Responsibility**: Page file is ≤250 lines. If larger, extract sub-components into src/components/[feature]/`
+- `- [ ] **Single Responsibility**: Page file is ≤250 lines. If larger, extract sub-components into solune/frontend/src/components/[feature]/`
 - `- [ ] **React Query for all API calls**: Uses useQuery / useMutation from TanStack Query — no raw useEffect + fetch`
 - `- [ ] **No any types**: All props, state, API responses fully typed`
 
@@ -89,13 +89,15 @@ Each item MUST follow:
 | Token | Case Convention | Usage Context | Example Substitution |
 |-------|-----------------|---------------|---------------------|
 | `[PAGE_NAME]` | Human-readable | Title, headings | "Projects", "Agents Pipeline" |
-| `[PageName]` | PascalCase | File name references | `ProjectsPage.tsx`, `AgentsPipelinePage.tsx` |
+| `[PageName]` | PascalCase | Page component file references | `ProjectsPage.tsx`, `AgentsPipelinePage.tsx` |
+| `[Feature]` | PascalCase | Hook file references after `use` | `Projects`, `Agents`, `Tools` |
 | `[feature]` | lowercase/kebab | Directory path references | `board`, `pipeline`, `agents` |
 
 ### Substitution Rules
 
-- All three tokens MUST appear in the template body (FR-005)
+- All four tokens MUST appear in the template body (FR-005)
 - Developers replace tokens when creating an issue — no automated substitution
+- The template MUST instruct developers to append the audited page name to the default title before submitting the issue
 - After substitution, all file paths MUST point to valid locations in `solune/frontend/src/` (US4-AC1)
 
 ## Implementation Guide Contract
@@ -130,9 +132,9 @@ N. Step description — specific, actionable instruction
 
 | # | Check Type | Tool/Method | Pass Condition | FR |
 |---|-----------|-------------|----------------|-----|
-| 1 | Lint | `npx eslint` with page and component paths | 0 warnings | FR-008 |
-| 2 | Type check | `npx tsc --noEmit` | 0 errors | FR-008 |
-| 3 | Tests | `npx vitest run` | All tests pass | FR-008 |
+| 1 | Lint | `cd solune/frontend && npx eslint` with page, component, and hook paths | 0 warnings | FR-008 |
+| 2 | Type check | `cd solune/frontend && npx tsc --noEmit` | 0 errors | FR-008 |
+| 3 | Tests | `cd solune/frontend && npx vitest run` | All tests pass | FR-008 |
 | 4 | Visual (light) | Manual browser check | No visual defects | FR-008 |
 | 5 | Visual (dark) | Manual browser check in dark mode | No visual defects | FR-008 |
 | 6 | Keyboard | Manual keyboard-only navigation | All elements reachable | FR-008 |
@@ -143,11 +145,11 @@ N. Step description — specific, actionable instruction
 
 | Category | Placeholder Paths | FR |
 |----------|-------------------|-----|
-| Page & Components | `src/pages/[PageName].tsx`, `src/components/[feature]/` | FR-007 |
-| Hooks & API | `src/hooks/use[Feature].ts`, `src/services/api.ts` | FR-007 |
-| Types | `src/types/index.ts` or `src/types/[feature].ts` | FR-007 |
-| Shared | `src/components/ui/`, `src/components/common/`, `src/lib/utils.ts` | FR-007 |
-| Tests | `src/hooks/use[Feature].test.ts`, `src/components/[feature]/*.test.tsx` | FR-007 |
+| Page & Components | `solune/frontend/src/pages/[PageName].tsx`, `solune/frontend/src/components/[feature]/` | FR-007 |
+| Hooks & API | `solune/frontend/src/hooks/use[Feature].ts`, `solune/frontend/src/services/api.ts` | FR-007 |
+| Types | `solune/frontend/src/types/index.ts` or `solune/frontend/src/types/[feature].ts` | FR-007 |
+| Shared | `solune/frontend/src/components/ui/`, `solune/frontend/src/components/common/`, `solune/frontend/src/lib/utils.ts` | FR-007 |
+| Tests | `solune/frontend/src/hooks/use[Feature].test.ts`, `solune/frontend/src/pages/[PageName].test.tsx`, `solune/frontend/src/components/[feature]/**/*.test.tsx` | FR-007 |
 
 **Constraints**:
 - Paths use placeholder tokens defined in the Placeholder Contract above
