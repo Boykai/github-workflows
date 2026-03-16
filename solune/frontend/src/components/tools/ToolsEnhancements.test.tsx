@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
+import { ApiError } from '@/services/api';
 import type { McpToolConfig } from '@/types';
 
 import { RepoConfigPanel } from './RepoConfigPanel';
 import { McpPresetsGallery } from './McpPresetsGallery';
 import { GitHubMcpConfigGenerator } from './GitHubMcpConfigGenerator';
+import { ToolCard } from './ToolCard';
 
 function makeTool(
   overrides: Partial<McpToolConfig> & { config_content: string; is_active?: boolean }
@@ -121,7 +123,7 @@ describe('McpPresetsGallery', () => {
       />
     );
 
-    await user.click(screen.getByRole('button', { name: 'Use preset' }));
+    await user.click(screen.getByRole('button', { name: 'Use GitHub MCP Server preset' }));
 
     expect(onSelectPreset).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'github-readonly', name: 'GitHub MCP Server' })
@@ -373,5 +375,244 @@ describe('GitHubMcpConfigGenerator', () => {
     const activeProjectCard = screen.getByText('Active project MCPs').closest('div');
     expect(activeProjectCard).not.toBeNull();
     expect(within(activeProjectCard!).getByText('3')).toBeInTheDocument();
+  });
+});
+
+describe('RepoConfigPanel — states', () => {
+  it('shows CelestialLoader when loading', () => {
+    render(
+      <RepoConfigPanel
+        repoConfig={null}
+        isLoading={true}
+        error={null}
+        onRefresh={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Loading repository MCP config')).toBeInTheDocument();
+  });
+
+  it('shows error message with retry button when an error occurs', async () => {
+    const user = userEvent.setup();
+    const onRefresh = vi.fn();
+
+    render(
+      <RepoConfigPanel
+        repoConfig={null}
+        isLoading={false}
+        error="Network request failed"
+        onRefresh={onRefresh}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('Could not load repository config. Network request failed Please try again.')
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(onRefresh).toHaveBeenCalled();
+  });
+
+  it('shows rate-limit message when rawError is a 429 ApiError', () => {
+    const rateLimitError = new ApiError(429, { error: 'Too Many Requests' });
+
+    render(
+      <RepoConfigPanel
+        repoConfig={null}
+        isLoading={false}
+        error="Too Many Requests"
+        rawError={rateLimitError}
+        onRefresh={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('Rate limit reached. Please wait a few minutes before retrying.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows empty state when no servers are found', () => {
+    render(
+      <RepoConfigPanel
+        repoConfig={{
+          paths_checked: ['.copilot/mcp.json'],
+          available_paths: [],
+          primary_path: '.copilot/mcp.json',
+          servers: [],
+        }}
+        isLoading={false}
+        error={null}
+        onRefresh={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('No MCP servers found in the repository yet.')).toBeInTheDocument();
+  });
+});
+
+describe('McpPresetsGallery — states', () => {
+  it('shows CelestialLoader when loading', () => {
+    render(
+      <McpPresetsGallery
+        presets={[]}
+        isLoading={true}
+        error={null}
+        onSelectPreset={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Loading presets')).toBeInTheDocument();
+  });
+
+  it('shows error message when an error occurs', () => {
+    render(
+      <McpPresetsGallery
+        presets={[]}
+        isLoading={false}
+        error="Connection refused"
+        onSelectPreset={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('Could not load presets. Connection refused Please try again.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows rate-limit message when rawError is a 429 ApiError', () => {
+    const rateLimitError = new ApiError(429, { error: 'Rate limited' });
+
+    render(
+      <McpPresetsGallery
+        presets={[]}
+        isLoading={false}
+        error="Rate limited"
+        rawError={rateLimitError}
+        onSelectPreset={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('Rate limit reached. Please wait a few minutes before retrying.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows retry button only when onRetry callback is provided', async () => {
+    const user = userEvent.setup();
+    const onRetry = vi.fn();
+
+    render(
+      <McpPresetsGallery
+        presets={[]}
+        isLoading={false}
+        error="Server error"
+        onSelectPreset={vi.fn()}
+        onRetry={onRetry}
+      />
+    );
+
+    const retryButton = screen.getByRole('button', { name: 'Retry' });
+    expect(retryButton).toBeInTheDocument();
+    await user.click(retryButton);
+    expect(onRetry).toHaveBeenCalled();
+  });
+
+  it('does not show retry button when onRetry is not provided', () => {
+    render(
+      <McpPresetsGallery
+        presets={[]}
+        isLoading={false}
+        error="Server error"
+        onSelectPreset={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByRole('button', { name: 'Retry' })).not.toBeInTheDocument();
+  });
+
+  it('shows empty state when loaded with no presets', () => {
+    render(
+      <McpPresetsGallery
+        presets={[]}
+        isLoading={false}
+        error={null}
+        onSelectPreset={vi.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('No presets available yet. Upload a custom MCP configuration to get started.')
+    ).toBeInTheDocument();
+  });
+});
+
+describe('ToolCard', () => {
+  const baseProps = {
+    onEdit: vi.fn(),
+    onSync: vi.fn(),
+    onDelete: vi.fn(),
+  };
+
+  it('renders tool name and description', () => {
+    const tool = makeTool({
+      name: 'My MCP Server',
+      description: 'A helpful tool',
+      config_content: '{}',
+    });
+
+    render(<ToolCard tool={tool} {...baseProps} />);
+
+    expect(screen.getByText('My MCP Server')).toBeInTheDocument();
+    expect(screen.getByText('A helpful tool')).toBeInTheDocument();
+  });
+
+  it('shows sync status badge with screen reader text', () => {
+    const tool = makeTool({
+      sync_status: 'synced',
+      config_content: '{}',
+    });
+
+    render(<ToolCard tool={tool} {...baseProps} />);
+
+    expect(screen.getByText('Synced to GitHub')).toBeInTheDocument();
+    expect(screen.getByText(/— Status: Synced/)).toBeInTheDocument();
+  });
+
+  it('shows sync error badge and error details', () => {
+    const tool = makeTool({
+      sync_status: 'error',
+      sync_error: 'Repository not found',
+      config_content: '{}',
+    });
+
+    render(<ToolCard tool={tool} {...baseProps} />);
+
+    expect(screen.getByText('Sync Error')).toBeInTheDocument();
+    expect(screen.getByText('Repository not found')).toBeInTheDocument();
+  });
+
+  it('disables sync button while syncing', () => {
+    const tool = makeTool({ config_content: '{}' });
+
+    render(<ToolCard tool={tool} {...baseProps} isSyncing={true} />);
+
+    const syncButton = screen.getByRole('button', { name: 'Re-sync to GitHub' });
+    expect(syncButton).toBeDisabled();
+  });
+
+  it('disables delete button while deleting', () => {
+    const tool = makeTool({ config_content: '{}' });
+
+    render(<ToolCard tool={tool} {...baseProps} isDeleting={true} />);
+
+    const deleteButton = screen.getByRole('button', { name: 'Delete tool' });
+    expect(deleteButton).toBeDisabled();
   });
 });
