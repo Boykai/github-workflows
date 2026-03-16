@@ -1,13 +1,16 @@
-import { Pencil, Trash2 } from 'lucide-react';
+import { AlertCircle, Pencil, RefreshCw, Trash2 } from 'lucide-react';
 import type { RepoMcpConfigResponse, RepoMcpServerConfig } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { cn } from '@/lib/utils';
+import { isRateLimitApiError } from '@/utils/rateLimit';
 
 interface RepoConfigPanelProps {
   repoConfig: RepoMcpConfigResponse | null;
   isLoading: boolean;
   error: string | null;
+  rawError?: unknown;
   onRefresh: () => void;
   onEdit: (server: RepoMcpServerConfig) => void;
   onDelete: (server: RepoMcpServerConfig) => void;
@@ -27,6 +30,7 @@ export function RepoConfigPanel({
   repoConfig,
   isLoading,
   error,
+  rawError,
   onRefresh,
   onEdit,
   onDelete,
@@ -34,6 +38,7 @@ export function RepoConfigPanel({
   deletingServerName,
   managedServerNames = [],
 }: RepoConfigPanelProps) {
+  const isRateLimit = rawError != null && isRateLimitApiError(rawError);
   return (
     <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
@@ -71,11 +76,22 @@ export function RepoConfigPanel({
       </div>
 
       {isLoading && (
-        <div className="mt-6 text-sm text-muted-foreground">Loading repository MCP config…</div>
+        <div className="mt-6 flex items-center justify-center py-6">
+          <CelestialLoader size="md" label="Loading repository MCP config" />
+        </div>
       )}
       {error && !isLoading && (
-        <div className="mt-6 rounded-2xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          {error}
+        <div className="mt-6 flex flex-col items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+          <AlertCircle className="h-5 w-5 text-destructive" aria-hidden="true" />
+          <p className="text-sm text-destructive">
+            {isRateLimit
+              ? 'Rate limit reached. Please wait a few minutes before retrying.'
+              : `Could not load repository config. ${error} Please try again.`}
+          </p>
+          <Button variant="outline" size="sm" onClick={onRefresh}>
+            <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+            Retry
+          </Button>
         </div>
       )}
 

@@ -232,3 +232,10 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - Prefer Context7 when you need up-to-date library documentation and examples.
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
+
+## Active Technologies
+- TypeScript ~5.9 (frontend), React 19.2.0 + TanStack React Query 5.90, Tailwind CSS 4.2, Vite 7.3, lucide-react (icons), Radix UI primitives (via shadcn/ui components) (043-tools-page-audit)
+- N/A — frontend-only audit; API contracts stable; no backend changes (043-tools-page-audit)
+
+## Recent Changes
+- 043-tools-page-audit: Added TypeScript ~5.9 (frontend), React 19.2.0 + TanStack React Query 5.90, Tailwind CSS 4.2, Vite 7.3, lucide-react (icons), Radix UI primitives (via shadcn/ui components)

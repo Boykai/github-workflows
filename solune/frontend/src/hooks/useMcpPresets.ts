@@ -17,5 +17,7 @@ export function useMcpPresets() {
     presets: query.data?.presets ?? [],
     isLoading: query.isLoading,
     error: query.error?.message ?? null,
+    rawError: query.error ?? null,
+    refetch: query.refetch,
   };
 }
