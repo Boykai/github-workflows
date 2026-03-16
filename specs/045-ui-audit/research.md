@@ -43,7 +43,7 @@
 
 ### RT-003: Checklist Item Count and Distribution
 
-**Decision**: The template contains 59 checklist items distributed across 10 categories, meeting the FR-012 minimum.
+**Decision**: The template contains 60 checklist items distributed across 10 categories, exceeding the FR-012 minimum of 59.
 
 **Rationale**: Item count per category:
 
