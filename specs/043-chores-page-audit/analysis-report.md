@@ -10,7 +10,7 @@
 
 | ID | Category | Severity | Location(s) | Summary | Recommendation |
 |----|----------|----------|-------------|---------|----------------|
-| F1 | Inconsistency | MEDIUM | plan.md:L8,L68-117 vs tasks.md:L18-23 | **Path prefix drift**: plan.md uses `frontend/src/` (no `solune/` prefix) while tasks.md uses `solune/frontend/src/` and spec.md uses bare `src/`. The actual repo path is `solune/frontend/src/`. | Standardize all artifacts to `solune/frontend/src/` to match the actual repository layout. plan.md project structure tree should be updated. |
+| F1 | Inconsistency | ~~MEDIUM~~ REMEDIATED | plan.md:L8,L68-117 vs tasks.md:L18-23 | **Path prefix drift**: plan.md uses `frontend/src/` (no `solune/` prefix) while tasks.md uses `solune/frontend/src/` and spec.md uses bare `src/`. The actual repo path is `solune/frontend/src/`. | ~~Standardize all artifacts to `solune/frontend/src/` to match the actual repository layout. plan.md project structure tree should be updated.~~ **FIXED**: plan.md summary and project structure tree updated to use `solune/frontend/` prefix. |
 | F2 | Coverage Gap | MEDIUM | spec.md:L14 | **CelestialCatalogHero not covered in tasks**: spec.md lists `CelestialCatalogHero` as in-scope (Assumptions), and plan.md lists it in the project structure (L92), but tasks.md has zero tasks auditing this component. | Add a task in Phase 2 (assessment) to read and assess `CelestialCatalogHero` usage on the Chores page, and tasks in relevant phases (US3, US5) to audit its accessibility and responsive behavior. |
 | F3 | Coverage Gap | MEDIUM | spec.md:L179 | **Edge case "session expiry during inline edit" has no task**: spec.md edge case states the page should preserve unsaved state and prompt re-authentication. No task in tasks.md addresses this. | Add a task in US1 or US4 to audit session-expiry behavior during inline editing, or explicitly mark as out-of-scope/deferred in tasks.md notes. |
 | F4 | Coverage Gap | MEDIUM | spec.md:L187 | **Edge case "browser window below 320px" has no task**: spec.md edge case describes behavior at extreme narrow widths. No task in tasks.md covers this breakpoint (US5 covers 768px+ and mobile but not sub-320px). | Add a task in US5 to verify legibility at 320px viewport, or scope it explicitly as deferred. |
@@ -24,7 +24,7 @@
 | F12 | Underspecification | LOW | tasks.md:L259-265 | **Phase 11 tasks lack US label**: T092-T097 are cross-cutting polish tasks without `[US*]` labels. Same pattern as Phase 1/2. | Same recommendation as F11 — clarify or label as `[All]`. |
 | F13 | Duplication | LOW | spec.md:L203 (FR-010) ↔ spec.md:L39 (US1-AS7) | **Near-duplicate: console errors**: FR-010 ("no unhandled errors, missing-key warnings, or deprecation warnings") restates US1 acceptance scenario 7 verbatim. | Acceptable — FR formally captures what the acceptance scenario describes. No action needed. |
 | F14 | Duplication | LOW | spec.md:L215 (FR-022) ↔ spec.md:L241 (SC-012) | **Near-duplicate: ESLint/TypeScript zero errors**: FR-022 and SC-012 express the same requirement — zero lint warnings and zero type errors. | Acceptable — FR defines the requirement, SC defines the measurable outcome. No action needed. |
-| F15 | Inconsistency | LOW | spec.md:L14 vs plan.md:L8 | **Component list mismatch**: spec.md Assumptions lists 8 child components (`ChoresPanel, ChoreCard, AddChoreModal, ChoreScheduleConfig, ChoreChatFlow, ConfirmChoreModal, FeaturedRitualsPanel, CelestialCatalogHero`). plan.md summary lists 9 components (`ChoresPanel, ChoreCard, AddChoreModal, FeaturedRitualsPanel, ChoreChatFlow, ChoreInlineEditor, ChoreScheduleConfig, ConfirmChoreModal, PipelineSelector`). The plan adds `ChoreInlineEditor` and `PipelineSelector` but drops `CelestialCatalogHero`. | Reconcile: spec.md should either include `ChoreInlineEditor` and `PipelineSelector` in scope, or plan.md/tasks.md should note they are included as they are rendered within in-scope components. `CelestialCatalogHero` should appear consistently. |
+| F15 | Inconsistency | ~~LOW~~ REMEDIATED | spec.md:L14 vs plan.md:L8 | **Component list mismatch**: spec.md Assumptions lists 8 child components (`ChoresPanel, ChoreCard, AddChoreModal, ChoreScheduleConfig, ChoreChatFlow, ConfirmChoreModal, FeaturedRitualsPanel, CelestialCatalogHero`). plan.md summary lists 9 components (`ChoresPanel, ChoreCard, AddChoreModal, FeaturedRitualsPanel, ChoreChatFlow, ChoreInlineEditor, ChoreScheduleConfig, ConfirmChoreModal, PipelineSelector`). The plan adds `ChoreInlineEditor` and `PipelineSelector` but drops `CelestialCatalogHero`. | ~~Reconcile: spec.md should either include `ChoreInlineEditor` and `PipelineSelector` in scope, or plan.md/tasks.md should note they are included as they are rendered within in-scope components. `CelestialCatalogHero` should appear consistently.~~ **FIXED**: spec.md updated to list all 9 chore-specific components plus `CelestialCatalogHero` (shared). plan.md updated to include `CelestialCatalogHero` reference. Both artifacts now list consistent component scope. |
 | F16 | Coverage Gap | LOW | spec.md:L202 (FR-009) | **FR-009 (touch targets ≥44×44px) has only one task**: T063 covers ChoreCardActions touch targets specifically. Modal touch targets, search input, sort controls, and other interactive elements on mobile are not explicitly covered. | T063 description could be broadened, or add a general touch-target audit task covering all interactive elements. |
 
 ---
@@ -104,8 +104,8 @@ These 21 tasks serve infrastructure/validation purposes and correctly span all u
 | **Duplication Count** | 2 (F13, F14 — acceptable FR↔SC/AS mirroring) |
 | **Critical Issues** | 0 |
 | **High Issues** | 0 |
-| **Medium Issues** | 6 (F1-F6) |
-| **Low Issues** | 10 (F7-F16) |
+| **Medium Issues** | 5 (F2-F6; F1 remediated) |
+| **Low Issues** | 9 (F7-F14, F16; F15 remediated) |
 
 ---
 
@@ -115,8 +115,7 @@ These 21 tasks serve infrastructure/validation purposes and correctly span all u
 
 No CRITICAL or HIGH issues exist. The artifacts are well-structured and comprehensive. The following MEDIUM issues should be considered:
 
-1. **F1 (Path prefix drift)**: Standardize path references to `solune/frontend/src/` across all artifacts. This prevents implementer confusion about file locations.
-   - **Action**: Edit plan.md project structure to use `solune/frontend/` prefix consistently.
+1. ~~**F1 (Path prefix drift)**~~: ✅ **REMEDIATED** — plan.md updated to use `solune/frontend/` prefix consistently.
 
 2. **F2 (CelestialCatalogHero coverage)**: Add assessment task for this in-scope component.
    - **Action**: Manually edit tasks.md to add `T010.1` assessing CelestialCatalogHero, or include it in T010's scope note.
@@ -124,15 +123,14 @@ No CRITICAL or HIGH issues exist. The artifacts are well-structured and comprehe
 3. **F3-F6 (Edge case coverage gaps)**: Four spec edge cases have no corresponding implementation tasks.
    - **Action**: Add tasks for session-expiry (F3), 320px viewport (F4), sync-drop (F5), and deleted-pipeline fallback (F6), or document them as intentionally deferred in tasks.md Notes section.
 
-4. **F15 (Component list mismatch)**: Reconcile spec vs plan component enumeration.
-   - **Action**: Update spec.md Assumptions to include `ChoreInlineEditor` and `PipelineSelector` (they are rendered within in-scope components), and restore `CelestialCatalogHero` in plan.md.
+4. ~~**F15 (Component list mismatch)**~~: ✅ **REMEDIATED** — spec.md and plan.md now list consistent component scope (9 chore-specific + CelestialCatalogHero shared).
 
 ### Safe to Proceed
 
-The overall artifact quality is **HIGH**. With 91.3% coverage, 0 critical/high issues, and strong constitution compliance, implementation can proceed. The 6 MEDIUM issues are refinements, not blockers.
+The overall artifact quality is **HIGH**. With 91.3% coverage, 0 critical/high issues, and strong constitution compliance, implementation can proceed. The 5 remaining MEDIUM issues (F2-F6) are refinements, not blockers.
 
 **Suggested commands**:
-- `Run /speckit.specify with refinement` to add missing edge case tasks and reconcile component lists
+- `Run /speckit.specify with refinement` to add missing edge case tasks
 - Or manually edit `tasks.md` to add 4-5 tasks covering F2-F6 edge cases
 - Then proceed with `/speckit.implement`
 
@@ -140,4 +138,4 @@ The overall artifact quality is **HIGH**. With 91.3% coverage, 0 critical/high i
 
 ## Remediation Offer
 
-Would you like me to suggest concrete remediation edits for the top 6 MEDIUM issues (F1-F6)? These would be specific text changes to spec.md, plan.md, and tasks.md. *(No changes will be applied automatically — this analysis is strictly read-only.)*
+Would you like me to suggest concrete remediation edits for the remaining 5 MEDIUM issues (F2-F6)? These would be specific text changes to tasks.md. *(F1 and F15 have already been remediated.)*

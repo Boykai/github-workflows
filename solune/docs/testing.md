@@ -146,6 +146,7 @@ Test files are co-located with components:
 - `components/chores/__tests__/AddChoreModal.test.tsx`
 - `components/chores/__tests__/ChoreScheduleConfig.test.tsx`
 - `components/chores/__tests__/ChoresPanel.test.tsx`
+- `components/chores/__tests__/FeaturedRitualsPanel.test.tsx`
 - `components/common/ErrorBoundary.test.tsx`
 - `components/settings/DynamicDropdown.test.tsx`
 - `components/settings/SettingsSection.test.tsx`
