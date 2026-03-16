@@ -14,8 +14,9 @@ export function NotificationSettings({ form }: NotificationSettingsProps) {
         Notifications
       </h4>
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
+        <label htmlFor="notification-task-status" className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
+            id="notification-task-status"
             type="checkbox"
             className="celestial-focus w-4 h-4 rounded border-input text-primary"
             {...register('task_status_change')}
@@ -24,8 +25,9 @@ export function NotificationSettings({ form }: NotificationSettingsProps) {
         </label>
       </div>
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
+        <label htmlFor="notification-agent-completion" className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
+            id="notification-agent-completion"
             type="checkbox"
             className="celestial-focus w-4 h-4 rounded border-input text-primary"
             {...register('agent_completion')}
@@ -34,8 +36,9 @@ export function NotificationSettings({ form }: NotificationSettingsProps) {
         </label>
       </div>
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
+        <label htmlFor="notification-new-recommendation" className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
+            id="notification-new-recommendation"
             type="checkbox"
             className="celestial-focus w-4 h-4 rounded border-input text-primary"
             {...register('new_recommendation')}
@@ -44,8 +47,9 @@ export function NotificationSettings({ form }: NotificationSettingsProps) {
         </label>
       </div>
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
+        <label htmlFor="notification-chat-mention" className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
+            id="notification-chat-mention"
             type="checkbox"
             className="celestial-focus w-4 h-4 rounded border-input text-primary"
             {...register('chat_mention')}
