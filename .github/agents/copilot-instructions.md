@@ -234,6 +234,11 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
 
 ## Active Technologies
+- TypeScript 5.9, React 19.2.0 + `@tanstack/react-query@^5.90.0`, `react-router-dom`, `lucide-react`, `@radix-ui/react-tooltip`, `@dnd-kit/core` (drag-and-drop), Tailwind CSS 4.2 (043-projects-page-audit)
+- N/A — frontend-only audit; backend API unchanged (043-projects-page-audit)
+
+## Recent Changes
+- 043-projects-page-audit: Added TypeScript 5.9, React 19.2.0 + `@tanstack/react-query@^5.90.0`, `react-router-dom`, `lucide-react`, `@radix-ui/react-tooltip`, `@dnd-kit/core` (drag-and-drop), Tailwind CSS 4.2
 - TypeScript 5.9 with React 19.2, TanStack React Query 5.90, Tailwind CSS 4.2, Radix UI, Lucide React icons, class-variance-authority, tailwind-merge, react-router-dom 7.13 (043-chores-page-audit)
 - N/A (frontend-only; backend uses SQLite with FastAPI) (043-chores-page-audit)
 
