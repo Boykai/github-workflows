@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { CommandAutocomplete } from './CommandAutocomplete';
 import { createCommandDefinition } from '@/test/factories';
 
@@ -139,5 +140,18 @@ describe('CommandAutocomplete', () => {
     const options = screen.getAllByRole('option');
     fireEvent.mouseEnter(options[2]);
     expect(onHighlightChange).toHaveBeenCalledWith(2);
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <CommandAutocomplete
+        commands={mockCommands}
+        highlightedIndex={0}
+        onSelect={vi.fn()}
+        onDismiss={vi.fn()}
+        onHighlightChange={vi.fn()}
+      />
+    );
+    await expectNoA11yViolations(container);
   });
 });

@@ -4,6 +4,7 @@ import { render, screen } from '@/test/test-utils';
 import { AgentTile } from './AgentTile';
 import { AgentDragOverlay } from './AgentDragOverlay';
 import type { AgentAssignment, AvailableAgent } from '@/types';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 function createAgentAssignment(overrides: Partial<AgentAssignment> = {}): AgentAssignment {
   return {
@@ -97,6 +98,15 @@ describe('AgentTile', () => {
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove Reviewer' }));
 
     expect(onPointerDown).not.toHaveBeenCalled();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <div role="list">
+        <AgentTile agent={createAgentAssignment()} availableAgents={[createAvailableAgent()]} />
+      </div>
+    );
+    await expectNoA11yViolations(container);
   });
 });
 

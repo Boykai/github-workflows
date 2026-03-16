@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, userEvent } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { StatusChangePreview } from './StatusChangePreview';
 
 describe('StatusChangePreview', () => {
@@ -44,5 +45,10 @@ describe('StatusChangePreview', () => {
     render(<StatusChangePreview {...defaultProps} onReject={onReject} />);
     await userEvent.setup().click(screen.getByRole('button', { name: 'Cancel' }));
     expect(onReject).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<StatusChangePreview {...defaultProps} />);
+    await expectNoA11yViolations(container);
   });
 });

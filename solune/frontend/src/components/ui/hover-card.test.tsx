@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { HoverCard, HoverCardTrigger, HoverCardContent } from './hover-card';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 describe('HoverCard', () => {
   it('renders without crashing', () => {
@@ -74,5 +75,19 @@ describe('HoverCard', () => {
     await user.hover(screen.getByRole('button', { name: 'Trigger' }));
     const content = await screen.findByTestId('hc-content');
     expect(content).toBeInTheDocument();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <HoverCard>
+        <HoverCardTrigger asChild>
+          <button type="button">Hover trigger</button>
+        </HoverCardTrigger>
+        <HoverCardContent>
+          <p>Preview content</p>
+        </HoverCardContent>
+      </HoverCard>
+    );
+    await expectNoA11yViolations(container);
   });
 });

@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@/test/test-utils';
 import { Button } from './button';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 describe('Button', () => {
   it('renders with default variant', () => {
@@ -51,5 +52,10 @@ describe('Button', () => {
     const ref = { current: null as HTMLButtonElement | null };
     render(<Button ref={ref}>Ref test</Button>);
     expect(ref.current).toBeInstanceOf(HTMLButtonElement);
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<Button>Click me</Button>);
+    await expectNoA11yViolations(container);
   });
 });

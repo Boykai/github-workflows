@@ -5,6 +5,7 @@ import { render, screen, userEvent, waitFor } from '@/test/test-utils';
 import { ProjectIssueLaunchPanel } from './ProjectIssueLaunchPanel';
 import { pipelinesApi } from '@/services/api';
 import type { PipelineConfigSummary } from '@/types';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 vi.mock('@/services/api', async () => {
   const actual = await vi.importActual<typeof import('@/services/api')>('@/services/api');
@@ -342,5 +343,18 @@ describe('ProjectIssueLaunchPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Retry loading configs' }));
 
     expect(onRetryPipelines).toHaveBeenCalledTimes(1);
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = renderPanel(
+      <ProjectIssueLaunchPanel
+        projectId="PVT_1"
+        pipelines={PIPELINES}
+        isLoadingPipelines={false}
+        pipelinesError={null}
+        onRetryPipelines={vi.fn()}
+      />
+    );
+    await expectNoA11yViolations(container);
   });
 });

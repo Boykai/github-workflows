@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 
 /**
  * E2E Tests for UI Components and Layout
@@ -18,6 +19,9 @@ test.describe('Login Page UI', () => {
     // Main content should be centered or properly positioned
     const mainContent = page.locator('.app-login, .login-container, main, #root > div');
     await expect(mainContent.first()).toBeVisible();
+
+    // Visual regression: capture login page UI
+    await expect(page).toHaveScreenshot('login-page-styling.png', { maxDiffPixels: 100 });
   });
 
   test('should be responsive', async ({ page }) => {
@@ -123,5 +127,16 @@ test.describe('Accessibility', () => {
       expect(buttonText).toBeTruthy();
       expect(buttonText!.length).toBeGreaterThan(0);
     }
+  });
+
+  test('should pass axe-core accessibility audit', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('h1')).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+
+    expect(results.violations).toEqual([]);
   });
 });

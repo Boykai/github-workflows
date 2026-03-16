@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { Popover, PopoverTrigger, PopoverContent, PopoverClose } from './popover';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 describe('Popover', () => {
   it('renders without crashing', () => {
@@ -101,5 +102,19 @@ describe('Popover', () => {
 
     await user.click(screen.getByRole('button', { name: 'Close' }));
     await expect(screen.findByText('Body', {}, { timeout: 500 })).rejects.toThrow();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <Popover>
+        <PopoverTrigger asChild>
+          <button type="button">Open popover</button>
+        </PopoverTrigger>
+        <PopoverContent>
+          <p>Popover body</p>
+        </PopoverContent>
+      </Popover>
+    );
+    await expectNoA11yViolations(container);
   });
 });

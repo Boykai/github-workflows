@@ -5,6 +5,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, userEvent } from '@/test/test-utils';
 import { AgentSaveBar } from './AgentSaveBar';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 describe('AgentSaveBar', () => {
   const defaultProps = {
@@ -53,5 +54,10 @@ describe('AgentSaveBar', () => {
   it('shows error message when present', () => {
     render(<AgentSaveBar {...defaultProps} error="Failed to save configuration" />);
     expect(screen.getByText(/Failed to save configuration/)).toBeInTheDocument();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<AgentSaveBar {...defaultProps} />);
+    await expectNoA11yViolations(container);
   });
 });

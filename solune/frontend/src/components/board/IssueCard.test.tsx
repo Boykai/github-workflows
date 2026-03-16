@@ -6,6 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, userEvent } from '@/test/test-utils';
 import { IssueCard } from './IssueCard';
 import type { BoardItem } from '@/types';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 function createBoardItem(overrides: Partial<BoardItem> = {}): BoardItem {
   return {
@@ -234,5 +235,10 @@ describe('IssueCard', () => {
       const img = screen.getByAltText('noavatar') as HTMLImageElement;
       expect(img.src).toContain(PLACEHOLDER_SVG_PREFIX);
     });
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<IssueCard item={createBoardItem()} onClick={vi.fn()} />);
+    await expectNoA11yViolations(container);
   });
 });

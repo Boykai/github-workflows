@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, userEvent, waitFor } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { IssueRecommendationPreview } from './IssueRecommendationPreview';
 import type { IssueCreateActionData, WorkflowResult } from '@/types';
 
@@ -140,5 +141,16 @@ describe('IssueRecommendationPreview', () => {
     await waitFor(() => {
       expect(screen.getByText('Network error')).toBeInTheDocument();
     });
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <IssueRecommendationPreview
+        recommendation={createRecommendation()}
+        onConfirm={vi.fn().mockResolvedValue({ success: true })}
+        onReject={vi.fn().mockResolvedValue(undefined)}
+      />
+    );
+    await expectNoA11yViolations(container);
   });
 });

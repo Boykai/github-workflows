@@ -4,6 +4,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ErrorBoundary } from './ErrorBoundary';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 // Suppress React error boundary console.error noise in test output.
 // The spy is stored so it can be restored in afterEach to prevent leaking
@@ -96,5 +97,14 @@ describe('ErrorBoundary', () => {
     );
 
     expect(screen.getByText('Detailed error message')).toBeDefined();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <ErrorBoundary>
+        <SafeComponent />
+      </ErrorBoundary>
+    );
+    await expectNoA11yViolations(container);
   });
 });

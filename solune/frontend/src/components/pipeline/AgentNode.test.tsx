@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent } from '@testing-library/react';
 import { render, screen } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import userEvent from '@testing-library/user-event';
 import { AgentNode } from './AgentNode';
 import type { PipelineAgentNode } from '@/types';
@@ -85,5 +86,13 @@ describe('AgentNode', () => {
     fireEvent.pointerDown(screen.getByRole('button', { name: 'Remove agent' }));
 
     expect(onPointerDown).not.toHaveBeenCalled();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <AgentNode agentNode={createAgentNode()} onModelSelect={vi.fn()} onRemove={vi.fn()} />
+    );
+
+    await expectNoA11yViolations(container);
   });
 });

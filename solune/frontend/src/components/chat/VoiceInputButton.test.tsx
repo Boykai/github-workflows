@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { VoiceInputButton } from './VoiceInputButton';
 
 describe('VoiceInputButton', () => {
@@ -275,5 +276,17 @@ describe('VoiceInputButton', () => {
 
     const button = screen.getByRole('button');
     expect(button.className).not.toContain('celestial-focus');
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <VoiceInputButton
+        isSupported={true}
+        isRecording={false}
+        onToggle={vi.fn()}
+        error={null}
+      />
+    );
+    await expectNoA11yViolations(container);
   });
 });

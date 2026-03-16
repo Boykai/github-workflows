@@ -4,6 +4,7 @@ import { within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { createTestQueryClient, render, screen } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { StageCard } from './StageCard';
 import type { PipelineStage, AvailableAgent, PipelineAgentNode, ExecutionGroup } from '@/types';
 
@@ -229,5 +230,23 @@ describe('StageCard', () => {
     await user.click(within(firstGroup).getByRole('button', { name: /switch to parallel mode/i }));
 
     expect(onToggleGroupMode).toHaveBeenCalledWith('group-1', 'parallel');
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = renderStageCard(
+      <StageCard
+        stage={createStage({ agents: [createAgentNode()] })}
+        availableAgents={[createAvailableAgent()]}
+        projectId="project-1"
+        onUpdate={vi.fn()}
+        onRemove={vi.fn()}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onReorderAgents={vi.fn()}
+      />
+    );
+
+    await expectNoA11yViolations(container);
   });
 });

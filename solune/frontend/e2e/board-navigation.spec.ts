@@ -4,12 +4,15 @@
  */
 
 import { test, expect } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
 import { VIEWPORTS } from './viewports';
 
 test.describe('Board Navigation', () => {
   test('should display app branding on home page', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('h1')).toContainText('Solune');
+    await expect(page.locator('h1')).toBeVisible();
+    // Visual regression: capture home page appearance
+    await expect(page).toHaveScreenshot('board-home-branding.png', { maxDiffPixels: 100 });
   });
 
   test('should navigate to board view when authenticated', async ({ page }) => {
@@ -44,5 +47,16 @@ test.describe('Board Navigation', () => {
     await page.setViewportSize(VIEWPORTS.desktop);
     await page.goto('/');
     await expect(page.locator('h1')).toBeVisible();
+  });
+
+  test('should pass axe-core accessibility audit', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.locator('h1')).toBeVisible();
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+
+    expect(results.violations).toEqual([]);
   });
 });

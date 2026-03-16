@@ -4,6 +4,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, userEvent } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { TaskPreview } from './TaskPreview';
 import type { AITaskProposal } from '@/types';
 
@@ -114,5 +115,12 @@ describe('TaskPreview', () => {
     );
 
     expect(screen.getByText('Agent Pipeline: Custom Mappings')).toBeInTheDocument();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <TaskPreview proposal={createProposal()} onConfirm={vi.fn()} onReject={vi.fn()} />
+    );
+    await expectNoA11yViolations(container);
   });
 });

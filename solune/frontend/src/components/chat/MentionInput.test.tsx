@@ -1,6 +1,7 @@
 import { createRef, type ComponentProps } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 import { MentionInput, type MentionInputHandle } from './MentionInput';
 
@@ -137,5 +138,10 @@ describe('MentionInput', () => {
     expect(onTokenRemove).toHaveBeenCalledWith('pipe-1');
     expect(onTextChange).toHaveBeenLastCalledWith('');
     expect(textbox.querySelector('[data-mention-token]')).toBeNull();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = renderMentionInput();
+    await expectNoA11yViolations(container);
   });
 });

@@ -35,6 +35,12 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'firefox',
+      use: { ...devices['Desktop Firefox'] },
+      // Ignore visual regression snapshots for Firefox — Chromium is the baseline
+      ignoreSnapshots: true,
+    },
   ],
 
   /* Run your local dev server before starting the tests */

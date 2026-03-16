@@ -8,6 +8,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { ChatPopup } from './ChatPopup';
 
 // Stub ChatInterface to avoid rendering the full chat component tree.
@@ -108,5 +109,10 @@ describe('ChatPopup — resize listener scoping', () => {
     const toggle = screen.getByRole('button', { name: 'Open chat' });
     expect(toggle).toHaveClass('text-white');
     expect(toggle).toHaveClass('dark:text-black');
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<ChatPopup {...defaultProps} />);
+    await expectNoA11yViolations(container);
   });
 });

@@ -6,6 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, userEvent } from '@/test/test-utils';
 import { BoardColumn } from './BoardColumn';
 import type { BoardColumn as BoardColumnType, BoardItem } from '@/types';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 function createColumn(overrides: Partial<BoardColumnType> = {}): BoardColumnType {
   return {
@@ -80,5 +81,10 @@ describe('BoardColumn', () => {
     const btn = screen.getByTitle('Coming soon');
     expect(btn).toBeDisabled();
     expect(btn).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<BoardColumn column={createColumn()} onCardClick={vi.fn()} />);
+    await expectNoA11yViolations(container);
   });
 });

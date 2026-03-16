@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import { render, screen, within } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { SavedWorkflowsList } from './SavedWorkflowsList';
 import type { PipelineConfigSummary } from '@/types';
 
@@ -110,5 +111,19 @@ describe('SavedWorkflowsList', () => {
 
     expect(onCopy).toHaveBeenCalledWith(pipeline.id);
     expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <SavedWorkflowsList
+        pipelines={[createPipeline()]}
+        activePipelineId={null}
+        assignedPipelineId=""
+        isLoading={false}
+        onSelect={vi.fn()}
+      />
+    );
+
+    await expectNoA11yViolations(container);
   });
 });

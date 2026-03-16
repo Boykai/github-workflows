@@ -6,6 +6,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, userEvent } from '@/test/test-utils';
 import { IssueDetailModal } from './IssueDetailModal';
 import type { BoardItem } from '@/types';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 function createBoardItem(overrides: Partial<BoardItem> = {}): BoardItem {
   return {
@@ -139,5 +140,10 @@ describe('IssueDetailModal', () => {
     // Shift+Tab from first element should wrap to last
     fireEvent.keyDown(document, { key: 'Tab', shiftKey: true });
     expect(document.activeElement).toBe(focusableElements[focusableElements.length - 1]);
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<IssueDetailModal item={createBoardItem()} onClose={vi.fn()} />);
+    await expectNoA11yViolations(container);
   });
 });

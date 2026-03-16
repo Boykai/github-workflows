@@ -14,5 +14,17 @@ export default defineConfig({
     environment: 'happy-dom',
     setupFiles: ['./src/test/setup.ts'],
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/test/**', 'src/main.tsx', 'src/vite-env.d.ts'],
+      all: true,
+      thresholds: {
+        statements: 46,
+        branches: 41,
+        functions: 38,
+        lines: 47,
+      },
+    },
   },
 });

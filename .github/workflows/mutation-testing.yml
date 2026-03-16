@@ -1,0 +1,83 @@
+name: Mutation Testing
+
+on:
+  schedule:
+    # Weekly on Sundays at 2am UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  backend-mutation:
+    name: Backend Mutation Testing
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: solune/backend
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev]"
+
+      - name: Run mutmut
+        continue-on-error: true
+        run: mutmut run --no-progress
+
+      - name: Generate mutmut report
+        continue-on-error: true
+        run: mutmut results > mutmut-report.txt 2>&1
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-mutation-report
+          path: solune/backend/mutmut-report.txt
+          retention-days: 14
+          if-no-files-found: warn
+
+  frontend-mutation:
+    name: Frontend Mutation Testing
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: solune/frontend
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: solune/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Stryker
+        continue-on-error: true
+        run: npx stryker run
+
+      - name: Upload mutation report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-mutation-report
+          path: solune/frontend/reports/mutation/
+          retention-days: 14
+          if-no-files-found: warn
