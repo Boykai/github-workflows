@@ -4,7 +4,7 @@
  * and navigation to the detail view.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useApps, useCreateApp, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
@@ -29,6 +29,7 @@ export function AppsPage() {
   const [createError, setCreateError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
 
   const showSuccess = useCallback((message: string) => {
     setSuccessMessage(message);
@@ -41,12 +42,45 @@ export function AppsPage() {
     setShowCreateDialog(true);
   };
 
-  const closeCreateDialog = () => {
+  const closeCreateDialog = useCallback(() => {
     createMutation.reset();
     setCreateError(null);
     setShowCreateDialog(false);
     createButtonRef.current?.focus();
-  };
+  }, [createMutation]);
+
+  // Escape key & focus trap for the create dialog
+  useEffect(() => {
+    if (!showCreateDialog) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeCreateDialog();
+        return;
+      }
+
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href], input, select, textarea'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showCreateDialog, closeCreateDialog]);
 
   const handleStart = useCallback(async (name: string) => {
     startMutation.mutate(name, {
@@ -217,25 +251,26 @@ export function AppsPage() {
 
         {/* Create dialog */}
         {showCreateDialog && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-app-dialog-title"
-            onPointerDown={(event) => {
-              if (event.target === event.currentTarget) {
-                closeCreateDialog();
-              }
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                closeCreateDialog();
-              }
-            }}
-          >
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={closeCreateDialog}
+              role="presentation"
+              aria-hidden="true"
+            />
+
+            {/* Dialog */}
+            <div
+              ref={dialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-app-dialog-title"
+              className="relative z-10 w-full max-w-md"
+            >
             <form
               onSubmit={handleCreate}
-              className="w-full max-w-md rounded-xl border border-border/80 bg-card p-6 shadow-xl"
+              className="w-full rounded-xl border border-border/80 bg-card p-6 shadow-xl"
             >
               <h2 id="create-app-dialog-title" className="mb-4 text-lg font-bold text-foreground">
                 Create App
@@ -329,6 +364,7 @@ export function AppsPage() {
                 </button>
               </div>
             </form>
+            </div>
           </div>
         )}
       </div>
