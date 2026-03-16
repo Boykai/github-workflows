@@ -37,6 +37,10 @@ dev = [
     "pytest-cov>=7.0.0",
     "ruff>=0.15.0",
     "pyright>=1.1.408",
+    "hypothesis>=6.131.0",
+    "mutmut>=3.2.0",
+    "pip-audit>=2.9.0",
+    "bandit>=1.8.0",
 ]
 
 [build-system]
@@ -94,3 +98,26 @@ include = ["src"]
 exclude = ["**/__pycache__", "tests", "htmlcov"]
 reportMissingTypeStubs = false
 reportMissingImports = "warning"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["tests/*", "**/__pycache__/*"]
+
+[tool.coverage.report]
+fail_under = 69
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.",
+]
+
+[tool.bandit]
+targets = ["src"]
+severity = "medium"
+confidence = "medium"
+exclude_dirs = ["tests"]
+
+[tool.mutmut]
+paths_to_mutate = "src/services/"
+tests_dir = "tests/"

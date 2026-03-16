@@ -4,6 +4,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { MessageBubble } from './MessageBubble';
 import type { ChatMessage } from '@/types';
 
@@ -91,5 +92,10 @@ describe('MessageBubble', () => {
     );
     const systemEl = container.querySelector('.text-muted-foreground');
     expect(systemEl).toBeInTheDocument();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<MessageBubble message={createMessage()} />);
+    await expectNoA11yViolations(container);
   });
 });

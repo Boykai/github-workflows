@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { ThemedAgentIcon, getThemedAgentVariant } from './ThemedAgentIcon';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 describe('ThemedAgentIcon', () => {
   it('maps known agent slugs to explicit celestial variants', () => {
@@ -48,5 +49,10 @@ describe('ThemedAgentIcon', () => {
     render(<ThemedAgentIcon name="Agent Smith" />);
 
     expect(screen.getByText('A')).toBeTruthy();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<ThemedAgentIcon slug="copilot" name="GitHub Copilot" />);
+    await expectNoA11yViolations(container);
   });
 });

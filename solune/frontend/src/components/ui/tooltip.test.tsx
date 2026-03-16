@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render, screen, within } from '@/test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { Tooltip } from './tooltip';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 describe('Tooltip', () => {
   it('renders registry-backed tooltip content on hover', async () => {
@@ -62,5 +63,14 @@ describe('Tooltip', () => {
     await user.hover(screen.getByRole('button', { name: 'Missing tooltip' }));
 
     expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <Tooltip contentKey="agents.panel.bulkUpdateButton">
+        <button type="button">Update all models</button>
+      </Tooltip>
+    );
+    await expectNoA11yViolations(container);
   });
 });

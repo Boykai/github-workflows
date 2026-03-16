@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen, userEvent, waitFor, within } from '@/test/test-utils';
 import { ProjectSelectionEmptyState } from './ProjectSelectionEmptyState';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 const projects = [
   {
@@ -188,5 +189,18 @@ describe('ProjectSelectionEmptyState', () => {
     await waitFor(() =>
       expect(screen.queryByRole('listbox', { name: /github projects/i })).not.toBeInTheDocument()
     );
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <ProjectSelectionEmptyState
+        projects={projects}
+        isLoading={false}
+        selectedProjectId={null}
+        onSelectProject={vi.fn().mockResolvedValue(undefined)}
+        description="Select a project to inspect the board."
+      />
+    );
+    await expectNoA11yViolations(container);
   });
 });

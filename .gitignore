@@ -75,6 +75,17 @@ frontend/coverage/
 solune/frontend/test-results/
 solune/frontend/e2e-report/
 solune/frontend/coverage/
+solune/frontend/reports/
+
+# Mutation testing artifacts
+.mutmut-cache
+stryker-tmp/
+
+# Hypothesis database (property test caches)
+.hypothesis/
+
+# OpenAPI generated artifacts
+openapi.json
 
 # SQLite database files
 *.db

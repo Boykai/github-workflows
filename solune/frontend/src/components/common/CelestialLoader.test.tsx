@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@/test/test-utils';
 import { CelestialLoader } from './CelestialLoader';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 describe('CelestialLoader', () => {
   it('renders with role="status" for accessibility', () => {
@@ -72,5 +73,10 @@ describe('CelestialLoader', () => {
     const { container } = render(<CelestialLoader className="my-custom-class" />);
     const root = container.firstElementChild;
     expect(root?.className).toContain('my-custom-class');
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<CelestialLoader />);
+    await expectNoA11yViolations(container);
   });
 });

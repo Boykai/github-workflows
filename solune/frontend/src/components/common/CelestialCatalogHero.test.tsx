@@ -8,6 +8,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@/test/test-utils';
 import { CelestialCatalogHero } from './CelestialCatalogHero';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 const defaultProps = {
   eyebrow: 'Catalog',
@@ -100,5 +101,10 @@ describe('CelestialCatalogHero', () => {
     );
     const section = container.querySelector('section');
     expect(section?.className).toContain('extra-hero-class');
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<CelestialCatalogHero {...defaultProps} />);
+    await expectNoA11yViolations(container);
   });
 });

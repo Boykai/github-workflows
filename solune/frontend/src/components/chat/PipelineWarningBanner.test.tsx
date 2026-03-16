@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { PipelineWarningBanner } from './PipelineWarningBanner';
 
 const mockUseSelectedPipeline = vi.fn();
@@ -64,5 +65,17 @@ describe('PipelineWarningBanner', () => {
     render(<PipelineWarningBanner projectId="PVT_123" />);
 
     expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+
+  it('has no accessibility violations', async () => {
+    mockUseSelectedPipeline.mockReturnValue({
+      pipelineId: '',
+      pipelineName: '',
+      isLoading: false,
+      hasAssignment: false,
+    });
+
+    const { container } = render(<PipelineWarningBanner projectId="PVT_123" />);
+    await expectNoA11yViolations(container);
   });
 });

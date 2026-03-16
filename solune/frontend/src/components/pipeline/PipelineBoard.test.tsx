@@ -3,6 +3,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 import type { ReactElement } from 'react';
 import { createTestQueryClient, render, screen } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { PipelineBoard } from './PipelineBoard';
 import type { PipelineStage, PipelineAgentNode } from '@/types';
 
@@ -198,5 +199,32 @@ describe('PipelineBoard', () => {
     expect(screen.getByTestId('pipeline-stage-grid')).toHaveStyle({
       gridTemplateColumns: 'repeat(1, minmax(20rem, 1fr))',
     });
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = renderPipelineBoard(
+      <PipelineBoard
+        columnCount={1}
+        stages={[createStage()]}
+        availableAgents={[]}
+        availableModels={[]}
+        isEditMode={true}
+        pipelineName="Test Pipeline"
+        projectId="project-1"
+        modelOverride={{ mode: 'auto', modelId: '', modelName: '' }}
+        validationErrors={{}}
+        onNameChange={vi.fn()}
+        onModelOverrideChange={vi.fn()}
+        onClearValidationError={vi.fn()}
+        onRemoveStage={vi.fn()}
+        onAddAgent={vi.fn()}
+        onRemoveAgent={vi.fn()}
+        onUpdateAgent={vi.fn()}
+        onUpdateStage={vi.fn()}
+        onReorderAgents={vi.fn()}
+      />
+    );
+
+    await expectNoA11yViolations(container);
   });
 });

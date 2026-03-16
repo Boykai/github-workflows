@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen, userEvent } from '@/test/test-utils';
 import { Input } from './input';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 describe('Input', () => {
   it('renders with placeholder text', () => {
@@ -43,5 +44,10 @@ describe('Input', () => {
   it('applies custom className', () => {
     render(<Input className="custom-class" placeholder="Custom" />);
     expect(screen.getByPlaceholderText('Custom').className).toContain('custom-class');
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(<Input placeholder="A11y test" />);
+    await expectNoA11yViolations(container);
   });
 });

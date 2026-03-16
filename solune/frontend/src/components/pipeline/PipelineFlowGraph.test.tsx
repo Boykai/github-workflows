@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { render, screen } from '@/test/test-utils';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 import { PipelineFlowGraph } from './PipelineFlowGraph';
 import type { PipelineStage } from '@/types';
 
@@ -67,5 +68,13 @@ describe('PipelineFlowGraph', () => {
     render(<PipelineFlowGraph stages={[]} />);
 
     expect(screen.getByText('No stages')).toBeInTheDocument();
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <PipelineFlowGraph stages={createStages()} width={236} height={118} />
+    );
+
+    await expectNoA11yViolations(container);
   });
 });

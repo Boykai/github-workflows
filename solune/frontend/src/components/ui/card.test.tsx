@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@/test/test-utils';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from './card';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 describe('Card', () => {
   it('renders card with all sections', () => {
@@ -49,5 +50,19 @@ describe('Card', () => {
     const ref = { current: null as HTMLDivElement | null };
     render(<Card ref={ref}>Ref test</Card>);
     expect(ref.current).toBeInstanceOf(HTMLDivElement);
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = render(
+      <Card>
+        <CardHeader>
+          <CardTitle>Test Title</CardTitle>
+          <CardDescription>Test description</CardDescription>
+        </CardHeader>
+        <CardContent>Content here</CardContent>
+        <CardFooter>Footer here</CardFooter>
+      </Card>
+    );
+    await expectNoA11yViolations(container);
   });
 });

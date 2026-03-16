@@ -9,6 +9,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ConfirmationDialog, type ConfirmationDialogProps } from '../confirmation-dialog';
+import { expectNoA11yViolations } from '@/test/a11y-helpers';
 
 function renderDialog(overrides: Partial<ConfirmationDialogProps> = {}) {
   const defaultProps: ConfirmationDialogProps = {
@@ -165,5 +166,10 @@ describe('ConfirmationDialog', () => {
     expect(dialog).toHaveAttribute('aria-describedby', 'confirmation-dialog-description');
     const desc = document.getElementById('confirmation-dialog-description');
     expect(desc).toHaveTextContent('Are you sure you want to delete this item?');
+  });
+
+  it('has no accessibility violations', async () => {
+    const { container } = renderDialog();
+    await expectNoA11yViolations(container);
   });
 });

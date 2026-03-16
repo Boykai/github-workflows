@@ -10,6 +10,8 @@ test.describe('Settings Flow', () => {
   test('should load the application', async ({ page }) => {
     await page.goto('/');
     await expect(page.locator('h1')).toBeVisible();
+    // Visual regression: capture settings page load state
+    await expect(page).toHaveScreenshot('settings-initial-load.png', { maxDiffPixels: 100 });
   });
 
   test('should be keyboard navigable', async ({ page }) => {
