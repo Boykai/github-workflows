@@ -48,6 +48,7 @@ A user visits the Help page and sees a new "Chat Features" section (positioned b
 7. **Given** the Task Proposals card is displayed, **When** the user reads it, **Then** it explains that AI proposes structured tasks from chat, users can confirm to create issues, and status change proposals are supported.
 8. **Given** the Message History card is displayed, **When** the user reads it, **Then** it describes Arrow Up/Down navigation, draft preservation, and the history popover for quick recall.
 9. **Given** the Keyboard Shortcuts card is displayed, **When** the user reads it, **Then** it lists Enter to send, Escape to dismiss autocomplete, Tab to select, and `/` and `@` as trigger keys.
+10. **Given** the Help page is viewed on a narrow mobile screen (375px width), **When** the Chat Features section renders, **Then** the feature cards reflow to a single-column layout while maintaining full readability.
 
 ---
 
@@ -78,7 +79,7 @@ A user browses the FAQ section on the Help page and finds accurate information. 
 
 **Why this priority**: Inaccurate FAQ content actively misleads users, causing failed attempts and eroding trust. While lower priority than adding new documentation (P1–P3), fixing factual errors is essential for documentation credibility.
 
-**Independent Test**: Can be fully tested by rendering the Help page FAQ section and verifying that the `chat-voice-1` entry does not contain `/clear` and the `chat-voice-2` entry does not contain "drag-and-drop" or "drag and drop".
+**Independent Test**: Can be fully tested by rendering the Help page FAQ section and verifying that the `chat-voice-1` entry does not contain `/clear` and instead correctly references `/agent`, and the `chat-voice-2` entry does not contain "drag-and-drop" or "drag and drop" and instead references the attachment button.
 
 **Acceptance Scenarios**:
 
