@@ -9,6 +9,7 @@ import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi, signalApi } from '@/services/api';
 import { STALE_TIME_LONG, STALE_TIME_SHORT } from '@/constants';
+import { isRateLimitApiError } from '@/utils/rateLimit';
 import type {
   EffectiveUserSettings,
   UserPreferencesUpdate,
@@ -82,12 +83,18 @@ export function useGlobalSettings() {
     },
   });
 
+  const rawError = query.error ?? mutation.error ?? null;
+
   return {
     settings: query.data,
     isLoading: query.isLoading,
     error: query.error,
+    rawError,
+    isRateLimitError: isRateLimitApiError(rawError),
     updateSettings: mutation.mutateAsync,
     isUpdating: mutation.isPending,
+    mutationError: mutation.error,
+    refetch: query.refetch,
   };
 }
 

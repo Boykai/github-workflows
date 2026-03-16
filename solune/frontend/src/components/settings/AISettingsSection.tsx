@@ -7,6 +7,7 @@ interface AISettingsSectionProps {
 
 export function AISettingsSection({ form }: AISettingsSectionProps) {
   const { register, watch } = form;
+  const temperature = watch('temperature') ?? 0.7;
 
   return (
     <>
@@ -39,7 +40,7 @@ export function AISettingsSection({ form }: AISettingsSectionProps) {
       </div>
       <div className="flex flex-col gap-2">
         <label htmlFor="global-ai-temp" className="text-sm font-medium text-foreground">
-          Temperature: {watch('temperature').toFixed(1)}
+          Temperature: {Number(temperature).toFixed(1)}
         </label>
         <input
           id="global-ai-temp"
@@ -48,6 +49,10 @@ export function AISettingsSection({ form }: AISettingsSectionProps) {
           min="0"
           max="2"
           step="0.1"
+          aria-valuemin={0}
+          aria-valuemax={2}
+          aria-valuenow={Number(temperature)}
+          aria-valuetext={`Temperature ${Number(temperature).toFixed(1)}`}
           {...register('temperature', { valueAsNumber: true })}
         />
       </div>

@@ -51,6 +51,9 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
     isLoading: globalLoading,
     updateSettings: updateGlobalSettings,
     isUpdating: isGlobalUpdating,
+    rawError: globalError,
+    isRateLimitError: isGlobalRateLimitError,
+    refetch: refetchGlobalSettings,
   } = useGlobalSettings();
 
   // Track whether any mutation is in-flight as proxy for dirty state
@@ -97,6 +100,9 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
             globalLoading={globalLoading}
             onUserSave={handleUserSave}
             onGlobalSave={handleGlobalSave}
+            globalError={globalError}
+            isGlobalRateLimitError={isGlobalRateLimitError}
+            onGlobalRetry={refetchGlobalSettings}
             projects={projects}
             selectedProjectId={selectedProjectId}
           />

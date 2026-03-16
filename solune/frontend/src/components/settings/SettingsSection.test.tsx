@@ -44,7 +44,7 @@ describe('SettingsSection', () => {
         <div>Content</div>
       </SettingsSection>
     );
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save Settings' })).toBeDisabled();
   });
 
   it('enables save button when dirty', () => {
@@ -53,7 +53,7 @@ describe('SettingsSection', () => {
         <div>Content</div>
       </SettingsSection>
     );
-    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save Settings' })).toBeEnabled();
   });
 
   it('shows success message after save', async () => {
@@ -64,9 +64,9 @@ describe('SettingsSection', () => {
       </SettingsSection>
     );
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save Settings' }));
     await waitFor(() => {
-      expect(screen.getByText('Saved!')).toBeInTheDocument();
+      expect(screen.getByText('Settings saved successfully.')).toBeInTheDocument();
     });
   });
 
@@ -78,13 +78,13 @@ describe('SettingsSection', () => {
       </SettingsSection>
     );
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save Settings' }));
     await waitFor(() => {
-      expect(screen.getByText('Failed to save')).toBeInTheDocument();
+      expect(screen.getByText('Could not save settings. Please try again.')).toBeInTheDocument();
     });
   });
 
-  it('shows Saving... text during save', async () => {
+  it('shows Saving… text during save', async () => {
     let resolverFn: (() => void) | undefined;
     const onSave = vi.fn().mockImplementation(
       () =>
@@ -98,8 +98,8 @@ describe('SettingsSection', () => {
       </SettingsSection>
     );
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
-    expect(screen.getByText('Saving...')).toBeInTheDocument();
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save Settings' }));
+    expect(screen.getByText('Saving…')).toBeInTheDocument();
     resolverFn?.();
   });
 
@@ -109,6 +109,35 @@ describe('SettingsSection', () => {
         <div>Content</div>
       </SettingsSection>
     );
-    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save Settings' })).not.toBeInTheDocument();
+  });
+
+  it('sets aria-expanded correctly on the collapse toggle', async () => {
+    render(
+      <SettingsSection title="Expandable" defaultCollapsed={true}>
+        <div>Content</div>
+      </SettingsSection>
+    );
+
+    const toggle = screen.getByRole('button', { name: /Expandable/i });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.setup().click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('renders status messages in an aria-live region', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <SettingsSection title="Test" onSave={onSave} isDirty={true}>
+        <div>Content</div>
+      </SettingsSection>
+    );
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save Settings' }));
+    await waitFor(() => {
+      const liveRegion = screen.getByText('Settings saved successfully.').closest('[aria-live]');
+      expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+    });
   });
 });

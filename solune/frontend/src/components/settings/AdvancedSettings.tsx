@@ -26,6 +26,9 @@ interface AdvancedSettingsProps {
   globalLoading: boolean;
   onUserSave: (update: UserPreferencesUpdate) => Promise<void>;
   onGlobalSave: (update: GlobalSettingsUpdate) => Promise<void>;
+  globalError?: Error | null;
+  isGlobalRateLimitError?: boolean;
+  onGlobalRetry?: () => void;
   projects?: Array<{ project_id: string; name: string }>;
   selectedProjectId?: string;
 }
@@ -36,6 +39,9 @@ export function AdvancedSettings({
   globalLoading,
   onUserSave,
   onGlobalSave,
+  globalError,
+  isGlobalRateLimitError,
+  onGlobalRetry,
   projects = [],
   selectedProjectId,
 }: AdvancedSettingsProps) {
@@ -82,6 +88,9 @@ export function AdvancedSettings({
             settings={globalSettings}
             isLoading={globalLoading}
             onSave={onGlobalSave}
+            error={globalError}
+            isRateLimitError={isGlobalRateLimitError}
+            onRetry={onGlobalRetry}
           />
         </div>
       )}
