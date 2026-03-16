@@ -37,6 +37,7 @@ export function useRecentParentIssues(boardData: BoardDataResponse | null): Rece
 
         // Exclude sub-issues — only parent issues allowed
         if (item.number != null && subIssueNumbers.has(item.number)) continue;
+        if (item.labels.some((label) => label.name === 'sub-issue')) continue;
 
         // Deduplicate by item_id
         if (seen.has(item.item_id)) continue;

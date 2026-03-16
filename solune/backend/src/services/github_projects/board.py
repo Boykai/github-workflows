@@ -6,7 +6,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from src.models.board import BoardItem
 
+from src.constants import StatusNames
 from src.logging_utils import get_logger
+from src.services.done_items_store import save_done_items
 from src.services.github_projects.graphql import (
     BOARD_GET_PROJECT_ITEMS_QUERY,
     BOARD_LIST_PROJECTS_QUERY,
@@ -249,20 +251,30 @@ class BoardMixin:
                 )
             )
 
-        # Filter out sub-issues from all columns
+        # Filter out sub-issues from all columns.
+        # Primary: collect IDs referenced by parent items' sub_issues lists.
+        # Secondary: items carrying the "sub-issue" label are also excluded,
+        # which catches sub-issues whose parent didn't list them (API race,
+        # parent not on the board, etc.).
+        from src.constants import SUB_ISSUE_LABEL
+
         all_sub_issue_ids: set[str] = set()
         for board_item in all_items:
             for si in board_item.sub_issues:
                 if si.id:
                     all_sub_issue_ids.add(si.id)
 
-        if all_sub_issue_ids:
-            for col in columns:
-                original_count = len(col.items)
-                col.items = [it for it in col.items if it.content_id not in all_sub_issue_ids]
-                if len(col.items) != original_count:
-                    col.item_count = len(col.items)
-                    col.estimate_total = sum(it.estimate or 0.0 for it in col.items)
+        def _is_sub_issue(item) -> bool:
+            if item.content_id and item.content_id in all_sub_issue_ids:
+                return True
+            return any(lb.name == SUB_ISSUE_LABEL for lb in item.labels)
+
+        for col in columns:
+            original_count = len(col.items)
+            col.items = [it for it in col.items if not _is_sub_issue(it)]
+            if len(col.items) != original_count:
+                col.item_count = len(col.items)
+                col.estimate_total = sum(it.estimate or 0.0 for it in col.items)
 
         return columns
 
@@ -471,6 +483,15 @@ class BoardMixin:
         columns = self._build_board_columns(
             all_items, project_meta.status_field.options, board_models
         )
+
+        # Persist Done board items to DB for fast cold-start loading
+        done_board_items = [
+            item.model_dump(mode="json") for item in all_items if item.status == StatusNames.DONE
+        ]
+        try:
+            await save_done_items(project_id, done_board_items, item_type="board")
+        except Exception:
+            logger.debug("Non-critical: failed to persist done board items cache", exc_info=True)
 
         logger.info(
             "Board data for project %s: %d items across %d columns",

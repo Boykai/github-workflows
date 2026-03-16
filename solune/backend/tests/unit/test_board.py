@@ -235,3 +235,94 @@ class TestBoardModels:
         )
         assert pr.number == 42
         assert pr.state == PRState.MERGED
+
+
+class TestBuildBoardColumnsSubIssueFiltering:
+    """_build_board_columns filters sub-issues using both ID matching and label detection."""
+
+    @staticmethod
+    def _make_board_item(
+        item_id: str,
+        content_id: str,
+        status_option_id: str,
+        labels: list | None = None,
+        sub_issues: list | None = None,
+        **kwargs,
+    ) -> BoardItem:
+        from src.models.board import Label, SubIssue
+
+        return BoardItem(
+            item_id=item_id,
+            content_id=content_id,
+            content_type=ContentType.ISSUE,
+            title=kwargs.get("title", f"Issue {item_id}"),
+            status=kwargs.get("status", "In Progress"),
+            status_option_id=status_option_id,
+            labels=[Label(id=f"L_{lbl}", name=lbl, color="ededed") for lbl in (labels or [])],
+            sub_issues=[
+                SubIssue(id=si, number=i + 1, title=f"Sub {si}", url="", state="open")
+                for i, si in enumerate(sub_issues or [])
+            ],
+        )
+
+    def test_filters_sub_issue_by_label(self):
+        """Items with the 'sub-issue' label are excluded even if not in any parent's sub_issues."""
+        from src.services.github_projects.board import BoardMixin
+
+        opt = StatusOption(option_id="opt1", name="In Progress", color="YELLOW")
+        parent = self._make_board_item("P1", "C_P1", "opt1", sub_issues=[])
+        sub = self._make_board_item("S1", "C_S1", "opt1", labels=["sub-issue"])
+
+        columns = BoardMixin._build_board_columns(
+            [parent, sub],
+            [opt],
+            {
+                "BoardColumn": BoardColumn,
+                "StatusOption": StatusOption,
+                "StatusColor": StatusColor,
+            },
+        )
+
+        assert len(columns) == 1
+        assert len(columns[0].items) == 1
+        assert columns[0].items[0].item_id == "P1"
+
+    def test_filters_sub_issue_by_parent_reference(self):
+        """Items referenced in a parent's sub_issues list are excluded (legacy behaviour)."""
+        from src.services.github_projects.board import BoardMixin
+
+        opt = StatusOption(option_id="opt1", name="In Progress", color="YELLOW")
+        parent = self._make_board_item("P1", "C_P1", "opt1", sub_issues=["C_S1"])
+        sub = self._make_board_item("S1", "C_S1", "opt1")
+
+        columns = BoardMixin._build_board_columns(
+            [parent, sub],
+            [opt],
+            {
+                "BoardColumn": BoardColumn,
+                "StatusOption": StatusOption,
+                "StatusColor": StatusColor,
+            },
+        )
+
+        assert len(columns[0].items) == 1
+        assert columns[0].items[0].item_id == "P1"
+
+    def test_keeps_parent_issues_without_sub_issue_label(self):
+        """Parent issues without the sub-issue label remain on the board."""
+        from src.services.github_projects.board import BoardMixin
+
+        opt = StatusOption(option_id="opt1", name="Todo", color="GRAY")
+        parent = self._make_board_item("P1", "C_P1", "opt1", labels=["feature", "active"])
+
+        columns = BoardMixin._build_board_columns(
+            [parent],
+            [opt],
+            {
+                "BoardColumn": BoardColumn,
+                "StatusOption": StatusOption,
+                "StatusColor": StatusColor,
+            },
+        )
+
+        assert len(columns[0].items) == 1

@@ -3,9 +3,31 @@
  * Shows app info, embedded preview iframe, and lifecycle controls.
  */
 
-import { ArrowLeft, Play, Square, Trash2 } from 'lucide-react';
-import { useApp, useStartApp, useStopApp, useDeleteApp } from '@/hooks/useApps';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ArrowLeft, Play, Square, Trash2, RefreshCw } from 'lucide-react';
+import { useApp, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import { isRateLimitApiError } from '@/utils/rateLimit';
+import { Tooltip } from '@/components/ui/tooltip';
 import { AppPreview } from './AppPreview';
+
+/** Format a date string as relative time ("2 hours ago") or absolute. */
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = Date.now();
+  const diffMs = now - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHour = Math.floor(diffMin / 60);
+  const diffDay = Math.floor(diffHour / 24);
+
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+  if (diffHour < 24) return `${diffHour} hour${diffHour === 1 ? '' : 's'} ago`;
+  if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+  return date.toLocaleDateString();
+}
 
 interface AppDetailViewProps {
   appName: string;
@@ -13,54 +35,157 @@ interface AppDetailViewProps {
 }
 
 export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
-  const { data: app, isLoading, error } = useApp(appName);
+  const { data: app, isLoading, error, refetch } = useApp(appName);
   const startMutation = useStartApp();
   const stopMutation = useStopApp();
   const deleteMutation = useDeleteApp();
+  const { confirm } = useConfirmation();
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(successTimerRef.current);
+      clearTimeout(errorTimerRef.current);
+    };
+  }, []);
+
+  const showSuccess = useCallback((message: string) => {
+    setSuccessMessage(message);
+    clearTimeout(successTimerRef.current);
+    successTimerRef.current = setTimeout(() => setSuccessMessage(null), 3000);
+  }, []);
+
+  const showError = useCallback((message: string) => {
+    setActionError(message);
+    clearTimeout(errorTimerRef.current);
+    errorTimerRef.current = setTimeout(() => setActionError(null), 5000);
+  }, []);
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-emerald-500" />
+      <div className="flex min-h-[40vh] items-center justify-center" aria-busy="true" aria-live="polite">
+        <CelestialLoader size="md" label="Loading app details…" />
       </div>
     );
   }
 
   if (error || !app) {
+    const isRateLimited = error ? isRateLimitApiError(error) : false;
     return (
-      <div className="p-6 text-center text-zinc-500">
-        App not found or failed to load.
+      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-center" aria-live="polite">
+        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+          {isRateLimited
+            ? 'Rate limit exceeded. Please wait a moment before trying again.'
+            : 'Could not load app details. The app may not exist or an error occurred.'}
+        </p>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            onClick={() => refetch()}
+          >
+            <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" /> Retry
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            onClick={onBack}
+          >
+            <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" /> Back to Apps
+          </button>
+        </div>
       </div>
     );
   }
 
-  const handleStart = () => startMutation.mutate(appName);
-  const handleStop = () => stopMutation.mutate(appName);
-  const handleDelete = () => {
-    deleteMutation.mutate(appName, { onSuccess: onBack });
+  const handleStart = () => {
+    startMutation.mutate(appName, {
+      onSuccess: () => showSuccess(`App "${app.display_name}" started successfully.`),
+      onError: (err) => showError(getErrorMessage(err, `Could not start app "${app.display_name}".`)),
+    });
+  };
+
+  const handleStop = async () => {
+    const confirmed = await confirm({
+      title: 'Stop App',
+      description: `Stop app "${app.display_name}"? The app will no longer be accessible until restarted.`,
+      variant: 'warning',
+      confirmLabel: 'Stop App',
+    });
+    if (confirmed) {
+      stopMutation.mutate(appName, {
+        onSuccess: () => showSuccess(`App "${app.display_name}" stopped successfully.`),
+        onError: (err) => showError(getErrorMessage(err, `Could not stop app "${app.display_name}".`)),
+      });
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Delete App',
+      description: `Delete app "${app.display_name}"? This action cannot be undone.`,
+      variant: 'danger',
+      confirmLabel: 'Delete App',
+    });
+    if (confirmed) {
+      deleteMutation.mutate(appName, {
+        onSuccess: () => onBack(),
+        onError: (err) => showError(getErrorMessage(err, `Could not delete app "${app.display_name}".`)),
+      });
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Success feedback */}
+      {successMessage && (
+        <div
+          className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
+          role="status"
+        >
+          {successMessage}
+        </div>
+      )}
+
+      {/* Action error feedback */}
+      {actionError && (
+        <div
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
+          role="alert"
+        >
+          {actionError}
+        </div>
+      )}
+
       {/* Back button + Header */}
       <div className="flex items-center gap-4">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+          aria-label="Back to apps list"
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:text-zinc-400 dark:hover:bg-zinc-800"
         >
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft aria-hidden="true" className="h-4 w-4" /> Back
         </button>
-        <div className="flex-1">
-          <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
-            {app.display_name}
-          </h2>
-          <p className="text-sm text-zinc-500 dark:text-zinc-400">{app.description}</p>
+        <div className="min-w-0 flex-1">
+          <Tooltip content={app.display_name}>
+            <h2 className="truncate text-xl font-bold text-zinc-900 dark:text-zinc-100">
+              {app.display_name}
+            </h2>
+          </Tooltip>
+          {app.description && (
+            <Tooltip content={app.description}>
+              <p className="truncate text-sm text-zinc-500 dark:text-zinc-400">{app.description}</p>
+            </Tooltip>
+          )}
         </div>
       </div>
 
       {/* Info Grid */}
-      <div className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900 sm:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-4 rounded-lg border border-zinc-200 bg-white p-4 dark:border-zinc-700 dark:bg-zinc-900 sm:grid-cols-4">
         <div>
           <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Status</dt>
           <dd className="mt-1 text-sm font-semibold capitalize text-zinc-900 dark:text-zinc-100">
@@ -80,44 +205,47 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
         <div>
           <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Created</dt>
           <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-100">
-            {new Date(app.created_at).toLocaleDateString()}
+            <time dateTime={app.created_at}>{formatRelativeTime(app.created_at)}</time>
           </dd>
         </div>
-      </div>
+      </dl>
 
       {/* Actions */}
       <div className="flex gap-3">
         {app.status === 'stopped' && (
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            aria-label={`Start app ${app.display_name}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50"
             onClick={handleStart}
             disabled={startMutation.isPending}
           >
-            <Play className="h-4 w-4" />
-            {startMutation.isPending ? 'Starting…' : 'Start'}
+            <Play aria-hidden="true" className="h-4 w-4" />
+            {startMutation.isPending ? 'Starting…' : 'Start App'}
           </button>
         )}
         {app.status === 'active' && (
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-600 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
+            aria-label={`Stop app ${app.display_name}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-600 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50"
             onClick={handleStop}
             disabled={stopMutation.isPending}
           >
-            <Square className="h-4 w-4" />
-            {stopMutation.isPending ? 'Stopping…' : 'Stop'}
+            <Square aria-hidden="true" className="h-4 w-4" />
+            {stopMutation.isPending ? 'Stopping…' : 'Stop App'}
           </button>
         )}
         {app.status !== 'active' && (
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
+            aria-label={`Delete app ${app.display_name}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-50"
             onClick={handleDelete}
             disabled={deleteMutation.isPending}
           >
-            <Trash2 className="h-4 w-4" />
-            {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+            <Trash2 aria-hidden="true" className="h-4 w-4" />
+            {deleteMutation.isPending ? 'Deleting…' : 'Delete App'}
           </button>
         )}
       </div>

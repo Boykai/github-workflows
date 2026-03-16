@@ -1657,7 +1657,31 @@ class WorkflowOrchestrator:
                     break
 
                 if attempt < max_retries - 1:
-                    delay = base_delay * (2**attempt)
+                    # Check if failure was rate-limit-related and adapt delay
+                    rl = self.github.get_last_rate_limit()
+                    rl_remaining: int | None = None
+                    if rl and isinstance(rl, dict):
+                        try:
+                            rl_remaining = int(rl.get("remaining", 999))
+                        except (TypeError, ValueError):
+                            rl_remaining = None
+                    if rl_remaining is not None and rl_remaining <= 50:
+                        # Rate limit nearly exhausted — wait until reset
+                        reset_at = rl.get("reset_at", 0) if isinstance(rl, dict) else 0
+                        now_ts = int(utcnow().timestamp())
+                        if reset_at > now_ts:
+                            delay = min(reset_at - now_ts, 900)
+                            logger.warning(
+                                "Agent assignment rate-limited for '%s' on issue #%s. "
+                                "Waiting %ds until rate limit reset.",
+                                agent_name,
+                                ctx.issue_number,
+                                delay,
+                            )
+                        else:
+                            delay = base_delay * (2**attempt)
+                    else:
+                        delay = base_delay * (2**attempt)
                     logger.warning(
                         "Agent assignment failed for '%s' on issue #%s, retrying in %ds...",
                         agent_name,

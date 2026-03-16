@@ -13,6 +13,7 @@ from src.services.copilot_polling import (
     _check_copilot_review_done,
     _check_main_pr_completion,
     _claimed_child_prs,
+    _close_completed_sub_issues,
     _discover_main_pr_for_review,
     _filter_events_after,
     _find_completed_child_pr,
@@ -2198,6 +2199,86 @@ class TestReconstructPipelineState:
         )
 
 
+class TestReconstructPipelineLinksParentIssue:
+    """Tests that pipeline reconstruction links the discovered PR to the parent issue."""
+
+    @pytest.fixture(autouse=True)
+    def clear_pipeline_states(self):
+        from src.services.workflow_orchestrator import _issue_main_branches, _pipeline_states
+
+        _pipeline_states.clear()
+        _issue_main_branches.clear()
+        yield
+        _pipeline_states.clear()
+        _issue_main_branches.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    @patch("src.services.copilot_polling.get_issue_main_branch", return_value=None)
+    async def test_links_pr_to_parent_on_reconstruct(
+        self, mock_get_branch, mock_set_state, mock_service
+    ):
+        """When pipeline reconstruction discovers a PR, it should link it to the parent issue."""
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"comments": [{"body": "speckit.specify: Done!"}]}
+        )
+        mock_service.find_existing_pr_for_issue = AsyncMock(
+            return_value={"number": 100, "head_ref": "copilot/feature-branch"}
+        )
+        mock_service.get_pull_request = AsyncMock(return_value={"last_commit": {"sha": "abc123"}})
+        mock_service.link_pull_request_to_issue = AsyncMock(return_value=True)
+
+        await _reconstruct_pipeline_state(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.specify", "speckit.plan"],
+        )
+
+        mock_service.link_pull_request_to_issue.assert_called_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            pr_number=100,
+            issue_number=42,
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    @patch("src.services.copilot_polling.get_issue_main_branch", return_value=None)
+    async def test_link_failure_does_not_block_reconstruct(
+        self, mock_get_branch, mock_set_state, mock_service
+    ):
+        """If link_pull_request_to_issue fails, pipeline reconstruction should still succeed."""
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"comments": [{"body": "speckit.specify: Done!"}]}
+        )
+        mock_service.find_existing_pr_for_issue = AsyncMock(
+            return_value={"number": 100, "head_ref": "copilot/feature-branch"}
+        )
+        mock_service.get_pull_request = AsyncMock(return_value={"last_commit": {"sha": "abc123"}})
+        mock_service.link_pull_request_to_issue = AsyncMock(side_effect=Exception("API Error"))
+
+        result = await _reconstruct_pipeline_state(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.specify", "speckit.plan"],
+        )
+
+        # Reconstruction should succeed despite the link failure
+        assert result.completed_agents == ["speckit.specify"]
+        assert result.current_agent == "speckit.plan"
+
+
 class TestCheckBacklogIssues:
     """Tests for check_backlog_issues function."""
 
@@ -3913,6 +3994,172 @@ class TestRecoverStalledIssues:
         mock_service.is_copilot_assigned_to_issue.assert_not_called()
         mock_service.get_linked_pull_requests.assert_not_called()
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch(
+        "src.services.copilot_polling._find_completed_child_pr",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_skips_recovery_when_merged_child_pr_exists(
+        self, mock_config, mock_service, mock_find_child, mock_get_branch, mock_backlog_task
+    ):
+        """Should NOT re-assign when a merged child PR exists without Done! marker.
+
+        When a child PR was merged but the Done! comment was never posted
+        (e.g., processing was interrupted), recovery should detect the merged
+        child PR, post the missing Done! marker, and skip re-assignment —
+        preventing duplicate branches/PRs.
+        """
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        # No Done! marker exists
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.update_issue_body = AsyncMock()
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": "comment_1"})
+
+        # Main branch info exists (pipeline is active)
+        mock_get_branch.return_value = {"branch": "copilot/implement-feature", "pr_number": 50}
+        # Merged child PR found
+        mock_find_child.return_value = {
+            "number": 60,
+            "id": "PR_60",
+            "head_ref": "copilot/speckit-specify-feature",
+            "base_ref": "copilot/implement-feature",
+            "copilot_finished": True,
+            "is_child_pr": True,
+            "is_merged": True,
+        }
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        # Should NOT have recovered — merged child PR means agent completed
+        assert results == []
+        # Should have posted the missing Done! marker
+        mock_service.create_issue_comment.assert_called_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=100,
+            body="speckit.specify: Done!",
+        )
+        # Cooldown should still be set
+        assert 100 in _recovery_last_attempt
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch(
+        "src.services.copilot_polling._find_completed_child_pr",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_recovers_when_no_main_branch_info_and_no_merged_child(
+        self,
+        mock_config,
+        mock_service,
+        mock_find_child,
+        mock_get_branch,
+        mock_get_orch,
+        mock_backlog_task,
+    ):
+        """Should still re-assign when no main branch info exists (first agent).
+
+        When get_issue_main_branch returns None, the merged-child-PR guard
+        cannot run (there's no main branch to search against).  Recovery
+        should fall through to re-assignment.
+        """
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        # No main branch info — first agent or lost state
+        mock_get_branch.return_value = None
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orch.return_value = mock_orchestrator
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        # Should have recovered — no main branch info means we can't check for merged child
+        assert len(results) == 1
+        assert results[0]["status"] == "recovered"
+        # _find_completed_child_pr should NOT have been called
+        mock_find_child.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch(
+        "src.services.copilot_polling._find_completed_child_pr",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_merged_child_pr_guard_tolerates_marker_post_failure(
+        self, mock_config, mock_service, mock_find_child, mock_get_branch, mock_backlog_task
+    ):
+        """Should skip re-assignment even if posting the Done! marker fails.
+
+        The merged child PR proves the agent completed.  If the self-heal
+        fails to post the marker, recovery should still skip re-assignment
+        to prevent duplicates.
+        """
+        mock_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"Backlog": ["speckit.specify"]},
+        )
+        mock_service.get_issue_with_comments = AsyncMock(return_value={"body": self.TRACKING_BODY})
+        mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=False)
+        mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.update_issue_body = AsyncMock()
+        # Marker post fails
+        mock_service.create_issue_comment = AsyncMock(side_effect=Exception("API error"))
+
+        mock_get_branch.return_value = {"branch": "copilot/implement-feature", "pr_number": 50}
+        mock_find_child.return_value = {
+            "number": 60,
+            "is_merged": True,
+            "copilot_finished": True,
+            "is_child_pr": True,
+        }
+
+        results = await recover_stalled_issues(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_backlog_task],
+        )
+
+        # Should NOT have recovered even though posting failed
+        assert results == []
+        assert 100 in _recovery_last_attempt
+
 
 # ────────────────────────────────────────────────────────────────────
 # _validate_and_reconcile_tracking_table
@@ -5104,6 +5351,157 @@ class TestRateLimitAwarePolling:
 
 
 # ────────────────────────────────────────────────────────────────────
+# Pipeline rate-limit awareness
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestPipelineRateLimitAwareness:
+    """Tests for rate-limit budget checks in pipeline agent assignments."""
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_wait_if_rate_limited_waits_when_budget_low(self, mock_service, mock_sleep):
+        """_wait_if_rate_limited should sleep and return True when budget is critically low."""
+        from src.services.copilot_polling.pipeline import _wait_if_rate_limited
+
+        mock_service.get_last_rate_limit.return_value = {
+            "remaining": 10,
+            "reset_at": int(utcnow().timestamp()) + 60,
+        }
+        result = await _wait_if_rate_limited("test-assignment")
+        assert result is True
+        mock_sleep.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_wait_if_rate_limited_proceeds_when_budget_healthy(
+        self, mock_service, mock_sleep
+    ):
+        """_wait_if_rate_limited should return False when budget is healthy."""
+        from src.services.copilot_polling.pipeline import _wait_if_rate_limited
+
+        mock_service.get_last_rate_limit.return_value = {
+            "remaining": 4000,
+            "reset_at": int(utcnow().timestamp()) + 3600,
+        }
+        result = await _wait_if_rate_limited("test-assignment")
+        assert result is False
+        mock_sleep.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_wait_if_rate_limited_clears_stale_data(self, mock_service, mock_sleep):
+        """_wait_if_rate_limited should clear stale data and continue when reset_at is past."""
+        from src.services.copilot_polling.pipeline import _wait_if_rate_limited
+
+        mock_service.get_last_rate_limit.return_value = {
+            "remaining": 0,
+            "reset_at": int(utcnow().timestamp()) - 60,  # already past
+        }
+        result = await _wait_if_rate_limited("test-assignment")
+        assert result is False
+        mock_service.clear_last_rate_limit.assert_called_once()
+        mock_sleep.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @patch("asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_wait_if_rate_limited_proceeds_when_no_data(self, mock_service, mock_sleep):
+        """_wait_if_rate_limited should return False when no rate limit data available."""
+        from src.services.copilot_polling.pipeline import _wait_if_rate_limited
+
+        mock_service.get_last_rate_limit.return_value = None
+        result = await _wait_if_rate_limited("test-assignment")
+        assert result is False
+        mock_sleep.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_get_rate_limit_remaining_returns_values(self, mock_service):
+        """_get_rate_limit_remaining should return (remaining, reset_at)."""
+        from src.services.copilot_polling.pipeline import _get_rate_limit_remaining
+
+        mock_service.get_last_rate_limit.return_value = {
+            "remaining": 500,
+            "reset_at": 1700000000,
+        }
+        remaining, reset_at = _get_rate_limit_remaining()
+        assert remaining == 500
+        assert reset_at == 1700000000
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_get_rate_limit_remaining_returns_none_when_no_data(self, mock_service):
+        """_get_rate_limit_remaining should return (None, None) when no data."""
+        from src.services.copilot_polling.pipeline import _get_rate_limit_remaining
+
+        mock_service.get_last_rate_limit.return_value = None
+        remaining, reset_at = _get_rate_limit_remaining()
+        assert remaining is None
+        assert reset_at is None
+
+
+# ────────────────────────────────────────────────────────────────────
+# GraphQL rate limit extraction
+# ────────────────────────────────────────────────────────────────────
+
+
+class TestGraphQLRateLimitExtraction:
+    """Tests for rate limit header extraction from GraphQL responses."""
+
+    def test_extract_rate_limit_headers_sets_values(self):
+        """_extract_rate_limit_headers should parse and store rate limit info."""
+        from src.services.github_projects.service import GitHubProjectsService
+
+        svc = GitHubProjectsService.__new__(GitHubProjectsService)
+        svc._last_rate_limit = None
+
+        response = MagicMock()
+        response.headers = {
+            "X-RateLimit-Limit": "5000",
+            "X-RateLimit-Remaining": "4500",
+            "X-RateLimit-Reset": "1700000000",
+        }
+        svc._extract_rate_limit_headers(response)
+        assert svc._last_rate_limit is not None
+        assert svc._last_rate_limit["remaining"] == 4500
+        assert svc._last_rate_limit["limit"] == 5000
+        assert svc._last_rate_limit["reset_at"] == 1700000000
+        assert svc._last_rate_limit["used"] == 500
+
+    def test_extract_rate_limit_headers_ignores_missing(self):
+        """_extract_rate_limit_headers should not crash when headers are missing."""
+        from src.services.github_projects.service import GitHubProjectsService
+
+        svc = GitHubProjectsService.__new__(GitHubProjectsService)
+        svc._last_rate_limit = None
+
+        response = MagicMock()
+        response.headers = {}
+        svc._extract_rate_limit_headers(response)
+        assert svc._last_rate_limit is None
+
+    def test_extract_rate_limit_headers_tolerates_bad_values(self):
+        """_extract_rate_limit_headers should not crash on non-numeric values."""
+        from src.services.github_projects.service import GitHubProjectsService
+
+        svc = GitHubProjectsService.__new__(GitHubProjectsService)
+        svc._last_rate_limit = None
+
+        response = MagicMock()
+        response.headers = {
+            "X-RateLimit-Limit": "abc",
+            "X-RateLimit-Remaining": "xyz",
+            "X-RateLimit-Reset": "bad",
+        }
+        svc._extract_rate_limit_headers(response)
+        assert svc._last_rate_limit is None
+
+
+# ────────────────────────────────────────────────────────────────────
 # stop_polling
 # ────────────────────────────────────────────────────────────────────
 
@@ -5915,6 +6313,344 @@ class TestAdvancePipelineClosesSubIssueFromGlobalStore:
         mock_service.update_issue_state.assert_called_once()
         call_args = mock_service.update_issue_state.call_args
         assert call_args.kwargs["issue_number"] == 101
+
+
+class TestCloseCompletedSubIssuesSweep:
+    """Tests that _close_completed_sub_issues sweeps ALL completed agents."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.workflow_orchestrator import (
+            _issue_sub_issue_map,
+            _pipeline_states,
+        )
+
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+        yield
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_sweeps_all_completed_agents(self, mock_service):
+        """_close_completed_sub_issues should close sub-issues for ALL
+        completed agents, not just the most recent one."""
+        from src.services.workflow_orchestrator import set_issue_sub_issues
+
+        set_issue_sub_issues(
+            42,
+            {
+                "speckit.specify": {"number": 100, "node_id": "I_100", "url": ""},
+                "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+                "speckit.tasks": {"number": 102, "node_id": "I_102", "url": ""},
+            },
+        )
+
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.specify", "speckit.plan", "speckit.tasks"],
+            current_agent_index=3,
+            completed_agents=["speckit.specify", "speckit.plan", "speckit.tasks"],
+            agent_sub_issues={},
+        )
+
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+        mock_service.update_sub_issue_project_status = AsyncMock()
+
+        await _close_completed_sub_issues(
+            access_token="token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            completed_agents=list(pipeline.completed_agents),
+            pipeline=pipeline,
+        )
+
+        # All 3 sub-issues should be closed
+        assert mock_service.update_issue_state.call_count == 3
+        closed_numbers = sorted(
+            call.kwargs["issue_number"] for call in mock_service.update_issue_state.call_args_list
+        )
+        assert closed_numbers == [100, 101, 102]
+
+        # All 3 sub-issues should have board status updated
+        assert mock_service.update_sub_issue_project_status.call_count == 3
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_skips_agents_without_sub_info(self, mock_service):
+        """Agents with no sub-issue mapping should be skipped gracefully."""
+        from src.services.workflow_orchestrator import set_issue_sub_issues
+
+        # Only one of three agents has a sub-issue
+        set_issue_sub_issues(
+            42,
+            {
+                "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+            },
+        )
+
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.specify", "speckit.plan", "speckit.tasks"],
+            current_agent_index=3,
+            completed_agents=["speckit.specify", "speckit.plan", "speckit.tasks"],
+            agent_sub_issues={},
+        )
+
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+        mock_service.update_sub_issue_project_status = AsyncMock()
+
+        await _close_completed_sub_issues(
+            access_token="token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            completed_agents=list(pipeline.completed_agents),
+            pipeline=pipeline,
+        )
+
+        # Only 1 sub-issue should be closed (the one with mapping)
+        mock_service.update_issue_state.assert_called_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=101,
+            state="closed",
+            state_reason="completed",
+            labels_add=["done"],
+            labels_remove=["in-progress"],
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_skips_sub_issue_matching_parent(self, mock_service):
+        """Sub-issues whose number matches the parent issue should be skipped."""
+        from src.services.workflow_orchestrator import set_issue_sub_issues
+
+        set_issue_sub_issues(
+            42,
+            {
+                "speckit.plan": {"number": 42, "node_id": "I_42", "url": ""},
+            },
+        )
+
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan"],
+            current_agent_index=1,
+            completed_agents=["speckit.plan"],
+            agent_sub_issues={},
+        )
+
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+        mock_service.update_sub_issue_project_status = AsyncMock()
+
+        await _close_completed_sub_issues(
+            access_token="token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            completed_agents=list(pipeline.completed_agents),
+            pipeline=pipeline,
+        )
+
+        # Should NOT close — sub-issue number == parent issue number
+        mock_service.update_issue_state.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_pipeline_sub_issues_used_over_global(self, mock_service):
+        """Pipeline's agent_sub_issues should take precedence over global store."""
+        from src.services.workflow_orchestrator import set_issue_sub_issues
+
+        set_issue_sub_issues(
+            42,
+            {
+                "speckit.plan": {"number": 999, "node_id": "I_999", "url": ""},
+            },
+        )
+
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan"],
+            current_agent_index=1,
+            completed_agents=["speckit.plan"],
+            agent_sub_issues={
+                "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+            },
+        )
+
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+        mock_service.update_sub_issue_project_status = AsyncMock()
+
+        await _close_completed_sub_issues(
+            access_token="token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            completed_agents=list(pipeline.completed_agents),
+            pipeline=pipeline,
+        )
+
+        call_args = mock_service.update_issue_state.call_args
+        assert call_args.kwargs["issue_number"] == 101
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_continues_on_individual_close_failure(self, mock_service):
+        """If closing one sub-issue fails, the others should still be attempted."""
+        from src.services.workflow_orchestrator import set_issue_sub_issues
+
+        set_issue_sub_issues(
+            42,
+            {
+                "speckit.specify": {"number": 100, "node_id": "I_100", "url": ""},
+                "speckit.plan": {"number": 101, "node_id": "I_101", "url": ""},
+            },
+        )
+
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.specify", "speckit.plan"],
+            current_agent_index=2,
+            completed_agents=["speckit.specify", "speckit.plan"],
+            agent_sub_issues={},
+        )
+
+        # First call fails, second succeeds
+        mock_service.update_issue_state = AsyncMock(side_effect=[Exception("API error"), True])
+        mock_service.update_sub_issue_project_status = AsyncMock()
+
+        # Should NOT raise
+        await _close_completed_sub_issues(
+            access_token="token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            completed_agents=list(pipeline.completed_agents),
+            pipeline=pipeline,
+        )
+
+        # Both agents were attempted
+        assert mock_service.update_issue_state.call_count == 2
+        # Board status update is in a separate try/except, so it's called
+        # for both agents regardless of the close failure.
+        assert mock_service.update_sub_issue_project_status.call_count == 2
+
+
+class TestProcessPipelineCompletionClosesSubIssues:
+    """Tests that _process_pipeline_completion closes sub-issues when
+    pipeline.is_complete (e.g. after a server restart reconstruction)."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.workflow_orchestrator import (
+            _issue_sub_issue_map,
+            _pipeline_states,
+        )
+
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+        yield
+        _pipeline_states.clear()
+        _issue_sub_issue_map.clear()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._close_completed_sub_issues", new_callable=AsyncMock
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_orchestrator")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    async def test_is_complete_branch_calls_close_sub_issues(
+        self,
+        mock_config,
+        mock_get_orchestrator,
+        mock_ws,
+        mock_service,
+        mock_close_subs,
+    ):
+        """When pipeline.is_complete, _process_pipeline_completion should
+        call _close_completed_sub_issues before transitioning status."""
+        from src.services.copilot_polling import _process_pipeline_completion
+
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=2,
+            completed_agents=["speckit.plan", "speckit.tasks"],
+        )
+
+        task = MagicMock()
+        task.issue_number = 42
+        task.github_item_id = "PVTI_123"
+        task.github_content_id = "I_123"
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Test Issue"
+
+        body = (
+            "Issue body\n\n---\n\n## 🤖 Agent Pipeline\n\n"
+            "| # | Status | Agent | Model | State |\n"
+            "|---|--------|-------|-------|-------|\n"
+            "| 1 | Ready | `speckit.plan` | gpt-4o | 🔄 Active |\n"
+            "| 2 | Ready | `speckit.tasks` | gpt-4o | 🔄 Active |\n"
+        )
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"body": body, "comments": []}
+        )
+        mock_service.update_issue_body = AsyncMock(return_value=True)
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_ws.broadcast_to_project = AsyncMock()
+
+        mock_orchestrator = MagicMock()
+        mock_orchestrator.assign_agent_for_status = AsyncMock(return_value=True)
+        mock_get_orchestrator.return_value = mock_orchestrator
+        mock_config.return_value = MagicMock(
+            status_backlog="Backlog",
+            status_ready="Ready",
+            status_in_progress="In Progress",
+            status_in_review="In Review",
+            agent_mappings={},
+        )
+
+        await _process_pipeline_completion(
+            access_token="token",
+            project_id="PVT_123",
+            task=task,
+            owner="owner",
+            repo="repo",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+        )
+
+        # _close_completed_sub_issues should have been called
+        mock_close_subs.assert_called_once()
+        call_kwargs = mock_close_subs.call_args.kwargs
+        assert sorted(call_kwargs["completed_agents"]) == ["speckit.plan", "speckit.tasks"]
+        assert call_kwargs["issue_number"] == 42
 
 
 class TestProcessPipelineCompletionBatchTracking:

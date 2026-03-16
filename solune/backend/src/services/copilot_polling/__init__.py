@@ -90,6 +90,7 @@ from .helpers import (
 )
 from .pipeline import (
     _advance_pipeline,
+    _close_completed_sub_issues,
     _get_or_reconstruct_pipeline,
     _process_pipeline_completion,
     _reconstruct_pipeline_state,
@@ -150,7 +151,6 @@ __all__ = [
     "STATE_PENDING",
     "PipelineGroupInfo",
     "PipelineState",
-    # State
     "PollingState",
     "WorkflowConfiguration",
     "WorkflowContext",
@@ -162,18 +162,16 @@ __all__ = [
     "_check_copilot_review_done",
     "_check_main_pr_completion",
     "_claimed_child_prs",
+    "_close_completed_sub_issues",
     "_discover_main_pr_for_review",
     "_filter_events_after",
     "_find_completed_child_pr",
     "_get_linked_prs_including_sub_issues",
-    # Pipeline
     "_get_or_reconstruct_pipeline",
-    # Helpers
     "_get_sub_issue_number",
     "_get_sub_issue_numbers_for_issue",
     "_get_tracking_state_from_issue",
     "_link_prs_to_parent",
-    # Completion / review
     "_merge_child_pr_if_applicable",
     "_pending_agent_assignments",
     "_poll_loop",
@@ -201,7 +199,6 @@ __all__ = [
     "check_ready_issues",
     "connection_manager",
     "ensure_copilot_review_requested",
-    # Convenience
     "ensure_polling_started",
     "find_next_actionable_status",
     "get_agent_slugs",
@@ -215,18 +212,14 @@ __all__ = [
     "get_status_order",
     "get_workflow_config",
     "get_workflow_orchestrator",
-    # Re-exported external dependencies (for mock.patch compatibility)
     "github_projects_service",
     "is_sub_issue",
     "mark_agent_active",
     "mark_agent_done",
     "parse_tracking_from_body",
-    # Polling loop
     "poll_for_copilot_completion",
-    # Agent output
     "post_agent_outputs_from_pr",
     "process_in_progress_issue",
-    # Recovery
     "recover_stalled_issues",
     "remove_pipeline_state",
     "set_issue_main_branch",

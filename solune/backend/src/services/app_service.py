@@ -126,6 +126,59 @@ def _row_to_app(row: aiosqlite.Row) -> App:
 
 
 # ---------------------------------------------------------------------------
+# AI Enhancement
+# ---------------------------------------------------------------------------
+
+
+async def _enhance_app_description(
+    display_name: str,
+    description: str,
+    *,
+    access_token: str,
+) -> str:
+    """Use AI to generate a richer description for the app scaffold.
+
+    Falls back to the original description on any error.
+    """
+    from src.services.ai_agent import get_ai_agent_service
+
+    ai_service = get_ai_agent_service()
+
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a concise technical writer. "
+                "The user is creating a new application. Given the app's display name "
+                "and their rough description, produce a polished, professional description "
+                "of 2-4 sentences. Keep it factual and specific — no marketing fluff. "
+                "Respond with ONLY the description text, no markdown fences or extra formatting."
+            ),
+        },
+        {
+            "role": "user",
+            "content": f"App name: {display_name}\n\nUser description: {description or '(none provided)'}",
+        },
+    ]
+
+    try:
+        response = await ai_service._call_completion(
+            messages=messages,
+            github_token=access_token,
+            temperature=0.5,
+            max_tokens=300,
+        )
+        enhanced = response.strip()
+        if enhanced:
+            logger.info("AI-enhanced description for app '%s'", display_name)
+            return enhanced
+    except Exception as exc:
+        logger.warning("AI enhancement failed for app '%s', using original: %s", display_name, exc)
+
+    return description
+
+
+# ---------------------------------------------------------------------------
 # CRUD Operations
 # ---------------------------------------------------------------------------
 
@@ -166,8 +219,17 @@ async def create_app(
             "Ensure the parent issue branch exists before creating an app."
         )
 
+    # Optionally enhance the description with AI
+    description = payload.description
+    if payload.ai_enhance:
+        description = await _enhance_app_description(
+            payload.display_name,
+            description,
+            access_token=access_token,
+        )
+
     # Build scaffold files and commit to the branch
-    files = _build_scaffold_files(payload.name, payload.display_name, payload.description)
+    files = _build_scaffold_files(payload.name, payload.display_name, description)
     commit_oid = await github_service.commit_files(
         access_token=access_token,
         owner=owner,
@@ -197,7 +259,7 @@ async def create_app(
         (
             payload.name,
             payload.display_name,
-            payload.description,
+            description,
             directory_path,
             payload.pipeline_id,
             AppStatus.ACTIVE.value,

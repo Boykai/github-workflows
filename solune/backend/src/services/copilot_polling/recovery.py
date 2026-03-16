@@ -10,6 +10,7 @@ from src.services.github_projects.identities import is_copilot_author
 from src.utils import utcnow
 
 from .helpers import _get_sub_issue_number
+from .pipeline import _wait_if_rate_limited
 from .state import (
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
     RECOVERY_COOLDOWN_SECONDS,
@@ -180,6 +181,12 @@ async def _attempt_reassignment(
             issue_number,
             exc,
         )
+
+    # Check rate limit budget before recovery re-assignment
+    if await _wait_if_rate_limited(
+        f"recovery re-assignment '{agent_name}' on issue #{issue_number}"
+    ):
+        return None  # Defer to next recovery cycle
 
     try:
         assigned = await orchestrator.assign_agent_for_status(
@@ -738,6 +745,55 @@ async def recover_stalled_issues(
                 )
                 _recovery_last_attempt[issue_number] = now
                 continue
+
+            # ── Guard: check for a merged child PR without Done! marker ──
+            # If the child PR was merged but processing was interrupted
+            # before the Done! comment was posted, the agent DID complete
+            # successfully.  Post the missing marker to self-heal and skip
+            # re-assignment — otherwise recovery creates a duplicate PR.
+            main_branch_info = _cp.get_issue_main_branch(issue_number)
+            if main_branch_info:
+                merged_child = await _cp._find_completed_child_pr(
+                    access_token=access_token,
+                    owner=task_owner,
+                    repo=task_repo,
+                    issue_number=issue_number,
+                    main_branch=main_branch_info["branch"],
+                    main_pr_number=main_branch_info["pr_number"],
+                    agent_name=agent_name,
+                    pipeline=recovery_pipeline,
+                )
+                if merged_child and merged_child.get("is_merged"):
+                    logger.warning(
+                        "Recovery: issue #%d — agent '%s' has MERGED child PR #%s "
+                        "but no Done! marker. Self-healing: posting marker and "
+                        "skipping re-assignment (problems were: %s)",
+                        issue_number,
+                        agent_name,
+                        merged_child["number"],
+                        ", ".join(missing),
+                    )
+                    # Post the missing Done! marker so subsequent cycles
+                    # detect completion via the normal comment-based path.
+                    marker = f"{agent_name}: Done!"
+                    try:
+                        await _cp.github_projects_service.create_issue_comment(
+                            access_token=access_token,
+                            owner=task_owner,
+                            repo=task_repo,
+                            issue_number=issue_number,
+                            body=marker,
+                        )
+                    except Exception as marker_err:
+                        logger.warning(
+                            "Recovery: issue #%d — failed to post Done! marker "
+                            "for '%s': %s (skipping re-assignment anyway)",
+                            issue_number,
+                            agent_name,
+                            marker_err,
+                        )
+                    _recovery_last_attempt[issue_number] = now
+                    continue
 
             logger.warning(
                 "Recovery: issue #%d stalled — agent '%s' (%s), problems: %s. Re-assigning agent.",

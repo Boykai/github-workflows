@@ -11,6 +11,8 @@ from src.utils import utcnow
 
 from .state import (
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
+    RATE_LIMIT_PAUSE_THRESHOLD,
+    RATE_LIMIT_SLOW_THRESHOLD,
     _claimed_child_prs,
     _pending_agent_assignments,
     _polling_state,
@@ -19,6 +21,53 @@ from .state import (
 )
 
 logger = get_logger(__name__)
+
+
+def _get_rate_limit_remaining() -> tuple[int | None, int | None]:
+    """Return (remaining, reset_at) from the cached rate limit info.
+
+    Returns (None, None) when no rate-limit data is available.
+    """
+    rl = _cp.github_projects_service.get_last_rate_limit()
+    if rl is None:
+        return None, None
+    try:
+        remaining = rl.get("remaining")
+        reset_at = rl.get("reset_at")
+        # Ensure values are integers (defensive against mocks / unexpected types)
+        if remaining is not None:
+            remaining = int(remaining)
+        if reset_at is not None:
+            reset_at = int(reset_at)
+        return remaining, reset_at
+    except (TypeError, ValueError):
+        return None, None
+
+
+async def _wait_if_rate_limited(context: str) -> bool:
+    """If rate limit budget is critically low, wait until reset.
+
+    Returns True if the caller should abort, False to proceed.
+    """
+    remaining, reset_at = _get_rate_limit_remaining()
+    if remaining is None:
+        return False
+    if remaining <= RATE_LIMIT_PAUSE_THRESHOLD:
+        now_ts = int(utcnow().timestamp())
+        if reset_at is not None and reset_at <= now_ts:
+            _cp.github_projects_service.clear_last_rate_limit()
+            return False
+        wait = max((reset_at or now_ts) - now_ts, 10)
+        wait = min(wait, 900)
+        logger.warning(
+            "Rate limit critically low before %s (remaining=%d). Waiting %ds until reset.",
+            context,
+            remaining,
+            wait,
+        )
+        await asyncio.sleep(wait)
+        return True
+    return False
 
 
 async def _self_heal_tracking_table(
@@ -488,6 +537,26 @@ async def _process_pipeline_completion(
                 e,
             )
 
+        # All agents done → close any sub-issues that were missed
+        # (e.g. after a server restart where _advance_pipeline was never
+        # called for some completed agents).
+        try:
+            await _close_completed_sub_issues(
+                access_token=access_token,
+                project_id=project_id,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                completed_agents=list(pipeline.completed_agents),
+                pipeline=pipeline,
+            )
+        except Exception as e:
+            logger.warning(
+                "Non-blocking: failed to sweep sub-issues for issue #%d: %s",
+                task.issue_number,
+                e,
+            )
+
         # All agents done → transition to next status
         return await _transition_after_pipeline_complete(
             access_token=access_token,
@@ -619,6 +688,13 @@ async def _process_pipeline_completion(
             # Progress), from_status may reflect the updated board status,
             # but the pipeline's agents belong to the ORIGINAL status.
             effective_assign_status = pipeline.original_status or from_status
+
+            # Check rate limit budget before assignment
+            if await _wait_if_rate_limited(
+                f"first-agent assignment '{current_agent}' on issue #{task.issue_number}"
+            ):
+                return None  # Defer to next polling cycle
+
             assigned = await orchestrator.assign_agent_for_status(
                 ctx, effective_assign_status, agent_index=pipeline.current_agent_index
             )
@@ -1017,6 +1093,23 @@ async def _reconstruct_pipeline_state(
                     existing_pr["number"],
                     h_sha,
                 )
+                # Ensure the PR is linked to the parent issue so it appears
+                # in the Development sidebar on GitHub.
+                try:
+                    await _cp.github_projects_service.link_pull_request_to_issue(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        pr_number=existing_pr["number"],
+                        issue_number=issue_number,
+                    )
+                except Exception as link_err:
+                    logger.debug(
+                        "Non-blocking: could not link PR #%d to issue #%d: %s",
+                        existing_pr["number"],
+                        issue_number,
+                        link_err,
+                    )
                 logger.info(
                     "Reconstructed main branch '%s' (PR #%d) during pipeline "
                     "reconstruction for issue #%d",
@@ -1162,6 +1255,73 @@ async def _reconstruct_pipeline_state(
     return pipeline
 
 
+async def _close_completed_sub_issues(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    completed_agents: list[str],
+    pipeline: "_cp.PipelineState",
+) -> None:
+    """Close sub-issues for all completed agents that are still open.
+
+    This handles retroactive closes after server restarts or when
+    ``_advance_pipeline`` only closed the current agent's sub-issue but
+    earlier agents were missed.
+    """
+    for agent_name in completed_agents:
+        sub_info = None
+        if pipeline.agent_sub_issues:
+            sub_info = pipeline.agent_sub_issues.get(agent_name)
+        if not sub_info:
+            global_subs = _cp.get_issue_sub_issues(issue_number)
+            sub_info = global_subs.get(agent_name)
+        if not sub_info or not sub_info.get("number") or sub_info["number"] == issue_number:
+            continue
+
+        try:
+            await _cp.github_projects_service.update_issue_state(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=sub_info["number"],
+                state="closed",
+                state_reason="completed",
+                labels_add=["done"],
+                labels_remove=["in-progress"],
+            )
+            logger.info(
+                "Closed sub-issue #%d for completed agent '%s' (sweep)",
+                sub_info["number"],
+                agent_name,
+            )
+        except Exception as e:
+            logger.warning(
+                "Failed to close sub-issue #%d for agent '%s' (sweep): %s",
+                sub_info["number"],
+                agent_name,
+                e,
+            )
+
+        # Update the sub-issue's project board Status to "Done"
+        sub_node_id = sub_info.get("node_id", "")
+        if sub_node_id:
+            try:
+                await _cp.github_projects_service.update_sub_issue_project_status(
+                    access_token=access_token,
+                    project_id=project_id,
+                    sub_issue_node_id=sub_node_id,
+                    status_name="Done",
+                )
+            except Exception as e:
+                logger.warning(
+                    "Failed to update sub-issue #%d board status to Done (sweep): %s",
+                    sub_info["number"],
+                    e,
+                )
+
+
 async def _advance_pipeline(
     access_token: str,
     project_id: str,
@@ -1279,6 +1439,22 @@ async def _advance_pipeline(
                     existing_pr["number"],
                     h_sha,
                 )
+                # Ensure the PR is linked to the parent issue
+                try:
+                    await _cp.github_projects_service.link_pull_request_to_issue(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        pr_number=existing_pr["number"],
+                        issue_number=issue_number,
+                    )
+                except Exception as link_err:
+                    logger.debug(
+                        "Non-blocking: could not link PR #%d to issue #%d: %s",
+                        existing_pr["number"],
+                        issue_number,
+                        link_err,
+                    )
                 main_branch_info = _cp.get_issue_main_branch(issue_number)
                 logger.info(
                     "Reconstructed main branch '%s' (PR #%d) in _advance_pipeline for issue #%d",
@@ -1373,55 +1549,18 @@ async def _advance_pipeline(
         new_state="done",
     )
 
-    # Close the completed agent's sub-issue
-    sub_info = None
-    if pipeline.agent_sub_issues:
-        sub_info = pipeline.agent_sub_issues.get(completed_agent)
-    # Fall back to the global sub-issue store (survives pipeline resets)
-    if not sub_info:
-        global_subs = _cp.get_issue_sub_issues(issue_number)
-        sub_info = global_subs.get(completed_agent)
-    if sub_info and sub_info.get("number") and sub_info["number"] != issue_number:
-        try:
-            await _cp.github_projects_service.update_issue_state(
-                access_token=access_token,
-                owner=owner,
-                repo=repo,
-                issue_number=sub_info["number"],
-                state="closed",
-                state_reason="completed",
-                labels_add=["done"],
-                labels_remove=["in-progress"],
-            )
-            logger.info(
-                "Closed sub-issue #%d for completed agent '%s'",
-                sub_info["number"],
-                completed_agent,
-            )
-        except Exception as e:
-            logger.warning(
-                "Failed to close sub-issue #%d for agent '%s': %s",
-                sub_info["number"],
-                completed_agent,
-                e,
-            )
-
-        # Update the sub-issue's project board Status to "Done"
-        try:
-            sub_node_id = sub_info.get("node_id", "")
-            if sub_node_id:
-                await _cp.github_projects_service.update_sub_issue_project_status(
-                    access_token=access_token,
-                    project_id=project_id,
-                    sub_issue_node_id=sub_node_id,
-                    status_name="Done",
-                )
-        except Exception as e:
-            logger.warning(
-                "Failed to update sub-issue #%d board status to Done: %s",
-                sub_info["number"],
-                e,
-            )
+    # Close the completed agent's sub-issue (and sweep any previously
+    # completed agents whose sub-issues may have been missed — e.g. after
+    # a server restart where _advance_pipeline was never called for them).
+    await _close_completed_sub_issues(
+        access_token=access_token,
+        project_id=project_id,
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+        completed_agents=list(pipeline.completed_agents),
+        pipeline=pipeline,
+    )
 
     # After advancing, if the main PR is not a draft, record it in
     # _system_marked_ready_prs.  The first agent (or a previous agent)
@@ -1551,14 +1690,32 @@ async def _advance_pipeline(
     ctx.config = await _cp.get_workflow_config(project_id)
 
     # Group-aware: if the new current group is parallel, assign ALL agents
-    # with 2s stagger for rate limit safety.
+    # with adaptive stagger based on rate limit budget.
     if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
         new_group = pipeline.groups[pipeline.current_group_index]
         if new_group.execution_mode == "parallel" and len(new_group.agents) > 1:
+            # Pre-check rate limit budget before parallel burst
+            if await _wait_if_rate_limited(f"parallel group assignment on issue #{issue_number}"):
+                # Budget critically low — save state and defer to next cycle
+                _cp.set_pipeline_state(issue_number, pipeline)
+                return {
+                    "status": "deferred",
+                    "issue_number": issue_number,
+                    "task_title": task_title,
+                    "action": "rate_limited",
+                    "completed_agent": completed_agent,
+                }
+
+            # Adaptive stagger: 2s normally, 5s when budget is getting low
+            remaining_pre, _ = _get_rate_limit_remaining()
+            stagger_seconds = (
+                5 if remaining_pre is not None and remaining_pre <= RATE_LIMIT_SLOW_THRESHOLD else 2
+            )
+
             success = True
             for i, agent_slug in enumerate(new_group.agents):
                 if i > 0:
-                    await asyncio.sleep(2)  # 2s stagger for rate limit safety
+                    await asyncio.sleep(stagger_seconds)
                 try:
                     agent_flat_idx = pipeline.agents.index(agent_slug)
                 except ValueError:
@@ -1604,6 +1761,17 @@ async def _advance_pipeline(
                 "completed_agent": completed_agent,
                 "pipeline_progress": f"{len(pipeline.completed_agents)}/{len(pipeline.agents)}",
             }
+
+    # Pre-check rate limit budget before single agent assignment
+    if await _wait_if_rate_limited(f"agent assignment '{next_agent}' on issue #{issue_number}"):
+        _cp.set_pipeline_state(issue_number, pipeline)
+        return {
+            "status": "deferred",
+            "issue_number": issue_number,
+            "task_title": task_title,
+            "action": "rate_limited",
+            "completed_agent": completed_agent,
+        }
 
     success = await orchestrator.assign_agent_for_status(
         ctx, agent_lookup_status, agent_index=pipeline.current_agent_index
@@ -1877,6 +2045,22 @@ async def _transition_after_pipeline_complete(
                     existing_pr["number"],
                     head_sha,
                 )
+                # Ensure the PR is linked to the parent issue
+                try:
+                    await _cp.github_projects_service.link_pull_request_to_issue(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        pr_number=existing_pr["number"],
+                        issue_number=issue_number,
+                    )
+                except Exception as link_err:
+                    logger.debug(
+                        "Non-blocking: could not link PR #%d to issue #%d: %s",
+                        existing_pr["number"],
+                        issue_number,
+                        link_err,
+                    )
                 logger.info(
                     "Captured main branch '%s' (PR #%d, SHA: %s) for issue #%d before assigning %s",
                     existing_pr["head_ref"],

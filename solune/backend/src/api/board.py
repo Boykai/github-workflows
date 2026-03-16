@@ -29,6 +29,7 @@ from src.services.cache import (
     get_sub_issues_cache_key,
     get_user_projects_cache_key,
 )
+from src.services.done_items_store import get_done_items
 from src.services.github_projects import github_projects_service
 
 
@@ -291,6 +292,66 @@ async def list_board_projects(
     return BoardProjectListResponse(projects=projects, rate_limit=_get_rate_limit_info())
 
 
+async def _build_done_fallback_board(
+    project_id: str, original_error: Exception
+) -> BoardDataResponse | None:
+    """Build a partial board from DB-cached Done items when the API fails.
+
+    Returns ``None`` when no cached Done items are available, allowing the
+    caller to propagate the original error.  Auth errors are never masked
+    — the user must re-authenticate.
+    """
+    if _is_github_auth_error(original_error):
+        return None
+
+    try:
+        cached = await get_done_items(project_id, item_type="board")
+    except Exception:
+        return None
+
+    if not cached:
+        return None
+
+    from src.models.board import (
+        BoardColumn,
+        BoardDataResponse,
+        BoardItem,
+        BoardProject,
+        StatusColor,
+        StatusField,
+        StatusOption,
+    )
+
+    done_items = [BoardItem.model_validate(d) for d in cached]
+    done_option = StatusOption(option_id="__done__", name="Done", color=StatusColor.PURPLE)
+    done_column = BoardColumn(
+        status=done_option,
+        items=done_items,
+        item_count=len(done_items),
+        estimate_total=sum(it.estimate or 0.0 for it in done_items),
+    )
+
+    fallback_project = BoardProject(
+        project_id=project_id,
+        name="(offline)",
+        url="",
+        owner_login="",
+        status_field=StatusField(field_id="", options=[done_option]),
+    )
+
+    logger.warning(
+        "Returning DB-cached Done column (%d items) as fallback for project %s",
+        len(done_items),
+        project_id,
+    )
+
+    return BoardDataResponse(
+        project=fallback_project,
+        columns=[done_column],
+        rate_limit=_get_rate_limit_info(),
+    )
+
+
 @router.get("/projects/{project_id}", response_model=BoardDataResponse)
 async def get_board_data(
     project_id: str,
@@ -331,6 +392,12 @@ async def get_board_data(
         logger.warning("Project not found: %s - %s", project_id, e)
         raise NotFoundError("Project not found") from e
     except Exception as e:
+        # On API failure, try serving DB-cached Done items as partial board
+        db_fallback = await _build_done_fallback_board(project_id, e)
+        if db_fallback is not None:
+            logger.info("Serving DB-cached Done items as fallback for project %s", project_id)
+            return db_fallback
+
         if _is_github_rate_limit_error(e):
             logger.warning(
                 "Rate limit exceeded while fetching board data for project %s", project_id

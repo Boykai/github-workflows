@@ -59,6 +59,7 @@ class AppCreate(BaseModel):
     pipeline_id: str | None = None
     repo_type: RepoType = RepoType.SAME_REPO
     external_repo_url: str | None = None
+    ai_enhance: bool = True
 
 
 class AppUpdate(BaseModel):

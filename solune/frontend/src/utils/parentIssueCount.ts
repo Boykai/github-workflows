@@ -7,6 +7,10 @@ function isChoreIssue(item: BoardItem): boolean {
   return item.labels.some((label) => label.name.trim().toLowerCase() === 'chore');
 }
 
+function isSubIssueByLabel(item: BoardItem): boolean {
+  return item.labels.some((label) => label.name === 'sub-issue');
+}
+
 export function countParentIssues(boardData: BoardDataResponse | null | undefined): number {
   if (!boardData?.columns) return 0;
 
@@ -29,6 +33,7 @@ export function countParentIssues(boardData: BoardDataResponse | null | undefine
       seenItemIds.add(item.item_id);
 
       if (item.number != null && subIssueNumbers.has(item.number)) continue;
+      if (isSubIssueByLabel(item)) continue;
       if (isChoreIssue(item)) continue;
 
       count += 1;

@@ -24,6 +24,7 @@ from src.services.cache import (
     get_project_items_cache_key,
     get_user_projects_cache_key,
 )
+from src.services.done_items_store import get_done_items
 from src.services.github_auth import github_auth_service
 from src.services.github_projects import github_projects_service
 from src.services.websocket import connection_manager
@@ -184,7 +185,22 @@ async def get_project_tasks(
         logger.info("Fetching tasks for project %s", project_id)
         return await github_projects_service.get_project_items(session.access_token, project_id)
 
-    tasks = await cached_fetch(cache, cache_key, _fetch, refresh=refresh)
+    try:
+        tasks = await cached_fetch(cache, cache_key, _fetch, refresh=refresh)
+    except Exception:
+        # On API failure, try returning DB-cached Done tasks as partial result
+        cached_done = await get_done_items(project_id, item_type="task")
+        if cached_done:
+            from src.models.task import Task
+
+            logger.warning(
+                "Returning %d DB-cached Done tasks as fallback for project %s",
+                len(cached_done),
+                project_id,
+            )
+            return TaskListResponse(tasks=[Task.model_validate(d) for d in cached_done])
+        raise
+
     return TaskListResponse(tasks=tasks)
 
 

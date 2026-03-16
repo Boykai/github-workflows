@@ -145,6 +145,10 @@ function saveControls(projectId: string | null, state: BoardControlsState) {
 
 const PRIORITY_ORDER: Record<string, number> = { P0: 0, P1: 1, P2: 2, P3: 3 };
 
+function isSubIssueByLabel(item: BoardItem): boolean {
+  return item.labels.some((label) => label.name === 'sub-issue');
+}
+
 function getParentIssueColumns(boardData: BoardDataResponse): BoardColumn[] {
   const subIssueNumbers = new Set<number>();
 
@@ -160,7 +164,9 @@ function getParentIssueColumns(boardData: BoardDataResponse): BoardColumn[] {
     ...column,
     items: column.items.filter(
       (item) =>
-        item.content_type === 'issue' && (item.number == null || !subIssueNumbers.has(item.number))
+        item.content_type === 'issue' &&
+        (item.number == null || !subIssueNumbers.has(item.number)) &&
+        !isSubIssueByLabel(item)
     ),
   }));
 }
