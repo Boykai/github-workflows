@@ -22,6 +22,7 @@ The top-level artefact: a Markdown file in `.github/ISSUE_TEMPLATE/` that GitHub
 | `body` | Markdown | Everything after YAML front matter | The issue body containing checklist, guide, files, and verification sections |
 
 **Validation Rules**:
+
 - `name` must be non-empty and unique among templates in `.github/ISSUE_TEMPLATE/`.
 - `title` must follow the format `[CHORE] <template name>` per FR-010.
 - `labels` must include `chore` per FR-009.
@@ -40,11 +41,13 @@ One of the ten thematic sections grouping related checklist items.
 | `items` | List[ChecklistItem] | Minimum 4 per SC-003 | Ordered list of audit items within this category |
 
 **Validation Rules**:
+
 - Exactly 10 categories must exist per FR-002.
 - Each category must contain at least 4 items per SC-003.
 - Total items across all categories must be ≥59 per FR-012.
 
 **Categories (fixed set)**:
+
 1. Component Architecture & Modularity (7 items)
 2. Data Fetching & State Management (6 items)
 3. Loading, Error & Empty States (5 items)
@@ -69,6 +72,7 @@ A single, actionable audit criterion formatted as a GitHub checkbox.
 | `checked` | Boolean | Default: `false` | Whether the item has been completed (rendered as `- [ ]` or `- [x]`) |
 
 **Validation Rules**:
+
 - Each item must describe exactly one pass/fail condition per FR-004.
 - Language must be clear and unambiguous per FR-011.
 - No item should require external documentation to understand per SC-004.
@@ -86,11 +90,13 @@ One of six sequential phases in the implementation guide section.
 | `steps` | List[String] | Ordered, numbered | Specific actions to perform in this phase |
 
 **Validation Rules**:
+
 - Exactly 6 phases must exist per FR-006.
 - Each phase depends only on preceding phases (no circular dependencies) per US3-AC4.
 - Steps within a phase are numbered sequentially.
 
 **Phases (fixed set)**:
+
 1. Discovery & Assessment (9 steps)
 2. Structural Fixes (4 steps)
 3. States & Error Handling (4 steps)
@@ -110,6 +116,7 @@ A reference section with placeholder paths mapping to the repository's frontend 
 | `paths` | List[String] | Uses `[PageName]` and `[feature]` placeholders | File or directory paths |
 
 **Validation Rules**:
+
 - Paths must be valid when placeholders are replaced with actual page/feature names per FR-007.
 - Shared component paths must reference actual shared UI primitives (Button, Card, Input, Tooltip, ConfirmationDialog) and common components (CelestialLoader, ErrorBoundary) per US4-AC2.
 
@@ -126,6 +133,7 @@ Commands and manual checks listed at the end of the template for post-remediatio
 | `expected_result` | String | Implicit in description | What constitutes a pass (e.g., "0 warnings", "all tests pass") |
 
 **Validation Rules**:
+
 - Must include lint, type-check, test, and manual browser checks per FR-008.
 - Each command must produce a clear pass/fail result per SC-006.
 

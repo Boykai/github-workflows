@@ -6,7 +6,7 @@ labels: chore
 assignees: ''
 ---
 
-# Plan: [PAGE_NAME] Page Audit
+## Plan: [PAGE_NAME] Page Audit
 
 ## TL;DR
 
@@ -124,60 +124,65 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 
 ### Phase 2: Structural Fixes (if needed)
 
-10. **Extract oversized page into sub-components** — Move self-contained sections into `src/components/[feature]/[SectionName].tsx`
-11. **Extract complex state into hooks** — Move >15-line state blocks into `src/hooks/use[Feature].ts`
-12. **Replace raw fetches with React Query** — If any `useEffect` + `fetch` patterns exist
-13. **Add missing types** — Eliminate `any`, add explicit return types to hooks
+1. **Extract oversized page into sub-components** — Move self-contained sections into `src/components/[feature]/[SectionName].tsx`
+2. **Extract complex state into hooks** — Move >15-line state blocks into `src/hooks/use[Feature].ts`
+3. **Replace raw fetches with React Query** — If any `useEffect` + `fetch` patterns exist
+4. **Add missing types** — Eliminate `any`, add explicit return types to hooks
 
 ### Phase 3: States & Error Handling
 
-14. **Add/fix loading state** — `<CelestialLoader>` or skeleton
-15. **Add/fix error state** — User-friendly message + retry button + rate limit detection
-16. **Add/fix empty state** — Meaningful empty state with call-to-action
-17. **Add confirmation dialogs** — For all destructive actions missing them
+1. **Add/fix loading state** — `<CelestialLoader>` or skeleton
+2. **Add/fix error state** — User-friendly message + retry button + rate limit detection
+3. **Add/fix empty state** — Meaningful empty state with call-to-action
+4. **Add confirmation dialogs** — For all destructive actions missing them
 
 ### Phase 4: a11y & UX Polish
 
-18. **Add missing ARIA attributes** — roles, labels, expanded states
-19. **Fix keyboard navigation** — Tab order, Enter/Space activation, focus trapping in modals
-20. **Fix text/copy issues** — Consistent terminology, verb-based buttons, user-friendly errors
-21. **Add tooltips for truncated text** — Long names, descriptions, URLs
-22. **Verify dark mode** — All elements visible and contrasted
+1. **Add missing ARIA attributes** — roles, labels, expanded states
+2. **Fix keyboard navigation** — Tab order, Enter/Space activation, focus trapping in modals
+3. **Fix text/copy issues** — Consistent terminology, verb-based buttons, user-friendly errors
+4. **Add tooltips for truncated text** — Long names, descriptions, URLs
+5. **Verify dark mode** — All elements visible and contrasted
 
 ### Phase 5: Testing
 
-23. **Write/update hook tests** — Cover happy path, error, loading, empty states
-24. **Write/update component tests** — Cover user interactions, form submissions, dialog confirmations
-25. **Verify all edge cases** — null data, rate limit errors, long strings, rapid clicks
+1. **Write/update hook tests** — Cover happy path, error, loading, empty states
+2. **Write/update component tests** — Cover user interactions, form submissions, dialog confirmations
+3. **Verify all edge cases** — null data, rate limit errors, long strings, rapid clicks
 
 ### Phase 6: Validation
 
-26. **`npx eslint src/pages/[PageName].tsx src/components/[feature]/`** — 0 warnings
-27. **`npx tsc --noEmit`** — 0 type errors
-28. **`npx vitest run`** — all tests pass
-29. **Manual browser check** — light mode, dark mode, responsive, keyboard-only navigation
+1. **`npx eslint src/pages/[PageName].tsx src/components/[feature]/`** — 0 warnings
+2. **`npx tsc --noEmit`** — 0 type errors
+3. **`npx vitest run`** — all tests pass
+4. **Manual browser check** — light mode, dark mode, responsive, keyboard-only navigation
 
 ---
 
 ## Relevant Files (fill per page)
 
 ### Page & Components
+
 - `solune/frontend/src/pages/[PageName].tsx` — The page
 - `solune/frontend/src/components/[feature]/` — Feature components
 
 ### Hooks & API
+
 - `solune/frontend/src/hooks/use[Feature].ts` — Data fetching / state hooks
 - `solune/frontend/src/services/api.ts` — API call definitions (relevant group)
 
 ### Types
+
 - `solune/frontend/src/types/index.ts` or `src/types/[feature].ts` — Type definitions
 
 ### Shared (reference, use as-is)
+
 - `solune/frontend/src/components/ui/` — Button, Card, Input, Tooltip, ConfirmationDialog
 - `solune/frontend/src/components/common/` — CelestialLoader, ErrorBoundary, ProjectSelectionEmptyState
 - `solune/frontend/src/lib/utils.ts` — `cn()` helper
 
 ### Tests
+
 - `solune/frontend/src/hooks/use[Feature].test.ts`
 - `solune/frontend/src/components/[feature]/*.test.tsx`
 
