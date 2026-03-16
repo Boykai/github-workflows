@@ -21,8 +21,8 @@ The primary entity representing a configured AI agent in the system.
 | system_prompt | string \| null | ❌ | System prompt configuration |
 | model_id | string \| null | ❌ | Assigned AI model identifier |
 | model_name | string \| null | ❌ | Display name of the assigned model |
-| status | AgentStatus | ✅ | Current lifecycle status |
-| source | AgentSource | ✅ | Where the agent config originates |
+| status | `'active' \| 'pending_pr' \| 'pending_deletion'` | ✅ | Current lifecycle status |
+| source | `'local' \| 'repo' \| 'both'` | ✅ | Where the agent config originates |
 | icon_name | string \| null | ❌ | Celestial icon identifier |
 | avatar_url | string \| null | ❌ | Custom avatar image URL |
 | tools | AgentTool[] | ✅ | Assigned tools (may be empty array) |
@@ -67,7 +67,7 @@ An agent template from the workflow API registry.
 | default_model_id | string \| null | ❌ | Default model |
 | default_model_name | string \| null | ❌ | Default model display name |
 | tools_count | number \| null | ❌ | Number of available tools |
-| source | AgentSource | ✅ | `'builtin' | 'repository'` |
+| source | `'builtin' \| 'repository'` | ✅ | Agent source classification |
 
 ### AgentTool
 
