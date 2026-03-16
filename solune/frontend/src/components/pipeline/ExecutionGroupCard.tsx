@@ -117,8 +117,8 @@ export function ExecutionGroupCard({
       className={cn(
         'rounded-xl border p-2 transition-colors',
         isParallel
-          ? 'border-primary/25 bg-primary/[0.07]'
-          : 'border-border/50 bg-background/18',
+          ? 'border-primary/25 bg-primary/[0.07] dark:border-primary/35 dark:bg-primary/[0.12]'
+          : 'border-border/50 bg-background/18 dark:border-border/70 dark:bg-background/32',
       )}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
@@ -200,7 +200,7 @@ export function ExecutionGroupCard({
               ))}
             </div>
           ) : (
-            <p className="rounded-lg border border-dashed border-border/60 bg-background/20 px-3 py-2 text-[11px] text-muted-foreground">
+            <p className="rounded-lg border border-dashed border-border/60 bg-background/20 px-3 py-2 text-[11px] text-muted-foreground dark:border-border/75 dark:bg-background/34">
               Drop agents here or use the Add Agent button.
             </p>
           )}
@@ -212,7 +212,7 @@ export function ExecutionGroupCard({
         <button
           type="button"
           onClick={onAddAgent}
-          className="mt-1 flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border/40 py-1 text-[10px] text-muted-foreground/70 transition-colors hover:border-primary/30 hover:text-primary"
+          className="mt-1 flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border/40 py-1 text-[10px] text-muted-foreground/70 transition-colors hover:border-primary/30 hover:text-primary dark:border-border/65 dark:bg-background/24"
         >
           <Plus className="h-2.5 w-2.5" />
           Add Agent

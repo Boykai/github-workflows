@@ -93,8 +93,9 @@ export function AgentCard({
   return (
     <Card
       className={cn(
-        'celestial-panel celestial-fade-in group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90',
-        isSpotlight && 'border-primary/20 bg-background/62'
+        'celestial-panel celestial-fade-in group relative h-full overflow-hidden rounded-[1.55rem] border-border/80 bg-card/90 dark:border-border/90 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.94)_0%,hsl(var(--panel)/0.9)_100%)]',
+        isSpotlight &&
+          'border-primary/20 bg-background/62 dark:border-primary/30 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.9)_0%,hsl(var(--panel)/0.86)_100%)]'
       )}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,_hsl(var(--glow)/0.22),_transparent_72%)] opacity-90" />
@@ -180,7 +181,7 @@ export function AgentCard({
           </div>
         )}
 
-        <div className="moonwell grid gap-3 rounded-[1.3rem] p-3 sm:grid-cols-2">
+        <div className="moonwell grid gap-3 rounded-[1.3rem] border border-border/50 p-3 dark:border-border/70 sm:grid-cols-2">
           <div>
             <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">Created</p>
             <p className="mt-1 text-sm text-foreground">{createdLabel}</p>

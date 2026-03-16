@@ -568,6 +568,14 @@
     backdrop-filter: blur(10px);
   }
 
+  .dark .moonwell {
+    background:
+      radial-gradient(circle at 18% 0%, hsl(var(--glow) / 0.1), transparent 38%),
+      radial-gradient(circle at 82% 18%, hsl(var(--gold) / 0.07), transparent 24%),
+      linear-gradient(180deg, hsl(var(--night) / 0.8) 0%, hsl(var(--panel) / 0.74) 100%);
+    box-shadow: inset 0 1px 0 hsl(var(--star-soft) / 0.08);
+  }
+
   /* Light theme: clean white surfaces with subtle golden accents */
   .pipeline-column-surface {
     position: relative;
@@ -750,12 +758,13 @@
       radial-gradient(circle at 52% 50%, hsl(var(--accent) / 0.05), transparent 52%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 62%, hsl(var(--night)) 18%) 0%,
-        hsl(var(--night) / 0.78) 100%
+        color-mix(in srgb, hsl(var(--panel)) 72%, hsl(var(--night)) 12%) 0%,
+        hsl(var(--night) / 0.88) 100%
       );
     box-shadow:
-      inset 0 1px 0 hsl(var(--glow) / 0.14),
-      0 18px 36px hsl(var(--night) / 0.36);
+      inset 0 1px 0 hsl(var(--glow) / 0.16),
+      inset 0 0 0 1px hsl(var(--border) / 0.2),
+      0 18px 36px hsl(var(--night) / 0.4);
   }
 
   .dark .pipeline-stage-card {
@@ -865,10 +874,11 @@
   }
 
   .dark .pipeline-agent-node {
-    background: linear-gradient(180deg, hsl(var(--night) / 0.94) 0%, hsl(var(--panel) / 0.92) 100%);
+    background: linear-gradient(180deg, hsl(var(--night) / 0.98) 0%, hsl(var(--panel) / 0.96) 100%);
     box-shadow:
-      inset 0 1px 0 hsl(var(--star-soft) / 0.12),
-      0 8px 18px hsl(var(--night) / 0.28);
+      inset 0 1px 0 hsl(var(--star-soft) / 0.14),
+      inset 0 0 0 1px hsl(var(--border) / 0.16),
+      0 8px 18px hsl(var(--night) / 0.32);
   }
 
   .dark .pipeline-agent-node::before {
@@ -881,7 +891,7 @@
   }
 
   .dark .pipeline-stage-add {
-    background: linear-gradient(180deg, hsl(var(--night) / 0.56) 0%, hsl(var(--panel) / 0.52) 100%);
+    background: linear-gradient(180deg, hsl(var(--night) / 0.68) 0%, hsl(var(--panel) / 0.62) 100%);
   }
 
   .dark .pipeline-stage-add::before {
