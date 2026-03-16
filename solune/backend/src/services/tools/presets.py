@@ -155,6 +155,7 @@ _PRESETS: tuple[McpPresetResponse, ...] = (
                 }
             }
         ),
+        required_secrets=["COPILOT_MCP_CONTEXT7_API_KEY"],
     ),
     McpPresetResponse(
         id="codegraphcontext",

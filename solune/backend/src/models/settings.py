@@ -120,6 +120,7 @@ class GlobalSettingsResponse(BaseModel):
     workflow: WorkflowDefaults
     notifications: NotificationPreferences
     allowed_models: list[str] = Field(default_factory=list)
+    admin_github_user_id: str | None = None
 
 
 class ProjectBoardConfig(BaseModel):

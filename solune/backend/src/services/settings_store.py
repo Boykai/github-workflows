@@ -371,6 +371,7 @@ def _row_to_global_response(row: aiosqlite.Row) -> GlobalSettingsResponse:
             chat_mention=bool(row["notify_chat_mention"]),
         ),
         allowed_models=allowed_models,
+        admin_github_user_id=str(row["admin_github_user_id"]) if row["admin_github_user_id"] else None,
     )
 
 

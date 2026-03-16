@@ -14,6 +14,7 @@ from src.api.mcp import router as mcp_router
 from src.api.metadata import router as metadata_router
 from src.api.pipelines import router as pipelines_router
 from src.api.projects import router as projects_router
+from src.api.secrets import router as secrets_router
 from src.api.settings import router as settings_router
 from src.api.signal import router as signal_router
 from src.api.tasks import router as tasks_router
@@ -32,6 +33,7 @@ router.include_router(chores_router, prefix="/chores", tags=["chores"])
 router.include_router(agents_router, prefix="/agents", tags=["agents"])
 router.include_router(workflow_router, tags=["workflow"])
 router.include_router(settings_router, prefix="/settings", tags=["settings"])
+router.include_router(secrets_router, prefix="/secrets", tags=["secrets"])
 router.include_router(mcp_router, prefix="/settings", tags=["mcp"])
 router.include_router(signal_router, prefix="/signal", tags=["signal"])
 router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
