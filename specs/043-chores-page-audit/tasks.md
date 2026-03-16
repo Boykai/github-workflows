@@ -11,6 +11,7 @@
 
 - **[P]**: Can run in parallel (different files, no dependencies)
 - **[Story]**: Which user story this task belongs to (e.g., US1, US2, US3)
+- **No Story label**: Setup (Phase 1), Foundational (Phase 2), and Polish (Phase 11) tasks are cross-cutting and intentionally unlabeled
 - Include exact file paths in descriptions
 
 ## Path Conventions
@@ -51,6 +52,7 @@
 - [ ] T012 [P] Read and assess Chore types in `solune/frontend/src/types/index.ts` (lines 882–1023) — note any `any` types, type assertions (`as`), missing nullable fields, and alignment with data-model.md entities
 - [ ] T013 [P] Read and assess choresApi in `solune/frontend/src/services/api.ts` (lines 654–783) — note 10 endpoints, request/response types, and error handling patterns
 - [ ] T014 [P] Read and assess existing test files in `solune/frontend/src/components/chores/__tests__/` — `AddChoreModal.test.tsx` (255 lines), `ChoreScheduleConfig.test.tsx` (188 lines), `ChoresPanel.test.tsx` (242 lines), `FeaturedRitualsPanel.test.tsx` (72 lines) — note coverage gaps per spec edge cases
+- [ ] T098 [P] Read and assess `CelestialCatalogHero` usage in `solune/frontend/src/pages/ChoresPage.tsx` — note props passed (eyebrow, title, description, stats, actions), accessibility attributes (heading hierarchy, ARIA on stat/action elements), and responsive behavior of the hero section
 - [ ] T015 Produce a findings table scoring each of the 10 audit checklist categories (Component Architecture, Data Fetching, Loading/Error/Empty States, Type Safety, Accessibility, Text/Copy/UX, Styling/Layout, Performance, Test Coverage, Code Hygiene) as Pass/Fail/N/A with specific file references for all failures
 
 **Checkpoint**: Assessment complete — all audit findings documented. User story implementation can now begin in priority order.
@@ -73,8 +75,10 @@
 - [ ] T021 [US1] Audit and fix partial loading in `solune/frontend/src/pages/ChoresPage.tsx` — verify independent sections (chores list, templates, board data) show their own loading/error states without blocking other sections
 - [ ] T022 [US1] Audit and verify `<ErrorBoundary>` wraps the Chores page at route level in `solune/frontend/src/App.tsx` or within `ChoresPage.tsx`
 - [ ] T023 [US1] Verify zero console errors across all page states — check for unhandled promise rejections, missing-key warnings, and deprecation warnings in all states
+- [ ] T099 [US1] Audit and fix deleted-pipeline fallback in ChoreCard components — verify graceful display (e.g., "Auto" or "pipeline not found" warning) when a chore's `agent_pipeline_id` references a deleted pipeline, rather than crash or blank
+- [ ] T100 [US1] Audit and fix real-time sync connection drop handling in `solune/frontend/src/pages/ChoresPage.tsx` — verify stale-data indication and manual refresh option when the sync connection is lost, without page crash
 
-**Checkpoint**: All 6 page states (loading, no-project, empty, populated, error, rate-limited) render correctly with appropriate messaging.
+**Checkpoint**: All 6 page states (loading, no-project, empty, populated, error, rate-limited) render correctly with appropriate messaging. Edge cases (deleted pipeline, sync drop) handled gracefully.
 
 ---
 
@@ -136,8 +140,9 @@
 - [ ] T049 [US3] Audit and fix focus-visible styles across all interactive elements in `solune/frontend/src/components/chores/*.tsx` — ensure `celestial-focus` class or Tailwind `focus-visible:ring-*` classes are present
 - [ ] T050 [US3] Audit and fix screen reader text across all chores components — ensure decorative icons have `aria-hidden="true"` and meaningful icons have `aria-label`
 - [ ] T051 [US3] Audit and fix color contrast for status badges, muted text, and schedule indicators — verify WCAG AA 4.5:1 ratio for normal text, 3:1 for large text/UI components; ensure status communicated via icon + text, not color alone
+- [ ] T101 [US3] Audit and fix accessibility of `CelestialCatalogHero` as used in `solune/frontend/src/pages/ChoresPage.tsx` — verify semantic heading hierarchy, ARIA attributes on stats/action elements, and keyboard accessibility of hero action buttons
 
-**Checkpoint**: All interactive elements keyboard-accessible, modals trap focus, ARIA attributes complete, contrast ratios met, screen reader compatible.
+**Checkpoint**: All interactive elements keyboard-accessible, modals trap focus, ARIA attributes complete, contrast ratios met, screen reader compatible, hero section accessible.
 
 ---
 
@@ -157,8 +162,10 @@
 - [ ] T057 [US4] Audit and fix error message format — verify all `onError` handlers in `solune/frontend/src/hooks/useChores.ts` produce messages following "Could not [action]. [Reason, if known]. [Suggested next step]." format with no raw error codes or stack traces
 - [ ] T058 [P] [US4] Audit and fix long text truncation — verify chore names, template paths, and descriptions in ChoreCard and AddChoreModal use `text-ellipsis` with full text in `<Tooltip>` from `solune/frontend/src/components/ui/tooltip.tsx`
 - [ ] T059 [P] [US4] Audit and fix timestamp formatting — verify `last_triggered_at` and `next_checkpoint` in ChoreCardStats use relative time ("2 hours ago") for recent times and absolute format for older times via `solune/frontend/src/utils/formatTime.ts`
+- [ ] T102 [US4] Audit and fix session-expiry behavior during inline editing — verify that unsaved edits in `ChoreInlineEditor` are preserved when the user's session expires, and a re-authentication prompt appears without losing the user's work
+- [ ] T103 [US4] Audit and fix network error handling in `solune/frontend/src/components/chores/ChoreChatFlow.tsx` — verify that a network error mid-conversation displays an error message with retry option and preserves conversation context
 
-**Checkpoint**: All text is final copy, terminology consistent, destructive actions confirmed, mutations provide feedback, error messages are user-friendly.
+**Checkpoint**: All text is final copy, terminology consistent, destructive actions confirmed, mutations provide feedback, error messages are user-friendly, session-expiry and chat-flow errors handled gracefully.
 
 ---
 
@@ -178,8 +185,12 @@
 - [ ] T065 [US5] Audit and fix dark mode compliance across all chores components — verify no hardcoded colors (`#fff`, `bg-white`, `text-black`), all use Tailwind `dark:` variants or CSS variables from `solune/frontend/src/index.css`
 - [ ] T066 [US5] Audit and fix Tailwind utility compliance across all chores components — verify no inline `style={}` attributes, all conditional classes use `cn()` from `solune/frontend/src/lib/utils.ts`, spacing uses Tailwind scale (no arbitrary `p-[13px]` values)
 - [ ] T067 [US5] Audit and fix card consistency in ChoreCard — verify uses `<Card>` from `solune/frontend/src/components/ui/card.tsx` with consistent padding/rounding matching other pages
+- [ ] T104 [US5] Audit and verify page legibility at 320px viewport width — verify no critical elements are cut off or overlapping and the page remains usable at extreme narrow widths
+- [ ] T105 [US5] Audit and fix touch targets across all interactive elements (search input, sort controls, filter buttons, modal controls, inline editor buttons) — verify all meet minimum 44×44px size on touch-capable screens per FR-009, not just ChoreCardActions
+- [ ] T106 [US5] Audit and verify hover states on all interactive elements in chores components — verify buttons, cards, toggles, and links show visual hover feedback using Tailwind `hover:` variants consistent with other pages per FR-004
+- [ ] T107 [P] [US5] Audit and fix responsive behavior of `CelestialCatalogHero` in `solune/frontend/src/pages/ChoresPage.tsx` — verify hero stats and action buttons adapt correctly across desktop/tablet/mobile breakpoints
 
-**Checkpoint**: Layout adapts at all breakpoints, dark mode renders correctly, all styles use Tailwind utilities and design tokens.
+**Checkpoint**: Layout adapts at all breakpoints including 320px, dark mode renders correctly, all styles use Tailwind utilities and design tokens, all touch targets meet 44×44px minimum, hover states present on all interactive elements.
 
 ---
 
@@ -226,7 +237,7 @@
 
 ### Edge Case Tests
 
-- [ ] T084 [US7] Write edge case tests in `solune/frontend/src/components/chores/__tests__/ChoreEdgeCases.test.tsx` — cover rate-limit error rendering, 200-character chore name truncation with tooltip, null `last_triggered_at` / `next_checkpoint` handling, rapid trigger button clicks, and partial save-all failure indication
+- [ ] T084 [US7] Write edge case tests in `solune/frontend/src/components/chores/__tests__/ChoreEdgeCases.test.tsx` — cover rate-limit error rendering, 200-character chore name truncation with tooltip, null `last_triggered_at` / `next_checkpoint` handling, rapid trigger button clicks, partial save-all failure indication, deleted-pipeline fallback display, session-expiry edit preservation, ChoreChatFlow network error mid-conversation, and 320px viewport rendering
 - [ ] T085 [US7] Verify all test patterns follow codebase conventions — uses `vi.mock('@/services/api', ...)`, `renderHook`, `waitFor`, `createWrapper()`, assertion-based tests (no snapshot tests)
 
 **Checkpoint**: All hooks tested, key components tested, edge cases covered, zero snapshot tests, all tests pass.
@@ -301,13 +312,13 @@
 
 ### Parallel Opportunities
 
-- Phase 2: T007–T014 can all run in parallel (independent file reads)
+- Phase 2: T007–T014, T098 can all run in parallel (independent file reads)
 - US2 ChoresPanel decomposition: T025, T026 can run in parallel (different new files)
 - US2 ChoreCard decomposition: T029, T030, T031 can run in parallel (different new files)
 - US2 Type safety: T036, T037, T038, T039 can all run in parallel (different audit scopes)
 - US3 Accessibility: T042, T043, T044, T045, T046, T047 can all run in parallel (different components)
 - US4 Text/Copy: T053, T054, T058, T059 can run in parallel (different audit scopes)
-- US5 Responsive: T061, T062, T063, T064 can run in parallel (different components)
+- US5 Responsive: T061, T062, T063, T064, T107 can run in parallel (different components)
 - US6 Data Fetching: T069, T070, T073, T074 can run in parallel (different audit scopes)
 - US7 Tests: T078, T079, T081, T082, T083 can run in parallel (different test files)
 - US8 Code Hygiene: T087, T088, T089 can run in parallel (different cleanup scopes)
@@ -388,3 +399,5 @@ With multiple developers:
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
 - Avoid: vague tasks, same-file conflicts, unnecessary cross-story dependencies. Structural dependencies (e.g., US3–US5 depend on US2 decomposition, US7 tests target final code) are documented in the Dependencies section above
+- **Total tasks**: 107 (T001–T097 + T098–T107)
+- **Analysis remediation**: Tasks T098–T107 address coverage gaps F2–F7 and F16 identified in `analysis-report.md`. Path prefix drift (F1) is consistent at `solune/frontend/src/` throughout tasks.md. Component list mismatch (F15) is covered by T010 (assesses ChoreInlineEditor, PipelineSelector) and T098 (assesses CelestialCatalogHero)
