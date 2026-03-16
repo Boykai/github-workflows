@@ -12,6 +12,7 @@ import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 import { ChoresPanel } from '../ChoresPanel';
 import type { Chore } from '@/types';
 import type { ReactNode } from 'react';
+import { ApiError } from '@/services/api';
 
 // ── Mock API ──
 
@@ -155,6 +156,27 @@ describe('ChoresPanel', () => {
     });
   });
 
+  it('shows rate-limit recovery copy and retries the chores query', async () => {
+    const user = userEvent.setup();
+    mockList
+      .mockRejectedValueOnce(new ApiError(429, { error: 'Too many requests' }))
+      .mockResolvedValueOnce([]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('Rate limit reached')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Too many requests. Please wait a moment and try again.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(mockList).toHaveBeenCalledTimes(2);
+      expect(screen.getByText('No chores yet')).toBeInTheDocument();
+    });
+  });
+
   it('displays the Chores header', async () => {
     mockList.mockResolvedValue([]);
 
@@ -190,6 +212,58 @@ describe('ChoresPanel', () => {
       buttons.forEach((button) => {
         expect(button).toHaveTextContent('Paused');
       });
+    });
+  });
+
+  it('prefills the add chore modal when a spotlight template is selected', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([]);
+    mockListTemplates.mockResolvedValue([
+      {
+        name: 'Quarterly Cleanup',
+        path: '.github/ISSUE_TEMPLATE/quarterly-cleanup.md',
+        content: '## Quarterly Cleanup\n\n- Review stale issues',
+        about: 'Review recurring cleanup work',
+      },
+    ]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole('button', { name: /quarterly cleanup/i }));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('Name')).toHaveValue('Quarterly Cleanup');
+      expect(screen.getByLabelText('Template Content')).toHaveValue(
+        '## Quarterly Cleanup\n\n- Review stale issues'
+      );
+    });
+  });
+
+  it('restores the chores catalog after resetting empty filter results', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([
+      createChore({ id: 'c1', name: 'Bug Bash' }),
+      createChore({ id: 'c2', name: 'Dependency Update' }),
+    ]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    const searchInput = await screen.findByRole('textbox', {
+      name: 'Search chores by name or template path',
+    });
+
+    await user.type(searchInput, 'zzz-no-match');
+
+    await waitFor(() => {
+      expect(screen.getByText('No chores match the current filters.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+    await waitFor(() => {
+      expect(searchInput).toHaveValue('');
+      expect(screen.getAllByText('Bug Bash').length).toBeGreaterThan(0);
+      expect(screen.getAllByText('Dependency Update').length).toBeGreaterThan(0);
     });
   });
 
