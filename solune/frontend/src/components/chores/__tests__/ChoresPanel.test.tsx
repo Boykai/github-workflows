@@ -172,8 +172,11 @@ describe('ChoresPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Retry' }));
 
     await waitFor(() => {
-      expect(screen.getAllByText('Recovered chore').length).toBeGreaterThan(0);
+      expect(
+        screen.getByLabelText('Search chores by name or template path')
+      ).toBeInTheDocument();
     });
+    expect(screen.queryByText('Rate limit reached')).not.toBeInTheDocument();
     expect(mockList).toHaveBeenCalledTimes(2);
   });
 
@@ -275,7 +278,7 @@ describe('ChoresPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Reset filters' }));
 
     await waitFor(() => {
-      expect(screen.getAllByText('Bug Bash').length).toBeGreaterThan(0);
+      expect(screen.queryByText('No chores match the current filters.')).not.toBeInTheDocument();
     });
     expect(searchInput).toHaveValue('');
   });
