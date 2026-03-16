@@ -155,6 +155,32 @@ describe('ChoresPanel', () => {
     });
   });
 
+  it('surfaces rate limit errors with retry copy and refetches on retry', async () => {
+    const user = userEvent.setup();
+    const { ApiError } = await import('@/services/api');
+    mockList
+      .mockRejectedValueOnce(new ApiError(429, { error: 'Too many requests' }))
+      .mockResolvedValueOnce([]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('Rate limit reached')).toBeInTheDocument();
+    });
+
+    expect(
+      screen.getByText('Too many requests. Please wait a moment and try again.')
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('No chores yet')).toBeInTheDocument();
+    });
+
+    expect(mockList).toHaveBeenCalledTimes(2);
+  });
+
   it('displays the Chores header', async () => {
     mockList.mockResolvedValue([]);
 
