@@ -121,7 +121,7 @@ describe('McpPresetsGallery', () => {
       />
     );
 
-    await user.click(screen.getByRole('button', { name: 'Use preset' }));
+    await user.click(screen.getByRole('button', { name: 'Use GitHub MCP Server preset' }));
 
     expect(onSelectPreset).toHaveBeenCalledWith(
       expect.objectContaining({ id: 'github-readonly', name: 'GitHub MCP Server' })
