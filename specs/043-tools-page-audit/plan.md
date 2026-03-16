@@ -66,22 +66,22 @@ Comprehensive audit of the Tools page to bring it to modern best practices acros
 | File | Lines | Purpose | Issues Found |
 |------|-------|---------|-------------|
 | `ToolsPage.tsx` | 84 | Top-level page with project selection | ✅ Clean — under 250 lines, delegates to sub-components |
-| `ToolsPanel.tsx` | 399 | Main container for all tool operations | ⚠️ Inline delete confirmation (not using ConfirmationDialog); silent catch blocks; search input has aria-label but buttons lack labels |
-| `ToolCard.tsx` | 122 | Individual tool display with actions | ✅ Good ARIA labels on all buttons; sync error display present |
-| `RepoConfigPanel.tsx` | 154 | Repository MCP config display | ⚠️ Loading state is plain text (not CelestialLoader); no retry action on error |
-| `McpPresetsGallery.tsx` | 65 | Preset MCP templates gallery | ⚠️ No ARIA labels on preset buttons; no empty state when presets list is empty; loading state is plain text |
-| `EditRepoMcpModal.tsx` | 209 | Edit repo MCP server modal | ✅ Good ARIA attributes (role, aria-modal, aria-labelledby); keyboard Escape handling present |
-| `UploadMcpModal.tsx` | 429 | Upload/edit MCP config modal | ⚠️ File input toggle button missing aria-label; exceeds ideal component size |
+| `ToolsPanel.tsx` | 398 | Main container for all tool operations | ⚠️ Inline delete confirmation (not using ConfirmationDialog); silent catch blocks; search input has aria-label but buttons lack labels |
+| `ToolCard.tsx` | 121 | Individual tool display with actions | ✅ Good ARIA labels on all buttons; sync error display present |
+| `RepoConfigPanel.tsx` | 169 | Repository MCP config display | ✅ Fixed — CelestialLoader loading state, error state with retry button, rate-limit detection via `isRateLimitApiError()` |
+| `McpPresetsGallery.tsx` | 99 | Preset MCP templates gallery | ✅ Fixed — CelestialLoader loading state, error state with retry button, rate-limit detection, empty state with call-to-action, `aria-label` on preset buttons, `focus-visible` ring |
+| `EditRepoMcpModal.tsx` | 208 | Edit repo MCP server modal | ✅ Good ARIA attributes (role, aria-modal, aria-labelledby); keyboard Escape handling present |
+| `UploadMcpModal.tsx` | 428 | Upload/edit MCP config modal | ⚠️ File input toggle button missing aria-label; exceeds ideal component size |
 | `GitHubMcpConfigGenerator.tsx` | 367 | Generated MCP config preview + copy | ✅ Good ARIA (aria-label, role="status", aria-live); array index keys in line rendering |
-| `ToolSelectorModal.tsx` | ~200 | Tool selection for agent assignment | ✅ Keyboard Escape handling; search filtering |
-| `ToolChips.tsx` | ~60 | Removable tool pills on agent form | ✅ Functional |
+| `ToolSelectorModal.tsx` | 192 | Tool selection for agent assignment | ✅ Keyboard Escape handling; search filtering |
+| `ToolChips.tsx` | 45 | Removable tool pills on agent form | ✅ Functional |
 
 ### Hook Assessment
 
 | Hook | Lines | Issues |
 |------|-------|--------|
-| `useTools.ts` | 127 | ⚠️ Non-null assertions (`projectId!`) in mutationFn; auth error detection limited to ApiError instances; no retry configuration |
-| `useAgentTools.ts` | 40 | ⚠️ Non-null assertions; no error handling on mutations; staleTime only on query |
+| `useTools.ts` | 126 | ⚠️ Non-null assertions (`projectId!`) in mutationFn; auth error detection limited to ApiError instances; no retry configuration |
+| `useAgentTools.ts` | 39 | ⚠️ Non-null assertions; no error handling on mutations; staleTime only on query |
 
 ### Test Coverage
 
@@ -139,15 +139,15 @@ solune/frontend/
 │   │   └── ToolsPage.tsx                     # Top-level page (84 lines — no changes needed)
 │   ├── components/
 │   │   ├── tools/
-│   │   │   ├── ToolsPanel.tsx                # Main container (399 lines — audit target)
-│   │   │   ├── ToolCard.tsx                  # Tool display card (122 lines — minor fixes)
-│   │   │   ├── RepoConfigPanel.tsx           # Repo config display (154 lines — add states)
-│   │   │   ├── McpPresetsGallery.tsx         # Preset gallery (65 lines — add states + a11y)
-│   │   │   ├── EditRepoMcpModal.tsx          # Edit repo modal (209 lines — minor a11y)
-│   │   │   ├── UploadMcpModal.tsx            # Upload/edit modal (429 lines — a11y + extract)
+│   │   │   ├── ToolsPanel.tsx                # Main container (398 lines — audit target)
+│   │   │   ├── ToolCard.tsx                  # Tool display card (121 lines — minor fixes)
+│   │   │   ├── RepoConfigPanel.tsx           # Repo config display (169 lines — states added)
+│   │   │   ├── McpPresetsGallery.tsx         # Preset gallery (99 lines — states + a11y added)
+│   │   │   ├── EditRepoMcpModal.tsx          # Edit repo modal (208 lines — minor a11y)
+│   │   │   ├── UploadMcpModal.tsx            # Upload/edit modal (428 lines — a11y + extract)
 │   │   │   ├── GitHubMcpConfigGenerator.tsx  # Config preview (367 lines — fix keys)
-│   │   │   ├── ToolSelectorModal.tsx         # Agent tool selector (minor a11y)
-│   │   │   ├── ToolChips.tsx                 # Tool pills (minor a11y)
+│   │   │   ├── ToolSelectorModal.tsx         # Agent tool selector (192 lines — minor a11y)
+│   │   │   ├── ToolChips.tsx                 # Tool pills (45 lines — minor a11y)
 │   │   │   └── ToolsEnhancements.test.tsx    # Existing tests (extend)
 │   │   ├── ui/                               # Shared primitives (reference, use as-is)
 │   │   │   ├── button.tsx
@@ -160,8 +160,8 @@ solune/frontend/
 │   │       ├── ErrorBoundary.tsx
 │   │       └── ProjectSelectionEmptyState.tsx
 │   ├── hooks/
-│   │   ├── useTools.ts                       # Tool CRUD hooks (127 lines — audit target)
-│   │   ├── useAgentTools.ts                  # Agent tool assignment (40 lines — minor fixes)
+│   │   ├── useTools.ts                       # Tool CRUD hooks (126 lines — audit target)
+│   │   ├── useAgentTools.ts                  # Agent tool assignment (39 lines — minor fixes)
 │   │   ├── useRepoMcpConfig.ts               # Repo MCP config hooks (72 lines — audit target)
 │   │   └── useMcpPresets.ts                  # MCP presets hook (21 lines — audit target)
 │   ├── services/
@@ -183,10 +183,10 @@ All other phases depend on loading/error/empty states being correct.
 
 | # | Task | FR | Files |
 |---|------|----|-------|
-| 1.1 | Replace plain-text loading indicators with `<CelestialLoader>` in RepoConfigPanel and McpPresetsGallery | FR-001 | `RepoConfigPanel.tsx`, `McpPresetsGallery.tsx` |
-| 1.2 | Add retry action button to error states in RepoConfigPanel, McpPresetsGallery, and ToolsPanel | FR-002 | `RepoConfigPanel.tsx`, `McpPresetsGallery.tsx`, `ToolsPanel.tsx` |
-| 1.3 | Add rate-limit error detection using `isRateLimitApiError()` with specific user-facing message | FR-003 | `ToolsPanel.tsx`, `useTools.ts` |
-| 1.4 | Add empty state for McpPresetsGallery when presets list is empty after load | FR-004 | `McpPresetsGallery.tsx` |
+| 1.1 | ~~Replace plain-text loading indicators with `<CelestialLoader>` in RepoConfigPanel and McpPresetsGallery~~ ✅ Done | FR-001 | `RepoConfigPanel.tsx`, `McpPresetsGallery.tsx` |
+| 1.2 | ~~Add retry action button to error states in RepoConfigPanel and McpPresetsGallery~~ ✅ Done; still needed in ToolsPanel | FR-002 | `ToolsPanel.tsx` |
+| 1.3 | ~~Add rate-limit error detection in RepoConfigPanel and McpPresetsGallery~~ ✅ Done; still needed in ToolsPanel and useTools hook | FR-003 | `ToolsPanel.tsx`, `useTools.ts` |
+| 1.4 | ~~Add empty state for McpPresetsGallery when presets list is empty after load~~ ✅ Done | FR-004 | `McpPresetsGallery.tsx` |
 | 1.5 | Verify independent section loading — each of tools list, repo config, and presets show own loading/error | FR-005 | `ToolsPanel.tsx` |
 | 1.6 | Replace inline delete confirmation in ToolsPanel with `<ConfirmationDialog>` component; add confirmation for repo server delete | FR-006 | `ToolsPanel.tsx` |
 | 1.7 | Add success toast/feedback for upload, edit, sync, and delete mutations | FR-007 | `ToolsPanel.tsx`, `useTools.ts` |
@@ -200,7 +200,7 @@ All other phases depend on loading/error/empty states being correct.
 | 2.2 | Verify modal focus trapping in UploadMcpModal, EditRepoMcpModal, and ToolSelectorModal; verify focus return on close | FR-010 | `UploadMcpModal.tsx`, `EditRepoMcpModal.tsx`, `ToolSelectorModal.tsx` |
 | 2.3 | Add `aria-label` to unlabeled form fields (file upload toggle in UploadMcpModal, search in ToolSelectorModal) | FR-011 | `UploadMcpModal.tsx`, `ToolSelectorModal.tsx` |
 | 2.4 | Add text labels alongside color-only sync status indicators in SyncStatusBadge (ToolCard) | FR-012 | `ToolCard.tsx` |
-| 2.5 | Add `aria-label` to preset buttons in McpPresetsGallery | FR-023 | `McpPresetsGallery.tsx` |
+| 2.5 | ~~Add `aria-label` to preset buttons in McpPresetsGallery~~ ✅ Done | FR-023 | `McpPresetsGallery.tsx` |
 | 2.6 | Ensure decorative icons have `aria-hidden="true"` and meaningful icons have `aria-label` | FR-023 | All component files |
 | 2.7 | Add visible focus indicators (`focus-visible:ring`) to all interactive elements | FR-024 | All component files |
 

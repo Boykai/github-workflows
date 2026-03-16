@@ -127,35 +127,44 @@ const [deleteTarget, setDeleteTarget] = useState<{
 
 ---
 
-### RepoConfigPanel (modified)
+### RepoConfigPanel (modified) ✅ Implemented
 
-**Changes**:
+**Changes** (applied):
 1. Replace "Loading…" text with `<CelestialLoader size="md" />`
 2. Add retry button to error state
 3. Pass `onRefresh` callback for retry action
+4. Add `rawError` prop for rate-limit detection via `isRateLimitApiError()`
 
-**Modified error state**:
+**New prop**: `rawError?: unknown` — Raw error object passed from the hook to enable rate-limit detection.
+
+**Implemented error state**:
 
 ```typescript
-// Before:
-<p className="text-sm text-destructive">{error}</p>
-
-// After:
-<div className="flex items-center gap-2">
-  <p className="text-sm text-destructive">{error}</p>
-  <Button variant="ghost" size="sm" onClick={onRefresh}>Retry</Button>
+<div className="flex flex-col items-center gap-3 rounded-2xl border border-destructive/30 bg-destructive/5 p-6 text-center">
+  <AlertCircle className="h-5 w-5 text-destructive" aria-hidden="true" />
+  <p className="text-sm text-destructive">
+    {isRateLimit
+      ? 'Rate limit reached. Please wait a few minutes before retrying.'
+      : `Could not load repository config. ${error} Please try again.`}
+  </p>
+  <Button variant="outline" size="sm" onClick={onRefresh}>
+    <RefreshCw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
+    Retry
+  </Button>
 </div>
 ```
 
 ---
 
-### McpPresetsGallery (modified)
+### McpPresetsGallery (modified) ✅ Implemented
 
-**Changes**:
+**Changes** (applied):
 1. Replace "Loading…" text with `<CelestialLoader size="md" />`
 2. Add retry callback for error state
 3. Add empty state when presets list is empty
 4. Add `aria-label` to preset buttons
+5. Add `rawError` prop for rate-limit detection via `isRateLimitApiError()`
+6. Add `focus-visible` ring to preset buttons
 
 **New props** (additions):
 
@@ -164,6 +173,7 @@ interface McpPresetsGalleryProps {
   presets: McpPreset[];
   isLoading: boolean;
   error: string | null;
+  rawError?: unknown;  // Raw error object for rate-limit detection via isRateLimitApiError()
   onSelectPreset: (preset: McpPreset) => void;
   onRetry?: () => void;  // NEW: retry callback for error state
 }
