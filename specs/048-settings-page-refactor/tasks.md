@@ -387,7 +387,7 @@ With multiple developers:
 - Each user story should be independently completable and testable
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently
-- The `copilot` environment name follows GitHub's convention for `$COPILOT_MPC_*` secret exposure to MCP servers
+- The `copilot` environment name follows GitHub's convention for `$COPILOT_MCP_*` secret exposure to MCP servers
 - `pynacl` is required by GitHub API — cannot use `cryptography` library for sealed-box encryption
 - Per-section save buttons are preserved throughout (existing UX contract)
 - Admin visibility check uses `github_user_id === admin_github_user_id` from auth context
