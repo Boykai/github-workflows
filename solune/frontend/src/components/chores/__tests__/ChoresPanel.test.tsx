@@ -34,9 +34,10 @@ vi.mock('@/services/api', () => ({
   ApiError: class ApiError extends Error {
     constructor(
       public status: number,
-      public error: { error: string }
+      public error: { error: string; details?: unknown }
     ) {
       super(error.error);
+      this.name = 'ApiError';
     }
   },
 }));
@@ -112,7 +113,10 @@ describe('ChoresPanel', () => {
       expect(screen.getByText('No chores yet')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Add a chore to set up/)).toBeInTheDocument();
+    expect(
+      screen.getByText('Create a chore to set up recurring maintenance routines for your project.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create First Chore' })).toBeInTheDocument();
   });
 
   it('renders chore list with ChoreCards', async () => {
@@ -135,25 +139,56 @@ describe('ChoresPanel', () => {
     expect(screen.getAllByText('Dependency Update').length).toBeGreaterThan(0);
   });
 
-  it('renders loading state with skeleton placeholders', () => {
+  it('renders loading state with a loader label', () => {
     // Never resolve the promise to keep loading state
     mockList.mockReturnValue(new Promise(() => {}));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
-    // Should show animated placeholder skeletons
-    const skeletons = document.querySelectorAll('.animate-pulse');
-    expect(skeletons.length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByRole('status')).toBeInTheDocument();
+    expect(screen.getByText('Loading chores…')).toBeInTheDocument();
   });
 
-  it('renders error state when API call fails', async () => {
-    mockList.mockRejectedValue(new Error('Network error'));
+  it('renders error state and retries when the API call fails', async () => {
+    const user = userEvent.setup();
+    mockList.mockRejectedValueOnce(new Error('Network error')).mockResolvedValueOnce([]);
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to load chores')).toBeInTheDocument();
+      expect(screen.getByText('Could not load chores')).toBeInTheDocument();
     });
+
+    expect(screen.getByText('Network error. Check your connection and retry.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('No chores yet')).toBeInTheDocument();
+    });
+
+    expect(mockList).toHaveBeenCalledTimes(2);
+  });
+
+  it('renders a rate limit message when the chores API is throttled', async () => {
+    const { ApiError } = await import('@/services/api');
+    mockList.mockRejectedValue(
+      new ApiError(429, {
+        error: 'Too Many Requests',
+        details: {
+          rate_limit: { limit: 5000, remaining: 0, reset_at: 1700000000, used: 5000 },
+        },
+      })
+    );
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    await waitFor(() => {
+      expect(screen.getByText('Rate limit reached')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Too many requests. Please wait a moment and try again.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
   });
 
   it('displays the Chores header', async () => {
@@ -238,5 +273,32 @@ describe('ChoresPanel', () => {
         agent_pipeline_id: 'pipe-1',
       });
     });
+  });
+
+  it('shows a filter-empty state and resets back to the full list', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([
+      createChore({ id: 'c1', name: 'Bug Bash' }),
+      createChore({ id: 'c2', name: 'Dependency Update' }),
+    ]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    expect(await screen.findAllByText('Bug Bash')).not.toHaveLength(0);
+
+    await user.type(screen.getByLabelText('Search chores by name or template path'), 'nonexistent');
+
+    await waitFor(() => {
+      expect(screen.getByText('No chores match the current filters.')).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+    await waitFor(() => {
+      expect(screen.queryByText('No chores match the current filters.')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getAllByText('Bug Bash').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Dependency Update').length).toBeGreaterThan(0);
   });
 });
