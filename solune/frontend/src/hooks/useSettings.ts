@@ -5,9 +5,10 @@
  * plus mutations with optimistic updates and cache invalidation.
  */
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { settingsApi, signalApi } from '@/services/api';
+import { isRateLimitApiError } from '@/utils/rateLimit';
 import { STALE_TIME_LONG, STALE_TIME_SHORT } from '@/constants';
 import type {
   EffectiveUserSettings,
@@ -82,12 +83,22 @@ export function useGlobalSettings() {
     },
   });
 
+  const formatMutationError = useCallback((error: Error | null): string | null => {
+    if (!error) return null;
+    if (isRateLimitApiError(error)) {
+      return 'Rate limit reached. Please wait a moment before trying again.';
+    }
+    return 'Could not save settings. Please check your inputs and try again.';
+  }, []);
+
   return {
     settings: query.data,
     isLoading: query.isLoading,
     error: query.error,
     updateSettings: mutation.mutateAsync,
     isUpdating: mutation.isPending,
+    mutationError: formatMutationError(mutation.error),
+    resetMutationError: mutation.reset,
   };
 }
 

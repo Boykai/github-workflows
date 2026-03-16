@@ -21,6 +21,10 @@ interface SettingsSectionProps {
   defaultCollapsed?: boolean;
   /** If true, hide the save button (e.g. read-only sections or auto-save) */
   hideSave?: boolean;
+  /** Optional error message to display (e.g. from mutation) */
+  saveError?: string | null;
+  /** Called when the user dismisses the error */
+  onDismissError?: () => void;
 }
 
 export function SettingsSection({
@@ -31,26 +35,36 @@ export function SettingsSection({
   onSave,
   defaultCollapsed = false,
   hideSave = false,
+  saveError = null,
+  onDismissError,
 }: SettingsSectionProps) {
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleSave = async () => {
     if (!onSave) return;
     setSaving(true);
     setSaveStatus('idle');
+    setLocalError(null);
     try {
       await onSave();
       setSaveStatus('success');
       setTimeout(() => setSaveStatus('idle'), TOAST_SUCCESS_MS);
     } catch {
       setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), TOAST_ERROR_MS);
+      setLocalError('Could not save settings. Please try again.');
+      setTimeout(() => {
+        setSaveStatus('idle');
+        setLocalError(null);
+      }, TOAST_ERROR_MS);
     } finally {
       setSaving(false);
     }
   };
+
+  const displayError = saveError ?? localError;
 
   return (
     <div className="celestial-panel flex flex-col rounded-[1.25rem] border border-border/80 shadow-sm overflow-hidden">
@@ -58,9 +72,11 @@ export function SettingsSection({
         className="flex w-full items-start gap-3 bg-transparent p-5 text-left transition-colors hover:bg-background/28 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-primary"
         onClick={() => setCollapsed((c) => !c)}
         type="button"
+        aria-expanded={!collapsed}
       >
         <span
           className={cn('text-xs text-muted-foreground mt-1.5 transition-transform duration-200', collapsed ? '-rotate-90' : '')}
+          aria-hidden="true"
         >
           ▼
         </span>
@@ -81,15 +97,26 @@ export function SettingsSection({
                 onClick={handleSave}
                 disabled={!isDirty || saving}
               >
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? 'Saving…' : 'Save Settings'}
               </button>
               {saveStatus === 'success' && (
-                <span className="text-sm font-medium text-green-700 dark:text-green-400">
-                  Saved!
+                <span className="text-sm font-medium text-green-700 dark:text-green-400" role="status">
+                  Settings saved successfully.
                 </span>
               )}
-              {saveStatus === 'error' && (
-                <span className="text-sm font-medium text-destructive">Failed to save</span>
+              {displayError && (
+                <span className="text-sm font-medium text-destructive" role="alert">
+                  {displayError}
+                  {onDismissError && (
+                    <button
+                      className="ml-2 text-xs underline hover:no-underline"
+                      onClick={onDismissError}
+                      type="button"
+                    >
+                      Dismiss
+                    </button>
+                  )}
+                </span>
               )}
             </div>
           )}

@@ -48,6 +48,7 @@ export function AISettingsSection({ form }: AISettingsSectionProps) {
           min="0"
           max="2"
           step="0.1"
+          aria-valuetext={`Temperature ${watch('temperature').toFixed(1)}`}
           {...register('temperature', { valueAsNumber: true })}
         />
       </div>

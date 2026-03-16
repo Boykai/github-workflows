@@ -8,6 +8,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { SettingsSection } from './SettingsSection';
 import { AISettingsSection } from './AISettingsSection';
 import { DisplaySettings } from './DisplaySettings';
@@ -26,9 +27,19 @@ interface GlobalSettingsProps {
   settings: GlobalSettingsType | undefined;
   isLoading: boolean;
   onSave: (update: GlobalSettingsUpdate) => Promise<void>;
+  /** User-friendly mutation error message from the hook */
+  saveError?: string | null;
+  /** Called when the user dismisses the mutation error */
+  onDismissError?: () => void;
 }
 
-export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsProps) {
+export function GlobalSettings({
+  settings,
+  isLoading,
+  onSave,
+  saveError,
+  onDismissError,
+}: GlobalSettingsProps) {
   const form = useForm<GlobalFormState>({
     resolver: zodResolver(globalSettingsSchema),
     defaultValues: settings ? flatten(settings) : DEFAULTS,
@@ -43,7 +54,9 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
   if (isLoading || !settings) {
     return (
       <SettingsSection title="Global Settings" description="Instance-wide defaults" hideSave>
-        <p>Loading global settings...</p>
+        <div className="flex items-center justify-center py-8">
+          <CelestialLoader size="md" label="Loading global settings…" />
+        </div>
       </SettingsSection>
     );
   }
@@ -52,6 +65,8 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
     await onSave(toUpdate(values));
   });
 
+  const { errors } = form.formState;
+
   return (
     <div className="celestial-fade-in">
       <SettingsSection
@@ -59,6 +74,8 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
         description="Instance-wide defaults that apply to all users unless overridden."
         isDirty={form.formState.isDirty}
         onSave={handleSave}
+        saveError={saveError}
+        onDismissError={onDismissError}
         defaultCollapsed
       >
         <AISettingsSection form={form} />
@@ -79,8 +96,14 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
             type="text"
             className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none"
             placeholder="gpt-4o, gpt-4"
+            aria-describedby={errors.allowed_models ? 'global-models-error' : undefined}
             {...form.register('allowed_models')}
           />
+          {errors.allowed_models && (
+            <p id="global-models-error" className="text-xs text-destructive" role="alert">
+              {errors.allowed_models.message}
+            </p>
+          )}
         </div>
       </SettingsSection>
     </div>

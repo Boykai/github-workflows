@@ -39,20 +39,21 @@ export const DEFAULTS: GlobalFormState = {
 
 export function flatten(s: GlobalSettingsType): GlobalFormState {
   return {
-    provider: s.ai.provider,
-    model: s.ai.model,
-    temperature: s.ai.temperature,
-    theme: s.display.theme,
-    default_view: s.display.default_view,
-    sidebar_collapsed: s.display.sidebar_collapsed,
-    default_repository: s.workflow.default_repository ?? '',
-    default_assignee: s.workflow.default_assignee,
-    copilot_polling_interval: s.workflow.copilot_polling_interval,
-    task_status_change: s.notifications.task_status_change,
-    agent_completion: s.notifications.agent_completion,
-    new_recommendation: s.notifications.new_recommendation,
-    chat_mention: s.notifications.chat_mention,
-    allowed_models: s.allowed_models.join(', '),
+    provider: s.ai?.provider ?? DEFAULTS.provider,
+    model: s.ai?.model ?? DEFAULTS.model,
+    temperature: s.ai?.temperature ?? DEFAULTS.temperature,
+    theme: s.display?.theme ?? DEFAULTS.theme,
+    default_view: s.display?.default_view ?? DEFAULTS.default_view,
+    sidebar_collapsed: s.display?.sidebar_collapsed ?? DEFAULTS.sidebar_collapsed,
+    default_repository: s.workflow?.default_repository ?? '',
+    default_assignee: s.workflow?.default_assignee ?? DEFAULTS.default_assignee,
+    copilot_polling_interval:
+      s.workflow?.copilot_polling_interval ?? DEFAULTS.copilot_polling_interval,
+    task_status_change: s.notifications?.task_status_change ?? DEFAULTS.task_status_change,
+    agent_completion: s.notifications?.agent_completion ?? DEFAULTS.agent_completion,
+    new_recommendation: s.notifications?.new_recommendation ?? DEFAULTS.new_recommendation,
+    chat_mention: s.notifications?.chat_mention ?? DEFAULTS.chat_mention,
+    allowed_models: (s.allowed_models ?? []).join(', '),
   };
 }
 

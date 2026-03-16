@@ -51,6 +51,8 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
     isLoading: globalLoading,
     updateSettings: updateGlobalSettings,
     isUpdating: isGlobalUpdating,
+    mutationError: globalMutationError,
+    resetMutationError: resetGlobalMutationError,
   } = useGlobalSettings();
 
   // Track whether any mutation is in-flight as proxy for dirty state
@@ -97,6 +99,8 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
             globalLoading={globalLoading}
             onUserSave={handleUserSave}
             onGlobalSave={handleGlobalSave}
+            globalSaveError={globalMutationError}
+            onDismissGlobalError={resetGlobalMutationError}
             projects={projects}
             selectedProjectId={selectedProjectId}
           />
