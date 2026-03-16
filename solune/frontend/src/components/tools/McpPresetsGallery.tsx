@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { McpPreset } from '@/types';
 
 interface McpPresetsGalleryProps {
@@ -49,6 +50,14 @@ export function McpPresetsGallery({
                 </div>
               </div>
               <p className="mt-3 text-sm text-muted-foreground">{preset.description}</p>
+              {preset.required_secrets?.length > 0 && (
+                <Link
+                  to="/settings#secrets"
+                  className="mt-2 inline-flex items-center gap-1 text-xs text-yellow-600 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300"
+                >
+                  ⚠ Requires API key configuration
+                </Link>
+              )}
               <button
                 type="button"
                 onClick={() => onSelectPreset(preset)}

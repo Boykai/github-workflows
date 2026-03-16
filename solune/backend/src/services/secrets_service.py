@@ -14,7 +14,7 @@ from nacl.encoding import Base64Encoder
 from nacl.public import PublicKey, SealedBox
 
 from src.services.github_projects import GitHubClientFactory
-from src.utils.logging import get_logger
+from src.logging_utils import get_logger
 
 logger = get_logger(__name__)
 
