@@ -47,19 +47,10 @@ You **MUST** consider the user input before proceeding, if present. It may scope
 
 ## Execution Mode Detection
 
-Before doing substantive work, determine which mode you are operating in:
+Determine `PR` versus `Local` mode from the available GitHub context, branch state, and user input before substantive work.
 
-- **PR mode**: there is an active or explicitly referenced pull request, review context, or branch diff intended for PR-scoped follow-up.
-- **Local mode**: there is no PR context, or the user is asking you to work directly against local workspace changes.
-
-Detect the mode from the available GitHub metadata, branch state, and user input. Do not assume PR mode by default.
-
-After detection:
-
-- In **PR mode**, scope decisions, summaries, and validation to the PR-related change set.
-- In **Local mode**, scope decisions, summaries, and validation to the current branch changes or user-specified files.
-
-When operating in **PR mode**, you must also post a concise PR comment summarizing what documentation work you performed, what drift or gaps you found, what you changed, and why those changes were the correct scoped response.
+- In **PR mode**, stay scoped to the PR diff and leave a concise PR comment summarizing documentation work, drift found, updates made, and why those edits were the correct scoped response.
+- In **Local mode**, stay scoped to the current branch changes or user-specified files.
 
 ## Core Objective
 

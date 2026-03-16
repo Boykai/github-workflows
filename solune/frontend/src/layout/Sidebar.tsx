@@ -8,7 +8,6 @@ import { NAV_ROUTES } from '@/constants';
 import { Moon, PanelLeftClose, PanelLeft, Sun } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
 import { Tooltip } from '@/components/ui/tooltip';
-import type { TooltipContentKey } from '@/constants/tooltip-content';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import type { RecentInteraction } from '@/types';
 import type { Project } from '@/types';
@@ -54,6 +53,7 @@ export function Sidebar({
             <button
               type="button"
               onClick={onToggleTheme}
+              data-tour-step="theme-toggle"
               className={cn('celestial-sigil golden-ring flex h-10 w-10 items-center justify-center rounded-full border border-primary/30 bg-primary/10 shadow-[0_0_30px_hsl(var(--glow)/0.16)] transition-all hover:scale-[1.03] hover:border-primary/45 hover:bg-primary/14', isDarkMode ? 'text-primary' : 'text-gold')}
               aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
             >

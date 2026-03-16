@@ -226,7 +226,7 @@ export function ProjectsPage() {
           : 'bg-[hsl(var(--sync-disconnected))]';
 
   return (
-    <div className="projects-page-shell celestial-fade-in flex min-h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-4 backdrop-blur-sm sm:p-6">
+    <div className="projects-page-shell celestial-fade-in flex h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-4 backdrop-blur-sm sm:p-6">
       <CelestialCatalogHero
         className="projects-catalog-hero"
         eyebrow="Mission Control"
@@ -408,7 +408,7 @@ export function ProjectsPage() {
       )}
 
       {selectedProjectId && !boardLoading && transformedBoardData && (
-        <div className="flex flex-col gap-6 overflow-visible">
+        <div className="flex flex-1 flex-col gap-6 overflow-visible">
           <ProjectIssueLaunchPanel
             projectId={selectedProjectId}
             projectName={selectedProject?.name}
@@ -585,7 +585,7 @@ export function ProjectsPage() {
             </div>
           </section>
 
-          <div id="board" className="flex min-h-[42rem] gap-6 scroll-mt-24 sm:min-h-[56rem]">
+          <div id="board" className="flex flex-1 gap-6 scroll-mt-24">
             {transformedBoardData.columns.every((col) => col.items.length === 0) ? (
               <div className="celestial-panel flex min-h-[32rem] flex-1 flex-col items-center justify-center gap-4 rounded-[1.4rem] border border-dashed border-border/80 p-8 text-center sm:min-h-[40rem]">
                 {boardControls.hasActiveControls ? (

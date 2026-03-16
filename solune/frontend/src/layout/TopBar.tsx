@@ -2,10 +2,13 @@
  * TopBar — horizontal bar with breadcrumb, notification bell, and user avatar.
  */
 
+import { HelpCircle } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
 import { Breadcrumb } from './Breadcrumb';
 import { NotificationBell } from './NotificationBell';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { RateLimitBar } from './RateLimitBar';
+import { cn } from '@/lib/utils';
 import type { Notification } from '@/types';
 
 interface TopBarProps {
@@ -15,6 +18,26 @@ interface TopBarProps {
   notifications: Notification[];
   unreadCount: number;
   onMarkAllRead: () => void;
+}
+
+function HelpButton() {
+  return (
+    <NavLink
+      to="/help"
+      data-tour-step="help-link"
+      aria-label="Help"
+      className={({ isActive }) =>
+        cn(
+          'celestial-focus flex h-9 w-9 items-center justify-center rounded-full border transition-colors',
+          isActive
+            ? 'border-primary/30 bg-primary/14 text-primary'
+            : 'border-transparent text-muted-foreground hover:border-border hover:bg-primary/10 hover:text-foreground',
+        )
+      }
+    >
+      <HelpCircle className="h-5 w-5" />
+    </NavLink>
+  );
 }
 
 export function TopBar({
@@ -33,6 +56,9 @@ export function TopBar({
 
       <div className="flex items-center gap-3">
         <RateLimitBar />
+
+        {/* Help */}
+        <HelpButton />
 
         {/* Notification Bell */}
         <NotificationBell

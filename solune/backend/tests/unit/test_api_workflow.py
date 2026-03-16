@@ -319,7 +319,15 @@ class TestNotifyInReview:
 
 class TestPollingStatus:
     async def test_get_status(self, client):
-        status = {"is_running": False, "iterations": 0}
+        status = {
+            "is_running": False,
+            "last_poll_time": None,
+            "poll_count": 0,
+            "errors_count": 0,
+            "last_error": None,
+            "processed_issues_count": 0,
+            "rate_limit": None,
+        }
         with patch(
             f"{WF}.get_polling_status",
             create=True,
@@ -338,7 +346,15 @@ class TestPollingStatus:
 
 class TestStopPolling:
     async def test_stop_when_not_running(self, client):
-        status = {"is_running": False, "iterations": 0}
+        status = {
+            "is_running": False,
+            "last_poll_time": None,
+            "poll_count": 0,
+            "errors_count": 0,
+            "last_error": None,
+            "processed_issues_count": 0,
+            "rate_limit": None,
+        }
         with (
             patch(
                 "src.services.copilot_polling.get_polling_status",

@@ -13,6 +13,7 @@ from src.services.task_registry import TaskRegistry
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 async def _noop() -> str:
     return "ok"
 
