@@ -102,7 +102,8 @@ class BoundedDict[K, V]:
                     self._on_evict(evicted_key, evicted_value)
                 except Exception:
                     logger.debug(
-                        "BoundedDict on_evict callback failed for key %s", evicted_key,
+                        "BoundedDict on_evict callback failed for key %s",
+                        evicted_key,
                         exc_info=True,
                     )
         self._data[key] = value

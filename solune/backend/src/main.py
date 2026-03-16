@@ -388,9 +388,7 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
             except Exception as e:
                 logger.warning("Startup agent MCP sync failed (non-fatal): %s", e)
 
-        task_registry.create_task(
-            _run_startup_agent_mcp_sync_background(), name="startup-mcp-sync"
-        )
+        task_registry.create_task(_run_startup_agent_mcp_sync_background(), name="startup-mcp-sync")
 
         # Use TaskGroup for long-running background loops — automatic
         # cancellation and awaiting on exit.

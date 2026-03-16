@@ -8,7 +8,6 @@ import { NAV_ROUTES } from '@/constants';
 import { Moon, PanelLeftClose, PanelLeft, Sun } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
 import { Tooltip } from '@/components/ui/tooltip';
-import type { TooltipContentKey } from '@/constants/tooltip-content';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import type { RecentInteraction } from '@/types';
 import type { Project } from '@/types';

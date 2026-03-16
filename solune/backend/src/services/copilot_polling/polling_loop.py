@@ -3,7 +3,7 @@
 import asyncio
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import src.services.copilot_polling as _cp
 from src.logging_utils import get_logger
@@ -27,7 +27,7 @@ class RateLimitInfo(TypedDict, total=False):
     limit: int | None
     remaining: int | None
     used: int | None
-    reset_at: str | None
+    reset_at: int | None
 
 
 class PollingStatus(TypedDict):
@@ -508,14 +508,14 @@ def stop_polling() -> None:
 def get_polling_status() -> PollingStatus:
     """Get current polling status."""
     rl = _cp.github_projects_service.get_last_rate_limit()
-    rate_limit_info: dict[str, Any] | None = None
+    rate_limit_info: RateLimitInfo | None = None
     if rl:
-        rate_limit_info = {
-            "limit": rl.get("limit"),
-            "remaining": rl.get("remaining"),
-            "used": rl.get("used"),
-            "reset_at": rl.get("reset_at"),
-        }
+        rate_limit_info = RateLimitInfo(
+            limit=rl.get("limit"),
+            remaining=rl.get("remaining"),
+            used=rl.get("used"),
+            reset_at=rl.get("reset_at"),
+        )
     return {
         "is_running": _polling_state.is_running,
         "last_poll_time": (

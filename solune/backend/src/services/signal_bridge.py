@@ -476,9 +476,7 @@ async def start_signal_ws_listener() -> None:
         return
     from src.services.task_registry import task_registry
 
-    _ws_listener_task = task_registry.create_task(
-        _ws_listen_loop(phone), name="signal-ws-listener"
-    )
+    _ws_listener_task = task_registry.create_task(_ws_listen_loop(phone), name="signal-ws-listener")
     logger.info("Signal WebSocket listener started for %s", phone)
 
 

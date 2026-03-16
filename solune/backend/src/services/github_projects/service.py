@@ -328,9 +328,7 @@ class GitHubProjectsService(
                     )
                     result = response.json()
                     if "errors" in result:
-                        error_msg = "; ".join(
-                            e.get("message", str(e)) for e in result["errors"]
-                        )
+                        error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])
                         logger.error("GraphQL error: %s", error_msg)
                         raise ValueError("GitHub API request failed")
                     return result.get("data", {})

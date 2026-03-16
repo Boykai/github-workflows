@@ -22,6 +22,7 @@ from src.models.workflow import (
     WorkflowTransition,
 )
 from src.services.agents.service import AgentsService
+from src.services.copilot_polling.polling_loop import PollingStatus
 from src.services.database import get_db
 from src.services.github_projects import github_projects_service
 from src.services.pipelines.service import PipelineService
@@ -795,7 +796,7 @@ async def notify_in_review(
 @router.get("/polling/status")
 async def get_polling_status(
     session: Annotated[UserSession, Depends(get_session_dep)],
-) -> dict:
+) -> PollingStatus:
     """Get the current status of the Copilot PR polling service."""
     from src.services.copilot_polling import get_polling_status
 
