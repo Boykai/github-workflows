@@ -92,7 +92,7 @@ export function ChoresSpotlight({
             <button
               key={tpl.path}
               onClick={() => onTemplateClick(tpl)}
-              className="text-left"
+              className="celestial-focus text-left focus-visible:outline-none"
               type="button"
             >
               <Card className="moonwell h-full rounded-[1.55rem] border-dashed border-primary/25">

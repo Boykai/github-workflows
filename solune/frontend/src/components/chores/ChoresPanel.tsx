@@ -273,8 +273,6 @@ export function ChoresPanel({
                 onScheduleFilterChange={setScheduleFilter}
                 sortMode={sortMode}
                 onSortModeChange={setSortMode}
-                onResetFilters={handleResetFilters}
-                hasResults={filteredChores.length > 0}
               />
               <ChoresGrid
                 chores={filteredChores}
@@ -306,7 +304,7 @@ export function ChoresPanel({
                   <button
                     key={tpl.path}
                     onClick={() => handleTemplateClick(tpl)}
-                    className="flex items-start gap-3 rounded-[1.2rem] border border-dashed border-border bg-background/28 p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/10"
+                    className="celestial-focus flex items-start gap-3 rounded-[1.2rem] border border-dashed border-border bg-background/28 p-4 text-left transition-colors hover:border-primary/40 hover:bg-primary/10 focus-visible:outline-none"
                     title={tpl.about || tpl.name}
                     type="button"
                   >

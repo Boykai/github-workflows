@@ -21,8 +21,6 @@ interface ChoresToolbarProps {
   onScheduleFilterChange: (value: ScheduleFilter) => void;
   sortMode: ChoreSortMode;
   onSortModeChange: (value: ChoreSortMode) => void;
-  onResetFilters: () => void;
-  hasResults: boolean;
 }
 
 const STATUS_OPTIONS: { value: ChoreStatusFilter; label: string }[] = [
@@ -77,7 +75,7 @@ export function ChoresToolbar({
                 onClick={() => onStatusFilterChange(option.value)}
                 aria-pressed={statusFilter === option.value}
                 className={cn(
-                  'rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-[0.16em] transition-colors',
+                  'celestial-focus rounded-full border px-3 py-1.5 text-xs font-medium uppercase tracking-[0.16em] transition-colors focus-visible:outline-none',
                   statusFilter === option.value
                     ? 'solar-chip'
                     : 'solar-chip-soft hover:bg-primary/10 hover:text-foreground'
@@ -90,7 +88,7 @@ export function ChoresToolbar({
 
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <select
-              className="moonwell h-10 w-full rounded-full border-border/60 px-4 text-sm text-foreground sm:w-auto"
+              className="celestial-focus moonwell h-10 w-full rounded-full border-border/60 px-4 text-sm text-foreground focus-visible:outline-none sm:w-auto"
               value={scheduleFilter}
               onChange={(event) =>
                 onScheduleFilterChange(event.target.value as ScheduleFilter)
@@ -103,7 +101,7 @@ export function ChoresToolbar({
               <option value="unscheduled">Unscheduled</option>
             </select>
             <select
-              className="moonwell h-10 w-full rounded-full border-border/60 px-4 text-sm text-foreground sm:w-auto"
+              className="celestial-focus moonwell h-10 w-full rounded-full border-border/60 px-4 text-sm text-foreground focus-visible:outline-none sm:w-auto"
               value={sortMode}
               onChange={(event) => onSortModeChange(event.target.value as ChoreSortMode)}
               aria-label="Sort chores"
