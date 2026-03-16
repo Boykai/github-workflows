@@ -1,0 +1,318 @@
+# Component Interface Contracts: Agents Page Audit
+# These contracts define the expected props, behavior, and accessibility
+# requirements for each component on the Agents page.
+# Used during the audit to verify compliance with FR-001 through FR-024.
+
+components:
+
+  # ─── Page-Level ───
+
+  AgentsPage:
+    path: solune/frontend/src/pages/AgentsPage.tsx
+    max_lines: 250
+    description: >
+      Top-level page component for the Agents view. Composes the Agent Catalog
+      (left panel) and Column Assignments / Orbital Map (right panel) in a
+      responsive two-column grid layout.
+    states:
+      - name: no-project-selected
+        condition: "!selectedProject && !loading"
+        renders: ProjectSelectionEmptyState
+      - name: loading-board
+        condition: "selectedProject && boardLoading"
+        renders: CelestialLoader in assignments section
+      - name: populated
+        condition: "selectedProject && !boardLoading && boardData"
+        renders: AgentsPanel + Column Assignments grid
+      - name: no-columns
+        condition: "selectedProject && !boardLoading && no columns"
+        renders: "Dashed border 'No board columns available' message"
+    accessibility:
+      - "Page shell uses semantic HTML with heading hierarchy"
+      - "id='agent-assignments' anchor for assignments section"
+      - "All section headings use proper h2/h3 hierarchy"
+    design_tokens:
+      - "celestial-fade-in for page entrance"
+      - "xl:grid-cols-[minmax(0,1fr)_22rem] for two-panel layout"
+      - "bg-background/42, backdrop-blur-sm, border-border/70"
+    audit_requirements:
+      - "FR-006: Pipeline query errors handled independently"
+      - "FR-007: Wrapped in ErrorBoundary"
+      - "FR-016: Responsive 768px–1920px"
+      - "FR-017: Tailwind only, no inline styles, dark mode support"
+
+  # ─── Agent Catalog Components ───
+
+  AgentsPanel:
+    path: solune/frontend/src/components/agents/AgentsPanel.tsx
+    max_lines: 250
+    description: >
+      Main agents catalog container. Displays featured (spotlight) agents,
+      full searchable/sortable catalog grid, and pending agents section.
+    props:
+      - { name: projectId, type: string, required: true }
+      - { name: owner, type: string, required: false }
+      - { name: repo, type: string, required: false }
+      - { name: agentUsageCounts, type: "Record<string, number>", required: false }
+      - { name: pipelineConfigCounts, type: "Record<string, number>", required: false }
+      - { name: pendingSubIssueCounts, type: "Record<string, number>", required: false }
+    states:
+      - name: loading
+        condition: "isLoading from useAgentsList"
+        renders: "Grid of animated skeleton cards"
+      - name: error
+        condition: "error from useAgentsList"
+        renders: "User-friendly error message with retry action"
+      - name: empty
+        condition: "!isLoading && agents.length === 0"
+        renders: "Meaningful empty state with 'Create Agent' CTA"
+      - name: populated
+        condition: "agents.length > 0"
+        renders: "Spotlight section + full catalog grid + pending section"
+      - name: search-no-results
+        condition: "search active && filtered.length === 0"
+        renders: "'No matching agents' message"
+    accessibility:
+      - "aria-label on search input"
+      - "aria-label on sort controls"
+      - "Semantic heading hierarchy (h3, h4)"
+      - "Focus indicators on all interactive elements"
+    audit_requirements:
+      - "FR-001: ≤250 lines — currently 565, needs decomposition"
+      - "FR-002: Extract complex state into useAgentsPanel hook"
+      - "FR-003: Loading indicator always visible during fetch"
+      - "FR-004: Error with retry, rate limit detection"
+      - "FR-005: Meaningful empty state"
+      - "FR-017: Replace hardcoded colors with design tokens"
+
+  AgentCard:
+    path: solune/frontend/src/components/agents/AgentCard.tsx
+    max_lines: 250
+    description: >
+      Individual agent card displaying name, description, status badge,
+      source badge, tools count, icon, and action controls (edit, delete).
+    props:
+      - { name: agent, type: AgentConfig, required: true }
+      - { name: projectId, type: string, required: true }
+      - { name: usageCount, type: number, required: false }
+      - { name: pipelineConfigCount, type: number, required: false }
+      - { name: pendingSubIssueCount, type: number, required: false }
+      - { name: onEdit, type: "(agent: AgentConfig) => void", required: false }
+      - { name: variant, type: "'default' | 'spotlight'", required: false }
+    states:
+      - name: default
+        renders: "Standard card with metadata and action buttons"
+      - name: spotlight
+        renders: "Featured card with gradient overlay"
+      - name: pending-creation
+        renders: "Card with pending_creation status badge"
+      - name: pending-deletion
+        renders: "Card with pending_deletion status badge"
+    accessibility:
+      - "aria-label on edit, delete, icon buttons"
+      - "Card-level accessible description"
+      - "Status conveyed via icon + text, not color alone (FR-011)"
+      - "Focus-visible on all interactive elements"
+    audit_requirements:
+      - "FR-001: ≤250 lines — currently 286, needs minor extraction"
+      - "FR-012: Delete requires ConfirmationDialog"
+      - "FR-015: Long text truncated with Tooltip"
+      - "FR-017: Replace hardcoded text-green-700 with design token"
+
+  AddAgentModal:
+    path: solune/frontend/src/components/agents/AddAgentModal.tsx
+    max_lines: 250
+    description: >
+      Modal dialog for creating and editing agents. Contains form fields
+      for name, description, system prompt, model, tools, and icon.
+    props:
+      - { name: isOpen, type: boolean, required: true }
+      - { name: onClose, type: "() => void", required: true }
+      - { name: projectId, type: string, required: true }
+      - { name: editAgent, type: "AgentConfig | null", required: false }
+    states:
+      - name: create-mode
+        renders: "Empty form with 'Create Agent' title and submit button"
+      - name: edit-mode
+        renders: "Pre-populated form with 'Edit Agent' title and save button"
+      - name: submitting
+        renders: "Form disabled with loading indicator on submit button"
+      - name: error
+        renders: "Inline error message below form"
+    accessibility:
+      - "role='dialog', aria-modal='true', aria-label"
+      - "Focus trapped within modal"
+      - "Focus returns to trigger on close (FR-009)"
+      - "All form fields have labels (FR-010)"
+    audit_requirements:
+      - "FR-001: ≤250 lines — currently 520, needs decomposition"
+      - "FR-002: Extract form logic into useAgentForm hook"
+      - "FR-013: Success feedback on create/update"
+      - "FR-014: User-friendly error messages"
+
+  AgentInlineEditor:
+    path: solune/frontend/src/components/agents/AgentInlineEditor.tsx
+    max_lines: 250
+    description: >
+      Expandable inline editor for modifying agent configuration without
+      opening a modal. Used for quick edits to agent details.
+    audit_requirements:
+      - "FR-001: ≤250 lines — currently 272, needs minor extraction"
+      - "FR-009: Focus management on expand/collapse"
+      - "FR-010: All fields labeled"
+
+  AgentIconPickerModal:
+    path: solune/frontend/src/components/agents/AgentIconPickerModal.tsx
+    max_lines: 250
+    description: >
+      Modal for selecting agent icons from the Celestial icon catalog.
+    accessibility:
+      - "Needs role='dialog', aria-modal='true' (currently role='presentation')"
+      - "Focus trap within modal"
+      - "Icon grid navigable via keyboard"
+    audit_requirements:
+      - "Fix ARIA: role='presentation' → role='dialog'"
+
+  BulkModelUpdateDialog:
+    path: solune/frontend/src/components/agents/BulkModelUpdateDialog.tsx
+    max_lines: 250
+    description: >
+      Two-step dialog for bulk updating AI models across multiple agents.
+    audit_requirements:
+      - "FR-012: Confirmation before execution"
+      - "FR-013: Success feedback"
+      - "FR-014: Error messages"
+
+  ToolsEditor:
+    path: solune/frontend/src/components/agents/ToolsEditor.tsx
+    max_lines: 250
+    description: >
+      Ordered list editor for managing agent tool assignments.
+    audit_requirements:
+      - "Already under 250 lines (132) — verify accessibility"
+      - "FR-008: Keyboard-operable tool reordering"
+
+  AgentChatFlow:
+    path: solune/frontend/src/components/agents/AgentChatFlow.tsx
+    max_lines: 250
+    description: >
+      Chat flow component for agent interaction.
+    audit_requirements:
+      - "Already under 250 lines (199) — verify accessibility and error states"
+
+  AgentIconCatalog:
+    path: solune/frontend/src/components/agents/AgentIconCatalog.tsx
+    max_lines: 250
+    description: >
+      Reusable icon grid for agent icon selection.
+    audit_requirements:
+      - "Already under 250 lines (70) — verify keyboard navigation"
+
+  # ─── Board / Orbital Map Components ───
+
+  AgentConfigRow:
+    path: solune/frontend/src/components/board/AgentConfigRow.tsx
+    max_lines: 250
+    description: >
+      DnD orchestrator for the Orbital Map. Contains preset selector,
+      constellation SVG visualization, and column grid for agent assignment.
+    accessibility:
+      - "Needs role='region', aria-label"
+      - "@dnd-kit KeyboardSensor already configured"
+    audit_requirements:
+      - "FR-001: ≤250 lines — currently 480, needs decomposition"
+      - "FR-002: Extract DnD logic into useAgentDnd hook"
+      - "FR-006: Independent loading/error states for its data sources"
+
+  AgentPresetSelector:
+    path: solune/frontend/src/components/board/AgentPresetSelector.tsx
+    max_lines: 250
+    description: >
+      Preset buttons and saved pipelines dropdown for quick agent assignment.
+    accessibility:
+      - "Needs aria-expanded on dropdown"
+      - "Focus trap in confirmation dialogs"
+    audit_requirements:
+      - "FR-001: ≤250 lines — currently 519, needs decomposition"
+      - "FR-012: Destructive preset changes need confirmation"
+
+  AgentTile:
+    path: solune/frontend/src/components/board/AgentTile.tsx
+    max_lines: 250
+    description: >
+      Sortable agent tile within a board column. Supports drag-and-drop.
+    accessibility:
+      - "Needs role='listitem'"
+      - "Focus indicator for keyboard drag-and-drop"
+    audit_requirements:
+      - "FR-001: ≤250 lines — currently 308, needs minor extraction"
+      - "FR-015: Long agent names truncated with Tooltip"
+
+  AgentColumnCell:
+    path: solune/frontend/src/components/board/AgentColumnCell.tsx
+    max_lines: 250
+    description: >
+      Droppable column container for agent tiles in the Orbital Map.
+    accessibility:
+      - "Needs role='list'"
+    audit_requirements:
+      - "Already under 250 lines (168) — verify ARIA roles"
+
+  AddAgentPopover:
+    path: solune/frontend/src/components/board/AddAgentPopover.tsx
+    max_lines: 250
+    description: >
+      Dropdown popover for adding agents to a board column.
+    accessibility:
+      - "Needs role='listbox' on options"
+      - "Needs aria-expanded"
+      - "Focus trap when open"
+    audit_requirements:
+      - "Already under 250 lines (208) — verify accessibility"
+
+  AgentSaveBar:
+    path: solune/frontend/src/components/board/AgentSaveBar.tsx
+    max_lines: 250
+    description: >
+      Floating save/discard bar for unsaved agent configuration changes.
+    accessibility:
+      - "Needs role='status', aria-live='polite'"
+    audit_requirements:
+      - "Already under 250 lines (55) — add ARIA live region"
+
+  AgentDragOverlay:
+    path: solune/frontend/src/components/board/AgentDragOverlay.tsx
+    max_lines: 250
+    description: >
+      Floating drag preview overlay during agent tile drag operations.
+    audit_requirements:
+      - "Already under 250 lines (69) — verify design token usage"
+
+  # ─── Hooks ───
+
+  useAgents:
+    path: solune/frontend/src/hooks/useAgents.ts
+    description: >
+      Core agent CRUD hooks: useAgentsList, usePendingAgentsList, useCreateAgent,
+      useUpdateAgent, useDeleteAgent, useBulkUpdateModels.
+    audit_requirements:
+      - "FR-019: Hook test coverage required"
+      - "FR-023: Query key factory pattern"
+      - "FR-024: Mutation error handling and cache invalidation"
+
+  useAgentConfig:
+    path: solune/frontend/src/hooks/useAgentConfig.ts
+    description: >
+      Agent-to-column mapping state management with dirty tracking.
+      Provides addAgent, removeAgent, cloneAgent, reorderAgents,
+      moveAgentToColumn, applyPreset, save, discard.
+    audit_requirements:
+      - "FR-019: Hook test coverage required"
+      - "FR-002: Verify complexity — 349 lines may need splitting"
+
+  useAgentTools:
+    path: solune/frontend/src/hooks/useAgentTools.ts
+    description: >
+      Tool assignment query and mutation hooks.
+    audit_requirements:
+      - "FR-019: Hook test coverage required"
