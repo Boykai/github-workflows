@@ -18,11 +18,13 @@ backend_root = Path(__file__).resolve().parent.parent / "backend"
 sys.path.insert(0, str(backend_root))
 
 # Provide dummy env vars so Settings() can instantiate without real secrets.
+# DEBUG=true avoids production-mode validation that requires extra secrets.
 # Only the OpenAPI schema is extracted — no server is started.
 _CI_PLACEHOLDERS = {
+    "DEBUG": "true",
     "GITHUB_CLIENT_ID": "ci-placeholder",
     "GITHUB_CLIENT_SECRET": "ci-placeholder",
-    "SESSION_SECRET_KEY": "ci-placeholder-" + "x" * 64,
+    "SESSION_SECRET_KEY": "ci-placeholder",
 }
 for var, default in _CI_PLACEHOLDERS.items():
     os.environ.setdefault(var, default)
