@@ -153,4 +153,4 @@ N. Step description — specific, actionable instruction
 
 **Constraints**:
 - Paths use placeholder tokens defined in the Placeholder Contract above
-- Shared component paths reference actual primitives (Button, Card, Input, Tooltip, ConfirmationDialog) and common components (CelestialLoader, ErrorBoundary, ProjectSelectionEmptyState) per US4-AC2
+- Shared component paths reference actual primitives (Button, Card, Input, Tooltip, ConfirmationDialog) and common components (CelestialLoader, ErrorBoundary, ProjectSelectionEmptyState, ThemedAgentIcon) per US4-AC2

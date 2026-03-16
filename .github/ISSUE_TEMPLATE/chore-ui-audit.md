@@ -157,7 +157,7 @@ Before submitting the issue, replace `[PAGE_NAME]`, `[PageName]`, `[Feature]`, a
 1. **`cd solune/frontend && npx eslint src/pages/[PageName].tsx src/components/[feature]/ src/hooks/use[Feature].ts`** — 0 warnings
 2. **`cd solune/frontend && npx tsc --noEmit`** — 0 type errors
 3. **`cd solune/frontend && npx vitest run`** — all tests pass
-4. **Manual browser check** — light mode, dark mode, responsive, keyboard-only navigation
+4. **Manual validation** — light mode, dark mode, responsive layout, keyboard-only navigation, and screen reader labels
 
 ---
 
@@ -180,7 +180,7 @@ Before submitting the issue, replace `[PAGE_NAME]`, `[PageName]`, `[Feature]`, a
 ### Shared (reference, use as-is)
 
 - `solune/frontend/src/components/ui/` — Button, Card, Input, Tooltip, ConfirmationDialog
-- `solune/frontend/src/components/common/` — CelestialLoader, ErrorBoundary, ProjectSelectionEmptyState
+- `solune/frontend/src/components/common/` — CelestialLoader, ErrorBoundary, ProjectSelectionEmptyState, ThemedAgentIcon
 - `solune/frontend/src/lib/utils.ts` — `cn()` helper
 
 ### Tests
@@ -194,7 +194,7 @@ Before submitting the issue, replace `[PAGE_NAME]`, `[PageName]`, `[Feature]`, a
 ## Verification
 
 1. `cd solune/frontend && npx eslint src/pages/[PageName].tsx src/components/[feature]/ src/hooks/use[Feature].ts` — 0 warnings
-2. `cd solune/frontend && npx tsc --noEmit` — 0 errors
+2. `cd solune/frontend && npx tsc --noEmit` — 0 type errors
 3. `cd solune/frontend && npx vitest run` — all tests pass
 4. Browser: light mode, dark mode, viewport 768px → 1920px
 5. Keyboard: Tab through all interactive elements, Enter/Space to activate
