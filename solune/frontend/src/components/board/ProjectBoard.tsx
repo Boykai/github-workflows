@@ -29,9 +29,9 @@ export function ProjectBoard({
   );
 
   return (
-    <div className="celestial-fade-in w-full overflow-x-auto overflow-y-visible pb-6" role="region" aria-label="Project board">
+    <div className="celestial-fade-in flex h-full w-full flex-1 overflow-x-auto overflow-y-visible pb-6" role="region" aria-label="Project board">
       <div
-        className="grid min-h-[56rem] min-w-full items-start gap-5 pb-2"
+        className="grid min-h-full min-w-full items-stretch gap-5 pb-2"
         style={gridStyle}
       >
         {boardData.columns.map((column) => (
