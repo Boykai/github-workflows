@@ -5,7 +5,7 @@
 
 ## Summary
 
-Conduct a comprehensive audit of the Chores page (`frontend/src/pages/ChoresPage.tsx`) and all its child components (ChoresPanel, ChoreCard, AddChoreModal, FeaturedRitualsPanel, ChoreChatFlow, ChoreInlineEditor, ChoreScheduleConfig, ConfirmChoreModal, PipelineSelector) within Project Solune. The primary goal is to ensure visual consistency with the Celestial design system, enforce single-responsibility component architecture (≤250 lines per file), eliminate type-safety gaps, enforce WCAG AA accessibility compliance, validate responsive behavior across desktop/tablet/mobile breakpoints, verify all interactive elements function correctly with proper feedback, add missing loading/error/empty states, and ensure code quality follows established project conventions. Three components exceed the 250-line target (ChoresPanel at 543 lines, ChoreCard at 584 lines, AddChoreModal at 356 lines) and require decomposition. No backend API changes are required — this is a frontend-only audit-and-refactor effort.
+Conduct a comprehensive audit of the Chores page (`solune/frontend/src/pages/ChoresPage.tsx`) and all its child components (ChoresPanel, ChoreCard, AddChoreModal, FeaturedRitualsPanel, ChoreChatFlow, ChoreInlineEditor, ChoreScheduleConfig, ConfirmChoreModal, PipelineSelector, and CelestialCatalogHero from shared components) within Project Solune. The primary goal is to ensure visual consistency with the Celestial design system, enforce single-responsibility component architecture (≤250 lines per file), eliminate type-safety gaps, enforce WCAG AA accessibility compliance, validate responsive behavior across desktop/tablet/mobile breakpoints, verify all interactive elements function correctly with proper feedback, add missing loading/error/empty states, and ensure code quality follows established project conventions. Three components exceed the 250-line target (ChoresPanel at 543 lines, ChoreCard at 584 lines, AddChoreModal at 356 lines) and require decomposition. No backend API changes are required — this is a frontend-only audit-and-refactor effort.
 
 ## Technical Context
 
@@ -67,7 +67,7 @@ specs/043-chores-page-audit/
 ### Source Code (repository root)
 
 ```text
-frontend/
+solune/frontend/
 ├── src/
 │   ├── pages/
 │   │   └── ChoresPage.tsx                    # Main page component (166 lines) — PRIMARY AUDIT TARGET
@@ -116,7 +116,7 @@ frontend/
 └── package.json                              # React 19, Vitest, Tailwind v4
 ```
 
-**Structure Decision**: Web application (frontend-only audit). All changes target `frontend/src/` — primarily `pages/ChoresPage.tsx` and `components/chores/`. No backend modifications are needed. Three components (ChoresPanel, ChoreCard, AddChoreModal) require decomposition into sub-components within `src/components/chores/`. The existing hook (`useChores.ts`) and type definitions are well-structured and require only refinement.
+**Structure Decision**: Web application (frontend-only audit). All changes target `solune/frontend/src/` — primarily `pages/ChoresPage.tsx` and `components/chores/`. No backend modifications are needed. Three components (ChoresPanel, ChoreCard, AddChoreModal) require decomposition into sub-components within `src/components/chores/`. The existing hook (`useChores.ts`) and type definitions are well-structured and require only refinement.
 
 ## Complexity Tracking
 
