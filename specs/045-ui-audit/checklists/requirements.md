@@ -6,9 +6,9 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [x] Implementation references scoped to template content (the feature is a code-level audit checklist — acceptance scenarios necessarily reference the technologies being audited, e.g., React Query, Tailwind, ESLint)
 - [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
+- [x] Written clearly for the target audience (developers performing page audits)
 - [x] All mandatory sections completed
 
 ## Requirement Completeness
@@ -33,4 +33,4 @@
 
 - All checklist items pass. The specification is ready for `/speckit.clarify` or `/speckit.plan`.
 - No [NEEDS CLARIFICATION] markers were needed — the feature scope (a GitHub issue template) is well-defined and the template content already exists in the repository.
-- The spec avoids naming specific frameworks or languages in requirements and success criteria, keeping them technology-agnostic.
+- The spec references specific technologies (React Query, Tailwind, ESLint, Vitest) in acceptance scenarios because the feature being specified is a code-level audit checklist for a React/TanStack frontend. These references are scoped to template content, not implementation choices for the spec itself.

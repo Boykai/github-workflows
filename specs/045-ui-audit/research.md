@@ -102,23 +102,23 @@ This three-token design supports reuse across all pages (SC-007) without templat
 
 ### RT-006: Consistency with Other Chore Templates
 
-**Decision**: The UI Audit template follows the same YAML front matter pattern as all other chore templates in the repository.
+**Decision**: The UI Audit template follows the same YAML front matter field schema as all other chore templates in the repository. The `about` content varies across templates.
 
-**Rationale**: All chore templates share the same structure:
+**Rationale**: All chore templates share the same field schema:
 
 ```yaml
 ---
 name: [Chore Name]
-about: Recurring chore — [Chore Name]
+about: [varies per template]
 title: '[CHORE] [Chore Name]'
 labels: chore
 assignees: ''
 ---
 ```
 
-The UI Audit template conforms to this pattern exactly. No structural deviations.
+The five fields (`name`, `about`, `title`, `labels`, `assignees`) are structurally consistent across all chore templates. However, the `about` value is not uniform — some templates use `Recurring chore — [Chore Name]` while others use longer descriptions (e.g., `Recurring chore for a custom GitHub agent to analyze and improve accessibility across the codebase`). The UI Audit template uses `about: Recurring chore — UI Audit`, which follows the shorter pattern.
 
-**Alternatives considered**: N/A — consistency is already achieved.
+**Alternatives considered**: N/A — field schema consistency is already achieved. The `about` content variation is intentional and does not affect template discoverability or functionality.
 
 ## Resolution Summary
 
