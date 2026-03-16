@@ -4,8 +4,6 @@ State is stored in-memory (BoundedDict L1 cache) and persisted to SQLite
 via ``pipeline_state_store`` for durability across container restarts.
 """
 
-import asyncio
-
 from src.logging_utils import get_logger
 from src.services.pipeline_state_store import (
     _agent_trigger_inflight,
@@ -56,8 +54,9 @@ def _schedule_persist(coro) -> None:
     and data remains in the L1 cache only.
     """
     try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(coro)
+        from src.services.task_registry import task_registry
+
+        task_registry.create_task(coro, name="wf-persist")
     except RuntimeError:
         pass
 

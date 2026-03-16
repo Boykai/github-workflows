@@ -172,17 +172,18 @@ export function StageCard({
               maxLength={100}
             />
           ) : (
-            <button
-              type="button"
-              onClick={() => {
-                setEditName(stage.name);
-                setIsEditing(true);
-              }}
-              className="celestial-focus w-full truncate text-left text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none"
-              title="Click to rename"
-            >
-              {stage.name}
-            </button>
+            <Tooltip contentKey="pipeline.stage.rename" side="bottom">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditName(stage.name);
+                  setIsEditing(true);
+                }}
+                className="celestial-focus w-full truncate text-left text-sm font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none"
+              >
+                {stage.name}
+              </button>
+            </Tooltip>
           )}
 
           <div className="mt-1 flex flex-wrap items-center gap-1.5">

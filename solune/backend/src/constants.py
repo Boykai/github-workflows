@@ -1,5 +1,7 @@
 """Application-wide constants."""
 
+import warnings
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Workflow Status Names
@@ -92,19 +94,56 @@ AGENT_DISPLAY_NAMES: dict[str, str] = {
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def cache_key_issue_pr(issue_number: int, pr_number: int) -> str:
-    """Generate cache key for processed issue PR."""
-    return f"{issue_number}:{pr_number}"
+def cache_key_issue_pr(
+    issue_number: int,
+    pr_number: int,
+    project_id: str = "",
+) -> str:
+    """Generate cache key for processed issue PR.
+
+    Scoped to *project_id* to prevent collisions across projects with
+    the same issue/PR numbers.
+    """
+    if not project_id:
+        warnings.warn(
+            "cache_key_issue_pr() called without project_id — cache key is unscoped "
+            "and may collide across projects. Pass project_id explicitly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    prefix = f"{project_id}:" if project_id else ""
+    return f"{prefix}{issue_number}:{pr_number}"
 
 
-def cache_key_agent_output(issue_number: int, agent: str, pr_number: int) -> str:
+def cache_key_agent_output(
+    issue_number: int,
+    agent: str,
+    pr_number: int,
+    project_id: str = "",
+) -> str:
     """Generate cache key for posted agent outputs."""
-    return f"{issue_number}:{agent}:{pr_number}"
+    if not project_id:
+        warnings.warn(
+            "cache_key_agent_output() called without project_id — cache key is unscoped "
+            "and may collide across projects. Pass project_id explicitly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    prefix = f"{project_id}:" if project_id else ""
+    return f"{prefix}{issue_number}:{agent}:{pr_number}"
 
 
-def cache_key_review_requested(issue_number: int) -> str:
+def cache_key_review_requested(issue_number: int, project_id: str = "") -> str:
     """Generate cache key for Copilot review request tracking."""
-    return f"copilot_review_requested:{issue_number}"
+    if not project_id:
+        warnings.warn(
+            "cache_key_review_requested() called without project_id — cache key is unscoped "
+            "and may collide across projects. Pass project_id explicitly.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+    prefix = f"{project_id}:" if project_id else ""
+    return f"{prefix}copilot_review_requested:{issue_number}"
 
 
 # ──────────────────────────────────────────────────────────────────────────────

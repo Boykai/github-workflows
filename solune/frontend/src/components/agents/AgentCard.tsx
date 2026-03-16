@@ -12,6 +12,7 @@ import { useConfirmation } from '@/hooks/useConfirmation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
 import { cn } from '@/lib/utils';
 import { formatAgentName } from '@/utils/formatAgentName';
 import { formatAgentCreatedLabel } from '@/utils/agentCardMeta';
@@ -134,12 +135,37 @@ export function AgentCard({
                   {badge.label}
                 </span>
               </div>
-              <h4
-                className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem]"
-                title={displayName}
-              >
-                {displayName}
-              </h4>
+              <HoverCard openDelay={300} closeDelay={150}>
+                <HoverCardTrigger asChild>
+                  <h4
+                    className="mt-4 truncate text-[1.2rem] font-semibold leading-tight text-foreground sm:text-[1.35rem] cursor-default"
+                  >
+                    {displayName}
+                  </h4>
+                </HoverCardTrigger>
+                <HoverCardContent side="bottom" align="start" className="w-72">
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-semibold">{displayName}</h4>
+                    {agent.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-3">{agent.description}</p>
+                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {agent.tools.length > 0 && (
+                        <span className="text-[10px] text-muted-foreground">
+                          {agent.tools.slice(0, 5).join(', ')}
+                          {agent.tools.length > 5 && ` +${agent.tools.length - 5} more`}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 text-[10px]">
+                      <span className={cn('rounded-full px-2 py-0.5 font-medium', badge.className)}>
+                        {badge.label}
+                      </span>
+                      <span className="text-muted-foreground">{pipelineConfigLabel}</span>
+                    </div>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
             </div>
           </div>
           <div className="flex shrink-0 flex-col items-end gap-2">

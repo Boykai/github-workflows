@@ -474,7 +474,11 @@ async def start_signal_ws_listener() -> None:
     if not phone:
         logger.warning("No registered Signal account — WebSocket listener not started")
         return
-    _ws_listener_task = asyncio.create_task(_ws_listen_loop(phone))
+    from src.services.task_registry import task_registry
+
+    _ws_listener_task = task_registry.create_task(
+        _ws_listen_loop(phone), name="signal-ws-listener"
+    )
     logger.info("Signal WebSocket listener started for %s", phone)
 
 
@@ -498,16 +502,24 @@ async def stop_signal_ws_listener() -> None:
 
 
 async def _ws_listen_loop(phone: str) -> None:
-    """Persistent WebSocket listener with reconnection (5s/10s backoff)."""
+    """Persistent WebSocket listener with exponential backoff reconnection."""
+    import random
+
     base = _signal_base_url()
     ws_scheme = "wss" if base.startswith("https://") else "ws"
     netloc = base.split("://", 1)[-1].rstrip("/")
     url = f"{ws_scheme}://{netloc}/v1/receive/{phone}"
 
+    backoff_base = 1.0
+    backoff_cap = 300.0
+    consecutive_failures = 0
+
     while True:
         try:
             async with websockets.connect(url, ping_interval=30) as ws:
                 logger.info("Connected to Signal WebSocket at %s", url)
+                # Reset backoff on successful connection.
+                consecutive_failures = 0
                 async for raw_message in ws:
                     try:
                         data = json.loads(raw_message)
@@ -520,13 +532,29 @@ async def _ws_listen_loop(phone: str) -> None:
             logger.info("Signal WebSocket listener cancelled")
             return
         except (websockets.ConnectionClosed, ConnectionError) as e:
-            logger.warning("Signal WebSocket disconnected: %s. Reconnecting in 5s...", e)
-            await asyncio.sleep(5)
-        except Exception as e:
-            logger.exception(
-                "Unexpected error in Signal WebSocket listener. Reconnecting in 10s...: %s", e
+            consecutive_failures += 1
+            delay = min(backoff_base * (2 ** (consecutive_failures - 1)), backoff_cap)
+            jitter = random.uniform(0, delay * 0.25)
+            wait = delay + jitter
+            logger.warning(
+                "Signal WebSocket disconnected (attempt %d): %s. Reconnecting in %.1fs…",
+                consecutive_failures,
+                e,
+                wait,
             )
-            await asyncio.sleep(10)
+            await asyncio.sleep(wait)
+        except Exception as e:
+            consecutive_failures += 1
+            delay = min(backoff_base * (2 ** (consecutive_failures - 1)), backoff_cap)
+            jitter = random.uniform(0, delay * 0.25)
+            wait = delay + jitter
+            logger.exception(
+                "Unexpected Signal WebSocket error (attempt %d): %s. Reconnecting in %.1fs…",
+                consecutive_failures,
+                e,
+                wait,
+            )
+            await asyncio.sleep(wait)
 
 
 # ── Inbound Message Processing (T019) ───────────────────────────────────
@@ -664,7 +692,9 @@ async def _process_inbound_ws_message(data: dict) -> None:
         except Exception as e:
             logger.exception("Signal AI processing failed: %s", e)
 
-    asyncio.create_task(_safe_process())
+    from src.services.task_registry import task_registry
+
+    task_registry.create_task(_safe_process(), name="signal-ai-process")
 
 
 async def _send_auto_reply(recipient: str, text: str) -> None:

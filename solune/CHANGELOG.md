@@ -20,6 +20,11 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) co
 - Pipeline Analytics dashboard replacing the Recent Activity section on the Agents Pipelines page — displays agent frequency, model distribution, execution mode breakdown, and complexity spotlight
 - Expand button visible in collapsed sidebar so users can re-open it
 - Rich gold primary color for the "+ Add Agent" button on the Agents page
+- **TaskRegistry** (`services/task_registry.py`): centralized fire-and-forget `asyncio.Task` tracking with automatic failure logging and graceful `drain(timeout=30)` on shutdown
+- **CSRF protection** (`middleware/csrf.py`): double-submit cookie middleware for all state-changing requests (POST/PUT/PATCH/DELETE), exempt for webhooks and OAuth callback
+- **Protocol types** (`protocols.py`): `ModelProvider` and `CacheInvalidationPolicy` runtime-checkable protocols for service interfaces
+- **Performance indexes** (`026_performance_indexes.sql`): indexes on `admin_github_user_id`, `selected_project_id`, and chat session columns
+- **PersistenceError** exception: dedicated exception class for persistence failures after retries (subclass of `DatabaseError`)
 
 ### Changed
 
@@ -27,6 +32,15 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) co
 - Removed project selection button from the Projects page (project selection handled via sidebar)
 - Cleaned up shared Copilot custom instructions by removing stale stack history, correcting repo paths and migration references, and simplifying repeated agent routing guidance
 - Documentation refresh: updated agent-pipeline.md (pipeline analytics, group-aware execution), architecture.md (CSP/rate-limit middleware, logging_utils), configuration.md (ADMIN_GITHUB_USER_ID), setup.md (Python 3.13+), troubleshooting.md (pipeline recovery details) to match current codebase state
+- **Lifespan modernization**: background tasks (session cleanup, polling watchdog) now run inside `asyncio.TaskGroup` for automatic cancellation and awaiting on shutdown
+- **Chat persistence**: SQLite is now the single source of truth for chat data; in-memory dicts serve as write-through cache with `BEGIN IMMEDIATE` transactions via `chat_store.transaction()`
+- **Shutdown sequence**: `TaskRegistry.drain()` runs before service teardown, ensuring all tracked fire-and-forget tasks complete or cancel cleanly
+- **Rate limiting**: compound key using `github_user_id` + IP fallback to prevent bypass via cookie clearing
+
+### Security
+
+- **CSRF middleware** added for all state-changing endpoints (double-submit cookie pattern, `X-CSRF-Token` header)
+- **Cache key scoping**: cache keys now include project context to prevent cross-project data leakage
 
 ---
 

@@ -8,6 +8,7 @@
 import { useEffect, useState } from 'react';
 import { ChevronUp, ChevronDown, X, Plus } from 'lucide-react';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
+import { Tooltip } from '@/components/ui/tooltip';
 
 interface ToolsEditorProps {
   tools: string[];
@@ -71,32 +72,38 @@ export function ToolsEditor({
               className="flex items-center gap-1.5 rounded-md border border-border/60 bg-background/50 px-2 py-1.5"
             >
               <span className="flex-1 truncate text-sm">{tool}</span>
-              <button
-                type="button"
-                className="celestial-focus p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
-                onClick={() => moveUp(index)}
-                disabled={index === 0}
-                aria-label={`Move ${tool} up`}
-              >
-                <ChevronUp className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="celestial-focus p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
-                onClick={() => moveDown(index)}
-                disabled={index === tools.length - 1}
-                aria-label={`Move ${tool} down`}
-              >
-                <ChevronDown className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                className="celestial-focus p-0.5 text-muted-foreground hover:text-destructive"
-                onClick={() => remove(index)}
-                aria-label={`Remove ${tool}`}
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <Tooltip contentKey="agents.tools.moveUp">
+                <button
+                  type="button"
+                  className="celestial-focus p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  onClick={() => moveUp(index)}
+                  disabled={index === 0}
+                  aria-label={`Move ${tool} up`}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+              </Tooltip>
+              <Tooltip contentKey="agents.tools.moveDown">
+                <button
+                  type="button"
+                  className="celestial-focus p-0.5 text-muted-foreground hover:text-foreground disabled:opacity-30"
+                  onClick={() => moveDown(index)}
+                  disabled={index === tools.length - 1}
+                  aria-label={`Move ${tool} down`}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              </Tooltip>
+              <Tooltip contentKey="agents.tools.remove">
+                <button
+                  type="button"
+                  className="celestial-focus p-0.5 text-muted-foreground hover:text-destructive"
+                  onClick={() => remove(index)}
+                  aria-label={`Remove ${tool}`}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </Tooltip>
             </li>
           ))}
         </ul>

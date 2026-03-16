@@ -8,6 +8,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { AgentAssignment, AgentPreset, PipelineConfigSummary, PipelineConfig } from '@/types';
 import { generateId } from '@/utils/generateId';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { formatAgentName } from '@/utils/formatAgentName';
 import { pipelinesApi } from '@/services/api';
 import { cn } from '@/lib/utils';
@@ -206,20 +207,9 @@ export function AgentPresetSelector({
     [projectId]
   );
 
-  useEffect(() => {
-    if (!showDropdown) {
-      return undefined;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShowDropdown(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showDropdown]);
+  const handleDropdownChange = useCallback((open: boolean) => {
+    setShowDropdown(open);
+  }, []);
 
   useEffect(() => {
     restoredProjectRef.current = null;
@@ -380,48 +370,38 @@ export function AgentPresetSelector({
 
         {/* Saved pipelines dropdown */}
         {hasSavedPipelines && (
-          <div className="relative">
-            <button
-              className={cn('celestial-focus rounded-md px-3 py-1 text-xs font-semibold transition-colors', activePipelineName
-                  ? 'solar-chip-soft'
-                  : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground')}
-              onClick={() => setShowDropdown(!showDropdown)}
-              aria-expanded={showDropdown}
-              title={
-                activePipelineName
-                  ? `Active saved pipeline: ${activePipelineName}`
-                  : 'Saved pipeline configurations'
-              }
-              type="button"
-            >
-              {activePipelineName ?? 'Saved'} ▾
-            </button>
-            {showDropdown && (
-              <>
-                {/* Backdrop to close dropdown */}
-                <div
-                  className="fixed inset-0 z-40"
-                  onClick={() => setShowDropdown(false)}
-                  role="presentation"
-                />
-                <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-border bg-popover shadow-lg backdrop-blur-sm py-1">
-                  {savedPipelines?.pipelines.map((pipeline) => (
-                    <button
-                      key={pipeline.id}
-                      className="w-full px-3 py-2 text-left text-xs transition-colors hover:bg-primary/10"
-                      onClick={() => handlePipelineClick(pipeline)}
-                      type="button"
-                    >
-                      <div className="font-medium text-foreground truncate">{pipeline.name}</div>
-                      <div className="text-muted-foreground">
-                        {pipeline.stage_count} stages · {pipeline.agent_count} agents
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
+          <Popover open={showDropdown} onOpenChange={handleDropdownChange}>
+            <PopoverTrigger asChild>
+              <button
+                className={cn('celestial-focus rounded-md px-3 py-1 text-xs font-semibold transition-colors', activePipelineName
+                    ? 'solar-chip-soft'
+                    : 'text-muted-foreground hover:bg-primary/10 hover:text-foreground')}
+                aria-label={
+                  activePipelineName
+                    ? `Active saved pipeline: ${activePipelineName}`
+                    : 'Saved pipeline configurations'
+                }
+                type="button"
+              >
+                {activePipelineName ?? 'Saved'} ▾
+              </button>
+            </PopoverTrigger>
+            <PopoverContent side="bottom" align="end" className="w-56 p-0 py-1">
+              {savedPipelines?.pipelines.map((pipeline) => (
+                <button
+                  key={pipeline.id}
+                  className="w-full px-3 py-2 text-left text-xs transition-colors hover:bg-primary/10"
+                  onClick={() => handlePipelineClick(pipeline)}
+                  type="button"
+                >
+                  <div className="font-medium text-foreground truncate">{pipeline.name}</div>
+                  <div className="text-muted-foreground">
+                    {pipeline.stage_count} stages · {pipeline.agent_count} agents
+                  </div>
+                </button>
+              ))}
+            </PopoverContent>
+          </Popover>
         )}
       </div>
 

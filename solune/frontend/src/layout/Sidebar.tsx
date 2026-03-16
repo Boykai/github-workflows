@@ -7,6 +7,8 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { NAV_ROUTES } from '@/constants';
 import { Moon, PanelLeftClose, PanelLeft, Sun } from 'lucide-react';
 import { ProjectSelector } from './ProjectSelector';
+import { Tooltip } from '@/components/ui/tooltip';
+import type { TooltipContentKey } from '@/constants/tooltip-content';
 import { statusColorToCSS } from '@/components/board/colorUtils';
 import type { RecentInteraction } from '@/types';
 import type { Project } from '@/types';
@@ -72,13 +74,15 @@ export function Sidebar({
             </div>
           )}
         </div>
-        <button
-          onClick={onToggle}
-          className="celestial-focus rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground focus-visible:outline-none"
-          aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-        >
-          {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
-        </button>
+        <Tooltip contentKey="nav.sidebar.toggle">
+          <button
+            onClick={onToggle}
+            className="celestial-focus rounded-full border border-transparent p-2 text-muted-foreground transition-all hover:border-border hover:bg-primary/10 hover:text-foreground focus-visible:outline-none"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <PanelLeft className="w-5 h-5" /> : <PanelLeftClose className="w-5 h-5" />}
+          </button>
+        </Tooltip>
       </div>
 
       {/* Navigation */}

@@ -25,6 +25,13 @@ MAX_BACKOFF = 900  # 15 minutes
 DEFAULT_BACKOFF = 60  # 1 minute
 
 
+def _cancel_evicted_task(_key: str, task: asyncio.Task) -> None:  # type: ignore[type-arg]
+    """Cancel an evicted asyncio.Task that hasn't finished yet."""
+    if not task.done():
+        task.cancel()
+        logger.debug("Cancelled evicted inflight task: %s", _key)
+
+
 # ── Provider Interface ──
 
 
@@ -252,7 +259,8 @@ class ModelFetcherService:
         self._backoff_duration: dict[str, float] = {}  # cache_key → current backoff
         self._rate_limit_remaining: dict[str, int | None] = {}  # cache_key → remaining
         self._inflight_fetches: BoundedDict[str, asyncio.Task[ModelsResponse]] = BoundedDict(
-            maxlen=64
+            maxlen=64,
+            on_evict=_cancel_evicted_task,
         )
         _ensure_registry()
 
@@ -320,7 +328,12 @@ class ModelFetcherService:
 
         # Serve stale cache immediately and trigger background refresh
         if cached and cached.is_stale and not force_refresh:
-            asyncio.create_task(self._background_refresh(provider, token, cache_key))
+            from src.services.task_registry import task_registry
+
+            task_registry.create_task(
+                self._background_refresh(provider, token, cache_key),
+                name=f"model-refresh-{cache_key[:16]}",
+            )
             return ModelsResponse(
                 status="success",
                 models=cached.models,
@@ -336,7 +349,10 @@ class ModelFetcherService:
 
         async def _fetch_and_cache() -> ModelsResponse:
             try:
-                models = await fetcher.fetch_models(token)
+                from src.config import get_settings
+
+                timeout = get_settings().api_timeout_seconds
+                models = await asyncio.wait_for(fetcher.fetch_models(token), timeout=timeout)
                 now = datetime.now(UTC)
                 self._cache[cache_key] = CacheEntry(
                     models=models,
@@ -396,7 +412,11 @@ class ModelFetcherService:
                     message=f"Failed to fetch models from {provider}. Please try again.",
                 )
 
-        task: asyncio.Task[ModelsResponse] = asyncio.create_task(_fetch_and_cache())
+        from src.services.task_registry import task_registry
+
+        task: asyncio.Task[ModelsResponse] = task_registry.create_task(
+            _fetch_and_cache(), name=f"model-fetch-{cache_key[:16]}"
+        )
         self._inflight_fetches[cache_key] = task
         try:
             return await task
@@ -408,10 +428,13 @@ class ModelFetcherService:
     async def _background_refresh(self, provider: str, token: str | None, cache_key: str) -> None:
         """Refresh cache in background without blocking the caller."""
         try:
+            from src.config import get_settings
+
+            timeout = get_settings().api_timeout_seconds
             fetcher = PROVIDER_REGISTRY.get(provider)
             if not fetcher:
                 return
-            models = await fetcher.fetch_models(token)
+            models = await asyncio.wait_for(fetcher.fetch_models(token), timeout=timeout)
             now = datetime.now(UTC)
             self._cache[cache_key] = CacheEntry(
                 models=models,
