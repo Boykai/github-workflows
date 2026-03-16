@@ -364,6 +364,11 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
 
         await init_pipeline_state_store(db)
 
+        # Initialise Done-items DB cache for cold-start optimisation
+        from src.services.done_items_store import init_done_items_store
+
+        await init_done_items_store(db)
+
         # Register singleton services on app.state for DI (see dependencies.py)
         from src.services.github_projects import github_projects_service
         from src.services.websocket import connection_manager

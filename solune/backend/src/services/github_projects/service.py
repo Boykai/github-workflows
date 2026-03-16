@@ -121,21 +121,27 @@ class GitHubProjectsService(
             kwargs["headers"] = headers
         response = await client.arequest(method, path, **kwargs)
         # Extract rate-limit headers from REST responses
-        try:
-            limit = response.headers.get("X-RateLimit-Limit")
-            remaining = response.headers.get("X-RateLimit-Remaining")
-            reset_at = response.headers.get("X-RateLimit-Reset")
-            if limit is not None and remaining is not None and reset_at is not None:
-                info: dict[str, int] = {
-                    "limit": int(limit),
-                    "remaining": int(remaining),
-                    "reset_at": int(reset_at),
-                    "used": int(limit) - int(remaining),
-                }
-                _request_rate_limit.set(info)
-                self._last_rate_limit = info
-        except (ValueError, TypeError):
-            pass
+        self._extract_rate_limit_headers(response)
+        # Detect secondary rate limit (abuse detection) on REST calls
+        retry_after = response.headers.get("Retry-After")
+        if retry_after and response.status_code in (403, 429):
+            wait = int(retry_after) if retry_after.isdigit() else 60
+            logger.warning(
+                "GitHub secondary rate limit on REST %s %s (status=%d, Retry-After=%s). "
+                "Waiting %ds before raising.",
+                method,
+                path,
+                response.status_code,
+                retry_after,
+                wait,
+            )
+            await asyncio.sleep(wait)
+            from src.exceptions import RateLimitError
+
+            raise RateLimitError(
+                "GitHub secondary rate limit exceeded",
+                retry_after=wait,
+            )
         content_type = response.headers.get("content-type", "")
         if "application/json" in content_type:
             return response.json()
@@ -165,21 +171,7 @@ class GitHubProjectsService(
             kwargs["headers"] = headers
         response = await client.arequest(method, path, **kwargs)
         # Extract rate-limit headers
-        try:
-            limit = response.headers.get("X-RateLimit-Limit")
-            remaining = response.headers.get("X-RateLimit-Remaining")
-            reset_at = response.headers.get("X-RateLimit-Reset")
-            if limit is not None and remaining is not None and reset_at is not None:
-                info_rl: dict[str, int] = {
-                    "limit": int(limit),
-                    "remaining": int(remaining),
-                    "reset_at": int(reset_at),
-                    "used": int(limit) - int(remaining),
-                }
-                _request_rate_limit.set(info_rl)
-                self._last_rate_limit = info_rl
-        except (ValueError, TypeError):
-            pass
+        self._extract_rate_limit_headers(response)
         return response
 
     async def close(self):
@@ -250,6 +242,24 @@ class GitHubProjectsService(
         async request context.
         """
         return _request_rate_limit.get() or self._last_rate_limit
+
+    def _extract_rate_limit_headers(self, response) -> None:
+        """Extract rate-limit headers from any HTTP response (REST or GraphQL)."""
+        try:
+            limit = response.headers.get("X-RateLimit-Limit")
+            remaining = response.headers.get("X-RateLimit-Remaining")
+            reset_at = response.headers.get("X-RateLimit-Reset")
+            if limit is not None and remaining is not None and reset_at is not None:
+                info: dict[str, int] = {
+                    "limit": int(limit),
+                    "remaining": int(remaining),
+                    "reset_at": int(reset_at),
+                    "used": int(limit) - int(remaining),
+                }
+                _request_rate_limit.set(info)
+                self._last_rate_limit = info
+        except (ValueError, TypeError):
+            pass
 
     def clear_last_rate_limit(self) -> None:
         """Clear both the request-scoped contextvar and instance-level rate-limit caches.
@@ -326,6 +336,26 @@ class GitHubProjectsService(
                         json={"query": query, "variables": variables},
                         headers=headers,
                     )
+                    # Extract rate-limit headers from GraphQL responses
+                    self._extract_rate_limit_headers(response)
+                    # Detect secondary rate limit (abuse detection)
+                    retry_after = response.headers.get("Retry-After")
+                    if retry_after and response.status_code in (403, 429):
+                        wait = int(retry_after) if retry_after.isdigit() else 60
+                        logger.warning(
+                            "GitHub secondary rate limit hit (status=%d, Retry-After=%s). "
+                            "Waiting %ds before raising.",
+                            response.status_code,
+                            retry_after,
+                            wait,
+                        )
+                        await asyncio.sleep(wait)
+                        from src.exceptions import RateLimitError
+
+                        raise RateLimitError(
+                            "GitHub secondary rate limit exceeded",
+                            retry_after=wait,
+                        )
                     result = response.json()
                     if "errors" in result:
                         error_msg = "; ".join(e.get("message", str(e)) for e in result["errors"])

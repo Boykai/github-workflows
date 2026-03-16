@@ -174,6 +174,34 @@ describe('useBoardControls', () => {
     expect(result.current.transformedData?.columns[0].item_count).toBe(1);
   });
 
+  it('excludes items with sub-issue label even when not in any parent sub_issues list', () => {
+    const boardData = createBoardData();
+    boardData.columns[0].items = [
+      createBoardItem({
+        item_id: 'parent-1',
+        number: 101,
+        title: 'Parent issue',
+      }),
+      createBoardItem({
+        item_id: 'orphan-sub',
+        number: 4137,
+        title: '[speckit.specify] Some task',
+        labels: [
+          { id: 'l1', name: 'ai-generated', color: 'ededed' },
+          { id: 'l2', name: 'sub-issue', color: 'ededed' },
+        ],
+      }),
+    ];
+    boardData.columns[0].item_count = 2;
+
+    const { result } = renderHook(() => useBoardControls('PVT_1', boardData));
+
+    expect(result.current.transformedData?.columns[0].items.map((item) => item.number)).toEqual([
+      101,
+    ]);
+    expect(result.current.transformedData?.columns[0].item_count).toBe(1);
+  });
+
   it('loads per-project controls before persisting on project switch', async () => {
     localStorage.setItem(
       'board-controls-PVT_1',

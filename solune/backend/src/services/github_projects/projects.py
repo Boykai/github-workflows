@@ -3,10 +3,11 @@ from __future__ import annotations
 # pyright: reportAttributeAccessIssue=false
 import asyncio
 
-from src.constants import DEFAULT_STATUS_BACKLOG
+from src.constants import DEFAULT_STATUS_BACKLOG, StatusNames
 from src.logging_utils import get_logger
 from src.models.project import GitHubProject, ProjectType, StatusColumn
 from src.models.task import Task
+from src.services.done_items_store import save_done_items
 from src.services.github_projects.graphql import (
     CREATE_DRAFT_ITEM_MUTATION,
     GET_PROJECT_FIELD_QUERY,
@@ -236,6 +237,13 @@ class ProjectsMixin:
                 break
 
         self._cycle_cache[cache_key] = all_tasks
+
+        # Persist Done items to DB for fast cold-start loading
+        done_tasks = [t.model_dump(mode="json") for t in all_tasks if t.status == StatusNames.DONE]
+        try:
+            await save_done_items(project_id, done_tasks, item_type="task")
+        except Exception:
+            logger.debug("Non-critical: failed to persist done tasks cache", exc_info=True)
 
         logger.info("Fetched %d total tasks from project %s", len(all_tasks), project_id)
         return all_tasks

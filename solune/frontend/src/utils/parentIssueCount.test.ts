@@ -161,4 +161,23 @@ describe('countParentIssues', () => {
 
     expect(countParentIssues(boardData)).toBe(0);
   });
+
+  it('excludes issues with sub-issue label even when not in any parent sub_issues list', () => {
+    const parent = createItem({ item_id: 'parent-1', number: 101 });
+    const subIssueByLabel = createItem({
+      item_id: 'sub-label-1',
+      number: 201,
+      title: '[speckit.specify] Some task',
+      labels: [
+        { id: 'l1', name: 'ai-generated', color: 'ededed' },
+        { id: 'l2', name: 'sub-issue', color: 'ededed' },
+      ],
+    });
+    const anotherParent = createItem({ item_id: 'parent-2', number: 102 });
+
+    const boardData = createBoardData([parent, subIssueByLabel, anotherParent]);
+
+    // sub-issue label should exclude the item, leaving 2 parents
+    expect(countParentIssues(boardData)).toBe(2);
+  });
 });

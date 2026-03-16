@@ -649,6 +649,22 @@ async def _discover_main_pr_for_review(
             h_sha = pr_details.get("last_commit", {}).get("sha", "") if pr_details else ""
             if head_ref:
                 _cp.set_issue_main_branch(parent_issue_number, head_ref, pr_number, h_sha)
+                # Link the PR to the parent issue in Development sidebar
+                try:
+                    await _cp.github_projects_service.link_pull_request_to_issue(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        pr_number=pr_number,
+                        issue_number=parent_issue_number,
+                    )
+                except Exception as link_err:
+                    logger.debug(
+                        "Non-blocking: could not link PR #%d to parent issue #%d: %s",
+                        pr_number,
+                        parent_issue_number,
+                        link_err,
+                    )
             return {
                 "pr_number": pr_number,
                 "pr_id": pr_id,
@@ -814,6 +830,23 @@ async def _discover_main_pr_for_review(
                     h_sha = pr_det.get("last_commit", {}).get("sha", "")
                     if head_ref:
                         _cp.set_issue_main_branch(parent_issue_number, head_ref, pr_num, h_sha)
+
+                    # Link the PR to the parent issue in Development sidebar
+                    try:
+                        await _cp.github_projects_service.link_pull_request_to_issue(
+                            access_token=access_token,
+                            owner=owner,
+                            repo=repo,
+                            pr_number=pr_num,
+                            issue_number=parent_issue_number,
+                        )
+                    except Exception as link_err:
+                        logger.debug(
+                            "Non-blocking: could not link PR #%d to parent issue #%d: %s",
+                            pr_num,
+                            parent_issue_number,
+                            link_err,
+                        )
 
                     logger.info(
                         "Strategy 4: discovered PR #%d (branch '%s') for issue #%d "

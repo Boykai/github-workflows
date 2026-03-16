@@ -4,9 +4,9 @@
  * and navigation to the detail view.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, RefreshCw } from 'lucide-react';
+import { ChevronDown, Plus, RefreshCw, Sparkles } from 'lucide-react';
 import { useApps, useCreateApp, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
 import { AppCard } from '@/components/apps/AppCard';
 import { AppDetailView } from '@/components/apps/AppDetailView';
@@ -27,6 +27,9 @@ export function AppsPage() {
   const { confirm } = useConfirmation();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState('');
+  const [aiEnhance, setAiEnhance] = useState(true);
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
@@ -55,15 +58,33 @@ export function AppsPage() {
   const openCreateDialog = () => {
     createMutation.reset();
     setCreateError(null);
+    setDisplayName('');
+    setAiEnhance(true);
+    setShowAdvanced(false);
     setShowCreateDialog(true);
   };
 
   const closeCreateDialog = useCallback(() => {
     createMutation.reset();
     setCreateError(null);
+    setDisplayName('');
     setShowCreateDialog(false);
     createButtonRef.current?.focus();
   }, [createMutation]);
+
+  /** Derive a kebab-case slug from a display name. */
+  const slugify = (text: string): string =>
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/-{2,}/g, '-')
+      .replace(/^-|-$/g, '');
+
+  const derivedName = useMemo(() => slugify(displayName.trim()), [displayName]);
+  const derivedBranch = useMemo(
+    () => (derivedName ? `app/${derivedName}` : ''),
+    [derivedName],
+  );
 
   // Document-level Escape key handler for the create dialog
   useEffect(() => {
@@ -130,17 +151,30 @@ export function AppsPage() {
     setCreateError(null);
 
     const formData = new FormData(e.currentTarget);
-    const name = String(formData.get('name') ?? '').trim();
-    const displayName = String(formData.get('display_name') ?? '').trim();
+    const trimmedDisplayName = displayName.trim();
     const description = String(formData.get('description') ?? '').trim();
-    const branch = String(formData.get('branch') ?? '').trim();
+    // Use overrides from advanced section if provided, otherwise use derived values
+    const nameOverride = String(formData.get('name') ?? '').trim();
+    const branchOverride = String(formData.get('branch') ?? '').trim();
+    const name = nameOverride || derivedName;
+    const branch = branchOverride || derivedBranch;
 
-    if (!name || !displayName || !branch) {
-      setCreateError('Name, display name, and target branch are required.');
+    if (!name || !trimmedDisplayName) {
+      setCreateError('Display name is required.');
+      return;
+    }
+    if (!branch) {
+      setCreateError('Target branch could not be derived. Please provide a display name.');
       return;
     }
 
-    const payload: AppCreate = { name, display_name: displayName, description, branch };
+    const payload: AppCreate = {
+      name,
+      display_name: trimmedDisplayName,
+      description,
+      branch,
+      ai_enhance: aiEnhance,
+    };
     createMutation.mutate(payload, {
       onSuccess: (createdApp) => {
         closeCreateDialog();
@@ -289,25 +323,6 @@ export function AppsPage() {
                 )}
                 <div className="space-y-4">
                   <div>
-                    <label htmlFor="app-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Name
-                    </label>
-                    <input
-                      id="app-name"
-                      name="name"
-                      type="text"
-                      required
-                      pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
-                      minLength={2}
-                      maxLength={64}
-                      placeholder="my-awesome-app"
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                    <p className="mt-1 text-xs text-zinc-400">
-                      Lowercase letters, numbers, and hyphens only.
-                    </p>
-                  </div>
-                  <div>
                     <label htmlFor="app-display-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                       Display Name
                     </label>
@@ -318,8 +333,15 @@ export function AppsPage() {
                       required
                       maxLength={128}
                       placeholder="My Awesome App"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
                       className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
+                    {derivedName && (
+                      <p className="mt-1 text-xs text-zinc-400">
+                        Name: <span className="font-mono">{derivedName}</span> · Branch: <span className="font-mono">{derivedBranch}</span>
+                      </p>
+                    )}
                   </div>
                   <div>
                     <label htmlFor="app-description" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -333,22 +355,82 @@ export function AppsPage() {
                       className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
                   </div>
+
+                  {/* AI Enhance toggle */}
+                  <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800/50">
+                    <div className="flex items-center gap-2">
+                      <Sparkles aria-hidden="true" className="h-4 w-4 text-emerald-500" />
+                      <div>
+                        <p className="text-sm font-medium text-zinc-700 dark:text-zinc-200">AI Enhance</p>
+                        <p className="text-xs text-zinc-400">
+                          {aiEnhance
+                            ? 'AI generates a rich description and scaffold content'
+                            : 'Your exact input is used as-is'}
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setAiEnhance(!aiEnhance)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${aiEnhance ? 'bg-emerald-500' : 'bg-zinc-300 dark:bg-zinc-600'}`}
+                      role="switch"
+                      aria-checked={aiEnhance}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiEnhance ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+
+                  {/* Advanced (collapsible) */}
                   <div>
-                    <label htmlFor="app-branch" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                      Target Branch
-                    </label>
-                    <input
-                      id="app-branch"
-                      name="branch"
-                      type="text"
-                      required
-                      maxLength={256}
-                      placeholder="parent-issue/my-feature"
-                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                    />
-                    <p className="mt-1 text-xs text-zinc-400">
-                      The parent issue branch where the app scaffold will be committed.
-                    </p>
+                    <button
+                      type="button"
+                      className="flex items-center gap-1 text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+                      onClick={() => setShowAdvanced(!showAdvanced)}
+                    >
+                      <ChevronDown
+                        aria-hidden="true"
+                        className={`h-3.5 w-3.5 transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+                      />
+                      Advanced options
+                    </button>
+                    {showAdvanced && (
+                      <div className="mt-3 space-y-3">
+                        <div>
+                          <label htmlFor="app-name" className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Name override
+                          </label>
+                          <input
+                            id="app-name"
+                            name="name"
+                            type="text"
+                            pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
+                            minLength={2}
+                            maxLength={64}
+                            placeholder={derivedName || 'my-awesome-app'}
+                            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-xs shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                          />
+                          <p className="mt-1 text-xs text-zinc-400">
+                            Lowercase letters, numbers, and hyphens only.
+                          </p>
+                        </div>
+                        <div>
+                          <label htmlFor="app-branch" className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                            Target Branch override
+                          </label>
+                          <input
+                            id="app-branch"
+                            name="branch"
+                            type="text"
+                            maxLength={256}
+                            placeholder={derivedBranch || 'app/my-feature'}
+                            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-xs shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                          />
+                          <p className="mt-1 text-xs text-zinc-400">
+                            The parent issue branch where the app scaffold will be committed.
+                          </p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="mt-6 flex justify-end gap-3">
@@ -364,7 +446,9 @@ export function AppsPage() {
                     disabled={createMutation.isPending}
                     className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50"
                   >
-                    {createMutation.isPending ? 'Creating…' : 'Create App'}
+                    {createMutation.isPending
+                      ? (aiEnhance ? 'AI Enhancing…' : 'Creating…')
+                      : 'Create App'}
                   </button>
                 </div>
               </form>

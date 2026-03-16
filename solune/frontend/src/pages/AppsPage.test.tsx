@@ -71,10 +71,8 @@ describe('AppsPage', () => {
     render(<AppsPage />);
 
     await userEvent.click(screen.getByRole('button', { name: /create app/i }));
-    await userEvent.type(screen.getByLabelText(/^name$/i), 'my-awesome-app');
     await userEvent.type(screen.getByLabelText(/display name/i), '  My Awesome App  ');
     await userEvent.type(screen.getByLabelText(/description/i), '  Sample app  ');
-    await userEvent.type(screen.getByLabelText(/target branch/i), '  feature/my-app  ');
 
     // Click the submit button inside the dialog (not the header CTA)
     const dialog = screen.getByRole('dialog');
@@ -86,7 +84,8 @@ describe('AppsPage', () => {
         name: 'my-awesome-app',
         display_name: 'My Awesome App',
         description: 'Sample app',
-        branch: 'feature/my-app',
+        branch: 'app/my-awesome-app',
+        ai_enhance: true,
       },
       expect.objectContaining({
         onSuccess: expect.any(Function),
@@ -109,9 +108,7 @@ describe('AppsPage', () => {
     render(<AppsPage />);
 
     await userEvent.click(screen.getByRole('button', { name: /create app/i }));
-    await userEvent.type(screen.getByLabelText(/^name$/i), 'my-awesome-app');
     await userEvent.type(screen.getByLabelText(/display name/i), 'My Awesome App');
-    await userEvent.type(screen.getByLabelText(/target branch/i), 'missing-branch');
 
     const dialog = screen.getByRole('dialog');
     const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;

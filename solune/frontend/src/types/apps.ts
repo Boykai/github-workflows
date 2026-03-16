@@ -26,6 +26,7 @@ export interface AppCreate {
   pipeline_id?: string;
   repo_type?: RepoType;
   external_repo_url?: string;
+  ai_enhance?: boolean;
 }
 
 export interface AppUpdate {

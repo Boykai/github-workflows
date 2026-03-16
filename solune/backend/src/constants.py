@@ -189,6 +189,7 @@ LABELS: list[str] = [
 
 PIPELINE_LABEL_PREFIX: str = "pipeline:"
 AGENT_LABEL_PREFIX: str = "agent:"
+SUB_ISSUE_LABEL: str = "sub-issue"
 ACTIVE_LABEL: str = "active"
 STALLED_LABEL: str = "stalled"
 
