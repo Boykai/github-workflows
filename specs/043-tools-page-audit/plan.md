@@ -184,8 +184,8 @@ All other phases depend on loading/error/empty states being correct.
 | # | Task | FR | Files |
 |---|------|----|-------|
 | 1.1 | ~~Replace plain-text loading indicators with `<CelestialLoader>` in RepoConfigPanel and McpPresetsGallery~~ ✅ Done | FR-001 | `RepoConfigPanel.tsx`, `McpPresetsGallery.tsx` |
-| 1.2 | ~~Add retry action button to error states in RepoConfigPanel and McpPresetsGallery~~ ✅ Done; still needed in ToolsPanel | FR-002 | `ToolsPanel.tsx` |
-| 1.3 | ~~Add rate-limit error detection in RepoConfigPanel and McpPresetsGallery~~ ✅ Done; still needed in ToolsPanel and useTools hook | FR-003 | `ToolsPanel.tsx`, `useTools.ts` |
+| 1.2 | Add retry action button to error states — ✅ Done in RepoConfigPanel and McpPresetsGallery; **remaining**: ToolsPanel | FR-002 | `ToolsPanel.tsx` |
+| 1.3 | Add rate-limit error detection using `isRateLimitApiError()` — ✅ Done in RepoConfigPanel and McpPresetsGallery; **remaining**: ToolsPanel and useTools hook | FR-003 | `ToolsPanel.tsx`, `useTools.ts` |
 | 1.4 | ~~Add empty state for McpPresetsGallery when presets list is empty after load~~ ✅ Done | FR-004 | `McpPresetsGallery.tsx` |
 | 1.5 | Verify independent section loading — each of tools list, repo config, and presets show own loading/error | FR-005 | `ToolsPanel.tsx` |
 | 1.6 | Replace inline delete confirmation in ToolsPanel with `<ConfirmationDialog>` component; add confirmation for repo server delete | FR-006 | `ToolsPanel.tsx` |
