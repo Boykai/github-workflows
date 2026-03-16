@@ -8,6 +8,7 @@ import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { ToolsPanel } from '@/components/tools/ToolsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
+import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 
 export function ToolsPage() {
@@ -75,9 +76,11 @@ export function ToolsPage() {
       )}
 
       {projectId && (
-        <div id="tools-catalog" className="min-w-0 scroll-mt-6">
-          <ToolsPanel projectId={projectId} />
-        </div>
+        <ErrorBoundary>
+          <div id="tools-catalog" className="min-w-0 scroll-mt-6">
+            <ToolsPanel projectId={projectId} />
+          </div>
+        </ErrorBoundary>
       )}
     </div>
   );

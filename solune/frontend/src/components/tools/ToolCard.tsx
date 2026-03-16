@@ -9,6 +9,19 @@ import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
+function formatRelativeTime(dateString: string): string {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / 60_000);
+  const diffHours = Math.floor(diffMs / 3_600_000);
+
+  if (diffMs < 0 || diffMinutes < 1) return 'Just now';
+  if (diffMinutes < 60) return `${diffMinutes}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return date.toLocaleDateString();
+}
+
 interface ToolCardProps {
   tool: McpToolConfig;
   onEdit: (tool: McpToolConfig) => void;
@@ -25,15 +38,22 @@ function SyncStatusBadge({ status, error }: { status: string; error?: string }) 
     error: 'solar-chip-danger',
   };
 
+  const labels: Record<string, string> = {
+    synced: 'Synced',
+    pending: 'Pending',
+    error: 'Error',
+  };
+
   return (
     <span
       className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] shadow-sm', styles[status] ?? styles.pending)}
       title={status === 'error' ? error : undefined}
     >
       {status === 'pending' && (
-        <span className="h-2.5 w-2.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
+        <span className="h-2.5 w-2.5 rounded-full border-2 border-current border-t-transparent animate-spin" aria-hidden="true" />
       )}
       {status === 'synced' ? 'Synced to GitHub' : status === 'error' ? 'Sync Error' : 'Pending'}
+      <span className="sr-only"> — Status: {labels[status] ?? 'Unknown'}</span>
     </span>
   );
 }
@@ -48,11 +68,15 @@ export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting
               <Wrench className="h-4 w-4 text-primary" />
             </div>
             <div className="min-w-0">
-              <h4 className="truncate text-sm font-semibold text-foreground">{tool.name}</h4>
+              <Tooltip content={tool.name}>
+                <h4 className="truncate text-sm font-semibold text-foreground">{tool.name}</h4>
+              </Tooltip>
               {tool.description && (
-                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                  {tool.description}
-                </p>
+                <Tooltip content={tool.description}>
+                  <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                    {tool.description}
+                  </p>
+                </Tooltip>
               )}
             </div>
           </div>
@@ -66,16 +90,18 @@ export function ToolCard({ tool, onEdit, onSync, onDelete, isSyncing, isDeleting
         )}
 
         {tool.github_repo_target && (
-          <p className="mt-3 truncate text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
-            Target: {tool.github_repo_target}
-          </p>
+          <Tooltip content={tool.github_repo_target}>
+            <p className="mt-3 truncate text-[10px] uppercase tracking-[0.16em] text-muted-foreground/70">
+              Target: {tool.github_repo_target}
+            </p>
+          </Tooltip>
         )}
 
         <div className="mt-3 flex items-center justify-between">
           <span className="text-[10px] text-muted-foreground/60">
             {tool.synced_at
-              ? `Synced ${new Date(tool.synced_at).toLocaleDateString()}`
-              : `Created ${new Date(tool.created_at).toLocaleDateString()}`}
+              ? `Synced ${formatRelativeTime(tool.synced_at)}`
+              : `Created ${formatRelativeTime(tool.created_at)}`}
           </span>
           <div className="flex items-center gap-1">
             <Tooltip contentKey="tools.card.editButton">
