@@ -30,6 +30,13 @@ export function AppsPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
 
+  const closeCreateDialog = useCallback(() => {
+    createMutation.reset();
+    setCreateError(null);
+    setShowCreateDialog(false);
+    createButtonRef.current?.focus();
+  }, [createMutation]);
+
   // Close dialog on Escape key
   useEffect(() => {
     if (!showCreateDialog) return;
@@ -41,7 +48,7 @@ export function AppsPage() {
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [showCreateDialog]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [showCreateDialog, closeCreateDialog]);
 
   const showSuccess = useCallback((message: string) => {
     setSuccessMessage(message);
@@ -52,13 +59,6 @@ export function AppsPage() {
     createMutation.reset();
     setCreateError(null);
     setShowCreateDialog(true);
-  };
-
-  const closeCreateDialog = () => {
-    createMutation.reset();
-    setCreateError(null);
-    setShowCreateDialog(false);
-    createButtonRef.current?.focus();
   };
 
   const handleStart = useCallback(async (name: string) => {
