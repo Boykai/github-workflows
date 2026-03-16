@@ -14,9 +14,9 @@ The top-level artefact: a Markdown file in `.github/ISSUE_TEMPLATE/` that GitHub
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
-| `name` | String | YAML front matter, required | Template display name in the "New Issue" picker (e.g., "UI Aduit") |
+| `name` | String | YAML front matter, required | Template display name in the "New Issue" picker (e.g., "UI Audit") |
 | `about` | String | YAML front matter, required | Short description shown in the template picker |
-| `title` | String | YAML front matter, required | Default issue title (e.g., "[CHORE] UI Aduit") |
+| `title` | String | YAML front matter, required | Default issue title (e.g., "[CHORE] UI Audit") |
 | `labels` | String | YAML front matter, required | Comma-separated labels auto-applied on issue creation (e.g., "chore") |
 | `assignees` | String | YAML front matter, optional | Default assignees (empty for this template) |
 | `body` | Markdown | Everything after YAML front matter | The issue body containing checklist, guide, files, and verification sections |

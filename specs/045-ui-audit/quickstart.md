@@ -14,7 +14,7 @@ This feature delivers a GitHub issue template for standardised UI page audits. T
 ## Template Location
 
 ```text
-.github/ISSUE_TEMPLATE/chore-ui-aduit.md
+.github/ISSUE_TEMPLATE/chore-ui-audit.md
 ```
 
 ## Quick Verification
@@ -23,15 +23,15 @@ This feature delivers a GitHub issue template for standardised UI page audits. T
 
 ```bash
 # Check the template file exists
-ls -la .github/ISSUE_TEMPLATE/chore-ui-aduit.md
+ls -la .github/ISSUE_TEMPLATE/chore-ui-audit.md
 
 # Verify YAML front matter
-head -7 .github/ISSUE_TEMPLATE/chore-ui-aduit.md
+head -7 .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected:
 # ---
-# name: UI Aduit
-# about: Recurring chore — UI Aduit
-# title: '[CHORE] UI Aduit'
+# name: UI Audit
+# about: Recurring chore — UI Audit
+# title: '[CHORE] UI Audit'
 # labels: chore
 # assignees: ''
 # ---
@@ -41,7 +41,7 @@ head -7 .github/ISSUE_TEMPLATE/chore-ui-aduit.md
 
 ```bash
 # Count total checklist items (lines starting with "- [ ]")
-grep -c '^\- \[ \]' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
+grep -c '^\- \[ \]' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected: 60 (minimum 59 per FR-012)
 ```
 
@@ -49,7 +49,7 @@ grep -c '^\- \[ \]' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
 
 ```bash
 # List all category headings
-grep '^### [0-9]' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
+grep '^### [0-9]' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected output:
 # ### 1. Component Architecture & Modularity
 # ### 2. Data Fetching & State Management
@@ -67,7 +67,7 @@ grep '^### [0-9]' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
 
 ```bash
 # List all phase headings
-grep '^### Phase' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
+grep '^### Phase' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected output:
 # ### Phase 1: Discovery & Assessment
 # ### Phase 2: Structural Fixes (if needed)
@@ -81,15 +81,15 @@ grep '^### Phase' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
 
 ```bash
 # Check for [PAGE_NAME] placeholder
-grep -c '\[PAGE_NAME\]' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
+grep -c '\[PAGE_NAME\]' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected: ≥2 (title heading and TL;DR)
 
 # Check for [PageName] placeholder (PascalCase file references)
-grep -c '\[PageName\]' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
+grep -c '\[PageName\]' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected: ≥3 (file paths in multiple sections)
 
 # Check for [feature] placeholder (directory references)
-grep -c '\[feature\]' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
+grep -c '\[feature\]' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected: ≥5 (component paths, test paths, etc.)
 ```
 
@@ -97,7 +97,7 @@ grep -c '\[feature\]' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
 
 ```bash
 # Check labels in front matter
-grep '^labels:' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
+grep '^labels:' .github/ISSUE_TEMPLATE/chore-ui-audit.md
 # Expected: labels: chore
 ```
 
@@ -106,14 +106,14 @@ grep '^labels:' .github/ISSUE_TEMPLATE/chore-ui-aduit.md
 After the branch is merged, verify the template works end-to-end:
 
 1. **Navigate** to the repository's "New Issue" page on GitHub
-2. **Select** the "UI Aduit" template from the template picker
+2. **Select** the "UI Audit" template from the template picker
 3. **Verify** the issue body contains all 10 audit category sections with checkbox items
 4. **Replace** all `[PAGE_NAME]` placeholders with a real page name (e.g., "Projects")
 5. **Replace** all `[PageName]` placeholders with the PascalCase name (e.g., "ProjectsPage")
 6. **Replace** all `[feature]` placeholders with the feature directory (e.g., "board")
 7. **Submit** the issue
 8. **Verify** the "chore" label is automatically applied
-9. **Verify** the issue title shows `[CHORE] UI Aduit`
+9. **Verify** the issue title shows `[CHORE] UI Audit`
 10. **Verify** checkbox counters display correctly (e.g., "0/7" per section)
 11. **Check** one checkbox item and verify the counter updates (e.g., "1/7")
 

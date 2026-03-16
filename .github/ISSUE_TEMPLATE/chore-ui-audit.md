@@ -1,7 +1,7 @@
 ---
-name: UI Aduit
-about: Recurring chore — UI Aduit
-title: '[CHORE] UI Aduit'
+name: UI Audit
+about: Recurring chore — UI Audit
+title: '[CHORE] UI Audit'
 labels: chore
 assignees: ''
 ---

@@ -8,7 +8,7 @@
 
 **Decision**: Use the legacy Markdown-based issue template format (`.github/ISSUE_TEMPLATE/*.md` with YAML front matter) rather than the newer YAML form-based templates (`.github/ISSUE_TEMPLATE/*.yml`).
 
-**Rationale**: The existing template (`chore-ui-aduit.md`) already uses the legacy Markdown format, which is consistent with all other chore templates in the repository (`chore-bug-basher.md`, `chore-security-review.md`, `chore-accessibility-check.md`, etc.). The Markdown format supports free-form checkbox lists (`- [ ]`), which is essential for the audit checklist (FR-003). The YAML form-based format would require converting each checkbox into a separate form field, adding unnecessary complexity.
+**Rationale**: The existing template (`chore-ui-audit.md`) already uses the legacy Markdown format, which is consistent with all other chore templates in the repository (`chore-bug-basher.md`, `chore-security-review.md`, `chore-accessibility-check.md`, etc.). The Markdown format supports free-form checkbox lists (`- [ ]`), which is essential for the audit checklist (FR-003). The YAML form-based format would require converting each checkbox into a separate form field, adding unnecessary complexity.
 
 **Alternatives considered**:
 
@@ -25,7 +25,7 @@
 
 | FR | Requirement | Status | Evidence |
 |----|-------------|--------|----------|
-| FR-001 | Selectable from "New Issue" page as "UI Audit" | ✅ | YAML front matter: `name: UI Aduit` |
+| FR-001 | Selectable from "New Issue" page as "UI Audit" | ✅ | YAML front matter: `name: UI Audit` |
 | FR-002 | All 10 audit categories present | ✅ | Sections 1–10 in the checklist |
 | FR-003 | GitHub-compatible checkboxes (`- [ ]`) | ✅ | All items use `- [ ]` format |
 | FR-004 | Single pass/fail condition per item | ✅ | Each item describes one observable condition |
@@ -34,7 +34,7 @@
 | FR-007 | Relevant files section with placeholder paths | ✅ | "Relevant Files" section with `[PageName]`, `[feature]` placeholders |
 | FR-008 | Verification section with commands | ✅ | 6 verification items (eslint, tsc, vitest, browser checks) |
 | FR-009 | Auto-apply "chore" label | ✅ | YAML front matter: `labels: chore` |
-| FR-010 | Default title format | ✅ | YAML front matter: `title: '[CHORE] UI Aduit'` |
+| FR-010 | Default title format | ✅ | YAML front matter: `title: '[CHORE] UI Audit'` |
 | FR-011 | Clear, unambiguous language | ✅ | Items reference specific patterns (e.g., "≤250 lines", "React Query", "WCAG AA 4.5:1") |
 | FR-012 | Minimum 59 checklist items | ✅ | 59 items across 10 categories |
 
@@ -89,14 +89,14 @@ This three-token design supports reuse across all pages (SC-007) without templat
 
 ### RT-005: Template Title Typo — "Aduit" vs "Audit"
 
-**Decision**: The template filename and title contain a typo: "aduit" instead of "audit". The YAML front matter reads `name: UI Aduit` and `title: '[CHORE] UI Aduit'`. The filename is `chore-ui-aduit.md`.
+**Decision**: The template filename and title originally contained a typo: "aduit" instead of "audit". This has been corrected. The YAML front matter now reads `name: UI Audit` and `title: '[CHORE] UI Audit'`. The filename is `chore-ui-audit.md`.
 
-**Rationale**: This is a pre-existing naming choice in the repository. The parent issue title also uses "UI Aduit" (#4170). Changing the filename or title would require updating the parent issue, the PR (#4169), and any references. The typo does not affect template functionality — GitHub renders the template correctly regardless of the filename or `name` field spelling. This is a cosmetic issue that can be addressed in a separate chore if desired, but is out of scope for this review-and-merge task.
+**Rationale**: The typo was introduced in the original template PR (#4169) and propagated through the parent issue (#4170). The correction aligns the template with the spec requirements (FR-001: selectable as "UI Audit"; FR-010: title `[CHORE] UI Audit`) and eliminates the spec-to-implementation inconsistency. The rename does not affect template functionality — the backend discovers chore templates dynamically by scanning `.github/ISSUE_TEMPLATE/` for `chore-*.md` files.
 
 **Alternatives considered**:
 
-- Fix the typo now: Not recommended as it would require coordinated changes across the issue, PR, and branch name, expanding scope beyond the spec.
-- Flag for future fix: Recommended — note the typo in the tasks for a potential follow-up.
+- Leave the typo and document it: Rejected because the spec already uses the correct spelling, creating a persistent spec-to-implementation gap.
+- Flag for future fix: No longer needed — the fix has been applied.
 
 ---
 
@@ -122,4 +122,4 @@ The UI Audit template conforms to this pattern exactly. No structural deviations
 
 ## Resolution Summary
 
-All research tasks are resolved. No NEEDS CLARIFICATION items remain. The template content is complete and satisfies all 12 functional requirements, all 8 success criteria, and is consistent with existing repository conventions. The only finding of note is the "aduit" typo (RT-005), which is a pre-existing naming choice and out of scope for this review.
+All research tasks are resolved. No NEEDS CLARIFICATION items remain. The template content is complete and satisfies all 12 functional requirements, all 8 success criteria, and is consistent with existing repository conventions. The "aduit" typo identified in RT-005 has been corrected — the template filename is now `chore-ui-audit.md` and the YAML front matter uses "UI Audit".
