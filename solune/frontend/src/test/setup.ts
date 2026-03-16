@@ -120,6 +120,12 @@ export interface MockApiShape {
     createMcp: Mock;
     deleteMcp: Mock;
   };
+  secretsApi: {
+    listSecrets: Mock;
+    setSecret: Mock;
+    deleteSecret: Mock;
+    checkSecrets: Mock;
+  };
 }
 
 /**
@@ -181,6 +187,12 @@ export function createMockApi(): MockApiShape {
       listMcps: vi.fn(),
       createMcp: vi.fn(),
       deleteMcp: vi.fn(),
+    },
+    secretsApi: {
+      listSecrets: vi.fn(),
+      setSecret: vi.fn(),
+      deleteSecret: vi.fn(),
+      checkSecrets: vi.fn(),
     },
   };
 }
