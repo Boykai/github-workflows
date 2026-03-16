@@ -9,7 +9,15 @@ from src.logging_utils import get_logger
 logger = get_logger(__name__)
 
 # Module-level lock for connection mutations
-_ws_lock = asyncio.Lock()
+_ws_lock: asyncio.Lock | None = None
+
+
+def _get_ws_lock() -> asyncio.Lock:
+    """Create the shared websocket lock lazily inside the active event loop."""
+    global _ws_lock
+    if _ws_lock is None:
+        _ws_lock = asyncio.Lock()
+    return _ws_lock
 
 
 class ConnectionManager:
@@ -31,7 +39,7 @@ class ConnectionManager:
         """
         await websocket.accept()
 
-        async with _ws_lock:
+        async with _get_ws_lock():
             if project_id not in self._connections:
                 self._connections[project_id] = set()
 
@@ -106,6 +114,18 @@ class ConnectionManager:
     def get_total_connections(self) -> int:
         """Get total number of active connections."""
         return sum(len(conns) for conns in self._connections.values())
+
+    async def shutdown(self) -> None:
+        """Close and forget all tracked WebSocket connections."""
+        sockets = list(self._socket_projects)
+        self._connections.clear()
+        self._socket_projects.clear()
+
+        for websocket in sockets:
+            try:
+                await websocket.close()
+            except Exception:
+                logger.debug("Failed to close WebSocket during shutdown", exc_info=True)
 
 
 # Global connection manager instance

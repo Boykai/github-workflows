@@ -19,7 +19,13 @@ class GitHubClientFactory:
     def __init__(self, max_pool_size: int = 50) -> None:
         self._pool: BoundedDict[str, GitHub] = BoundedDict(maxlen=max_pool_size)
         self._auto_retry = RetryChainDecision(RETRY_RATE_LIMIT, RETRY_SERVER_ERROR)
-        self._lock = asyncio.Lock()
+        self._lock: asyncio.Lock | None = None
+
+    def _get_lock(self) -> asyncio.Lock:
+        """Create the factory lock lazily under an active event loop."""
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     async def get_client(self, access_token: str) -> GitHub:
         """Return a pooled or newly created client for the given token."""
@@ -27,7 +33,7 @@ class GitHubClientFactory:
         client = self._pool.get(key)
         if client is not None:
             return client
-        async with self._lock:
+        async with self._get_lock():
             # Double-check after acquiring lock
             client = self._pool.get(key)
             if client is None:

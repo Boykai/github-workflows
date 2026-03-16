@@ -152,8 +152,19 @@ def mock_github_service() -> AsyncMock:
     without ``await`` in production code.
     """
     mock = AsyncMock(name="GitHubProjectsService", spec=GitHubProjectsService)
-    mock.get_last_rate_limit = MagicMock(return_value=None)
+    _configure_sync_github_service_methods(mock)
     return mock
+
+
+def _configure_sync_github_service_methods(mock: AsyncMock) -> None:
+    """Replace sync GitHub service helpers with ``MagicMock`` instances."""
+    mock.get_last_rate_limit = MagicMock(return_value=None)
+    mock.clear_cycle_cache = MagicMock(return_value=None)
+    mock.format_issue_context_as_prompt = MagicMock(return_value="")
+    mock.tailor_body_for_agent = MagicMock(return_value="")
+    mock.is_copilot_author = MagicMock(return_value=False)
+    mock.is_copilot_swe_agent = MagicMock(return_value=False)
+    mock.is_copilot_reviewer_bot = MagicMock(return_value=False)
 
 
 @pytest.fixture
@@ -292,6 +303,7 @@ async def client(
 def make_mock_github_service(**overrides) -> AsyncMock:
     """Create a pre-configured GitHubProjectsService mock with spec."""
     mock = AsyncMock(name="GitHubProjectsService", spec=GitHubProjectsService)
+    _configure_sync_github_service_methods(mock)
     mock.get_project_repository.return_value = overrides.pop(
         "get_project_repository", ("owner", "repo")
     )

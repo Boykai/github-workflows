@@ -29,10 +29,18 @@ _issue_sub_issue_map: BoundedDict[int, dict[str, dict]] = BoundedDict(maxlen=500
 _agent_trigger_inflight: BoundedDict[str, datetime] = BoundedDict(maxlen=2000)
 
 # Module-level lock for all mutations
-_store_lock = asyncio.Lock()
+_store_lock: asyncio.Lock | None = None
 
 # Module-level DB reference (set during init)
 _db: aiosqlite.Connection | None = None
+
+
+def _get_store_lock() -> asyncio.Lock:
+    """Create the shared store lock lazily inside the active event loop."""
+    global _store_lock
+    if _store_lock is None:
+        _store_lock = asyncio.Lock()
+    return _store_lock
 
 
 # ── Initialization ──────────────────────────────────────────────
@@ -299,7 +307,7 @@ async def set_pipeline_state(issue_number: int, state: Any) -> None:
     state.  Uses ``ON CONFLICT … DO UPDATE`` to preserve the original
     ``created_at`` timestamp on updates.
     """
-    async with _store_lock:
+    async with _get_store_lock():
         if _db is not None:
             try:
                 row = _pipeline_state_to_row(issue_number, state)
@@ -331,7 +339,7 @@ async def set_pipeline_state(issue_number: int, state: Any) -> None:
 
 async def delete_pipeline_state(issue_number: int) -> None:
     """Remove from both L1 cache and SQLite."""
-    async with _store_lock:
+    async with _get_store_lock():
         _pipeline_states.pop(issue_number, None)
         if _db is not None:
             try:
@@ -380,7 +388,7 @@ async def get_main_branch_async(issue_number: int) -> Any:
 
 async def set_main_branch(issue_number: int, info: Any) -> None:
     """Write-through: update L1 cache AND SQLite atomically."""
-    async with _store_lock:
+    async with _get_store_lock():
         _issue_main_branches[issue_number] = info
         if _db is not None:
             try:
@@ -398,7 +406,7 @@ async def set_main_branch(issue_number: int, info: Any) -> None:
 
 async def delete_main_branch(issue_number: int) -> None:
     """Remove from both L1 cache and SQLite."""
-    async with _store_lock:
+    async with _get_store_lock():
         _issue_main_branches.pop(issue_number, None)
         if _db is not None:
             try:
@@ -423,7 +431,7 @@ def get_sub_issue_map(issue_number: int) -> dict[str, dict]:
 
 async def set_sub_issue_map(issue_number: int, mappings: dict[str, dict]) -> None:
     """Write-through: merge into L1 cache AND SQLite atomically."""
-    async with _store_lock:
+    async with _get_store_lock():
         existing = _issue_sub_issue_map.get(issue_number, {})
         existing.update(mappings)
         _issue_sub_issue_map[issue_number] = existing
@@ -452,7 +460,7 @@ async def set_sub_issue_map(issue_number: int, mappings: dict[str, dict]) -> Non
 
 async def delete_sub_issue_map(issue_number: int) -> None:
     """Remove from both L1 cache and SQLite."""
-    async with _store_lock:
+    async with _get_store_lock():
         _issue_sub_issue_map.pop(issue_number, None)
         if _db is not None:
             try:
@@ -476,7 +484,7 @@ def get_trigger_inflight(trigger_key: str) -> datetime | None:
 
 async def set_trigger_inflight(trigger_key: str, started_at: datetime) -> None:
     """Write-through: update L1 cache AND SQLite atomically."""
-    async with _store_lock:
+    async with _get_store_lock():
         _agent_trigger_inflight[trigger_key] = started_at
         if _db is not None:
             try:
@@ -491,7 +499,7 @@ async def set_trigger_inflight(trigger_key: str, started_at: datetime) -> None:
 
 async def delete_trigger_inflight(trigger_key: str) -> None:
     """Remove from both L1 cache and SQLite."""
-    async with _store_lock:
+    async with _get_store_lock():
         _agent_trigger_inflight.pop(trigger_key, None)
         if _db is not None:
             try:
@@ -505,7 +513,7 @@ async def delete_trigger_inflight(trigger_key: str) -> None:
 
 async def clear_all_trigger_inflights() -> None:
     """Clear all trigger inflight markers from both L1 and SQLite."""
-    async with _store_lock:
+    async with _get_store_lock():
         _agent_trigger_inflight.clear()
         if _db is not None:
             try:

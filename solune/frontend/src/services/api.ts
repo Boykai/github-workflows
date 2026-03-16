@@ -74,7 +74,14 @@ import type {
   ToolChip,
   ToolDeleteResult,
   FileUploadResponse,
+  PipelineStateInfo,
 } from '@/types';
+import { BoardDataResponseSchema } from '@/services/schemas/board';
+import { ChatMessagesResponseSchema } from '@/services/schemas/chat';
+import { PipelineStateInfoSchema } from '@/services/schemas/pipeline';
+import { ProjectListResponseSchema } from '@/services/schemas/projects';
+import { EffectiveUserSettingsSchema } from '@/services/schemas/settings';
+import { validateResponse } from '@/services/schemas/validate';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
@@ -237,9 +244,10 @@ export const projectsApi = {
   /**
    * List all accessible GitHub Projects.
    */
-  list(refresh = false): Promise<ProjectListResponse> {
+  async list(refresh = false): Promise<ProjectListResponse> {
     const params = refresh ? '?refresh=true' : '';
-    return request<ProjectListResponse>(`/projects${params}`);
+    const data = await request<ProjectListResponse>(`/projects${params}`);
+    return validateResponse(ProjectListResponseSchema, data, 'projectsApi.list');
   },
 
   /**
@@ -296,8 +304,9 @@ export const chatApi = {
   /**
    * Get chat messages for current session.
    */
-  getMessages(): Promise<ChatMessagesResponse> {
-    return request<ChatMessagesResponse>('/chat/messages');
+  async getMessages(): Promise<ChatMessagesResponse> {
+    const data = await request<ChatMessagesResponse>('/chat/messages');
+    return validateResponse(ChatMessagesResponseSchema, data, 'chatApi.getMessages');
   },
 
   /**
@@ -375,9 +384,10 @@ export const boardApi = {
   /**
    * Get board data for a specific project.
    */
-  getBoardData(projectId: string, refresh = false): Promise<BoardDataResponse> {
+  async getBoardData(projectId: string, refresh = false): Promise<BoardDataResponse> {
     const params = refresh ? '?refresh=true' : '';
-    return request<BoardDataResponse>(`/board/projects/${projectId}${params}`);
+    const data = await request<BoardDataResponse>(`/board/projects/${projectId}${params}`);
+    return validateResponse(BoardDataResponseSchema, data, 'boardApi.getBoardData');
   },
 };
 
@@ -387,8 +397,9 @@ export const settingsApi = {
   /**
    * Get authenticated user's effective settings (merged with global defaults).
    */
-  getUserSettings(): Promise<EffectiveUserSettings> {
-    return request<EffectiveUserSettings>('/settings/user');
+  async getUserSettings(): Promise<EffectiveUserSettings> {
+    const data = await request<EffectiveUserSettings>('/settings/user');
+    return validateResponse(EffectiveUserSettingsSchema, data, 'settingsApi.getUserSettings');
   },
 
   /**
@@ -493,6 +504,11 @@ export const workflowApi = {
    */
   listAgents(): Promise<{ agents: AvailableAgent[] }> {
     return request<{ agents: AvailableAgent[] }>('/workflow/agents');
+  },
+
+  async getPipelineState(issueNumber: number): Promise<PipelineStateInfo> {
+    const data = await request<PipelineStateInfo>(`/workflow/pipeline-states/${issueNumber}`);
+    return validateResponse(PipelineStateInfoSchema, data, 'workflowApi.getPipelineState');
   },
 };
 

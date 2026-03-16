@@ -6,7 +6,9 @@ import re
 from typing import Any
 
 from fastapi import APIRouter, Header, Request
+from pydantic import ValidationError as PydanticValidationError
 
+from src.api.webhook_models import IssuesEvent, PingEvent, PullRequestData, PullRequestEvent
 from src.config import get_settings
 from src.exceptions import AppException, AuthenticationError
 from src.logging_utils import get_logger
@@ -50,7 +52,7 @@ def verify_webhook_signature(payload: bytes, signature: str | None, secret: str)
     return hmac.compare_digest(f"sha256={expected}", signature)
 
 
-def extract_issue_number_from_pr(pr_data: dict) -> int | None:
+def extract_issue_number_from_pr(pr_data: PullRequestData | dict[str, Any]) -> int | None:
     """
     Extract linked issue number from PR body or branch name.
 
@@ -65,7 +67,12 @@ def extract_issue_number_from_pr(pr_data: dict) -> int | None:
         Issue number if found, None otherwise
     """
     # Check PR body for issue references
-    body = pr_data.get("body") or ""
+    if isinstance(pr_data, PullRequestData):
+        body = pr_data.body or ""
+        branch_name = pr_data.head.ref
+    else:
+        body = pr_data.get("body") or ""
+        branch_name = pr_data.get("head", {}).get("ref", "")
 
     # Common patterns: Fixes #123, Closes #123, Resolves #123, Related to #123
     patterns = [
@@ -80,8 +87,6 @@ def extract_issue_number_from_pr(pr_data: dict) -> int | None:
             return int(match.group(1))
 
     # Check branch name for issue number
-    branch_name = pr_data.get("head", {}).get("ref", "")
-
     # Patterns like: issue-123, 123-feature, feature/123-description
     branch_patterns = [
         r"issue[/-](\d+)",
@@ -235,10 +240,28 @@ async def github_webhook(
 
     # Parse JSON payload
     try:
-        payload = await request.json()
+        raw_payload = await request.json()
     except Exception as e:
         logger.error("Failed to parse webhook payload: %s", e)
         raise AppException("Invalid JSON payload", status_code=400) from e
+
+    payload: PullRequestEvent | IssuesEvent | PingEvent | dict[str, Any]
+    try:
+        if x_github_event == "pull_request":
+            payload = PullRequestEvent.model_validate(raw_payload)
+        elif x_github_event == "issues":
+            payload = IssuesEvent.model_validate(raw_payload)
+        elif x_github_event == "ping":
+            payload = PingEvent.model_validate(raw_payload)
+        else:
+            payload = raw_payload
+    except PydanticValidationError as e:
+        logger.warning("Invalid webhook payload for event %s: %s", x_github_event, e)
+        raise AppException(
+            "Invalid webhook payload",
+            status_code=422,
+            details={"errors": e.errors()},
+        ) from e
 
     logger.info(
         "Received GitHub webhook: event=%s, delivery=%s",
@@ -248,6 +271,8 @@ async def github_webhook(
 
     # Handle pull_request events
     if x_github_event == "pull_request":
+        if not isinstance(payload, PullRequestEvent | dict):
+            raise AppException("Invalid webhook payload", status_code=422)
         return await handle_pull_request_event(payload)
 
     # Acknowledge other events — do not echo user-controlled header values
@@ -257,23 +282,32 @@ async def github_webhook(
     }
 
 
-async def handle_pull_request_event(payload: dict) -> dict[str, Any]:
+async def handle_pull_request_event(payload: PullRequestEvent | dict[str, Any]) -> dict[str, Any]:
     """
     Handle pull_request webhook events.
 
     Detects when GitHub Copilot marks a draft PR as ready for review,
     then updates the linked issue status to "In Review".
     """
-    action = payload.get("action")
-    pr_data = payload.get("pull_request", {})
-    repo_data = payload.get("repository", {})
-
-    pr_number = pr_data.get("number")
-    pr_author = pr_data.get("user", {}).get("login", "")
-    is_draft = pr_data.get("draft", False)
-
-    repo_owner = repo_data.get("owner", {}).get("login", "")
-    repo_name = repo_data.get("name", "")
+    if isinstance(payload, PullRequestEvent):
+        action = payload.action
+        pr_data = payload.pull_request.model_dump()
+        pr_number = payload.pull_request.number
+        pr_author = payload.pull_request.user.login
+        is_draft = payload.pull_request.draft
+        repo_owner = payload.repository.owner.login
+        repo_name = payload.repository.name
+        merged = payload.pull_request.merged
+    else:
+        action = payload.get("action")
+        pr_data = payload.get("pull_request", {})
+        repo_data = payload.get("repository", {})
+        pr_number = pr_data.get("number")
+        pr_author = pr_data.get("user", {}).get("login", "")
+        is_draft = pr_data.get("draft", False)
+        repo_owner = repo_data.get("owner", {}).get("login", "")
+        repo_name = repo_data.get("name", "")
+        merged = pr_data.get("merged")
 
     logger.info(
         "Pull request event: action=%s, pr=#%d, author=%s, is_draft=%s",
@@ -283,7 +317,7 @@ async def handle_pull_request_event(payload: dict) -> dict[str, Any]:
         is_draft,
     )
 
-    if action == "closed" and pr_data.get("merged"):
+    if action == "closed" and merged:
         cache.delete(get_repo_agents_cache_key(repo_owner, repo_name))
         logger.info(
             "Invalidated repo agent cache for %s/%s after merged PR #%d",

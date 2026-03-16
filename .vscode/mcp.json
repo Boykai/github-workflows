@@ -65,6 +65,13 @@
 			],
 			"gallery": "https://api.mcp.github.com",
 			"version": "1.0.0"
+		},
+		"debugmcp": {
+			"autoApprove": [],
+			"disabled": false,
+			"timeout": 180,
+			"type": "streamableHttp",
+			"url": "http://localhost:3001/mcp"
 		}
 	},
 	"inputs": [

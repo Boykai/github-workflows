@@ -30,7 +30,12 @@ class CopilotClientPool:
 
     def __init__(self, maxlen: int = 50) -> None:
         self._clients: BoundedDict[str, Any] = BoundedDict(maxlen=maxlen)
-        self._lock = asyncio.Lock()
+        self._lock: asyncio.Lock | None = None
+
+    def _get_lock(self) -> asyncio.Lock:
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     @staticmethod
     def _token_key(github_token: str) -> str:
@@ -47,7 +52,7 @@ class CopilotClientPool:
         if key in self._clients:
             return self._clients[key]
 
-        async with self._lock:
+        async with self._get_lock():
             # Double-check after acquiring lock
             if key in self._clients:
                 return self._clients[key]

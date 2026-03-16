@@ -8,24 +8,30 @@ T036:
 from unittest.mock import AsyncMock, patch
 
 import pytest
+import pytest_asyncio
+from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 
-@pytest.fixture
+@pytest_asyncio.fixture
 async def health_client():
     """Client for health endpoint tests — no auth dependency override needed."""
-    from src.main import create_app
+    from src.api.health import router as health_router
 
-    app = create_app()
+    app = FastAPI()
+    app.include_router(health_router, prefix="/api/v1")
     transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
-        yield ac
+    try:
+        async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+            yield ac
+    finally:
+        await transport.aclose()
 
 
 class TestHealthEndpoint:
     """GET /api/v1/health must return structured per-component health."""
 
-    @pytest.mark.anyio
+    @pytest.mark.asyncio
     async def test_healthy_response_structure(self, health_client):
         """When all checks pass, return 200 with status=pass and per-component results."""
         mock_db = AsyncMock()
@@ -51,7 +57,7 @@ class TestHealthEndpoint:
         assert "github_api" in body["checks"]
         assert "polling_loop" in body["checks"]
 
-    @pytest.mark.anyio
+    @pytest.mark.asyncio
     async def test_unhealthy_returns_503(self, health_client):
         """When database check fails, return 503 with status=fail."""
         mock_db = AsyncMock()
@@ -74,7 +80,7 @@ class TestHealthEndpoint:
         assert body["status"] == "fail"
         assert body["checks"]["database"][0]["status"] == "fail"
 
-    @pytest.mark.anyio
+    @pytest.mark.asyncio
     async def test_polling_not_running(self, health_client):
         """When polling loop is not running, it reports as warn but overall can still pass."""
         mock_db = AsyncMock()
