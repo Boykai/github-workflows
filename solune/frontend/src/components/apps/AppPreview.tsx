@@ -6,6 +6,7 @@
 
 import { useState } from 'react';
 import { AlertTriangle, Monitor } from 'lucide-react';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 
 interface AppPreviewProps {
   port: number | null;
@@ -20,7 +21,7 @@ export function AppPreview({ port, appName, isActive }: AppPreviewProps) {
   if (!isActive || !port) {
     return (
       <div className="flex h-96 flex-col items-center justify-center rounded-lg border border-dashed border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
-        <Monitor className="mb-3 h-10 w-10 text-zinc-400" />
+        <Monitor className="mb-3 h-10 w-10 text-zinc-400" aria-hidden="true" />
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           {isActive ? 'No port assigned' : 'Start the app to see a live preview'}
         </p>
@@ -35,15 +36,17 @@ export function AppPreview({ port, appName, isActive }: AppPreviewProps) {
       {/* Loading overlay */}
       {isLoading && !hasError && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/80 dark:bg-zinc-900/80">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-emerald-500" />
+          <CelestialLoader size="sm" label="Loading preview…" />
         </div>
       )}
 
       {/* Error fallback */}
       {hasError && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white dark:bg-zinc-900">
-          <AlertTriangle className="mb-2 h-8 w-8 text-amber-500" />
-          <p className="text-sm text-zinc-500">Could not load preview for {appName}</p>
+          <AlertTriangle className="mb-2 h-8 w-8 text-amber-500" aria-hidden="true" />
+          <p className="text-sm text-zinc-500 dark:text-zinc-400">
+            Could not load preview for {appName}. Check that the app is running.
+          </p>
         </div>
       )}
 
