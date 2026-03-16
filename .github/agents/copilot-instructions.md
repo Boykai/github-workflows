@@ -232,3 +232,10 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - Prefer Context7 when you need up-to-date library documentation and examples.
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
+
+## Active Technologies
+- TypeScript 5.9, React 19.2.0 + `react-router-dom` (routing), `lucide-react` (icons), `@radix-ui/react-accordion` (FAQ), Tailwind CSS 4.2 (styling) — all existing, no new dependencies (046-chat-help-docs)
+- N/A — frontend-only documentation changes; no backend or persistence changes (046-chat-help-docs)
+
+## Recent Changes
+- 046-chat-help-docs: Added TypeScript 5.9, React 19.2.0 + `react-router-dom` (routing), `lucide-react` (icons), `@radix-ui/react-accordion` (FAQ), Tailwind CSS 4.2 (styling) — all existing, no new dependencies
