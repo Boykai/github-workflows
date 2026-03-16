@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/043-apps-page-audit/`
 **Prerequisites**: spec.md (required for user stories)
 
-**Tests**: Tests are REQUIRED by the specification (FR-030, FR-031, FR-032). User Story 4 (P3) covers comprehensive test coverage for hooks, components, and edge cases.
+**Tests**: Tests are REQUIRED by the feature specification — FR-030 (hook tests), FR-031 (component interaction tests), FR-032 (edge case tests). See [spec.md](spec.md) for full requirement definitions. User Story 4 (P3) covers comprehensive test coverage for hooks, components, and edge cases.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story. This is a frontend-only audit — no backend changes required.
 
