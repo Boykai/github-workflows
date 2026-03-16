@@ -16,7 +16,9 @@ API Layer (services/api.ts)
   ├── boardApi.getBoardData()     ──→ useProjectBoard.boardQuery
   ├── projectsApi.list()          ──→ useProjects.projectsQuery
   ├── projectsApi.select()        ──→ useProjects.selectMutation
-  └── pipelinesApi.list()         ──→ PipelineSelector (internal query)
+  ├── pipelinesApi.list()         ──→ PipelineSelector (internal query)
+  ├── pipelinesApi.getAssignment()──→ PipelineSelector (assignment query)
+  └── pipelinesApi.setAssignment()──→ PipelineSelector (assignment mutation)
 
 Hook Layer
   ├── useProjects(selectedId)
@@ -60,11 +62,12 @@ All queries follow the established key pattern used across the application:
 
 | Query | Key Pattern | staleTime | Notes |
 |-------|-------------|-----------|-------|
-| Project list | `['projects', 'board-list']` | `STALE_TIME_PROJECTS` (30s) | Board-context project list |
-| Board data | `['projects', 'board', projectId]` | `STALE_TIME_SHORT` (10s) | Per-project board data |
-| User projects | `['projects', 'list']` | `STALE_TIME_PROJECTS` (30s) | Global project list |
-| User details | `['user', 'details']` | `STALE_TIME_MEDIUM` (60s) | Current user with selected project |
-| Pipeline list | `['pipelines', 'list', projectId]` | `STALE_TIME_PROJECTS` (30s) | Per-project pipelines |
+| Project list (board) | `['board', 'projects']` | `STALE_TIME_PROJECTS` (15 min) | Board-context project list |
+| Board data | `['board', 'data', projectId]` | `STALE_TIME_SHORT` (60s) | Per-project board data |
+| User projects | `['projects']` | `STALE_TIME_PROJECTS` (15 min) | Global project list |
+| Project tasks | `['projects', projectId, 'tasks']` | `STALE_TIME_PROJECTS` (15 min) | Per-project task list |
+| Pipeline list | `['pipelines', projectId]` | `STALE_TIME_PROJECTS` (15 min) | Per-project pipelines |
+| Pipeline assignment | `['pipelines', 'assignment', projectId]` | `STALE_TIME_PROJECTS` (15 min) | Per-project pipeline assignment |
 
 **Invariants**:
 - No two components should independently fetch the same query key. All data flows through hooks.
@@ -79,7 +82,7 @@ All queries follow the established key pattern used across the application:
 |----------|-------|
 | Hook | `useProjects` |
 | API call | `projectsApi.select(projectId)` |
-| On success | Invalidates `['user', 'details']`; updates local state |
+| On success | Invalidates `['projects']`; updates local state |
 | On error | Toast: "Could not switch project. Please try again." |
 | Optimistic | No — waits for server confirmation |
 
@@ -88,8 +91,8 @@ All queries follow the established key pattern used across the application:
 | Property | Value |
 |----------|-------|
 | Hook | `PipelineSelector` (internal mutation) |
-| API call | `pipelinesApi.assign(projectId, pipelineId)` |
-| On success | Invalidates `['pipelines', ...]`; toast: "Pipeline assigned successfully." |
+| API call | `pipelinesApi.setAssignment(projectId, pipelineId)` |
+| On success | Invalidates `['pipelines', 'assignment', ...]`; toast: "Pipeline assigned successfully." |
 | On error | Toast: "Could not assign pipeline. [Error message]. Please try again." |
 | Confirmation | Required if overriding existing assignment (FR-024) |
 | Optimistic | No — waits for server confirmation |
