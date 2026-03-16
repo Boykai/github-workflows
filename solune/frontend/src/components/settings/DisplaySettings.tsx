@@ -41,8 +41,9 @@ export function DisplaySettings({ form }: DisplaySettingsProps) {
         </select>
       </div>
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
+        <label htmlFor="global-sidebar-collapsed" className="flex items-center gap-2 text-sm font-medium text-foreground cursor-pointer">
           <input
+            id="global-sidebar-collapsed"
             type="checkbox"
             className="celestial-focus w-4 h-4 rounded border-input text-primary"
             {...register('sidebar_collapsed')}

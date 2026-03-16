@@ -8,6 +8,7 @@
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { SettingsSection } from './SettingsSection';
 import { AISettingsSection } from './AISettingsSection';
 import { DisplaySettings } from './DisplaySettings';
@@ -43,7 +44,9 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
   if (isLoading || !settings) {
     return (
       <SettingsSection title="Global Settings" description="Instance-wide defaults" hideSave>
-        <p>Loading global settings...</p>
+        <div className="flex items-center justify-center py-8">
+          <CelestialLoader size="md" label="Loading global settings…" />
+        </div>
       </SettingsSection>
     );
   }
@@ -79,8 +82,12 @@ export function GlobalSettings({ settings, isLoading, onSave }: GlobalSettingsPr
             type="text"
             className="celestial-focus flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none"
             placeholder="gpt-4o, gpt-4"
+            aria-describedby="global-models-hint"
             {...form.register('allowed_models')}
           />
+          <p id="global-models-hint" className="text-xs text-muted-foreground">
+            List the model IDs users are permitted to select, separated by commas.
+          </p>
         </div>
       </SettingsSection>
     </div>
