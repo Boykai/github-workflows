@@ -394,7 +394,6 @@ export function ProjectsPage() {
           selectedProjectId={selectedProjectId}
           onSelectProject={selectProject}
           description="Open one of your GitHub Projects to review its board, column flow, and current delivery state."
-          showProjectPicker={false}
         />
       )}
 
