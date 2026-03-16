@@ -3,7 +3,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { appsApi, type ApiError } from '@/services/api';
+import { ApiError, appsApi } from '@/services/api';
 import type { App, AppCreate, AppStatusResponse, AppUpdate } from '@/types/apps';
 
 /** Query key factory for apps data. */
@@ -14,9 +14,25 @@ export const appKeys = {
   status: (name: string) => [...appKeys.all, 'status', name] as const,
 };
 
+/** Type guard to check if an error is an ApiError. */
+export function isApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError;
+}
+
+/** Extract a user-friendly message from an error. */
+export function getErrorMessage(error: unknown, fallback: string): string {
+  if (isApiError(error)) {
+    return error.error?.error ?? error.message ?? fallback;
+  }
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return fallback;
+}
+
 /** Fetch all applications. */
 export function useApps() {
-  return useQuery<App[]>({
+  return useQuery<App[], ApiError>({
     queryKey: appKeys.list(),
     queryFn: () => appsApi.list(),
     staleTime: 30_000,
@@ -25,7 +41,7 @@ export function useApps() {
 
 /** Fetch a single application by name. */
 export function useApp(name: string | undefined) {
-  return useQuery<App>({
+  return useQuery<App, ApiError>({
     queryKey: appKeys.detail(name ?? ''),
     queryFn: () => appsApi.get(name!),
     enabled: !!name,
