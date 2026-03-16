@@ -1,0 +1,47 @@
+/**
+ * Admin Tab component.
+ *
+ * Consolidates admin-only settings into a single tab:
+ * - Global Settings (instance-wide defaults)
+ * - Project Settings (per-project board config and agent mappings)
+ *
+ * This tab is only visible to admin users.
+ */
+
+import { GlobalSettings } from './GlobalSettings';
+import { ProjectSettings } from './ProjectSettings';
+import type { GlobalSettings as GlobalSettingsType, GlobalSettingsUpdate } from '@/types';
+
+interface AdminTabProps {
+  globalSettings: GlobalSettingsType | undefined;
+  globalLoading: boolean;
+  onGlobalSave: (update: GlobalSettingsUpdate) => Promise<void>;
+  projects?: Array<{ project_id: string; name: string }>;
+  selectedProjectId?: string;
+}
+
+export function AdminTab({
+  globalSettings,
+  globalLoading,
+  onGlobalSave,
+  projects = [],
+  selectedProjectId,
+}: AdminTabProps) {
+  return (
+    <div className="flex flex-col gap-8">
+      {/* Global Settings */}
+      <section aria-label="Global Settings">
+        <GlobalSettings
+          settings={globalSettings}
+          isLoading={globalLoading}
+          onSave={onGlobalSave}
+        />
+      </section>
+
+      {/* Project Settings */}
+      <section aria-label="Project Settings">
+        <ProjectSettings projects={projects} selectedProjectId={selectedProjectId} />
+      </section>
+    </div>
+  );
+}

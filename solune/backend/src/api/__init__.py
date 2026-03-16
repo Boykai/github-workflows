@@ -3,6 +3,7 @@
 from fastapi import APIRouter
 
 from src.api.agents import router as agents_router
+from src.api.secrets import router as secrets_router
 from src.api.apps import router as apps_router
 from src.api.auth import router as auth_router
 from src.api.board import router as board_router
@@ -33,6 +34,7 @@ router.include_router(agents_router, prefix="/agents", tags=["agents"])
 router.include_router(workflow_router, tags=["workflow"])
 router.include_router(settings_router, prefix="/settings", tags=["settings"])
 router.include_router(mcp_router, prefix="/settings", tags=["mcp"])
+router.include_router(secrets_router, prefix="/secrets", tags=["secrets"])
 router.include_router(signal_router, prefix="/signal", tags=["signal"])
 router.include_router(webhooks_router, prefix="/webhooks", tags=["webhooks"])
 router.include_router(cleanup_router, prefix="/cleanup", tags=["cleanup"])

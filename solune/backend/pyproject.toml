@@ -21,6 +21,8 @@ dependencies = [
     "aiosqlite>=0.22.0,<1",
     # Encryption for session tokens
     "cryptography>=46.0.5,<47",
+    # NaCl sealed-box encryption for GitHub Actions secrets
+    "pynacl>=1.5.0,<2",
     # Signal messaging integration
     "tenacity>=9.1.0,<10",
     "websockets>=16.0,<17",

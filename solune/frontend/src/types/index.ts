@@ -1253,6 +1253,7 @@ export interface McpPreset {
   category: string;
   icon: string;
   config_content: string;
+  required_secrets: string[];
 }
 
 export interface McpPresetListResponse {
@@ -1292,4 +1293,21 @@ export interface FaqEntry {
   question: string;
   answer: string;
   category: FaqCategory;
+}
+
+// ============ Secrets ============
+
+export interface SecretListItem {
+  name: string;
+  created_at: string | null;
+  updated_at: string | null;
+}
+
+export interface SecretsListResponse {
+  total_count: number;
+  secrets: SecretListItem[];
+}
+
+export interface SecretCheckResponse {
+  results: Record<string, boolean>;
 }

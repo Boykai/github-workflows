@@ -107,6 +107,7 @@ class McpPresetResponse(BaseModel):
     category: str
     icon: str
     config_content: str
+    required_secrets: list[str] = Field(default_factory=list)
 
 
 class McpPresetListResponse(BaseModel):
