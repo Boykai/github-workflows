@@ -1,7 +1,7 @@
 /**
  * Tests for ChoresPanel component.
  *
- * Covers: empty state rendering, chore list rendering, loading state.
+ * Covers: empty state rendering, chore list rendering, loading state, error state.
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -112,7 +112,7 @@ describe('ChoresPanel', () => {
       expect(screen.getByText('No chores yet')).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/Add a chore to set up/)).toBeInTheDocument();
+    expect(screen.getByText(/Create a chore to set up/)).toBeInTheDocument();
   });
 
   it('renders chore list with ChoreCards', async () => {
@@ -135,15 +135,14 @@ describe('ChoresPanel', () => {
     expect(screen.getAllByText('Dependency Update').length).toBeGreaterThan(0);
   });
 
-  it('renders loading state with skeleton placeholders', () => {
+  it('renders loading state with CelestialLoader', () => {
     // Never resolve the promise to keep loading state
     mockList.mockReturnValue(new Promise(() => {}));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
-    // Should show animated placeholder skeletons
-    const skeletons = document.querySelectorAll('.animate-pulse');
-    expect(skeletons.length).toBeGreaterThanOrEqual(1);
+    // Should show the CelestialLoader spinner (role="status")
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('renders error state when API call fails', async () => {
@@ -152,7 +151,7 @@ describe('ChoresPanel', () => {
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to load chores')).toBeInTheDocument();
+      expect(screen.getByText('Could not load chores')).toBeInTheDocument();
     });
   });
 
