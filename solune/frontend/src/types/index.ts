@@ -481,6 +481,7 @@ export interface GlobalSettings {
   workflow: WorkflowDefaults;
   notifications: NotificationPreferences;
   allowed_models: string[];
+  admin_github_user_id?: string | null;
 }
 
 export interface ProjectBoardConfig {
@@ -1253,6 +1254,7 @@ export interface McpPreset {
   category: string;
   icon: string;
   config_content: string;
+  required_secrets: string[];
 }
 
 export interface McpPresetListResponse {
@@ -1292,4 +1294,21 @@ export interface FaqEntry {
   question: string;
   answer: string;
   category: FaqCategory;
+}
+
+// ============ Secrets Types (048-settings-page-refactor) ============
+
+export interface SecretListItem {
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SecretsListResponse {
+  total_count: number;
+  secrets: SecretListItem[];
+}
+
+export interface SecretCheckResponse {
+  results: Record<string, boolean>;
 }

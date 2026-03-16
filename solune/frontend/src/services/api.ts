@@ -74,6 +74,8 @@ import type {
   ToolChip,
   ToolDeleteResult,
   FileUploadResponse,
+  SecretsListResponse,
+  SecretCheckResponse,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
@@ -1165,5 +1167,61 @@ export const appsApi = {
 
   status(appName: string): Promise<AppStatusResponse> {
     return request<AppStatusResponse>(`/apps/${appName}/status`);
+  },
+};
+
+// ============ Secrets API ============
+
+export const secretsApi = {
+  /**
+   * List secret names + metadata for a repository environment.
+   */
+  listSecrets(owner: string, repo: string, environment: string): Promise<SecretsListResponse> {
+    return request<SecretsListResponse>(`/secrets/${owner}/${repo}/${environment}`);
+  },
+
+  /**
+   * Create or update an environment secret.
+   */
+  setSecret(
+    owner: string,
+    repo: string,
+    environment: string,
+    secretName: string,
+    value: string
+  ): Promise<void> {
+    return request<void>(`/secrets/${owner}/${repo}/${environment}/${secretName}`, {
+      method: 'PUT',
+      body: JSON.stringify({ value }),
+    });
+  },
+
+  /**
+   * Delete an environment secret.
+   */
+  deleteSecret(
+    owner: string,
+    repo: string,
+    environment: string,
+    secretName: string
+  ): Promise<void> {
+    return request<void>(`/secrets/${owner}/${repo}/${environment}/${secretName}`, {
+      method: 'DELETE',
+    });
+  },
+
+  /**
+   * Check which secret names exist in the environment.
+   */
+  checkSecrets(
+    owner: string,
+    repo: string,
+    environment: string,
+    names: string[]
+  ): Promise<SecretCheckResponse> {
+    const param = encodeURIComponent(names.join(','));
+    return request<SecretCheckResponse>(
+      `/secrets/${owner}/${repo}/${environment}/check?names=${param}`
+    );
   },
 };
