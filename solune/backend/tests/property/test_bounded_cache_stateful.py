@@ -9,13 +9,17 @@ from src.utils import BoundedDict, BoundedSet
 
 
 class BoundedCacheStateMachine(RuleBasedStateMachine):
+    def _record_eviction(self, key: str, value: int) -> None:
+        self.evicted.append((key, value))
+
     @initialize()
     def init_state(self) -> None:
         self.maxlen = 3
         self.evicted: list[tuple[str, int]] = []
+        self.expected_evictions: list[tuple[str, int]] = []
         self.model_dict: OrderedDict[str, int] = OrderedDict()
         self.model_set: OrderedDict[str, None] = OrderedDict()
-        self.bound_dict = BoundedDict[str, int](maxlen=self.maxlen, on_evict=self.evicted.append)
+        self.bound_dict = BoundedDict[str, int](maxlen=self.maxlen, on_evict=self._record_eviction)
         self.bound_set = BoundedSet[str](maxlen=self.maxlen)
 
     @rule(key=st.text(min_size=1, max_size=5), value=st.integers(min_value=0, max_value=100))
@@ -25,7 +29,7 @@ class BoundedCacheStateMachine(RuleBasedStateMachine):
             self.model_dict[key] = value
         else:
             if len(self.model_dict) >= self.maxlen:
-                self.model_dict.popitem(last=False)
+                self.expected_evictions.append(self.model_dict.popitem(last=False))
             self.model_dict[key] = value
         self.bound_dict[key] = value
 
@@ -61,8 +65,7 @@ class BoundedCacheStateMachine(RuleBasedStateMachine):
 
     @invariant()
     def eviction_callback_matches_capacity_pressure(self) -> None:
-        expected_evictions = max(0, len(self.evicted))
-        assert len(self.evicted) == expected_evictions
+        assert self.evicted == self.expected_evictions
 
 
 TestBoundedCacheStateMachine = BoundedCacheStateMachine.TestCase

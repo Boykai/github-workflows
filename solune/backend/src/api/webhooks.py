@@ -3,7 +3,7 @@
 import hashlib
 import hmac
 import re
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, Header, Request
 from pydantic import ValidationError as PydanticValidationError
@@ -271,9 +271,7 @@ async def github_webhook(
 
     # Handle pull_request events
     if x_github_event == "pull_request":
-        if not isinstance(payload, PullRequestEvent | dict):
-            raise AppException("Invalid webhook payload", status_code=422)
-        return await handle_pull_request_event(payload)
+        return await handle_pull_request_event(cast(PullRequestEvent | dict[str, Any], payload))
 
     # Acknowledge other events — do not echo user-controlled header values
     return {

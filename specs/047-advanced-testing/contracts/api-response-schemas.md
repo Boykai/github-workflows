@@ -168,9 +168,11 @@ import { ProjectListResponseSchema } from './schemas/projects';
 // Helper for dev-mode validation
 function validateResponse<T>(schema: z.ZodType<T>, data: unknown, endpoint: string): T {
   if (import.meta.env.DEV) {
-    const result = schema.safeParse(data);
-    if (!result.success) {
-      console.error(`[API Schema Validation] ${endpoint}:`, result.error.issues);
+    try {
+      return schema.parse(data);
+    } catch (error) {
+      console.error(`[API Schema Validation] ${endpoint}:`, error);
+      throw error;
     }
   }
   return data as T;
@@ -185,6 +187,6 @@ async getUserProjects(): Promise<ProjectListResponse> {
 
 ## Validation Behavior
 
-- **Dev mode** (`import.meta.env.DEV`): Logs validation errors to console; does not throw (non-blocking)
-- **Test mode**: Schema validation failures cause test failures via console.error spy
+- **Dev mode** (`import.meta.env.DEV`): Logs validation errors to console and rethrows schema failures
+- **Test mode**: Schema validation failures surface as test failures via thrown `ZodError`
 - **Production**: Schema code is tree-shaken by Vite; zero runtime overhead

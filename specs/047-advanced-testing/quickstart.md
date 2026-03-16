@@ -19,11 +19,11 @@ cd solune/backend
 
 # Run all new test directories
 source .venv/bin/activate
-pytest tests/concurrency/ -v      # Phase 7: Race condition tests
-pytest tests/chaos/ -v             # Phase 8: Fault injection tests
-pytest tests/property/ -v          # Phase 9: Stateful property tests (+ existing)
-pytest tests/fuzz/ -v              # Phase 11: Fuzz tests
-pytest tests/integration/ -v       # Phase 12: Thin-mock + migration tests
+pytest tests/concurrency/ -v      # Phase 3: Race condition tests
+pytest tests/chaos/ -v            # Phase 4: Fault injection tests
+pytest tests/property/ -v         # Phase 5: Stateful property tests (+ existing)
+pytest tests/fuzz/ -v             # Phase 7: Fuzz tests
+pytest tests/integration/ -v      # Phase 8: Thin-mock + migration tests
 
 # Run specific test suites
 pytest tests/property/test_pipeline_state_machine.py -v  # Pipeline state machine

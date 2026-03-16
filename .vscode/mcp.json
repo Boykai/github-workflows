@@ -68,7 +68,7 @@
 		},
 		"debugmcp": {
 			"autoApprove": [],
-			"disabled": false,
+			"disabled": true,
 			"timeout": 180,
 			"type": "streamableHttp",
 			"url": "http://localhost:3001/mcp"
