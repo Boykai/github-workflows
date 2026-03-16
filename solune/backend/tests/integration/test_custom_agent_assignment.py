@@ -19,15 +19,17 @@ import os
 import sys
 from pathlib import Path
 
+import pytest
+
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.constants import DEFAULT_AGENT_MAPPINGS
-from src.services.github_projects import GitHubProjectsService
 
 
 async def test_custom_agent_assignment():
     """Test assigning an issue to a custom agent via agent_mappings."""
+    from src.services.github_projects import GitHubProjectsService
 
     # Configuration - update these values for your test
     GITHUB_TOKEN = os.environ.get("GITHUB_TOKEN")
@@ -40,9 +42,7 @@ async def test_custom_agent_assignment():
     )
 
     if not GITHUB_TOKEN:
-        print("ERROR: GITHUB_TOKEN environment variable is required")
-        print("Set it with: export GITHUB_TOKEN='your-github-token'")
-        return False
+        pytest.skip("GITHUB_TOKEN is required for live custom agent assignment testing")
 
     print("=" * 60)
     print("GitHub Copilot Agent Mapping Assignment Test")
@@ -153,8 +153,6 @@ async def test_rest_api_payload():
     print("REST API Payload Verification Test")
     print("=" * 60)
 
-    service = GitHubProjectsService()
-
     # Create test payload
     payload = {
         "assignees": ["copilot-swe-agent[bot]"],
@@ -175,8 +173,6 @@ async def test_rest_api_payload():
     print("-" * 40)
 
     print("\n✅ Payload structure matches GitHub documentation")
-
-    await service.close()
     return True
 
 

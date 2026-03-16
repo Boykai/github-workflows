@@ -197,6 +197,10 @@ def render_tracking_markdown(steps: list[AgentStep]) -> str:
     """
     has_groups = any(step.group_label for step in steps)
 
+    def sanitize_cell(value: str) -> str:
+        normalized = "".join(ch if ch.isprintable() and ch not in "\r\n" else " " for ch in value)
+        return normalized.replace("|", "\\|").replace("`", "'")
+
     if has_groups:
         lines = [
             "",
@@ -208,10 +212,11 @@ def render_tracking_markdown(steps: list[AgentStep]) -> str:
             "|---|--------|-------|-------|-------|-------|",
         ]
         for step in steps:
-            model_display = (step.model or "TBD").replace("|", "\\|")
-            group_display = (step.group_label or "").replace("|", "\\|")
+            model_display = sanitize_cell(step.model or "TBD")
+            group_display = sanitize_cell(step.group_label or "")
+            agent_display = sanitize_cell(step.agent_name)
             lines.append(
-                f"| {step.index} | {step.status} | {group_display} | `{step.agent_name}` | {model_display} | {step.state} |"
+                f"| {step.index} | {sanitize_cell(step.status)} | {group_display} | `{agent_display}` | {model_display} | {sanitize_cell(step.state)} |"
             )
     else:
         lines = [
@@ -224,9 +229,10 @@ def render_tracking_markdown(steps: list[AgentStep]) -> str:
             "|---|--------|-------|-------|-------|",
         ]
         for step in steps:
-            model_display = (step.model or "TBD").replace("|", "\\|")
+            model_display = sanitize_cell(step.model or "TBD")
+            agent_display = sanitize_cell(step.agent_name)
             lines.append(
-                f"| {step.index} | {step.status} | `{step.agent_name}` | {model_display} | {step.state} |"
+                f"| {step.index} | {sanitize_cell(step.status)} | `{agent_display}` | {model_display} | {sanitize_cell(step.state)} |"
             )
     lines.append("")
     return "\n".join(lines)

@@ -83,7 +83,12 @@ class GitHubCopilotModelFetcher(ModelFetchProvider):
         self._pool = pool or copilot_client_pool
         self._last_list_models_at: float = 0.0
         self._min_list_models_interval: float = 2.0
-        self._lock = asyncio.Lock()
+        self._lock: asyncio.Lock | None = None
+
+    def _get_lock(self) -> asyncio.Lock:
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
 
     async def fetch_models(self, token: str | None = None) -> list[ModelOption]:
         if not token:
@@ -91,7 +96,7 @@ class GitHubCopilotModelFetcher(ModelFetchProvider):
 
         client = await self._pool.get_or_create(token)
 
-        async with self._lock:
+        async with self._get_lock():
             elapsed = time.monotonic() - self._last_list_models_at
             if self._last_list_models_at > 0 and elapsed < self._min_list_models_interval:
                 await asyncio.sleep(self._min_list_models_interval - elapsed)

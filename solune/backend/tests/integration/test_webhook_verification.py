@@ -10,9 +10,13 @@ import hmac
 import json
 from unittest.mock import AsyncMock, patch
 
+import pytest
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from httpx import ASGITransport, AsyncClient
 
 from src.config import Settings
+from src.exceptions import AppException
 from src.models.user import UserSession
 
 # Production-valid secrets for tests that need debug=False
@@ -39,14 +43,31 @@ def _sign_payload(payload: bytes, secret: str) -> str:
     return f"sha256={sig}"
 
 
+def _build_webhook_app() -> FastAPI:
+    from src.api.webhooks import router as webhooks_router
+
+    app = FastAPI()
+
+    @app.exception_handler(AppException)
+    async def _app_exception_handler(_request, exc: AppException) -> JSONResponse:
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "error": exc.message,
+                "details": exc.details,
+            },
+        )
+
+    app.include_router(webhooks_router, prefix="/api/v1/webhooks")
+    return app
+
+
+@pytest.mark.asyncio
 class TestWebhookVerification:
     """Webhook signature verification must always be enforced."""
 
     async def test_unsigned_payload_rejected_without_secret(self):
         """POST /webhooks/github without signature → 401 when no secret configured."""
-        from src.api.auth import get_session_dep
-        from src.main import create_app
-
         # In debug mode with no secret, webhooks are now rejected (bypass removed)
         settings = Settings(
             github_client_id="id",
@@ -56,32 +77,29 @@ class TestWebhookVerification:
             github_webhook_secret=None,
             _env_file=None,
         )
-        app = create_app()
-        session = _make_session()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app = _build_webhook_app()
         with (
             patch("src.config.get_settings", return_value=settings),
             patch("src.api.webhooks.get_settings", return_value=settings),
         ):
             transport = ASGITransport(app=app)
-            async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
-                resp = await ac.post(
-                    "/api/v1/webhooks/github",
-                    json={"action": "opened"},
-                    headers={
-                        "X-GitHub-Event": "pull_request",
-                        "X-GitHub-Delivery": "test-delivery-001",
-                    },
-                )
+            try:
+                async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+                    resp = await ac.post(
+                        "/api/v1/webhooks/github",
+                        json={"action": "opened"},
+                        headers={
+                            "X-GitHub-Event": "pull_request",
+                            "X-GitHub-Delivery": "test-delivery-001",
+                        },
+                    )
+            finally:
+                await transport.aclose()
 
         assert resp.status_code == 401, f"Expected 401 for unsigned webhook, got {resp.status_code}"
-        app.dependency_overrides.clear()
 
     async def test_valid_signature_accepted(self):
         """POST /webhooks/github with valid signature → 200."""
-        from src.api.auth import get_session_dep
-        from src.main import create_app
-
         webhook_secret = "test-webhook-secret"
         settings = Settings(
             github_client_id="id",
@@ -96,9 +114,7 @@ class TestWebhookVerification:
         payload = json.dumps({"action": "opened"}).encode()
         signature = _sign_payload(payload, webhook_secret)
 
-        app = create_app()
-        session = _make_session()
-        app.dependency_overrides[get_session_dep] = lambda: session
+        app = _build_webhook_app()
         mock_gh = AsyncMock(name="github_projects_service")
         with (
             patch("src.config.get_settings", return_value=settings),
@@ -106,19 +122,21 @@ class TestWebhookVerification:
             patch("src.api.webhooks.github_projects_service", mock_gh),
         ):
             transport = ASGITransport(app=app)
-            async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
-                resp = await ac.post(
-                    "/api/v1/webhooks/github",
-                    content=payload,
-                    headers={
-                        "Content-Type": "application/json",
-                        "X-GitHub-Event": "ping",
-                        "X-GitHub-Delivery": "test-delivery-003",
-                        "X-Hub-Signature-256": signature,
-                    },
-                )
+            try:
+                async with AsyncClient(transport=transport, base_url="http://testserver") as ac:
+                    resp = await ac.post(
+                        "/api/v1/webhooks/github",
+                        content=payload,
+                        headers={
+                            "Content-Type": "application/json",
+                            "X-GitHub-Event": "ping",
+                            "X-GitHub-Delivery": "test-delivery-003",
+                            "X-Hub-Signature-256": signature,
+                        },
+                    )
+            finally:
+                await transport.aclose()
 
         assert resp.status_code == 200, (
             f"Expected 200 for signed webhook, got {resp.status_code}: {resp.text}"
         )
-        app.dependency_overrides.clear()

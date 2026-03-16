@@ -238,16 +238,12 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - N/A — frontend-only audit; backend API unchanged (043-projects-page-audit)
 - Python 3.12+ (backend), TypeScript 5.9 (frontend) + FastAPI + Pydantic (backend), React 19 + Vite 7 + TanStack Query (frontend) (046-modernize-testing)
 - aiosqlite (backend sessions/settings) (046-modernize-testing)
+- Python ≥3.12 (backend), TypeScript ~5.9 (frontend) + FastAPI, Pydantic 2, aiosqlite, httpx, hypothesis (backend); React 19, Vite 7, Vitest 4, Zod 4 (frontend) (047-advanced-testing)
+- SQLite via aiosqlite with SQL migration files (023–027), `BoundedDict`/`BoundedSet` L1 in-memory caches (047-advanced-testing)
 
 ## Recent Changes
-- 043-projects-page-audit: Added TypeScript 5.9, React 19.2.0 + `@tanstack/react-query@^5.90.0`, `react-router-dom`, `lucide-react`, `@radix-ui/react-tooltip`, `@dnd-kit/core` (drag-and-drop), Tailwind CSS 4.2
-- TypeScript 5.9 with React 19.2, TanStack React Query 5.90, Tailwind CSS 4.2, Radix UI, Lucide React icons, class-variance-authority, tailwind-merge, react-router-dom 7.13 (043-chores-page-audit)
-- N/A (frontend-only; backend uses SQLite with FastAPI) (043-chores-page-audit)
-
-## Recent Changes
+- 047-advanced-testing: Added Python ≥3.12 (backend), TypeScript ~5.9 (frontend) + FastAPI, Pydantic 2, aiosqlite, httpx, hypothesis (backend); React 19, Vite 7, Vitest 4, Zod 4 (frontend)
 - 046-modernize-testing: Added Python 3.12+ (backend), TypeScript 5.9 (frontend) + FastAPI + Pydantic (backend), React 19 + Vite 7 + TanStack Query (frontend)
 - 043-chores-page-audit: Added TypeScript 5.9 with React 19.2, TanStack React Query 5.90, Tailwind CSS 4.2, Radix UI, Lucide React icons, tailwind-merge, react-router-dom 7.13
-- TypeScript ~5.9 (frontend), React 19.2.0 + TanStack React Query 5.90, Tailwind CSS 4.2, Vite 7.3, lucide-react (icons), Radix UI primitives (via shadcn/ui components) (043-tools-page-audit)
-
-## Recent Changes
-- 046-modernize-testing: Added Python 3.12+ (backend), TypeScript 5.9 (frontend) + FastAPI + Pydantic (backend), React 19 + Vite 7 + TanStack Query (frontend)
+- 043-projects-page-audit: Added TypeScript 5.9, React 19.2.0 + `@tanstack/react-query@^5.90.0`, `react-router-dom`, `lucide-react`, `@radix-ui/react-tooltip`, `@dnd-kit/core` (drag-and-drop), Tailwind CSS 4.2
+- 043-tools-page-audit: TypeScript ~5.9 (frontend), React 19.2.0 + TanStack React Query 5.90, Tailwind CSS 4.2, Vite 7.3, lucide-react, Radix UI primitives via shadcn/ui components

@@ -15,6 +15,7 @@ import hashlib
 import json
 import re
 from datetime import UTC, datetime
+from typing import Any
 
 import httpx
 import websockets
@@ -519,13 +520,36 @@ async def _ws_listen_loop(phone: str) -> None:
                 # Reset backoff on successful connection.
                 consecutive_failures = 0
                 async for raw_message in ws:
+                    data: dict[str, Any] | None = None
                     try:
-                        data = json.loads(raw_message)
+                        parsed_message = json.loads(raw_message)
+                        if not isinstance(parsed_message, dict):
+                            logger.warning("Received non-object JSON message on Signal WS")
+                            continue
+                        data = parsed_message
                         await _process_inbound_ws_message(data)
                     except json.JSONDecodeError:
                         logger.warning("Received non-JSON message on Signal WS")
                     except Exception as e:
-                        logger.exception("Error processing inbound Signal message: %s", e)
+                        envelope = data.get("envelope", data) if isinstance(data, dict) else {}
+                        sync_message = (
+                            envelope.get("syncMessage", {}) if isinstance(envelope, dict) else {}
+                        )
+                        sent_message = (
+                            sync_message.get("sentMessage", {})
+                            if isinstance(sync_message, dict)
+                            else {}
+                        )
+                        preview = sent_message.get("message", "")
+                        logger.exception(
+                            "Error processing inbound Signal message: source=%s timestamp=%s preview=%r error=%s",
+                            envelope.get("source") or envelope.get("sourceNumber") or "unknown",
+                            envelope.get("timestamp")
+                            or envelope.get("serverTimestamp")
+                            or "unknown",
+                            preview[:500],
+                            e,
+                        )
         except asyncio.CancelledError:
             logger.info("Signal WebSocket listener cancelled")
             return
