@@ -272,21 +272,18 @@
 
 #### Backend Time-Controlled Tests
 
-- [ ] T093 [US8] Create time-controlled backend tests in `solune/backend/tests/unit/test_time_dependent.py` using `freezegun`:
-  - Session expiry boundary (`expire - 1s` valid, `expire + 1s` expired)
-  - Rate-limit reset window behavior (frozen at `reset_at - 1s` and `reset_at + 1s`)
-  - Token refresh 5-minute buffer trigger
-  - Adaptive polling interval doubling on idle cycles, reset on state change, MAX cap (300s)
-  - Assignment grace period (120s) boundary
-  - Recovery cooldown (300s) boundary
-  Target: all 6+ temporal behaviors covered at exact boundaries (FR-019, FR-021)
+- [ ] T093 [P] [US8] Create time-controlled tests for session expiry boundary in `solune/backend/tests/unit/test_time_dependent.py` using `freezegun`: freeze at `expire - 1s` (session valid) and `expire + 1s` (session expired). Target: FR-019, FR-021
+- [ ] T094 [P] [US8] Add time-controlled tests for rate-limit reset window to `solune/backend/tests/unit/test_time_dependent.py`: freeze at `reset_at - 1s` and `reset_at + 1s`, verify window behavior. Target: FR-019, FR-021
+- [ ] T095 [P] [US8] Add time-controlled tests for token refresh 5-minute buffer trigger to `solune/backend/tests/unit/test_time_dependent.py`: verify refresh triggers at exactly 5 minutes before expiry. Target: FR-019, FR-021
+- [ ] T096 [P] [US8] Add time-controlled tests for adaptive polling interval to `solune/backend/tests/unit/test_time_dependent.py`: verify doubling on idle cycles, reset on state change, MAX cap at 300s. Target: FR-019, FR-021
+- [ ] T097 [P] [US8] Add time-controlled tests for assignment grace period (120s) and recovery cooldown (300s) boundaries to `solune/backend/tests/unit/test_time_dependent.py`: verify behavior at boundary ±1s. Target: FR-019, FR-021
 
 #### Frontend Time-Controlled Tests
 
-- [ ] T094 [P] [US8] Create frontend time-controlled tests for WebSocket reconnection backoff in `solune/frontend/src/hooks/useRealTimeSync.test.tsx` using `vi.useFakeTimers()`: verify backoff sequence (1s, 2s, 4s... capped at 30s) (FR-020)
-- [ ] T095 [P] [US8] Create frontend time-controlled tests for polling fallback interval (10s) and auto-refresh timer reset on WebSocket sync event in `solune/frontend/src/hooks/useRealTimeSync.timer.test.tsx` using `vi.useFakeTimers()`
-- [ ] T096 [P] [US8] Create frontend time-controlled test for `lazyWithRetry` chunk reload loop prevention in `solune/frontend/src/lib/lazyWithRetry.test.ts` using `vi.useFakeTimers()`
-- [ ] T097 [P] [US8] Create frontend time-controlled test for debounced `initial_data` reconnection (max 1×/2000ms) in `solune/frontend/src/hooks/useRealTimeSync.debounce.test.tsx` using `vi.useFakeTimers()`
+- [ ] T098 [P] [US8] Create frontend time-controlled tests for WebSocket reconnection backoff in `solune/frontend/src/hooks/useRealTimeSync.test.tsx` using `vi.useFakeTimers()`: verify backoff sequence (1s, 2s, 4s... capped at 30s) (FR-020)
+- [ ] T099 [P] [US8] Create frontend time-controlled tests for polling fallback interval (10s) and auto-refresh timer reset on WebSocket sync event in `solune/frontend/src/hooks/useRealTimeSync.timer.test.tsx` using `vi.useFakeTimers()`
+- [ ] T100 [P] [US8] Create frontend time-controlled test for `lazyWithRetry` chunk reload loop prevention in `solune/frontend/src/lib/lazyWithRetry.test.ts` using `vi.useFakeTimers()`
+- [ ] T101 [P] [US8] Create frontend time-controlled test for debounced `initial_data` reconnection (max 1×/2000ms) in `solune/frontend/src/hooks/useRealTimeSync.debounce.test.tsx` using `vi.useFakeTimers()`
 
 **Checkpoint**: All 15+ temporal behaviors tested at exact boundaries. SC-008 verified — at least one boundary bug surfaced. FR-019, FR-020, FR-021 verified.
 
@@ -300,13 +297,13 @@
 
 ### Implementation for User Story 9
 
-- [ ] T098 [US9] Create backend import-direction enforcement tests in `solune/backend/tests/architecture/test_import_rules.py` using Python's `ast` module:
+- [ ] T102 [US9] Create backend import-direction enforcement tests in `solune/backend/tests/architecture/test_import_rules.py` using Python's `ast` module:
   - Assert `services/` never imports from `api/`
   - Assert `api/` never imports from `*_store` directly
   - Assert `models/` never imports from `services/` or `api/`
   - Include known-violations allowlist (initial baseline from scanning existing code)
   Target: all 3 rules enforced (FR-022, FR-024)
-- [ ] T099 [P] [US9] Create frontend dependency-direction tests in `solune/frontend/src/__tests__/architecture/test_import_rules.test.ts`:
+- [ ] T103 [P] [US9] Create frontend dependency-direction tests in `solune/frontend/src/__tests__/architecture/test_import_rules.test.ts`:
   - Assert pages don't import other pages
   - Assert hooks don't import UI components
   - Assert utils don't import hooks
@@ -325,10 +322,10 @@
 
 ### Implementation for User Story 10
 
-- [ ] T100 [P] [US10] Create property tests for polling rate-limit tier logic in `solune/backend/tests/property/test_polling_tiers.py`: generate random `remaining` values, verify correct tier selection (≤50: pause, ≤100: skip expensive, ≤200: warn), test boundary values (50/51, 100/101, 200/201). Use Hypothesis strategies. Target: FR-025
-- [ ] T101 [P] [US10] Create property tests for prompt generators in `solune/backend/tests/property/test_prompt_generators.py`: test `issue_generation.py` and `task_generation.py` with random inputs (Unicode, empty strings, extreme lengths), verify prompts always contain required sections and never crash. Target: FR-026
-- [ ] T102 [P] [US10] Expand webhook fuzz tests in `solune/backend/tests/fuzz/test_webhook_fuzz_expanded.py`: add coverage for `issues`, `pull_request_review`, `check_suite` event types. Verify no unhandled exceptions for any well-formed-but-unexpected payload. Target: FR-027
-- [ ] T103 [P] [US10] Create frontend property tests for untested utility functions in `solune/frontend/src/utils/formatTime.property.test.ts`, `solune/frontend/src/utils/generateId.property.test.ts`, and remaining utils. Generate random inputs, verify output invariants (no crashes, consistent formatting). Template: `src/lib/utils.property.test.ts`. Target: FR-028
+- [ ] T104 [P] [US10] Create property tests for polling rate-limit tier logic in `solune/backend/tests/property/test_polling_tiers.py`: generate random `remaining` values, verify correct tier selection (≤50: pause, ≤100: skip expensive, ≤200: warn), test boundary values (50/51, 100/101, 200/201). Use Hypothesis strategies. Target: FR-025
+- [ ] T105 [P] [US10] Create property tests for prompt generators in `solune/backend/tests/property/test_prompt_generators.py`: test `issue_generation.py` and `task_generation.py` with random inputs (Unicode, empty strings, extreme lengths), verify prompts always contain required sections and never crash. Target: FR-026
+- [ ] T106 [P] [US10] Expand webhook fuzz tests in `solune/backend/tests/fuzz/test_webhook_fuzz_expanded.py`: add coverage for `issues`, `pull_request_review`, `check_suite` event types. Verify no unhandled exceptions for any well-formed-but-unexpected payload. Target: FR-027
+- [ ] T107 [P] [US10] Create frontend property tests for untested utility functions in `solune/frontend/src/utils/formatTime.property.test.ts`, `solune/frontend/src/utils/generateId.property.test.ts`, and remaining utils. Generate random inputs, verify output invariants (no crashes, consistent formatting). Template: `src/lib/utils.property.test.ts`. Target: FR-028
 
 **Checkpoint**: Property and fuzz testing expanded to 3+ new modules. SC-010 verified — at least one edge-case bug discovered. FR-025, FR-026, FR-027, FR-028 verified.
 
@@ -342,8 +339,8 @@
 
 ### Implementation for User Story 11
 
-- [ ] T104 [US11] Create Playwright WebSocket lifecycle E2E test in `solune/frontend/e2e/websocket-lifecycle.spec.ts`: connect → receive data → kill WebSocket → verify polling fallback activates → reconnect → verify data is current (not stale). Target: FR-029
-- [ ] T105 [P] [US11] Create reconnection debounce test in `solune/frontend/e2e/websocket-debounce.spec.ts`: send 5 rapid reconnect events, verify only one cache invalidation fires within the 2000ms debounce window. Target: FR-030
+- [ ] T108 [US11] Create Playwright WebSocket lifecycle E2E test in `solune/frontend/e2e/websocket-lifecycle.spec.ts`: connect → receive data → kill WebSocket → verify polling fallback activates → reconnect → verify data is current (not stale). Target: FR-029
+- [ ] T109 [P] [US11] Create reconnection debounce test in `solune/frontend/e2e/websocket-debounce.spec.ts`: send 5 rapid reconnect events, verify only one cache invalidation fires within the 2000ms debounce window. Target: FR-030
 
 **Checkpoint**: WebSocket lifecycle tested end-to-end. SC-011 verified — data freshness after reconnection confirmed. FR-029, FR-030 verified.
 
@@ -353,10 +350,10 @@
 
 **Purpose**: Final verification, documentation, and CI time budget validation.
 
-- [ ] T106 [P] Run full backend test suite `pytest --cov=src --cov-report=term-missing --durations=20` in `solune/backend/` and verify: (a) line coverage ≥80%, (b) all tests pass, (c) total suite runtime increase ≤90s from baseline (SC-012)
-- [ ] T107 [P] Run full frontend test suite `npm run test:coverage` in `solune/frontend/` and verify: (a) coverage ≥60/55/52/60, (b) all tests pass, (c) total suite runtime increase ≤60s from baseline (SC-012)
-- [ ] T108 Verify all CI jobs pass: backend unit tests, backend advanced tests, frontend tests. Verify mutation testing workflow is dispatchable
-- [ ] T109 Run `specs/048-test-coverage-bugs/quickstart.md` verification commands to confirm all documented test commands work correctly
+- [ ] T110 [P] Run full backend test suite `pytest --cov=src --cov-report=term-missing --durations=20` in `solune/backend/` and verify: (a) line coverage ≥80%, (b) all tests pass, (c) total suite runtime increase ≤90s from baseline (SC-012)
+- [ ] T111 [P] Run full frontend test suite `npm run test:coverage` in `solune/frontend/` and verify: (a) coverage ≥60/55/52/60, (b) all tests pass, (c) total suite runtime increase ≤60s from baseline (SC-012)
+- [ ] T112 Verify all CI jobs pass: backend unit tests, backend advanced tests, frontend tests. Verify mutation testing workflow is dispatchable
+- [ ] T113 Run `specs/048-test-coverage-bugs/quickstart.md` verification commands to confirm all documented test commands work correctly
 
 ---
 
@@ -394,6 +391,16 @@
 | US9 (Architecture) | Phase 1 | No — independent fitness tests |
 | US10 (Property/Fuzz) | Phase 2 | No — independent test files |
 | US11 (WebSocket E2E) | Phase 2 | No — independent E2E tests |
+
+### Sequential Chain Mitigation (US2 → US3 → US4)
+
+The backend coverage chain (US2→US3→US4) creates a critical path because each phase's threshold ratchet must merge before the next can bump. To enable parallel development:
+
+1. **Test writing can overlap**: Developers can write US3 tests while US2 is in review — only the threshold bump (T045) must wait for US2's threshold (T022) to merge.
+2. **Temporary threshold**: If developing on a feature branch, temporarily keep `fail_under` at the pre-phase value and bump it as the final commit before merge.
+3. **Branch coordination**: Use stacked PRs or feature flags for threshold bumps — test code PRs can merge independently, threshold PRs merge sequentially.
+
+The same pattern applies to the frontend chain (US5 → US6).
 
 ### Within Each User Story
 
