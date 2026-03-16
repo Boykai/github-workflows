@@ -57,6 +57,7 @@ export function useRepoMcpConfig(projectId: string | null | undefined) {
     repoConfig: query.data ?? null,
     isLoading: query.isLoading,
     error: query.error?.message ?? null,
+    rawError: query.error ?? null,
     refetch: query.refetch,
     updateRepoServer: updateMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
