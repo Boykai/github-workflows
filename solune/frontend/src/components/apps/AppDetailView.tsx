@@ -3,9 +3,12 @@
  * Shows app info, embedded preview iframe, and lifecycle controls.
  */
 
-import { ArrowLeft, Play, Square, Trash2 } from 'lucide-react';
+import { ArrowLeft, Play, Square, Trash2, RefreshCw } from 'lucide-react';
 import { useApp, useStartApp, useStopApp, useDeleteApp } from '@/hooks/useApps';
 import { AppPreview } from './AppPreview';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
+import { useConfirmation } from '@/hooks/useConfirmation';
+import { isRateLimitApiError } from '@/utils/rateLimit';
 
 interface AppDetailViewProps {
   appName: string;
@@ -13,31 +16,63 @@ interface AppDetailViewProps {
 }
 
 export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
-  const { data: app, isLoading, error } = useApp(appName);
+  const { data: app, isLoading, error, refetch } = useApp(appName);
   const startMutation = useStartApp();
   const stopMutation = useStopApp();
   const deleteMutation = useDeleteApp();
+  const { confirm } = useConfirmation();
 
   if (isLoading) {
     return (
       <div className="flex min-h-[40vh] items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-emerald-500" />
+        <CelestialLoader size="md" label="Loading app…" />
       </div>
     );
   }
 
   if (error || !app) {
     return (
-      <div className="p-6 text-center text-zinc-500">
-        App not found or failed to load.
+      <div className="flex min-h-[30vh] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-red-300 bg-red-50 p-6 dark:border-red-800 dark:bg-red-950/20">
+        <p className="text-sm text-red-700 dark:text-red-300">
+          {isRateLimitApiError(error)
+            ? 'Rate limit reached. Please wait a moment before retrying.'
+            : 'Could not load app details. Please try again.'}
+        </p>
+        <button
+          type="button"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30"
+          onClick={() => void refetch()}
+        >
+          <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Retry
+        </button>
       </div>
     );
   }
 
   const handleStart = () => startMutation.mutate(appName);
-  const handleStop = () => stopMutation.mutate(appName);
-  const handleDelete = () => {
-    deleteMutation.mutate(appName, { onSuccess: onBack });
+
+  const handleStop = async () => {
+    const confirmed = await confirm({
+      title: 'Stop App',
+      description: `Are you sure you want to stop "${app.display_name}"?`,
+      confirmLabel: 'Stop',
+      variant: 'warning',
+    });
+    if (confirmed) {
+      stopMutation.mutate(appName);
+    }
+  };
+
+  const handleDelete = async () => {
+    const confirmed = await confirm({
+      title: 'Delete App',
+      description: `Are you sure you want to delete "${app.display_name}"? This action cannot be undone.`,
+      confirmLabel: 'Delete',
+      variant: 'danger',
+    });
+    if (confirmed) {
+      deleteMutation.mutate(appName, { onSuccess: onBack });
+    }
   };
 
   return (
@@ -47,9 +82,10 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+          aria-label="Back to apps"
+          className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-1 dark:text-zinc-400 dark:hover:bg-zinc-800"
         >
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Back
         </button>
         <div className="flex-1">
           <h2 className="text-xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -90,33 +126,36 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
         {app.status === 'stopped' && (
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+            aria-label={`Start ${app.display_name}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50"
             onClick={handleStart}
             disabled={startMutation.isPending}
           >
-            <Play className="h-4 w-4" />
+            <Play className="h-4 w-4" aria-hidden="true" />
             {startMutation.isPending ? 'Starting…' : 'Start'}
           </button>
         )}
         {app.status === 'active' && (
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-600 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 disabled:opacity-50"
-            onClick={handleStop}
+            aria-label={`Stop ${app.display_name}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-zinc-600 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 disabled:opacity-50"
+            onClick={() => void handleStop()}
             disabled={stopMutation.isPending}
           >
-            <Square className="h-4 w-4" />
+            <Square className="h-4 w-4" aria-hidden="true" />
             {stopMutation.isPending ? 'Stopping…' : 'Stop'}
           </button>
         )}
         {app.status !== 'active' && (
           <button
             type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:opacity-50"
-            onClick={handleDelete}
+            aria-label={`Delete ${app.display_name}`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-50"
+            onClick={() => void handleDelete()}
             disabled={deleteMutation.isPending}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="h-4 w-4" aria-hidden="true" />
             {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
           </button>
         )}

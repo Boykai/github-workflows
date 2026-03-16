@@ -6,17 +6,18 @@
 
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, RefreshCw } from 'lucide-react';
 import { useApps, useCreateApp, useStartApp, useStopApp, useDeleteApp } from '@/hooks/useApps';
 import { AppCard } from '@/components/apps/AppCard';
 import { AppDetailView } from '@/components/apps/AppDetailView';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
+import { isRateLimitApiError } from '@/utils/rateLimit';
 import type { AppCreate } from '@/types/apps';
-import type { ApiError } from '@/services/api';
 
 export function AppsPage() {
   const { appName } = useParams<{ appName?: string }>();
   const navigate = useNavigate();
-  const { data: apps, isLoading } = useApps();
+  const { data: apps, isLoading, error: appsError, refetch: refetchApps } = useApps();
   const createMutation = useCreateApp();
   const startMutation = useStartApp();
   const stopMutation = useStopApp();
@@ -67,8 +68,7 @@ export function AppsPage() {
         navigate(`/apps/${createdApp.name}`);
       },
       onError: (error) => {
-        const apiError = error as ApiError;
-        setCreateError(apiError.error?.error ?? error.message ?? 'Failed to create app.');
+        setCreateError(error.error?.error ?? error.message ?? 'Failed to create app.');
       },
     });
   };
@@ -85,27 +85,45 @@ export function AppsPage() {
         </div>
         <button
           type="button"
-          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
           onClick={openCreateDialog}
         >
-          <Plus className="h-4 w-4" /> New App
+          <Plus className="h-4 w-4" aria-hidden="true" /> Create App
         </button>
       </div>
 
       {/* Loading state */}
       {isLoading && (
         <div className="flex min-h-[30vh] items-center justify-center">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-emerald-500" />
+          <CelestialLoader size="md" label="Loading apps…" />
+        </div>
+      )}
+
+      {/* Error state */}
+      {!isLoading && appsError && (
+        <div className="flex min-h-[30vh] flex-col items-center justify-center gap-4 rounded-xl border border-dashed border-red-300 bg-red-50 dark:border-red-800 dark:bg-red-950/20">
+          <p className="text-sm text-red-700 dark:text-red-300">
+            {isRateLimitApiError(appsError)
+              ? 'Rate limit reached. Please wait a moment before retrying.'
+              : 'Could not load apps. Please try again.'}
+          </p>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-red-300 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 dark:border-red-700 dark:text-red-300 dark:hover:bg-red-900/30"
+            onClick={() => void refetchApps()}
+          >
+            <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" /> Retry
+          </button>
         </div>
       )}
 
       {/* Empty state */}
-      {!isLoading && (!apps || apps.length === 0) && (
+      {!isLoading && !appsError && (!apps || apps.length === 0) && (
         <div className="flex min-h-[30vh] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900/50">
           <p className="mb-2 text-sm text-zinc-500 dark:text-zinc-400">No applications yet.</p>
           <button
             type="button"
-            className="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
+            className="text-sm font-medium text-emerald-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:text-emerald-400"
             onClick={openCreateDialog}
           >
             Create your first app →
@@ -114,7 +132,7 @@ export function AppsPage() {
       )}
 
       {/* App grid */}
-      {apps && apps.length > 0 && (
+      {!appsError && apps && apps.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {apps.map((app) => (
             <AppCard
@@ -133,6 +151,9 @@ export function AppsPage() {
       {showCreateDialog && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="create-app-dialog-title"
           onPointerDown={(event) => {
             if (event.target === event.currentTarget) {
               closeCreateDialog();
@@ -143,7 +164,7 @@ export function AppsPage() {
             onSubmit={handleCreate}
             className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-900"
           >
-            <h2 className="mb-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">
+            <h2 id="create-app-dialog-title" className="mb-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">
               Create New App
             </h2>
             {createError && (
@@ -221,7 +242,7 @@ export function AppsPage() {
             <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
-                className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 focus-visible:ring-offset-2 dark:text-zinc-400 dark:hover:bg-zinc-800"
                 onClick={closeCreateDialog}
               >
                 Cancel
@@ -229,7 +250,7 @@ export function AppsPage() {
               <button
                 type="submit"
                 disabled={createMutation.isPending}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50"
               >
                 {createMutation.isPending ? 'Creating…' : 'Create App'}
               </button>
