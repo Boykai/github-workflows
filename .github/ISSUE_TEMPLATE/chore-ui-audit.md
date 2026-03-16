@@ -173,7 +173,7 @@ Comprehensive audit of the **[PAGE_NAME]** page to ensure modern best practices,
 
 ### Types
 
-- `solune/frontend/src/types/index.ts` or `src/types/[feature].ts` — Type definitions
+- `solune/frontend/src/types/index.ts` or `solune/frontend/src/types/[feature].ts` — Type definitions
 
 ### Shared (reference, use as-is)
 
