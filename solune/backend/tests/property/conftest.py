@@ -1,5 +1,7 @@
 """Hypothesis settings profiles for property-based tests."""
 
+import os
+
 from hypothesis import HealthCheck, settings
 
 # CI profile: more examples, stricter deadlines
@@ -18,4 +20,4 @@ settings.register_profile(
 )
 
 # Default to dev; CI sets HYPOTHESIS_PROFILE=ci
-settings.load_profile("dev")
+settings.load_profile(os.getenv("HYPOTHESIS_PROFILE", "dev"))

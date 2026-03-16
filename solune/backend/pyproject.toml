@@ -101,6 +101,7 @@ reportMissingImports = "warning"
 
 [tool.coverage.run]
 source = ["src"]
+branch = true
 omit = ["tests/*", "**/__pycache__/*"]
 
 [tool.coverage.report]

@@ -37,11 +37,9 @@ export default defineConfig({
     },
     {
       name: 'firefox',
-      use: {
-        ...devices['Desktop Firefox'],
-        // Ignore visual regression snapshots for Firefox — Chromium is the baseline
-        ignoreSnapshots: true,
-      },
+      use: { ...devices['Desktop Firefox'] },
+      // Ignore visual regression snapshots for Firefox — Chromium is the baseline
+      ignoreSnapshots: true,
     },
   ],
 
