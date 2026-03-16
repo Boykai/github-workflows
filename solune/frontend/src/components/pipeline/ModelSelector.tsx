@@ -130,7 +130,7 @@ export function ModelSelector({
           type="button"
           disabled={disabled}
           className={cn(
-            'celestial-focus flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/68 px-2.5 py-1.5 text-xs transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60',
+            'celestial-focus flex items-center gap-1.5 rounded-lg border border-border/60 bg-background/68 px-2.5 py-1.5 text-xs transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-60 dark:border-border/80 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.95)_0%,hsl(var(--panel)/0.9)_100%)] dark:hover:bg-primary/12',
             triggerClassName
           )}
         >

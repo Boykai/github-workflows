@@ -18,6 +18,23 @@ const buildPayload = (p: PipelineConfig) => ({
   name: p.name, description: p.description, stages: p.stages,
 });
 
+const buildCopyName = (sourceName: string, existingNames: string[]) => {
+  const trimmedSourceName = sourceName.trim() || 'Untitled Pipeline';
+  const normalizedNames = new Set(existingNames.map((name) => name.trim().toLowerCase()));
+  const baseCopyName = `${trimmedSourceName} (Copy)`;
+
+  if (!normalizedNames.has(baseCopyName.toLowerCase())) {
+    return baseCopyName;
+  }
+
+  let copyIndex = 2;
+  while (normalizedNames.has(`${trimmedSourceName} (Copy ${copyIndex})`.toLowerCase())) {
+    copyIndex += 1;
+  }
+
+  return `${trimmedSourceName} (Copy ${copyIndex})`;
+};
+
 export const pipelineKeys = {
   all: ['pipelines'] as const,
   list: (projectId: string) => [...pipelineKeys.all, 'list', projectId] as const,
@@ -136,6 +153,28 @@ export function usePipelineConfig(projectId: string | null) {
     }
   }, [state.pipeline, projectId, queryClient]);
 
+  const duplicatePipeline = useCallback(async (pipelineId: string) => {
+    if (!projectId) return null;
+    dispatch({ type: 'SAVE_START' });
+    try {
+      const source = await pipelinesApi.get(projectId, pipelineId);
+      const copyName = buildCopyName(
+        source.name,
+        (pipelines?.pipelines ?? []).map((pipeline) => pipeline.name),
+      );
+      const saved = await pipelinesApi.create(projectId, {
+        ...buildPayload(source),
+        name: copyName,
+      });
+      dispatch({ type: 'SAVE_SUCCESS', config: saved });
+      await queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+      return saved;
+    } catch (err) {
+      dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to copy pipeline') });
+      return null;
+    }
+  }, [pipelines?.pipelines, projectId, queryClient]);
+
   const deletePipeline = useCallback(async () => {
     if (!state.editingPipelineId || !projectId) return;
     dispatch({ type: 'SAVE_START' });
@@ -186,7 +225,7 @@ export function usePipelineConfig(projectId: string | null) {
     pipelines: pipelines ?? null, pipelinesLoading,
     assignedPipelineId: assignment?.pipeline_id ?? '',
     assignPipeline, newPipeline, loadPipeline,
-    savePipeline, saveAsCopy, deletePipeline, discardChanges,
+    savePipeline, saveAsCopy, duplicatePipeline, deletePipeline, discardChanges,
     setStageExecutionMode,
     ...boardMutations,
   };

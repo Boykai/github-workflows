@@ -78,6 +78,14 @@ import type {
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
+const STATE_CHANGING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+
+/** Read the CSRF double-submit cookie set by the backend. */
+function getCsrfToken(): string | null {
+  const match = document.cookie.match(/(?:^|;\s*)csrf_token=([^;]*)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
 export class ApiError extends Error {
   constructor(
     public status: number,
@@ -144,11 +152,21 @@ function normalizeApiError(response: Response, payload: unknown): APIError {
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
+  const method = (options.method ?? 'GET').toUpperCase();
+  const csrfHeaders: Record<string, string> = {};
+  if (STATE_CHANGING_METHODS.has(method)) {
+    const token = getCsrfToken();
+    if (token) {
+      csrfHeaders['X-CSRF-Token'] = token;
+    }
+  }
+
   const response = await fetch(url, {
     ...options,
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...csrfHeaders,
       ...options.headers,
     },
   });
@@ -326,9 +344,11 @@ export const chatApi = {
     formData.append('file', file);
 
     const url = `${API_BASE_URL}/chat/upload`;
+    const csrfToken = getCsrfToken();
     const response = await fetch(url, {
       method: 'POST',
       credentials: 'include',
+      headers: csrfToken ? { 'X-CSRF-Token': csrfToken } : {},
       body: formData,
     });
 

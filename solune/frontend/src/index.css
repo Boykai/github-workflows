@@ -753,24 +753,29 @@
   /* Dark theme: deep space base with nebula glow */
   .dark .pipeline-column-surface {
     background:
-      radial-gradient(ellipse at 22% 6%, hsl(var(--glow) / 0.14), transparent 36%),
-      radial-gradient(ellipse at 80% 78%, hsl(var(--gold) / 0.10), transparent 30%),
-      radial-gradient(circle at 52% 50%, hsl(var(--accent) / 0.05), transparent 52%),
+      radial-gradient(ellipse at 22% 6%, hsl(var(--glow) / 0.12), transparent 34%),
+      radial-gradient(ellipse at 80% 78%, hsl(var(--gold) / 0.08), transparent 28%),
+      radial-gradient(circle at 52% 50%, hsl(var(--accent) / 0.04), transparent 48%),
       linear-gradient(
         180deg,
-        color-mix(in srgb, hsl(var(--panel)) 72%, hsl(var(--night)) 12%) 0%,
-        hsl(var(--night) / 0.88) 100%
+        color-mix(in srgb, hsl(var(--panel)) 78%, hsl(var(--night)) 10%) 0%,
+        hsl(var(--night) / 0.96) 100%
       );
     box-shadow:
       inset 0 1px 0 hsl(var(--glow) / 0.16),
-      inset 0 0 0 1px hsl(var(--border) / 0.2),
-      0 18px 36px hsl(var(--night) / 0.4);
+      inset 0 0 0 1px hsl(var(--border) / 0.28),
+      0 18px 36px hsl(var(--night) / 0.46);
   }
 
   .dark .pipeline-stage-card {
+    background:
+      radial-gradient(circle at 82% 14%, hsl(var(--gold) / 0.05), transparent 16%),
+      radial-gradient(circle at 16% 10%, hsl(var(--glow) / 0.06), transparent 18%),
+      linear-gradient(180deg, hsl(var(--night) / 0.975) 0%, hsl(var(--panel) / 0.935) 100%);
     box-shadow:
       inset 0 1px 0 hsl(var(--glow) / 0.14),
-      0 18px 36px hsl(var(--night) / 0.36);
+      inset 0 0 0 1px hsl(var(--border) / 0.28),
+      0 18px 36px hsl(var(--night) / 0.48);
   }
 
   .dark .project-board-column {
@@ -874,11 +879,13 @@
   }
 
   .dark .pipeline-agent-node {
-    background: linear-gradient(180deg, hsl(var(--night) / 0.98) 0%, hsl(var(--panel) / 0.96) 100%);
+    background:
+      radial-gradient(circle at 84% 18%, hsl(var(--gold) / 0.06) 0, transparent 14%),
+      linear-gradient(180deg, hsl(var(--night) / 0.995) 0%, hsl(var(--panel) / 0.985) 100%);
     box-shadow:
       inset 0 1px 0 hsl(var(--star-soft) / 0.14),
-      inset 0 0 0 1px hsl(var(--border) / 0.16),
-      0 8px 18px hsl(var(--night) / 0.32);
+      inset 0 0 0 1px hsl(var(--border) / 0.32),
+      0 8px 18px hsl(var(--night) / 0.44);
   }
 
   .dark .pipeline-agent-node::before {
@@ -887,11 +894,11 @@
       radial-gradient(circle at 26% 72%, hsl(var(--star) / 0.42) 0 1px, transparent 1.7px),
       radial-gradient(circle at 86% 18%, hsl(var(--gold) / 0.78) 0 1px, transparent 1.8px),
       linear-gradient(120deg, transparent 0 64%, hsl(var(--gold) / 0.08) 64.4%, transparent 65%);
-    opacity: 0.9;
+    opacity: 0.72;
   }
 
   .dark .pipeline-stage-add {
-    background: linear-gradient(180deg, hsl(var(--night) / 0.68) 0%, hsl(var(--panel) / 0.62) 100%);
+    background: linear-gradient(180deg, hsl(var(--night) / 0.88) 0%, hsl(var(--panel) / 0.82) 100%);
   }
 
   .dark .pipeline-stage-add::before {

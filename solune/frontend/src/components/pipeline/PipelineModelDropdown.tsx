@@ -57,7 +57,7 @@ export function PipelineModelDropdown({
         type="button"
         onClick={() => !disabled && setIsOpen(!isOpen)}
         disabled={disabled}
-        className="celestial-focus flex w-full items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/68 px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50"
+        className="celestial-focus flex w-full items-center justify-between gap-2 rounded-lg border border-border/60 bg-background/68 px-3 py-2 text-sm transition-colors hover:border-primary/30 hover:bg-primary/10 disabled:opacity-50 dark:border-border/80 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.94)_0%,hsl(var(--panel)/0.88)_100%)] dark:hover:bg-primary/12"
       >
         <span className="flex items-center gap-2 truncate">
           <Sparkles className="h-3.5 w-3.5 text-primary/60" />
@@ -69,7 +69,7 @@ export function PipelineModelDropdown({
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-border/80 bg-popover/95 shadow-lg backdrop-blur-sm">
+        <div className="absolute left-0 top-full z-50 mt-1 w-full rounded-lg border border-border/80 bg-popover/95 shadow-lg backdrop-blur-sm dark:border-border/85 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.97)_0%,hsl(var(--panel)/0.93)_100%)]">
           <div className="max-h-60 overflow-y-auto p-1">
             {/* Auto option */}
             <button

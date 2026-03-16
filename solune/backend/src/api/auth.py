@@ -168,7 +168,16 @@ async def logout(
     if session_id:
         await github_auth_service.revoke_session(session_id)
 
-    response.delete_cookie(key=SESSION_COOKIE_NAME)
+    from src.config import get_settings
+
+    settings = get_settings()
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+        secure=settings.effective_cookie_secure,
+        httponly=True,
+        samesite="strict",
+    )
     return {"message": "Logged out successfully"}
 
 

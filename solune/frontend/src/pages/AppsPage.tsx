@@ -11,6 +11,7 @@ import { useApps, useCreateApp, useStartApp, useStopApp, useDeleteApp } from '@/
 import { AppCard } from '@/components/apps/AppCard';
 import { AppDetailView } from '@/components/apps/AppDetailView';
 import type { AppCreate } from '@/types/apps';
+import type { ApiError } from '@/services/api';
 
 export function AppsPage() {
   const { appName } = useParams<{ appName?: string }>();
@@ -21,6 +22,19 @@ export function AppsPage() {
   const stopMutation = useStopApp();
   const deleteMutation = useDeleteApp();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  const openCreateDialog = () => {
+    createMutation.reset();
+    setCreateError(null);
+    setShowCreateDialog(true);
+  };
+
+  const closeCreateDialog = () => {
+    createMutation.reset();
+    setCreateError(null);
+    setShowCreateDialog(false);
+  };
 
   // Detail view for a specific app
   if (appName) {
@@ -33,17 +47,29 @@ export function AppsPage() {
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setCreateError(null);
+
     const formData = new FormData(e.currentTarget);
     const name = (formData.get('name') as string).trim();
     const displayName = (formData.get('display_name') as string).trim();
     const description = (formData.get('description') as string).trim();
     const branch = (formData.get('branch') as string).trim();
 
-    if (!name || !displayName || !branch) return;
+    if (!name || !displayName || !branch) {
+      setCreateError('Name, display name, and target branch are required.');
+      return;
+    }
 
     const payload: AppCreate = { name, display_name: displayName, description, branch };
     createMutation.mutate(payload, {
-      onSuccess: () => setShowCreateDialog(false),
+      onSuccess: (createdApp) => {
+        closeCreateDialog();
+        navigate(`/apps/${createdApp.name}`);
+      },
+      onError: (error) => {
+        const apiError = error as ApiError;
+        setCreateError(apiError.error?.error ?? error.message ?? 'Failed to create app.');
+      },
     });
   };
 
@@ -60,7 +86,7 @@ export function AppsPage() {
         <button
           type="button"
           className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700"
-          onClick={() => setShowCreateDialog(true)}
+          onClick={openCreateDialog}
         >
           <Plus className="h-4 w-4" /> New App
         </button>
@@ -80,7 +106,7 @@ export function AppsPage() {
           <button
             type="button"
             className="text-sm font-medium text-emerald-600 hover:underline dark:text-emerald-400"
-            onClick={() => setShowCreateDialog(true)}
+            onClick={openCreateDialog}
           >
             Create your first app →
           </button>
@@ -105,7 +131,14 @@ export function AppsPage() {
 
       {/* Create dialog */}
       {showCreateDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+          onPointerDown={(event) => {
+            if (event.target === event.currentTarget) {
+              closeCreateDialog();
+            }
+          }}
+        >
           <form
             onSubmit={handleCreate}
             className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl dark:bg-zinc-900"
@@ -113,6 +146,14 @@ export function AppsPage() {
             <h2 className="mb-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">
               Create New App
             </h2>
+            {createError && (
+              <div
+                className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
+                {createError}
+              </div>
+            )}
             <div className="space-y-4">
               <div>
                 <label htmlFor="app-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
@@ -181,7 +222,7 @@ export function AppsPage() {
               <button
                 type="button"
                 className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                onClick={() => setShowCreateDialog(false)}
+                onClick={closeCreateDialog}
               >
                 Cancel
               </button>

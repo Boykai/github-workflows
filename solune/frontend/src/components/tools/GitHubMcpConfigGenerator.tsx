@@ -186,7 +186,7 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
   }, [configJson]);
 
   const hasUserTools = entries.some((e) => !e.builtin);
-  const activeCustomCount = entries.filter((entry) => !entry.builtin).length;
+  const activeProjectCount = entries.length;
 
   return (
     <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
@@ -227,13 +227,13 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
         <div className="moonwell rounded-[1.1rem] border border-border/60 p-3">
           <p className="text-[11px] uppercase tracking-[0.22em] text-primary/80">Active project MCPs</p>
-          <p className="mt-2 text-2xl font-display text-foreground">{activeCustomCount}</p>
+          <p className="mt-2 text-2xl font-display text-foreground">{activeProjectCount}</p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
-            Included from the MCP tools currently active in this project.
+            Included from the selected project's repository MCP config, including Built-In MCPs.
           </p>
         </div>
         <div className="moonwell rounded-[1.1rem] border border-primary/20 bg-primary/5 p-3">
-          <p className="text-[11px] uppercase tracking-[0.22em] text-primary/80">Always included</p>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-primary/80">Built-In</p>
           <p className="mt-2 text-2xl font-display text-foreground">{BUILTIN_MCPS.length}</p>
           <p className="mt-1 text-xs leading-5 text-muted-foreground">
             Built-In MCPs ship with every generated GitHub.com configuration.
@@ -277,7 +277,7 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
             <Sparkles className="h-4 w-4" />
           </div>
           <div>
-            <p className="text-sm font-medium text-foreground">No active project MCPs yet</p>
+            <p className="text-sm font-medium text-foreground">No custom project MCPs yet</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Activate an MCP from the presets gallery or upload your own configuration to include
               it here. Built-In MCPs stay ready by default, so this config is still valid for

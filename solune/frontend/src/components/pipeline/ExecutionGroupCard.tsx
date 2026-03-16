@@ -117,8 +117,8 @@ export function ExecutionGroupCard({
       className={cn(
         'rounded-xl border p-2 transition-colors',
         isParallel
-          ? 'border-primary/25 bg-primary/[0.07] dark:border-primary/35 dark:bg-primary/[0.12]'
-          : 'border-border/50 bg-background/18 dark:border-border/70 dark:bg-background/32',
+          ? 'border-primary/25 bg-primary/[0.07] dark:border-primary/45 dark:bg-[linear-gradient(180deg,hsl(var(--primary)/0.18)_0%,hsl(var(--night)/0.62)_100%)]'
+          : 'border-border/50 bg-background/18 dark:border-border/80 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.84)_0%,hsl(var(--panel)/0.76)_100%)]',
       )}
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
@@ -135,8 +135,8 @@ export function ExecutionGroupCard({
               className={cn(
                 'inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] transition-colors',
                 isParallel
-                  ? 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20'
-                  : 'border-border/60 bg-background/40 text-muted-foreground hover:bg-background/60',
+                  ? 'border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 dark:border-primary/45 dark:bg-primary/18'
+                  : 'border-border/60 bg-background/40 text-muted-foreground hover:bg-background/60 dark:border-border/80 dark:bg-background/70 dark:text-muted-foreground/90',
               )}
             >
               {isParallel ? (
@@ -200,7 +200,7 @@ export function ExecutionGroupCard({
               ))}
             </div>
           ) : (
-            <p className="rounded-lg border border-dashed border-border/60 bg-background/20 px-3 py-2 text-[11px] text-muted-foreground dark:border-border/75 dark:bg-background/34">
+            <p className="rounded-lg border border-dashed border-border/60 bg-background/20 px-3 py-2 text-[11px] text-muted-foreground dark:border-border/80 dark:bg-background/50 dark:text-muted-foreground/90">
               Drop agents here or use the Add Agent button.
             </p>
           )}
@@ -212,7 +212,7 @@ export function ExecutionGroupCard({
         <button
           type="button"
           onClick={onAddAgent}
-          className="mt-1 flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border/40 py-1 text-[10px] text-muted-foreground/70 transition-colors hover:border-primary/30 hover:text-primary dark:border-border/65 dark:bg-background/24"
+          className="mt-1 flex w-full items-center justify-center gap-1 rounded-md border border-dashed border-border/40 py-1 text-[10px] text-muted-foreground/70 transition-colors hover:border-primary/30 hover:text-primary dark:border-border/80 dark:bg-background/48 dark:text-muted-foreground/90"
         >
           <Plus className="h-2.5 w-2.5" />
           Add Agent
