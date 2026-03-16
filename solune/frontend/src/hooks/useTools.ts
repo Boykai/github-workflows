@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { toolsApi, ApiError } from '@/services/api';
 import { repoMcpKeys } from '@/hooks/useRepoMcpConfig';
 import { agentKeys } from '@/hooks/useAgents';
+import { isRateLimitApiError } from '@/utils/rateLimit';
 import type {
   McpToolConfig,
   McpToolConfigCreate,
@@ -15,6 +16,14 @@ import type {
   McpToolSyncResult,
   ToolDeleteResult,
 } from '@/types';
+
+function formatMutationError(error: unknown, action: string): string {
+  if (isRateLimitApiError(error)) {
+    return `Could not ${action}. Rate limit reached. Please wait a few minutes before retrying.`;
+  }
+  const message = error instanceof Error ? error.message : 'An unexpected error occurred';
+  return `Could not ${action}. ${message}. Please try again.`;
+}
 
 export const toolKeys = {
   all: ['tools'] as const,
@@ -101,24 +110,26 @@ export function useToolsList(projectId: string | null | undefined) {
     tools: query.data?.tools ?? [],
     isLoading: query.isLoading,
     error: query.error ? (query.error as Error).message : null,
+    rawError: query.error ?? null,
+    refetch: query.refetch,
 
     uploadTool: uploadMutation.mutateAsync,
     isUploading: uploadMutation.isPending,
-    uploadError: uploadMutation.error?.message ?? null,
+    uploadError: uploadMutation.error ? formatMutationError(uploadMutation.error, 'upload tool') : null,
     resetUploadError: uploadMutation.reset,
 
     syncTool: syncMutation.mutateAsync,
     syncingId,
-    syncError: syncMutation.error?.message ?? null,
+    syncError: syncMutation.error ? formatMutationError(syncMutation.error, 'sync tool') : null,
 
     updateTool: updateMutation.mutateAsync,
     isUpdating: updateMutation.isPending,
-    updateError: updateMutation.error?.message ?? null,
+    updateError: updateMutation.error ? formatMutationError(updateMutation.error, 'update tool') : null,
     resetUpdateError: updateMutation.reset,
 
     deleteTool: deleteMutation.mutateAsync,
     deletingId,
-    deleteError: deleteMutation.error?.message ?? null,
+    deleteError: deleteMutation.error ? formatMutationError(deleteMutation.error, 'delete tool') : null,
     deleteResult: deleteMutation.data ?? null,
 
     authError,
