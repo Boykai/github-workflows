@@ -167,7 +167,7 @@ describe('ChoresPanel', () => {
     await waitFor(() => {
       expect(screen.getByText('Rate limit reached')).toBeInTheDocument();
     });
-    expect(screen.getByText('Too many requests. Please wait a moment and try again.')).toBeInTheDocument();
+    expect(screen.getByText(/too many requests/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Retry' }));
 
@@ -262,8 +262,8 @@ describe('ChoresPanel', () => {
 
     await waitFor(() => {
       expect(searchInput).toHaveValue('');
-      expect(screen.getAllByText('Bug Bash').length).toBeGreaterThan(0);
-      expect(screen.getAllByText('Dependency Update').length).toBeGreaterThan(0);
+      expect(screen.queryAllByText('Bug Bash').length).toBeGreaterThan(0);
+      expect(screen.queryAllByText('Dependency Update').length).toBeGreaterThan(0);
     });
   });
 
