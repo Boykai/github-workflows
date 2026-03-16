@@ -14,7 +14,7 @@
 | F2 | Coverage Gap | MEDIUM | spec.md:L14 | **CelestialCatalogHero not covered in tasks**: spec.md lists `CelestialCatalogHero` as in-scope (Assumptions), and plan.md lists it in the project structure (L92), but tasks.md has zero tasks auditing this component. | Add a task in Phase 2 (assessment) to read and assess `CelestialCatalogHero` usage on the Chores page, and tasks in relevant phases (US3, US5) to audit its accessibility and responsive behavior. |
 | F3 | Coverage Gap | MEDIUM | spec.md:L179 | **Edge case "session expiry during inline edit" has no task**: spec.md edge case states the page should preserve unsaved state and prompt re-authentication. No task in tasks.md addresses this. | Add a task in US1 or US4 to audit session-expiry behavior during inline editing, or explicitly mark as out-of-scope/deferred in tasks.md notes. |
 | F4 | Coverage Gap | MEDIUM | spec.md:L187 | **Edge case "browser window below 320px" has no task**: spec.md edge case describes behavior at extreme narrow widths. No task in tasks.md covers this breakpoint (US5 covers 768px+ and mobile but not sub-320px). | Add a task in US5 to verify legibility at 320px viewport, or scope it explicitly as deferred. |
-| F5 | Coverage Gap | MEDIUM | spec.md:L189 | **Edge case "real-time sync connection drop" has no task**: spec.md edge case describes stale-data indication when real-time sync drops. No task addresses this. | Add a task in US1 or US6 to audit real-time sync reconnection behavior and stale-data indication. |
+| F5 | Coverage Gap | MEDIUM | spec.md:L188 | **Edge case "real-time sync connection drop" has no task**: spec.md edge case describes stale-data indication when real-time sync drops. No task addresses this. | Add a task in US1 or US6 to audit real-time sync reconnection behavior and stale-data indication. |
 | F6 | Coverage Gap | MEDIUM | spec.md:L181 | **Edge case "deleted pipeline fallback" has no task**: spec.md states ChoreCard should show a graceful fallback when a chore's pipeline is deleted. No task in tasks.md explicitly covers this scenario. | Add a task in US1 or US4 to audit and fix the pipeline-deleted fallback display in ChoreCard. |
 | F7 | Coverage Gap | LOW | spec.md:L183 | **Edge case "AddChoreModal chat flow network error" partially covered**: spec.md describes chat error mid-conversation. T084 (edge case tests) mentions "rapid trigger button clicks" but not chat-flow network errors specifically. T010 assesses ChoreChatFlow but no implementation task fixes chat-flow error handling. | Add a task in US4 or US1 to audit and fix error handling in ChoreChatFlow when network errors occur mid-conversation. |
 | F8 | Ambiguity | LOW | spec.md:L122 | **Vague adjective "quickly"**: US6 says "I want the Chores page to load quickly". plan.md defines this as "within 3 seconds" (L18), but spec.md does not include a measurable threshold in the user story text itself. | The user story body should reference the measurable criterion (e.g., "within 3 seconds") for self-contained testability, or cross-reference SC-005. |
@@ -105,7 +105,7 @@ These 21 tasks serve infrastructure/validation purposes and correctly span all u
 | **Critical Issues** | 0 |
 | **High Issues** | 0 |
 | **Medium Issues** | 6 (F1-F6) |
-| **Low Issues** | 10 (F7-F9, F11-F16) |
+| **Low Issues** | 10 (F7-F16) |
 
 ---
 
