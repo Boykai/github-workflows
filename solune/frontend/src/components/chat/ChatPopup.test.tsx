@@ -101,4 +101,12 @@ describe('ChatPopup — resize listener scoping', () => {
     expect(removeMousemoveCalls).toHaveLength(1);
     expect(removeMouseupCalls).toHaveLength(1);
   });
+
+  it('uses theme-aware launcher icon colors', () => {
+    render(<ChatPopup {...defaultProps} />);
+
+    const toggle = screen.getByRole('button', { name: 'Open chat' });
+    expect(toggle).toHaveClass('text-white');
+    expect(toggle).toHaveClass('dark:text-black');
+  });
 });
