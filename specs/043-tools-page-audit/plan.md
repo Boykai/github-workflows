@@ -161,7 +161,9 @@ solune/frontend/
 │   │       └── ProjectSelectionEmptyState.tsx
 │   ├── hooks/
 │   │   ├── useTools.ts                       # Tool CRUD hooks (127 lines — audit target)
-│   │   └── useAgentTools.ts                  # Agent tool assignment (40 lines — minor fixes)
+│   │   ├── useAgentTools.ts                  # Agent tool assignment (40 lines — minor fixes)
+│   │   ├── useRepoMcpConfig.ts               # Repo MCP config hooks (72 lines — audit target)
+│   │   └── useMcpPresets.ts                  # MCP presets hook (21 lines — audit target)
 │   ├── services/
 │   │   └── api.ts                            # API client (tools section — reference)
 │   ├── types/
@@ -238,7 +240,7 @@ All other phases depend on loading/error/empty states being correct.
 
 | # | Task | Method |
 |---|------|--------|
-| 6.1 | `npx eslint src/pages/ToolsPage.tsx src/components/tools/ src/hooks/useTools.ts src/hooks/useAgentTools.ts` | 0 warnings |
+| 6.1 | `npx eslint src/pages/ToolsPage.tsx src/components/tools/ src/hooks/useTools.ts src/hooks/useAgentTools.ts src/hooks/useRepoMcpConfig.ts src/hooks/useMcpPresets.ts` | 0 warnings |
 | 6.2 | `npx tsc --noEmit` | 0 type errors |
 | 6.3 | `npx vitest run` | All tests pass |
 | 6.4 | Manual browser check — light mode, dark mode, 768px → 1920px | Visual verification |
