@@ -7,7 +7,7 @@
 
 ## Summary
 
-Review and merge the GitHub issue template for **UI Audit** — a reusable checklist that standardises page-level audits across the Solune frontend. The template (`.github/ISSUE_TEMPLATE/chore-ui-aduit.md`) already exists in the repository and provides ten audit categories with 59+ checklist items, a six-phase implementation guide, a relevant-files reference section, and verification commands. The implementation work is a review-and-merge chore: validate the template content against the specification requirements (FR-001 through FR-012), confirm all placeholder mechanics work, and ensure the template is selectable from GitHub's "New Issue" page with the correct title, labels, and body.
+Review and merge the GitHub issue template for **UI Audit** — a reusable checklist that standardises page-level audits across the Solune frontend. The template (`.github/ISSUE_TEMPLATE/chore-ui-audit.md`) already exists in the repository and provides ten audit categories with 59+ checklist items, a six-phase implementation guide, a relevant-files reference section, and verification commands. The implementation work is a review-and-merge chore: validate the template content against the specification requirements (FR-001 through FR-012), confirm all placeholder mechanics work, and ensure the template is selectable from GitHub's "New Issue" page with the correct title, labels, and body.
 
 ## Technical Context
 
@@ -19,7 +19,7 @@ Review and merge the GitHub issue template for **UI Audit** — a reusable check
 **Project Type**: Single (repository configuration file)
 **Performance Goals**: N/A — static template file, no runtime performance concerns
 **Constraints**: Template must conform to GitHub issue template format (YAML front matter + Markdown body). No external dependencies. Template must be generic enough to apply to any page in the application (FR-007, SC-007)
-**Scale/Scope**: 1 file (`.github/ISSUE_TEMPLATE/chore-ui-aduit.md`), ~200 lines of Markdown. 10 audit categories, 59+ checklist items, 6 implementation phases, 1 relevant-files section, 1 verification section
+**Scale/Scope**: 1 file (`.github/ISSUE_TEMPLATE/chore-ui-audit.md`), ~200 lines of Markdown. 10 audit categories, 59+ checklist items, 6 implementation phases, 1 relevant-files section, 1 verification section
 
 ## Constitution Check
 
@@ -76,7 +76,7 @@ specs/045-ui-audit/
 ```text
 .github/
 └── ISSUE_TEMPLATE/
-    └── chore-ui-aduit.md    # The UI Audit issue template (single deliverable)
+    └── chore-ui-audit.md    # The UI Audit issue template (single deliverable)
 ```
 
 **Structure Decision**: This feature is a single static Markdown file in the repository's `.github/ISSUE_TEMPLATE/` directory. No source code, no build artefacts, no runtime components. The entire deliverable is the issue template file itself, which is already present in the repository and requires review and merge.

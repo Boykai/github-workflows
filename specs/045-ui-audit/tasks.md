@@ -5,7 +5,7 @@
 
 **Tests**: Not requested — this is a static Markdown template with no runtime components. Validation is manual per plan.md and quickstart.md.
 
-**Organization**: Tasks are grouped by user story to enable independent validation of each story's acceptance criteria against the template file `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`.
+**Organization**: Tasks are grouped by user story to enable independent validation of each story's acceptance criteria against the template file `.github/ISSUE_TEMPLATE/chore-ui-audit.md`.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -15,7 +15,7 @@
 
 ## Path Conventions
 
-- **Single deliverable**: `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
+- **Single deliverable**: `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 - **Spec artifacts**: `specs/045-ui-audit/`
 
 ---
@@ -24,12 +24,12 @@
 
 **Purpose**: Establish the review baseline — confirm the template file exists, is well-formed, and meets structural prerequisites before validating content.
 
-- [ ] T001 Verify template file exists at `.github/ISSUE_TEMPLATE/chore-ui-aduit.md` and is non-empty
+- [ ] T001 Verify template file exists at `.github/ISSUE_TEMPLATE/chore-ui-audit.md` and is non-empty
 - [ ] T002 Validate YAML front matter contains all required fields (`name`, `about`, `title`, `labels`, `assignees`) per contracts/template-contract.md
-- [ ] T003 [P] Confirm YAML front matter `name` field is set to `UI Aduit` (FR-001) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T004 [P] Confirm YAML front matter `title` field follows `[CHORE] UI Aduit` format (FR-010) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T005 [P] Confirm YAML front matter `labels` field includes `chore` (FR-009) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T006 [P] Confirm YAML front matter `assignees` field is present (empty string allowed) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
+- [ ] T003 [P] Confirm YAML front matter `name` field is set to `UI Audit` (FR-001) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T004 [P] Confirm YAML front matter `title` field follows `[CHORE] UI Audit` format (FR-010) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T005 [P] Confirm YAML front matter `labels` field includes `chore` (FR-009) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T006 [P] Confirm YAML front matter `assignees` field is present (empty string allowed) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 ---
 
@@ -39,13 +39,13 @@
 
 **⚠️ CRITICAL**: No user story validation can begin until the structural integrity of the template is confirmed.
 
-- [ ] T007 Verify the template body contains exactly 10 audit category sections with `### N.` headings matching the names defined in data-model.md and contracts/template-contract.md in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T008 [P] Count total checklist items (lines matching `- [ ]`) and confirm ≥59 items (FR-012) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T009 [P] Verify all checklist items use GitHub-compatible checkbox format `- [ ]` (FR-003) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T010 [P] Verify the template contains an "Implementation Steps" section with exactly 6 phases (FR-006) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T011 [P] Verify the template contains a "Relevant Files" section with placeholder paths (FR-007) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T012 [P] Verify the template contains a "Verification" section with lint, type-check, test, and manual browser validation commands (FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T013 Verify all three placeholder tokens (`[PAGE_NAME]`, `[PageName]`, `[feature]`) appear in the template body (FR-005) per contracts/template-contract.md placeholder contract in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
+- [ ] T007 Verify the template body contains exactly 10 audit category sections with `### N.` headings matching the names defined in data-model.md and contracts/template-contract.md in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T008 [P] Count total checklist items (lines matching `- [ ]`) and confirm ≥59 items (FR-012) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T009 [P] Verify all checklist items use GitHub-compatible checkbox format `- [ ]` (FR-003) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T010 [P] Verify the template contains an "Implementation Steps" section with exactly 6 phases (FR-006) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T011 [P] Verify the template contains a "Relevant Files" section with placeholder paths (FR-007) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T012 [P] Verify the template contains a "Verification" section with lint, type-check, test, and manual browser validation commands (FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T013 Verify all three placeholder tokens (`[PAGE_NAME]`, `[PageName]`, `[feature]`) appear in the template body (FR-005) per contracts/template-contract.md placeholder contract in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: Template structure confirmed — per-story content validation can now begin in parallel.
 
@@ -59,11 +59,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T014 [US1] Verify the template is selectable from GitHub's "New Issue" page by confirming it resides in `.github/ISSUE_TEMPLATE/` with valid YAML front matter (FR-001) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T015 [P] [US1] Verify the issue form is pre-filled with the full audit checklist containing all 10 categories when the template is selected (US1-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T016 [P] [US1] Verify every `[PAGE_NAME]` placeholder is replaceable with an actual page name and the resulting issue clearly identifies the audited page (US1-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T017 [P] [US1] Verify the `labels: chore` front matter ensures the "chore" label is applied automatically on issue creation (US1-AC3, FR-009) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T018 [US1] Verify the default title `[CHORE] UI Aduit` is filterable in the issue list and follows the expected format (US1-AC4, FR-010) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
+- [ ] T014 [US1] Verify the template is selectable from GitHub's "New Issue" page by confirming it resides in `.github/ISSUE_TEMPLATE/` with valid YAML front matter (FR-001) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T015 [P] [US1] Verify the issue form is pre-filled with the full audit checklist containing all 10 categories when the template is selected (US1-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T016 [P] [US1] Verify every `[PAGE_NAME]` placeholder is replaceable with an actual page name and the resulting issue clearly identifies the audited page (US1-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T017 [P] [US1] Verify the `labels: chore` front matter ensures the "chore" label is applied automatically on issue creation (US1-AC3, FR-009) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T018 [US1] Verify the default title `[CHORE] UI Audit` is filterable in the issue list and follows the expected format (US1-AC4, FR-010) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: User Story 1 validated — the template is selectable, pre-filled, and produces correctly labelled and titled issues.
 
@@ -77,19 +77,19 @@
 
 ### Implementation for User Story 2
 
-- [ ] T019 [P] [US2] Review all items in "1. Component Architecture & Modularity" (7 items) — confirm each describes a single, observable pass/fail condition (FR-004, US2-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T020 [P] [US2] Review all items in "2. Data Fetching & State Management" (6 items) — confirm each references a specific pattern to verify (FR-004, US2-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T021 [P] [US2] Review all items in "3. Loading, Error & Empty States" (5 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T022 [P] [US2] Review all items in "4. Type Safety" (5 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T023 [P] [US2] Review all items in "5. Accessibility (a11y)" (7 items) — confirm each maps to a verifiable keyboard-navigation or assistive-technology criterion (FR-004, US2-AC3) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T024 [P] [US2] Review all items in "6. Text, Copy & UX Polish" (8 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T025 [P] [US2] Review all items in "7. Styling & Layout" (6 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T026 [P] [US2] Review all items in "8. Performance" (5 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T027 [P] [US2] Review all items in "9. Test Coverage" (5 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T028 [P] [US2] Review all items in "10. Code Hygiene" (6 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T029 [US2] Verify all checklist items use clear, unambiguous language that does not require external documentation to understand (FR-011, SC-004) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T030 [US2] Verify no category has fewer than 4 items (SC-003) and total items ≥59 (FR-012) — cross-reference with research.md item distribution table in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T031 [US2] Confirm that checking/unchecking items in a created issue from `.github/ISSUE_TEMPLATE/chore-ui-aduit.md` updates GitHub's checkbox progress counter per section (US2-AC4, US2-AC5) — manual verification after issue creation
+- [ ] T019 [P] [US2] Review all items in "1. Component Architecture & Modularity" (7 items) — confirm each describes a single, observable pass/fail condition (FR-004, US2-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T020 [P] [US2] Review all items in "2. Data Fetching & State Management" (6 items) — confirm each references a specific pattern to verify (FR-004, US2-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T021 [P] [US2] Review all items in "3. Loading, Error & Empty States" (5 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T022 [P] [US2] Review all items in "4. Type Safety" (5 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T023 [P] [US2] Review all items in "5. Accessibility (a11y)" (7 items) — confirm each maps to a verifiable keyboard-navigation or assistive-technology criterion (FR-004, US2-AC3) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T024 [P] [US2] Review all items in "6. Text, Copy & UX Polish" (8 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T025 [P] [US2] Review all items in "7. Styling & Layout" (6 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T026 [P] [US2] Review all items in "8. Performance" (5 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T027 [P] [US2] Review all items in "9. Test Coverage" (5 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T028 [P] [US2] Review all items in "10. Code Hygiene" (6 items) — confirm each describes a concrete, testable condition (FR-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T029 [US2] Verify all checklist items use clear, unambiguous language that does not require external documentation to understand (FR-011, SC-004) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T030 [US2] Verify no category has fewer than 4 items (SC-003) and total items ≥59 (FR-012) — cross-reference with research.md item distribution table in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T031 [US2] Confirm that checking/unchecking items in a created issue from `.github/ISSUE_TEMPLATE/chore-ui-audit.md` updates GitHub's checkbox progress counter per section (US2-AC4, US2-AC5) — manual verification after issue creation
 
 **Checkpoint**: User Story 2 validated — all 60 checklist items are clear, pass/fail, and progress-trackable.
 
@@ -103,13 +103,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T032 [P] [US3] Verify Phase 1 (Discovery & Assessment) contains 9 actionable steps that enable producing a complete findings table (US3-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T033 [P] [US3] Verify Phase 2 (Structural Fixes) contains 4 steps explaining when and how to extract sub-components, hooks, and replace raw data-fetching patterns (US3-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T034 [P] [US3] Verify Phase 3 (States & Error Handling) contains 4 steps for loading, error, empty states, and confirmation dialogs in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T035 [P] [US3] Verify Phase 4 (a11y & UX Polish) contains 5 steps for ARIA attributes, keyboard navigation, text/copy, tooltips, and dark mode in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T036 [P] [US3] Verify Phase 5 (Testing) contains 3 steps for hook tests, component tests, and edge case verification in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T037 [P] [US3] Verify Phase 6 (Validation) contains 4 verification commands (lint, type-check, tests, manual browser check) matching the Verification section (US3-AC3) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T038 [US3] Verify all 6 phases have sequential dependencies — each phase depends only on preceding phases, with no circular dependencies (US3-AC4, FR-006) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
+- [ ] T032 [P] [US3] Verify Phase 1 (Discovery & Assessment) contains 9 actionable steps that enable producing a complete findings table (US3-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T033 [P] [US3] Verify Phase 2 (Structural Fixes) contains 4 steps explaining when and how to extract sub-components, hooks, and replace raw data-fetching patterns (US3-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T034 [P] [US3] Verify Phase 3 (States & Error Handling) contains 4 steps for loading, error, empty states, and confirmation dialogs in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T035 [P] [US3] Verify Phase 4 (a11y & UX Polish) contains 5 steps for ARIA attributes, keyboard navigation, text/copy, tooltips, and dark mode in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T036 [P] [US3] Verify Phase 5 (Testing) contains 3 steps for hook tests, component tests, and edge case verification in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T037 [P] [US3] Verify Phase 6 (Validation) contains 4 verification commands (lint, type-check, tests, manual browser check) matching the Verification section (US3-AC3) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T038 [US3] Verify all 6 phases have sequential dependencies — each phase depends only on preceding phases, with no circular dependencies (US3-AC4, FR-006) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: User Story 3 validated — the six-phase guide is logically ordered and actionable.
 
@@ -123,12 +123,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T039 [P] [US4] Verify "Page & Components" paths use `[PageName]` and `[feature]` placeholders that resolve to valid `solune/frontend/src/` locations (US4-AC1, FR-007) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T040 [P] [US4] Verify "Hooks & API" paths reference `src/hooks/use[Feature].ts` and `src/services/api.ts` with correct placeholder usage in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T041 [P] [US4] Verify "Types" paths reference `src/types/index.ts` or `src/types/[feature].ts` in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T042 [P] [US4] Verify "Shared" section references actual UI primitives (Button, Card, Input, Tooltip, ConfirmationDialog) and common components (CelestialLoader, ErrorBoundary, ProjectSelectionEmptyState) from contracts/template-contract.md (US4-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T043 [P] [US4] Verify "Tests" paths reference `src/hooks/use[Feature].test.ts` and `src/components/[feature]/*.test.tsx` in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T044 [US4] Substitute placeholders with a real page (e.g., `[PageName]=ProjectsPage`, `[feature]=board`) and confirm all resulting paths point to valid `solune/frontend/src/` directories (US4-AC1, US4-AC3) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
+- [ ] T039 [P] [US4] Verify "Page & Components" paths use `[PageName]` and `[feature]` placeholders that resolve to valid `solune/frontend/src/` locations (US4-AC1, FR-007) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T040 [P] [US4] Verify "Hooks & API" paths reference `src/hooks/use[Feature].ts` and `src/services/api.ts` with correct placeholder usage in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T041 [P] [US4] Verify "Types" paths reference `src/types/index.ts` or `src/types/[feature].ts` in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T042 [P] [US4] Verify "Shared" section references actual UI primitives (Button, Card, Input, Tooltip, ConfirmationDialog) and common components (CelestialLoader, ErrorBoundary, ProjectSelectionEmptyState) from contracts/template-contract.md (US4-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T043 [P] [US4] Verify "Tests" paths reference `src/hooks/use[Feature].test.ts` and `src/components/[feature]/*.test.tsx` in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T044 [US4] Substitute placeholders with a real page (e.g., `[PageName]=ProjectsPage`, `[feature]=board`) and confirm all resulting paths point to valid `solune/frontend/src/` directories (US4-AC1, US4-AC3) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: User Story 4 validated — the Relevant Files section produces a complete file inventory when placeholders are substituted.
 
@@ -142,11 +142,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T045 [P] [US5] Verify the lint command (`npx eslint src/pages/[PageName].tsx src/components/[feature]/`) is present and produces pass/fail output (US5-AC1, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T046 [P] [US5] Verify the type-check command (`npx tsc --noEmit`) is present and produces pass/fail output (US5-AC2, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T047 [P] [US5] Verify the test command (`npx vitest run`) is present and produces pass/fail output (US5-AC3, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T048 [P] [US5] Verify manual browser checks are listed: light mode, dark mode, responsive viewport, keyboard-only navigation (US5-AC4, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T049 [US5] Verify the Verification section contains at least 6 verification items matching the contract (contracts/template-contract.md) — lint, type-check, tests, visual light, visual dark, keyboard (SC-006) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
+- [ ] T045 [P] [US5] Verify the lint command (`npx eslint src/pages/[PageName].tsx src/components/[feature]/`) is present and produces pass/fail output (US5-AC1, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T046 [P] [US5] Verify the type-check command (`npx tsc --noEmit`) is present and produces pass/fail output (US5-AC2, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T047 [P] [US5] Verify the test command (`npx vitest run`) is present and produces pass/fail output (US5-AC3, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T048 [P] [US5] Verify manual browser checks are listed: light mode, dark mode, responsive viewport, keyboard-only navigation (US5-AC4, FR-008) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T049 [US5] Verify the Verification section contains at least 6 verification items matching the contract (contracts/template-contract.md) — lint, type-check, tests, visual light, visual dark, keyboard (SC-006) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: User Story 5 validated — all verification commands produce clear pass/fail results.
 
@@ -160,9 +160,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T050 [P] [US6] Substitute all placeholders for the Projects page (`[PAGE_NAME]=Projects`, `[PageName]=ProjectsPage`, `[feature]=board`) and verify all checklist items, file paths, and commands are applicable (US6-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T051 [P] [US6] Substitute all placeholders for the Agents page (`[PAGE_NAME]=Agents`, `[PageName]=AgentsPanel`, `[feature]=agents`) and verify all checklist items, file paths, and commands are applicable (US6-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
-- [ ] T052 [US6] Confirm that the two audit instances are distinguishable by page name in the title and body (US6-AC3) and that no template modification was required (SC-007) in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
+- [ ] T050 [P] [US6] Substitute all placeholders for the Projects page (`[PAGE_NAME]=Projects`, `[PageName]=ProjectsPage`, `[feature]=board`) and verify all checklist items, file paths, and commands are applicable (US6-AC1) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T051 [P] [US6] Substitute all placeholders for the Agents page (`[PAGE_NAME]=Agents`, `[PageName]=AgentsPanel`, `[feature]=agents`) and verify all checklist items, file paths, and commands are applicable (US6-AC2) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
+- [ ] T052 [US6] Confirm that the two audit instances are distinguishable by page name in the title and body (US6-AC3) and that no template modification was required (SC-007) in `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 **Checkpoint**: User Story 6 validated — the template is reusable across different pages without modification.
 
@@ -175,10 +175,10 @@
 - [ ] T053 [P] Verify edge case: template handles pages with no data-fetching hooks (developer skips N/A items and notes them) per spec.md edge cases
 - [ ] T054 [P] Verify edge case: template handles new pages with no existing tests (Test Coverage section still applies) per spec.md edge cases
 - [ ] T055 [P] Verify edge case: template handles non-applicable checklist items (developer checks and notes N/A) per spec.md edge cases
-- [ ] T056 Note the "aduit" typo in `.github/ISSUE_TEMPLATE/chore-ui-aduit.md` filename and YAML front matter (RT-005 in research.md) — out of scope for this review, flag for future follow-up
+- [x] T056 The "aduit" typo in the template filename and YAML front matter (RT-005 in research.md) has been corrected — file renamed to `chore-ui-audit.md` with "UI Audit" in all front matter fields
 - [ ] T057 Verify template consistency with other chore templates in `.github/ISSUE_TEMPLATE/` — confirm YAML front matter follows the same pattern (RT-006 in research.md)
 - [ ] T058 Run quickstart.md verification steps (sections 1–6) against the template file to confirm all structural checks pass
-- [ ] T059 Final review: confirm all 12 functional requirements (FR-001 through FR-012) and all 8 success criteria (SC-001 through SC-008) are satisfied per specs/045-ui-audit/spec.md against `.github/ISSUE_TEMPLATE/chore-ui-aduit.md`
+- [ ] T059 Final review: confirm all 12 functional requirements (FR-001 through FR-012) and all 8 success criteria (SC-001 through SC-008) are satisfied per specs/045-ui-audit/spec.md against `.github/ISSUE_TEMPLATE/chore-ui-audit.md`
 
 ---
 
@@ -229,16 +229,16 @@
 
 ```bash
 # Launch all category reviews in parallel (all different sections, no dependencies):
-Task: T019 "Review Component Architecture & Modularity items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
-Task: T020 "Review Data Fetching & State Management items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
-Task: T021 "Review Loading, Error & Empty States items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
-Task: T022 "Review Type Safety items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
-Task: T023 "Review Accessibility items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
-Task: T024 "Review Text, Copy & UX Polish items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
-Task: T025 "Review Styling & Layout items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
-Task: T026 "Review Performance items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
-Task: T027 "Review Test Coverage items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
-Task: T028 "Review Code Hygiene items in .github/ISSUE_TEMPLATE/chore-ui-aduit.md"
+Task: T019 "Review Component Architecture & Modularity items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
+Task: T020 "Review Data Fetching & State Management items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
+Task: T021 "Review Loading, Error & Empty States items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
+Task: T022 "Review Type Safety items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
+Task: T023 "Review Accessibility items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
+Task: T024 "Review Text, Copy & UX Polish items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
+Task: T025 "Review Styling & Layout items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
+Task: T026 "Review Performance items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
+Task: T027 "Review Test Coverage items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
+Task: T028 "Review Code Hygiene items in .github/ISSUE_TEMPLATE/chore-ui-audit.md"
 ```
 
 ---
@@ -283,5 +283,5 @@ With multiple reviewers:
 - [Story] label maps task to specific user story for traceability
 - This is a review-and-merge chore — tasks validate existing content, not create new code
 - No automated tests — all validation is manual (create issue, inspect template, run quickstart checks)
-- The "aduit" typo (RT-005) is acknowledged but out of scope per research.md decision
+- The "aduit" typo (RT-005) has been corrected — template file renamed and front matter updated
 - Total: 59 tasks across 9 phases covering 6 user stories and 12 functional requirements
