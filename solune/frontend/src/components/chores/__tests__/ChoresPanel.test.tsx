@@ -10,6 +10,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ConfirmationDialogProvider } from '@/hooks/useConfirmation';
 import { ChoresPanel } from '../ChoresPanel';
+import { ApiError } from '@/services/api';
 import type { Chore } from '@/types';
 import type { ReactNode } from 'react';
 
@@ -155,6 +156,27 @@ describe('ChoresPanel', () => {
     });
   });
 
+  it('shows a rate limit message and retries loading chores', async () => {
+    const user = userEvent.setup();
+    mockList
+      .mockRejectedValueOnce(new ApiError(429, { error: 'Rate limit exceeded' }))
+      .mockResolvedValueOnce([createChore({ id: 'c1', name: 'Recovered chore' })]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    expect(await screen.findByText('Rate limit reached')).toBeInTheDocument();
+    expect(
+      screen.getByText('Too many requests. Please wait a moment and try again.')
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Recovered chore').length).toBeGreaterThan(0);
+    });
+    expect(mockList).toHaveBeenCalledTimes(2);
+  });
+
   it('displays the Chores header', async () => {
     mockList.mockResolvedValue([]);
 
@@ -237,5 +259,45 @@ describe('ChoresPanel', () => {
         agent_pipeline_id: 'pipe-1',
       });
     });
+  });
+
+  it('resets filters after an empty search result', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([createChore({ id: 'c1', name: 'Bug Bash' })]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    const searchInput = await screen.findByLabelText('Search chores by name or template path');
+    await user.type(searchInput, 'does-not-match');
+
+    expect(await screen.findByText('No chores match the current filters.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Reset filters' }));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('Bug Bash').length).toBeGreaterThan(0);
+    });
+    expect(searchInput).toHaveValue('');
+  });
+
+  it('prefills the add chore modal from a featured repository template', async () => {
+    const user = userEvent.setup();
+    mockList.mockResolvedValue([]);
+    mockListTemplates.mockResolvedValue([
+      {
+        name: 'Dependency Refresh',
+        path: '.github/ISSUE_TEMPLATE/dependency-refresh.md',
+        content: '## Refresh dependencies',
+        about: 'Keep dependencies current',
+      },
+    ]);
+
+    render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
+
+    await user.click(await screen.findByRole('button', { name: /dependency refresh/i }));
+
+    expect(await screen.findByRole('heading', { name: 'Add Chore' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Name')).toHaveValue('Dependency Refresh');
+    expect(screen.getByLabelText('Template Content')).toHaveValue('## Refresh dependencies');
   });
 });
