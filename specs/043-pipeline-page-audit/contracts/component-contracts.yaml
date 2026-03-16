@@ -1,0 +1,578 @@
+# Component Contracts: Pipeline Page Audit
+#
+# Feature: 043-pipeline-page-audit
+# Date: 2026-03-16
+#
+# Each component defines its interface, states, accessibility requirements,
+# and design token usage. These contracts guide the audit and refactoring.
+
+# ============================================================================
+# PAGE-LEVEL
+# ============================================================================
+
+AgentsPipelinePage:
+  path: frontend/src/pages/AgentsPipelinePage.tsx
+  description: >
+    Master page component orchestrating the pipeline editor. Composes toolbar,
+    pipeline board, saved workflows list, analytics dashboard, and unsaved
+    changes dialog. Currently 417 lines — audit target is ≤250 lines with
+    extracted sub-components.
+  props: []
+  states:
+    - name: no-project-selected
+      condition: No project selected in ProjectSelector
+      renders: ProjectSelectionEmptyState with guidance text
+    - name: loading-pipelines
+      condition: Pipeline list query is loading
+      renders: CelestialLoader size="md" centered in content area
+    - name: empty-board
+      condition: Project selected, no pipelines exist, board state is 'empty'
+      renders: Empty state with illustrative icon and "Create Pipeline" CTA
+    - name: creating-pipeline
+      condition: User has started creating a new pipeline (board state 'creating')
+      renders: Pipeline board with empty stages, toolbar with Save/Discard
+    - name: editing-pipeline
+      condition: Existing pipeline loaded (board state 'editing')
+      renders: Full pipeline board with stages/agents, toolbar with Save/Discard/Delete
+    - name: saving
+      condition: Save mutation in progress (isSaving=true)
+      renders: Save button disabled with loading indicator; board inputs disabled
+    - name: save-error
+      condition: Save mutation failed
+      renders: User-friendly error message (FR-004 format), save button re-enabled
+    - name: rate-limit-error
+      condition: API returns rate limit response
+      renders: Specific rate-limit message advising user to wait (FR-005)
+    - name: pipeline-list-error
+      condition: Pipeline list query failed
+      renders: Error message with retry action in saved workflows section
+    - name: analytics-error
+      condition: Analytics data failed to load
+      renders: Error message in analytics section only; other sections unaffected (FR-006)
+  accessibility:
+    - Page has a descriptive document title
+    - Main content area has role="main" or is within <main>
+    - Page-level loading state announced to screen readers via aria-live="polite"
+    - All sections independently accessible
+  design_tokens:
+    - CelestialCatalogHero for page header
+    - Standard page layout padding and spacing
+    - celestial-panel for content sections
+  audit_requirements:
+    - Reduce to ≤250 lines by extracting sections into sub-components (FR-021)
+    - No prop drilling >2 levels (FR-022)
+    - All data fetching via React Query (FR-023)
+
+# ============================================================================
+# TOOLBAR
+# ============================================================================
+
+PipelineToolbar:
+  path: frontend/src/components/pipeline/PipelineToolbar.tsx
+  description: >
+    Top toolbar with save, discard, delete, and copy pipeline actions.
+    Shows pipeline name and edit status.
+  props:
+    - name: pipelineName
+      type: string
+      required: true
+      description: Current pipeline name for display
+    - name: isDirty
+      type: boolean
+      required: true
+      description: Whether unsaved changes exist
+    - name: isSaving
+      type: boolean
+      required: true
+      description: Whether save operation is in progress
+    - name: boardState
+      type: PipelineBoardState
+      required: true
+      description: Current board state (empty/creating/editing)
+    - name: onSave
+      type: "() => void"
+      required: true
+      description: Save handler
+    - name: onDiscard
+      type: "() => void"
+      required: true
+      description: Discard changes handler
+    - name: onDelete
+      type: "() => void"
+      required: true
+      description: Delete pipeline handler
+    - name: onCopy
+      type: "() => void"
+      required: true
+      description: Duplicate pipeline handler
+    - name: saveError
+      type: "string | null"
+      required: false
+      description: Current save error message
+    - name: validationErrors
+      type: PipelineValidationErrors
+      required: false
+      description: Field-level validation errors
+  states:
+    - name: idle
+      condition: No active operation
+      renders: All action buttons enabled
+    - name: saving
+      condition: isSaving=true
+      renders: Save button disabled with spinner, other buttons disabled
+    - name: dirty
+      condition: isDirty=true
+      renders: Visual indicator of unsaved changes, Discard button enabled
+    - name: clean
+      condition: isDirty=false, boardState='editing'
+      renders: Save button disabled, Discard hidden
+    - name: validation-error
+      condition: validationErrors has entries
+      renders: Inline error messages associated with fields
+  accessibility:
+    - All buttons have descriptive labels (e.g., "Save Pipeline", "Delete Pipeline")
+    - Button labels are verb phrases (FR-019)
+    - Delete button triggers ConfirmationDialog (FR-007)
+    - Save button disabled state communicated via aria-disabled
+    - Validation errors linked to inputs via aria-describedby
+    - Keyboard: all buttons reachable via Tab, activated via Enter/Space
+  design_tokens:
+    - Standard button variants (primary, destructive, outline)
+    - celestial-focus for focus indicators
+
+# ============================================================================
+# BOARD & STAGES
+# ============================================================================
+
+PipelineBoard:
+  path: frontend/src/components/pipeline/PipelineBoard.tsx
+  description: >
+    Main pipeline editing grid. Renders stage cards in order with add/remove
+    controls. Supports stage reordering.
+  props:
+    - name: pipeline
+      type: "PipelineConfig | null"
+      required: true
+      description: Current pipeline being edited
+    - name: boardState
+      type: PipelineBoardState
+      required: true
+      description: Current board state
+    - name: mutations
+      type: object
+      required: true
+      description: Board mutation handlers from usePipelineBoardMutations
+  states:
+    - name: empty
+      condition: No stages in pipeline
+      renders: Empty state with "Add Stage" CTA and illustrative content
+    - name: populated
+      condition: Pipeline has stages
+      renders: Grid of StageCard components in order
+  accessibility:
+    - Stage list has appropriate ARIA labeling
+    - Add stage button has descriptive label
+    - Stage reordering accessible via keyboard
+  design_tokens:
+    - Grid layout with consistent gap spacing
+    - celestial-panel for board container
+  responsive:
+    - "Desktop (1280px+): multi-column stage grid"
+    - "Tablet (768px-1279px): reduced columns, scrollable"
+
+StageCard:
+  path: frontend/src/components/pipeline/StageCard.tsx
+  description: >
+    Individual stage card showing stage name, execution groups, and agent
+    nodes. Supports inline name editing, agent addition/removal, and
+    group management. Currently 362 lines — may need decomposition.
+  props:
+    - name: stage
+      type: PipelineStage
+      required: true
+      description: Stage data
+    - name: stageIndex
+      type: number
+      required: true
+      description: Display index
+    - name: mutations
+      type: object
+      required: true
+      description: Stage mutation handlers
+  states:
+    - name: default
+      condition: Normal display
+      renders: Stage name, execution groups with agents
+    - name: editing-name
+      condition: User clicked stage name to edit
+      renders: Inline input with save/cancel controls
+    - name: empty-stage
+      condition: Stage has no agents
+      renders: Placeholder with "Add Agent" CTA
+  accessibility:
+    - Stage card is a landmark or labeled section
+    - Inline name editing has associated label and validation errors linked via aria-describedby
+    - Remove stage triggers confirmation dialog (FR-007)
+    - Agent removal triggers confirmation dialog (FR-007)
+  design_tokens:
+    - Card component from ui/card.tsx
+    - Consistent padding and border radius
+  audit_requirements:
+    - Consider decomposition if >250 lines
+    - Stage name input must have visible label or aria-label (FR-016)
+
+ExecutionGroupCard:
+  path: frontend/src/components/pipeline/ExecutionGroupCard.tsx
+  description: >
+    Renders a group of agents within a stage. Shows execution mode toggle
+    (sequential/parallel) and agent list.
+  props:
+    - name: group
+      type: ExecutionGroup
+      required: true
+      description: Execution group data
+    - name: stageId
+      type: string
+      required: true
+      description: Parent stage identifier
+    - name: mutations
+      type: object
+      required: true
+      description: Group mutation handlers
+  states:
+    - name: sequential
+      condition: execution_mode='sequential'
+      renders: Agents listed vertically with sequential flow indicator
+    - name: parallel
+      condition: execution_mode='parallel'
+      renders: Agents listed with parallel flow indicator
+  accessibility:
+    - Execution mode toggle has role="switch" or equivalent with aria-checked
+    - Toggle label reads "Sequential" or "Parallel" with current state announced
+    - Group is labeled for screen readers
+  design_tokens:
+    - Subtle border to distinguish groups within a stage
+    - Mode indicator using icon + text (not color alone, FR-015)
+
+AgentNode:
+  path: frontend/src/components/pipeline/AgentNode.tsx
+  description: >
+    Individual agent assignment display within an execution group. Shows
+    agent name, model, tool count, and action controls.
+  props:
+    - name: agent
+      type: PipelineAgentNode
+      required: true
+      description: Agent node data
+    - name: stageId
+      type: string
+      required: true
+      description: Parent stage identifier
+    - name: groupId
+      type: string
+      required: true
+      description: Parent group identifier
+    - name: onRemove
+      type: "() => void"
+      required: true
+      description: Remove agent handler
+  accessibility:
+    - Agent node is an interactive element (button or link)
+    - Remove button has descriptive aria-label (e.g., "Remove agent [name]")
+    - Long agent names truncated with tooltip (FR-018)
+    - Decorative icons have aria-hidden="true"
+  design_tokens:
+    - Consistent card/chip styling
+    - text-ellipsis for truncation
+  audit_requirements:
+    - Missing/deleted agents show gracefully with indicator (edge case from spec)
+
+# ============================================================================
+# SAVED WORKFLOWS & ANALYTICS
+# ============================================================================
+
+SavedWorkflowsList:
+  path: frontend/src/components/pipeline/SavedWorkflowsList.tsx
+  description: >
+    List of saved pipeline configurations. Allows selecting, duplicating,
+    and deleting pipelines. Shows active pipeline assignment status.
+  props:
+    - name: pipelines
+      type: "PipelineConfigSummary[]"
+      required: true
+      description: List of saved pipelines
+    - name: selectedId
+      type: "string | null"
+      required: true
+      description: Currently selected pipeline ID
+    - name: assignedId
+      type: "string | null"
+      required: true
+      description: Currently assigned (active) pipeline ID
+    - name: onSelect
+      type: "(id: string) => void"
+      required: true
+      description: Pipeline selection handler
+    - name: onDuplicate
+      type: "(id: string) => void"
+      required: true
+      description: Pipeline duplication handler
+    - name: onDelete
+      type: "(id: string) => void"
+      required: true
+      description: Pipeline deletion handler
+    - name: onAssign
+      type: "(id: string) => void"
+      required: true
+      description: Pipeline assignment handler
+  states:
+    - name: loading
+      condition: Pipeline list loading
+      renders: CelestialLoader or skeleton
+    - name: empty
+      condition: No saved pipelines
+      renders: Empty state with "Create Pipeline" CTA
+    - name: populated
+      condition: Pipelines exist
+      renders: Scrollable list of pipeline cards
+    - name: error
+      condition: Pipeline list fetch failed
+      renders: Error message with retry action
+  accessibility:
+    - Each pipeline card is a proper interactive element — button or link (FR-026)
+    - Selected pipeline has aria-selected="true" or equivalent
+    - Assigned pipeline has visual + text indicator (not color alone)
+    - Delete triggers ConfirmationDialog (FR-007)
+    - Pipeline names truncated with tooltip (FR-018)
+    - Timestamps use relative format for recent (FR spec)
+    - List navigable via keyboard (arrow keys or Tab)
+  design_tokens:
+    - Card component for each pipeline entry
+    - Selected state uses design token highlight
+    - Assigned badge using design tokens
+  performance:
+    - Stable keys using pipeline.id
+    - Consider virtualization for 50+ items
+    - Pipeline cards should be memoized
+
+PipelineAnalytics:
+  path: frontend/src/components/pipeline/PipelineAnalytics.tsx
+  description: >
+    Analytics dashboard showing pipeline usage statistics, execution
+    history, and performance metrics.
+  states:
+    - name: loading
+      condition: Analytics data loading
+      renders: Skeleton or CelestialLoader
+    - name: empty
+      condition: No execution data available
+      renders: Meaningful empty state ("No pipeline executions yet")
+    - name: populated
+      condition: Analytics data available
+      renders: Charts, metrics, and execution history
+    - name: error
+      condition: Analytics fetch failed
+      renders: Error message with retry — independent of other sections (FR-006)
+  accessibility:
+    - Charts have text alternatives or aria-label summaries
+    - Data tables have proper header associations
+    - Metric values announced to screen readers
+  design_tokens:
+    - Card component for dashboard sections
+    - Consistent typography for metrics
+
+# ============================================================================
+# MODEL SELECTION
+# ============================================================================
+
+ModelSelector:
+  path: frontend/src/components/pipeline/ModelSelector.tsx
+  description: >
+    Dropdown for selecting the AI model override. Shows current model
+    mode (auto/specific/mixed) and allows override selection.
+  props:
+    - name: modelOverride
+      type: PipelineModelOverride
+      required: true
+      description: Current model override state
+    - name: onOverride
+      type: "(modelId: string, modelName: string) => void"
+      required: true
+      description: Model override handler
+    - name: models
+      type: "Model[]"
+      required: true
+      description: Available models list
+  accessibility:
+    - Dropdown trigger has aria-haspopup="listbox" and aria-expanded
+    - Options have role="option" with aria-selected
+    - Keyboard navigable (arrow keys, Enter to select, Escape to close)
+    - Current selection announced to screen readers
+  design_tokens:
+    - Dropdown styling consistent with other selectors in the app
+    - Mode indicator (auto/specific/mixed) uses icon + text
+
+PipelineModelDropdown:
+  path: frontend/src/components/pipeline/PipelineModelDropdown.tsx
+  description: >
+    Compact model selection dropdown used inline within pipeline context.
+  accessibility:
+    - Same requirements as ModelSelector
+    - Label or aria-label present
+
+# ============================================================================
+# VISUALIZATION
+# ============================================================================
+
+PipelineFlowGraph:
+  path: frontend/src/components/pipeline/PipelineFlowGraph.tsx
+  description: >
+    Visual flow diagram showing pipeline stages, execution groups, and
+    agent nodes as a directed graph. Renders SVG or canvas visualization.
+  props:
+    - name: stages
+      type: "PipelineStage[]"
+      required: true
+      description: Pipeline stages to visualize
+  accessibility:
+    - Graph has aria-label describing the pipeline structure
+    - Individual nodes are not required to be interactive (visualization only)
+    - Provide text alternative or summary for screen readers
+  design_tokens:
+    - Colors from design tokens (not hardcoded)
+    - Dark mode support for all graph elements
+  performance:
+    - Memoize rendering to prevent recalculation on unrelated state changes
+    - Scale with container width responsively
+  responsive:
+    - Scales to fit container width
+    - May need horizontal scrolling for very wide pipelines
+
+# ============================================================================
+# DIALOGS
+# ============================================================================
+
+UnsavedChangesDialog:
+  path: frontend/src/components/pipeline/UnsavedChangesDialog.tsx
+  description: >
+    Modal dialog shown when user has unsaved changes and attempts to
+    navigate away, load another pipeline, or create a new pipeline.
+    Offers Save, Discard, and Cancel options.
+  props:
+    - name: open
+      type: boolean
+      required: true
+      description: Whether dialog is visible
+    - name: onSave
+      type: "() => void"
+      required: true
+      description: Save and continue handler
+    - name: onDiscard
+      type: "() => void"
+      required: true
+      description: Discard and continue handler
+    - name: onCancel
+      type: "() => void"
+      required: true
+      description: Cancel and stay handler
+  states:
+    - name: hidden
+      condition: open=false
+      renders: Nothing
+    - name: visible
+      condition: open=true
+      renders: Modal with three action buttons
+    - name: saving
+      condition: Save in progress
+      renders: Save button disabled with spinner
+    - name: save-error
+      condition: Save failed within dialog
+      renders: Error message within dialog, buttons re-enabled
+  accessibility:
+    - Focus trapped within dialog (FR-014)
+    - Escape closes dialog (FR-014)
+    - Focus returns to trigger element on close (FR-014)
+    - Dialog has role="dialog" and aria-labelledby
+    - Action buttons have verb-phrase labels (FR-019)
+  design_tokens:
+    - Uses ConfirmationDialog or equivalent from ui/
+
+# ============================================================================
+# SUPPORTING COMPONENTS
+# ============================================================================
+
+PresetBadge:
+  path: frontend/src/components/pipeline/PresetBadge.tsx
+  description: Visual badge indicating a pipeline is a system preset.
+  accessibility:
+    - Badge text readable by screen readers
+    - Decorative if redundant with other text, aria-hidden if so
+
+ParallelStageGroup:
+  path: frontend/src/components/pipeline/ParallelStageGroup.tsx
+  description: Layout wrapper for parallel execution group display.
+  accessibility:
+    - Visual indicator uses icon + text (not color alone)
+
+# ============================================================================
+# SHARED COMPONENTS (reference, use as-is)
+# ============================================================================
+
+CelestialCatalogHero:
+  path: frontend/src/components/common/CelestialCatalogHero.tsx
+  description: Page header hero section with title, stats, and description.
+  audit_note: Use as-is for Pipeline page header. Verify stats are accurate.
+
+CelestialLoader:
+  path: frontend/src/components/common/CelestialLoader.tsx
+  description: Standard loading indicator.
+  audit_note: Use size="md" for page-level loading, size="sm" for section-level.
+
+ProjectSelectionEmptyState:
+  path: frontend/src/components/common/ProjectSelectionEmptyState.tsx
+  description: Empty state shown when no project is selected.
+  audit_note: Use as-is for Pipeline page no-project state.
+
+# ============================================================================
+# CROSS-CUTTING AUDIT REQUIREMENTS
+# ============================================================================
+
+cross_cutting:
+  design_consistency:
+    - All colors from CSS custom properties or Tailwind theme classes
+    - No hardcoded hex values, bg-white, text-black, etc.
+    - Consistent spacing using Tailwind scale (gap-4, p-6, etc.)
+    - No arbitrary values like p-[13px]
+    - All content sections use Card component
+    - Typography follows Celestial system
+    - Shadows and radii from design tokens
+
+  accessibility_wcag_aa:
+    - 4.5:1 contrast ratio for normal text
+    - 3:1 contrast ratio for large text and UI components
+    - All interactive elements keyboard accessible
+    - Visible focus indicators (celestial-focus or focus-visible:ring)
+    - Focus trapping in all dialogs/modals
+    - ARIA attributes on custom controls
+    - Status conveyed via icon + text, not color alone
+    - Form inputs have associated labels
+    - Error messages programmatically associated with inputs
+
+  responsive_breakpoints:
+    - "Desktop (1280px+): full multi-section layout"
+    - "Tablet/Laptop (768px-1279px): sections stack or adapt"
+    - "Below 768px: not required for pipeline builder"
+
+  performance:
+    - No unnecessary re-renders in list items
+    - Stable key props (item.id, never index)
+    - Memoized derived computations
+    - No duplicate API calls between parent and child
+    - Callbacks via useCallback when passed to memoized children
+
+  error_handling:
+    - "User-friendly format: Could not [action]. [Reason]. [Next step]."
+    - Rate limit detection via isRateLimitApiError()
+    - Section-level error isolation
+    - Success feedback via toast for all mutations
+    - No raw error codes or stack traces shown to users
