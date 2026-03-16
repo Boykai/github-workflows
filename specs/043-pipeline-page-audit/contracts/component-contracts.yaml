@@ -1,0 +1,540 @@
+# Component Interface Contracts: Pipeline Page Audit
+# These contracts define the expected props, behavior, and accessibility
+# requirements for each component on the Pipeline page.
+# Used during the audit to verify compliance.
+
+components:
+
+  # ─── Page-Level ───
+
+  AgentsPipelinePage:
+    path: frontend/src/pages/AgentsPipelinePage.tsx
+    description: >
+      Top-level page component for the Pipeline view. Composes the pipeline
+      editor (toolbar, board, flow graph), saved workflows list, analytics
+      dashboard, and unsaved changes dialog. Manages pipeline state via
+      usePipelineConfig and orchestrates navigation guards.
+    states:
+      - name: loading
+        condition: "pipelinesLoading && !pipeline"
+        renders: CelestialLoader or loading indicator
+      - name: no-project-selected
+        condition: "!selectedProject"
+        renders: ProjectSelectionEmptyState with guidance text
+      - name: empty-board
+        condition: "selectedProject && boardState === 'empty'"
+        renders: "Empty state with 'Create Pipeline' CTA, illustrative icon"
+      - name: creating
+        condition: "boardState === 'creating'"
+        renders: "Pipeline editor with new empty pipeline, unsaved indicator"
+      - name: editing
+        condition: "boardState === 'editing' && pipeline"
+        renders: "Full pipeline editor with loaded pipeline data"
+      - name: saving
+        condition: "isSaving"
+        renders: "Editor with disabled save button, loading spinner"
+      - name: save-error
+        condition: "saveError"
+        renders: "Editor with user-friendly error message"
+    accessibility:
+      - "Page uses semantic HTML structure with heading hierarchy"
+      - "Pipeline name input has aria-label, aria-invalid, aria-describedby"
+      - "All sections use proper heading levels (h2, h3)"
+    design_tokens:
+      - "celestial-fade-in for page entrance"
+      - "bg-background/* for section backgrounds"
+      - "border-border/* for section dividers"
+    audit_requirements:
+      - "Page is 417 lines — target ≤250 via sub-component extraction"
+      - "Verify no prop drilling >2 levels"
+      - "Verify all states render correctly (loading, empty, creating, editing, saving, error)"
+      - "Verify rate limit error detection with isRateLimitApiError()"
+
+  # ─── Pipeline Editor Components ───
+
+  PipelineBoard:
+    path: frontend/src/components/pipeline/PipelineBoard.tsx
+    description: >
+      Main pipeline stage grid canvas. Renders the pipeline name input with
+      validation, stage cards in a horizontal scrollable layout, pipeline-level
+      model dropdown, and the 'Add Stage' button. Handles stage CRUD operations.
+    props:
+      - { name: pipeline, type: "PipelineConfig | null", required: true }
+      - { name: boardState, type: PipelineBoardState, required: true }
+      - { name: validationErrors, type: PipelineValidationErrors, required: true }
+      - { name: modelOverride, type: PipelineModelOverride, required: true }
+      - { name: "stage/agent mutation callbacks", type: "various functions", required: true }
+    states:
+      - name: empty
+        condition: "boardState === 'empty'"
+        renders: "Empty state with create pipeline CTA"
+      - name: creating
+        condition: "boardState === 'creating'"
+        renders: "Editable pipeline with empty stages"
+      - name: editing
+        condition: "boardState === 'editing'"
+        renders: "Full pipeline with stages, agents, model dropdown"
+      - name: validation-error
+        condition: "validationErrors.name is set"
+        renders: "Pipeline name input with red border, error message below"
+    accessibility:
+      - "aria-label='Pipeline name' on name input"
+      - "aria-invalid and aria-describedby for validation errors"
+      - "NEEDS: role='region' with aria-label on the stage board area"
+    design_tokens:
+      - "celestial-panel for board container"
+      - "celestial-fade-in for entrance animation"
+      - "border-border/* for card borders"
+      - "bg-background/* for backgrounds"
+    audit_requirements:
+      - "Verify horizontal scroll works for many stages"
+      - "Verify validation error display and screen reader association"
+      - "Verify 'Add Stage' button has visible focus indicator"
+      - "Verify no blank screen during any state transition"
+
+  PipelineToolbar:
+    path: frontend/src/components/pipeline/PipelineToolbar.tsx
+    description: >
+      Toolbar with primary pipeline actions: Save, Save As Copy (with name
+      dialog), Create New, Delete, and Discard Changes. Shows unsaved changes
+      indicator and preset badge.
+    props:
+      - { name: pipeline, type: "PipelineConfig | null", required: true }
+      - { name: isDirty, type: boolean, required: true }
+      - { name: isSaving, type: boolean, required: true }
+      - { name: isPreset, type: boolean, required: true }
+      - { name: onSave, type: "() => Promise<boolean>", required: true }
+      - { name: onDelete, type: "() => Promise<void>", required: true }
+      - { name: onDiscard, type: "() => void", required: true }
+      - { name: onSaveAsCopy, type: "(name: string) => Promise<void>", required: true }
+      - { name: onNew, type: "() => void", required: true }
+    states:
+      - name: no-pipeline
+        condition: "!pipeline"
+        renders: "Only 'Create New' button visible"
+      - name: clean
+        condition: "pipeline && !isDirty"
+        renders: "Save disabled, Delete/Copy enabled"
+      - name: dirty
+        condition: "pipeline && isDirty"
+        renders: "Save enabled with unsaved indicator badge, Discard enabled"
+      - name: saving
+        condition: "isSaving"
+        renders: "Save button shows spinner, all actions disabled"
+      - name: copy-dialog-open
+        condition: "Copy dialog visible"
+        renders: "Modal with name input, Save/Cancel buttons"
+    accessibility:
+      - "Copy dialog: role='dialog', aria-modal='true', aria-labelledby='copy-dialog-title'"
+      - "role='presentation' on decorative elements"
+      - "NEEDS: All action buttons must have clear accessible names (text content or aria-label)"
+      - "NEEDS: Copy dialog must trap focus and return focus on close"
+    design_tokens:
+      - "celestial-fade-in for toolbar entrance"
+    audit_requirements:
+      - "Replace text-white and bg-red-500 in notification badge with design tokens"
+      - "Verify all action button labels are verb phrases ('Save Pipeline', 'Delete Pipeline')"
+      - "Verify delete action uses ConfirmationDialog"
+      - "Verify save shows success feedback"
+      - "Verify copy dialog keyboard interaction (Enter to save, Escape to cancel)"
+
+  StageCard:
+    path: frontend/src/components/pipeline/StageCard.tsx
+    description: >
+      Visual card for a pipeline stage with inline-editable name, execution
+      groups, agent picker button, and remove stage action. Renders execution
+      groups which contain agent nodes.
+    props:
+      - { name: stage, type: PipelineStage, required: true }
+      - { name: stageIndex, type: number, required: true }
+      - { name: "stage mutation callbacks", type: "various functions", required: true }
+      - { name: availableAgents, type: "AvailableAgent[]", required: true }
+      - { name: models, type: "Model[]", required: true }
+    states:
+      - name: default
+        condition: "Stage with groups and agents"
+        renders: "Card with name, execution groups, agent picker"
+      - name: editing-name
+        condition: "User editing stage name inline"
+        renders: "Input field focused, Enter to confirm, Escape to cancel"
+      - name: agent-picker-open
+        condition: "Agent picker dropdown visible"
+        renders: "Agent selection portal/dropdown"
+      - name: empty-stage
+        condition: "Stage with no agents"
+        renders: "Card with empty groups, add agent CTA"
+    accessibility:
+      - "role='img' aria-label='Stage position is locked' on lock icon"
+      - "aria-hidden='true' on decorative elements"
+      - "role='button' on agent picker trigger"
+      - "aria-label='Remove stage' on remove button"
+      - "aria-label='Close agent picker' on picker close button"
+      - "NEEDS: aria-label on inline stage name edit input"
+    design_tokens:
+      - "celestial-panel for card container"
+      - "celestial-fade-in for entrance animation"
+      - "celestial-focus for interactive elements (6+ uses)"
+      - "border-border/*, bg-background/* for styling"
+    audit_requirements:
+      - "Verify inline name edit keyboard interaction (Enter confirm, Escape cancel)"
+      - "Verify remove stage has confirmation dialog (FR-007)"
+      - "Verify agent picker focus management"
+      - "Verify long stage names truncated with tooltip"
+
+  ExecutionGroupCard:
+    path: frontend/src/components/pipeline/ExecutionGroupCard.tsx
+    description: >
+      Container for agents within a stage that share an execution mode.
+      Provides toggle between sequential and parallel modes, add agent
+      button, and remove group action.
+    props:
+      - { name: group, type: ExecutionGroup, required: true }
+      - { name: stageId, type: string, required: true }
+      - { name: "group mutation callbacks", type: "various functions", required: true }
+    states:
+      - name: sequential
+        condition: "group.execution_mode === 'sequential'"
+        renders: "Agents stacked vertically with arrow indicators"
+      - name: parallel
+        condition: "group.execution_mode === 'parallel'"
+        renders: "Agents side by side via ParallelStageGroup"
+      - name: empty
+        condition: "group.agents.length === 0"
+        renders: "Empty group with add agent action"
+    accessibility:
+      - "aria-label on mode toggle: 'Switch to sequential/parallel mode'"
+      - "aria-label='Remove group' on remove button"
+      - "NEEDS: role='group' with aria-label describing the execution group"
+    design_tokens:
+      - "border-border/* for group boundaries"
+      - "bg-background/* for group background"
+    audit_requirements:
+      - "Verify mode toggle button has visible focus indicator"
+      - "Verify remove group has confirmation for non-empty groups (FR-007)"
+      - "Verify keyboard operability of mode toggle and add/remove actions"
+
+  AgentNode:
+    path: frontend/src/components/pipeline/AgentNode.tsx
+    description: >
+      Individual agent node within an execution group. Displays agent name,
+      model selection dropdown, tool count, and action buttons (select tools,
+      clone, remove).
+    props:
+      - { name: agent, type: PipelineAgentNode, required: true }
+      - { name: stageId, type: string, required: true }
+      - { name: models, type: "Model[]", required: true }
+      - { name: "agent mutation callbacks", type: "various functions", required: true }
+    states:
+      - name: default
+        renders: "Agent name, model selector, tool count, action buttons"
+      - name: model-selecting
+        condition: "ModelSelector dropdown open"
+        renders: "Agent node with open model selection dropdown"
+    accessibility:
+      - "aria-label='Select tools' on tools button"
+      - "aria-label='Clone agent' on clone button"
+      - "aria-label='Remove agent' on remove button"
+      - "NEEDS: Agent-level accessible description for screen readers"
+    design_tokens:
+      - "celestial-focus on interactive elements (2+ uses)"
+      - "bg-background/*, border-border/* for node styling"
+    audit_requirements:
+      - "Verify remove agent has confirmation dialog (FR-007)"
+      - "Verify all action buttons have visible focus indicators"
+      - "Verify model selector keyboard interaction"
+      - "Verify missing agent slug displays graceful fallback"
+
+  ModelSelector:
+    path: frontend/src/components/pipeline/ModelSelector.tsx
+    description: >
+      Dropdown selector for choosing an AI model for an individual agent node.
+      Displays current model name with a dropdown of available options.
+    props:
+      - { name: modelId, type: string, required: true }
+      - { name: models, type: "Model[]", required: true }
+      - { name: onChange, type: "(modelId: string) => void", required: true }
+    states:
+      - name: closed
+        renders: "Current model name with dropdown trigger button"
+      - name: open
+        renders: "Dropdown with scrollable model list"
+      - name: selected
+        renders: "Dropdown closes, new model displayed"
+    accessibility:
+      - "celestial-focus on trigger and option elements (7+ uses)"
+      - "NEEDS: aria-expanded on dropdown trigger"
+      - "NEEDS: aria-label on dropdown trigger"
+      - "NEEDS: role='listbox' on option container"
+      - "NEEDS: role='option' on each model option"
+    design_tokens:
+      - "celestial-focus for interactive elements"
+      - "bg-background/*, border-border/* for dropdown styling"
+    audit_requirements:
+      - "Add complete ARIA dropdown pattern (expanded, listbox, option)"
+      - "Verify Escape closes dropdown"
+      - "Verify focus returns to trigger on close"
+      - "Verify keyboard navigation within options (ArrowUp/Down)"
+
+  PipelineModelDropdown:
+    path: frontend/src/components/pipeline/PipelineModelDropdown.tsx
+    description: >
+      Pipeline-level model override dropdown. Allows selecting a single model
+      to apply to all agents in the pipeline, or leaving as 'auto' mode.
+    props:
+      - { name: modelOverride, type: PipelineModelOverride, required: true }
+      - { name: models, type: "Model[]", required: true }
+      - { name: onChange, type: "(override: PipelineModelOverride) => void", required: true }
+    states:
+      - name: auto-mode
+        renders: "Display 'Auto' label, dropdown trigger"
+      - name: specific-mode
+        renders: "Display selected model name, dropdown trigger"
+      - name: dropdown-open
+        renders: "Options list with Auto + all models"
+    accessibility:
+      - "celestial-focus on interactive elements"
+      - "NEEDS: aria-expanded on dropdown trigger"
+      - "NEEDS: aria-label describing pipeline model override purpose"
+      - "NEEDS: role='listbox' on options container"
+    design_tokens:
+      - "celestial-focus for trigger styling"
+      - "bg-background/*, border-border/* for dropdown"
+    audit_requirements:
+      - "Add complete ARIA dropdown pattern"
+      - "Verify Escape closes dropdown"
+      - "Verify keyboard navigation through options"
+
+  # ─── Saved Workflows & Analytics ───
+
+  SavedWorkflowsList:
+    path: frontend/src/components/pipeline/SavedWorkflowsList.tsx
+    description: >
+      List of saved pipeline configurations for the current project. Each card
+      displays pipeline name, stage/agent counts, and updated timestamp. Provides
+      actions to load, copy, and assign/unassign pipelines.
+    props:
+      - { name: pipelines, type: "PipelineConfigListResponse | null", required: true }
+      - { name: assignedPipelineId, type: string, required: true }
+      - { name: onLoad, type: "(pipelineId: string) => void", required: true }
+      - { name: onCopy, type: "(pipelineId: string) => void", required: true }
+      - { name: onAssign, type: "(pipelineId: string) => void", required: true }
+    states:
+      - name: loading
+        condition: "pipelines === null"
+        renders: "Loading indicator or skeleton cards"
+      - name: empty
+        condition: "pipelines.total === 0"
+        renders: "Empty state with guidance text"
+      - name: populated
+        condition: "pipelines.total > 0"
+        renders: "Scrollable card list with actions"
+    accessibility:
+      - "aria-labelledby='saved-pipelines-title' on list container"
+      - "role='button' on workflow cards"
+      - "NEEDS: Card-level aria-label with pipeline name and summary"
+      - "NEEDS: Assigned pipeline announced to screen readers"
+    design_tokens:
+      - "celestial-fade-in for list entrance"
+      - "celestial-panel for card styling"
+      - "bg-background/*, border-border/* for cards"
+    audit_requirements:
+      - "Verify cards are proper interactive elements (role='button' or <button>) per FR-026"
+      - "Verify keyboard activation (Enter/Space) on cards"
+      - "Verify copy action provides success feedback (FR-008)"
+      - "Verify long pipeline names truncated with tooltip (FR-018)"
+      - "Verify timestamps formatted consistently (relative for recent, absolute for older)"
+
+  PipelineAnalytics:
+    path: frontend/src/components/pipeline/PipelineAnalytics.tsx
+    description: >
+      Analytics dashboard displaying pipeline usage statistics, execution metrics,
+      and historical data for the current project's pipelines.
+    props:
+      - { name: projectId, type: string, required: true }
+    states:
+      - name: loading
+        renders: "Loading indicator while analytics data fetches"
+      - name: empty-data
+        renders: "Empty state when no execution data exists"
+      - name: populated
+        renders: "Metrics cards, charts, and statistics"
+      - name: error
+        renders: "Error message with retry action"
+    accessibility:
+      - "NEEDS: role='region' with aria-label='Pipeline analytics'"
+      - "NEEDS: Heading hierarchy within the section"
+      - "NEEDS: Chart/metric descriptions for screen readers"
+    design_tokens:
+      - "celestial-panel for metric cards"
+      - "bg-background/*, border-border/* for container"
+    audit_requirements:
+      - "Verify independent loading/error state (FR-006)"
+      - "Verify empty data state when no executions exist"
+      - "Verify metrics are accessible to screen readers"
+      - "Verify dark mode rendering of charts and metrics"
+
+  PipelineFlowGraph:
+    path: frontend/src/components/pipeline/PipelineFlowGraph.tsx
+    description: >
+      Visual SVG flow diagram representing the pipeline structure as connected
+      nodes. Shows stages as nodes with arrows indicating execution order.
+    props:
+      - { name: pipeline, type: "PipelineConfig | null", required: true }
+    states:
+      - name: no-pipeline
+        renders: "Nothing or placeholder"
+      - name: rendered
+        renders: "SVG flow graph with stage nodes and connections"
+    accessibility:
+      - "NEEDS: role='img' with aria-label describing the pipeline flow structure"
+      - "NEEDS: Or aria-hidden='true' if purely decorative alongside the board view"
+    design_tokens:
+      - "Uses CSS variables: hsl(var(--night)/...), hsl(var(--panel)/...), hsl(var(--glow)/...)"
+    audit_requirements:
+      - "Verify SVG computation is memoized efficiently"
+      - "Verify graph scales proportionally at different viewport widths"
+      - "Verify dark mode rendering (SVG colors reference CSS variables)"
+
+  # ─── Dialog & Supporting Components ───
+
+  UnsavedChangesDialog:
+    path: frontend/src/components/pipeline/UnsavedChangesDialog.tsx
+    description: >
+      Confirmation dialog displayed when the user has unsaved pipeline changes
+      and attempts to navigate away, load a different pipeline, or create a new
+      pipeline. Offers three options: Save, Discard, Cancel.
+    props:
+      - { name: isOpen, type: boolean, required: true }
+      - { name: onSave, type: "() => void", required: true }
+      - { name: onDiscard, type: "() => void", required: true }
+      - { name: onCancel, type: "() => void", required: true }
+    states:
+      - name: closed
+        renders: "Nothing (dialog hidden)"
+      - name: open
+        renders: "Modal overlay with Save/Discard/Cancel buttons"
+    accessibility:
+      - "role='button' on close button"
+      - "aria-label='Close dialog' on close button"
+      - "NEEDS: Consider role='alertdialog' for unsaved changes warning"
+      - "NEEDS: Focus trap within dialog"
+      - "NEEDS: Focus return to trigger on close"
+    design_tokens:
+      - "celestial-fade-in for dialog entrance"
+    audit_requirements:
+      - "Verify three options clearly presented (FR-010)"
+      - "Verify Escape key closes dialog (cancels action)"
+      - "Verify focus management (trap + return)"
+      - "Verify dialog works for all trigger scenarios (navigate, load, create)"
+
+  PresetBadge:
+    path: frontend/src/components/pipeline/PresetBadge.tsx
+    description: >
+      Visual indicator badge displayed on preset pipeline configurations
+      to distinguish them from user-created pipelines.
+    props:
+      - { name: "implicit — rendered conditionally", type: boolean, required: false }
+    states:
+      - name: visible
+        renders: "Badge with 'Preset' label and icon"
+    accessibility:
+      - "NEEDS: aria-label or title describing what 'Preset' means"
+    design_tokens:
+      - "Uses design token classes for badge styling"
+    audit_requirements:
+      - "Verify badge is visible in both light and dark modes"
+      - "Verify badge doesn't rely on color alone for meaning (icon + text)"
+
+  ParallelStageGroup:
+    path: frontend/src/components/pipeline/ParallelStageGroup.tsx
+    description: >
+      Layout wrapper that renders agent nodes side-by-side for parallel
+      execution groups. A thin component (~30 lines) providing CSS layout.
+    props:
+      - { name: children, type: ReactNode, required: true }
+    states:
+      - name: default
+        renders: "Horizontal layout of child agent nodes"
+    accessibility:
+      - "NEEDS: role='group' with aria-label='Parallel execution agents'"
+    design_tokens:
+      - "Flex layout with gap spacing from Tailwind scale"
+    audit_requirements:
+      - "Verify layout adapts at narrow viewport widths"
+      - "Verify semantic grouping for screen readers"
+
+# ─── Hook Contracts ───
+
+hooks:
+
+  usePipelineConfig:
+    path: frontend/src/hooks/usePipelineConfig.ts
+    description: >
+      Primary orchestration hook for the Pipeline page. Composes sub-hooks
+      (reducer, mutations, validation, model override) and exposes a unified
+      API for pipeline CRUD, state management, and navigation guards.
+    returns:
+      - boardState, pipeline, editingPipelineId, isDirty, isSaving, saveError, isPreset
+      - modelOverride, setModelOverride
+      - validationErrors, validatePipeline, clearValidationError
+      - pipelines, pipelinesLoading, assignedPipelineId
+      - "20+ mutation functions (save, delete, duplicate, stage/agent CRUD)"
+    dependencies:
+      - usePipelineReducer
+      - usePipelineBoardMutations
+      - usePipelineValidation
+      - usePipelineModelOverride
+      - "useQuery(pipelineKeys.list), useQuery(pipelineKeys.assignment)"
+    audit_requirements:
+      - "Verify all mutations have error handling"
+      - "Verify query invalidation on successful mutations"
+      - "Verify staleTime configuration is appropriate"
+
+  usePipelineBoardMutations:
+    path: frontend/src/hooks/usePipelineBoardMutations.ts
+    description: >
+      Provides 20+ granular mutation functions for pipeline board operations:
+      stage CRUD, agent CRUD, group CRUD, reordering, and model/tool updates.
+    returns:
+      - "setPipelineName, setPipelineDescription"
+      - "removeStage, updateStage, reorderStages"
+      - "addAgentToStage, removeAgentFromStage, updateAgentInStage, cloneAgentInStage"
+      - "addGroupToStage, removeGroupFromStage, updateGroupExecutionMode"
+      - "moveAgentToGroup, reorderAgentsInGroup, updateAgentTools"
+    audit_requirements:
+      - "Verify no direct state mutation (all through dispatch)"
+      - "Verify each mutation correctly identifies dirty state"
+
+  usePipelineReducer:
+    path: frontend/src/hooks/usePipelineReducer.ts
+    description: >
+      Manages pipeline editing state via useReducer. Actions: SET_PIPELINE,
+      UPDATE_PIPELINE, CLEAR_PIPELINE, SET_SAVING, SET_ERROR, SET_DIRTY.
+    returns:
+      - "pipeline, isDirty, isSaving, saveError, boardState, dispatch"
+    audit_requirements:
+      - "Verify all state transitions are covered"
+      - "Verify no stale state after save/discard cycles"
+
+  usePipelineModelOverride:
+    path: frontend/src/hooks/usePipelineModelOverride.ts
+    description: >
+      Derives and manages the pipeline-level model override state from the
+      current pipeline's agent model assignments.
+    returns:
+      - "modelOverride (mode, modelId, modelName), setModelOverride"
+    audit_requirements:
+      - "Verify correct mode derivation (auto/specific/mixed)"
+      - "Verify override propagation to agent nodes"
+
+  usePipelineValidation:
+    path: frontend/src/hooks/usePipelineValidation.ts
+    description: >
+      Manages field-level validation errors for the pipeline editor.
+      Provides validate, clear, and error state.
+    returns:
+      - "validationErrors, validatePipeline, clearValidationError"
+    audit_requirements:
+      - "Verify name validation prevents empty names"
+      - "Verify errors clear on user correction"
+      - "Verify validation triggered on save attempt"
