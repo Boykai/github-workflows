@@ -18,7 +18,7 @@
 | C4 | Coverage Gap | MEDIUM | spec.md:L105-111 (Edge Cases); tasks.md:L138 (T039) | 4 of 7 spec edge cases have no dedicated implementation or test task: (1) session expiry mid-operation, (2) unexpected API response shape, (3) tool assigned to since-deleted agents, (4) unexpected MCP JSON keys. T039 only covers rate-limit, null data, long strings, and rapid clicks | Add edge case handling tasks or expand T039 description to explicitly cover missing edge cases |
 | U2 | Underspecification | MEDIUM | tasks.md:L117 (T031); plan.md:L222 | T031 says "Add pagination or load-more pattern" for >50 tools but doesn't specify which pattern. Plan says "consider react-window or pagination" without resolving. This leaves an implementation decision unresolved | Resolve in plan: choose pagination (simpler, aligns with Simplicity principle) or virtualization (better UX for large lists). Document rationale in Key Decisions |
 | D1 | Underspecification | MEDIUM | plan.md:L57; tasks.md (absent) | Plan lists `UploadMcpModal` as a "key component" requiring tests (plan.md L57) but tasks.md has no test task for UploadMcpModal. Only ToolsPanel (T037) and ToolCard (T038) have component test tasks | Add a task for UploadMcpModal component tests if plan's intention holds, or remove UploadMcpModal from the plan's test scope list |
-| F2 | Inconsistency | LOW | plan.md:L66-77 (Component Inventory) | Plan line counts differ from actual source: ToolsPanel 399→398, ToolCard 122→121, UploadMcpModal 429→428 (off-by-one each); ToolChips ~60→45 (15-line discrepancy). Minor but could confuse implementers | Update line counts to match actual source. ToolChips discrepancy (45 vs ~60) is notable |
+| F2 | Inconsistency | LOW | plan.md:L66-77 (Component Inventory) | Plan line counts differed from actual source. After linter code changes: RepoConfigPanel 154→169 (+15 lines from CelestialLoader, error/retry states, rate-limit detection), McpPresetsGallery 65→99 (+34 lines from CelestialLoader, error/retry/empty states, ARIA labels, focus-visible). Minor off-by-one discrepancies: ToolsPanel 399→398, ToolCard 122→121, EditRepoMcpModal 209→208, UploadMcpModal 429→428. Larger discrepancies: ToolChips ~60→45, ToolSelectorModal ~200→192 | Updated: all line counts in plan.md Component Inventory and Project Structure now match actual source |
 | F3 | Inconsistency | LOW | plan.md:L200 (Phase 2, task 2.4) | Plan refers to "SyncStatusBadge (ToolCard)" as if it's a standalone component. It is actually an internal function within ToolCard.tsx (line 21). Tasks correctly reference ToolCard.tsx | Update plan to clarify SyncStatusBadge is an inline function within ToolCard, not a separate file |
 | U3 | Underspecification | LOW | tasks.md:L133 (T033) | T033 "Verify all complex state logic (>15 lines)" doesn't specify which files to audit beyond `useTools.ts`. ToolsPanel.tsx (398 lines) likely has inline state logic that should be evaluated | Expand T033 to explicitly list files to audit: ToolsPanel.tsx, UploadMcpModal.tsx, EditRepoMcpModal.tsx |
 
@@ -102,7 +102,7 @@ All 44 tasks (T001–T044) map to at least one requirement, user story, or cross
 | Critical Issues | 0 |
 | High Issues | 4 (F1, C1, C2, C3) — all remediated |
 | Medium Issues | 5 (U1, A1, C4, U2, D1) |
-| Low Issues | 3 (F2, F3, U3) |
+| Low Issues | 3 (F2, F3, U3) — F2 remediated |
 | Total Findings | 12 |
 | User Stories | 5 |
 | Edge Cases in Spec | 7 |
@@ -134,7 +134,7 @@ All 44 tasks (T001–T044) map to at least one requirement, user story, or cross
 
 ### Nice-to-have (LOW issues — optional)
 
-7. **Fix F2**: Update plan.md line counts to match actual source (ToolChips: 45, not ~60).
+7. ~~**Fix F2**: Update plan.md line counts to match actual source.~~ ✅ Done — all line counts updated
 8. **Clarify F3**: Note that SyncStatusBadge is an inline function in ToolCard.tsx, not a separate component file.
 9. **Expand U3**: List specific files for T033's state logic audit.
 
@@ -156,3 +156,4 @@ The following HIGH severity issues have been remediated:
 | C1 | ✅ FIXED | Added T036a (useRepoMcpConfig hook tests) and T036b (useMcpPresets hook tests) to tasks.md Phase 7 |
 | C2 | ✅ FIXED | Added `useRepoMcpConfig.ts` (72 lines) and `useMcpPresets.ts` (21 lines) to plan.md project structure and quickstart.md lint command |
 | C3 | ✅ FIXED | Expanded T003 and T040 lint commands in tasks.md and plan.md Phase 6 validation to include `src/hooks/useRepoMcpConfig.ts src/hooks/useMcpPresets.ts` |
+| F2 | ✅ FIXED | Updated all line counts in plan.md Component Inventory and Project Structure to match actual source after linter code changes (RepoConfigPanel 154→169, McpPresetsGallery 65→99, plus off-by-one fixes for ToolsPanel, ToolCard, EditRepoMcpModal, UploadMcpModal, ToolChips, ToolSelectorModal, useTools, useAgentTools) |

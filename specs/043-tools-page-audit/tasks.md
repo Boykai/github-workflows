@@ -50,8 +50,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] Add `<CelestialLoader size="md" />` loading state, error state with retry action button, and `isRateLimitApiError()` rate-limit detection to RepoConfigPanel in `solune/frontend/src/components/tools/RepoConfigPanel.tsx`
-- [ ] T007 [P] [US1] Add `<CelestialLoader size="md" />` loading state, error state with retry action button, `isRateLimitApiError()` rate-limit detection, and meaningful empty state with call-to-action to McpPresetsGallery in `solune/frontend/src/components/tools/McpPresetsGallery.tsx`
+- [x] T006 [P] [US1] ✅ Add `<CelestialLoader size="md" />` loading state, error state with retry action button, and `isRateLimitApiError()` rate-limit detection to RepoConfigPanel in `solune/frontend/src/components/tools/RepoConfigPanel.tsx`
+- [x] T007 [P] [US1] ✅ Add `<CelestialLoader size="md" />` loading state, error state with retry action button, `isRateLimitApiError()` rate-limit detection, and meaningful empty state with call-to-action to McpPresetsGallery in `solune/frontend/src/components/tools/McpPresetsGallery.tsx`
 - [ ] T008 [US1] Add rate-limit error detection using `isRateLimitApiError()` from `@/utils/rateLimit` and format all mutation error messages to "Could not [action]. [Reason]. [Suggested next step]." pattern in `solune/frontend/src/hooks/useTools.ts`
 - [ ] T009 [US1] Add loading state with `<CelestialLoader>`, error state with retry action and rate-limit message, and meaningful empty state with call-to-action for the tools list section in `solune/frontend/src/components/tools/ToolsPanel.tsx`
 - [ ] T010 [US1] Ensure independent section loading — tools list, repo config, and presets each display their own loading/error states without one failed section blocking others in `solune/frontend/src/components/tools/ToolsPanel.tsx`
@@ -74,7 +74,7 @@
 - [ ] T014 [P] [US2] Add `aria-label` attributes to unlabeled form fields (file upload input, paste/upload mode toggle, JSON textarea) in `solune/frontend/src/components/tools/UploadMcpModal.tsx`
 - [ ] T015 [P] [US2] Add `aria-label` attributes to search input field and tool selection tiles in `solune/frontend/src/components/tools/ToolSelectorModal.tsx`
 - [ ] T016 [P] [US2] Add text labels alongside color-coded sync status indicators so status is conveyed by icon + text, not color alone in `solune/frontend/src/components/tools/ToolCard.tsx`
-- [ ] T017 [P] [US2] Add `aria-label` to preset action buttons describing preset name and action in `solune/frontend/src/components/tools/McpPresetsGallery.tsx`
+- [x] T017 [P] [US2] ✅ Add `aria-label` to preset action buttons describing preset name and action in `solune/frontend/src/components/tools/McpPresetsGallery.tsx`
 - [ ] T018 [US2] Add `aria-hidden="true"` to all decorative icons and `aria-label` to all meaningful icons across tools components in `solune/frontend/src/components/tools/`
 - [ ] T019 [US2] Add visible focus indicators using `focus-visible:ring` or `celestial-focus` class to all interactive elements across tools components in `solune/frontend/src/components/tools/`
 - [ ] T020 [US2] Verify and fix keyboard navigation — ensure logical Tab order, Enter/Space activation for all buttons, links, toggles, and custom controls across `solune/frontend/src/components/tools/`

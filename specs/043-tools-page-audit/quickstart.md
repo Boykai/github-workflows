@@ -82,8 +82,10 @@ npm run build
 
 ### Phase 1: Reliability fixes
 
-1. Open `RepoConfigPanel.tsx` — replace loading text with `<CelestialLoader>`; add retry button to error state
-2. Open `McpPresetsGallery.tsx` — same loading/error fixes; add empty state
+> **Note**: Steps 1–2 have already been implemented by the linter agent. RepoConfigPanel and McpPresetsGallery now use `<CelestialLoader>`, have error states with retry buttons, rate-limit detection, and (for McpPresetsGallery) an empty state with call-to-action and `aria-label` on preset buttons.
+
+1. ~~Open `RepoConfigPanel.tsx` — replace loading text with `<CelestialLoader>`; add retry button to error state~~ ✅ Done
+2. ~~Open `McpPresetsGallery.tsx` — same loading/error fixes; add empty state~~ ✅ Done
 3. Open `ToolsPanel.tsx` — replace inline delete with `<ConfirmationDialog>`; add success toasts; format errors
 4. Open `useTools.ts` — add rate-limit detection; format error messages
 
