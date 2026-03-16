@@ -55,14 +55,18 @@ export function AppCard({
   const style = STATUS_STYLES[app.status] ?? STATUS_STYLES.stopped;
 
   return (
-    <button
-      type="button"
-      className="group relative flex flex-col rounded-xl border border-zinc-200 p-5 text-left shadow-sm transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-zinc-700/60 dark:bg-zinc-900"
-      onClick={() => onSelect(app.name)}
-      aria-label={`View app ${app.display_name}`}
+    <div
+      className="group relative flex cursor-pointer flex-col rounded-xl border border-zinc-200 p-5 text-left shadow-sm transition-all hover:shadow-md dark:border-zinc-700/60 dark:bg-zinc-900"
     >
+      {/* Clickable card overlay — navigates to detail view */}
+      <button
+        type="button"
+        className="absolute inset-0 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+        aria-label={`View app ${app.display_name}`}
+        onClick={() => onSelect(app.name)}
+      />
       {/* Header */}
-      <div className="mb-2 flex items-center justify-between">
+      <div className="relative z-10 mb-2 flex items-center justify-between">
         <Tooltip content={app.display_name}>
           <h3 className="truncate text-base font-semibold text-zinc-900 dark:text-zinc-100">
             {app.display_name}
@@ -75,18 +79,16 @@ export function AppCard({
 
       {/* Description */}
       <Tooltip content={app.description || 'No description'}>
-        <p className="mb-4 line-clamp-2 flex-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="relative z-10 mb-4 line-clamp-2 flex-1 text-sm text-zinc-500 dark:text-zinc-400">
           {app.description || 'No description'}
         </p>
       </Tooltip>
 
-      {/* Actions (stop event propagation so card click doesn't fire) */}
+      {/* Actions — z-10 to sit above the card overlay button */}
       <div
-        className="flex items-center gap-2"
+        className="relative z-10 flex items-center gap-2"
         role="toolbar"
         aria-label={`Actions for ${app.display_name}`}
-        onClick={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.stopPropagation()}
       >
         {app.status === 'stopped' && (
           <button
@@ -122,6 +124,6 @@ export function AppCard({
           </button>
         )}
       </div>
-    </button>
+    </div>
   );
 }

@@ -4,7 +4,7 @@
  * and navigation to the detail view.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, RefreshCw } from 'lucide-react';
 import { useApps, useCreateApp, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
@@ -28,11 +28,28 @@ export function AppsPage() {
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const errorTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(successTimerRef.current);
+      clearTimeout(errorTimerRef.current);
+    };
+  }, []);
 
   const showSuccess = useCallback((message: string) => {
     setSuccessMessage(message);
-    setTimeout(() => setSuccessMessage(null), 3000);
+    clearTimeout(successTimerRef.current);
+    successTimerRef.current = setTimeout(() => setSuccessMessage(null), 3000);
+  }, []);
+
+  const showError = useCallback((message: string) => {
+    setActionError(message);
+    clearTimeout(errorTimerRef.current);
+    errorTimerRef.current = setTimeout(() => setActionError(null), 5000);
   }, []);
 
   const openCreateDialog = () => {
@@ -41,19 +58,31 @@ export function AppsPage() {
     setShowCreateDialog(true);
   };
 
-  const closeCreateDialog = () => {
+  const closeCreateDialog = useCallback(() => {
     createMutation.reset();
     setCreateError(null);
     setShowCreateDialog(false);
     createButtonRef.current?.focus();
-  };
+  }, [createMutation]);
+
+  // Document-level Escape key handler for the create dialog
+  useEffect(() => {
+    if (!showCreateDialog) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        closeCreateDialog();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [showCreateDialog, closeCreateDialog]);
 
   const handleStart = useCallback(async (name: string) => {
     startMutation.mutate(name, {
       onSuccess: () => showSuccess(`App "${name}" started successfully.`),
-      onError: (err) => showSuccess(getErrorMessage(err, `Could not start app "${name}".`)),
+      onError: (err) => showError(getErrorMessage(err, `Could not start app "${name}".`)),
     });
-  }, [startMutation, showSuccess]);
+  }, [startMutation, showSuccess, showError]);
 
   const handleStop = useCallback(async (name: string) => {
     const confirmed = await confirm({
@@ -65,10 +94,10 @@ export function AppsPage() {
     if (confirmed) {
       stopMutation.mutate(name, {
         onSuccess: () => showSuccess(`App "${name}" stopped successfully.`),
-        onError: (err) => showSuccess(getErrorMessage(err, `Could not stop app "${name}".`)),
+        onError: (err) => showError(getErrorMessage(err, `Could not stop app "${name}".`)),
       });
     }
-  }, [confirm, stopMutation, showSuccess]);
+  }, [confirm, stopMutation, showSuccess, showError]);
 
   const handleDelete = useCallback(async (name: string) => {
     const confirmed = await confirm({
@@ -80,10 +109,10 @@ export function AppsPage() {
     if (confirmed) {
       deleteMutation.mutate(name, {
         onSuccess: () => showSuccess(`App "${name}" deleted successfully.`),
-        onError: (err) => showSuccess(getErrorMessage(err, `Could not delete app "${name}".`)),
+        onError: (err) => showError(getErrorMessage(err, `Could not delete app "${name}".`)),
       });
     }
-  }, [confirm, deleteMutation, showSuccess]);
+  }, [confirm, deleteMutation, showSuccess, showError]);
 
   // Detail view for a specific app
   if (appName) {
@@ -157,6 +186,16 @@ export function AppsPage() {
           </div>
         )}
 
+        {/* Action error feedback */}
+        {actionError && (
+          <div
+            className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
+            role="alert"
+          >
+            {actionError}
+          </div>
+        )}
+
         {/* Loading state */}
         {isLoading && (
           <div className="flex min-h-[30vh] items-center justify-center" aria-busy="true" aria-live="polite">
@@ -217,118 +256,119 @@ export function AppsPage() {
 
         {/* Create dialog */}
         {showCreateDialog && (
-          <div
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="create-app-dialog-title"
-            onPointerDown={(event) => {
-              if (event.target === event.currentTarget) {
-                closeCreateDialog();
-              }
-            }}
-            onKeyDown={(event) => {
-              if (event.key === 'Escape') {
-                closeCreateDialog();
-              }
-            }}
-          >
-            <form
-              onSubmit={handleCreate}
-              className="w-full max-w-md rounded-xl border border-border/80 bg-card p-6 shadow-xl"
+          <div className="fixed inset-0 z-50 flex items-center justify-center">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+              onClick={closeCreateDialog}
+              role="presentation"
+              aria-hidden="true"
+            />
+
+            {/* Dialog */}
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="create-app-dialog-title"
+              className="relative z-10"
             >
-              <h2 id="create-app-dialog-title" className="mb-4 text-lg font-bold text-foreground">
-                Create App
-              </h2>
-              {createError && (
-                <div
-                  className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                  role="alert"
-                >
-                  {createError}
+              <form
+                onSubmit={handleCreate}
+                className="w-full max-w-md rounded-xl border border-border/80 bg-card p-6 shadow-xl"
+              >
+                <h2 id="create-app-dialog-title" className="mb-4 text-lg font-bold text-foreground">
+                  Create App
+                </h2>
+                {createError && (
+                  <div
+                    className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                    role="alert"
+                  >
+                    {createError}
+                  </div>
+                )}
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="app-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Name
+                    </label>
+                    <input
+                      id="app-name"
+                      name="name"
+                      type="text"
+                      required
+                      pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
+                      minLength={2}
+                      maxLength={64}
+                      placeholder="my-awesome-app"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                    <p className="mt-1 text-xs text-zinc-400">
+                      Lowercase letters, numbers, and hyphens only.
+                    </p>
+                  </div>
+                  <div>
+                    <label htmlFor="app-display-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Display Name
+                    </label>
+                    <input
+                      id="app-display-name"
+                      name="display_name"
+                      type="text"
+                      required
+                      maxLength={128}
+                      placeholder="My Awesome App"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="app-description" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Description
+                    </label>
+                    <textarea
+                      id="app-description"
+                      name="description"
+                      rows={2}
+                      placeholder="A brief description of your app…"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="app-branch" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Target Branch
+                    </label>
+                    <input
+                      id="app-branch"
+                      name="branch"
+                      type="text"
+                      required
+                      maxLength={256}
+                      placeholder="parent-issue/my-feature"
+                      className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                    />
+                    <p className="mt-1 text-xs text-zinc-400">
+                      The parent issue branch where the app scaffold will be committed.
+                    </p>
+                  </div>
                 </div>
-              )}
-              <div className="space-y-4">
-                <div>
-                  <label htmlFor="app-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Name
-                  </label>
-                  <input
-                    id="app-name"
-                    name="name"
-                    type="text"
-                    required
-                    pattern="[a-z0-9][a-z0-9-]*[a-z0-9]"
-                    minLength={2}
-                    maxLength={64}
-                    placeholder="my-awesome-app"
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  />
-                  <p className="mt-1 text-xs text-zinc-400">
-                    Lowercase letters, numbers, and hyphens only.
-                  </p>
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    onClick={closeCreateDialog}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={createMutation.isPending}
+                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50"
+                  >
+                    {createMutation.isPending ? 'Creating…' : 'Create App'}
+                  </button>
                 </div>
-                <div>
-                  <label htmlFor="app-display-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Display Name
-                  </label>
-                  <input
-                    id="app-display-name"
-                    name="display_name"
-                    type="text"
-                    required
-                    maxLength={128}
-                    placeholder="My Awesome App"
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="app-description" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Description
-                  </label>
-                  <textarea
-                    id="app-description"
-                    name="description"
-                    rows={2}
-                    placeholder="A brief description of your app…"
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="app-branch" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                    Target Branch
-                  </label>
-                  <input
-                    id="app-branch"
-                    name="branch"
-                    type="text"
-                    required
-                    maxLength={256}
-                    placeholder="parent-issue/my-feature"
-                    className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                  />
-                  <p className="mt-1 text-xs text-zinc-400">
-                    The parent issue branch where the app scaffold will be committed.
-                  </p>
-                </div>
-              </div>
-              <div className="mt-6 flex justify-end gap-3">
-                <button
-                  type="button"
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-zinc-500 focus-visible:ring-offset-2 dark:text-zinc-400 dark:hover:bg-zinc-800"
-                  onClick={closeCreateDialog}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={createMutation.isPending}
-                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50"
-                >
-                  {createMutation.isPending ? 'Creating…' : 'Create App'}
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         )}
       </div>
