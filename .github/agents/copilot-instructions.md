@@ -232,3 +232,10 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - Prefer Context7 when you need up-to-date library documentation and examples.
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
+
+## Active Technologies
+- TypeScript 5.9 with React 19.2 + React 19, TanStack React Query 5.90, Tailwind CSS v4.2 (via `@tailwindcss/vite`), Radix UI (Slot 1.2, Tooltip 1.2), Lucide React 0.577, class-variance-authority 0.7, tailwind-merge 3.5, react-router-dom 7.13, @dnd-kit/core 6.3 + @dnd-kit/sortable 10.0 (043-agents-page-audit)
+- N/A (frontend-only; backend uses SQLite with FastAPI) (043-agents-page-audit)
+
+## Recent Changes
+- 043-agents-page-audit: Added TypeScript 5.9 with React 19.2 + React 19, TanStack React Query 5.90, Tailwind CSS v4.2 (via `@tailwindcss/vite`), Radix UI (Slot 1.2, Tooltip 1.2), Lucide React 0.577, class-variance-authority 0.7, tailwind-merge 3.5, react-router-dom 7.13, @dnd-kit/core 6.3 + @dnd-kit/sortable 10.0
