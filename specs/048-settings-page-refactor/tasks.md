@@ -49,7 +49,7 @@
 
 ### 2B: Secrets API Router
 
-- [ ] T012 Create `solune/backend/src/api/secrets.py` with `router = APIRouter(tags=["secrets"])` and import `require_session` dependency from `solune/backend/src/api/dependencies.py`
+- [ ] T012 Create `solune/backend/src/api/secrets.py` with `router = APIRouter(tags=["secrets"])` and import `get_session_dep` from `src.api.auth` for session authentication (following pattern from `solune/backend/src/api/settings.py`)
 - [ ] T013 Add Pydantic request/response models in `solune/backend/src/api/secrets.py`: `SecretSetRequest(value: str)` with max 64KB validation, `SecretListResponse(total_count: int, secrets: list[SecretListItem])`, `SecretListItem(name: str, created_at: str, updated_at: str)`, `SecretCheckResponse(results: dict[str, bool])`
 - [ ] T014 Implement `GET /secrets/{owner}/{repo}/{environment}` endpoint in `solune/backend/src/api/secrets.py` — calls `secrets_service.list_secrets()`, requires authenticated session
 - [ ] T015 [P] Implement `PUT /secrets/{owner}/{repo}/{environment}/{secret_name}` endpoint in `solune/backend/src/api/secrets.py` — validates `secret_name` matches `^[A-Z][A-Z0-9_]*$` (max 255 chars), calls `secrets_service.get_or_create_environment()` then `secrets_service.set_secret()`, requires authenticated session
@@ -110,7 +110,7 @@
 - [ ] T032 [US2] Add URL hash read logic in `SettingsPage.tsx` — on mount, read `window.location.hash` and set active tab accordingly; if hash is `#admin` and user is not admin, fall back to `#essential` (FR-004, FR-014)
 - [ ] T033 [US2] Add URL hash write logic in `SettingsPage.tsx` — on tab change, update `window.location.hash` without triggering page navigation (FR-003)
 - [ ] T034 [US2] Conditionally render "Admin" tab trigger in `SettingsPage.tsx` — visible only when `github_user_id === admin_github_user_id` from auth context (FR-005)
-- [ ] T035 [US2] Preserve unsaved changes across tab switches in `SettingsPage.tsx` — use controlled tab state so tab content is not unmounted on switch, or use local state persistence (FR-006)
+- [ ] T035 [US2] Preserve unsaved changes across tab switches in `SettingsPage.tsx` — reuse existing `useUnsavedChanges` hook from `solune/frontend/src/hooks/useUnsavedChanges.ts`, use controlled tab state so tab content is not unmounted on switch (FR-006)
 - [ ] T036 [US2] Add `role="tabpanel"` and `aria-labelledby` attributes to each tab panel in `SettingsPage.tsx` — Shadcn Tabs should provide this by default, verify and add if missing (FR-031)
 - [ ] T037 [US2] Add auto-focus behavior on tab switch in `SettingsPage.tsx` — focus moves to the active tab panel content when a tab is selected (FR-033)
 
@@ -209,6 +209,8 @@
 - [ ] T066 [P] [US7] Delete `solune/frontend/src/components/settings/NotificationSettings.tsx` — functionality consolidated via `NotificationPreferences` in `PreferencesTab` (FR-034)
 - [ ] T067 [US7] Remove all import references to deleted components — search all `.tsx`, `.ts` files for imports of `AdvancedSettings`, `AIPreferences`, `AISettingsSection`, `DisplaySettings`, `WorkflowSettings`, `NotificationSettings` and remove/update them
 - [ ] T068 [US7] Update or remove tests referencing deleted components — update `solune/frontend/src/components/settings/` test files that import or test deleted components (FR-035)
+
+> **Note**: `McpSettings.tsx` (449 lines) and `solune/frontend/src/hooks/useMcpSettings.ts` are dead code — not imported anywhere in the codebase. Spec.md US7 Acceptance Scenario 3 does not list them as expected active components. Consider removing them as part of T067 (import reference cleanup). Verify they are not referenced before deleting.
 
 **Checkpoint**: Dead code removed, no broken imports — FR-034, FR-035 satisfied
 
