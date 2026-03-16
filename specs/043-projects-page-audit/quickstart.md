@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-- Node.js 20+ with `npm`
+- Node.js 22+ with `npm`
 - Git repository cloned with full history
 - Access to `solune/frontend/` directory
 
