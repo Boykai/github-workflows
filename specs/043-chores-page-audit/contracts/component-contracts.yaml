@@ -1,0 +1,326 @@
+# Component Interface Contracts: Chores Page Audit
+# These contracts define the expected props, behavior, and accessibility
+# requirements for each component on the Chores page.
+# Used during the audit to verify compliance.
+
+components:
+
+  # ─── Page-Level ───
+
+  ChoresPage:
+    path: frontend/src/pages/ChoresPage.tsx
+    lines: 166
+    description: >
+      Top-level page component for the Chores catalog view.
+      Composes hero, featured rituals panel, and main chores panel.
+      Seeds chore presets on project change, polls evaluate-triggers every 60s,
+      and manages unsaved changes guard.
+    states:
+      - name: no-project-selected
+        condition: "!selectedProjectId"
+        renders: ProjectSelectionEmptyState
+      - name: loading-chores
+        condition: "selectedProjectId && choresLoading"
+        renders: CelestialLoader
+      - name: populated-catalog
+        condition: "selectedProjectId && !choresLoading && chores.length > 0"
+        renders: "FeaturedRitualsPanel + ChoresPanel with ChoreCards"
+      - name: empty-chores
+        condition: "selectedProjectId && !choresLoading && chores.length === 0"
+        renders: "Empty state with call-to-action to create first chore"
+      - name: error
+        condition: "choresError"
+        renders: "Error banner with user-friendly message and retry action"
+      - name: rate-limited
+        condition: "isRateLimitApiError(choresError)"
+        renders: "Rate limit banner with countdown"
+    accessibility:
+      - "Page uses semantic HTML structure"
+      - "Error/rate-limit banners have role=alert for screen readers"
+      - "Navigation guard warns about unsaved changes"
+
+  # ─── Feature Components ───
+
+  ChoresPanel:
+    path: frontend/src/components/chores/ChoresPanel.tsx
+    lines: 543
+    decompose: true
+    target_lines: "≤250 (extract ChoresToolbar, ChoresGrid, ChoresSaveAllBar)"
+    description: >
+      Main chores list container with search, sort, add-chore button,
+      grid of ChoreCards, cleanup integration, and save-all bar for batch edits.
+    props:
+      - { name: chores, type: "Chore[]", required: true }
+      - { name: projectId, type: string, required: true }
+      - { name: templates, type: "ChoreTemplate[]", required: true }
+      - { name: onChoreUpdated, type: "() => void", required: true }
+    states:
+      - name: empty-search
+        condition: "searchQuery && filteredChores.length === 0"
+        renders: "No matching chores message"
+      - name: has-dirty-edits
+        condition: "dirtyChoreIds.length > 0"
+        renders: "Save All bar with count indicator"
+    accessibility:
+      - "Search input has aria-label 'Search chores by name or path'"
+      - "Sort button has aria-label indicating current sort"
+      - "Add chore button has descriptive label 'Create Chore'"
+
+  ChoreCard:
+    path: frontend/src/components/chores/ChoreCard.tsx
+    lines: 584
+    decompose: true
+    target_lines: "≤250 (extract ChoreCardActions, ChoreCardHeader, ChoreCardStats, ChoreCardSettings)"
+    description: >
+      Individual chore display card with name, status, schedule info,
+      execution stats, action buttons (trigger, pause, delete), inline editor
+      toggle, pipeline selector, and AI enhancement toggle.
+    props:
+      - { name: chore, type: Chore, required: true }
+      - { name: projectId, type: string, required: true }
+      - { name: onUpdate, type: "(data: ChoreUpdate) => void", required: true }
+      - { name: onDelete, type: "(choreId: string) => void", required: true }
+      - { name: onTrigger, type: "(choreId: string) => void", required: true }
+    accessibility:
+      - "Card uses semantic article or section element"
+      - "Status toggle has role='switch' with aria-checked"
+      - "AI enhance toggle has role='switch' with aria-checked"
+      - "Action buttons have descriptive aria-labels"
+      - "Trigger button disabled during mutation to prevent rapid clicks"
+      - "Delete button triggers ConfirmationDialog"
+    design_tokens:
+      - "Card uses consistent padding/rounding from Card component"
+      - "Status colors use design tokens (not hardcoded)"
+      - "Active status: green accent from token"
+      - "Paused status: muted foreground from token"
+    performance:
+      - "Should use React.memo or equivalent to prevent re-renders when sibling cards change"
+      - "Stable callback references via useCallback from parent"
+
+  AddChoreModal:
+    path: frontend/src/components/chores/AddChoreModal.tsx
+    lines: 356
+    decompose: true
+    target_lines: "≤250 (extract TemplateSelector, ChoreCreationForm)"
+    description: >
+      Modal for creating a new chore. Includes template selection,
+      name/content editing, optional chat-based refinement, and
+      auto-merge confirmation flow.
+    props:
+      - { name: isOpen, type: boolean, required: true }
+      - { name: onClose, type: "() => void", required: true }
+      - { name: projectId, type: string, required: true }
+      - { name: templates, type: "ChoreTemplate[]", required: true }
+    accessibility:
+      - "Modal has role='dialog' and aria-modal='true'"
+      - "Focus trapped within modal when open"
+      - "Escape key closes modal"
+      - "Focus returns to trigger element (Add Chore button) on close"
+      - "Form inputs have associated labels"
+      - "Submit button states communicated to screen readers"
+
+  FeaturedRitualsPanel:
+    path: frontend/src/components/chores/FeaturedRitualsPanel.tsx
+    lines: 204
+    decompose: false
+    description: >
+      Three spotlight cards showing: "Next Run" (closest to trigger),
+      "Most Recently Run" (latest trigger date), "Most Run" (highest count).
+    props:
+      - { name: chores, type: "Chore[]", required: true }
+    accessibility:
+      - "Cards have descriptive headings"
+      - "Time values have accessible text (not just relative)"
+    responsive:
+      - "Desktop: three cards in row"
+      - "Tablet: three cards in row (smaller)"
+      - "Mobile: cards stack vertically"
+
+  ChoreChatFlow:
+    path: frontend/src/components/chores/ChoreChatFlow.tsx
+    lines: 191
+    decompose: false
+    description: >
+      Chat-based template refinement interface with sparse-input messages.
+      Used within AddChoreModal for AI-assisted template editing.
+    props:
+      - { name: projectId, type: string, required: true }
+      - { name: templateContent, type: string, required: true }
+      - { name: onContentUpdate, type: "(content: string) => void", required: true }
+    accessibility:
+      - "Chat input has aria-label"
+      - "Messages are in an accessible list"
+      - "Loading state announced to screen readers"
+    error_handling:
+      - "Network errors display retry option without losing conversation context"
+
+  ChoreInlineEditor:
+    path: frontend/src/components/chores/ChoreInlineEditor.tsx
+    lines: 115
+    decompose: false
+    description: >
+      Inline editor for chore template content with save-to-PR functionality.
+      Tracks original vs. current content, dirty state, and file SHA for
+      conflict detection.
+    props:
+      - { name: chore, type: Chore, required: true }
+      - { name: projectId, type: string, required: true }
+      - { name: onSave, type: "(data: ChoreInlineUpdate) => void", required: true }
+      - { name: onCancel, type: "() => void", required: true }
+    accessibility:
+      - "Editor textarea has aria-label"
+      - "Save and Cancel buttons have descriptive labels"
+      - "Dirty state indicator visible and accessible"
+
+  ChoreScheduleConfig:
+    path: frontend/src/components/chores/ChoreScheduleConfig.tsx
+    lines: 93
+    decompose: false
+    description: >
+      Schedule type (time/count) and value selector for chore trigger
+      configuration.
+    props:
+      - { name: scheduleType, type: "'time' | 'count'", required: true }
+      - { name: scheduleValue, type: number, required: true }
+      - { name: onChange, type: "(type: string, value: number) => void", required: true }
+    accessibility:
+      - "Type selector has aria-label"
+      - "Value input has associated label"
+      - "Changes announced to screen readers"
+
+  ConfirmChoreModal:
+    path: frontend/src/components/chores/ConfirmChoreModal.tsx
+    lines: 92
+    decompose: false
+    description: >
+      Confirmation dialog for critical chore operations (delete, discard
+      unsaved changes).
+    props:
+      - { name: isOpen, type: boolean, required: true }
+      - { name: onConfirm, type: "() => void", required: true }
+      - { name: onCancel, type: "() => void", required: true }
+      - { name: title, type: string, required: true }
+      - { name: message, type: string, required: true }
+    accessibility:
+      - "Dialog has role='alertdialog' and aria-modal='true'"
+      - "Focus trapped within dialog"
+      - "Escape key cancels (does not confirm)"
+      - "Focus returns to trigger element on close"
+
+  PipelineSelector:
+    path: frontend/src/components/chores/PipelineSelector.tsx
+    lines: 85
+    decompose: false
+    description: >
+      Dropdown for selecting the pipeline configuration to use when
+      triggering a chore.
+    props:
+      - { name: selectedPipelineId, type: "string | null", required: true }
+      - { name: pipelines, type: "Pipeline[]", required: true }
+      - { name: onChange, type: "(pipelineId: string | null) => void", required: true }
+    accessibility:
+      - "Dropdown has aria-label 'Select pipeline'"
+      - "aria-expanded indicates open/closed state"
+      - "Options have role='option' with aria-selected"
+      - "Escape key closes dropdown"
+      - "Keyboard navigation through options"
+
+  # ─── Hooks ───
+
+  useChores:
+    path: frontend/src/hooks/useChores.ts
+    lines: 192
+    exports: 11
+    description: >
+      Central hook file for all chores data fetching and mutations.
+      Provides choreKeys factory, query hooks, and mutation hooks.
+    exports_list:
+      - { name: choreKeys, type: "query key factory", description: "all, list(projectId), templates(projectId)" }
+      - { name: useChoresList, type: "useQuery hook", description: "Fetches chores for a project" }
+      - { name: useChoreTemplates, type: "useQuery hook", description: "Fetches available templates" }
+      - { name: useCreateChore, type: "useMutation hook", description: "Creates a new chore" }
+      - { name: useUpdateChore, type: "useMutation hook", description: "Updates chore settings" }
+      - { name: useDeleteChore, type: "useMutation hook", description: "Deletes a chore" }
+      - { name: useTriggerChore, type: "useMutation hook", description: "Manually triggers a chore" }
+      - { name: useEvaluateChoresTriggers, type: "polling hook", description: "60s interval trigger evaluation" }
+      - { name: useChoreChat, type: "useMutation hook", description: "Chat-based template refinement" }
+      - { name: useInlineUpdateChore, type: "useMutation hook", description: "Inline edit with PR creation" }
+      - { name: useCreateChoreWithAutoMerge, type: "useMutation hook", description: "Create with auto-merge" }
+    audit_points:
+      - "All mutations must have onError handlers with user-visible feedback"
+      - "Query keys must follow choreKeys.all / .list(id) / .templates(id) convention"
+      - "staleTime should be configured (30s for lists, 60s for templates)"
+      - "No duplicate API calls between parent and child components"
+
+  # ─── Shared Components (reference, use as-is) ───
+
+  CelestialCatalogHero:
+    path: frontend/src/components/common/CelestialCatalogHero.tsx
+    description: Page hero with eyebrow, title, description, stats, and actions
+    usage: "ChoresPage renders with chore-specific stats (board columns, project, repo, automation mode)"
+
+  CelestialLoader:
+    path: frontend/src/components/common/CelestialLoader.tsx
+    description: Loading spinner with optional label
+    usage: "Used for chores loading state and modal loading states"
+
+  ProjectSelectionEmptyState:
+    path: frontend/src/components/common/ProjectSelectionEmptyState.tsx
+    description: Empty state when no project is selected
+    usage: "Shown in ChoresPage when selectedProjectId is null"
+
+  ErrorBoundary:
+    path: frontend/src/components/common/ErrorBoundary.tsx
+    description: Error boundary wrapper for catching render errors
+    usage: "Should wrap ChoresPage or individual sections"
+
+# ─── Cross-Cutting Audit Contracts ───
+
+audit_requirements:
+
+  design_consistency:
+    - "All colors reference Tailwind theme tokens or Celestial custom properties"
+    - "No hardcoded hex/rgb/hsl values in component code"
+    - "All spacing uses Tailwind's spacing scale (no arbitrary values unless justified)"
+    - "All border-radius uses standard Tailwind or Celestial conventions"
+    - "Both light and dark themes render correctly"
+    - "Typography uses design system fonts"
+
+  accessibility_wcag_aa:
+    - "All text meets 4.5:1 contrast ratio against background"
+    - "All large text (18px+ or 14px+ bold) meets 3:1 contrast ratio"
+    - "All UI components/graphical objects meet 3:1 contrast ratio"
+    - "All interactive elements reachable via keyboard Tab"
+    - "Visible focus indicator on all focusable elements"
+    - "Modals trap focus and return focus on close"
+    - "Custom controls have appropriate ARIA roles and states"
+    - "Status/state communicated through icon + text (not color alone)"
+    - "Decorative icons have aria-hidden='true'"
+    - "Meaningful icons have aria-label"
+
+  responsive_breakpoints:
+    - desktop: "1280px+ — full catalog grid with all panels visible"
+    - tablet: "768px–1279px — reduced grid columns, controls accessible"
+    - mobile: "below 768px — single-column cards, 44×44px touch targets"
+
+  performance:
+    - "No unnecessary re-renders in ChoreCards when sibling data changes"
+    - "Stable callback references for card event handlers"
+    - "No duplicate API requests during normal navigation"
+    - "TanStack Query staleTime configured for chores list and templates"
+    - "Lists with 50+ items consider pagination or virtualization"
+    - "Heavy transforms (sorting, filtering) wrapped in useMemo"
+
+  type_safety:
+    - "Zero any types in all Chores-related files"
+    - "Zero type assertions (as) — prefer type guards"
+    - "All event handlers use explicit types (not generic any)"
+    - "All hook return types are explicit or inferrable without ambiguity"
+    - "API response types match backend Pydantic models"
+
+  code_hygiene:
+    - "Zero dead code (unused imports, commented-out blocks)"
+    - "Zero console.log statements"
+    - "All imports use @/ alias (no relative ../../)"
+    - "All repeated strings defined as constants"
+    - "ESLint clean: zero warnings"

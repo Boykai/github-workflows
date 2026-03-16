@@ -239,3 +239,13 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 ## Recent Changes
 - 043-projects-page-audit: Added TypeScript 5.9, React 19.2.0 + `@tanstack/react-query@^5.90.0`, `react-router-dom`, `lucide-react`, `@radix-ui/react-tooltip`, `@dnd-kit/core` (drag-and-drop), Tailwind CSS 4.2
+- TypeScript 5.9 with React 19.2, TanStack React Query 5.90, Tailwind CSS 4.2, Radix UI, Lucide React icons, class-variance-authority, tailwind-merge, react-router-dom 7.13 (043-chores-page-audit)
+- N/A (frontend-only; backend uses SQLite with FastAPI) (043-chores-page-audit)
+
+## Recent Changes
+- 043-chores-page-audit: Added TypeScript 5.9 with React 19.2, TanStack React Query 5.90, Tailwind CSS 4.2, Radix UI, Lucide React icons, tailwind-merge, react-router-dom 7.13
+- TypeScript ~5.9 (frontend), React 19.2.0 + TanStack React Query 5.90, Tailwind CSS 4.2, Vite 7.3, lucide-react (icons), Radix UI primitives (via shadcn/ui components) (043-tools-page-audit)
+- N/A — frontend-only audit; API contracts stable; no backend changes (043-tools-page-audit)
+
+## Recent Changes
+- 043-tools-page-audit: Added TypeScript ~5.9 (frontend), React 19.2.0 + TanStack React Query 5.90, Tailwind CSS 4.2, Vite 7.3, lucide-react (icons), Radix UI primitives (via shadcn/ui components)

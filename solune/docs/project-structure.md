@@ -178,8 +178,12 @@ solune/
 │   │   │   │                     # CelestialLoader, ThemedAgentIcon, agentIcons
 │   │   │   ├── agents/           # AgentsPanel, AgentCard, AgentAvatar,
 │   │   │   │                     # AgentChatFlow, AddAgentModal, AgentInlineEditor
-│   │   │   ├── chores/           # ChoresPanel, AddChoreModal, ChoreCard,
-│   │   │   │                     # ChoreScheduleConfig, ChoreChatFlow
+│   │   │   ├── chores/           # ChoresPanel, ChoresToolbar, ChoresGrid,
+│   │   │   │                     # ChoresSaveAllBar, ChoresSpotlight,
+│   │   │   │                     # AddChoreModal, ChoreCard,
+│   │   │   │                     # ChoreScheduleConfig, ChoreChatFlow,
+│   │   │   │                     # ChoreInlineEditor, ConfirmChoreModal,
+│   │   │   │                     # FeaturedRitualsPanel, PipelineSelector
 │   │   │   ├── pipeline/         # PipelineBoard, PipelineFlowGraph, AgentNode,
 │   │   │   │                     # StageCard, ExecutionGroupCard, ModelSelector,
 │   │   │   │                     # PipelineToolbar
