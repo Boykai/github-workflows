@@ -1282,18 +1282,23 @@ async def ensure_copilot_review_requested(
                     pr_number,
                 )
 
-        # Check if Copilot has already reviewed
-        has_reviewed = await _cp.github_projects_service.has_copilot_reviewed_pr(
+        # Dismiss any pre-existing auto-triggered Copilot reviews so
+        # only a review triggered by our explicit request counts as
+        # pipeline completion.
+        dismissed = await _cp.github_projects_service.dismiss_copilot_reviews(
             access_token=access_token,
             owner=owner,
             repo=repo,
             pr_number=pr_number,
         )
-
-        if has_reviewed:
-            # Mark as processed to avoid checking again
-            _processed_issue_prs.add(cache_key)
-            return None
+        if dismissed:
+            logger.info(
+                "Dismissed %d auto-triggered Copilot review(s) on PR #%d "
+                "before requesting pipeline review (issue #%d)",
+                dismissed,
+                pr_number,
+                issue_number,
+            )
 
         # Request Copilot review
         logger.info(
@@ -1314,7 +1319,7 @@ async def ensure_copilot_review_requested(
         if success:
             # Record the request timestamp so _check_copilot_review_done
             # can filter out random/auto-triggered reviews submitted before
-            # this explicit request.
+            # this explicit request (+ buffer window).
             from src.services.copilot_polling.state import _copilot_review_requested_at
             from src.utils import utcnow
 

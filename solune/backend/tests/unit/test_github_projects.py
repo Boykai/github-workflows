@@ -1,5 +1,6 @@
 """Unit tests for GitHub Projects service - Copilot custom agent assignment."""
 
+from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import httpx
@@ -1323,6 +1324,177 @@ class TestHasCopilotReviewedPr:
             )
 
             assert result is False
+
+
+class TestDismissCopilotReviews:
+    """Tests for dismiss_copilot_reviews method."""
+
+    @pytest.fixture
+    def service(self):
+        return GitHubProjectsService()
+
+    @pytest.mark.asyncio
+    async def test_dismisses_copilot_bot_reviews_only(self, service):
+        """Only reviews from copilot-pull-request-reviewer[bot] are dismissed."""
+        reviews = [
+            {
+                "id": 100,
+                "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                "state": "COMMENTED",
+                "submitted_at": "2026-03-15T10:00:00Z",
+                "body": "Auto-review",
+            },
+            {
+                "id": 200,
+                "user": {"login": "human-reviewer"},
+                "state": "APPROVED",
+                "submitted_at": "2026-03-15T11:00:00Z",
+                "body": "Looks good",
+            },
+        ]
+        dismiss_resp = MagicMock()
+        dismiss_resp.status_code = 200
+
+        with (
+            patch.object(service, "_rest", new_callable=AsyncMock, return_value=reviews),
+            patch.object(
+                service, "_rest_response", new_callable=AsyncMock, return_value=dismiss_resp
+            ) as mock_dismiss,
+        ):
+            count = await service.dismiss_copilot_reviews(
+                access_token="tok", owner="o", repo="r", pr_number=42
+            )
+
+        assert count == 1
+        mock_dismiss.assert_awaited_once()
+        # Verify the dismissed review was the bot's review (#100)
+        call_args = mock_dismiss.call_args
+        assert "/reviews/100/dismissals" in call_args[0][2]
+
+    @pytest.mark.asyncio
+    async def test_submitted_before_filter(self, service):
+        """Only reviews submitted before the cutoff are dismissed."""
+        cutoff = datetime(2026, 3, 15, 12, 0, 0, tzinfo=UTC)
+        reviews = [
+            {
+                "id": 100,
+                "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                "state": "COMMENTED",
+                "submitted_at": "2026-03-15T10:00:00+00:00",
+                "body": "Early review",
+            },
+            {
+                "id": 200,
+                "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                "state": "COMMENTED",
+                "submitted_at": "2026-03-15T14:00:00+00:00",
+                "body": "Late review",
+            },
+        ]
+        dismiss_resp = MagicMock()
+        dismiss_resp.status_code = 200
+
+        with (
+            patch.object(service, "_rest", new_callable=AsyncMock, return_value=reviews),
+            patch.object(
+                service, "_rest_response", new_callable=AsyncMock, return_value=dismiss_resp
+            ) as mock_dismiss,
+        ):
+            count = await service.dismiss_copilot_reviews(
+                access_token="tok",
+                owner="o",
+                repo="r",
+                pr_number=42,
+                submitted_before=cutoff,
+            )
+
+        assert count == 1
+        call_args = mock_dismiss.call_args
+        assert "/reviews/100/dismissals" in call_args[0][2]
+
+    @pytest.mark.asyncio
+    async def test_skips_pending_reviews(self, service):
+        """PENDING reviews are not dismissed."""
+        reviews = [
+            {
+                "id": 100,
+                "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                "state": "PENDING",
+                "submitted_at": "2026-03-15T10:00:00Z",
+                "body": "",
+            },
+        ]
+
+        with (
+            patch.object(service, "_rest", new_callable=AsyncMock, return_value=reviews),
+            patch.object(service, "_rest_response", new_callable=AsyncMock) as mock_dismiss,
+        ):
+            count = await service.dismiss_copilot_reviews(
+                access_token="tok", owner="o", repo="r", pr_number=42
+            )
+
+        assert count == 0
+        mock_dismiss.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_returns_zero_on_no_reviews(self, service):
+        """Returns 0 when there are no reviews."""
+        with patch.object(service, "_rest", new_callable=AsyncMock, return_value=[]):
+            count = await service.dismiss_copilot_reviews(
+                access_token="tok", owner="o", repo="r", pr_number=42
+            )
+        assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_handles_api_error_gracefully(self, service):
+        """Returns 0 and does not raise when the REST call fails."""
+        with patch.object(
+            service, "_rest", new_callable=AsyncMock, side_effect=RuntimeError("API error")
+        ):
+            count = await service.dismiss_copilot_reviews(
+                access_token="tok", owner="o", repo="r", pr_number=42
+            )
+        assert count == 0
+
+    @pytest.mark.asyncio
+    async def test_dismiss_failure_continues_to_next(self, service):
+        """If dismissing one review fails, the next review is still attempted."""
+        reviews = [
+            {
+                "id": 100,
+                "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                "state": "COMMENTED",
+                "submitted_at": "2026-03-15T10:00:00Z",
+                "body": "Review 1",
+            },
+            {
+                "id": 200,
+                "user": {"login": "copilot-pull-request-reviewer[bot]"},
+                "state": "COMMENTED",
+                "submitted_at": "2026-03-15T10:05:00Z",
+                "body": "Review 2",
+            },
+        ]
+        fail_resp = MagicMock()
+        fail_resp.status_code = 422
+        fail_resp.text = "Unprocessable"
+        ok_resp = MagicMock()
+        ok_resp.status_code = 200
+
+        with (
+            patch.object(service, "_rest", new_callable=AsyncMock, return_value=reviews),
+            patch.object(
+                service,
+                "_rest_response",
+                new_callable=AsyncMock,
+                side_effect=[fail_resp, ok_resp],
+            ),
+        ):
+            count = await service.dismiss_copilot_reviews(
+                access_token="tok", owner="o", repo="r", pr_number=42
+            )
+
+        assert count == 1
 
 
 # =============================================================================

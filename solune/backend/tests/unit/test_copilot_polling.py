@@ -48,6 +48,7 @@ from src.services.copilot_polling import (
 )
 from src.services.copilot_polling.state import (
     COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS,
+    COPILOT_REVIEW_REQUEST_BUFFER_SECONDS,
     _copilot_review_first_detected,
     _copilot_review_requested_at,
 )
@@ -4507,20 +4508,23 @@ class TestEnsureCopilotReviewRequested:
         "src.services.copilot_polling.helpers._discover_main_pr_for_review", new_callable=AsyncMock
     )
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_already_reviewed_returns_none(self, mock_service, mock_discover):
+    async def test_dismisses_auto_triggered_before_requesting(self, mock_service, mock_discover):
+        """Auto-triggered reviews are dismissed before Solune requests its own review."""
         mock_discover.return_value = {
             "pr_number": 10,
             "pr_id": "PR_N",
             "is_draft": False,
             "head_ref": "b",
         }
-        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
-        assert result is None
-        # Should have been cached
-        from src.services.copilot_polling import cache_key_review_requested
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=1)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
 
-        assert cache_key_review_requested(42) in _processed_issue_prs
+        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        assert result is not None
+        assert result["action"] == "copilot_review_requested"
+        # Dismiss should be called before the review request
+        mock_service.dismiss_copilot_reviews.assert_awaited_once()
+        mock_service.request_copilot_review.assert_awaited_once()
 
     @pytest.mark.asyncio
     @patch(
@@ -4534,7 +4538,7 @@ class TestEnsureCopilotReviewRequested:
             "is_draft": False,
             "head_ref": "b",
         }
-        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "my task")
@@ -4554,7 +4558,7 @@ class TestEnsureCopilotReviewRequested:
             "is_draft": False,
             "head_ref": "b",
         }
-        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=False)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "my task")
@@ -4585,7 +4589,7 @@ class TestEnsureCopilotReviewRequested:
             "head_ref": "b",
         }
         mock_service.mark_pr_ready_for_review = AsyncMock(return_value=True)
-        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
@@ -7250,12 +7254,15 @@ class TestCheckCopilotReviewDone:
         )
 
         assert result is True
+        from src.services.copilot_polling.state import COPILOT_REVIEW_REQUEST_BUFFER_SECONDS
+
+        expected_min_after = request_ts + timedelta(seconds=COPILOT_REVIEW_REQUEST_BUFFER_SECONDS)
         mock_service.has_copilot_reviewed_pr.assert_awaited_once_with(
             access_token="token",
             owner="owner",
             repo="repo",
             pr_number=100,
-            min_submitted_after=request_ts,
+            min_submitted_after=expected_min_after,
         )
 
     @pytest.mark.asyncio
@@ -7366,12 +7373,15 @@ class TestCheckCopilotReviewDone:
 
         assert result is True
         mock_service.find_existing_pr_for_issue.assert_awaited_once()
+        from src.services.copilot_polling.state import COPILOT_REVIEW_REQUEST_BUFFER_SECONDS
+
+        expected_min_after = request_ts + timedelta(seconds=COPILOT_REVIEW_REQUEST_BUFFER_SECONDS)
         mock_service.has_copilot_reviewed_pr.assert_awaited_once_with(
             access_token="token",
             owner="owner",
             repo="repo",
             pr_number=200,
-            min_submitted_after=request_ts,
+            min_submitted_after=expected_min_after,
         )
 
     @pytest.mark.asyncio
@@ -8049,6 +8059,7 @@ class TestCopilotReviewSelfHealing:
         mock_service.mark_pr_ready_for_review = AsyncMock(return_value=True)
         mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
 
         result = await _check_copilot_review_done(
             access_token="token", owner="owner", repo="repo", parent_issue_number=99
@@ -8058,7 +8069,8 @@ class TestCopilotReviewSelfHealing:
         mock_service.mark_pr_ready_for_review.assert_awaited_once_with(
             access_token="token", pr_node_id="PR_node_300"
         )
-        # Should also re-request the review since not yet reviewed
+        # Should dismiss auto-triggered reviews and re-request
+        mock_service.dismiss_copilot_reviews.assert_awaited_once()
         mock_service.request_copilot_review.assert_awaited_once()
 
     @pytest.mark.asyncio
@@ -8095,6 +8107,7 @@ class TestCopilotReviewSelfHealing:
         )
         mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
 
         result = await _check_copilot_review_done(
             access_token="token", owner="owner", repo="repo", parent_issue_number=99
@@ -8103,7 +8116,8 @@ class TestCopilotReviewSelfHealing:
         assert result is False
         # Should NOT try to un-draft (already ready)
         mock_service.mark_pr_ready_for_review.assert_not_called()
-        # Should re-request the review
+        # Should dismiss auto-triggered reviews and re-request
+        mock_service.dismiss_copilot_reviews.assert_awaited_once()
         mock_service.request_copilot_review.assert_awaited_once_with(
             access_token="token",
             pr_node_id="PR_node_300",
@@ -8181,6 +8195,7 @@ class TestCopilotReviewAutoTriggerProtection:
         # An auto-triggered review IS present on the PR
         mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=True)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=1)
 
         # _copilot_review_requested_at is EMPTY — Solune never requested this
 
@@ -8191,7 +8206,8 @@ class TestCopilotReviewAutoTriggerProtection:
         assert result is False
         # Should NOT call has_copilot_reviewed_pr (gate short-circuits before it)
         mock_service.has_copilot_reviewed_pr.assert_not_awaited()
-        # Self-healing should request a new review and record the timestamp
+        # Self-healing should dismiss auto-triggered reviews before requesting
+        mock_service.dismiss_copilot_reviews.assert_awaited_once()
         mock_service.request_copilot_review.assert_awaited_once()
         assert 50 in _copilot_review_requested_at
 
@@ -8228,13 +8244,14 @@ class TestCopilotReviewAutoTriggerProtection:
     async def test_self_healing_records_timestamp_and_returns_false(
         self, mock_main_branch, mock_service
     ):
-        """Self-healing requests the review, records timestamp, and returns False."""
+        """Self-healing dismisses, requests the review, records timestamp, returns False."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
         mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_500", "is_draft": False}
         )
         mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
 
         result = await _check_copilot_review_done(
             access_token="token", owner="owner", repo="repo", parent_issue_number=50
@@ -8244,6 +8261,8 @@ class TestCopilotReviewAutoTriggerProtection:
         assert 50 in _copilot_review_requested_at
         # Stale first-detection data should be cleared
         assert 50 not in _copilot_review_first_detected
+        # Dismiss should be called before requesting
+        mock_service.dismiss_copilot_reviews.assert_awaited_once()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
@@ -8258,6 +8277,7 @@ class TestCopilotReviewAutoTriggerProtection:
             return_value={"id": "PR_node_500", "is_draft": False}
         )
         mock_service.request_copilot_review = AsyncMock(return_value=False)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
 
         result = await _check_copilot_review_done(
             access_token="token", owner="owner", repo="repo", parent_issue_number=50
@@ -8266,14 +8286,14 @@ class TestCopilotReviewAutoTriggerProtection:
         assert result is False
         # Timestamp NOT recorded since request failed
         assert 50 not in _copilot_review_requested_at
+        # Dismiss should still be called before the failed request
+        mock_service.dismiss_copilot_reviews.assert_awaited_once()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
     @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
-    async def test_min_submitted_after_passed_to_has_copilot_reviewed(
-        self, mock_main_branch, mock_service
-    ):
-        """The request timestamp is passed as min_submitted_after to has_copilot_reviewed_pr."""
+    async def test_min_submitted_after_includes_buffer(self, mock_main_branch, mock_service):
+        """min_submitted_after = request_ts + buffer is passed to has_copilot_reviewed_pr."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
         mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
         mock_service.get_pull_request = AsyncMock(
@@ -8289,13 +8309,37 @@ class TestCopilotReviewAutoTriggerProtection:
             access_token="token", owner="owner", repo="repo", parent_issue_number=50
         )
 
+        expected_min_after = request_ts + timedelta(seconds=COPILOT_REVIEW_REQUEST_BUFFER_SECONDS)
         mock_service.has_copilot_reviewed_pr.assert_awaited_once_with(
             access_token="token",
             owner="owner",
             repo="repo",
             pr_number=500,
-            min_submitted_after=request_ts,
+            min_submitted_after=expected_min_after,
         )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
+    @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
+    async def test_review_within_buffer_window_rejected(self, mock_main_branch, mock_service):
+        """A review submitted within the buffer window after Solune's request is rejected."""
+        mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_500", "is_draft": False}
+        )
+        # has_copilot_reviewed_pr returns False because the review is within buffer
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+
+        # Request was 30s ago — well within the 120s buffer
+        _copilot_review_requested_at[50] = utcnow() - timedelta(seconds=30)
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=50
+        )
+
+        assert result is False
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
@@ -10544,7 +10588,7 @@ class TestCopilotReviewRequestTimestamp:
             "is_draft": False,
             "head_ref": "b",
         }
-        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
@@ -10571,7 +10615,7 @@ class TestCopilotReviewRequestTimestamp:
             "is_draft": False,
             "head_ref": "b",
         }
-        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=False)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
