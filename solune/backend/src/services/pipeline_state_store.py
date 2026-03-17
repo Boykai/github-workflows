@@ -22,11 +22,13 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
-# L1 in-memory caches (identical structure to transitions.py originals)
-_pipeline_states: BoundedDict[int, Any] = BoundedDict(maxlen=500)
-_issue_main_branches: BoundedDict[int, Any] = BoundedDict(maxlen=500)
-_issue_sub_issue_map: BoundedDict[int, dict[str, dict]] = BoundedDict(maxlen=500)
-_agent_trigger_inflight: BoundedDict[str, datetime] = BoundedDict(maxlen=2000)
+# L1 in-memory caches — no artificial cap (FR-003).  The BoundedDict
+# maxlen is set high enough to be effectively unbounded for any realistic
+# deployment while still preventing runaway memory in pathological cases.
+_pipeline_states: BoundedDict[int, Any] = BoundedDict(maxlen=50_000)
+_issue_main_branches: BoundedDict[int, Any] = BoundedDict(maxlen=50_000)
+_issue_sub_issue_map: BoundedDict[int, dict[str, dict]] = BoundedDict(maxlen=50_000)
+_agent_trigger_inflight: BoundedDict[str, datetime] = BoundedDict(maxlen=50_000)
 
 # Module-level lock for all mutations
 _store_lock: asyncio.Lock | None = None
