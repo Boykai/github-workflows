@@ -39,6 +39,20 @@ class TestExtensionBasedDetection:
         assert result.format == "vtt"
         assert result.confidence == 1.0
 
+    def test_vtt_extension_empty_content(self):
+        """Extension-based detection classifies .vtt even with empty content."""
+        result = detect_transcript("empty.vtt", "")
+        assert result.is_transcript is True
+        assert result.format == "vtt"
+        assert result.confidence == 1.0
+
+    def test_srt_extension_empty_content(self):
+        """Extension-based detection classifies .srt even with empty content."""
+        result = detect_transcript("empty.srt", "")
+        assert result.is_transcript is True
+        assert result.format == "srt"
+        assert result.confidence == 1.0
+
 
 # ── Content-based detection (VTT markers) ────────────────────────────────
 

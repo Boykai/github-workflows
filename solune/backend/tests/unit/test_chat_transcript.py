@@ -88,6 +88,8 @@ class TestAnalyzeTranscript:
             session_id="00000000-0000-0000-0000-000000000001",
         )
         assert len(rec.original_input) == 500
+        # original_context preserves the full transcript
+        assert rec.original_context == long_transcript
 
     async def test_short_transcript_not_truncated(self, service, mock_provider):
         mock_provider.set_response(VALID_AI_RESPONSE)

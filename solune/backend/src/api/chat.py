@@ -390,7 +390,7 @@ async def _handle_transcript_upload(
             continue
 
         try:
-            content = file_path.read_text(errors="replace")
+            content = file_path.read_text(encoding="utf-8", errors="replace")
         except Exception as exc:
             logger.warning("Could not read uploaded file %s: %s", filename, exc)
             continue

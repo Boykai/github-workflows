@@ -248,9 +248,14 @@ class AIAgentService:
 
             # Use truncated transcript as original_input (max 500 chars)
             original_input = transcript_content[:500]
-            return self._parse_issue_recommendation_response(
+            recommendation = self._parse_issue_recommendation_response(
                 content, original_input, session_id, metadata_context=metadata_context
             )
+            # Preserve the full transcript in original_context (the parser
+            # copies original_input into original_context, but for transcripts
+            # we want the complete text available for downstream use).
+            recommendation.original_context = transcript_content
+            return recommendation
 
         except Exception as e:
             error_msg = str(e)

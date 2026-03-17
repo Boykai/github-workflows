@@ -64,16 +64,20 @@ def detect_transcript(filename: str, content: str) -> TranscriptDetectionResult:
     Returns ``TranscriptDetectionResult`` with ``is_transcript=False`` for
     anything that doesn't match the above heuristics.
     """
-    if not filename or not content:
+    if not filename:
         return _NOT_TRANSCRIPT
 
     ext = _get_extension(filename)
 
-    # 1. Extension-based — always transcript
+    # 1. Extension-based — always transcript (even with empty content)
     if ext == ".vtt":
         return TranscriptDetectionResult(is_transcript=True, format="vtt", confidence=1.0)
     if ext == ".srt":
         return TranscriptDetectionResult(is_transcript=True, format="srt", confidence=1.0)
+
+    # Content-based detection requires non-empty content
+    if not content:
+        return _NOT_TRANSCRIPT
 
     # Only analyse content for text-like extensions
     if ext not in (".txt", ".md"):
