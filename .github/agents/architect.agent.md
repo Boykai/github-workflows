@@ -1,7 +1,7 @@
 ---
 name: Architect
-description: Generates Azure IaC (Bicep), azd scaffolds, architecture diagrams,
-  and deploy buttons for new Solune apps. Always invoked during app creation.
+description: Generates Azure IaC (Bicep), azd scaffolds, architecture diagrams, and
+  deploy buttons for new Solune apps. Always invoked during app creation.
 mcp-servers:
   context7:
     type: http
@@ -19,15 +19,6 @@ mcp-servers:
     - codegraphcontext
     - cgc
     - mcp
-    - start
-    tools:
-    - '*'
-  azure-mcp:
-    type: local
-    command: npx
-    args:
-    - '@azure/mcp@latest'
-    - server
     - start
     tools:
     - '*'
