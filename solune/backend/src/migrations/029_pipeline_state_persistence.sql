@@ -120,7 +120,7 @@ BEGIN
     WHERE id = OLD.id;
 END;
 
--- ── Extend projects table ──────────────────────────────────────
+-- ── Extend project_settings table ──────────────────────────────
 -- Add access_control_enabled column (FR-006)
 
 ALTER TABLE project_settings ADD COLUMN access_control_enabled INTEGER NOT NULL DEFAULT 1;

@@ -34,6 +34,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) co
 
 - **Pipeline state store**: Removed 500-entry cap on in-memory pipeline state (increased to 50,000) — no artificial limits on pipeline run history (FR-003)
 
+---
+
+## [Unreleased — Pre-0.1.0]
+
 ### Added
 
 - **Monorepo restructure**: Repository reorganized with `solune/` (platform core) and `apps/` (generated applications) at the root

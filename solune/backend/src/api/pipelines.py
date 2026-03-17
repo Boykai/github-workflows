@@ -462,12 +462,10 @@ def _get_run_service() -> "PipelineRunService":
 @router.post("/{pipeline_id}/runs", status_code=201)
 async def create_pipeline_run(
     pipeline_id: str,
-    body: "PipelineRunCreate",
+    body: PipelineRunCreate,
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """Create and start a new pipeline run (FR-001, FR-016)."""
-    from src.models.pipeline_run import PipelineRunCreate as _PRC  # noqa: F811
-
     # Verify the pipeline exists
     service = _get_service()
     pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)

@@ -81,9 +81,9 @@ async def create_pipeline_label(
         if response and hasattr(response, "status_code") and response.status_code < 300:
             logger.debug("Created pipeline label: %s", label_name)
             return label_name
-        # Label may already exist (409 conflict) — treat as success
+        # GitHub returns 422 with "already_exists" for duplicate label names
         if response and hasattr(response, "status_code") and response.status_code == 422:
-            logger.debug("Pipeline label already exists: %s", label_name)
+            logger.debug("Pipeline label already exists (422): %s", label_name)
             return label_name
         logger.warning("Failed to create pipeline label %s: %s", label_name, response)
         return None

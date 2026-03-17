@@ -70,7 +70,7 @@ async def update_onboarding_state(
 
     db = get_db()
     user_id = str(session.github_user_id)
-    now = utcnow()
+    now = utcnow().isoformat()
 
     completed_val = 1 if body.completed else 0
     completed_at = now if body.completed else None
