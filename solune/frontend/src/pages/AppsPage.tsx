@@ -440,10 +440,15 @@ export function AppsPage() {
                     <textarea
                       id="app-description"
                       name="description"
-                      rows={2}
-                      placeholder="A brief description of your app…"
+                      rows={3}
+                      placeholder={aiEnhance ? 'Describe your app in a few words or sentences \u2014 AI will generate a short repo description and a rich project overview from your input.' : 'A brief description of your app\u2026'}
                       className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
+                    {aiEnhance && (
+                      <p className="mt-1 text-xs text-zinc-400">
+                        AI will produce a short repo description ({'\u2264'}350 chars) and a detailed project description.
+                      </p>
+                    )}
                   </div>
 
                   {/* New Repository-specific fields */}

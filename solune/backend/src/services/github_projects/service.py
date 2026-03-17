@@ -161,6 +161,8 @@ class GitHubProjectsService(
 
         Used when callers need to check status_code or headers directly.
         """
+        from githubkit.exception import RequestFailed
+
         client = await self._client_factory.get_client(access_token)
         kwargs: dict = {}
         if json is not None:
@@ -169,7 +171,12 @@ class GitHubProjectsService(
             kwargs["params"] = params
         if headers is not None:
             kwargs["headers"] = headers
-        response = await client.arequest(method, path, **kwargs)
+        try:
+            response = await client.arequest(method, path, **kwargs)
+        except RequestFailed as exc:
+            # githubkit raises on non-2xx; return the Response so callers
+            # can inspect status_code / body as originally intended.
+            response = exc.response
         # Extract rate-limit headers
         self._extract_rate_limit_headers(response)
         return response

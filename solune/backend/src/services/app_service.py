@@ -134,15 +134,16 @@ def _row_to_app(row: aiosqlite.Row) -> App:
 # ---------------------------------------------------------------------------
 
 
-async def _enhance_app_description(
+async def _enhance_app_descriptions(
     display_name: str,
     description: str,
     *,
     access_token: str,
-) -> str:
-    """Use AI to generate a richer description for the app scaffold.
+) -> tuple[str, str]:
+    """Use AI to generate a short repo description and a rich issue description.
 
-    Falls back to the original description on any error.
+    Returns ``(repo_description, full_description)``.
+    Falls back to the original description for both on any error.
     """
     from src.services.ai_agent import get_ai_agent_service
 
@@ -154,9 +155,14 @@ async def _enhance_app_description(
             "content": (
                 "You are a concise technical writer. "
                 "The user is creating a new application. Given the app's display name "
-                "and their rough description, produce a polished, professional description "
-                "of 2-4 sentences. Keep it factual and specific — no marketing fluff. "
-                "Respond with ONLY the description text, no markdown fences or extra formatting."
+                "and their rough description, produce TWO outputs separated by the "
+                "exact delimiter '---SPLIT---' on its own line:\n\n"
+                "1. A short, single-sentence repository description, max 350 characters. "
+                "No markdown.\n"
+                "2. A rich Markdown description for a GitHub issue body (3-8 sentences). "
+                "Include key goals, scope, or tech notes. Use bullet points if helpful.\n\n"
+                "Respond with ONLY the two sections separated by ---SPLIT---. "
+                "No fences, no labels, no extra formatting."
             ),
         },
         {
@@ -170,16 +176,21 @@ async def _enhance_app_description(
             messages=messages,
             github_token=access_token,
             temperature=0.5,
-            max_tokens=300,
+            max_tokens=600,
         )
-        enhanced = response.strip()
-        if enhanced:
-            logger.info("AI-enhanced description for app '%s'", display_name)
-            return enhanced
+        parts = response.split("---SPLIT---", maxsplit=1)
+        repo_desc = parts[0].strip()
+        full_desc = parts[1].strip() if len(parts) > 1 else repo_desc
+        if repo_desc:
+            logger.info("AI-enhanced descriptions for app '%s'", display_name)
+            # Hard-cap repo description to GitHub limit
+            if len(repo_desc) > 350:
+                repo_desc = repo_desc[:347] + "..."
+            return repo_desc, full_desc
     except Exception as exc:
         logger.warning("AI enhancement failed for app '%s', using original: %s", display_name, exc)
 
-    return description
+    return description, description
 
 
 # ---------------------------------------------------------------------------
@@ -233,7 +244,7 @@ async def create_app(
     # Optionally enhance the description with AI
     description = payload.description
     if payload.ai_enhance:
-        description = await _enhance_app_description(
+        _repo_desc, description = await _enhance_app_descriptions(
             payload.display_name,
             description,
             access_token=access_token,
@@ -337,11 +348,17 @@ async def create_app_with_new_repo(
     # Optionally enhance the description with AI
     description = payload.description
     if payload.ai_enhance:
-        description = await _enhance_app_description(
+        repo_description, description = await _enhance_app_descriptions(
             payload.display_name,
             description,
             access_token=access_token,
         )
+    else:
+        repo_description = description
+
+    # GitHub limits repo descriptions to 350 characters
+    if len(repo_description) > 350:
+        repo_description = repo_description[:347] + "..."
 
     # 1. Create the GitHub repository
     repo_data = await github_service.create_repository(
@@ -351,7 +368,7 @@ async def create_app_with_new_repo(
         if payload.repo_owner != (await _get_authenticated_username(access_token, github_service))
         else None,
         private=is_private,
-        description=description,
+        description=repo_description,
         auto_init=True,
     )
     logger.info("Created repository %s", repo_data.get("full_name"))

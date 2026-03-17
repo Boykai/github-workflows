@@ -61,8 +61,25 @@ class RepositoryMixin:
                 err_body = {"message": response.text}
             msg = err_body.get("message", "Unknown error")
             details = err_body.get("errors", [])
+            # Build a human-readable summary including error detail entries
+            detail_parts = []
+            for err in details:
+                if isinstance(err, dict):
+                    err_msg = err.get("message", "")
+                    if err_msg:
+                        detail_parts.append(err_msg)
+                elif isinstance(err, str):
+                    detail_parts.append(err)
+            detail_suffix = f" ({'; '.join(detail_parts)})" if detail_parts else ""
+            logger.warning(
+                "Repository creation failed for '%s' (status=%d): %s %s",
+                name,
+                response.status_code,
+                msg,
+                details,
+            )
             raise GitHubAPIError(
-                f"Failed to create repository '{name}': {msg}",
+                f"Failed to create repository '{name}': {msg}{detail_suffix}",
                 details={"github_errors": details, "status_code": response.status_code},
             )
 
