@@ -24,7 +24,6 @@ from src.services.chores.template_builder import (
     merge_chore_pr,
 )
 
-
 # ── build_template ────────────────────────────────────────────────────────
 
 

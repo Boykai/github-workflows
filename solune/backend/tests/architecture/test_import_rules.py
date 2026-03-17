@@ -1,6 +1,7 @@
 """Architecture boundary tests — enforce import direction rules via AST analysis."""
 
 import ast
+import typing
 from pathlib import Path
 
 import pytest
@@ -26,8 +27,7 @@ def _extract_imports(filepath: Path) -> list[str]:
     modules: list[str] = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
-            for alias in node.names:
-                modules.append(alias.name)
+            modules.extend(alias.name for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
             if node.module:
                 modules.append(node.module)
@@ -57,8 +57,7 @@ class TestServicesBoundary:
                     violations.append(f"{rel} imports {mod}")
 
         assert violations == [], (
-            "services/ must not import from api/. Violations:\n  "
-            + "\n  ".join(violations)
+            "services/ must not import from api/. Violations:\n  " + "\n  ".join(violations)
         )
 
 
@@ -66,7 +65,7 @@ class TestApiBoundary:
     """api/ must not import *_store modules directly."""
 
     # Pre-existing api → _store imports (legacy; do not add new ones)
-    _API_STORE_ALLOWLIST: set[tuple[str, str]] = {
+    _API_STORE_ALLOWLIST: typing.ClassVar[set[tuple[str, str]]] = {
         ("src/api/mcp.py", "src.services.mcp_store"),
         ("src/api/chat.py", "src.services.settings_store"),
         ("src/api/chat.py", "src.services.chat_store"),
@@ -109,11 +108,12 @@ class TestModelsBoundary:
         violations: list[str] = []
         for py_file in models_dir.rglob("*.py"):
             rel = _relative_key(py_file)
-            for mod in _extract_imports(py_file):
-                if "services" in mod.split(".") or mod.startswith("src.services"):
-                    violations.append(f"{rel} imports {mod}")
+            violations.extend(
+                f"{rel} imports {mod}"
+                for mod in _extract_imports(py_file)
+                if "services" in mod.split(".") or mod.startswith("src.services")
+            )
 
         assert violations == [], (
-            "models/ must not import from services/. Violations:\n  "
-            + "\n  ".join(violations)
+            "models/ must not import from services/. Violations:\n  " + "\n  ".join(violations)
         )

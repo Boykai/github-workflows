@@ -8,11 +8,8 @@ Covers:
 - RepositoryData: nested OwnerData
 """
 
-import pytest
-
 from src.api.webhook_models import (
     BranchRef,
-    IssueData,
     IssuesEvent,
     OwnerData,
     PingEvent,
@@ -21,7 +18,6 @@ from src.api.webhook_models import (
     RepositoryData,
     UserData,
 )
-
 
 # ── PullRequestEvent ──────────────────────────────────────────────────────
 

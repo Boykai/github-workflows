@@ -1,16 +1,13 @@
 """Time-controlled tests — verify temporal behavior at exact boundaries."""
 
-from datetime import UTC, datetime, timedelta
-
-from freezegun import freeze_time
 import pytest
+from freezegun import freeze_time
 
 from src.services.chores.chat import (
     _MAX_AGE_SECONDS,
     _conversations,
     _evict_stale_conversations,
     get_or_create_conversation,
-    cleanup_conversation,
 )
 
 
