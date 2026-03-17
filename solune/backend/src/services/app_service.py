@@ -347,7 +347,9 @@ async def create_app_with_new_repo(
     repo_data = await github_service.create_repository(
         access_token,
         payload.name,
-        owner=payload.repo_owner if payload.repo_owner != (await _get_authenticated_username(access_token, github_service)) else None,
+        owner=payload.repo_owner
+        if payload.repo_owner != (await _get_authenticated_username(access_token, github_service))
+        else None,
         private=is_private,
         description=description,
         auto_init=True,
@@ -393,7 +395,9 @@ async def create_app_with_new_repo(
             message="scaffold: initial template files",
         )
         if commit_oid:
-            logger.info("Committed %d template files to %s", len(template_files), repo_data["full_name"])
+            logger.info(
+                "Committed %d template files to %s", len(template_files), repo_data["full_name"]
+            )
         else:
             logger.warning("Failed to commit template files to %s", repo_data["full_name"])
 
@@ -480,6 +484,7 @@ async def _get_authenticated_username(
 ) -> str:
     """Fetch the authenticated user's login."""
     from typing import cast
+
     user = cast(dict, await github_service._rest(access_token, "GET", "/user"))
     return user.get("login", "")
 

@@ -120,9 +120,7 @@ class TestLinkProjectToRepository:
     @pytest.mark.asyncio
     async def test_happy_path(self) -> None:
         svc = FakeProjectsService()
-        svc._graphql.return_value = {
-            "linkProjectV2ToRepository": {"repository": {"id": "R_abc"}}
-        }
+        svc._graphql.return_value = {"linkProjectV2ToRepository": {"repository": {"id": "R_abc"}}}
 
         await svc.link_project_to_repository("tok", project_id="PVT_1", repository_id="R_abc")
         svc._graphql.assert_awaited_once()
@@ -131,9 +129,7 @@ class TestLinkProjectToRepository:
     async def test_idempotent_call(self) -> None:
         """Calling link twice should just make two GraphQL calls (idempotent)."""
         svc = FakeProjectsService()
-        svc._graphql.return_value = {
-            "linkProjectV2ToRepository": {"repository": {"id": "R_abc"}}
-        }
+        svc._graphql.return_value = {"linkProjectV2ToRepository": {"repository": {"id": "R_abc"}}}
 
         await svc.link_project_to_repository("tok", project_id="PVT_1", repository_id="R_abc")
         await svc.link_project_to_repository("tok", project_id="PVT_1", repository_id="R_abc")

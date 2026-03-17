@@ -85,7 +85,15 @@ class TestCreateRepository:
     async def test_auto_init_default_true(self) -> None:
         svc = FakeRepositoryService()
         svc._rest_response.return_value = _mock_response(
-            201, {"id": 1, "node_id": "R_1", "name": "x", "full_name": "u/x", "html_url": "", "default_branch": "main"}
+            201,
+            {
+                "id": 1,
+                "node_id": "R_1",
+                "name": "x",
+                "full_name": "u/x",
+                "html_url": "",
+                "default_branch": "main",
+            },
         )
 
         await svc.create_repository("tok", "x")
@@ -130,7 +138,11 @@ class TestListAvailableOwners:
         owners = await svc.list_available_owners("tok")
 
         assert len(owners) == 3
-        assert owners[0] == {"login": "alice", "avatar_url": "https://a.com/alice.png", "type": "User"}
+        assert owners[0] == {
+            "login": "alice",
+            "avatar_url": "https://a.com/alice.png",
+            "type": "User",
+        }
         assert owners[1]["login"] == "org1"
         assert owners[1]["type"] == "Organization"
         assert owners[2]["login"] == "org2"

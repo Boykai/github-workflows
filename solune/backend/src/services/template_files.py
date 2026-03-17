@@ -99,7 +99,11 @@ def _read_template_dir(source_dir: Path) -> list[dict[str, str]]:
     # Root-level files (.gitignore, etc.)
     for root_file in _TEMPLATE_ROOT_FILES:
         file_path = source_dir / root_file
-        if file_path.is_file() and not file_path.is_symlink() and _is_safe_path(source_dir, file_path):
+        if (
+            file_path.is_file()
+            and not file_path.is_symlink()
+            and _is_safe_path(source_dir, file_path)
+        ):
             try:
                 content = file_path.read_text(encoding="utf-8")
                 files.append({"path": root_file, "content": content})

@@ -72,7 +72,9 @@ class TestCreateAppWithNewRepo:
         github_svc = _mock_github_service()
         payload = _new_repo_payload()
 
-        with patch("src.services.template_files.build_template_files", new_callable=AsyncMock) as mock_templates:
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
             mock_templates.return_value = [{"path": ".gitignore", "content": "node_modules/\n"}]
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
@@ -97,7 +99,9 @@ class TestCreateAppWithNewRepo:
         github_svc = _mock_github_service()
         payload = _new_repo_payload(create_project=False)
 
-        with patch("src.services.template_files.build_template_files", new_callable=AsyncMock) as mock_templates:
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
             mock_templates.return_value = []
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
@@ -131,7 +135,9 @@ class TestCreateAppWithNewRepo:
         github_svc.create_project_v2.side_effect = ValueError("Project creation failed")
         payload = _new_repo_payload()
 
-        with patch("src.services.template_files.build_template_files", new_callable=AsyncMock) as mock_templates:
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
             mock_templates.return_value = []
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
@@ -153,7 +159,9 @@ class TestCreateAppWithNewRepo:
         payload = _new_repo_payload()
 
         # First creation
-        with patch("src.services.template_files.build_template_files", new_callable=AsyncMock) as mock_templates:
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
             mock_templates.return_value = []
             await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
@@ -161,7 +169,9 @@ class TestCreateAppWithNewRepo:
 
         # Second creation with same name should fail
         with pytest.raises(ConflictError):
-            with patch("src.services.template_files.build_template_files", new_callable=AsyncMock) as mock_templates:
+            with patch(
+                "src.services.template_files.build_template_files", new_callable=AsyncMock
+            ) as mock_templates:
                 mock_templates.return_value = []
                 await create_app_with_new_repo(
                     mock_db, payload, access_token="tok", github_service=github_svc
@@ -204,7 +214,9 @@ class TestCreateStandaloneProject:
         assert result["project_id"] == "PVT_proj1"
         assert result["project_number"] == 1
         assert result["project_url"] == "https://github.com/users/alice/projects/1"
-        github_svc.create_project_v2.assert_awaited_once_with("tok", owner="alice", title="My Project")
+        github_svc.create_project_v2.assert_awaited_once_with(
+            "tok", owner="alice", title="My Project"
+        )
         github_svc.link_project_to_repository.assert_not_awaited()
 
     @pytest.mark.asyncio

@@ -29,6 +29,7 @@ export function ProjectSelector({
   className,
 }: ProjectSelectorProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
   const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState('');
   const [newProjectOwner, setNewProjectOwner] = useState('');
@@ -79,6 +80,13 @@ export function ProjectSelector({
       setNewProjectError(null);
     }
   }, [isOpen]);
+
+  // Focus the title input when the new-project form opens
+  useEffect(() => {
+    if (showNewProjectDialog) {
+      titleInputRef.current?.focus();
+    }
+  }, [showNewProjectDialog]);
 
   const handleCreateProject = () => {
     if (!newProjectTitle.trim()) {
@@ -183,13 +191,13 @@ export function ProjectSelector({
               <p className="text-xs text-red-500">{newProjectError}</p>
             )}
             <input
+              ref={titleInputRef}
               type="text"
               placeholder="Project title"
               aria-label="Project title"
               value={newProjectTitle}
               onChange={(e) => setNewProjectTitle(e.target.value)}
               className="w-full rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-              autoFocus
             />
             <select
               value={newProjectOwner}

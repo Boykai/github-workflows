@@ -71,14 +71,10 @@ class ProjectsMixin:
         # Resolve the owner's node_id.
         # Try user first; fall back to org.
         try:
-            user_data = _cast(
-                dict, await self._rest(access_token, "GET", f"/users/{owner}")
-            )
+            user_data = _cast(dict, await self._rest(access_token, "GET", f"/users/{owner}"))
             owner_node_id: str = user_data["node_id"]
         except Exception:
-            org_data = _cast(
-                dict, await self._rest(access_token, "GET", f"/orgs/{owner}")
-            )
+            org_data = _cast(dict, await self._rest(access_token, "GET", f"/orgs/{owner}"))
             owner_node_id = org_data["node_id"]
 
         # Create the project.
