@@ -33,6 +33,11 @@ vi.mock('@/hooks/useApps', () => ({
     reset: mocks.createReset,
     isPending: false,
   }),
+  useOwners: () => ({
+    data: [{ login: 'testuser', avatar_url: '', type: 'User' }],
+    isLoading: false,
+    error: null,
+  }),
   useStartApp: () => ({ mutate: mocks.startMutate, isPending: false }),
   useStopApp: () => ({ mutate: mocks.stopMutate, isPending: false }),
   useDeleteApp: () => ({ mutate: mocks.deleteMutate, isPending: false }),
@@ -86,6 +91,7 @@ describe('AppsPage', () => {
         description: 'Sample app',
         branch: 'app/my-awesome-app',
         ai_enhance: true,
+        repo_type: 'same-repo',
       },
       expect.objectContaining({
         onSuccess: expect.any(Function),

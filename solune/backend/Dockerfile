@@ -22,6 +22,12 @@ RUN find /usr/local/lib/python3.13 -name "copilot" -type f -executable 2>/dev/nu
 # Copy application code
 COPY src/ ./src/
 
+# Copy template files for new repository scaffolding
+COPY .github/ /app/templates/.github/
+COPY .specify/ /app/templates/.specify/
+COPY .gitignore /app/templates/.gitignore
+ENV TEMPLATE_SOURCE_DIR=/app/templates
+
 # Create data directory for SQLite database (volume mount target)
 RUN mkdir -p /var/lib/solune/data
 
