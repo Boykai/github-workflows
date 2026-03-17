@@ -53,18 +53,14 @@ class PipelineRun(BaseModel):
     updated_at: str = ""
 
     @model_validator(mode="after")
-    def _validate_completion(self) -> "PipelineRun":
+    def _validate_completion(self) -> PipelineRun:
         """Validate completed_at presence based on status."""
         terminal = {"completed", "failed", "cancelled"}
         active = {"pending", "running"}
         if self.status in terminal and not self.completed_at:
-            raise ValueError(
-                f"completed_at must be set when status is '{self.status}'"
-            )
+            raise ValueError(f"completed_at must be set when status is '{self.status}'")
         if self.status in active and self.completed_at:
-            raise ValueError(
-                f"completed_at must be None when status is '{self.status}'"
-            )
+            raise ValueError(f"completed_at must be None when status is '{self.status}'")
         return self
 
 
@@ -77,9 +73,7 @@ class PipelineRunSummary(BaseModel):
     started_at: str
     completed_at: str | None = None
     trigger: str = "manual"
-    stage_summary: PipelineRunStageSummary = Field(
-        default_factory=PipelineRunStageSummary
-    )
+    stage_summary: PipelineRunStageSummary = Field(default_factory=PipelineRunStageSummary)
 
 
 class PipelineRunListResponse(BaseModel):

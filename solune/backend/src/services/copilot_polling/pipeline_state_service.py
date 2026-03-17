@@ -21,7 +21,6 @@ from src.models.pipeline_run import (
     PipelineRunStageSummary,
     PipelineRunSummary,
 )
-from src.models.pipeline_stage_state import PipelineStageState
 from src.models.stage_group import StageGroup, StageGroupListResponse
 from src.utils import utcnow
 
@@ -376,9 +375,7 @@ class PipelineRunService:
                         )
                     )
                 await self._db.commit()
-                return StageGroupListResponse(
-                    groups=created_groups, total=len(created_groups)
-                )
+                return StageGroupListResponse(groups=created_groups, total=len(created_groups))
             except Exception:
                 await self._db.rollback()
                 raise

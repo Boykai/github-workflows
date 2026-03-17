@@ -43,9 +43,7 @@ class StageGroupUpdate(BaseModel):
     """Request body for updating a stage group."""
 
     name: str | None = Field(default=None, min_length=1, max_length=100)
-    execution_mode: str | None = Field(
-        default=None, pattern=r"^(sequential|parallel)$"
-    )
+    execution_mode: str | None = Field(default=None, pattern=r"^(sequential|parallel)$")
     order_index: int | None = Field(default=None, ge=0)
 
 
