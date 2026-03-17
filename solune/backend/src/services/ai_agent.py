@@ -31,6 +31,7 @@ from src.prompts.task_generation import (
     create_status_change_prompt,
     create_task_generation_prompt,
 )
+from src.prompts.transcript_analysis import create_transcript_analysis_prompt
 from src.services.completion_providers import (
     CompletionProvider,
     create_completion_provider,
@@ -202,6 +203,70 @@ class AIAgentService:
                 ) from e
             else:
                 raise ValueError(f"Failed to generate recommendation: {error_msg}") from e
+
+    async def analyze_transcript(
+        self,
+        transcript_content: str,
+        project_name: str,
+        session_id: str,
+        github_token: str | None = None,
+        metadata_context: dict | None = None,
+    ) -> IssueRecommendation:
+        """Analyse a meeting transcript and return an issue recommendation.
+
+        Sends the transcript through the Transcribe agent prompt and parses
+        the AI response into an ``IssueRecommendation``.
+
+        Args:
+            transcript_content: Raw transcript text.
+            project_name: Name of the target project for context.
+            session_id: Current session ID.
+            github_token: GitHub OAuth token (required for Copilot provider).
+            metadata_context: Optional repo metadata for prompt enrichment.
+
+        Returns:
+            IssueRecommendation with AI-generated content extracted from the
+            transcript.
+
+        Raises:
+            ValueError: If AI response cannot be parsed.
+        """
+        prompt_messages = create_transcript_analysis_prompt(
+            transcript_content, project_name, metadata_context=metadata_context
+        )
+
+        try:
+            messages = [
+                {"role": "system", "content": prompt_messages[0]["content"]},
+                {"role": "user", "content": prompt_messages[1]["content"]},
+            ]
+
+            content = await self._call_completion(
+                messages, temperature=0.7, max_tokens=8000, github_token=github_token
+            )
+            logger.debug("Transcript analysis response: %s", content[:500])
+
+            # Use truncated transcript as original_input (max 500 chars)
+            original_input = transcript_content[:500]
+            return self._parse_issue_recommendation_response(
+                content, original_input, session_id, metadata_context=metadata_context
+            )
+
+        except Exception as e:
+            error_msg = str(e)
+            logger.error("Failed to analyse transcript: %s", error_msg)
+
+            if "401" in error_msg or "Access denied" in error_msg:
+                raise ValueError(
+                    "AI provider authentication failed. Check your credentials "
+                    "(GitHub OAuth token for Copilot, or API key for Azure OpenAI)."
+                ) from e
+            elif "404" in error_msg or "Resource not found" in error_msg:
+                raise ValueError(
+                    "AI model/deployment not found. Verify your provider configuration."
+                ) from e
+            else:
+                raise ValueError(f"Failed to analyse transcript: {error_msg}") from e
 
     def _parse_issue_recommendation_response(
         self,

@@ -199,7 +199,7 @@ export const FILE_VALIDATION = {
   maxFileSize: 10 * 1024 * 1024, // 10 MB
   maxFilesPerMessage: 5,
   allowedImageTypes: ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'],
-  allowedDocTypes: ['.pdf', '.txt', '.md', '.csv', '.json', '.yaml', '.yml'],
+  allowedDocTypes: ['.pdf', '.txt', '.md', '.csv', '.json', '.yaml', '.yml', '.vtt', '.srt'],
   allowedArchiveTypes: ['.zip'],
   blockedTypes: ['.exe', '.sh', '.bat', '.cmd', '.js', '.py', '.rb'],
 } as const;

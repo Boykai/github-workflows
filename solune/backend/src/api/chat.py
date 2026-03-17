@@ -65,7 +65,7 @@ router = APIRouter()
 MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB
 MAX_FILES_PER_MESSAGE = 5
 ALLOWED_IMAGE_TYPES = {".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"}
-ALLOWED_DOC_TYPES = {".pdf", ".txt", ".md", ".csv", ".json", ".yaml", ".yml"}
+ALLOWED_DOC_TYPES = {".pdf", ".txt", ".md", ".csv", ".json", ".yaml", ".yml", ".vtt", ".srt"}
 ALLOWED_ARCHIVE_TYPES = {".zip"}
 BLOCKED_TYPES = {".exe", ".sh", ".bat", ".cmd", ".js", ".py", ".rb"}
 ALLOWED_TYPES = ALLOWED_IMAGE_TYPES | ALLOWED_DOC_TYPES | ALLOWED_ARCHIVE_TYPES
@@ -349,6 +349,140 @@ async def _handle_agent_command(
     await add_message(session.session_id, agent_msg)
     _trigger_signal_delivery(session, agent_msg, project_name)
     return agent_msg
+
+
+async def _handle_transcript_upload(
+    session: UserSession,
+    ai_service: AIAgentService,
+    project_name: str,
+    pipeline_id: str | None,
+    file_urls: list[str] | None,
+) -> ChatMessage | None:
+    """Priority 0.5: Detect transcript files and generate issue recommendation.
+
+    Checks uploaded files for transcript content. If a transcript is detected,
+    analyses it via the Transcribe agent and returns an assistant message with
+    an ``IssueRecommendation``.  Returns ``None`` when no transcript is found
+    so the next handler in the dispatch chain can run.
+    """
+    if not file_urls:
+        return None
+
+    from src.services.transcript_detector import detect_transcript
+
+    upload_dir = Path(tempfile.gettempdir()) / "chat-uploads"
+
+    for file_url in file_urls:
+        # Resolve the local file path from the upload URL
+        filename = file_url.rsplit("/", 1)[-1] if "/" in file_url else file_url
+        file_path = upload_dir / filename
+
+        if not file_path.exists():
+            continue
+
+        # Safety: ensure resolved path stays inside upload_dir
+        if not file_path.resolve().is_relative_to(upload_dir.resolve()):
+            continue
+
+        try:
+            content = file_path.read_text(errors="replace")
+        except Exception as exc:
+            logger.warning("Could not read uploaded file %s: %s", filename, exc)
+            continue
+
+        # Use the original filename (strip the UUID prefix added during upload)
+        original_name = filename.split("-", 1)[1] if "-" in filename else filename
+        result = detect_transcript(original_name, content)
+
+        if not result.is_transcript:
+            continue
+
+        # Transcript detected — run through the Transcribe agent
+        try:
+            metadata_context: dict | None = None
+            try:
+                owner, repo = await _resolve_repository(session)
+                from src.services.metadata_service import MetadataService
+
+                metadata_svc = MetadataService()
+                ctx = await metadata_svc.get_or_fetch(session.access_token, owner, repo)
+                metadata_context = ctx.model_dump()
+            except Exception as md_err:
+                logger.warning("Metadata fetch for transcript prompt failed: %s", md_err)
+
+            recommendation = await ai_service.analyze_transcript(
+                transcript_content=content,
+                project_name=project_name,
+                session_id=str(session.session_id),
+                github_token=session.access_token,
+                metadata_context=metadata_context,
+            )
+
+            recommendation.selected_pipeline_id = pipeline_id or None
+            recommendation.file_urls = file_urls or []
+
+            await store_recommendation(recommendation)
+
+            requirements_preview = "\n".join(
+                f"- {req}" for req in recommendation.functional_requirements
+            )
+
+            technical_notes_preview = ""
+            if recommendation.technical_notes:
+                technical_notes_preview = f"\n\n**Technical Notes:**\n{recommendation.technical_notes[:300]}{'...' if len(recommendation.technical_notes) > 300 else ''}"
+
+            assistant_message = ChatMessage(
+                session_id=session.session_id,
+                sender_type=SenderType.ASSISTANT,
+                content=f"""I've analysed the uploaded transcript and generated a GitHub issue recommendation:
+
+**{recommendation.title}**
+
+**User Story:**
+{recommendation.user_story}
+
+**UI/UX Description:**
+{recommendation.ui_ux_description}
+
+**Functional Requirements:**
+{requirements_preview}{technical_notes_preview}
+
+Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
+                action_type=ActionType.ISSUE_CREATE,
+                action_data={
+                    "recommendation_id": str(recommendation.recommendation_id),
+                    "proposed_title": recommendation.title,
+                    "user_story": recommendation.user_story,
+                    "original_context": recommendation.original_context,
+                    "ui_ux_description": recommendation.ui_ux_description,
+                    "functional_requirements": recommendation.functional_requirements,
+                    "technical_notes": recommendation.technical_notes,
+                    "status": RecommendationStatus.PENDING.value,
+                    "file_urls": file_urls,
+                    "pipeline_id": pipeline_id,
+                },
+            )
+            await add_message(session.session_id, assistant_message)
+            _trigger_signal_delivery(session, assistant_message, project_name)
+
+            logger.info(
+                "Generated transcript recommendation %s: %s",
+                recommendation.recommendation_id,
+                recommendation.title,
+            )
+            return assistant_message
+
+        except Exception as e:
+            logger.error("Failed to analyse transcript: %s", e, exc_info=True)
+            error_message = ChatMessage(
+                session_id=session.session_id,
+                sender_type=SenderType.ASSISTANT,
+                content="I couldn't extract requirements from the uploaded transcript. Please try again or paste the transcript content directly.",
+            )
+            await add_message(session.session_id, error_message)
+            return error_message
+
+    return None
 
 
 async def _handle_feature_request(
@@ -877,6 +1011,17 @@ async def send_message(
         return agent_msg
 
     content = chat_request.content
+
+    # ── Priority 0.5: Transcript upload → issue recommendation ────────
+    transcript_msg = await _handle_transcript_upload(
+        session,
+        ai_service,
+        project_name,
+        chat_request.pipeline_id,
+        chat_request.file_urls,
+    )
+    if transcript_msg:
+        return transcript_msg
 
     # ── Priority 1: Feature request → issue recommendation ───────────
     feature_msg = await _handle_feature_request(
