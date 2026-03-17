@@ -16,9 +16,7 @@ logger = get_logger(__name__)
 
 # Label format: solune:pipeline:{run_id}:stage:{stage_id}:{status}
 LABEL_PREFIX = "solune:pipeline:"
-LABEL_PATTERN = re.compile(
-    r"^solune:pipeline:(\d+):stage:([^:]+):([a-z]+)$"
-)
+LABEL_PATTERN = re.compile(r"^solune:pipeline:(\d+):stage:([^:]+):([a-z]+)$")
 
 
 @dataclass
@@ -108,9 +106,7 @@ async def update_pipeline_label(
     """
     old_name = build_label_name(run_id, stage_id, old_status)
     await delete_pipeline_label(access_token, owner, repo, old_name)
-    return await create_pipeline_label(
-        access_token, owner, repo, run_id, stage_id, new_status
-    )
+    return await create_pipeline_label(access_token, owner, repo, run_id, stage_id, new_status)
 
 
 async def delete_pipeline_label(
@@ -164,7 +160,11 @@ async def query_pipeline_labels(
                 break
 
             for label_data in data:
-                name = label_data.get("name", "") if isinstance(label_data, dict) else getattr(label_data, "name", "")
+                name = (
+                    label_data.get("name", "")
+                    if isinstance(label_data, dict)
+                    else getattr(label_data, "name", "")
+                )
                 parsed = parse_label(name)
                 if parsed:
                     labels.append(parsed)
@@ -184,11 +184,11 @@ async def query_pipeline_labels(
 def _status_color(status: str) -> str:
     """Map pipeline stage status to a label color."""
     colors = {
-        "pending": "d4c5f9",   # light purple
-        "running": "0e8a16",   # green
-        "completed": "1d76db", # blue
-        "failed": "e11d48",    # red
-        "skipped": "6b7280",   # gray
-        "cancelled": "fbbf24", # amber
+        "pending": "d4c5f9",  # light purple
+        "running": "0e8a16",  # green
+        "completed": "1d76db",  # blue
+        "failed": "e11d48",  # red
+        "skipped": "6b7280",  # gray
+        "cancelled": "fbbf24",  # amber
     }
     return colors.get(status, "d4c5f9")

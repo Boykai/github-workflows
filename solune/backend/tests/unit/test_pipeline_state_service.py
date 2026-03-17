@@ -135,9 +135,7 @@ class TestCreateRun:
 class TestGetRun:
     async def test_returns_run_with_stages(self, db: aiosqlite.Connection):
         service = PipelineRunService(db)
-        created = await service.create_run(
-            "pc-1", "proj-1", stages=[{"stage_id": "build"}]
-        )
+        created = await service.create_run("pc-1", "proj-1", stages=[{"stage_id": "build"}])
         fetched = await service.get_run(created.id)
         assert fetched is not None
         assert fetched.id == created.id
@@ -239,9 +237,7 @@ class TestCancelRun:
 class TestUpdateStageStatus:
     async def test_transitions_stage_to_running(self, db: aiosqlite.Connection):
         service = PipelineRunService(db)
-        run = await service.create_run(
-            "pc-1", "proj-1", stages=[{"stage_id": "build"}]
-        )
+        run = await service.create_run("pc-1", "proj-1", stages=[{"stage_id": "build"}])
         stage = run.stages[0]
         event = await service.update_stage_status(stage.id, "running")
 
@@ -251,9 +247,7 @@ class TestUpdateStageStatus:
 
     async def test_sets_started_at_on_running(self, db: aiosqlite.Connection):
         service = PipelineRunService(db)
-        run = await service.create_run(
-            "pc-1", "proj-1", stages=[{"stage_id": "build"}]
-        )
+        run = await service.create_run("pc-1", "proj-1", stages=[{"stage_id": "build"}])
         await service.update_stage_status(run.stages[0].id, "running")
 
         updated_run = await service.get_run(run.id)

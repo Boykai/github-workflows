@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends
 
@@ -41,6 +41,9 @@ from src.services.workflow_orchestrator import (
 )
 from src.services.workflow_orchestrator.config import load_pipeline_as_agent_mappings
 from src.utils import resolve_repository, utcnow
+
+if TYPE_CHECKING:
+    from src.services.copilot_polling.pipeline_state_service import PipelineRunService
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -452,7 +455,7 @@ async def delete_pipeline(
 # ══════════════════════════════════════════════════════════════
 
 
-def _get_run_service() -> "PipelineRunService":
+def _get_run_service() -> PipelineRunService:
     """Instantiate PipelineRunService with the current DB connection."""
     from src.services.copilot_polling.pipeline_state_service import PipelineRunService
 
@@ -473,16 +476,13 @@ async def create_pipeline_run(
         raise NotFoundError("Pipeline configuration not found")
 
     # Build stage list from pipeline config
-    stages = [
-        {"stage_id": stage.id, "group_id": None}
-        for stage in pipeline.stages
-    ]
+    stages = [{"stage_id": stage.id, "group_id": None} for stage in pipeline.stages]
 
     run_service = _get_run_service()
     run = await run_service.create_run(
         pipeline_config_id=pipeline_id,
         project_id=session.selected_project_id or "",
-        trigger=body.trigger if isinstance(body, _PRC) else "manual",
+        trigger=body.trigger if isinstance(body, PipelineRunCreate) else "manual",
         stages=stages,
     )
     return run.model_dump()
@@ -539,9 +539,7 @@ async def cancel_pipeline_run(
         raise NotFoundError("Pipeline run not found")
 
     if run.status not in ("pending", "running"):
-        raise ValidationError(
-            f"Cannot cancel a run with status '{run.status}'"
-        )
+        raise ValidationError(f"Cannot cancel a run with status '{run.status}'")
 
     event = await run_service.cancel_run(run_id)
     if event is None:
@@ -564,16 +562,12 @@ async def recover_pipeline_run(
         raise NotFoundError("Pipeline run not found")
 
     if run.status not in ("running", "failed"):
-        raise ValidationError(
-            f"Cannot recover a run with status '{run.status}'"
-        )
+        raise ValidationError(f"Cannot recover a run with status '{run.status}'")
 
     # Reset failed stages to pending for re-execution
     for stage in run.stages:
         if stage.status == "failed":
-            await run_service.update_stage_status(
-                stage.id, "pending"
-            )
+            await run_service.update_stage_status(stage.id, "pending")
 
     # Set run back to running if it was failed
     if run.status == "failed":
