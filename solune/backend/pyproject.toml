@@ -108,7 +108,7 @@ branch = true
 omit = ["tests/*", "**/__pycache__/*"]
 
 [tool.coverage.report]
-fail_under = 69
+fail_under = 71
 show_missing = true
 exclude_lines = [
     "pragma: no cover",
@@ -124,5 +124,22 @@ exclude_dirs = ["tests"]
 skips = ["B104", "B608"]
 
 [tool.mutmut]
-paths_to_mutate = "src/services/"
-tests_dir = "tests/"
+paths_to_mutate = ["src/services/"]
+tests_dir = ["tests/"]
+debug = true
+also_copy = [
+    "src/api/",
+    "src/attachment_formatter.py",
+    "src/config.py",
+    "src/constants.py",
+    "src/dependencies.py",
+    "src/exceptions.py",
+    "src/logging_utils.py",
+    "src/main.py",
+    "src/middleware/",
+    "src/migrations/",
+    "src/models/",
+    "src/prompts/",
+    "src/protocols.py",
+    "src/utils.py",
+]

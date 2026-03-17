@@ -18,6 +18,7 @@ from src.services.completion_providers import (
     CopilotClientPool,
     CopilotCompletionProvider,
     create_completion_provider,
+    get_copilot_client_pool,
 )
 
 
@@ -67,6 +68,14 @@ class TestCopilotCompletionProvider:
         k1 = CopilotClientPool._token_key("abc")
         k2 = CopilotClientPool._token_key("xyz")
         assert k1 != k2
+
+    def test_shared_pool_is_initialized_lazily(self):
+        with patch("src.services.completion_providers._copilot_client_pool", None):
+            first = get_copilot_client_pool()
+            second = get_copilot_client_pool()
+
+        assert isinstance(first, CopilotClientPool)
+        assert first is second
 
     async def test_cleanup_stops_clients(self):
         pool = CopilotClientPool()

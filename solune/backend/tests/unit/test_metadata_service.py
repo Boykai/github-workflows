@@ -1,179 +1,541 @@
-"""Unit tests for MetadataService.
+from __future__ import annotations
 
-Covers:
-- _is_stale() — staleness check logic
-- _fallback_context() — hardcoded constant fallback
-- get_or_fetch() — three-tier cache fallback
-- invalidate() — cache clearing
-- fetch_metadata() — GitHub REST API fetch with paginated results
-"""
+import json
+from datetime import UTC, datetime
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, Mock, patch
 
-from datetime import timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
-
+import httpx
 import pytest
 
-from src.services.cache import InMemoryCache
-from src.services.metadata_service import MetadataService
-from src.utils import utcnow
-
-# =============================================================================
-# Helpers
-# =============================================================================
+from src.services.metadata_service import MetadataService, RepositoryMetadataContext
 
 
-def _fresh_fetched_at() -> str:
-    """Return an ISO timestamp that will pass any reasonable TTL check."""
-    return utcnow().isoformat()
+class _SpyCache:
+    def __init__(self, initial: dict[str, object] | None = None):
+        self.data = dict(initial or {})
+        self.set_calls: list[tuple[str, object, int | None]] = []
+        self.deleted: list[str] = []
+
+    def get(self, key: str):
+        return self.data.get(key)
+
+    def set(self, key: str, value: object, ttl_seconds: int | None = None, **_kwargs) -> None:
+        self.data[key] = value
+        self.set_calls.append((key, value, ttl_seconds))
+
+    def delete(self, key: str) -> bool:
+        self.deleted.append(key)
+        return self.data.pop(key, None) is not None
 
 
-def _stale_fetched_at(ttl: int = 3600) -> str:
-    """Return an ISO timestamp that is older than *ttl* seconds."""
-    return (utcnow() - timedelta(seconds=ttl + 60)).isoformat()
+@pytest.fixture
+def metadata_service():
+    cache = _SpyCache()
+    with patch(
+        "src.services.metadata_service.get_settings",
+        return_value=SimpleNamespace(metadata_cache_ttl_seconds=300),
+    ):
+        return MetadataService(l1_cache=cache)
 
 
-def _make_ctx(repo_key: str = "owner/repo", **overrides) -> dict:
-    """Build a minimal RepositoryMetadataContext dict for L1 cache seeding."""
-    defaults = {
-        "repo_key": repo_key,
-        "labels": [{"name": "bug", "color": "d73a4a", "description": ""}],
-        "branches": [{"name": "main", "protected": True}],
-        "milestones": [],
-        "collaborators": [],
-        "fetched_at": _fresh_fetched_at(),
-        "is_stale": False,
-        "source": "cache",
-    }
-    defaults.update(overrides)
-    return defaults
+class TestGetOrFetch:
+    @pytest.mark.asyncio
+    async def test_returns_fresh_l1_cache_without_other_lookups(
+        self, metadata_service: MetadataService
+    ):
+        ctx = RepositoryMetadataContext(
+            repo_key="owner/repo",
+            labels=[{"name": "bug"}],
+            fetched_at="2026-03-16T12:00:00+00:00",
+        )
+        metadata_service._l1.data["metadata:owner/repo"] = ctx.model_dump()  # type: ignore[attr-defined]
 
+        with (
+            patch.object(metadata_service, "_is_stale", return_value=False),
+            patch.object(
+                metadata_service, "_read_from_sqlite", new_callable=AsyncMock
+            ) as read_sqlite,
+            patch.object(metadata_service, "fetch_metadata", new_callable=AsyncMock) as fetch,
+        ):
+            result = await metadata_service.get_or_fetch("token", "owner", "repo")
 
-# =============================================================================
-# _is_stale
-# =============================================================================
+        assert result.repo_key == "owner/repo"
+        assert result.source == "cache"
+        assert result.is_stale is False
+        read_sqlite.assert_not_awaited()
+        fetch.assert_not_awaited()
 
+    @pytest.mark.asyncio
+    async def test_uses_fresh_sqlite_cache_and_populates_l1(
+        self, metadata_service: MetadataService
+    ):
+        ctx = RepositoryMetadataContext(
+            repo_key="owner/repo", branches=[{"name": "main"}], fetched_at="fresh"
+        )
 
-class TestIsStale:
-    """Tests for MetadataService._is_stale."""
-
-    @patch("src.services.metadata_service.get_settings")
-    def test_empty_fetched_at_is_stale(self, mock_settings):
-        mock_settings.return_value = MagicMock(metadata_cache_ttl_seconds=3600)
-        svc = MetadataService(l1_cache=InMemoryCache())
-        assert svc._is_stale("", 3600) is True
-
-    @patch("src.services.metadata_service.get_settings")
-    def test_recent_timestamp_not_stale(self, mock_settings):
-        mock_settings.return_value = MagicMock(metadata_cache_ttl_seconds=3600)
-        svc = MetadataService(l1_cache=InMemoryCache())
-        assert svc._is_stale(_fresh_fetched_at(), 3600) is False
-
-    @patch("src.services.metadata_service.get_settings")
-    def test_old_timestamp_is_stale(self, mock_settings):
-        mock_settings.return_value = MagicMock(metadata_cache_ttl_seconds=3600)
-        svc = MetadataService(l1_cache=InMemoryCache())
-        assert svc._is_stale(_stale_fetched_at(3600), 3600) is True
-
-    @patch("src.services.metadata_service.get_settings")
-    def test_invalid_timestamp_is_stale(self, mock_settings):
-        mock_settings.return_value = MagicMock(metadata_cache_ttl_seconds=3600)
-        svc = MetadataService(l1_cache=InMemoryCache())
-        assert svc._is_stale("not-a-date", 3600) is True
-
-
-# =============================================================================
-# _fallback_context
-# =============================================================================
-
-
-class TestFallbackContext:
-    """Tests for the hardcoded constant fallback."""
-
-    @patch("src.services.metadata_service.get_settings")
-    def test_fallback_returns_known_labels(self, mock_settings):
-        mock_settings.return_value = MagicMock(metadata_cache_ttl_seconds=3600)
-        svc = MetadataService(l1_cache=InMemoryCache())
-        ctx = svc._fallback_context("owner/repo")
-
-        assert ctx.source == "fallback"
-        assert ctx.repo_key == "owner/repo"
-        assert len(ctx.labels) > 0
-        assert ctx.branches == [{"name": "main", "protected": True}]
-
-
-# =============================================================================
-# get_or_fetch — L1 hit
-# =============================================================================
-
-
-class TestGetOrFetchL1:
-    """Tests for get_or_fetch when L1 cache has fresh data."""
-
-    @pytest.mark.anyio
-    @patch("src.services.metadata_service.get_settings")
-    async def test_l1_hit_returns_cached(self, mock_settings):
-        mock_settings.return_value = MagicMock(metadata_cache_ttl_seconds=3600)
-        l1 = InMemoryCache()
-        svc = MetadataService(l1_cache=l1)
-
-        ctx_dict = _make_ctx()
-        l1.set("metadata:owner/repo", ctx_dict, ttl_seconds=3600)
-
-        result = await svc.get_or_fetch("tok", "owner", "repo")
+        with (
+            patch.object(metadata_service, "_is_stale", return_value=False),
+            patch.object(
+                metadata_service, "_read_from_sqlite", new_callable=AsyncMock, return_value=ctx
+            ) as read_sqlite,
+            patch.object(metadata_service, "fetch_metadata", new_callable=AsyncMock) as fetch,
+        ):
+            result = await metadata_service.get_or_fetch("token", "owner", "repo")
 
         assert result.source == "cache"
         assert result.is_stale is False
+        read_sqlite.assert_awaited_once_with("owner/repo")
+        fetch.assert_not_awaited()
+        assert metadata_service._l1.set_calls[0][0] == "metadata:owner/repo"  # type: ignore[attr-defined]
 
+    @pytest.mark.asyncio
+    async def test_falls_back_to_stale_sqlite_when_fetch_fails(
+        self, metadata_service: MetadataService
+    ):
+        stale_ctx = RepositoryMetadataContext(
+            repo_key="owner/repo", labels=[{"name": "cached"}], fetched_at="stale"
+        )
 
-# =============================================================================
-# get_or_fetch — fallback to constants
-# =============================================================================
-
-
-class TestGetOrFetchFallback:
-    """get_or_fetch falls back to constants when API and SQLite fail."""
-
-    @pytest.mark.anyio
-    @patch("src.services.metadata_service.get_settings")
-    async def test_falls_back_to_constants(self, mock_settings):
-        mock_settings.return_value = MagicMock(metadata_cache_ttl_seconds=3600)
-        l1 = InMemoryCache()
-        svc = MetadataService(l1_cache=l1)
-
-        # Patch SQLite reads and API fetch to fail
         with (
-            patch.object(svc, "_read_from_sqlite", new_callable=AsyncMock, return_value=None),
+            patch.object(metadata_service, "_is_stale", return_value=True),
             patch.object(
-                svc, "fetch_metadata", new_callable=AsyncMock, side_effect=Exception("API down")
+                metadata_service,
+                "_read_from_sqlite",
+                new_callable=AsyncMock,
+                side_effect=[stale_ctx, stale_ctx],
+            ),
+            patch.object(
+                metadata_service,
+                "fetch_metadata",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("boom"),
             ),
         ):
-            result = await svc.get_or_fetch("tok", "owner", "repo")
+            result = await metadata_service.get_or_fetch("token", "owner", "repo")
 
+        assert result.repo_key == "owner/repo"
+        assert result.source == "cache"
+        assert result.is_stale is True
+
+    @pytest.mark.asyncio
+    async def test_uses_hardcoded_fallback_when_all_tiers_fail(
+        self, metadata_service: MetadataService
+    ):
+        with (
+            patch.object(
+                metadata_service,
+                "_read_from_sqlite",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("db"),
+            ),
+            patch.object(
+                metadata_service,
+                "fetch_metadata",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("api"),
+            ),
+        ):
+            result = await metadata_service.get_or_fetch("token", "owner", "repo")
+
+        assert result.repo_key == "owner/repo"
         assert result.source == "fallback"
-        assert len(result.labels) > 0
+        assert result.branches == [{"name": "main", "protected": True}]
+
+    @pytest.mark.asyncio
+    async def test_fetches_when_sqlite_cache_read_raises(self, metadata_service: MetadataService):
+        fresh_ctx = RepositoryMetadataContext(
+            repo_key="owner/repo", fetched_at="fresh", source="fresh"
+        )
+
+        with (
+            patch.object(
+                metadata_service,
+                "_read_from_sqlite",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("db broke"),
+            ),
+            patch.object(
+                metadata_service,
+                "fetch_metadata",
+                new_callable=AsyncMock,
+                return_value=fresh_ctx,
+            ) as fetch,
+        ):
+            result = await metadata_service.get_or_fetch("token", "owner", "repo")
+
+        fetch.assert_awaited_once_with("token", "owner", "repo")
+        assert result is fresh_ctx
 
 
-# =============================================================================
-# invalidate
-# =============================================================================
+class TestFetchMetadata:
+    @pytest.mark.asyncio
+    async def test_normalizes_api_data_and_persists_when_all_fetches_complete(
+        self, metadata_service: MetadataService
+    ):
+        with (
+            patch.object(
+                metadata_service,
+                "_fetch_paginated",
+                new_callable=AsyncMock,
+                side_effect=[
+                    ([{"name": "bug", "color": "ff0000", "description": None}], True),
+                    ([{"name": "main", "protected": True}], True),
+                    ([{"number": 7, "title": "v1", "due_on": None, "state": "open"}], True),
+                    ([{"login": "octocat", "avatar_url": "https://example.test/avatar"}], True),
+                ],
+            ) as fetch_paginated,
+            patch.object(
+                metadata_service, "_write_to_sqlite", new_callable=AsyncMock
+            ) as write_sqlite,
+        ):
+            result = await metadata_service.fetch_metadata("token", "owner", "repo")
+
+        assert result.source == "fresh"
+        assert result.labels == [{"name": "bug", "color": "ff0000", "description": ""}]
+        assert result.branches == [{"name": "main", "protected": True}]
+        assert result.milestones == [{"number": 7, "title": "v1", "due_on": None, "state": "open"}]
+        assert result.collaborators == [
+            {"login": "octocat", "avatar_url": "https://example.test/avatar"}
+        ]
+        assert fetch_paginated.await_count == 4
+        write_sqlite.assert_awaited_once()
+        assert metadata_service._l1.set_calls[-1][0] == "metadata:owner/repo"  # type: ignore[attr-defined]
+
+    @pytest.mark.asyncio
+    async def test_skips_sqlite_write_when_one_fetch_is_incomplete(
+        self, metadata_service: MetadataService
+    ):
+        with (
+            patch.object(
+                metadata_service,
+                "_fetch_paginated",
+                new_callable=AsyncMock,
+                side_effect=[([], True), ([], False), ([], True), ([], True)],
+            ),
+            patch.object(
+                metadata_service, "_write_to_sqlite", new_callable=AsyncMock
+            ) as write_sqlite,
+        ):
+            result = await metadata_service.fetch_metadata("token", "owner", "repo")
+
+        assert result.source == "fresh"
+        write_sqlite.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_continues_when_sqlite_write_fails(self, metadata_service: MetadataService):
+        with (
+            patch.object(
+                metadata_service,
+                "_fetch_paginated",
+                new_callable=AsyncMock,
+                side_effect=[([], True), ([], True), ([], True), ([], True)],
+            ),
+            patch.object(
+                metadata_service,
+                "_write_to_sqlite",
+                new_callable=AsyncMock,
+                side_effect=RuntimeError("disk full"),
+            ),
+        ):
+            result = await metadata_service.fetch_metadata("token", "owner", "repo")
+
+        assert result.source == "fresh"
+        assert metadata_service._l1.set_calls[-1][0] == "metadata:owner/repo"  # type: ignore[attr-defined]
 
 
-class TestInvalidate:
-    """Tests for MetadataService.invalidate."""
+class TestGetMetadata:
+    @pytest.mark.asyncio
+    async def test_returns_l1_cached_metadata(self, metadata_service: MetadataService):
+        metadata_service._l1.data["metadata:owner/repo"] = {  # type: ignore[attr-defined]
+            "repo_key": "owner/repo",
+            "labels": [{"name": "bug"}],
+            "branches": [],
+            "milestones": [],
+            "collaborators": [],
+            "fetched_at": "2026-03-16T12:00:00+00:00",
+            "is_stale": False,
+            "source": "fresh",
+        }
 
-    @pytest.mark.anyio
-    @patch("src.services.metadata_service.get_settings")
-    async def test_invalidate_clears_l1(self, mock_settings):
-        mock_settings.return_value = MagicMock(metadata_cache_ttl_seconds=3600)
-        l1 = InMemoryCache()
-        svc = MetadataService(l1_cache=l1)
+        with patch.object(metadata_service, "_is_stale", return_value=False):
+            result = await metadata_service.get_metadata("owner", "repo")
 
-        l1.set("metadata:owner/repo", _make_ctx(), ttl_seconds=3600)
-        assert l1.get("metadata:owner/repo") is not None
+        assert result is not None
+        assert result.source == "cache"
+        assert result.is_stale is False
 
-        with patch("src.services.database.get_db") as mock_get_db:
-            mock_db = AsyncMock()
-            mock_get_db.return_value = mock_db
-            await svc.invalidate("owner", "repo")
+    @pytest.mark.asyncio
+    async def test_returns_sqlite_cached_metadata_and_populates_l1(
+        self, metadata_service: MetadataService
+    ):
+        ctx = RepositoryMetadataContext(repo_key="owner/repo", fetched_at="fresh")
 
-        assert l1.get("metadata:owner/repo") is None
+        with (
+            patch.object(metadata_service, "_is_stale", return_value=True),
+            patch.object(
+                metadata_service, "_read_from_sqlite", new_callable=AsyncMock, return_value=ctx
+            ),
+        ):
+            result = await metadata_service.get_metadata("owner", "repo")
+
+        assert result is not None
+        assert result.source == "cache"
+        assert result.is_stale is True
+        assert metadata_service._l1.set_calls[-1][0] == "metadata:owner/repo"  # type: ignore[attr-defined]
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_sqlite_read_fails(self, metadata_service: MetadataService):
+        with patch.object(
+            metadata_service,
+            "_read_from_sqlite",
+            new_callable=AsyncMock,
+            side_effect=RuntimeError("db"),
+        ):
+            result = await metadata_service.get_metadata("owner", "repo")
+
+        assert result is None
+
+
+class TestFetchPaginated:
+    @pytest.mark.asyncio
+    async def test_fetches_multiple_pages_until_final_partial_page(
+        self, metadata_service: MetadataService
+    ):
+        page1 = Mock()
+        page1.raise_for_status.return_value = None
+        page1.json.return_value = [{"name": f"label-{index}"} for index in range(100)]
+
+        page2 = Mock()
+        page2.raise_for_status.return_value = None
+        page2.json.return_value = [{"name": "final"}]
+
+        client = AsyncMock()
+        client.get.side_effect = [page1, page2]
+
+        results, complete = await metadata_service._fetch_paginated(
+            client, "https://example.test/labels", {}
+        )
+
+        assert complete is True
+        assert len(results) == 101
+        assert client.get.await_count == 2
+
+    @pytest.mark.asyncio
+    async def test_returns_partial_results_and_false_on_rate_limit(
+        self, metadata_service: MetadataService
+    ):
+        ok_response = Mock()
+        ok_response.raise_for_status.return_value = None
+        ok_response.json.return_value = [{"name": f"label-{index}"} for index in range(100)]
+
+        rate_limited = Mock()
+        rate_limited.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "rate limited",
+            request=httpx.Request("GET", "https://example.test/labels"),
+            response=httpx.Response(
+                429, request=httpx.Request("GET", "https://example.test/labels")
+            ),
+        )
+
+        client = AsyncMock()
+        client.get.side_effect = [ok_response, rate_limited]
+
+        results, complete = await metadata_service._fetch_paginated(
+            client, "https://example.test/labels", {}
+        )
+
+        assert len(results) == 100
+        assert results[0] == {"name": "label-0"}
+        assert complete is False
+
+    @pytest.mark.asyncio
+    async def test_handles_404_and_connect_errors(self, metadata_service: MetadataService):
+        missing = Mock()
+        missing.raise_for_status.side_effect = httpx.HTTPStatusError(
+            "missing",
+            request=httpx.Request("GET", "https://example.test/labels"),
+            response=httpx.Response(
+                404, request=httpx.Request("GET", "https://example.test/labels")
+            ),
+        )
+        connect_error = httpx.ConnectError(
+            "offline", request=httpx.Request("GET", "https://example.test/labels")
+        )
+
+        client_404 = AsyncMock()
+        client_404.get.return_value = missing
+        client_connect = AsyncMock()
+        client_connect.get.side_effect = connect_error
+
+        missing_results, missing_complete = await metadata_service._fetch_paginated(
+            client_404, "https://example.test/labels", {}
+        )
+        connect_results, connect_complete = await metadata_service._fetch_paginated(
+            client_connect, "https://example.test/labels", {}
+        )
+
+        assert missing_results == []
+        assert missing_complete is False
+        assert connect_results == []
+        assert connect_complete is False
+
+    @pytest.mark.asyncio
+    async def test_stops_on_non_list_or_empty_payload(self, metadata_service: MetadataService):
+        non_list = Mock()
+        non_list.raise_for_status.return_value = None
+        non_list.json.return_value = {"unexpected": True}
+
+        empty = Mock()
+        empty.raise_for_status.return_value = None
+        empty.json.return_value = []
+
+        client_non_list = AsyncMock()
+        client_non_list.get.return_value = non_list
+        client_empty = AsyncMock()
+        client_empty.get.return_value = empty
+
+        non_list_results, non_list_complete = await metadata_service._fetch_paginated(
+            client_non_list, "https://example.test/labels", {}
+        )
+        empty_results, empty_complete = await metadata_service._fetch_paginated(
+            client_empty, "https://example.test/labels", {}
+        )
+
+        assert non_list_results == []
+        assert non_list_complete is True
+        assert empty_results == []
+        assert empty_complete is True
+
+
+class TestSqliteHelpers:
+    @pytest.mark.asyncio
+    async def test_read_from_sqlite_returns_none_when_no_rows_exist(
+        self, metadata_service: MetadataService, mock_db
+    ):
+        with patch("src.services.database.get_db", return_value=mock_db):
+            result = await metadata_service._read_from_sqlite("owner/repo")
+
+        assert result is None
+
+    @pytest.mark.asyncio
+    async def test_read_from_sqlite_groups_rows_by_field_type(
+        self, metadata_service: MetadataService, mock_db
+    ):
+        await mock_db.execute(
+            "INSERT INTO github_metadata_cache (repo_key, field_type, value, fetched_at) VALUES (?, ?, ?, ?)",
+            ("owner/repo", "label", json.dumps({"name": "bug"}), "2026-03-16T12:00:00+00:00"),
+        )
+        await mock_db.execute(
+            "INSERT INTO github_metadata_cache (repo_key, field_type, value, fetched_at) VALUES (?, ?, ?, ?)",
+            ("owner/repo", "branch", json.dumps({"name": "main"}), "2026-03-16T12:00:01+00:00"),
+        )
+        await mock_db.execute(
+            "INSERT INTO github_metadata_cache (repo_key, field_type, value, fetched_at) VALUES (?, ?, ?, ?)",
+            ("owner/repo", "milestone", json.dumps({"title": "v1"}), "2026-03-16T12:00:01+00:00"),
+        )
+        await mock_db.execute(
+            "INSERT INTO github_metadata_cache (repo_key, field_type, value, fetched_at) VALUES (?, ?, ?, ?)",
+            (
+                "owner/repo",
+                "collaborator",
+                json.dumps({"login": "octocat"}),
+                "2026-03-16T12:00:01+00:00",
+            ),
+        )
+        await mock_db.execute(
+            "INSERT INTO github_metadata_cache (repo_key, field_type, value, fetched_at) VALUES (?, ?, ?, ?)",
+            ("owner/repo", "label", "{invalid-json", "2026-03-16T12:00:02+00:00"),
+        )
+        await mock_db.commit()
+
+        with patch("src.services.database.get_db", return_value=mock_db):
+            result = await metadata_service._read_from_sqlite("owner/repo")
+
+        assert result is not None
+        assert result.labels == [{"name": "bug"}]
+        assert result.branches == [{"name": "main"}]
+        assert result.milestones == [{"title": "v1"}]
+        assert result.collaborators == [{"login": "octocat"}]
+        assert result.fetched_at == "2026-03-16T12:00:02+00:00"
+
+    @pytest.mark.asyncio
+    async def test_write_to_sqlite_replaces_existing_rows_and_invalidate_clears_them(
+        self, metadata_service: MetadataService, mock_db
+    ):
+        await mock_db.execute(
+            "INSERT INTO github_metadata_cache (repo_key, field_type, value, fetched_at) VALUES (?, ?, ?, ?)",
+            ("owner/repo", "label", json.dumps({"name": "old"}), "2026-03-16T11:00:00+00:00"),
+        )
+        await mock_db.commit()
+
+        ctx = RepositoryMetadataContext(
+            repo_key="owner/repo",
+            labels=[{"name": "bug"}],
+            branches=[{"name": "main", "protected": True}],
+            milestones=[],
+            collaborators=[],
+            fetched_at="2026-03-16T12:00:00+00:00",
+        )
+
+        with patch("src.services.database.get_db", return_value=mock_db):
+            await metadata_service._write_to_sqlite(ctx)
+            await metadata_service.invalidate("owner", "repo")
+
+        assert metadata_service._l1.deleted == ["metadata:owner/repo"]  # type: ignore[attr-defined]
+        rows = await mock_db.execute_fetchall(
+            "SELECT repo_key, field_type, value FROM github_metadata_cache WHERE repo_key = ?",
+            ("owner/repo",),
+        )
+        assert rows == []
+
+    @pytest.mark.asyncio
+    async def test_write_to_sqlite_commits_even_when_no_rows_exist(
+        self, metadata_service: MetadataService, mock_db
+    ):
+        ctx = RepositoryMetadataContext(
+            repo_key="owner/repo", fetched_at="2026-03-16T12:00:00+00:00"
+        )
+
+        with patch("src.services.database.get_db", return_value=mock_db):
+            await metadata_service._write_to_sqlite(ctx)
+
+        rows = await mock_db.execute_fetchall(
+            "SELECT repo_key, field_type, value FROM github_metadata_cache WHERE repo_key = ?",
+            ("owner/repo",),
+        )
+        assert rows == []
+
+    @pytest.mark.asyncio
+    async def test_invalidate_swallows_database_errors(self, metadata_service: MetadataService):
+        failing_db = AsyncMock()
+        failing_db.execute.side_effect = RuntimeError("locked")
+
+        with patch("src.services.database.get_db", return_value=failing_db):
+            await metadata_service.invalidate("owner", "repo")
+
+        assert metadata_service._l1.deleted == ["metadata:owner/repo"]  # type: ignore[attr-defined]
+
+
+class TestMiscHelpers:
+    def test_is_stale_handles_empty_invalid_and_expired_timestamps(
+        self, metadata_service: MetadataService
+    ):
+        assert metadata_service._is_stale("", 300) is True
+        assert metadata_service._is_stale("not-a-date", 300) is True
+        assert metadata_service._is_stale("2026-03-16T11:00:00+00:00", 60) is True
+
+    def test_is_stale_handles_naive_and_fresh_timestamps(self, metadata_service: MetadataService):
+        with patch(
+            "src.services.metadata_service.utcnow",
+            return_value=datetime(2026, 3, 16, 12, 0, 0, tzinfo=UTC),
+        ):
+            assert metadata_service._is_stale("2026-03-16T11:59:45", 60) is False
+
+    def test_fallback_context_uses_default_labels(self, metadata_service: MetadataService):
+        result = metadata_service._fallback_context("owner/repo")
+
+        assert result.repo_key == "owner/repo"
+        assert result.source == "fallback"
+        assert result.labels
+        assert result.branches == [{"name": "main", "protected": True}]

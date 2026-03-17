@@ -12,9 +12,16 @@ BACKEND_DIR="$REPO_ROOT/solune/backend"
 FRONTEND_DIR="$REPO_ROOT/solune/frontend"
 OPENAPI_JSON="$BACKEND_DIR/openapi.json"
 GENERATED_TYPES="$FRONTEND_DIR/src/types/openapi-generated.d.ts"
+BACKEND_PYTHON="$BACKEND_DIR/.venv/bin/python"
+
+if [[ -x "$BACKEND_PYTHON" ]]; then
+  PYTHON_BIN="$BACKEND_PYTHON"
+else
+  PYTHON_BIN="python3"
+fi
 
 echo "=== Step 1: Export OpenAPI schema ==="
-python3 "$SCRIPT_DIR/export-openapi.py" --output "$OPENAPI_JSON"
+"$PYTHON_BIN" "$SCRIPT_DIR/export-openapi.py" --output "$OPENAPI_JSON"
 
 if [[ ! -f "$OPENAPI_JSON" ]]; then
   echo "ERROR: OpenAPI schema not generated at $OPENAPI_JSON"

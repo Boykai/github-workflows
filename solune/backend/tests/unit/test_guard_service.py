@@ -1,5 +1,6 @@
 """Unit tests for guard_service — file-path protection rules."""
 
+import os
 from pathlib import Path
 
 import pytest
@@ -57,10 +58,12 @@ class TestLoadRules:
 
     def test_cache_invalidated_by_mtime_change(self, config_file: Path):
         r1 = _load_rules(config_file)
-        # Rewrite with extra rule to change mtime
+        # Rewrite with extra rule and bump mtime to guarantee cache miss
         data = yaml.safe_load(config_file.read_text(encoding="utf-8"))
         data["guard_rules"].append({"path_pattern": "docs/*", "guard_level": "none"})
         config_file.write_text(yaml.dump(data), encoding="utf-8")
+        st = config_file.stat()
+        os.utime(config_file, (st.st_atime, st.st_mtime + 1))
         r2 = _load_rules(config_file)
         assert len(r2) == 5
         assert r1 is not r2
