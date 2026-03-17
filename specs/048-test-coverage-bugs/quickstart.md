@@ -5,7 +5,7 @@
 ## Prerequisites
 
 - Python ≥3.12 (target 3.13)
-- Node.js 20+
+- Node.js 22+
 - Git
 
 ## Setup
