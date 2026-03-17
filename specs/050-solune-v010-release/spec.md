@@ -167,15 +167,15 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 
 **Why this priority**: Release engineering is a P1 because without it, no other work ships. Version consistency, secure container images, environment validation, and the release checklist are the final quality gate before public availability.
 
-**Independent Test**: Can be fully tested by running the complete Docker Compose stack from scratch using only the example environment file, verifying all services start and become healthy, and confirming version strings are consistent across all configuration files.
+**Independent Test**: Can be fully tested by deploying the full application stack from scratch using only the example environment file, verifying all services start and become healthy, and confirming version strings are consistent across all configuration files.
 
 **Acceptance Scenarios**:
 
-1. **Given** a `.env` file configured with valid GitHub OAuth credentials (copied from `.env.example` with required secrets filled in), **When** `docker compose up` is executed, **Then** all services (backend, frontend, database) start and report healthy within 120 seconds.
-2. **Given** the Docker container images, **When** inspecting the running processes, **Then** no container runs as the root user.
-3. **Given** the version strings in the changelog, backend config, and frontend config, **When** they are compared, **Then** all display `0.1.0` consistently.
+1. **Given** an environment file configured with valid credentials (copied from the example template with required secrets filled in), **When** the standard deployment command is executed, **Then** all services start and report healthy within 120 seconds.
+2. **Given** the deployed application containers, **When** inspecting the running processes, **Then** no service runs with elevated (root) privileges.
+3. **Given** the version strings in the changelog and all service configuration files, **When** they are compared, **Then** all display `0.1.0` consistently.
 4. **Given** a production environment configuration, **When** the application starts with insecure settings (e.g., debug mode enabled, default secrets), **Then** startup is rejected with a clear error explaining the insecure configuration.
-5. **Given** the complete release checklist, **When** each item is verified, **Then** all tests pass, coverage thresholds are met (≥70% frontend, ≥80% backend), security scans report no critical/high findings, and documentation is current.
+5. **Given** the complete release checklist, **When** each item is verified, **Then** all tests pass, coverage thresholds are met (≥70% client-side, ≥80% server-side), security scans report no critical/high findings, and documentation is current.
 
 ---
 
@@ -185,7 +185,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - How does the system handle concurrent pipeline runs updating the same state storage simultaneously? The system should use transactional writes to prevent data races and ensure consistency.
 - What happens when a user attempts to deploy with a partially configured environment file (some required variables present, others missing)? Startup validation should enumerate all missing variables in a single error message rather than failing one at a time.
 - How does the pipeline builder handle extremely large pipelines (50+ stages in a single view)? The UI should remain responsive with virtualized rendering and provide zoom/pan controls.
-- What happens when voice input is activated in a browser that supports neither the prefixed nor unprefixed Speech Recognition API? The system should display a clear message indicating voice input is unavailable in the current browser.
+- What happens when voice input is activated in a browser that does not support speech recognition? The system should display a clear message indicating voice input is unavailable in the current browser.
 - How does the onboarding tour behave if the user dismisses it midway and later wants to restart it? The tour state should be persisted per user, with an option to restart from the Help page.
 - What happens when a file attachment upload fails during chat-to-issue creation? The message should still be sent with an inline error indicating the attachment failed, and the user should be able to retry the upload.
 - How does the system handle theme switching while a modal or overlay is open? Theme changes should apply immediately to all visible elements including modals, without requiring the user to close and reopen them.
@@ -221,7 +221,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - **FR-017**: System MUST provide a visual drag-and-drop pipeline builder with per-group sequential/parallel toggle.
 - **FR-018**: System MUST display multiple running agents in a side-by-side layout with distinct visual differentiation.
 - **FR-019**: System MUST propagate MCP tool configurations to all agent configuration files when project settings are updated.
-- **FR-020**: Voice input MUST function correctly in both Firefox and Chrome browsers using the appropriate Speech Recognition API variant.
+- **FR-020**: Voice input MUST function correctly in both Firefox and Chrome browsers using each browser's native speech recognition capability.
 - **FR-021**: Users MUST be able to upload file attachments in chat that are forwarded to linked GitHub parent issues.
 - **FR-022**: Users MUST be able to paste issue descriptions and select a pipeline configuration for issue creation.
 - **FR-023**: The blocking feature MUST be fully removed from UI, backend logic, and data storage.
@@ -231,7 +231,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - **FR-024**: All container images MUST run as non-root users.
 - **FR-025**: System MUST include HTTP security headers: Content Security Policy, Strict-Transport-Security, Referrer-Policy, and Permissions-Policy.
 - **FR-026**: System MUST enforce rate limiting on authentication and other sensitive endpoints.
-- **FR-027**: System MUST NOT store sensitive data in browser localStorage without encryption.
+- **FR-027**: System MUST NOT store sensitive data in browser local storage without encryption.
 - **FR-028**: Debug mode MUST be fully decoupled from production configuration and disabled by default.
 
 **Phase 5 — Performance Optimization**
@@ -265,7 +265,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 **Phase 9 — Release Engineering**
 
 - **FR-045**: All version strings across changelog, backend, and frontend configurations MUST consistently display `0.1.0`.
-- **FR-046**: Container images MUST use pinned base image versions (no `latest` tags).
+- **FR-046**: Deployment artifacts MUST use pinned dependency versions (no floating or `latest` tags).
 - **FR-047**: The environment example file MUST document all required configuration variables.
 - **FR-048**: System MUST reject startup with insecure production configuration (default secrets, debug mode enabled).
 - **FR-049**: The release MUST include no open P1 or P2 bugs.
@@ -284,7 +284,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 ## Assumptions
 
 - The existing OAuth-based authentication flow will be retained; no new authentication methods are being introduced.
-- Docker Compose is the sole supported deployment method for v0.1.0; cloud deployment is explicitly out of scope.
+- The supported deployment method for v0.1.0 is a single-machine multi-service stack; cloud-native deployment is explicitly out of scope.
 - The "Solune" rebrand and monorepo restructuring are already substantially complete and do not require significant additional work.
 - Performance baselines will be established after feature stabilization (Phase 5), not before, to avoid measuring throwaway code paths.
 - Standard web application performance expectations apply (sub-2-second page loads, 100ms interaction response) unless specified otherwise.
@@ -308,7 +308,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - **SC-008**: A new user completes the onboarding tour and creates their first project within 30 minutes of initial deployment.
 - **SC-009**: Idle background API activity is reduced by at least 50% from the pre-optimization baseline.
 - **SC-010**: Every page in the application is fully interactive within 2 seconds on a standard broadband connection.
-- **SC-011**: Fresh `docker compose up` from a `.env` file populated with the required OAuth credentials results in all services reporting healthy within 120 seconds.
+- **SC-011**: A fresh deployment from the example environment file results in all services reporting healthy within 120 seconds.
 - **SC-012**: Full end-to-end user flow (create project → configure pipeline → run agents → review PR) completes successfully.
 - **SC-013**: Voice input functions correctly in both Chrome and Firefox.
 - **SC-014**: All version strings consistently display `0.1.0` across all configuration files and the changelog.
