@@ -261,9 +261,9 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - **FR-042**: Frontend test coverage MUST reach at least 70% line coverage.
 - **FR-043**: End-to-end tests MUST cover all major user flows including project creation, pipeline configuration, agent execution, and PR review.
 - **FR-044**: End-to-end tests MUST include automated accessibility assertions.
-- **FR-050**: Backend tests MUST achieve a mutation score of at least 75%, validating that tests effectively detect code changes.
+- **FR-050**: Backend tests MUST achieve an aggregate mutation score of at least 75% across the full test suite, validating that tests effectively detect code changes.
 - **FR-051**: Frontend tests MUST achieve a mutation score of at least 60%, validating that tests effectively detect code changes.
-- **FR-052**: The test suite MUST maintain reliability with no more than 5 quarantined flaky tests at any time.
+- **FR-052**: The test suite MUST maintain reliability with no more than 5 quarantined flaky tests (tests marked as skipped or expected-failure due to non-deterministic behavior, tracked in a dedicated flaky-test registry) at any time.
 
 **Phase 9 — Release Engineering**
 
@@ -316,13 +316,13 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - **SC-013**: Voice input functions correctly in both Chrome and Firefox.
 - **SC-014**: All version strings consistently display `0.1.0` across all configuration files and the changelog.
 - **SC-015**: Zero open P1 or P2 bugs at release time.
-- **SC-016**: Backend mutation score reaches at least 75%, confirming tests catch real code defects.
+- **SC-016**: Aggregate backend mutation score reaches at least 75%, confirming tests catch real code defects.
 - **SC-017**: Frontend mutation score reaches at least 60%, confirming tests catch real code defects.
 - **SC-018**: No more than 5 tests are quarantined for flakiness at any point during the release cycle.
 
 ## Risks
 
-- **Frontend coverage gap**: Current frontend test coverage is 49%, and the 70% target represents a significant increase. If 70% is not achievable by release, consider shipping at 60% with a tracked post-release commitment and a documented plan to close the remaining gap.
+- **Frontend coverage gap**: Current frontend line coverage is 49%, and the 70% line coverage target represents a significant increase. If 70% is not achievable by release, consider shipping at 60% with a tracked post-release commitment and a documented plan to close the remaining gap.
 - **God class refactor**: The largest backend service file is over 5,000 lines and must be split into multiple focused services. This is the highest-risk refactor — complete it early in Phase 2 (Code Quality Foundation) to maximize time for regression discovery before release.
 - **Prior feature validation**: Features 037–042 are assumed to be already implemented and merged. Confirm all prior feature branches are fully integrated before starting v0.1.0 tasks to avoid scope surprises or merge conflicts.
 

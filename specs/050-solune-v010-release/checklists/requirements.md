@@ -7,9 +7,9 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs) — spec focuses on user outcomes and measurable gates without prescribing specific technologies
+- [x] No implementation details (languages, frameworks, APIs) — spec references security constraints (cookie flags, encryption keys) and deployment boundaries (Docker Compose) as product requirements, not as technology prescriptions for how to build the system
 - [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders — release engineering constraints (cookie flags, coverage targets, container security) are expressed as user-facing outcomes
+- [x] Written for non-technical stakeholders — technical constraints such as cookie flags, coverage/mutation thresholds, and container security are expressed as measurable acceptance criteria rather than developer-facing implementation instructions
 - [x] All mandatory sections completed
 
 ## Requirement Completeness
