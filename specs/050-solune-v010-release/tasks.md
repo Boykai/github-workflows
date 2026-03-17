@@ -387,7 +387,7 @@
 
 ## Phase 13: Test Coverage Gap Closure (Parallel Track — FR-041, FR-042, FR-043, FR-044, FR-050, FR-051, FR-052)
 
-**Purpose**: Achieve coverage targets — 80% backend, 70% frontend, E2E for all major flows, mutation testing, flaky management
+**Purpose**: Achieve coverage targets — ≥80% backend, ≥70% frontend, E2E for all major flows, mutation testing (≥75% BE / ≥60% FE), flaky management (≤5 quarantined)
 
 **⚠️ PARALLEL TRACK**: This phase runs alongside Phases 4–12 (start immediately after Phase 3). Test tasks target stable code surfaces from completed phases. Final verification (T139, T147) waits for all feature phases to complete.
 
