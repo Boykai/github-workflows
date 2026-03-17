@@ -36,11 +36,11 @@
 
 **Purpose**: Project initialization — verify current state and prepare for phased delivery
 
-- [ ] T001 Verify monorepo structure and "Solune" rebrand completeness per plan assumption in solune/
-- [ ] T002 [P] Verify backend dependencies are current in solune/backend/pyproject.toml (FastAPI >=0.135, Pydantic 2.12, aiosqlite, cryptography 46)
-- [ ] T003 [P] Verify frontend dependencies are current in solune/frontend/package.json (React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit)
+- [x] T001 Verify monorepo structure and "Solune" rebrand completeness per plan assumption in solune/
+- [x] T002 [P] Verify backend dependencies are current in solune/backend/pyproject.toml (FastAPI >=0.135, Pydantic 2.12, aiosqlite, cryptography 46)
+- [x] T003 [P] Verify frontend dependencies are current in solune/frontend/package.json (React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit)
 - [ ] T004 [P] Verify existing CI pipeline passes: ruff check, pyright, pytest, eslint, tsc, vitest per .github/workflows/ci.yml
-- [ ] T005 Confirm existing migration chain integrity (023–028) in solune/backend/src/migrations/
+- [x] T005 Confirm existing migration chain integrity (023–028) in solune/backend/src/migrations/
 
 ---
 
@@ -52,27 +52,27 @@
 
 ### US1: Pipeline State Persistence (FR-001, FR-002, FR-003)
 
-- [ ] T006 [US1] Create database migration 029_pipeline_state_persistence.sql with pipeline_runs, pipeline_stage_states, stage_groups, and onboarding_tour_state tables per data-model.md in solune/backend/src/migrations/029_pipeline_state_persistence.sql
-- [ ] T007 [US1] Add access_control_enabled column to projects table and visual_identifier/display_order columns to agents table in solune/backend/src/migrations/029_pipeline_state_persistence.sql
-- [ ] T008 [US1] Create PipelineRun Pydantic model with state validation rules per data-model.md in solune/backend/src/models/pipeline_run.py
-- [ ] T009 [P] [US1] Create PipelineStageState Pydantic model with transition rules per data-model.md in solune/backend/src/models/pipeline_stage_state.py
-- [ ] T010 [P] [US1] Create StageGroup Pydantic model with execution_mode enum (sequential/parallel) in solune/backend/src/models/stage_group.py
-- [ ] T011 [US1] Create PipelineStateService for persisting pipeline runs to SQLite via aiosqlite in solune/backend/src/services/copilot_polling/pipeline_state_service.py
-- [ ] T012 [US1] Implement startup state rebuild — query incomplete runs from DB and reconstruct in-memory working set in solune/backend/src/services/copilot_polling/pipeline_state_service.py
-- [ ] T013 [US1] Add SQLite PRAGMA integrity_check on startup with fallback to in-memory + admin notification (edge case #1) in solune/backend/src/services/copilot_polling/pipeline_state_service.py
-- [ ] T014 [US1] Remove 500-entry cap on in-memory pipeline state dict in solune/backend/src/services/copilot_polling/
-- [ ] T015 [US1] Implement transactional writes for concurrent pipeline state updates (edge case #2) in solune/backend/src/services/copilot_polling/pipeline_state_service.py
-- [ ] T016 [US1] Wire PipelineStateService into FastAPI dependency injection in solune/backend/src/dependencies.py
+- [x] T006 [US1] Create database migration 029_pipeline_state_persistence.sql with pipeline_runs, pipeline_stage_states, stage_groups, and onboarding_tour_state tables per data-model.md in solune/backend/src/migrations/029_pipeline_state_persistence.sql
+- [x] T007 [US1] Add access_control_enabled column to projects table and visual_identifier/display_order columns to agents table in solune/backend/src/migrations/029_pipeline_state_persistence.sql
+- [x] T008 [US1] Create PipelineRun Pydantic model with state validation rules per data-model.md in solune/backend/src/models/pipeline_run.py
+- [x] T009 [P] [US1] Create PipelineStageState Pydantic model with transition rules per data-model.md in solune/backend/src/models/pipeline_stage_state.py
+- [x] T010 [P] [US1] Create StageGroup Pydantic model with execution_mode enum (sequential/parallel) in solune/backend/src/models/stage_group.py
+- [x] T011 [US1] Create PipelineStateService for persisting pipeline runs to SQLite via aiosqlite in solune/backend/src/services/copilot_polling/pipeline_state_service.py
+- [x] T012 [US1] Implement startup state rebuild — query incomplete runs from DB and reconstruct in-memory working set in solune/backend/src/services/copilot_polling/pipeline_state_service.py
+- [x] T013 [US1] Add SQLite PRAGMA integrity_check on startup with fallback to in-memory + admin notification (edge case #1) in solune/backend/src/services/copilot_polling/pipeline_state_service.py
+- [x] T014 [US1] Remove 500-entry cap on in-memory pipeline state dict in solune/backend/src/services/copilot_polling/
+- [x] T015 [US1] Implement transactional writes for concurrent pipeline state updates (edge case #2) in solune/backend/src/services/copilot_polling/pipeline_state_service.py
+- [x] T016 [US1] Wire PipelineStateService into FastAPI dependency injection in solune/backend/src/dependencies.py
 
 ### US2: Security Critical Fixes (FR-004, FR-005, FR-006, FR-007, FR-008)
 
-- [ ] T017 [P] [US2] Set HttpOnly=True and SameSite=Strict on the session/OAuth cookies in solune/backend/src/api/auth.py — CSRF cookie in middleware/csrf.py is out of scope here (must remain HttpOnly=False and SameSite=Lax for JS readability) (FR-004)
-- [ ] T018 [P] [US2] Add startup validation for ENCRYPTION_KEY — refuse to start if missing or default value in solune/backend/src/main.py (FR-005)
-- [ ] T019 [P] [US2] Add startup validation for SESSION_SECRET_KEY — refuse if missing or default in solune/backend/src/main.py (FR-005)
-- [ ] T020 [P] [US2] Add startup validation for GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in solune/backend/src/main.py (FR-005)
-- [ ] T021 [US2] Enumerate ALL missing config variables in a single error message on startup failure (edge case #3) in solune/backend/src/main.py
-- [ ] T022 [US2] Implement project-level access control middleware — verify user membership, return 403 on unauthorized access in solune/backend/src/middleware/project_access.py (FR-006)
-- [ ] T023 [US2] Wire project access control middleware into FastAPI app in solune/backend/src/main.py
+- [x] T017 [P] [US2] Set HttpOnly=True and SameSite=Strict on the session/OAuth cookies in solune/backend/src/api/auth.py — CSRF cookie in middleware/csrf.py is out of scope here (must remain HttpOnly=False and SameSite=Lax for JS readability) (FR-004)
+- [x] T018 [P] [US2] Add startup validation for ENCRYPTION_KEY — refuse to start if missing or default value in solune/backend/src/main.py (FR-005)
+- [x] T019 [P] [US2] Add startup validation for SESSION_SECRET_KEY — refuse if missing or default in solune/backend/src/main.py (FR-005)
+- [x] T020 [P] [US2] Add startup validation for GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in solune/backend/src/main.py (FR-005)
+- [x] T021 [US2] Enumerate ALL missing config variables in a single error message on startup failure (edge case #3) in solune/backend/src/main.py
+- [x] T022 [US2] Implement project-level access control middleware — verify user membership, return 403 on unauthorized access in solune/backend/src/middleware/project_access.py (FR-006)
+- [x] T023 [US2] Wire project access control middleware into FastAPI app in solune/backend/src/main.py
 - [ ] T024 [US2] Audit codebase for hardcoded secrets using bandit and manual review — move findings to env vars (FR-007)
 - [ ] T025 [P] [US2] Add Pydantic validation models for all API input boundaries lacking explicit validation in solune/backend/src/api/ (FR-008)
 - [ ] T026 [P] [US2] Validate and sanitize file upload inputs (path traversal, MIME type) in solune/backend/src/api/chat.py (FR-008)
@@ -140,19 +140,19 @@
 
 ### Label-Based Pipeline State (FR-015)
 
-- [ ] T049 [US1] Implement GitHub label manager for pipeline state labels (format: `solune:pipeline:{run_id}:stage:{stage_id}:{status}`) in solune/backend/src/services/copilot_polling/label_manager.py
-- [ ] T050 [US1] Implement label lifecycle — create on stage running, update (delete+create) on state change per contracts/events.md in solune/backend/src/services/copilot_polling/label_manager.py
-- [ ] T051 [US1] Implement recovery protocol — query solune:pipeline:* labels on startup, reconcile with DB, resume running pipelines per contracts/events.md in solune/backend/src/services/copilot_polling/label_manager.py
-- [ ] T052 [US1] Implement PipelineRunStateChanged and PipelineStageStateChanged internal event dataclasses per contracts/events.md in solune/backend/src/models/pipeline_events.py
-- [ ] T053 [US1] Wire label manager as consumer of pipeline state change events in solune/backend/src/services/copilot_polling/
+- [x] T049 [US1] Implement GitHub label manager for pipeline state labels (format: `solune:pipeline:{run_id}:stage:{stage_id}:{status}`) in solune/backend/src/services/copilot_polling/label_manager.py
+- [x] T050 [US1] Implement label lifecycle — create on stage running, update (delete+create) on state change per contracts/events.md in solune/backend/src/services/copilot_polling/label_manager.py
+- [x] T051 [US1] Implement recovery protocol — query solune:pipeline:* labels on startup, reconcile with DB, resume running pipelines per contracts/events.md in solune/backend/src/services/copilot_polling/label_manager.py
+- [x] T052 [US1] Implement PipelineRunStateChanged and PipelineStageStateChanged internal event dataclasses per contracts/events.md in solune/backend/src/models/pipeline_events.py
+- [x] T053 [US1] Wire label manager as consumer of pipeline state change events in solune/backend/src/services/copilot_polling/
 
 ### Pipeline Run API Endpoints
 
-- [ ] T054 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs — create and start pipeline run per contracts/rest-api.md in solune/backend/src/api/pipelines.py
-- [ ] T055 [US1] Implement GET /api/v1/pipelines/{pipeline_id}/runs — list runs with pagination, no artificial cap (FR-003) in solune/backend/src/api/pipelines.py
-- [ ] T056 [US1] Implement GET /api/v1/pipelines/{pipeline_id}/runs/{run_id} — detailed run state with all stages/groups in solune/backend/src/api/pipelines.py
-- [ ] T057 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs/{run_id}/cancel per contracts/rest-api.md in solune/backend/src/api/pipelines.py
-- [ ] T058 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs/{run_id}/recover — rebuild state and resume (FR-002) in solune/backend/src/api/pipelines.py
+- [x] T054 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs — create and start pipeline run per contracts/rest-api.md in solune/backend/src/api/pipelines.py
+- [x] T055 [US1] Implement GET /api/v1/pipelines/{pipeline_id}/runs — list runs with pagination, no artificial cap (FR-003) in solune/backend/src/api/pipelines.py
+- [x] T056 [US1] Implement GET /api/v1/pipelines/{pipeline_id}/runs/{run_id} — detailed run state with all stages/groups in solune/backend/src/api/pipelines.py
+- [x] T057 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs/{run_id}/cancel per contracts/rest-api.md in solune/backend/src/api/pipelines.py
+- [x] T058 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs/{run_id}/recover — rebuild state and resume (FR-002) in solune/backend/src/api/pipelines.py
 - [ ] T059 [US1] Add WebSocket pipeline state push notifications per contracts/events.md in solune/backend/src/api/pipelines.py
 
 **Checkpoint**: Pipeline state fully persistent, label-based recovery functional, all run endpoints operational.
@@ -170,8 +170,8 @@
 ### Stage Group Backend (FR-016)
 
 - [ ] T060 [US4] Implement group execution orchestrator — sequential groups complete before next, parallel stages launch simultaneously in solune/backend/src/services/copilot_polling/group_executor.py
-- [ ] T061 [US4] Implement GET /api/v1/pipelines/{pipeline_id}/groups — list stage groups per contracts/rest-api.md in solune/backend/src/api/pipelines.py
-- [ ] T062 [US4] Implement PUT /api/v1/pipelines/{pipeline_id}/groups — create/update groups atomically with validation per contracts/rest-api.md in solune/backend/src/api/pipelines.py
+- [x] T061 [US4] Implement GET /api/v1/pipelines/{pipeline_id}/groups — list stage groups per contracts/rest-api.md in solune/backend/src/api/pipelines.py
+- [x] T062 [US4] Implement PUT /api/v1/pipelines/{pipeline_id}/groups — create/update groups atomically with validation per contracts/rest-api.md in solune/backend/src/api/pipelines.py
 
 ### Pipeline Builder Frontend (FR-017)
 
@@ -248,15 +248,15 @@
 
 ### High-Priority Security (FR-024, FR-025)
 
-- [ ] T082 [US2] Verify and enforce non-root user in solune/backend/Dockerfile — confirm appuser UID/GID set (FR-024)
-- [ ] T083 [P] [US2] Configure non-root nginx user in solune/frontend/Dockerfile (FR-024)
-- [ ] T084 [US2] Add HTTP security headers (CSP, HSTS, Referrer-Policy, Permissions-Policy, X-Content-Type-Options, X-Frame-Options) to nginx config per contracts/rest-api.md in solune/frontend/nginx.conf (FR-025)
-- [ ] T085 [P] [US2] Add HTTP security headers to FastAPI middleware for API responses in solune/backend/src/middleware/ (FR-025)
+- [x] T082 [US2] Verify and enforce non-root user in solune/backend/Dockerfile — confirm appuser UID/GID set (FR-024)
+- [x] T083 [P] [US2] Configure non-root nginx user in solune/frontend/Dockerfile (FR-024)
+- [x] T084 [US2] Add HTTP security headers (CSP, HSTS, Referrer-Policy, Permissions-Policy, X-Content-Type-Options, X-Frame-Options) to nginx config per contracts/rest-api.md in solune/frontend/nginx.conf (FR-025)
+- [x] T085 [P] [US2] Add HTTP security headers to FastAPI middleware for API responses in solune/backend/src/middleware/ (FR-025)
 - [ ] T086 [US2] Minimize OAuth scope to minimum required permissions in solune/backend/src/api/auth.py
 
 ### Medium-Priority Security (FR-026, FR-027, FR-028)
 
-- [ ] T087 [US2] Extend slowapi rate limiting to auth endpoints (/api/v1/auth/*) and pipeline run creation per contracts/rest-api.md in solune/backend/src/api/auth.py (FR-026)
+- [x] T087 [US2] Extend slowapi rate limiting to auth endpoints (/api/v1/auth/*) and pipeline run creation per contracts/rest-api.md in solune/backend/src/api/auth.py (FR-026)
 - [ ] T088 [US2] Audit frontend for sensitive data in localStorage — encrypt or move to session cookies in solune/frontend/src/ (FR-027)
 - [ ] T089 [US2] Decouple debug mode from production config — ensure DEBUG defaults to false, reject DEBUG=true when ENCRYPTION_KEY is production-grade in solune/backend/src/main.py (FR-028)
 
@@ -352,7 +352,7 @@
 
 ### Onboarding Tour (FR-038)
 
-- [ ] T117 [US8] Create OnboardingTourState API endpoints (GET/PUT /api/v1/onboarding/state) per contracts/rest-api.md in solune/backend/src/api/onboarding.py
+- [x] T117 [US8] Create OnboardingTourState API endpoints (GET/PUT /api/v1/onboarding/state) per contracts/rest-api.md in solune/backend/src/api/onboarding.py
 - [ ] T118 [US8] Create OnboardingTour component with 9-step celestial-themed spotlight tour per contracts/events.md steps 1-9 in solune/frontend/src/components/onboarding/OnboardingTour.tsx
 - [ ] T119 [US8] Implement tour state persistence hook (useOnboardingTour) with advance/dismiss/complete/restart actions in solune/frontend/src/hooks/useOnboardingTour.ts
 - [ ] T120 [US8] Wire onboarding tour to first login detection — auto-start for new users in solune/frontend/src/App.tsx
@@ -395,7 +395,7 @@
 
 - [ ] T130 [P] Add parameterized API tests covering 200, 401, 403, 404, 422, 429, 500 status codes for all REST endpoints in solune/backend/tests/unit/test_api_status_codes.py
 - [ ] T131 [P] Add unit tests for security middleware (auth, CSRF, rate limiting, project access) in solune/backend/tests/unit/test_middleware/
-- [ ] T132 [P] Add unit tests for pipeline state persistence service in solune/backend/tests/unit/test_pipeline_state_service.py
+- [x] T132 [P] Add unit tests for pipeline state persistence service in solune/backend/tests/unit/test_pipeline_state_service.py
 - [ ] T133 [P] Add unit tests for pipeline orchestration and group execution in solune/backend/tests/unit/test_group_executor.py
 - [ ] T134 [P] Add unit tests for webhook handlers in solune/backend/tests/unit/
 - [ ] T135 [P] Add unit tests for extracted GitHub services (issues, PR, branches) in solune/backend/tests/unit/test_github_services/
@@ -444,9 +444,9 @@
 
 ### Version & Changelog (FR-045)
 
-- [ ] T157 [US10] Finalize CHANGELOG.md under [0.1.0] section — document all user-facing changes grouped by category (Security, Pipeline, Agents, Chat, UI, Performance, Docs) with references to FR numbers in solune/CHANGELOG.md
-- [ ] T158 [P] [US10] Verify version string 0.1.0 in solune/backend/pyproject.toml
-- [ ] T159 [P] [US10] Verify version string 0.1.0 in solune/frontend/package.json
+- [x] T157 [US10] Finalize CHANGELOG.md under [0.1.0] section — document all user-facing changes grouped by category (Security, Pipeline, Agents, Chat, UI, Performance, Docs) with references to FR numbers in solune/CHANGELOG.md
+- [x] T158 [P] [US10] Verify version string 0.1.0 in solune/backend/pyproject.toml
+- [x] T159 [P] [US10] Verify version string 0.1.0 in solune/frontend/package.json
 - [ ] T160 [US10] Tag release as v0.1.0
 
 ### Docker Image Finalization (FR-046)
@@ -457,12 +457,12 @@
 
 ### Environment Validation (FR-047, FR-048)
 
-- [ ] T164 [US10] Verify .env.example covers ALL required configuration variables in solune/.env.example (FR-047)
+- [x] T164 [US10] Verify .env.example covers ALL required configuration variables in solune/.env.example (FR-047)
 - [ ] T165 [US10] Verify startup rejects insecure production config (default secrets, debug=true) via integration test (FR-048)
 
 ### Enhanced Health Endpoint
 
-- [ ] T166 [US10] Enhance GET /api/v1/health to include startup_checks and version per contracts/rest-api.md in solune/backend/src/api/health.py
+- [x] T166 [US10] Enhance GET /api/v1/health to include startup_checks and version per contracts/rest-api.md in solune/backend/src/api/health.py
 
 ### Release Checklist (FR-049)
 
