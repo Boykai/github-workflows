@@ -3,7 +3,7 @@
 **Branch**: `050-solune-v010-release` | **Date**: 2026-03-17 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/050-solune-v010-release/spec.md`
 
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/plan-template.md` for the execution workflow.
 
 ## Summary
 
