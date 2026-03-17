@@ -53,8 +53,8 @@ Template files to follow:
 **Decision**: Add a separate CI job for backend advanced tests; verify frontend fuzz test discovery; create a new workflow for mutation testing.
 
 **Rationale**:
-- Backend advanced tests (property, fuzz, chaos, concurrency) exist in `tests/property/`, `tests/fuzz/`, `tests/chaos/`, `tests/concurrency/` but are not run in CI. The current `pytest` command in CI runs only tests discovered under `tests/` (which includes these directories), but the Hypothesis CI profile and timeout settings are not explicitly configured.
-- Investigation reveals that `pytest` in CI already discovers all test directories (the `testpaths = ["tests"]` config includes subdirectories). However, advanced tests need:
+- Backend advanced tests (property, fuzz, chaos, concurrency) exist in `tests/property/`, `tests/fuzz/`, `tests/chaos/`, `tests/concurrency/` and are already discovered by CI because `testpaths = ["tests"]` includes subdirectories. However, they run with default settings — no Hypothesis CI profile, no per-test timeout, and no failure isolation from the main suite.
+- To run them effectively in CI, advanced tests need:
   - Explicit Hypothesis CI profile activation (`--hypothesis-seed=0` or `HYPOTHESIS_PROFILE=ci`)
   - A 120-second per-test timeout (`--timeout=120`)
   - A separate job to isolate failure impact (advanced test failures should not block basic coverage)

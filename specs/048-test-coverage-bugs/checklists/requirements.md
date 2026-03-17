@@ -6,9 +6,9 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [ ] No implementation details (languages, frameworks, APIs) — *spec intentionally includes tooling details (pytest, Hypothesis, freezegun, Stryker) because the feature is about test infrastructure*
 - [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
+- [ ] Written for non-technical stakeholders — *spec targets developers; test coverage is inherently technical*
 - [x] All mandatory sections completed
 
 ## Requirement Completeness
@@ -27,11 +27,11 @@
 - [x] All functional requirements have clear acceptance criteria
 - [x] User scenarios cover primary flows
 - [x] Feature meets measurable outcomes defined in Success Criteria
-- [x] No implementation details leak into specification
+- [ ] No implementation details leak into specification — *see Content Quality note above*
 
 ## Notes
 
-- All checklist items pass. The specification is ready for `/speckit.clarify` or `/speckit.plan`.
+- Most checklist items pass. Three items are intentionally unchecked because this specification covers test infrastructure, which is inherently technical — implementation details are necessary context for this feature type. The specification is ready for `/speckit.clarify` or `/speckit.plan`.
 - The spec covers 11 user stories (P1–P11) mapping to the 12 phases from the parent issue plan, with P1 being zero-new-code CI promotion and P2–P6 covering phased coverage growth.
 - 30 functional requirements (FR-001 through FR-030) are defined, each testable and traceable to a user story.
 - 13 success criteria (SC-001 through SC-013) provide measurable targets for verification.

@@ -53,7 +53,7 @@ jobs:
         run: pyright src
 
       - name: Run tests with coverage enforcement
-        run: pytest --cov=src --cov-report=term-missing --durations=20
+        run: pytest --cov=src --cov-report=term-missing --durations=20 --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency
 
   # Backend advanced tests: property-based, fuzz, chaos, concurrency
   backend-advanced-tests:
