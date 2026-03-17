@@ -169,7 +169,7 @@
 
 - [ ] T051 [US4] Add freezegun as a dev dependency in solune/backend/pyproject.toml — add `freezegun` to `[project.optional-dependencies] dev` list
 - [ ] T052 [US4] Write production-parity integration tests in solune/backend/tests/integration/test_production_mode.py — test with production config: ENCRYPTION_KEY (Fernet), GITHUB_WEBHOOK_SECRET (hex), CSRF enabled, TESTING=false; exercise auth flow, webhook verification, rate limiting; test invalid env combinations
-- [ ] T053 [P] [US4] Write time-controlled tests for 15+ temporal behaviors in solune/backend/tests/unit/test_time_dependent.py — use @freeze_time for: session expiry boundaries (±1s), token refresh timing, rate-limit window resets, polling backoff formulas, reconnection delays, cache TTL, debounce timers, assignment grace periods, recovery cooldowns
+- [ ] T053 [US4] Write time-controlled tests for 15+ temporal behaviors in solune/backend/tests/unit/test_time_dependent.py — use @freeze_time for: session expiry boundaries (±1s), token refresh timing, rate-limit window resets, polling backoff formulas, reconnection delays, cache TTL, debounce timers, assignment grace periods, recovery cooldowns (depends on T051 for freezegun dependency)
 - [ ] T054 [P] [US4] Write WebSocket lifecycle E2E test — full connect → receive → disconnect → polling fallback → reconnect → data freshness verification using Playwright WebSocket interception
 
 **Checkpoint**: Production-parity tests surface ≥1 behavior difference. Time-controlled tests cover all 15 temporal behaviors. WebSocket lifecycle verified.
@@ -232,7 +232,7 @@
 - **US2: Backend Coverage (Phase 3)**: Can start after Setup — does not require US1 CI to be merged (tests run locally)
 - **US3: Frontend Coverage (Phase 4)**: Can start after Setup — does not require US1 CI to be merged (tests run locally)
   - Schema tests and hook tests (T019–T043) can start immediately
-  - Component tests (T044–T048) depend on hook tests for infrastructure familiarity
+  - Component tests (T044–T048) are recommended after hook tests for pattern familiarity but have no hard technical dependency
   - Mutation hardening (T049–T050) depends on baseline coverage from schemas + hooks + components
 - **US4: Production-Parity (Phase 5)**: Can start after Setup — independent of coverage phases
 - **US5: Architecture Fitness (Phase 6)**: Can start after Setup — independent of coverage phases
@@ -243,8 +243,8 @@
 
 - **US1 (P1)**: Can start after Phase 1 — No dependencies on other stories
 - **US2 (P1)**: Can start after Phase 1 — Mutation hardening (T016–T018) depends on gap tests (T007–T015)
-- **US3 (P1)**: Can start after Phase 1 — Component tests depend on familiarity from hook tests; mutation hardening depends on baseline coverage
-- **US4 (P2)**: Can start after Phase 1 — Requires freezegun dependency (T051) before time tests
+- **US3 (P1)**: Can start after Phase 1 — Component tests (T044–T047) are recommended after hook tests for pattern familiarity but have no hard technical dependency; mutation hardening (T049–T050) depends on baseline coverage from schemas + hooks + components
+- **US4 (P2)**: Can start after Phase 1 — T051 (freezegun dependency) must complete before T053 (time-controlled tests); T052 and T054 are independent of T051
 - **US5 (P2)**: Can start after Phase 1 — Independent of all other stories
 - **US6 (P3)**: Can start after Phase 1 — Independent of all other stories
 
@@ -253,14 +253,14 @@
 - High-ROI gap tests before mutation hardening (coverage baseline first)
 - Ratchet threshold bumps after corresponding tests pass
 - P1 priority hooks before P2 hooks before P3 hooks
-- Schema tests and hook tests before component tests (Phase 4 depends on Phase 3)
+- Schema tests and hook tests recommended before component tests (pattern familiarity, not a hard dependency)
 
 ### Parallel Opportunities
 
 - **Phase 2 (US1)**: T004 and T005 can run in parallel (different files)
 - **Phase 3 (US2)**: T007–T014 can ALL run in parallel (8 different test files, no dependencies)
 - **Phase 4 (US3)**: T019–T042 can ALL run in parallel (schemas + all 24 hooks = different files); T044–T047 can ALL run in parallel (different component directories)
-- **Phase 5 (US4)**: T053 and T054 can run in parallel (different test approaches)
+- **Phase 5 (US4)**: T052 and T054 can run in parallel (different test approaches); T053 depends on T051 (freezegun install)
 - **Phase 6 (US5)**: T055 and T056 can run in parallel (backend vs frontend)
 - **Cross-story**: US1, US2, US3, US4, US5, US6 can all start in parallel after Phase 1 (if team capacity allows)
 
