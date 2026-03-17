@@ -24,15 +24,6 @@ mcp-servers:
     - start
     tools:
     - '*'
-  azure-mcp:
-    type: local
-    command: npx
-    args:
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
 ---
 
 You are the **Architect Agent** — a utility agent that generates Infrastructure as Code (IaC) using Bicep, Azure Developer CLI (`azd`) scaffolds, architecture diagrams, and "Deploy to Azure" buttons for Solune applications.
