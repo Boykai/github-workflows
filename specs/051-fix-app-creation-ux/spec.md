@@ -32,7 +32,7 @@ As a user creating a new app with a pipeline selected, I want the system to auto
 
 Today, the `pipeline_id` field exists on app creation but is stored without being used. No Parent Issue is created, no sub-issues are spawned, and no polling is started. This story closes that gap by wiring up the existing building blocks.
 
-**Why this priority**: The Parent Issue and pipeline launch is the core value proposition of the app creation flow — it transforms a blank repository into an active, agent-driven project. Without this, users must manually trigger the pipeline.
+**Why this priority**: The Parent Issue and pipeline launch delivers the highest user value, but it depends on reliable template files (Story 1) being in place first. Template files provide the agent configuration that the pipeline needs to execute. This story is P2 because it cannot function correctly without P1, even though it represents the primary reason users create apps through this flow.
 
 **Independent Test**: Can be fully tested by creating a new app with a pipeline selected and verifying that a Parent Issue appears in the repository's Issues tab, sub-issues are created according to the pipeline configuration, and the polling service becomes active.
 
@@ -167,7 +167,7 @@ As a user who just created a new app, I want to see a summary of what was accomp
 
 **Cross-Cutting**
 
-- **FR-023**: System MUST support both `same-repo` and `external-repo` app types for Parent Issue creation, targeting the appropriate owner/repo.
+- **FR-023**: System MUST support both `same-repo` and `external-repo` app types for Parent Issue creation, targeting the appropriate owner/repo. A `same-repo` app uses the current Solune project's repository, while an `external-repo` app creates a new, separate GitHub repository. The Parent Issue is created in whichever repository the app targets.
 
 ### Key Entities
 
@@ -180,7 +180,7 @@ As a user who just created a new app, I want to see a summary of what was accomp
 
 - Pipeline presets are sourced from the current Solune project (not from the newly created repository, which won't have any presets yet).
 - The Parent Issue body includes the app description, a link back to the Solune dashboard, and the agent tracking table — matching the existing `recommendations/confirm` pattern.
-- The `.specify/memory/` directory is intentionally excluded from template files. If this is incorrect, it should be flagged during implementation.
+- The `.specify/memory/` directory is excluded from template files because it contains project-specific learned context that should not be pre-populated in new repositories. New apps should build their own memory through agent interactions.
 - Closing the Parent Issue on app deletion is included in this feature scope (not deferred).
 - The existing name-uniqueness validation for apps prevents duplicate repository creation conflicts.
 - Standard session-based authentication is used for all operations (no special auth changes needed).
