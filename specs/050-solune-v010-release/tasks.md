@@ -385,45 +385,52 @@
 
 ---
 
-## Phase 13: Test Coverage Gap Closure (FR-041, FR-042, FR-043, FR-044)
+## Phase 13: Test Coverage Gap Closure (Parallel Track — FR-041, FR-042, FR-043, FR-044, FR-050, FR-051, FR-052)
 
-**Purpose**: Achieve coverage targets — 80% backend, 70% frontend, E2E for all major flows
+**Purpose**: Achieve coverage targets — ≥80% backend, ≥70% frontend, E2E for all major flows, mutation testing (≥75% BE / ≥60% FE), flaky management (≤5 quarantined)
 
-**Depends on**: All feature phases complete (test final code state)
+**⚠️ PARALLEL TRACK**: This phase runs alongside Phases 4–12 (start immediately after Phase 3). Test tasks target stable code surfaces from completed phases. Final verification (T139, T147) waits for all feature phases to complete.
 
-### Backend Coverage (71% → 80%) (FR-041)
+### Backend Coverage (71% → ≥80%) (FR-041)
 
-- [ ] T130 [P] Add unit tests for security middleware (auth, CSRF, rate limiting, project access) in solune/backend/tests/unit/test_middleware/
-- [ ] T131 [P] Add unit tests for pipeline state persistence service in solune/backend/tests/unit/test_pipeline_state_service.py
-- [ ] T132 [P] Add unit tests for pipeline orchestration and group execution in solune/backend/tests/unit/test_group_executor.py
-- [ ] T133 [P] Add unit tests for webhook handlers in solune/backend/tests/unit/
-- [ ] T134 [P] Add unit tests for extracted GitHub services (issues, PR, branches) in solune/backend/tests/unit/test_github_services/
-- [ ] T135 Verify backend coverage ≥ 80% with `pytest --cov=src --cov-report=term-missing`
+- [ ] T130 [P] Add parameterized API tests covering 200, 401, 403, 404, 422, 429, 500 status codes for all REST endpoints in solune/backend/tests/unit/test_api_status_codes.py
+- [ ] T131 [P] Add unit tests for security middleware (auth, CSRF, rate limiting, project access) in solune/backend/tests/unit/test_middleware/
+- [ ] T132 [P] Add unit tests for pipeline state persistence service in solune/backend/tests/unit/test_pipeline_state_service.py
+- [ ] T133 [P] Add unit tests for pipeline orchestration and group execution in solune/backend/tests/unit/test_group_executor.py
+- [ ] T134 [P] Add unit tests for webhook handlers in solune/backend/tests/unit/
+- [ ] T135 [P] Add unit tests for extracted GitHub services (issues, PR, branches) in solune/backend/tests/unit/test_github_services/
+- [ ] T136 [P] Add property-based tests with Hypothesis for pipeline state transitions and API input validation in solune/backend/tests/property/
+- [ ] T137 [P] Add fuzz tests for webhook payload parsing and chat message injection in solune/backend/tests/fuzz/
+- [ ] T138 Configure CI coverage ratchet — block PRs on any backend coverage decrease in .github/workflows/ci.yml
+- [ ] T139 Verify backend coverage ≥ 80% with `pytest --cov=src --cov-report=term-missing`
 
-### Frontend Coverage (50% → 70%) (FR-042)
+### Frontend Coverage (49% → ≥70%) (FR-042)
 
-- [ ] T136 [P] Add component tests for PipelineBuilder in solune/frontend/tests/components/PipelineBuilder.test.tsx
-- [ ] T137 [P] Add component tests for settings sub-components in solune/frontend/tests/components/settings/
-- [ ] T138 [P] Add component tests for chat attachments and voice input in solune/frontend/tests/components/chat/
-- [ ] T139 [P] Add component tests for auth flow components in solune/frontend/tests/components/auth/
-- [ ] T140 [P] Add component tests for parallel agent layout in solune/frontend/tests/components/agents/
-- [ ] T141 [P] Add hook tests for split pipeline hooks in solune/frontend/tests/hooks/
-- [ ] T142 Verify frontend coverage ≥ 70% with `npm run test:coverage`
+- [ ] T140 [P] Add component tests for PipelineBuilder in solune/frontend/tests/components/PipelineBuilder.test.tsx
+- [ ] T141 [P] Add component tests for settings sub-components in solune/frontend/tests/components/settings/
+- [ ] T142 [P] Add component tests for chat attachments and voice input in solune/frontend/tests/components/chat/
+- [ ] T143 [P] Add component tests for auth flow components in solune/frontend/tests/components/auth/
+- [ ] T144 [P] Add component tests for parallel agent layout in solune/frontend/tests/components/agents/
+- [ ] T145 [P] Add hook tests for split pipeline hooks in solune/frontend/tests/hooks/
+- [ ] T146 [P] Add contract tests with schemathesis against OpenAPI spec in solune/frontend/tests/contract/
+- [ ] T147 Verify frontend coverage ≥ 70% with `npm run test:coverage`
 
 ### E2E Coverage (FR-043, FR-044)
 
-- [ ] T143 [P] Add Playwright E2E test for full flow: create project → configure pipeline → run agents → review PR in solune/frontend/e2e/
-- [ ] T144 [P] Add Playwright E2E test for onboarding tour completion in solune/frontend/e2e/
-- [ ] T145 [P] Add Playwright E2E test for voice input in Chrome and Firefox in solune/frontend/e2e/
-- [ ] T146 [P] Add Playwright E2E test for chat attachment upload in solune/frontend/e2e/
-- [ ] T147 Add axe-core accessibility assertions to all Playwright page navigations (FR-044) in solune/frontend/e2e/
+- [ ] T148 [P] Add Playwright E2E test for full flow: create project → configure pipeline → run agents → review PR in solune/frontend/e2e/
+- [ ] T149 [P] Add Playwright E2E test for onboarding tour completion in solune/frontend/e2e/
+- [ ] T150 [P] Add Playwright E2E test for voice input in Chrome and Firefox in solune/frontend/e2e/
+- [ ] T151 [P] Add Playwright E2E test for chat attachment upload in solune/frontend/e2e/
+- [ ] T152 [P] Add Playwright visual regression tests at 3 viewports (320px, 1024px, 1920px) × light/dark themes (42 snapshots) in solune/frontend/e2e/
+- [ ] T153 Add axe-core accessibility assertions to all Playwright page navigations (FR-044) in solune/frontend/e2e/
 
-### Mutation Testing
+### Mutation & Flaky Management (FR-050, FR-051, FR-052)
 
-- [ ] T148 Run mutmut full suite on backend — address surviving mutants in security and pipeline logic in solune/backend/
-- [ ] T149 Run Stryker full suite on frontend — address surviving mutants in critical paths in solune/frontend/
+- [ ] T154 Run mutmut full suite on backend — address surviving mutants until mutation score ≥ 75% in solune/backend/
+- [ ] T155 Run Stryker full suite on frontend — address surviving mutants until mutation score ≥ 60% in solune/frontend/
+- [ ] T156 Configure nightly flaky test detection and quarantine system — enforce max 5 quarantined tests at any time in .github/workflows/
 
-**Checkpoint**: Backend ≥ 80%, frontend ≥ 70%, E2E covers all major flows, accessibility assertions in place.
+**Checkpoint**: Backend ≥ 80%, frontend ≥ 70%, mutation scores met (≥75% BE, ≥60% FE), E2E covers all major flows, accessibility assertions in place, flaky tests managed.
 
 ---
 
@@ -433,35 +440,36 @@
 
 **Independent Test**: Fresh docker compose up from .env.example — all services healthy in 120s, version strings consistent at 0.1.0
 
-**Depends on**: All previous phases complete
+**Depends on**: All previous phases complete (including Phase 13 parallel track)
 
 ### Version & Changelog (FR-045)
 
-- [ ] T150 [US10] Finalize CHANGELOG.md under [0.1.0] section — document all user-facing changes grouped by category (Security, Pipeline, Agents, Chat, UI, Performance, Docs) with references to FR numbers in solune/CHANGELOG.md
-- [ ] T151 [P] [US10] Verify version string 0.1.0 in solune/backend/pyproject.toml
-- [ ] T152 [P] [US10] Verify version string 0.1.0 in solune/frontend/package.json
-- [ ] T153 [US10] Tag release as v0.1.0
+- [ ] T157 [US10] Finalize CHANGELOG.md under [0.1.0] section — document all user-facing changes grouped by category (Security, Pipeline, Agents, Chat, UI, Performance, Docs) with references to FR numbers in solune/CHANGELOG.md
+- [ ] T158 [P] [US10] Verify version string 0.1.0 in solune/backend/pyproject.toml
+- [ ] T159 [P] [US10] Verify version string 0.1.0 in solune/frontend/package.json
+- [ ] T160 [US10] Tag release as v0.1.0
 
 ### Docker Image Finalization (FR-046)
 
-- [ ] T154 [US10] Verify pinned base image digests (not :latest tags) in solune/backend/Dockerfile (FR-046)
-- [ ] T155 [P] [US10] Verify pinned base image digests in solune/frontend/Dockerfile (FR-046)
-- [ ] T156 [US10] Verify optimized multi-stage builds and healthcheck in solune/docker-compose.yml
+- [ ] T161 [US10] Verify pinned base image digests (not :latest tags) in solune/backend/Dockerfile (FR-046)
+- [ ] T162 [P] [US10] Verify pinned base image digests in solune/frontend/Dockerfile (FR-046)
+- [ ] T163 [US10] Verify optimized multi-stage builds and healthcheck in solune/docker-compose.yml
 
 ### Environment Validation (FR-047, FR-048)
 
-- [ ] T157 [US10] Verify .env.example covers ALL required configuration variables in solune/.env.example (FR-047)
-- [ ] T158 [US10] Verify startup rejects insecure production config (default secrets, debug=true) via integration test (FR-048)
+- [ ] T164 [US10] Verify .env.example covers ALL required configuration variables in solune/.env.example (FR-047)
+- [ ] T165 [US10] Verify startup rejects insecure production config (default secrets, debug=true) via integration test (FR-048)
 
 ### Enhanced Health Endpoint
 
-- [ ] T159 [US10] Enhance GET /api/v1/health to include startup_checks and version per contracts/rest-api.md in solune/backend/src/api/health.py
+- [ ] T166 [US10] Enhance GET /api/v1/health to include startup_checks and version per contracts/rest-api.md in solune/backend/src/api/health.py
 
 ### Release Checklist (FR-049)
 
-- [ ] T160 [US10] Execute full release verification checklist per quickstart.md Release Verification Checklist section:
+- [ ] T167 [US10] Execute full release verification checklist per quickstart.md Release Verification Checklist section:
   - All tests green (pytest, vitest, playwright)
   - Coverage thresholds met (≥70% FE, ≥80% BE)
+  - Mutation thresholds met (≥75% BE, ≥60% FE)
   - Static analysis clean (ruff, pyright, eslint, tsc)
   - Security scans clean (pip-audit, bandit, npm audit)
   - Docker Compose from scratch — all 3 services healthy
@@ -470,7 +478,8 @@
   - WCAG AA contrast verified in both themes
   - Cross-browser: Chrome, Firefox, Edge, Safari
   - No open P1/P2 bugs
-- [ ] T161 [US10] Create release notes summarizing all changes for v0.1.0
+  - Max 5 quarantined flaky tests
+- [ ] T168 [US10] Create release notes summarizing all changes for v0.1.0
 
 **Checkpoint**: Release package validated. All gates passed. Ready to ship v0.1.0.
 
@@ -493,17 +502,21 @@ Phase 1 (Setup) ──────────► Phase 2 (Security & Data Integ
              US1)           US5)          US7)          Hardening     Blocking)
                 |                                        — US2)
                 ▼
-              Phase 5
-           (Builder —
-              US4)
+              Phase 5                    Phase 13 (Test Coverage — PARALLEL TRACK)
+           (Builder —                    ════════════════════════════════════════
+              US4)                       Starts after Phase 3, runs alongside
+                                         Phases 4–12. Tests target stable code
+                                         surfaces as each phase completes.
+                                         Final verification gates (T139, T147)
+                                         wait for all feature phases.
                                  │ (all features complete)
-                    ┌────────────┼────────────┬──────────────┐
-                    ▼            ▼            ▼              ▼
-              Phase 9       Phase 10      Phase 11      Phase 13
-           (Performance    (Visual       (Docs —       (Test
-             — US9)        Polish —       US8)          Coverage)
+                    ┌────────────┼────────────┐
+                    ▼            ▼            ▼
+              Phase 9       Phase 10      Phase 11
+           (Performance    (Visual       (Docs —
+             — US9)        Polish —       US8)
                             US6)
-                                 │ (all done)
+                                 │ (all done + Phase 13 complete)
                                  ▼
                             Phase 14 (Release — US10)
 ```
@@ -519,7 +532,7 @@ Phase 1 (Setup) ──────────► Phase 2 (Security & Data Integ
 - **US7 (P3) Chat & Voice**: Voice fix (T075-T076) has no dependencies. Issue upload depends on US1 (pipeline config). Phase 7.
 - **US8 (P3) Documentation**: Depends on all features complete. Phase 11.
 - **US9 (P3) Performance**: Depends on feature stabilization. Phase 9.
-- **US10 (P1) Release**: Depends on ALL other phases. Phase 14.
+- **US10 (P1) Release**: Depends on ALL other phases (including Phase 13 parallel track). Phase 14.
 
 ### Within Each User Story
 
@@ -543,11 +556,16 @@ Phase 1 (Setup) ──────────► Phase 2 (Security & Data Integ
 - Phase 4 (Pipeline/US1), Phase 6 (Agents/US5), Phase 7 (Chat/US7) can proceed in parallel once Phase 3 is complete
 - Within each track, [P]-marked tasks can parallelize
 
+**Phase 13 (Test Coverage — Parallel Track)**:
+- Starts after Phase 3 and runs alongside Phases 4–12
+- Backend test tasks (T130-T139) can start as backend code stabilizes
+- Frontend test tasks (T140-T147) can start as frontend code stabilizes
+- E2E tasks (T148-T153) can start as features reach checkpoint
+- All [P]-marked test tasks can run in parallel across backend/frontend/E2E
+- **Biggest risk**: Frontend coverage gap (49% → 70%) — start immediately
+
 **Phase 9-11 (Post-Feature)**:
 - Performance (Phase 9), Visual Polish (Phase 10), Documentation (Phase 11) can proceed in parallel
-
-**Within Phase 13 (Test Coverage)**:
-- All [P]-marked test tasks can run in parallel across backend/frontend/E2E
 
 ---
 
@@ -580,6 +598,29 @@ Task T039: "Split usePipelineConfig hook"
 Task T041: "Split GlobalSettings component"
 ```
 
+## Parallel Example: Phase 13 (Test Coverage — Parallel Track)
+
+```bash
+# Phase 13 starts alongside Phase 4 and runs in parallel with feature work:
+
+# Backend tests (start as backend services stabilize):
+Task T130: "Parameterized API tests for status codes"
+Task T131: "Unit tests for security middleware"
+Task T132: "Unit tests for pipeline state persistence"
+Task T136: "Property-based tests with Hypothesis"
+Task T137: "Fuzz tests for webhook payloads and chat injection"
+
+# Frontend tests (start as frontend components stabilize):
+Task T140: "Component tests for PipelineBuilder"
+Task T141: "Component tests for settings sub-components"
+Task T145: "Hook tests for split pipeline hooks"
+Task T146: "Contract tests with schemathesis"
+
+# E2E tests (start as features reach checkpoint):
+Task T148: "E2E full flow test"
+Task T152: "Visual regression at 3 viewports × light/dark"
+```
+
 ## Parallel Example: Feature Tracks (Phases 4-7)
 
 ```bash
@@ -607,12 +648,14 @@ Task T041: "Split GlobalSettings component"
 
 1. Phase 1-2 → Security & persistence foundation ready
 2. Phase 3 → Codebase is clean and maintainable (US3)
-3. Phase 4 → Pipeline features operational (US1 label-based state)
-4. Phase 5 → Visual builder live (US4)
-5. Phase 6-7 → Agent layout + Chat enhancements (US5, US7)
-6. Phase 8-11 → Polish: security hardening, performance, accessibility, docs (US2, US6, US8, US9)
-7. Phase 12-13 → Cleanup + test coverage
-8. Phase 14 → Release validation (US10)
+3. Phase 13 starts → Test coverage parallel track begins (runs alongside all subsequent phases)
+4. Phase 4 → Pipeline features operational (US1 label-based state)
+5. Phase 5 → Visual builder live (US4)
+6. Phase 6-7 → Agent layout + Chat enhancements (US5, US7)
+7. Phase 8-11 → Polish: security hardening, performance, accessibility, docs (US2, US6, US8, US9)
+8. Phase 12 → Blocking feature removal
+9. Phase 13 completes → Test coverage gates verified
+10. Phase 14 → Release validation (US10)
 
 Each phase adds value without breaking previous work.
 
@@ -626,8 +669,9 @@ With multiple developers:
    - Developer B: Track B — Agents + Track D Removal (Phase 6 + 12)
    - Developer C: Track C — Chat & Voice (Phase 7)
    - Developer D: Security Hardening (Phase 8)
+   - Developer E: Test Coverage (Phase 13 — parallel with all tracks above)
 3. Post-feature (Phases 9-11): parallelize performance, polish, docs
-4. Phase 13-14: Full team on test coverage and release
+4. Phase 13 verification + Phase 14: Full team on release
 
 ---
 
@@ -640,5 +684,5 @@ With multiple developers:
 - Stop at any checkpoint to validate story independently
 - All file paths are relative to repository root
 - Migration numbering continues from existing 028 → 029
-- Tests are spec-mandated (FR-041 through FR-044) and grouped in Phase 13 for efficiency
-- Total: 161 tasks across 14 phases covering all 49 functional requirements and 10 user stories
+- Tests are spec-mandated (FR-041 through FR-044, FR-050 through FR-052) and grouped in Phase 13 as a parallel track
+- Total: 168 tasks across 14 phases covering all 49 functional requirements and 10 user stories
