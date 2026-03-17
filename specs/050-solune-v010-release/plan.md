@@ -3,9 +3,11 @@
 **Branch**: `050-solune-v010-release` | **Date**: 2026-03-17 | **Spec**: [spec.md](./spec.md)
 **Input**: Feature specification from `/specs/050-solune-v010-release/spec.md`
 
+**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+
 ## Summary
 
-Ship a public-ready v0.1.0 of Solune covering 49 functional requirements across 9 phases. The release addresses critical data integrity (pipeline state persistence to SQLite), security hardening (cookie flags, encryption enforcement, access control), code quality refactoring (God class split, complexity reduction), core feature delivery (visual pipeline builder, parallel agents, chat enhancements), accessibility compliance (WCAG AA), documentation refresh, test coverage closure (80% backend, 70% frontend), and release engineering (Docker Compose deployment). The existing web application architecture (Python/FastAPI backend + React/Vite frontend + SQLite) is retained with no new infrastructure dependencies.
+Ship a public-ready v0.1.0 of Solune covering 49 functional requirements across 10 user stories in 9 implementation phases. The release addresses critical data integrity (pipeline state persistence to SQLite), security hardening (cookie flags, encryption enforcement, access control), code quality refactoring (God class split, complexity reduction), core feature delivery (visual pipeline builder, parallel agents, chat enhancements), accessibility compliance (WCAG AA), documentation refresh, test coverage closure (≥80% backend, ≥70% frontend with mutation testing), and release engineering (Docker Compose deployment). The existing web application architecture (Python/FastAPI backend + React/Vite frontend + SQLite) is retained with no new infrastructure dependencies.
 
 ## Technical Context
 
@@ -122,3 +124,95 @@ solune/
 | 49 functional requirements in single spec | This is a coordinated release encompassing 24 sub-specs across 9 phases. Each FR maps to a specific, independently verifiable capability. | Splitting into 24 separate specs would lose release-level coordination, dependency tracking, and unified success criteria. The parent issue already manages sub-spec decomposition. |
 | 9-phase execution with complex dependency graph | Phases are ordered by criticality (security first) and dependency (refactoring before features). Parallelism is maximized within constraints. | A flat task list would miss critical ordering (e.g., pipeline persistence before label-based state) and allow unsafe parallelism (e.g., features before security fixes). |
 | God class split producing 3+ new service files | The current 5,338-line `service.py` violates FR-009 (1,500-line limit) and is the primary contributor to maintenance burden. | Leaving the God class intact contradicts FR-009 and blocks the code quality user story (US-3). Partial splits would create inconsistent module boundaries. |
+
+## Constitution Check — Post-Design Re-Evaluation
+
+*GATE: Re-evaluated after Phase 1 design artifacts are complete.*
+
+### I. Specification-First Development — ✅ PASS
+
+All Phase 1 design artifacts directly trace back to spec requirements:
+- `data-model.md` entities map to Key Entities in spec (Pipeline Run, Stage Group, Onboarding Tour State, etc.)
+- `contracts/rest-api.md` endpoints map to functional requirements (FR-001→FR-003, FR-015→FR-017, FR-038, FR-021, FR-022)
+- `contracts/events.md` internal events derive from pipeline state lifecycle in spec (US-1, US-4, US-5)
+- No design artifacts introduce requirements not traceable to the spec
+
+### II. Template-Driven Workflow — ✅ PASS
+
+All generated artifacts follow the canonical structure:
+- `plan.md` follows `plan-template.md` with all required sections filled
+- `research.md` uses Decision/Rationale/Alternatives format for each research item
+- `data-model.md` uses structured Entity/Fields/Validation/Indexes format
+- `contracts/` documents follow REST API and event contract conventions
+
+### III. Agent-Orchestrated Execution — ✅ PASS
+
+Phase 0 (research.md) and Phase 1 (data-model.md, contracts/, quickstart.md) artifacts are complete. This plan is ready for handoff to `speckit.tasks` for Phase 2 task decomposition. All inputs are explicit and documented.
+
+### IV. Test Optionality with Clarity — ✅ PASS
+
+Tests remain spec-mandated (FR-041 through FR-044, FR-050 through FR-052). The design artifacts (data model, API contracts) provide clear contract surfaces for test generation. Mutation testing requirements (FR-050: ≥75% backend, FR-051: ≥60% frontend) and flaky test limits (FR-052: max 5 quarantined) are incorporated into the verification plan.
+
+### V. Simplicity and DRY — ⚠️ PASS WITH JUSTIFICATION (unchanged)
+
+No new complexity was introduced during the design phase. The data model adds 4 new tables (pipeline_runs, pipeline_stage_states, stage_groups, onboarding_tour_state) and extends 2 existing tables — the minimum needed to satisfy FR-001 through FR-003 and FR-038. The API contracts add 12 new endpoints and modify 3 existing ones, each directly mapped to a functional requirement.
+
+## Generated Artifacts
+
+| Artifact | Path | Phase | Description |
+|----------|------|-------|-------------|
+| Research | [research.md](./research.md) | Phase 0 | 10 research items resolving all technical unknowns |
+| Data Model | [data-model.md](./data-model.md) | Phase 1 | 8 entities, relationships, state transitions, migration plan |
+| REST API Contracts | [contracts/rest-api.md](./contracts/rest-api.md) | Phase 1 | 12 new + 3 modified endpoints with request/response schemas |
+| Event Contracts | [contracts/events.md](./contracts/events.md) | Phase 1 | Pipeline state events, WebSocket messages, GitHub label format |
+| Quickstart | [quickstart.md](./quickstart.md) | Phase 1 | Local dev setup, test commands, Docker build, release checklist |
+| Requirements Checklist | [checklists/requirements.md](./checklists/requirements.md) | Pre-existing | FR verification checklist from speckit.specify |
+
+## Execution Phases Overview
+
+The implementation follows a strict phase ordering based on criticality and dependency:
+
+```text
+Phase A: Foundation & Critical Path (P1 — Release Blockers)
+├── Step 1: Setup & Repo Validation (T001–T005) — no dependencies
+├── Step 2: Pipeline State Persistence (US-1, T006–T016) — depends on Step 1
+└── Step 3: Security Hardening (US-2, T017–T026) — parallel with Step 2
+
+Phase B: Code Quality & Features (P2)
+├── Step 4: God Class Split (US-3, T027–T048) — depends on Phase A
+├── Step 5: Visual Pipeline Builder (US-4, T049–T068) — depends on Step 4
+├── Step 6: Agent Orchestration (US-5, T069–T074) — depends on Step 4, parallel with Step 5
+└── Step 7: Remove Blocking Feature (T126–T129) — depends on Step 4, parallel with Steps 5–6
+
+Phase C: Polish (P3)
+├── Step 8: Chat & Voice Enhancements (US-7, T075–T081) — depends on Phase B
+├── Step 9: Performance Optimization (US-9, T093–T102) — depends on Phase B
+├── Step 10: Accessibility & Visual Polish (US-6, T103–T111) — depends on Phase B
+└── Step 11: Documentation & Onboarding (US-8, T112–T125) — depends on Phase B
+
+Phase D: Test Coverage (Parallel Track — runs alongside Phases B & C)
+├── Step 12: Backend 71% → ≥80% (T130–T140)
+├── Step 13: Frontend 49% → ≥70% (T141–T149)
+└── Step 14: Mutation & Flaky Management
+
+Phase E: Release Engineering (Final Gate — US-10, T150–T161)
+├── Step 15: Version & Docker Consistency
+├── Step 16: Startup Validation
+└── Step 17: Release Verification Checklist
+```
+
+### Critical Path
+
+The critical path to release runs through:
+1. **Phase A** → Pipeline persistence + security (release blockers)
+2. **Phase B Step 4** → God class split (highest-risk refactor, unblocks all P2 features)
+3. **Phase D** → Test coverage closure (starts in parallel with Phase A, must complete before Phase E)
+4. **Phase E** → Release verification (final gate)
+
+### Risk Mitigations
+
+| Risk | Mitigation | Fallback |
+|------|-----------|----------|
+| Frontend coverage gap (49% → 70%) | Start Phase D immediately alongside Phase A | Ship at 60% with tracked post-release commitment |
+| God class split regressions | Complete early in Phase B for maximum regression discovery time | Incremental extraction (one domain at a time) |
+| Prior feature validation (037–042) | Phase 1 Step 1 explicitly verifies merge status | Block Phase B until confirmed |
