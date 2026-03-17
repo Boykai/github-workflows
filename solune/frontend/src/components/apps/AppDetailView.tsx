@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Play, Square, Trash2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Play, Square, Trash2, RefreshCw } from 'lucide-react';
 import { useApp, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useConfirmation } from '@/hooks/useConfirmation';
@@ -209,6 +209,32 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
           </dd>
         </div>
       </dl>
+
+      {/* GitHub Links */}
+      {(app.github_repo_url || app.github_project_url) && (
+        <div className="flex flex-wrap gap-3">
+          {app.github_repo_url && (
+            <a
+              href={app.github_repo_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            >
+              <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" /> GitHub Repository
+            </a>
+          )}
+          {app.github_project_url && (
+            <a
+              href={app.github_project_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+            >
+              <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" /> GitHub Project
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex gap-3">

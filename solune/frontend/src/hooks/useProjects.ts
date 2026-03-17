@@ -5,8 +5,10 @@
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { projectsApi, tasksApi } from '@/services/api';
+import type { ApiError } from '@/services/api';
 import { STALE_TIME_MEDIUM, STALE_TIME_PROJECTS } from '@/constants';
 import type { Project, Task } from '@/types';
+import type { CreateProjectRequest, CreateProjectResponse } from '@/types/apps';
 
 interface UseProjectsReturn {
   projects: Project[];
@@ -81,4 +83,15 @@ export function useProjects(selectedProjectId?: string | null): UseProjectsRetur
     refreshProjects,
     refreshTasks,
   };
+}
+
+/** Create a standalone GitHub Project V2. */
+export function useCreateProject() {
+  const queryClient = useQueryClient();
+  return useMutation<CreateProjectResponse, ApiError, CreateProjectRequest>({
+    mutationFn: (data) => projectsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+    },
+  });
 }

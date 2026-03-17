@@ -2,9 +2,11 @@
  * ProjectSelector — dropdown overlay for switching between GitHub projects.
  */
 
-import { useEffect, useRef } from 'react';
-import { Check } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Check, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useOwners } from '@/hooks/useApps';
+import { useCreateProject } from '@/hooks/useProjects';
 import type { Project } from '@/types';
 
 interface ProjectSelectorProps {
@@ -27,6 +29,20 @@ export function ProjectSelector({
   className,
 }: ProjectSelectorProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+  const [showNewProjectDialog, setShowNewProjectDialog] = useState(false);
+  const [newProjectTitle, setNewProjectTitle] = useState('');
+  const [newProjectOwner, setNewProjectOwner] = useState('');
+  const [newProjectError, setNewProjectError] = useState<string | null>(null);
+  const { data: owners } = useOwners();
+  const createProject = useCreateProject();
+
+  // Set default owner when owners load
+  useEffect(() => {
+    if (owners && owners.length > 0 && !newProjectOwner) {
+      setNewProjectOwner(owners[0].login);
+    }
+  }, [owners, newProjectOwner]);
 
   // Close on outside click
   useEffect(() => {
@@ -44,11 +60,62 @@ export function ProjectSelector({
   useEffect(() => {
     if (!isOpen) return;
     function handleKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        if (showNewProjectDialog) {
+          setShowNewProjectDialog(false);
+        } else {
+          onClose();
+        }
+      }
     }
     document.addEventListener('keydown', handleKey);
     return () => document.removeEventListener('keydown', handleKey);
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, showNewProjectDialog]);
+
+  // Reset form state when the selector closes
+  useEffect(() => {
+    if (!isOpen) {
+      setShowNewProjectDialog(false);
+      setNewProjectTitle('');
+      setNewProjectError(null);
+    }
+  }, [isOpen]);
+
+  // Focus the title input when the new-project form opens
+  useEffect(() => {
+    if (showNewProjectDialog) {
+      titleInputRef.current?.focus();
+    }
+  }, [showNewProjectDialog]);
+
+  const handleCreateProject = () => {
+    if (!newProjectTitle.trim()) {
+      setNewProjectError('Project title is required.');
+      return;
+    }
+    if (!newProjectOwner) {
+      setNewProjectError('Owner is required.');
+      return;
+    }
+    setNewProjectError(null);
+    createProject.mutate(
+      { title: newProjectTitle.trim(), owner: newProjectOwner },
+      {
+        onSuccess: (data) => {
+          setShowNewProjectDialog(false);
+          setNewProjectTitle('');
+          // Auto-select the new project
+          if (data.project_id) {
+            onSelectProject(data.project_id);
+          }
+          onClose();
+        },
+        onError: () => {
+          setNewProjectError('Failed to create project. Please try again.');
+        },
+      }
+    );
+  };
 
   if (!isOpen) return null;
 
@@ -106,6 +173,68 @@ export function ProjectSelector({
           ))}
         </div>
       )}
+
+      {/* New Project option */}
+      <div className="border-t border-border/70">
+        {!showNewProjectDialog ? (
+          <button
+            type="button"
+            onClick={() => setShowNewProjectDialog(true)}
+            className="flex w-full items-center gap-2 px-3 py-2.5 text-left text-sm font-medium text-primary hover:bg-primary/10 transition-colors"
+          >
+            <Plus className="h-4 w-4" /> New Project
+          </button>
+        ) : (
+          <div className="p-3 space-y-2">
+            <p className="text-xs font-semibold text-zinc-500 dark:text-zinc-400">Create New Project</p>
+            {newProjectError && (
+              <p className="text-xs text-red-500">{newProjectError}</p>
+            )}
+            <input
+              ref={titleInputRef}
+              type="text"
+              placeholder="Project title"
+              aria-label="Project title"
+              value={newProjectTitle}
+              onChange={(e) => setNewProjectTitle(e.target.value)}
+              className="w-full rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            />
+            <select
+              value={newProjectOwner}
+              onChange={(e) => setNewProjectOwner(e.target.value)}
+              aria-label="Project owner"
+              className="w-full rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+            >
+              {(owners ?? []).map((o) => (
+                <option key={o.login} value={o.login}>
+                  {o.login} ({o.type})
+                </option>
+              ))}
+            </select>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowNewProjectDialog(false);
+                  setNewProjectTitle('');
+                  setNewProjectError(null);
+                }}
+                className="flex-1 rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleCreateProject}
+                disabled={createProject.isPending}
+                className="flex-1 rounded-md bg-primary px-2 py-1 text-xs font-medium text-white hover:bg-primary/90 disabled:opacity-50"
+              >
+                {createProject.isPending ? 'Creating…' : 'Create'}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

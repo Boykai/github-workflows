@@ -26,6 +26,7 @@ from src.models.app import (
     AppStatus,
     AppStatusResponse,
     AppUpdate,
+    RepoType,
 )
 
 if TYPE_CHECKING:
@@ -118,6 +119,9 @@ def _row_to_app(row: aiosqlite.Row) -> App:
         status=AppStatus(row["status"]),
         repo_type=row["repo_type"],
         external_repo_url=row["external_repo_url"],
+        github_repo_url=row["github_repo_url"],
+        github_project_url=row["github_project_url"],
+        github_project_id=row["github_project_id"],
         port=row["port"],
         error_message=row["error_message"],
         created_at=row["created_at"],
@@ -191,6 +195,11 @@ async def create_app(
     github_service: GitHubProjectsService,
 ) -> App:
     """Create a new application by committing scaffold files to a GitHub branch."""
+    if payload.repo_type == RepoType.NEW_REPO:
+        return await create_app_with_new_repo(
+            db, payload, access_token=access_token, github_service=github_service
+        )
+
     validate_app_name(payload.name)
 
     # Check for duplicate
@@ -205,6 +214,8 @@ async def create_app(
         raise ValidationError("Default repository not configured (DEFAULT_REPOSITORY).")
 
     branch_name = payload.branch
+    if not branch_name:
+        raise ValidationError("Branch is required for same-repo and external-repo app types.")
 
     # Resolve branch HEAD
     head_oid = await github_service.get_branch_head_oid(
@@ -285,6 +296,246 @@ async def create_app(
     if not row:
         raise NotFoundError(f"App '{payload.name}' not found after creation.")
     return _row_to_app(row)
+
+
+# ---------------------------------------------------------------------------
+# New-repo creation orchestration
+# ---------------------------------------------------------------------------
+
+
+async def create_app_with_new_repo(
+    db: aiosqlite.Connection,
+    payload: AppCreate,
+    *,
+    access_token: str,
+    github_service: GitHubProjectsService,
+) -> App:
+    """Create a new app by first creating a new GitHub repository.
+
+    Flow: validate → create repo → commit template files → optionally create
+    project → link project → insert DB record.
+
+    Error tolerance:
+    * Repo creation failure → entire operation fails.
+    * Project creation / linking failure after repo → app created with null
+      project fields (partial success).
+    """
+    from src.services.template_files import build_template_files
+
+    validate_app_name(payload.name)
+
+    # Check for duplicate
+    cursor = await db.execute("SELECT name FROM apps WHERE name = ?", (payload.name,))
+    if await cursor.fetchone():
+        raise ConflictError(f"App '{payload.name}' already exists.")
+
+    if not payload.repo_owner:
+        raise ValidationError("repo_owner is required when creating a new repository.")
+
+    is_private = payload.repo_visibility != "public"
+
+    # Optionally enhance the description with AI
+    description = payload.description
+    if payload.ai_enhance:
+        description = await _enhance_app_description(
+            payload.display_name,
+            description,
+            access_token=access_token,
+        )
+
+    # 1. Create the GitHub repository
+    repo_data = await github_service.create_repository(
+        access_token,
+        payload.name,
+        owner=payload.repo_owner
+        if payload.repo_owner != (await _get_authenticated_username(access_token, github_service))
+        else None,
+        private=is_private,
+        description=description,
+        auto_init=True,
+    )
+    logger.info("Created repository %s", repo_data.get("full_name"))
+
+    repo_owner = repo_data["full_name"].split("/")[0]
+    repo_name = repo_data["name"]
+    default_branch = repo_data.get("default_branch", "main")
+
+    # 2. Get HEAD OID for template commit
+    import asyncio
+
+    head_oid: str | None = None
+    last_poll_exc: Exception | None = None
+    for _attempt in range(5):
+        try:
+            info = await github_service.get_repository_info(access_token, repo_owner, repo_name)
+            head_oid = info.get("head_oid")
+            if head_oid:
+                break
+        except Exception as exc:
+            last_poll_exc = exc
+        await asyncio.sleep(1)
+
+    if not head_oid:
+        detail = f" Last error: {last_poll_exc}" if last_poll_exc else ""
+        raise ValidationError(
+            f"Repository '{repo_data['full_name']}' was created but default branch "
+            f"is not yet available. Please try again.{detail}"
+        )
+
+    # 3. Commit template files
+    template_files = await build_template_files(payload.name, payload.display_name)
+    if template_files:
+        commit_oid = await github_service.commit_files(
+            access_token=access_token,
+            owner=repo_owner,
+            repo=repo_name,
+            branch_name=default_branch,
+            head_oid=head_oid,
+            files=template_files,
+            message="scaffold: initial template files",
+        )
+        if commit_oid:
+            logger.info(
+                "Committed %d template files to %s", len(template_files), repo_data["full_name"]
+            )
+        else:
+            logger.warning("Failed to commit template files to %s", repo_data["full_name"])
+
+    # 4. Optionally create and link a Project V2
+    github_repo_url: str | None = repo_data.get("html_url")
+    github_project_url: str | None = None
+    github_project_id: str | None = None
+
+    if payload.create_project:
+        try:
+            project = await github_service.create_project_v2(
+                access_token,
+                owner=repo_owner,
+                title=payload.display_name,
+            )
+            github_project_id = project.get("id")
+            github_project_url = project.get("url")
+
+            # Link project to repository
+            if github_project_id and repo_data.get("node_id"):
+                try:
+                    await github_service.link_project_to_repository(
+                        access_token,
+                        project_id=github_project_id,
+                        repository_id=repo_data["node_id"],
+                    )
+                except Exception as exc:
+                    logger.warning("Non-blocking: could not link project to repo: %s", exc)
+        except Exception as exc:
+            logger.warning(
+                "Non-blocking: project creation failed for app '%s': %s",
+                payload.name,
+                exc,
+            )
+            # Partial success — app is still created with null project fields.
+
+    # 5. Insert into database
+    directory_path = f"apps/{payload.name}"
+    now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    await db.execute(
+        """
+        INSERT INTO apps (
+            name, display_name, description, directory_path,
+            associated_pipeline_id, status, repo_type, external_repo_url,
+            github_repo_url, github_project_url, github_project_id,
+            created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            payload.name,
+            payload.display_name,
+            description,
+            directory_path,
+            payload.pipeline_id,
+            AppStatus.ACTIVE.value,
+            RepoType.NEW_REPO.value,
+            None,
+            github_repo_url,
+            github_project_url,
+            github_project_id,
+            now,
+            now,
+        ),
+    )
+    await db.commit()
+
+    logger.info(
+        "Created app '%s' with new repo %s (project=%s)",
+        payload.name,
+        repo_data.get("full_name"),
+        github_project_url or "none",
+    )
+
+    cursor = await db.execute("SELECT * FROM apps WHERE name = ?", (payload.name,))
+    row = await cursor.fetchone()
+    if not row:
+        raise NotFoundError(f"App '{payload.name}' not found after creation.")
+    return _row_to_app(row)
+
+
+async def _get_authenticated_username(
+    access_token: str,
+    github_service: GitHubProjectsService,
+) -> str:
+    """Fetch the authenticated user's login."""
+    from typing import cast
+
+    user = cast(dict, await github_service._rest(access_token, "GET", "/user"))
+    return user.get("login", "")
+
+
+async def create_standalone_project(
+    access_token: str,
+    owner: str,
+    title: str,
+    github_service: GitHubProjectsService,
+    *,
+    repo_owner: str | None = None,
+    repo_name: str | None = None,
+) -> dict:
+    """Create a standalone GitHub Project V2 without creating a new repo.
+
+    Args:
+        access_token: GitHub OAuth access token.
+        owner: Project owner login.
+        title: Project title.
+        github_service: GitHub API service.
+        repo_owner: Optional repository owner to link to.
+        repo_name: Optional repository name to link to.
+
+    Returns:
+        ``{project_id, project_number, project_url}``
+    """
+    project = await github_service.create_project_v2(access_token, owner=owner, title=title)
+
+    result = {
+        "project_id": project.get("id", ""),
+        "project_number": project.get("number"),
+        "project_url": project.get("url", ""),
+    }
+
+    # Optionally link to an existing repository
+    if repo_owner and repo_name and project.get("id"):
+        try:
+            repo_info = await github_service.get_repository_info(
+                access_token, repo_owner, repo_name
+            )
+            repo_node_id = repo_info.get("repository_id")
+            if repo_node_id:
+                await github_service.link_project_to_repository(
+                    access_token,
+                    project_id=project["id"],
+                    repository_id=repo_node_id,
+                )
+        except Exception as exc:
+            logger.warning("Non-blocking: could not link project to repo: %s", exc)
+
+    return result
 
 
 async def list_apps(

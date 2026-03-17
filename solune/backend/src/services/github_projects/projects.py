@@ -10,16 +10,20 @@ from src.models.task import Task
 from src.services.done_items_store import save_done_items
 from src.services.github_projects.graphql import (
     CREATE_DRAFT_ITEM_MUTATION,
+    CREATE_PROJECT_V2_MUTATION,
     GET_PROJECT_FIELD_QUERY,
     GET_PROJECT_FIELDS_QUERY,
     GET_PROJECT_ITEMS_QUERY,
     GET_PROJECT_OWNER_INFO_QUERY,
     GET_PROJECT_REPOSITORY_QUERY,
+    GET_PROJECT_STATUS_FIELD_QUERY,
+    LINK_PROJECT_V2_TO_REPO_MUTATION,
     LIST_ORG_PROJECTS_QUERY,
     LIST_USER_PROJECTS_QUERY,
     UPDATE_DATE_FIELD_MUTATION,
     UPDATE_ITEM_STATUS_MUTATION,
     UPDATE_NUMBER_FIELD_MUTATION,
+    UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION,
     UPDATE_SINGLE_SELECT_FIELD_MUTATION,
     UPDATE_TEXT_FIELD_MUTATION,
 )
@@ -30,9 +34,123 @@ API_ACTION_DELAY_SECONDS: float = 2.0
 
 logger = get_logger(__name__)
 
+# Default Solune project status columns.
+_SOLUNE_STATUS_OPTIONS = [
+    {"name": "Backlog", "color": "GRAY"},
+    {"name": "In Progress", "color": "YELLOW"},
+    {"name": "In Review", "color": "ORANGE"},
+    {"name": "Done", "color": "GREEN"},
+]
+
 
 class ProjectsMixin:
     """Project listing, items, fields, status management, and change detection."""
+
+    # ------------------------------------------------------------------
+    # 049 — Project creation & linking
+    # ------------------------------------------------------------------
+
+    async def create_project_v2(
+        self,
+        access_token: str,
+        owner: str,
+        title: str,
+    ) -> dict:
+        """Create a GitHub Project V2 and best-effort configure status columns.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            owner: Owner login (user or org).
+            title: Project title.
+
+        Returns:
+            ``{id, number, url}`` where *id* is the GraphQL node ID.
+        """
+        from typing import cast as _cast
+
+        # Resolve the owner's node_id.
+        # Try user first; fall back to org.
+        try:
+            user_data = _cast(dict, await self._rest(access_token, "GET", f"/users/{owner}"))
+            owner_node_id: str = user_data["node_id"]
+        except Exception:
+            org_data = _cast(dict, await self._rest(access_token, "GET", f"/orgs/{owner}"))
+            owner_node_id = org_data["node_id"]
+
+        # Create the project.
+        data = await self._graphql(
+            access_token,
+            CREATE_PROJECT_V2_MUTATION,
+            {"ownerId": owner_node_id, "title": title},
+        )
+        project = (data.get("createProjectV2") or {}).get("projectV2") or {}
+        project_id: str = project.get("id", "")
+        result = {
+            "id": project_id,
+            "number": project.get("number"),
+            "url": project.get("url", ""),
+        }
+
+        # Best-effort: configure the default Status field options.
+        try:
+            await self._configure_project_status(access_token, project_id)
+        except Exception as exc:
+            logger.warning(
+                "Non-blocking: could not configure status columns for project %s: %s",
+                project_id,
+                exc,
+            )
+
+        return result
+
+    async def _configure_project_status(
+        self,
+        access_token: str,
+        project_id: str,
+    ) -> None:
+        """Set the Solune default status options on a project's Status field."""
+        # Fetch the Status field ID.
+        data = await self._graphql(
+            access_token,
+            GET_PROJECT_STATUS_FIELD_QUERY,
+            {"projectId": project_id},
+        )
+        field = ((data.get("node") or {}).get("field")) or {}
+        field_id = field.get("id")
+        if not field_id:
+            logger.debug("No Status field found for project %s", project_id)
+            return
+
+        await self._graphql(
+            access_token,
+            UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION,
+            {
+                "fieldId": field_id,
+                "projectId": project_id,
+                "options": _SOLUNE_STATUS_OPTIONS,
+            },
+        )
+        logger.info("Configured Solune status columns for project %s", project_id)
+
+    async def link_project_to_repository(
+        self,
+        access_token: str,
+        project_id: str,
+        repository_id: str,
+    ) -> None:
+        """Link a GitHub Project V2 to a repository.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            project_id: Project GraphQL node ID.
+            repository_id: Repository GraphQL node ID.
+        """
+        await self._graphql(
+            access_token,
+            LINK_PROJECT_V2_TO_REPO_MUTATION,
+            {"projectId": project_id, "repositoryId": repository_id},
+        )
+        logger.info("Linked project %s to repository %s", project_id, repository_id)
 
     async def list_user_projects(
         self, access_token: str, username: str, limit: int = 20

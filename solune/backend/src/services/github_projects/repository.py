@@ -4,6 +4,7 @@ from __future__ import annotations
 import base64
 from typing import cast
 
+from src.exceptions import GitHubAPIError
 from src.logging_utils import get_logger
 from src.services.github_projects.graphql import (
     CREATE_COMMIT_ON_BRANCH_MUTATION,
@@ -15,6 +16,99 @@ logger = get_logger(__name__)
 
 class RepositoryMixin:
     """Repository info, file/directory contents, and commit operations."""
+
+    async def create_repository(
+        self,
+        access_token: str,
+        name: str,
+        *,
+        owner: str | None = None,
+        private: bool = True,
+        description: str = "",
+        auto_init: bool = True,
+    ) -> dict:
+        """Create a new GitHub repository.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            name: Repository name.
+            owner: Organisation login. ``None`` = personal account.
+            private: Whether the repository should be private.
+            description: Repository description.
+            auto_init: Initialise with a README so the default branch exists.
+
+        Returns:
+            ``{id, node_id, name, full_name, html_url, default_branch}``
+        """
+        body: dict = {
+            "name": name,
+            "private": private,
+            "description": description,
+            "auto_init": auto_init,
+        }
+
+        if owner:
+            endpoint = f"/orgs/{owner}/repos"
+        else:
+            endpoint = "/user/repos"
+
+        response = await self._rest_response(access_token, "POST", endpoint, json=body)
+        if response.status_code >= 400:
+            # GitHub returns {"message": "...", "errors": [...]} on failure
+            try:
+                err_body = response.json()
+            except Exception:
+                err_body = {"message": response.text}
+            msg = err_body.get("message", "Unknown error")
+            details = err_body.get("errors", [])
+            raise GitHubAPIError(
+                f"Failed to create repository '{name}': {msg}",
+                details={"github_errors": details, "status_code": response.status_code},
+            )
+
+        data = cast(dict, response.json())
+        return {
+            "id": data.get("id"),
+            "node_id": data.get("node_id"),
+            "name": data.get("name"),
+            "full_name": data.get("full_name"),
+            "html_url": data.get("html_url"),
+            "default_branch": data.get("default_branch", "main"),
+        }
+
+    async def list_available_owners(
+        self,
+        access_token: str,
+    ) -> list[dict]:
+        """Return accounts where the user can create repositories.
+
+        Returns the personal account first, followed by organisations.
+
+        Returns:
+            ``[{login, avatar_url, type}, …]``
+        """
+        # Personal account
+        user = cast(dict, await self._rest(access_token, "GET", "/user"))
+        owners: list[dict] = [
+            {
+                "login": user.get("login", ""),
+                "avatar_url": user.get("avatar_url", ""),
+                "type": "User",
+            }
+        ]
+
+        # Organisations
+        orgs = cast(list, await self._rest(access_token, "GET", "/user/orgs"))
+        owners.extend(
+            {
+                "login": org.get("login", ""),
+                "avatar_url": org.get("avatar_url", ""),
+                "type": "Organization",
+            }
+            for org in orgs
+        )
+
+        return owners
 
     async def get_repository_owner(
         self,

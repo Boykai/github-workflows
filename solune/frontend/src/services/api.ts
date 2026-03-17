@@ -265,6 +265,16 @@ export const projectsApi = {
       method: 'POST',
     });
   },
+
+  /**
+   * Create a standalone GitHub Project V2.
+   */
+  create(data: CreateProjectRequest): Promise<CreateProjectResponse> {
+    return request<CreateProjectResponse>('/projects/create', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 // ============ Tasks API ============
@@ -1141,7 +1151,7 @@ export const agentToolsApi = {
 
 // ============ Apps API (041-solune-rebrand-app-builder) ============
 
-import type { App, AppCreate, AppUpdate, AppStatusResponse, AppStatus } from '@/types/apps';
+import type { App, AppCreate, AppUpdate, AppStatusResponse, AppStatus, Owner, CreateProjectRequest, CreateProjectResponse } from '@/types/apps';
 
 export const appsApi = {
   list(status?: AppStatus): Promise<App[]> {
@@ -1181,5 +1191,9 @@ export const appsApi = {
 
   status(appName: string): Promise<AppStatusResponse> {
     return request<AppStatusResponse>(`/apps/${appName}/status`);
+  },
+
+  owners(): Promise<Owner[]> {
+    return request<Owner[]>('/apps/owners');
   },
 };

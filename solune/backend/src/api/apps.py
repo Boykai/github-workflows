@@ -30,6 +30,16 @@ router = APIRouter()
 _SessionDep = Annotated[UserSession, Depends(get_session_dep)]
 
 
+@router.get("/owners")
+async def list_owners_endpoint(
+    request: Request,
+    session: _SessionDep,
+) -> list[dict]:
+    """List accounts where the authenticated user can create repositories."""
+    github_service = get_github_service(request)
+    return await github_service.list_available_owners(session.access_token)
+
+
 @router.get("", response_model=list[App])
 async def list_apps_endpoint(
     _session: _SessionDep,

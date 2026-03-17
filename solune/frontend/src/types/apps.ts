@@ -1,7 +1,7 @@
 /** Application management types for the Solune platform. */
 
 export type AppStatus = 'creating' | 'active' | 'stopped' | 'error';
-export type RepoType = 'same-repo' | 'external-repo';
+export type RepoType = 'same-repo' | 'external-repo' | 'new-repo';
 
 export interface App {
   name: string;
@@ -12,6 +12,9 @@ export interface App {
   status: AppStatus;
   repo_type: RepoType;
   external_repo_url: string | null;
+  github_repo_url: string | null;
+  github_project_url: string | null;
+  github_project_id: string | null;
   port: number | null;
   error_message: string | null;
   created_at: string;
@@ -22,10 +25,13 @@ export interface AppCreate {
   name: string;
   display_name: string;
   description?: string;
-  branch: string;
+  branch?: string;
   pipeline_id?: string;
   repo_type?: RepoType;
   external_repo_url?: string;
+  repo_owner?: string;
+  repo_visibility?: 'public' | 'private';
+  create_project?: boolean;
   ai_enhance?: boolean;
 }
 
@@ -40,4 +46,23 @@ export interface AppStatusResponse {
   status: AppStatus;
   port: number | null;
   error_message: string | null;
+}
+
+export interface Owner {
+  login: string;
+  avatar_url: string;
+  type: 'User' | 'Organization';
+}
+
+export interface CreateProjectRequest {
+  title: string;
+  owner: string;
+  repo_owner?: string;
+  repo_name?: string;
+}
+
+export interface CreateProjectResponse {
+  project_id: string;
+  project_number: number;
+  project_url: string;
 }

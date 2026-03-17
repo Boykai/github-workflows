@@ -6,15 +6,21 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ChevronDown, Plus, RefreshCw, Sparkles } from 'lucide-react';
-import { useApps, useCreateApp, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
+import { ChevronDown, GitBranch, Plus, RefreshCw, Sparkles } from 'lucide-react';
+import { useApps, useCreateApp, useOwners, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
 import { AppCard } from '@/components/apps/AppCard';
 import { AppDetailView } from '@/components/apps/AppDetailView';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { isRateLimitApiError } from '@/utils/rateLimit';
-import type { AppCreate } from '@/types/apps';
+import type { AppCreate, RepoType } from '@/types/apps';
+
+const REPO_TYPE_OPTIONS: { value: RepoType; label: string }[] = [
+  { value: 'same-repo', label: 'Same Repo' },
+  { value: 'new-repo', label: 'New Repository' },
+  { value: 'external-repo', label: 'External Repo' },
+];
 
 export function AppsPage() {
   const { appName } = useParams<{ appName?: string }>();
@@ -25,16 +31,28 @@ export function AppsPage() {
   const stopMutation = useStopApp();
   const deleteMutation = useDeleteApp();
   const { confirm } = useConfirmation();
+  const { data: owners } = useOwners();
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [aiEnhance, setAiEnhance] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [repoType, setRepoType] = useState<RepoType>('same-repo');
+  const [repoOwner, setRepoOwner] = useState('');
+  const [repoVisibility, setRepoVisibility] = useState<'public' | 'private'>('private');
+  const [createProject, setCreateProject] = useState(true);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Set default owner when owners are loaded
+  useEffect(() => {
+    if (owners && owners.length > 0 && !repoOwner) {
+      setRepoOwner(owners[0].login);
+    }
+  }, [owners, repoOwner]);
 
   useEffect(() => {
     return () => {
@@ -55,12 +73,18 @@ export function AppsPage() {
     errorTimerRef.current = setTimeout(() => setActionError(null), 5000);
   }, []);
 
-  const openCreateDialog = () => {
+  const openCreateDialog = (initialRepoType?: RepoType) => {
     createMutation.reset();
     setCreateError(null);
     setDisplayName('');
     setAiEnhance(true);
     setShowAdvanced(false);
+    setRepoType(initialRepoType ?? 'same-repo');
+    setRepoVisibility('private');
+    setCreateProject(true);
+    if (owners && owners.length > 0) {
+      setRepoOwner(owners[0].login);
+    }
     setShowCreateDialog(true);
   };
 
@@ -155,16 +179,10 @@ export function AppsPage() {
     const description = String(formData.get('description') ?? '').trim();
     // Use overrides from advanced section if provided, otherwise use derived values
     const nameOverride = String(formData.get('name') ?? '').trim();
-    const branchOverride = String(formData.get('branch') ?? '').trim();
     const name = nameOverride || derivedName;
-    const branch = branchOverride || derivedBranch;
 
     if (!name || !trimmedDisplayName) {
       setCreateError('Display name is required.');
-      return;
-    }
-    if (!branch) {
-      setCreateError('Target branch could not be derived. Please provide a display name.');
       return;
     }
 
@@ -172,9 +190,41 @@ export function AppsPage() {
       name,
       display_name: trimmedDisplayName,
       description,
-      branch,
       ai_enhance: aiEnhance,
+      repo_type: repoType,
     };
+
+    if (repoType === 'new-repo') {
+      if (!repoOwner) {
+        setCreateError('Repository owner is required for new repository.');
+        return;
+      }
+      payload.repo_owner = repoOwner;
+      payload.repo_visibility = repoVisibility;
+      payload.create_project = createProject;
+    } else if (repoType === 'external-repo') {
+      const url = String(formData.get('external_repo_url') ?? '').trim();
+      if (!url) {
+        setCreateError('External repository URL is required.');
+        return;
+      }
+      payload.external_repo_url = url;
+      const branchOverride = String(formData.get('branch') ?? '').trim();
+      payload.branch = branchOverride || derivedBranch;
+      if (!payload.branch) {
+        setCreateError('Target branch could not be derived.');
+        return;
+      }
+    } else {
+      // same-repo
+      const branchOverride = String(formData.get('branch') ?? '').trim();
+      payload.branch = branchOverride || derivedBranch;
+      if (!payload.branch) {
+        setCreateError('Target branch could not be derived. Please provide a display name.');
+        return;
+      }
+    }
+
     createMutation.mutate(payload, {
       onSuccess: (createdApp) => {
         closeCreateDialog();
@@ -200,14 +250,23 @@ export function AppsPage() {
               Create, manage, and preview your applications.
             </p>
           </div>
-          <button
-            ref={createButtonRef}
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-            onClick={openCreateDialog}
-          >
-            <Plus aria-hidden="true" className="h-4 w-4" /> Create App
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              onClick={() => openCreateDialog('new-repo')}
+            >
+              <GitBranch aria-hidden="true" className="h-4 w-4" /> New Repository
+            </button>
+            <button
+              ref={createButtonRef}
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+              onClick={() => openCreateDialog()}
+            >
+              <Plus aria-hidden="true" className="h-4 w-4" /> Create App
+            </button>
+          </div>
         </div>
 
         {/* Success feedback */}
@@ -262,7 +321,7 @@ export function AppsPage() {
             <button
               type="button"
               className="text-sm font-medium text-emerald-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:text-emerald-400"
-              onClick={openCreateDialog}
+              onClick={() => openCreateDialog()}
             >
               Create your first app →
             </button>
@@ -308,7 +367,7 @@ export function AppsPage() {
             >
               <form
                 onSubmit={handleCreate}
-                className="w-full max-w-md rounded-xl border border-border/80 bg-card p-6 shadow-xl"
+                className="w-full max-w-md rounded-xl border border-border/80 bg-card p-6 shadow-xl max-h-[85vh] overflow-y-auto"
               >
                 <h2 id="create-app-dialog-title" className="mb-4 text-lg font-bold text-foreground">
                   Create App
@@ -322,6 +381,30 @@ export function AppsPage() {
                   </div>
                 )}
                 <div className="space-y-4">
+                  {/* Repo Type Selector */}
+                  <div>
+                    <span className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                      Repository Type
+                    </span>
+                    <div className="flex rounded-lg border border-zinc-300 dark:border-zinc-700 p-0.5">
+                      {REPO_TYPE_OPTIONS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => setRepoType(opt.value)}
+                          className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                            repoType === opt.value
+                              ? 'bg-emerald-600 text-white shadow-sm'
+                              : 'text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Display Name */}
                   <div>
                     <label htmlFor="app-display-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                       Display Name
@@ -337,12 +420,19 @@ export function AppsPage() {
                       onChange={(e) => setDisplayName(e.target.value)}
                       className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
-                    {derivedName && (
+                    {derivedName && repoType !== 'new-repo' && (
                       <p className="mt-1 text-xs text-zinc-400">
                         Name: <span className="font-mono">{derivedName}</span> · Branch: <span className="font-mono">{derivedBranch}</span>
                       </p>
                     )}
+                    {derivedName && repoType === 'new-repo' && (
+                      <p className="mt-1 text-xs text-zinc-400">
+                        Repo name: <span className="font-mono">{derivedName}</span>
+                      </p>
+                    )}
                   </div>
+
+                  {/* Description */}
                   <div>
                     <label htmlFor="app-description" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                       Description
@@ -355,6 +445,112 @@ export function AppsPage() {
                       className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                     />
                   </div>
+
+                  {/* New Repository-specific fields */}
+                  {repoType === 'new-repo' && (
+                    <div className="space-y-3 rounded-lg border border-zinc-200 bg-zinc-50 p-3 dark:border-zinc-700 dark:bg-zinc-800/50">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+                        New Repository Settings
+                      </p>
+                      {/* Owner selector */}
+                      <div>
+                        <label htmlFor="repo-owner" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          Owner
+                        </label>
+                        <select
+                          id="repo-owner"
+                          value={repoOwner}
+                          onChange={(e) => setRepoOwner(e.target.value)}
+                          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        >
+                          {(owners ?? []).map((o) => (
+                            <option key={o.login} value={o.login}>
+                              {o.login} ({o.type})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {/* Visibility toggle */}
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          Visibility
+                        </span>
+                        <div className="flex rounded-md border border-zinc-300 dark:border-zinc-600 p-0.5">
+                          <button
+                            type="button"
+                            onClick={() => setRepoVisibility('private')}
+                            className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                              repoVisibility === 'private'
+                                ? 'bg-zinc-700 text-white dark:bg-zinc-500'
+                                : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'
+                            }`}
+                          >
+                            Private
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setRepoVisibility('public')}
+                            className={`rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+                              repoVisibility === 'public'
+                                ? 'bg-zinc-700 text-white dark:bg-zinc-500'
+                                : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400'
+                            }`}
+                          >
+                            Public
+                          </button>
+                        </div>
+                      </div>
+                      {/* Create project checkbox */}
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={createProject}
+                          onChange={(e) => setCreateProject(e.target.checked)}
+                          className="h-4 w-4 rounded border-zinc-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span className="text-xs text-zinc-600 dark:text-zinc-400">
+                          Create linked GitHub Project (with Solune default columns)
+                        </span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* External Repo URL field */}
+                  {repoType === 'external-repo' && (
+                    <div>
+                      <label htmlFor="external-repo-url" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Repository URL
+                      </label>
+                      <input
+                        id="external-repo-url"
+                        name="external_repo_url"
+                        type="url"
+                        required
+                        placeholder="https://github.com/owner/repo"
+                        className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                    </div>
+                  )}
+
+                  {/* Branch field for same-repo and external-repo */}
+                  {(repoType === 'same-repo' || repoType === 'external-repo') && (
+                    <div>
+                      <label htmlFor="app-branch" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                        Target Branch
+                      </label>
+                      <input
+                        id="app-branch"
+                        name="branch"
+                        type="text"
+                        maxLength={256}
+                        placeholder={derivedBranch || 'app/my-feature'}
+                        className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                      />
+                      <p className="mt-1 text-xs text-zinc-400">
+                        The branch where the app scaffold will be committed.
+                      </p>
+                    </div>
+                  )}
 
                   {/* AI Enhance toggle */}
                   <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800/50">
@@ -380,7 +576,7 @@ export function AppsPage() {
                     </button>
                   </div>
 
-                  {/* Advanced (collapsible) */}
+                  {/* Advanced (collapsible) — for name override */}
                   <div>
                     <button
                       type="button"
@@ -413,22 +609,6 @@ export function AppsPage() {
                             Lowercase letters, numbers, and hyphens only.
                           </p>
                         </div>
-                        <div>
-                          <label htmlFor="app-branch" className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                            Target Branch override
-                          </label>
-                          <input
-                            id="app-branch"
-                            name="branch"
-                            type="text"
-                            maxLength={256}
-                            placeholder={derivedBranch || 'app/my-feature'}
-                            className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-xs shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                          />
-                          <p className="mt-1 text-xs text-zinc-400">
-                            The parent issue branch where the app scaffold will be committed.
-                          </p>
-                        </div>
                       </div>
                     )}
                   </div>
@@ -447,8 +627,8 @@ export function AppsPage() {
                     className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50"
                   >
                     {createMutation.isPending
-                      ? (aiEnhance ? 'AI Enhancing…' : 'Creating…')
-                      : 'Create App'}
+                      ? (repoType === 'new-repo' ? 'Creating Repository…' : aiEnhance ? 'AI Enhancing…' : 'Creating…')
+                      : repoType === 'new-repo' ? 'Create Repository & App' : 'Create App'}
                   </button>
                 </div>
               </form>
