@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { usePipelineModelOverride } from './usePipelineModelOverride';
-import type { PipelineConfig, PipelineModelOverride } from '@/types';
+import type { PipelineConfig } from '@/types';
 
 function makePipeline(overrides: Partial<PipelineConfig> = {}): PipelineConfig {
   return {

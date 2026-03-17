@@ -73,7 +73,11 @@ class TestListAgents:
         self.svc = svc
         with (
             patch("src.api.agents._get_service", return_value=svc),
-            patch("src.api.agents.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")),
+            patch(
+                "src.api.agents.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
             patch("src.api.agents.get_db", return_value=MagicMock()),
         ):
             yield
@@ -107,7 +111,11 @@ class TestListPendingAgents:
         self.svc = svc
         with (
             patch("src.api.agents._get_service", return_value=svc),
-            patch("src.api.agents.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")),
+            patch(
+                "src.api.agents.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
             patch("src.api.agents.get_db", return_value=MagicMock()),
         ):
             yield
@@ -132,7 +140,11 @@ class TestPurgePendingAgents:
         self.svc = svc
         with (
             patch("src.api.agents._get_service", return_value=svc),
-            patch("src.api.agents.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")),
+            patch(
+                "src.api.agents.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
             patch("src.api.agents.get_db", return_value=MagicMock()),
         ):
             yield
@@ -157,7 +169,11 @@ class TestBulkUpdateModels:
         self.svc = svc
         with (
             patch("src.api.agents._get_service", return_value=svc),
-            patch("src.api.agents.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")),
+            patch(
+                "src.api.agents.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
             patch("src.api.agents.get_db", return_value=MagicMock()),
         ):
             yield
@@ -189,7 +205,11 @@ class TestCreateAgent:
         self.svc = svc
         with (
             patch("src.api.agents._get_service", return_value=svc),
-            patch("src.api.agents.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")),
+            patch(
+                "src.api.agents.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
             patch("src.api.agents.get_db", return_value=MagicMock()),
         ):
             yield
@@ -246,7 +266,11 @@ class TestUpdateAgent:
         self.svc = svc
         with (
             patch("src.api.agents._get_service", return_value=svc),
-            patch("src.api.agents.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")),
+            patch(
+                "src.api.agents.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
             patch("src.api.agents.get_db", return_value=MagicMock()),
         ):
             yield
@@ -291,7 +315,11 @@ class TestDeleteAgent:
         self.svc = svc
         with (
             patch("src.api.agents._get_service", return_value=svc),
-            patch("src.api.agents.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")),
+            patch(
+                "src.api.agents.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
             patch("src.api.agents.get_db", return_value=MagicMock()),
         ):
             yield
@@ -332,7 +360,11 @@ class TestAgentChat:
         self.svc = svc
         with (
             patch("src.api.agents._get_service", return_value=svc),
-            patch("src.api.agents.resolve_repository", new_callable=AsyncMock, return_value=("owner", "repo")),
+            patch(
+                "src.api.agents.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
             patch("src.api.agents.get_db", return_value=MagicMock()),
         ):
             yield

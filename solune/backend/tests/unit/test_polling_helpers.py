@@ -6,8 +6,6 @@ Covers:
 
 from types import SimpleNamespace
 
-import pytest
-
 from src.services.copilot_polling.helpers import is_sub_issue
 
 
@@ -41,7 +39,9 @@ class TestIsSubIssue:
 
     def test_label_other_labels_only(self):
         """Other labels without 'sub-issue' do not trigger."""
-        task = SimpleNamespace(title="Normal title", labels=[{"name": "bug"}, {"name": "enhancement"}])
+        task = SimpleNamespace(
+            title="Normal title", labels=[{"name": "bug"}, {"name": "enhancement"}]
+        )
         assert is_sub_issue(task) is False
 
     def test_no_labels_attribute(self):

@@ -5,16 +5,13 @@ Covers:
 - _wait_if_rate_limited(): above threshold (no wait), below threshold (returns True)
 """
 
-from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
+from unittest.mock import AsyncMock, patch
 
 from src.services.copilot_polling.pipeline import (
     _get_rate_limit_remaining,
     _wait_if_rate_limited,
 )
 from src.services.copilot_polling.state import RATE_LIMIT_PAUSE_THRESHOLD
-
 
 # ── _get_rate_limit_remaining ─────────────────────────────────────────────
 
@@ -100,7 +97,9 @@ class TestWaitIfRateLimited:
                 "src.services.copilot_polling.pipeline._get_rate_limit_remaining",
                 return_value=(RATE_LIMIT_PAUSE_THRESHOLD - 10, future_reset),
             ),
-            patch("src.services.copilot_polling.pipeline.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+            patch(
+                "src.services.copilot_polling.pipeline.asyncio.sleep", new_callable=AsyncMock
+            ) as mock_sleep,
         ):
             result = await _wait_if_rate_limited("test context")
         assert result is True
@@ -114,7 +113,9 @@ class TestWaitIfRateLimited:
                 "src.services.copilot_polling.pipeline._get_rate_limit_remaining",
                 return_value=(RATE_LIMIT_PAUSE_THRESHOLD, future_reset),
             ),
-            patch("src.services.copilot_polling.pipeline.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+            patch(
+                "src.services.copilot_polling.pipeline.asyncio.sleep", new_callable=AsyncMock
+            ) as mock_sleep,
         ):
             result = await _wait_if_rate_limited("test context")
         assert result is True

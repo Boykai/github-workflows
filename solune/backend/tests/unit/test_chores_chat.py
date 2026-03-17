@@ -15,11 +15,11 @@ from datetime import UTC, datetime, timedelta
 import pytest
 
 from src.services.chores.chat import (
+    _MAX_AGE_SECONDS,
+    _MAX_CONVERSATIONS,
     SYSTEM_PROMPT,
     _conversations,
     _evict_stale_conversations,
-    _MAX_AGE_SECONDS,
-    _MAX_CONVERSATIONS,
     add_assistant_message,
     add_user_message,
     cleanup_conversation,
@@ -59,7 +59,7 @@ class TestGetOrCreateConversation:
 
     def test_returns_existing_conversation(self):
         """Existing conversation is returned as-is."""
-        conv_id, messages = get_or_create_conversation(None)
+        conv_id, _messages = get_or_create_conversation(None)
         add_user_message(conv_id, "Hello")
 
         same_id, same_messages = get_or_create_conversation(conv_id)
@@ -148,7 +148,7 @@ class TestIsTemplateReady:
     def test_empty_template_content(self):
         """Empty template content between markers."""
         response = "```template\n```"
-        ready, content = is_template_ready(response)
+        ready, _content = is_template_ready(response)
         assert ready is True
 
 
