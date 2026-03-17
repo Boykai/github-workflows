@@ -668,6 +668,122 @@ class CopilotMixin:
             logger.error("Failed to request Copilot review for PR #%d: %s", pr_number or 0, e)
             return False
 
+    async def dismiss_copilot_reviews(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+        *,
+        submitted_before: datetime | None = None,
+    ) -> int:
+        """Dismiss all Copilot reviewer bot reviews on a pull request.
+
+        GitHub can auto-trigger Copilot reviews when a PR is opened.  This
+        method dismisses those reviews so the pipeline can request a fresh
+        one whose completion timestamp is unambiguous.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            pr_number: Pull request number
+            submitted_before: If provided, only dismiss reviews submitted
+                **before** this UTC timestamp (to avoid dismissing a review
+                that Solune itself requested).
+
+        Returns:
+            Number of reviews dismissed.
+        """
+        dismissed = 0
+        try:
+            reviews_result = await self._rest(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
+                params={"per_page": 100},
+            )
+            reviews = reviews_result if isinstance(reviews_result, list) else []
+
+            for review in reviews:
+                user = review.get("user", {}) if isinstance(review, dict) else {}
+                review_id = review.get("id") if isinstance(review, dict) else None
+                state = (
+                    (review.get("state", "") if isinstance(review, dict) else "") or ""
+                ).upper()
+                submitted_at = review.get("submitted_at") if isinstance(review, dict) else None
+
+                if not (user and review_id and self.is_copilot_reviewer_bot(user.get("login", ""))):
+                    continue
+
+                # Only dismiss completed (non-PENDING) reviews
+                if state == "PENDING":
+                    continue
+
+                # Honour the submitted_before filter
+                if submitted_before and submitted_at:
+                    from datetime import datetime as _dt
+
+                    try:
+                        review_ts = _dt.fromisoformat(submitted_at)
+                        if review_ts >= submitted_before:
+                            continue  # Review is after the cutoff — keep it
+                    except (ValueError, TypeError):
+                        pass  # Cannot parse — dismiss to be safe
+
+                try:
+                    resp = await self._rest_response(
+                        access_token,
+                        "PUT",
+                        f"/repos/{owner}/{repo}/pulls/{pr_number}/reviews/{review_id}/dismissals",
+                        json={
+                            "message": (
+                                "Dismissed: auto-triggered review replaced by "
+                                "Solune pipeline-requested review"
+                            ),
+                        },
+                    )
+                    if resp.status_code in (200, 201):
+                        dismissed += 1
+                        logger.info(
+                            "Dismissed auto-triggered Copilot review %s on PR #%d "
+                            "(state=%s, submitted_at=%s)",
+                            review_id,
+                            pr_number,
+                            state,
+                            submitted_at,
+                        )
+                    else:
+                        logger.warning(
+                            "Failed to dismiss Copilot review %s on PR #%d: %d %s",
+                            review_id,
+                            pr_number,
+                            resp.status_code,
+                            resp.text[:300] if resp.text else "",
+                        )
+                except Exception as exc:
+                    logger.warning(
+                        "Error dismissing Copilot review %s on PR #%d: %s",
+                        review_id,
+                        pr_number,
+                        exc,
+                    )
+
+        except Exception as e:
+            logger.warning(
+                "Failed to list/dismiss Copilot reviews on PR #%d: %s",
+                pr_number,
+                e,
+            )
+
+        if dismissed:
+            logger.info(
+                "Dismissed %d auto-triggered Copilot review(s) on PR #%d",
+                dismissed,
+                pr_number,
+            )
+        return dismissed
+
     async def has_copilot_reviewed_pr(
         self,
         access_token: str,
