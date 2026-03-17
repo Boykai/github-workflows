@@ -1,104 +1,113 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Transcript Upload & Transcribe Agent
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `049-transcript-upload-transcribe` | **Date**: 2026-03-17 | **Spec**: ./spec.md
+**Input**: Feature specification from `/specs/049-transcript-upload-transcribe/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Add transcript file upload support (`.vtt`, `.srt`, `.txt`, `.md` with content detection) to both the Chat interface and Parent Issue Intake panel. When a transcript file is detected, automatically route it through a new **Transcribe agent** that extracts user requirements and user stories from multi-speaker meeting conversations. The agent outputs a structured `IssueRecommendation` — reusing the existing model — which feeds into the existing confirm → `execute_full_workflow` → `create_all_sub_issues` pipeline to create a GitHub Parent Issue with sub-issues.
+
+The implementation spans three layers: (1) a backend transcript detection utility with regex-based content analysis, (2) a new Transcribe agent prompt following the existing `issue_generation.py` pattern, and (3) frontend file validation updates to accept `.vtt`/`.srt` extensions. No new data models, database migrations, or UI components are required.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11 (backend), TypeScript 5.x / React 19 (frontend)
+**Primary Dependencies**: FastAPI, Pydantic, pytest (backend); Vite, Vitest, React Testing Library (frontend)
+**Storage**: SQLite (existing `ChatStore` for message/recommendation persistence — no changes)
+**Testing**: pytest with `asyncio_mode="auto"` (backend), Vitest + RTL (frontend)
+**Target Platform**: Linux server (backend API), modern browsers (frontend SPA)
+**Project Type**: Web application (backend + frontend under `solune/`)
+**Performance Goals**: Transcript detection < 50ms for files up to 1MB; AI analysis response within 30 seconds (SC-001)
+**Constraints**: Reuse existing `IssueRecommendation` model (no DB migrations); detection must produce zero false positives on standard prose (SC-004)
+**Scale/Scope**: 4 user stories, ~8 files modified/created, ~3 new test files; no new UI components
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Phase 0 Evaluation
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | `spec.md` contains 4 prioritized user stories (P1–P3) with Given-When-Then acceptance scenarios, edge cases, 14 functional requirements, and clear out-of-scope declarations |
+| **II. Template-Driven** | ✅ PASS | All artifacts follow canonical templates (`plan.md`, `research.md`, `data-model.md`, `contracts/`, `quickstart.md`) |
+| **III. Agent-Orchestrated** | ✅ PASS | Single-responsibility Transcribe agent with clear input (transcript content) → output (`IssueRecommendation`); integrates into existing dispatch chain |
+| **IV. Test Optionality** | ✅ PASS | Tests are included per spec requirement (Phase 3 in issue); follows existing `test_ai_agent.py` and `test_api_chat.py` patterns |
+| **V. Simplicity and DRY** | ✅ PASS | Reuses `IssueRecommendation` model, `_parse_recommendation_response()`, `_call_completion()`, and existing issue creation workflow. No new data models, DB migrations, or UI components. `TranscriptDetectionResult` is the only new entity |
+
+**Gate Result**: ✅ ALL PASS — proceed to Phase 0.
+
+### Post-Phase 1 Re-Evaluation
+
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | All 4 user stories mapped to implementation steps; acceptance scenarios covered by test plan |
+| **II. Template-Driven** | ✅ PASS | Plan, research, data-model, contracts, and quickstart all follow canonical templates |
+| **III. Agent-Orchestrated** | ✅ PASS | Transcribe agent prompt follows `issue_generation.py` pattern exactly (system prompt + factory function); dispatch integrated at Priority 0.5 in Chat handler chain |
+| **IV. Test Optionality** | ✅ PASS | 3 new test files specified: `test_transcript_detector.py`, `test_transcript_analysis_prompt.py`, `test_chat_transcript.py`; frontend test updates for file validation |
+| **V. Simplicity and DRY** | ✅ PASS | Only 1 new entity (`TranscriptDetectionResult` dataclass). All AI completion, JSON parsing, and issue creation logic reused from existing services. No new abstractions |
+
+**Gate Result**: ✅ ALL PASS — proceed to Phase 2 (tasks generation).
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/049-transcript-upload-transcribe/
+├── plan.md              # This file
+├── research.md          # Phase 0: Detection patterns, prompt design, integration strategy
+├── data-model.md        # Phase 1: TranscriptDetectionResult entity, state transitions
+├── quickstart.md        # Phase 1: Developer setup and verification guide
+├── contracts/
+│   └── transcript-api-contracts.md   # Phase 1: Backend API contracts for transcript flow
+├── checklists/
+│   └── requirements.md  # Spec phase requirements checklist
+└── tasks.md             # Phase 2 output (NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
+solune/backend/
 ├── src/
-│   ├── models/
+│   ├── api/
+│   │   ├── chat.py                          # MODIFY: add .vtt/.srt to ALLOWED_DOC_TYPES; Priority 0.5 transcript dispatch
+│   │   └── pipelines.py                     # MODIFY: transcript detection in launch_pipeline_issue()
+│   ├── prompts/
+│   │   ├── issue_generation.py              # REFERENCE: prompt template pattern to follow
+│   │   └── transcript_analysis.py           # CREATE: Transcribe agent system prompt + factory
 │   ├── services/
-│   └── api/
+│   │   ├── ai_agent.py                      # MODIFY: add analyze_transcript() method
+│   │   ├── completion_providers.py          # REFERENCE: CompletionProvider interface (unchanged)
+│   │   └── transcript_detector.py           # CREATE: detect_transcript() utility
+│   └── models/
+│       └── recommendation.py                # REFERENCE: IssueRecommendation model (unchanged)
 └── tests/
+    ├── unit/
+    │   ├── test_ai_agent.py                 # REFERENCE: existing test pattern
+    │   └── test_api_chat.py                 # REFERENCE: existing test pattern
+    ├── test_transcript_detector.py          # CREATE: detection unit tests
+    ├── test_transcript_analysis_prompt.py   # CREATE: prompt construction tests
+    └── test_chat_transcript.py              # CREATE: Chat transcript integration tests
 
-frontend/
+solune/frontend/
 ├── src/
+│   ├── types/
+│   │   └── index.ts                         # MODIFY: add .vtt/.srt to FILE_VALIDATION.allowedDocTypes
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   ├── chat/
+│   │   │   └── ChatToolbar.tsx              # MODIFY: file input accept attribute
+│   │   └── board/
+│   │       └── ProjectIssueLaunchPanel.tsx   # MODIFY: isAcceptedIssueFile() + file input accept
+│   └── components/chat/
+│       └── IssueRecommendationPreview.tsx   # REFERENCE: renders recommendations (unchanged)
+└── src/components/board/
+    └── ProjectIssueLaunchPanel.test.tsx      # MODIFY: add .vtt/.srt extension tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (Option 2). Feature spans `solune/backend/` (Python/FastAPI) and `solune/frontend/` (TypeScript/React). All new backend files are placed in existing directories following established conventions. No new directories created except `specs/049-transcript-upload-transcribe/contracts/`.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No violations identified. The feature reuses existing models (`IssueRecommendation`), existing services (`_call_completion`, `_parse_recommendation_response`), and existing UI components (`IssueRecommendationPreview`). The only new entity is `TranscriptDetectionResult` — a simple dataclass with 3 fields. No new abstractions, patterns, or architectural changes are introduced.
