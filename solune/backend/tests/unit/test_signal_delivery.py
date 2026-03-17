@@ -7,18 +7,14 @@ Covers:
 - _format_body() — body summarisation for action types
 """
 
-from unittest.mock import MagicMock
-
 from src.models.chat import ActionType, ChatMessage, SenderType
 from src.models.signal import SignalNotificationMode
 from src.services.signal_delivery import (
     MAX_SIGNAL_MESSAGE_LENGTH,
-    _format_body,
     _get_header,
     format_signal_message,
     should_deliver,
 )
-
 
 # =============================================================================
 # Helpers

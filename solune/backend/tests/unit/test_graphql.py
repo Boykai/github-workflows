@@ -42,7 +42,6 @@ from src.services.github_projects.graphql import (
     VERIFY_ITEM_ON_PROJECT_QUERY,
 )
 
-
 # ---------------------------------------------------------------------------
 # Configuration constants
 # ---------------------------------------------------------------------------
@@ -149,16 +148,12 @@ class TestQueryConstants:
 class TestMutationConstants:
     """All mutation constants are non-empty strings containing 'mutation'."""
 
-    @pytest.mark.parametrize(
-        "name,value", ALL_MUTATIONS, ids=[m[0] for m in ALL_MUTATIONS]
-    )
+    @pytest.mark.parametrize("name,value", ALL_MUTATIONS, ids=[m[0] for m in ALL_MUTATIONS])
     def test_is_nonempty_string(self, name, value):
         assert isinstance(value, str), f"{name} should be a string"
         assert len(value.strip()) > 0, f"{name} should not be empty"
 
-    @pytest.mark.parametrize(
-        "name,value", ALL_MUTATIONS, ids=[m[0] for m in ALL_MUTATIONS]
-    )
+    @pytest.mark.parametrize("name,value", ALL_MUTATIONS, ids=[m[0] for m in ALL_MUTATIONS])
     def test_contains_mutation_keyword(self, name, value):
         assert "mutation" in value.lower(), f"{name} should contain the 'mutation' keyword"
 

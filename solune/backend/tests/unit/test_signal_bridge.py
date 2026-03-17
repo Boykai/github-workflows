@@ -11,16 +11,13 @@ Covers:
 
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import pytest
 
 from src.services.signal_bridge import (
     _hash_phone,
     check_link_complete,
-    get_accounts,
     send_message,
 )
-
 
 # =============================================================================
 # _hash_phone
@@ -65,9 +62,18 @@ class TestSendMessage:
         mock_client.__aexit__ = AsyncMock(return_value=False)
 
         with (
-            patch("src.services.signal_bridge._get_registered_phone", new_callable=AsyncMock, return_value="+15550001111"),
+            patch(
+                "src.services.signal_bridge._get_registered_phone",
+                new_callable=AsyncMock,
+                return_value="+15550001111",
+            ),
             patch("src.services.signal_bridge.httpx.AsyncClient", return_value=mock_client),
-            patch("src.services.signal_bridge.get_settings", return_value=MagicMock(signal_api_url="http://signal:8080", signal_phone_number="+15550001111")),
+            patch(
+                "src.services.signal_bridge.get_settings",
+                return_value=MagicMock(
+                    signal_api_url="http://signal:8080", signal_phone_number="+15550001111"
+                ),
+            ),
         ):
             result = await send_message("+15559999999", "Hello")
             assert result is True
@@ -75,8 +81,15 @@ class TestSendMessage:
     @pytest.mark.anyio
     async def test_send_message_raises_when_no_phone(self):
         with (
-            patch("src.services.signal_bridge._get_registered_phone", new_callable=AsyncMock, return_value=None),
-            patch("src.services.signal_bridge.get_settings", return_value=MagicMock(signal_api_url="http://signal:8080", signal_phone_number="")),
+            patch(
+                "src.services.signal_bridge._get_registered_phone",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch(
+                "src.services.signal_bridge.get_settings",
+                return_value=MagicMock(signal_api_url="http://signal:8080", signal_phone_number=""),
+            ),
         ):
             with pytest.raises(ValueError, match="No registered Signal account"):
                 await send_message("+15559999999", "Hello")
@@ -103,7 +116,10 @@ class TestCheckLinkComplete:
 
         with (
             patch("src.services.signal_bridge.httpx.AsyncClient", return_value=mock_client),
-            patch("src.services.signal_bridge.get_settings", return_value=MagicMock(signal_api_url="http://signal:8080", signal_phone_number="")),
+            patch(
+                "src.services.signal_bridge.get_settings",
+                return_value=MagicMock(signal_api_url="http://signal:8080", signal_phone_number=""),
+            ),
         ):
             result = await check_link_complete()
             assert result["linked"] is True
@@ -122,14 +138,23 @@ class TestCheckLinkComplete:
 
         with (
             patch("src.services.signal_bridge.httpx.AsyncClient", return_value=mock_client),
-            patch("src.services.signal_bridge.get_settings", return_value=MagicMock(signal_api_url="http://signal:8080", signal_phone_number="")),
+            patch(
+                "src.services.signal_bridge.get_settings",
+                return_value=MagicMock(signal_api_url="http://signal:8080", signal_phone_number=""),
+            ),
         ):
             result = await check_link_complete()
             assert result["linked"] is False
 
     @pytest.mark.anyio
     async def test_not_linked_on_exception(self):
-        with patch("src.services.signal_bridge.get_settings", return_value=MagicMock(signal_api_url="http://signal:8080", signal_phone_number="")):
-            with patch("src.services.signal_bridge.httpx.AsyncClient", side_effect=Exception("network error")):
+        with patch(
+            "src.services.signal_bridge.get_settings",
+            return_value=MagicMock(signal_api_url="http://signal:8080", signal_phone_number=""),
+        ):
+            with patch(
+                "src.services.signal_bridge.httpx.AsyncClient",
+                side_effect=Exception("network error"),
+            ):
                 result = await check_link_complete()
                 assert result["linked"] is False

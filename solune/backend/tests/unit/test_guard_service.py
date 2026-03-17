@@ -110,9 +110,7 @@ class TestCheckGuardNonElevated:
         assert result.allowed == []
 
     def test_adminlock_paths(self, config_file: Path):
-        result = check_guard(
-            ["solune/backend/src/core/secret.py"], config_path=config_file
-        )
+        result = check_guard(["solune/backend/src/core/secret.py"], config_path=config_file)
         assert result.locked == ["solune/backend/src/core/secret.py"]
 
     def test_mixed_paths(self, config_file: Path):
@@ -134,9 +132,7 @@ class TestCheckGuardNonElevated:
 
 class TestCheckGuardElevated:
     def test_elevated_bypasses_admin(self, config_file: Path):
-        result = check_guard(
-            ["solune/backend/setup.py"], elevated=True, config_path=config_file
-        )
+        result = check_guard(["solune/backend/setup.py"], elevated=True, config_path=config_file)
         assert result.allowed == ["solune/backend/setup.py"]
         assert result.admin_blocked == []
 

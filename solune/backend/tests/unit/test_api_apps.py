@@ -17,7 +17,6 @@ import pytest
 
 from src.models.app import App, AppStatus, AppStatusResponse
 
-
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 
@@ -174,9 +173,7 @@ class TestDeleteApp:
     async def test_delete_running_app_fails(self, client):
         from src.exceptions import AppException
 
-        self.mock_delete.side_effect = AppException(
-            "App must be stopped first", status_code=409
-        )
+        self.mock_delete.side_effect = AppException("App must be stopped first", status_code=409)
         resp = await client.delete("/api/v1/apps/running-app")
         assert resp.status_code == 409
 

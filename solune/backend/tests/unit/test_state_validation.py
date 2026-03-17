@@ -16,12 +16,12 @@ class _FakeStep:
 
 
 # Common call kwargs shared by all tests.
-_CALL_KWARGS = dict(
-    access_token="tok",
-    owner="o",
-    repo="r",
-    issue_number=42,
-)
+_CALL_KWARGS = {
+    "access_token": "tok",
+    "owner": "o",
+    "repo": "r",
+    "issue_number": 42,
+}
 
 
 class TestValidatePipelineLabels:
@@ -30,9 +30,7 @@ class TestValidatePipelineLabels:
     @pytest.fixture(autouse=True)
     def _patch_service(self):
         """Patch the GitHub projects service used by state_validation."""
-        with patch(
-            "src.services.copilot_polling.github_projects_service"
-        ) as mock_svc:
+        with patch("src.services.copilot_polling.github_projects_service") as mock_svc:
             mock_svc.update_issue_state = AsyncMock()
             self.mock_svc = mock_svc
             yield
@@ -103,7 +101,7 @@ class TestValidatePipelineLabels:
         """No active step but a pending step exists → add pending agent label."""
         labels = []
         steps = [_FakeStep(agent_name="speckit.plan", state=STATE_PENDING)]
-        ok, msgs = await self._call(labels=labels, tracking_steps=steps)
+        ok, _msgs = await self._call(labels=labels, tracking_steps=steps)
         assert ok is True
         call_kw = self.mock_svc.update_issue_state.call_args.kwargs
         assert "agent:speckit.plan" in call_kw["labels_add"]

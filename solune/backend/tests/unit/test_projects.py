@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.models.project import GitHubProject, ProjectType, StatusColumn
+from src.models.project import GitHubProject, ProjectType
 from src.models.task import Task
 from src.services.github_projects.service import GitHubProjectsService
 
@@ -109,9 +109,7 @@ class TestListUserProjects:
         """Projects without a status field should receive default columns."""
         node = _make_project_node()
         node["field"] = None
-        service._graphql.return_value = {
-            "user": {"projectsV2": {"nodes": [node]}}
-        }
+        service._graphql.return_value = {"user": {"projectsV2": {"nodes": [node]}}}
 
         result = await service.list_user_projects("tok", "alice")
 
@@ -358,7 +356,9 @@ class TestUpdateProjectItemField:
     async def test_success_single_select(self, service, fields_data):
         """Should pick the correct option and call the select mutation."""
         service.get_project_fields = AsyncMock(return_value=fields_data)
-        service._graphql.return_value = {"updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_1"}}}
+        service._graphql.return_value = {
+            "updateProjectV2ItemFieldValue": {"projectV2Item": {"id": "PVTI_1"}}
+        }
 
         result = await service.update_project_item_field(
             "tok", "PVT_1", "PVTI_1", "Priority", "High"
@@ -371,9 +371,7 @@ class TestUpdateProjectItemField:
         service.get_project_fields = AsyncMock(return_value=fields_data)
         service._graphql.return_value = {}
 
-        result = await service.update_project_item_field(
-            "tok", "PVT_1", "PVTI_1", "Estimate", 5.0
-        )
+        result = await service.update_project_item_field("tok", "PVT_1", "PVTI_1", "Estimate", 5.0)
         assert result is True
 
     @pytest.mark.asyncio
@@ -393,9 +391,7 @@ class TestUpdateProjectItemField:
         service.get_project_fields = AsyncMock(return_value=fields_data)
         service._graphql.return_value = {}
 
-        result = await service.update_project_item_field(
-            "tok", "PVT_1", "PVTI_1", "Notes", "hello"
-        )
+        result = await service.update_project_item_field("tok", "PVT_1", "PVTI_1", "Notes", "hello")
         assert result is True
 
     @pytest.mark.asyncio
@@ -501,8 +497,8 @@ class TestDetectChanges:
 
         types = {c["type"] for c in changes}
         assert "status_changed" in types  # A: Todo → Done
-        assert "task_deleted" in types    # B removed
-        assert "task_created" in types    # C added
+        assert "task_deleted" in types  # B removed
+        assert "task_created" in types  # C added
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -554,9 +550,7 @@ class TestGetProjectRepository:
     @pytest.mark.asyncio
     async def test_empty_items(self, service):
         """Should return None when there are no items."""
-        service._graphql.return_value = {
-            "node": {"items": {"nodes": []}}
-        }
+        service._graphql.return_value = {"node": {"items": {"nodes": []}}}
 
         result = await service.get_project_repository("tok", "PVT_1")
         assert result is None
@@ -603,9 +597,7 @@ class TestCreateDraftItem:
     async def test_success(self, service):
         """Should return the created item ID."""
         service._graphql.return_value = {
-            "addProjectV2DraftIssue": {
-                "projectItem": {"id": "PVTI_new"}
-            }
+            "addProjectV2DraftIssue": {"projectItem": {"id": "PVTI_new"}}
         }
 
         result = await service.create_draft_item("tok", "PVT_1", "New task", "body")

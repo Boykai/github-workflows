@@ -21,7 +21,6 @@ from src.models.signal import (
     SignalNotificationMode,
 )
 
-
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 _BRIDGE = "src.api.signal"

@@ -8,20 +8,19 @@ Covers:
 - fetch_metadata() — GitHub REST API fetch with paginated results
 """
 
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import httpx
 import pytest
 
 from src.services.cache import InMemoryCache
-from src.services.metadata_service import MetadataService, RepositoryMetadataContext
+from src.services.metadata_service import MetadataService
 from src.utils import utcnow
-
 
 # =============================================================================
 # Helpers
 # =============================================================================
+
 
 def _fresh_fetched_at() -> str:
     """Return an ISO timestamp that will pass any reasonable TTL check."""
@@ -144,7 +143,9 @@ class TestGetOrFetchFallback:
         # Patch SQLite reads and API fetch to fail
         with (
             patch.object(svc, "_read_from_sqlite", new_callable=AsyncMock, return_value=None),
-            patch.object(svc, "fetch_metadata", new_callable=AsyncMock, side_effect=Exception("API down")),
+            patch.object(
+                svc, "fetch_metadata", new_callable=AsyncMock, side_effect=Exception("API down")
+            ),
         ):
             result = await svc.get_or_fetch("tok", "owner", "repo")
 
