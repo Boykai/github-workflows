@@ -9,7 +9,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 SHARDS: dict[str, list[str]] = {
     "auth-and-projects": [
         "src/services/github_auth.py",
@@ -63,7 +62,7 @@ def _build_paths_block(paths: list[str]) -> str:
 
 
 def _replace_paths_to_mutate(pyproject_text: str, paths: list[str]) -> str:
-    pattern = re.compile(r"^paths_to_mutate\s*=\s*\[(?:[^\]]|\n)*\]", re.MULTILINE)
+    pattern = re.compile(r"^paths_to_mutate\s*=\s*\[[^\]]*\]", re.MULTILINE | re.DOTALL)
     replacement = _build_paths_block(paths)
     updated_text, count = pattern.subn(replacement, pyproject_text, count=1)
     if count != 1:
