@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, Query, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import StreamingResponse
 from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
@@ -17,6 +17,7 @@ from src.logging_utils import get_logger
 from src.models.project import GitHubProject, ProjectListResponse
 from src.models.task import TaskListResponse
 from src.models.user import UserResponse, UserSession
+from src.services.app_service import create_standalone_project
 from src.services.cache import (
     cache,
     cached_fetch,
@@ -81,6 +82,37 @@ def _rate_limit_details() -> dict[str, object]:
             "used": rl["used"],
         }
     }
+
+
+@router.post("/create", status_code=201)
+async def create_project_endpoint(
+    request: Request,
+    body: dict,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Create a standalone GitHub Project V2.
+
+    Request body: ``{title, owner, repo_owner?, repo_name?}``
+    Response: ``{project_id, project_number, project_url}``
+    """
+    from src.dependencies import get_github_service as _get_gh
+    from src.exceptions import ValidationError
+
+    title = body.get("title")
+    owner = body.get("owner")
+    if not title or not owner:
+        raise ValidationError("Both 'title' and 'owner' are required.")
+
+    github_service = _get_gh(request)
+    result = await create_standalone_project(
+        access_token=session.access_token,
+        owner=owner,
+        title=title,
+        github_service=github_service,
+        repo_owner=body.get("repo_owner"),
+        repo_name=body.get("repo_name"),
+    )
+    return result
 
 
 @router.get("", response_model=ProjectListResponse)

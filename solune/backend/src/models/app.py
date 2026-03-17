@@ -32,6 +32,7 @@ class AppStatus(StrEnum):
 class RepoType(StrEnum):
     SAME_REPO = "same-repo"
     EXTERNAL_REPO = "external-repo"
+    NEW_REPO = "new-repo"
 
 
 class App(BaseModel):
@@ -43,6 +44,9 @@ class App(BaseModel):
     status: AppStatus = AppStatus.CREATING
     repo_type: RepoType = RepoType.SAME_REPO
     external_repo_url: str | None = None
+    github_repo_url: str | None = None
+    github_project_url: str | None = None
+    github_project_id: str | None = None
     port: int | None = None
     error_message: str | None = None
     created_at: str = ""
@@ -53,12 +57,21 @@ class AppCreate(BaseModel):
     name: str = Field(..., pattern=APP_NAME_PATTERN, min_length=2, max_length=64)
     display_name: str = Field(..., min_length=1, max_length=128)
     description: str = Field(default="")
-    branch: str = Field(
-        ..., min_length=1, max_length=256, description="Target branch for app scaffold commit"
+    branch: str | None = Field(
+        default=None,
+        min_length=1,
+        max_length=256,
+        description="Target branch for app scaffold commit (required for same-repo/external-repo)",
     )
     pipeline_id: str | None = None
     repo_type: RepoType = RepoType.SAME_REPO
     external_repo_url: str | None = None
+    repo_owner: str | None = None
+    repo_visibility: str = Field(
+        default="private",
+        description="Repository visibility: 'public' or 'private'",
+    )
+    create_project: bool = True
     ai_enhance: bool = True
 
 
