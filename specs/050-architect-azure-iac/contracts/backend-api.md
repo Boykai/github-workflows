@@ -42,7 +42,7 @@ This document defines the REST API contract extension for Azure credential stora
 | pipeline_id | string | No | `null` | — |
 | external_repo_url | string | No | `null` | For `external-repo` |
 | ai_enhance | boolean | No | `true` | — |
-| **azure_client_id** | **string** | **No** | **`null`** | **UUID format; must pair with `azure_client_secret`** |
+| **azure_client_id** | **string** | **No** | **`null`** | **Min 1 char; must pair with `azure_client_secret`** |
 | **azure_client_secret** | **string** | **No** | **`null`** | **Min 1 char; must pair with `azure_client_id`; password-masked in UI** |
 
 ### Response (201 Created)

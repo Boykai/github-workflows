@@ -19,6 +19,8 @@ export interface App {
   error_message: string | null;
   created_at: string;
   updated_at: string;
+  /** Transient warnings from partial-success creation (e.g. Azure secret storage failure). */
+  warnings: string[] | null;
 }
 
 export interface AppCreate {

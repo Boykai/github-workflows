@@ -73,7 +73,9 @@ Generate Mermaid-format architecture diagrams following the conventions establis
 
 2. **Deployment diagram** (`docs/architectures/deployment.mmd`): Show the Azure deployment topology with resource groups, networking, and service connectivity.
 
-3. **Components diagram** (`docs/architectures/components.mmd`): Show internal service components and their relationships (generate when project has multiple services or complex internal architecture).
+3. **Components diagrams** — generate separate files following the existing naming convention:
+   - `docs/architectures/backend-components.mmd`: Show backend service components and their relationships.
+   - `docs/architectures/frontend-components.mmd`: Show frontend components and their relationships (generate when the project has a non-trivial frontend hierarchy).
 
 4. **Data-flow diagram** (`docs/architectures/data-flow.mmd`): Show data movement through the system including storage, caching, and external API calls (generate when project has data persistence or external integrations).
 
@@ -157,7 +159,7 @@ Add a "Deploy to Azure" button to the app's README.
    ```
 
 2. **Quick start section**: Add an `azd` quick-start block:
-   ```markdown
+   ````markdown
    ## 🚀 Deploy to Azure
 
    ### One-click deploy
@@ -168,6 +170,7 @@ Add a "Deploy to Azure" button to the app's README.
    azd init -t <repo-url>
    azd up
    ```
+   ````
 
 3. **Prerequisites list**: Document required tools (`azd`, `az`, Docker) and Azure subscription requirements.
 

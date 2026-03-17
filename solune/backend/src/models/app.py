@@ -52,6 +52,10 @@ class App(BaseModel):
     error_message: str | None = None
     created_at: str = ""
     updated_at: str = ""
+    # Transient field — populated in memory only, not persisted in the DB.
+    # Set by create_app_with_new_repo when optional steps (e.g. Azure secret
+    # storage) fail non-fatally so the frontend can surface a notice.
+    warnings: list[str] | None = None
 
 
 class AppCreate(BaseModel):
@@ -84,7 +88,7 @@ class AppCreate(BaseModel):
         has_id = self.azure_client_id is not None
         has_secret = self.azure_client_secret is not None
         if has_id != has_secret:
-            msg = "Azure Client ID and Client Secret must both be provided or both omitted"
+            msg = "Azure Client ID and Client Secret must both be provided or both omitted."
             raise ValueError(msg)
         return self
 

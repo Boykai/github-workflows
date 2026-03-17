@@ -56,6 +56,7 @@ def _mock_github_service() -> AsyncMock:
     }
     svc.link_project_to_repository.return_value = None
     svc._rest.return_value = {"login": "alice"}
+    svc.set_repository_secret.return_value = None
     return svc
 
 
@@ -269,3 +270,155 @@ class TestCreateStandaloneProject:
                 title="Fail Project",
                 github_service=github_svc,
             )
+
+
+# ---------------------------------------------------------------------------
+# Tests — AppCreate.validate_azure_credentials (paired-field model validator)
+# ---------------------------------------------------------------------------
+
+
+class TestAppCreateAzureValidation:
+    """Validates the @model_validator that enforces paired Azure credentials."""
+
+    def test_both_omitted_is_valid(self) -> None:
+        payload = AppCreate(
+            name="my-app",
+            display_name="My App",
+            repo_type="new-repo",
+            repo_owner="alice",
+        )
+        assert payload.azure_client_id is None
+        assert payload.azure_client_secret is None
+
+    def test_both_provided_is_valid(self) -> None:
+        payload = AppCreate(
+            name="my-app",
+            display_name="My App",
+            repo_type="new-repo",
+            repo_owner="alice",
+            azure_client_id="client-id-value",
+            azure_client_secret="client-secret-value",
+        )
+        assert payload.azure_client_id == "client-id-value"
+        assert payload.azure_client_secret == "client-secret-value"
+
+    def test_only_client_id_raises(self) -> None:
+        from pydantic import ValidationError as PydanticValidationError
+
+        with pytest.raises(PydanticValidationError, match="both be provided or both omitted"):
+            AppCreate(
+                name="my-app",
+                display_name="My App",
+                repo_type="new-repo",
+                repo_owner="alice",
+                azure_client_id="client-id-value",
+                # azure_client_secret omitted
+            )
+
+    def test_only_client_secret_raises(self) -> None:
+        from pydantic import ValidationError as PydanticValidationError
+
+        with pytest.raises(PydanticValidationError, match="both be provided or both omitted"):
+            AppCreate(
+                name="my-app",
+                display_name="My App",
+                repo_type="new-repo",
+                repo_owner="alice",
+                # azure_client_id omitted
+                azure_client_secret="client-secret-value",
+            )
+
+    def test_empty_string_client_id_rejected_by_min_length(self) -> None:
+        from pydantic import ValidationError as PydanticValidationError
+
+        with pytest.raises(PydanticValidationError):
+            AppCreate(
+                name="my-app",
+                display_name="My App",
+                repo_type="new-repo",
+                repo_owner="alice",
+                azure_client_id="",  # min_length=1 should reject this
+                azure_client_secret="secret",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Tests — create_app_with_new_repo with Azure credentials
+# ---------------------------------------------------------------------------
+
+
+class TestCreateAppWithNewRepoAzureCredentials:
+    """Validate Azure secrets storage in create_app_with_new_repo."""
+
+    @pytest.mark.asyncio
+    async def test_stores_both_secrets_when_provided(self, mock_db) -> None:
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        payload = _new_repo_payload(
+            azure_client_id="my-client-id",
+            azure_client_secret="my-client-secret",
+        )
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = []
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        # Both secrets stored, no warnings
+        assert github_svc.set_repository_secret.await_count == 2
+        calls = github_svc.set_repository_secret.call_args_list
+        secret_names = {c[0][3] for c in calls}
+        secret_values = {c[0][4] for c in calls}
+        assert secret_names == {"AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET"}
+        assert secret_values == {"my-client-id", "my-client-secret"}
+        assert app.warnings is None  # no warning when storage succeeds
+
+    @pytest.mark.asyncio
+    async def test_skips_secret_storage_when_credentials_absent(self, mock_db) -> None:
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        payload = _new_repo_payload()  # no azure credentials
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = []
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        github_svc.set_repository_secret.assert_not_awaited()
+        assert app.warnings is None
+
+    @pytest.mark.asyncio
+    async def test_secret_storage_failure_surfaces_warning(self, mock_db) -> None:
+        """When secret storage fails, the app is still created and a warning is set."""
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        github_svc.set_repository_secret.side_effect = Exception("403 Forbidden")
+        payload = _new_repo_payload(
+            azure_client_id="my-client-id",
+            azure_client_secret="my-client-secret",
+        )
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = []
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        # App is still created successfully
+        assert app.name == "test-app"
+        assert app.status == AppStatus.ACTIVE
+        # Warning is surfaced for the frontend
+        assert app.warnings is not None
+        assert len(app.warnings) == 1
+        assert "Azure credentials could not be stored" in app.warnings[0]

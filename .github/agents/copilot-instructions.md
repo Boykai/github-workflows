@@ -212,8 +212,7 @@ All agents live in `.github/agents/`. The repository includes both **Spec Kit pi
 | `tester` | Adds tests for changed behavior and improves testability |
 
 ### MCP Configuration
-- `.github/agents/mcp.json` — Declares MCP servers available to remote GitHub Custom Agents (currently Context7 for documentation lookup).
-- Azure MCP is available in `.github/agents/mcp.json` for remote GitHub Custom Agents, providing Azure resource schema lookups, Bicep best practices, and Well-Architected Framework guidance.
+- `.github/agents/mcp.json` — Declares MCP servers available to remote GitHub Custom Agents (Context7 for documentation lookup and Azure MCP for resource schema lookups, Bicep best practices, and Well-Architected Framework guidance).
 
 ## MCP Presets
 

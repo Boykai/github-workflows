@@ -208,14 +208,16 @@ export function AppsPage() {
       payload.create_project = createProject;
       // Azure credentials — paired validation
       const trimmedAzureId = azureClientId.trim();
-      const trimmedAzureSecret = azureClientSecret.trim();
-      if ((trimmedAzureId && !trimmedAzureSecret) || (!trimmedAzureId && trimmedAzureSecret)) {
+      // Trim only for the presence check — send the secret exactly as entered
+      // to avoid silently stripping intentional whitespace.
+      const azureSecretPresent = azureClientSecret.trim().length > 0;
+      if ((trimmedAzureId && !azureSecretPresent) || (!trimmedAzureId && azureSecretPresent)) {
         setCreateError('Azure Client ID and Client Secret must both be provided or both omitted.');
         return;
       }
-      if (trimmedAzureId && trimmedAzureSecret) {
+      if (trimmedAzureId && azureSecretPresent) {
         payload.azure_client_id = trimmedAzureId;
-        payload.azure_client_secret = trimmedAzureSecret;
+        payload.azure_client_secret = azureClientSecret; // send value exactly as entered
       }
     } else if (repoType === 'external-repo') {
       const url = String(formData.get('external_repo_url') ?? '').trim();
@@ -244,6 +246,9 @@ export function AppsPage() {
       onSuccess: (createdApp) => {
         closeCreateDialog();
         showSuccess(`App "${createdApp.display_name}" created successfully.`);
+        if (createdApp.warnings?.length) {
+          showError(createdApp.warnings[0]);
+        }
         navigate(`/apps/${createdApp.name}`);
       },
       onError: (err) => {
