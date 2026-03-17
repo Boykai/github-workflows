@@ -33,6 +33,8 @@ export interface AppCreate {
   repo_visibility?: 'public' | 'private';
   create_project?: boolean;
   ai_enhance?: boolean;
+  azure_client_id?: string;
+  azure_client_secret?: string;
 }
 
 export interface AppUpdate {

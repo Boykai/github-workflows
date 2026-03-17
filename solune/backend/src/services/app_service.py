@@ -401,6 +401,30 @@ async def create_app_with_new_repo(
         else:
             logger.warning("Failed to commit template files to %s", repo_data["full_name"])
 
+    # 3a. Store Azure credentials as GitHub Secrets (non-blocking)
+    if payload.azure_client_id and payload.azure_client_secret:
+        try:
+            await github_service.set_repository_secret(
+                access_token,
+                repo_owner,
+                repo_name,
+                "AZURE_CLIENT_ID",
+                payload.azure_client_id,
+            )
+            await github_service.set_repository_secret(
+                access_token,
+                repo_owner,
+                repo_name,
+                "AZURE_CLIENT_SECRET",
+                payload.azure_client_secret,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Non-blocking: failed to store Azure credentials for '%s': %s",
+                payload.name,
+                exc,
+            )
+
     # 4. Optionally create and link a Project V2
     github_repo_url: str | None = repo_data.get("html_url")
     github_project_url: str | None = None

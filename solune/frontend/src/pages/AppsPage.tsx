@@ -41,6 +41,8 @@ export function AppsPage() {
   const [repoOwner, setRepoOwner] = useState('');
   const [repoVisibility, setRepoVisibility] = useState<'public' | 'private'>('private');
   const [createProject, setCreateProject] = useState(true);
+  const [azureClientId, setAzureClientId] = useState('');
+  const [azureClientSecret, setAzureClientSecret] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
@@ -92,6 +94,8 @@ export function AppsPage() {
     createMutation.reset();
     setCreateError(null);
     setDisplayName('');
+    setAzureClientId('');
+    setAzureClientSecret('');
     setShowCreateDialog(false);
     createButtonRef.current?.focus();
   }, [createMutation]);
@@ -202,6 +206,17 @@ export function AppsPage() {
       payload.repo_owner = repoOwner;
       payload.repo_visibility = repoVisibility;
       payload.create_project = createProject;
+      // Azure credentials — paired validation
+      const trimmedAzureId = azureClientId.trim();
+      const trimmedAzureSecret = azureClientSecret.trim();
+      if ((trimmedAzureId && !trimmedAzureSecret) || (!trimmedAzureId && trimmedAzureSecret)) {
+        setCreateError('Azure Client ID and Client Secret must both be provided or both omitted.');
+        return;
+      }
+      if (trimmedAzureId && trimmedAzureSecret) {
+        payload.azure_client_id = trimmedAzureId;
+        payload.azure_client_secret = trimmedAzureSecret;
+      }
     } else if (repoType === 'external-repo') {
       const url = String(formData.get('external_repo_url') ?? '').trim();
       if (!url) {
@@ -512,6 +527,33 @@ export function AppsPage() {
                           Create linked GitHub Project (with Solune default columns)
                         </span>
                       </label>
+                      {/* Azure credentials (optional) */}
+                      <div>
+                        <label htmlFor="azure-client-id" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          Azure Client ID (optional)
+                        </label>
+                        <input
+                          id="azure-client-id"
+                          type="text"
+                          value={azureClientId}
+                          onChange={(e) => setAzureClientId(e.target.value)}
+                          placeholder="00000000-0000-0000-0000-000000000000"
+                          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="azure-client-secret" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          Azure Client Secret (optional)
+                        </label>
+                        <input
+                          id="azure-client-secret"
+                          type="password"
+                          value={azureClientSecret}
+                          onChange={(e) => setAzureClientSecret(e.target.value)}
+                          placeholder="Enter client secret"
+                          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        />
+                      </div>
                     </div>
                   )}
 

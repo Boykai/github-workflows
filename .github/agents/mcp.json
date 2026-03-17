@@ -29,6 +29,18 @@
         "IGNORE_HIDDEN_FILES": "true",
         "MAX_FILE_SIZE_MB": "10"
       }
+    },
+    "azure-mcp": {
+      "type": "local",
+      "command": "npx",
+      "args": [
+        "@azure/mcp@latest",
+        "server",
+        "start"
+      ],
+      "tools": [
+        "*"
+      ]
     }
   }
 }
