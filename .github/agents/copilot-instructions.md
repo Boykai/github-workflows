@@ -233,3 +233,10 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - Prefer Context7 when you need up-to-date library documentation and examples.
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
+
+## Active Technologies
+- Python 3.11 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic, asyncio (backend); React 18, TanStack Query, Tailwind CSS (frontend) (051-fix-app-creation-ux)
+- SQLite via raw SQL migrations (`solune/backend/src/migrations/`) (051-fix-app-creation-ux)
+
+## Recent Changes
+- 051-fix-app-creation-ux: Added Python 3.11 (backend), TypeScript 5.x (frontend) + FastAPI, Pydantic, asyncio (backend); React 18, TanStack Query, Tailwind CSS (frontend)
