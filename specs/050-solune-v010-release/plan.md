@@ -457,7 +457,7 @@ The 49 functional requirements are organized into 9 implementation phases plus a
 | Step | Task | Files | Verification |
 |------|------|-------|-------------|
 | E.1 | Verify `0.1.0` in all configs | `pyproject.toml`, `package.json`, `CHANGELOG.md` | `grep -r "0.1.0"` consistent |
-| E.2 | Pin Docker base image digests | All Dockerfiles | SHA256 pinned, no floating tags |
+| E.2 | Verify Docker base images remain pinned (done in Phase 3, step 3.12) | All Dockerfiles | SHA256 pinned, no floating tags |
 | E.3 | Non-root container verification | Dockerfiles | Processes run as non-root |
 | E.4 | `.env.example` completeness | `solune/.env.example` | All required vars documented |
 | E.5 | Fail-fast on missing/invalid env vars | `backend/src/main.py` | Startup lists all failures at once |
