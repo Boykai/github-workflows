@@ -1,6 +1,7 @@
 """Application data models for Solune multi-app management."""
 
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -67,7 +68,7 @@ class AppCreate(BaseModel):
     repo_type: RepoType = RepoType.SAME_REPO
     external_repo_url: str | None = None
     repo_owner: str | None = None
-    repo_visibility: str = Field(
+    repo_visibility: Literal["public", "private"] = Field(
         default="private",
         description="Repository visibility: 'public' or 'private'",
     )

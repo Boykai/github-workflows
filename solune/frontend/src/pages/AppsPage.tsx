@@ -383,9 +383,9 @@ export function AppsPage() {
                 <div className="space-y-4">
                   {/* Repo Type Selector */}
                   <div>
-                    <label className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                    <span className="mb-1.5 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
                       Repository Type
-                    </label>
+                    </span>
                     <div className="flex rounded-lg border border-zinc-300 dark:border-zinc-700 p-0.5">
                       {REPO_TYPE_OPTIONS.map((opt) => (
                         <button

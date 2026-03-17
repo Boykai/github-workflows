@@ -362,20 +362,22 @@ async def create_app_with_new_repo(
     import asyncio
 
     head_oid: str | None = None
+    last_poll_exc: Exception | None = None
     for _attempt in range(5):
         try:
             info = await github_service.get_repository_info(access_token, repo_owner, repo_name)
             head_oid = info.get("head_oid")
             if head_oid:
                 break
-        except Exception:
-            pass
+        except Exception as exc:
+            last_poll_exc = exc
         await asyncio.sleep(1)
 
     if not head_oid:
+        detail = f" Last error: {last_poll_exc}" if last_poll_exc else ""
         raise ValidationError(
             f"Repository '{repo_data['full_name']}' was created but default branch "
-            "is not yet available. Please try again."
+            f"is not yet available. Please try again.{detail}"
         )
 
     # 3. Commit template files

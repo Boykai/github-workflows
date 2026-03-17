@@ -56,7 +56,7 @@ AFTER UPDATE ON apps
 FOR EACH ROW
 BEGIN
     UPDATE apps SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
-    WHERE name = NEW.name;
+    WHERE name = OLD.name;
 END;
 
 -- Re-enable FK checks

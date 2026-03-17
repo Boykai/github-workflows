@@ -71,6 +71,15 @@ export function ProjectSelector({
     return () => document.removeEventListener('keydown', handleKey);
   }, [isOpen, onClose, showNewProjectDialog]);
 
+  // Reset form state when the selector closes
+  useEffect(() => {
+    if (!isOpen) {
+      setShowNewProjectDialog(false);
+      setNewProjectTitle('');
+      setNewProjectError(null);
+    }
+  }, [isOpen]);
+
   const handleCreateProject = () => {
     if (!newProjectTitle.trim()) {
       setNewProjectError('Project title is required.');
@@ -176,6 +185,7 @@ export function ProjectSelector({
             <input
               type="text"
               placeholder="Project title"
+              aria-label="Project title"
               value={newProjectTitle}
               onChange={(e) => setNewProjectTitle(e.target.value)}
               className="w-full rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
@@ -184,6 +194,7 @@ export function ProjectSelector({
             <select
               value={newProjectOwner}
               onChange={(e) => setNewProjectOwner(e.target.value)}
+              aria-label="Project owner"
               className="w-full rounded-md border border-zinc-300 px-2.5 py-1.5 text-sm focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
             >
               {(owners ?? []).map((o) => (

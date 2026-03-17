@@ -130,8 +130,9 @@ async def build_template_files(
     if source_dir_env:
         source_dir = Path(source_dir_env)
     else:
-        # Fall back to workspace root (two levels up from this file)
-        source_dir = Path(__file__).resolve().parents[3]
+        # Fall back to workspace root (four levels up from this file:
+        # services/ → src/ → backend/ → solune/ → repo root)
+        source_dir = Path(__file__).resolve().parents[4]
 
     if not source_dir.is_dir():
         logger.warning("Template source directory %s does not exist", source_dir)

@@ -5,6 +5,7 @@ import base64
 from typing import cast
 
 from src.logging_utils import get_logger
+from src.exceptions import GitHubAPIError
 from src.services.github_projects.graphql import (
     CREATE_COMMIT_ON_BRANCH_MUTATION,
     GET_REPOSITORY_INFO_QUERY,
@@ -51,7 +52,21 @@ class RepositoryMixin:
         else:
             endpoint = "/user/repos"
 
-        data = cast(dict, await self._rest(access_token, "POST", endpoint, json=body))
+        response = await self._rest_response(access_token, "POST", endpoint, json=body)
+        if response.status_code >= 400:
+            # GitHub returns {"message": "...", "errors": [...]} on failure
+            try:
+                err_body = response.json()
+            except Exception:
+                err_body = {"message": response.text}
+            msg = err_body.get("message", "Unknown error")
+            details = err_body.get("errors", [])
+            raise GitHubAPIError(
+                f"Failed to create repository '{name}': {msg}",
+                details={"github_errors": details, "status_code": response.status_code},
+            )
+
+        data = cast(dict, response.json())
         return {
             "id": data.get("id"),
             "node_id": data.get("node_id"),
