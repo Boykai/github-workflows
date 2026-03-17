@@ -146,6 +146,7 @@ async def _check_copilot_review_done(
 
     from .state import (
         COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS,
+        COPILOT_REVIEW_REQUEST_BUFFER_SECONDS,
         _copilot_review_first_detected,
         _copilot_review_requested_at,
     )
@@ -229,9 +230,19 @@ async def _check_copilot_review_done(
             if pr_node_id:
                 logger.info(
                     "Self-healing: Solune has not yet requested copilot-review for "
-                    "issue #%d (no in-memory record) — requesting on PR #%d now",
+                    "issue #%d (no in-memory record) — dismissing auto-triggered "
+                    "reviews and requesting fresh on PR #%d",
                     parent_issue_number,
                     pr_number,
+                )
+                # Dismiss any pre-existing auto-triggered reviews so they
+                # cannot satisfy the completion check after we record our
+                # request timestamp.
+                await _cp.github_projects_service.dismiss_copilot_reviews(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=pr_number,
                 )
                 req_ok = await _cp.github_projects_service.request_copilot_review(
                     access_token=access_token,
@@ -252,13 +263,18 @@ async def _check_copilot_review_done(
         _copilot_review_first_detected.pop(parent_issue_number, None)
         return False
 
-    # ── Check for a qualifying review (submitted after our request) ──
+    # ── Check for a qualifying review (submitted after our request + buffer) ──
+    # The buffer guards against in-flight auto-triggered reviews that
+    # complete shortly after Solune's request timestamp.
+    from datetime import timedelta
+
+    min_after = request_ts + timedelta(seconds=COPILOT_REVIEW_REQUEST_BUFFER_SECONDS)
     reviewed = await _cp.github_projects_service.has_copilot_reviewed_pr(
         access_token=access_token,
         owner=owner,
         repo=repo,
         pr_number=pr_number,
-        min_submitted_after=request_ts,
+        min_submitted_after=min_after,
     )
 
     # ── Self-healing: if not reviewed, ensure the review was requested.
