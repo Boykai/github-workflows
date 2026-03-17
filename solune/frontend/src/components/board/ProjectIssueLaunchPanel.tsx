@@ -30,7 +30,7 @@ function loadExpanded(): boolean {
 const MAX_ISSUE_DESCRIPTION_LENGTH = 65_536;
 const MAX_PREVIEW_TITLE_LENGTH = 120;
 const PREVIEW_TITLE_TRUNCATE_AT = MAX_PREVIEW_TITLE_LENGTH - 3;
-const ACCEPTED_FILE_EXTENSIONS = ['.md', '.txt'];
+const ACCEPTED_FILE_EXTENSIONS = ['.md', '.txt', '.vtt', '.srt'];
 const MARKDOWN_TITLE_PREFIX_RE = /^[>\-*+\d.\s`_~]+/;
 
 interface ProjectIssueLaunchPanelProps {
@@ -173,7 +173,7 @@ export function ProjectIssueLaunchPanel({
     if (!isAcceptedIssueFile(file)) {
       setFormErrors((current) => ({
         ...current,
-        file: 'Only Markdown (.md) and plain-text (.txt) files are supported.',
+        file: 'Only Markdown (.md), plain-text (.txt), WebVTT (.vtt), and SubRip (.srt) files are supported.',
       }));
       event.target.value = '';
       return;
@@ -302,8 +302,8 @@ export function ProjectIssueLaunchPanel({
                         GitHub Parent Issue Description
                       </label>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        Supports pasted Markdown or imported <code>.md</code>/<code>.txt</code>{' '}
-                        issue bodies.
+                        Supports pasted Markdown or imported <code>.md</code>/<code>.txt</code>/<code>.vtt</code>/<code>.srt</code>{' '}
+                        issue bodies and transcripts.
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
@@ -311,7 +311,7 @@ export function ProjectIssueLaunchPanel({
                         ref={fileInputRef}
                         id={fileInputId}
                         type="file"
-                        accept=".md,.txt,text/plain,text/markdown"
+                        accept=".md,.txt,.vtt,.srt,text/plain,text/markdown"
                         className="sr-only"
                         onChange={(event) => {
                           void handleFileSelection(event);
@@ -324,7 +324,7 @@ export function ProjectIssueLaunchPanel({
                         onClick={() => fileInputRef.current?.click()}
                       >
                         <FileUp className="mr-2 h-3.5 w-3.5" />
-                        Upload .md / .txt
+                        Upload file
                       </Button>
                       {uploadedFileName ? (
                         <span className="rounded-full border border-primary/20 bg-primary/8 px-3 py-1 text-[11px] font-medium text-primary">

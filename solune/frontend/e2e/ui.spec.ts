@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
 
 /**
@@ -43,8 +43,8 @@ test.describe('Login Page UI', () => {
   test('should have visible branding', async ({ page }) => {
     await page.goto('/');
     
-    // Should show app name
-    await expect(page.locator('h1')).toContainText('Solune');
+    // Should show app name — h2 carries the branding on the login page
+    await expect(page.locator('h2')).toContainText('Solune');
     
     // Should have description text
     const description = page.locator('p, .description');
@@ -68,7 +68,7 @@ test.describe('Login Page UI', () => {
     
     // Page should still be visible and functional
     await expect(page.locator('h1')).toBeVisible();
-    await expect(page.locator('h1')).toContainText('Solune');
+    await expect(page.locator('h2')).toContainText('Solune');
   });
 });
 
@@ -120,11 +120,11 @@ test.describe('Accessibility', () => {
     const heading = page.locator('h1');
     await expect(heading).toBeVisible();
     
-    // Button text should be visible
-    const button = page.locator('button').first();
+    // Button text should be visible (skip icon-only buttons like the theme toggle)
+    const button = page.locator('button:not(:has(> svg:only-child))').first();
     if (await button.isVisible()) {
       const buttonText = await button.textContent();
-      expect(buttonText).toBeTruthy();
+      expect(buttonText?.trim()).toBeTruthy();
       expect(buttonText!.length).toBeGreaterThan(0);
     }
   });
