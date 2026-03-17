@@ -1,7 +1,7 @@
 # Implementation Plan: Comprehensive Test Coverage to 90%+
 
-**Branch**: `050-comprehensive-test-coverage` | **Date**: 2026-03-17 | **Spec**: `specs/050-test-coverage-90/spec.md`
-**Input**: Feature specification from `/specs/050-test-coverage-90/spec.md`
+**Branch**: `050-comprehensive-test-coverage` | **Date**: 2026-03-17 | **Spec**: [`specs/050-test-coverage-90/spec.md`](../050-test-coverage-90/spec.md)
+**Input**: Feature specification from `specs/050-test-coverage-90/spec.md` (sibling feature directory)
 
 ## Summary
 
