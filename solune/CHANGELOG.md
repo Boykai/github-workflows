@@ -8,6 +8,32 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) co
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-03-17
+
+### Security
+
+- **Pipeline state persistence** (FR-001, FR-002, FR-003): Pipeline runs now persist to SQLite, surviving application restarts — new migration `029_pipeline_state_persistence.sql` with tables: `pipeline_runs`, `pipeline_stage_states`, `stage_groups`, `onboarding_tour_state`
+- **Cookie hardening** (FR-004): All session cookies use `HttpOnly=True` and `SameSite=Strict`
+- **Startup validation** (FR-005): Application refuses to start if `ENCRYPTION_KEY`, `SESSION_SECRET_KEY`, `GITHUB_CLIENT_ID`, or `GITHUB_CLIENT_SECRET` are missing — all missing variables enumerated in a single error message
+- **Project access control** (FR-006): `verify_project_access()` dependency enforces membership checks, returns 403 on unauthorized access
+- **HTTP security headers** (FR-025): CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy, HSTS on all API responses and nginx
+- **Non-root containers** (FR-024): Backend runs as `appuser`, frontend nginx runs as `nginx-app`
+- **Rate limiting** (FR-026): User-aware rate limiting with compound key (`github_user_id` + IP fallback)
+
+### Added
+
+- **Pipeline run API endpoints**: `POST/GET /api/v1/pipelines/{id}/runs`, `GET /api/v1/pipelines/{id}/runs/{run_id}`, `POST .../cancel`, `POST .../recover` for full pipeline run lifecycle management
+- **Stage group API**: `GET/PUT /api/v1/pipelines/{id}/groups` for creating and managing sequential/parallel execution groups
+- **Label-based state recovery** (FR-015): Pipeline state labels (`solune:pipeline:{run_id}:stage:{stage_id}:{status}`) enable ~60% reduction in GitHub API calls during recovery
+- **Pipeline event system**: Internal event dataclasses (`PipelineRunStateChanged`, `PipelineStageStateChanged`, `MCPConfigUpdated`) for service coordination
+- **Onboarding tour API** (FR-038): `GET/PUT /api/v1/onboarding/state` for per-user onboarding tour progress tracking
+- **Enhanced health endpoint** (FR-048): `GET /api/v1/health` now includes `startup_checks` validation state and `version` field
+- **Pipeline run persistence service**: `PipelineRunService` with transactional writes, startup state rebuild, and SQLite integrity checks
+
+### Changed
+
+- **Pipeline state store**: Removed 500-entry cap on in-memory pipeline state (increased to 50,000) — no artificial limits on pipeline run history (FR-003)
+
 ### Added
 
 - **Monorepo restructure**: Repository reorganized with `solune/` (platform core) and `apps/` (generated applications) at the root
