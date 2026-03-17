@@ -43,6 +43,7 @@ dev = [
     "mutmut>=3.2.0",
     "pip-audit>=2.9.0",
     "bandit>=1.8.0",
+    "freezegun>=1.4.0",
 ]
 
 [build-system]
