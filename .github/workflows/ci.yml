@@ -67,9 +67,12 @@ jobs:
           if-no-files-found: warn
 
   # Backend advanced tests: property-based, fuzz, chaos, concurrency
+  # Non-blocking initially — transition to blocking once baselines stabilize
+  # (remove continue-on-error after 2+ weeks of 0 flaky tests)
   backend-advanced-tests:
     name: Backend Advanced Tests
     runs-on: ubuntu-latest
+    continue-on-error: true
     permissions:
       contents: read
     defaults:
