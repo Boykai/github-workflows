@@ -72,13 +72,20 @@ COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS: float = (
     30.0  # min seconds between first detection and confirmation
 )
 
+# Buffer (seconds) added to the Solune request timestamp when filtering
+# reviews.  Any Copilot review submitted within this window after the
+# request is treated as a possible in-flight auto-triggered review and
+# ignored.  This guards against the race where GitHub's auto-review
+# completes slightly after Solune records its request timestamp.
+COPILOT_REVIEW_REQUEST_BUFFER_SECONDS: float = 120.0
+
 # Track when Solune explicitly requested a Copilot code review for each
 # parent issue.  Records the UTC timestamp of the request so that only
-# reviews submitted *after* the request are counted — any review that
-# GitHub.com auto-triggered before Solune's request is ignored.
-# The orchestrator records the timestamp when it assigns copilot-review,
-# and the self-healing path in _check_copilot_review_done re-records it
-# after a server restart.
+# reviews submitted *after* the request (+ buffer) are counted — any
+# review that GitHub.com auto-triggered before Solune's request is
+# ignored.  The orchestrator records the timestamp when it assigns
+# copilot-review, and the self-healing path in _check_copilot_review_done
+# re-records it after a server restart.
 _copilot_review_requested_at: BoundedDict[int, datetime] = BoundedDict(
     maxlen=200
 )  # parent_issue_number -> UTC timestamp of review request
