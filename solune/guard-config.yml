@@ -7,9 +7,9 @@ guard_rules:
     guard_level: admin
     description: "Platform core — requires elevated permission"
 
-#  - path_pattern: ".github/**"
-#    guard_level: adminlock
-#    description: "Workflow and agent configs — fully locked"
+  - path_pattern: ".github/**"
+    guard_level: adminlock
+    description: "Workflow and agent configs — fully locked"
 
   - path_pattern: "apps/**"
     guard_level: none
