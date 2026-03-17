@@ -233,3 +233,10 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - Prefer Context7 when you need up-to-date library documentation and examples.
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
+
+## Active Technologies
+- Markdown + YAML frontmatter (agent definition files); no compiled languages + GitHub Custom Agent specification (YAML frontmatter fields: `name`, `description`, `tools`, `mcp-servers`) (051-agent-config-cleanup)
+- N/A — all changes are to static configuration files (051-agent-config-cleanup)
+
+## Recent Changes
+- 051-agent-config-cleanup: Added Markdown + YAML frontmatter (agent definition files); no compiled languages + GitHub Custom Agent specification (YAML frontmatter fields: `name`, `description`, `tools`, `mcp-servers`)
