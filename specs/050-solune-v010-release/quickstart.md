@@ -36,7 +36,7 @@ source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -e ".[dev]"
 
 # Copy environment configuration
-cp ../. env.example .env
+cp ../.env.example .env
 # Edit .env with your GitHub OAuth credentials
 
 # Run database migrations (automatic on first startup)
@@ -188,9 +188,9 @@ docker compose up --build -d
 # Check service health
 docker compose ps
 # All 3 services should show "healthy":
-#   solune-backend    → http://localhost:8000
-#   solune-frontend   → http://localhost:5173
-#   solune-signal-api → internal port 8080
+# solune-backend    → http://localhost:8000
+# solune-frontend   → http://localhost:5173
+# solune-signal-api → internal port 8080
 
 # View logs
 docker compose logs -f backend
