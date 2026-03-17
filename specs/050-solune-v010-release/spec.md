@@ -36,7 +36,7 @@ As an administrator deploying Solune, I need the application to enforce security
 
 1. **Given** a user attempts to access a project they are not a member of, **When** they send a request to that project's resources, **Then** the system returns a 403 Forbidden response.
 2. **Given** the application starts without required encryption keys configured, **When** the startup sequence runs, **Then** the application refuses to start and logs a clear error message about missing configuration.
-3. **Given** a user logs in successfully, **When** session cookies are set, **Then** all authentication cookies have HttpOnly and SameSite=Strict flags.
+3. **Given** a user logs in successfully, **When** session cookies are set, **Then** all authentication cookies have HttpOnly and SameSite=Strict flags (plus Secure in production/HTTPS).
 4. **Given** the full codebase, **When** a security audit is performed, **Then** zero hardcoded secrets, API keys, or credentials are found outside of environment configuration.
 5. **Given** any user input field or API endpoint, **When** malformed or malicious input is submitted, **Then** the system validates and sanitizes input before processing, returning appropriate error messages.
 
@@ -171,7 +171,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 
 **Acceptance Scenarios**:
 
-1. **Given** the `.env.example` file without modification, **When** `docker-compose up` is executed, **Then** all services (backend, frontend, database) start and report healthy within 120 seconds.
+1. **Given** a `.env` file configured with valid GitHub OAuth credentials (copied from `.env.example` with required secrets filled in), **When** `docker compose up` is executed, **Then** all services (backend, frontend, database) start and report healthy within 120 seconds.
 2. **Given** the Docker container images, **When** inspecting the running processes, **Then** no container runs as the root user.
 3. **Given** the version strings in the changelog, backend config, and frontend config, **When** they are compared, **Then** all display `0.1.0` consistently.
 4. **Given** a production environment configuration, **When** the application starts with insecure settings (e.g., debug mode enabled, default secrets), **Then** startup is rejected with a clear error explaining the insecure configuration.
@@ -199,7 +199,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - **FR-001**: System MUST persist all pipeline run states to durable storage so that no pipeline data is lost on application restart.
 - **FR-002**: System MUST rebuild in-progress pipeline state from persistent storage on startup, resuming from the last known state.
 - **FR-003**: System MUST NOT impose an arbitrary cap on the number of stored pipeline runs; historical data must remain accessible.
-- **FR-004**: System MUST set all authentication cookies with HttpOnly and SameSite=Strict flags.
+- **FR-004**: System MUST set all authentication cookies with HttpOnly and SameSite=Strict flags; the Secure flag MUST also be set when served over HTTPS.
 - **FR-005**: System MUST enforce mandatory encryption key configuration on startup, refusing to start if secrets are missing or set to default values.
 - **FR-006**: System MUST enforce project-level access control, returning 403 for unauthorized project access attempts.
 - **FR-007**: System MUST NOT contain hardcoded secrets, API keys, or credentials anywhere in the source code.
@@ -308,7 +308,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - **SC-008**: A new user completes the onboarding tour and creates their first project within 30 minutes of initial deployment.
 - **SC-009**: Idle background API activity is reduced by at least 50% from the pre-optimization baseline.
 - **SC-010**: Every page in the application is fully interactive within 2 seconds on a standard broadband connection.
-- **SC-011**: Fresh `docker-compose up` from `.env.example` results in all services reporting healthy within 120 seconds.
+- **SC-011**: Fresh `docker compose up` from a `.env` file populated with the required OAuth credentials results in all services reporting healthy within 120 seconds.
 - **SC-012**: Full end-to-end user flow (create project → configure pipeline → run agents → review PR) completes successfully.
 - **SC-013**: Voice input functions correctly in both Chrome and Firefox.
 - **SC-014**: All version strings consistently display `0.1.0` across all configuration files and the changelog.

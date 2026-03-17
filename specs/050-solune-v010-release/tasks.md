@@ -3,9 +3,9 @@
 **Input**: Design documents from `/specs/050-solune-v010-release/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Tests are explicitly required by the specification (FR-041 through FR-044) and are included as dedicated Phase 11 tasks. Test tasks within feature phases are included only where they directly validate that phase's acceptance criteria.
+**Tests**: Tests are explicitly required by the specification (FR-041 through FR-044) and are included as dedicated Phase 13 tasks. Test tasks within feature phases are included only where they directly validate that phase's acceptance criteria.
 
-**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story. The plan's 9-phase structure maps to user stories as follows:
+**Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story. The release plan's 9 conceptual phases map to user stories as follows (this tasks document expands those into 14 implementation phases):
 - Phase 1 (Security & Data Integrity) → US1 + US2
 - Phase 2 (Code Quality) → US3
 - Phase 3 (Core Features) → US4 + US5 + US7
@@ -66,7 +66,7 @@
 
 ### US2: Security Critical Fixes (FR-004, FR-005, FR-006, FR-007, FR-008)
 
-- [ ] T017 [P] [US2] Set HttpOnly=True and SameSite=Strict on all authentication cookies in solune/backend/src/api/auth.py (FR-004)
+- [ ] T017 [P] [US2] Set HttpOnly=True and SameSite=Strict on the session/OAuth cookies in solune/backend/src/api/auth.py — CSRF cookie in middleware/csrf.py is out of scope here (must remain HttpOnly=False and SameSite=Lax for JS readability) (FR-004)
 - [ ] T018 [P] [US2] Add startup validation for ENCRYPTION_KEY — refuse to start if missing or default value in solune/backend/src/main.py (FR-005)
 - [ ] T019 [P] [US2] Add startup validation for SESSION_SECRET_KEY — refuse if missing or default in solune/backend/src/main.py (FR-005)
 - [ ] T020 [P] [US2] Add startup validation for GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in solune/backend/src/main.py (FR-005)
@@ -98,7 +98,7 @@
 
 - [ ] T029 [US3] Extract single resolve_repository() utility to shared module — eliminate all duplicates in solune/backend/src/services/github_projects/utils.py (FR-011)
 - [ ] T030 [US3] Decompose high-complexity functions (CC 42–123 → ≤25) in solune/backend/src/services/github_projects/service.py (FR-010)
-- [ ] T031 [P] [US3] Decompose high-complexity functions in solune/backend/src/services/copilot_polling/ polling services (FR-010)
+- [ ] T031 [P] [US3] Decompose high-complexity functions in solune/backend/src/services/copilot_polling/ (polling services) (FR-010)
 - [ ] T032 [US3] Replace emoji-based state representations with typed enumerations in solune/backend/src/services/ (FR-014)
 
 ### God Class Split (FR-009)

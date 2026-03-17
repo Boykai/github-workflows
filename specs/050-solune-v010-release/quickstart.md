@@ -36,11 +36,11 @@ source .venv/bin/activate  # or .venv\Scripts\activate on Windows
 pip install -e ".[dev]"
 
 # Copy environment configuration
-cp ../.env.example .env
-# Edit .env with your GitHub OAuth credentials
+cp ../.env.example ../.env
+# Edit ../.env with your GitHub OAuth credentials
 
 # Run database migrations (automatic on first startup)
-# Migrations are in src/migrations/ and applied by the database service
+# Migrations are in src/migrations/ and run by the backend on startup via init_database()
 
 # Start the backend development server
 uvicorn src.main:app --host 0.0.0.0 --port 8000 --reload
@@ -65,7 +65,7 @@ npm run dev
 # Only needed for Signal integration testing
 docker run -d --name solune-signal-api \
   -p 8080:8080 \
-  bbernhal/signal-cli-rest-api:0.83
+  bbernhard/signal-cli-rest-api:0.83
 ```
 
 ---

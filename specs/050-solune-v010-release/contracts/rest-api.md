@@ -397,17 +397,18 @@ This document defines the new and modified REST API endpoints required for the S
 
 ### `POST /api/v1/auth/github/callback` (Hardened)
 
-**Changes**: Set HttpOnly and SameSite=Strict on all cookies (FR-004).
+**Changes**: Set HttpOnly and SameSite=Strict on the session cookie; harden CSRF cookie (FR-004).
 
 **Cookie Headers** (added/modified):
 ```
 Set-Cookie: session=<token>; HttpOnly; SameSite=Strict; Path=/; Max-Age=28800
-Set-Cookie: csrf_token=<token>; SameSite=Strict; Path=/; Max-Age=28800
+Set-Cookie: csrf_token=<token>; SameSite=Lax; Path=/; Max-Age=28800
 ```
 
 **Notes**:
 - `Secure` flag added automatically when served over HTTPS
 - `csrf_token` does NOT set HttpOnly (must be readable by JavaScript for CSRF protection)
+- `csrf_token` keeps `SameSite=Lax` (not Strict) — SameSite=Strict would block the OAuth redirect callback flow. The current `CSRFMiddleware` (middleware/csrf.py) already uses Lax; this contract matches that behaviour
 
 ---
 

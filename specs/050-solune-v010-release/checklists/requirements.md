@@ -6,9 +6,9 @@
 
 ## Content Quality
 
-- [x] No implementation details (languages, frameworks, APIs)
+- [ ] No implementation details (languages, frameworks, APIs) — *Note: this spec intentionally includes technical constraints (Docker Compose, cookie flags, coverage targets) required to define the release scope*
 - [x] Focused on user value and business needs
-- [x] Written for non-technical stakeholders
+- [ ] Written for non-technical stakeholders — *Note: this spec targets technical contributors; it references implementation specifics needed for a release engineering spec*
 - [x] All mandatory sections completed
 
 ## Requirement Completeness
