@@ -373,15 +373,20 @@ async def _handle_transcript_upload(
     upload_dir = Path(tempfile.gettempdir()) / "chat-uploads"
 
     for file_url in file_urls:
-        # Resolve the local file path from the upload URL
-        filename = file_url.rsplit("/", 1)[-1] if "/" in file_url else file_url
-        file_path = upload_dir / filename
-
-        if not file_path.exists():
+        # Resolve the local file path from the upload URL.
+        # Sanitise: strip directory components to prevent path-traversal
+        # (same approach as the upload endpoint — see ``Path(cleaned).name``).
+        raw_name = file_url.rsplit("/", 1)[-1] if "/" in file_url else file_url
+        filename = Path(raw_name).name
+        if not filename:
             continue
+        file_path = upload_dir / filename
 
         # Safety: ensure resolved path stays inside upload_dir
         if not file_path.resolve().is_relative_to(upload_dir.resolve()):
+            continue
+
+        if not file_path.exists():
             continue
 
         try:
