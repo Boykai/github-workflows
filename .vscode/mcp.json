@@ -72,6 +72,15 @@
 			"timeout": 180,
 			"type": "streamableHttp",
 			"url": "http://localhost:3001/mcp"
+		},
+		"microsoft/azure-mcp": {
+			"type": "stdio",
+			"command": "npx",
+			"args": [
+				"@azure/mcp@latest",
+				"server",
+				"start"
+			]
 		}
 	},
 	"inputs": [

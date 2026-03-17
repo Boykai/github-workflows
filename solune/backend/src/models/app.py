@@ -1,9 +1,9 @@
 """Application data models for Solune multi-app management."""
 
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 APP_NAME_PATTERN = r"^[a-z0-9][a-z0-9-]*[a-z0-9]$"
 
@@ -74,6 +74,19 @@ class AppCreate(BaseModel):
     )
     create_project: bool = True
     ai_enhance: bool = True
+    azure_client_id: str | None = Field(default=None, min_length=1)
+    azure_client_secret: str | None = Field(
+        default=None, min_length=1, json_schema_extra={"writeOnly": True}
+    )
+
+    @model_validator(mode="after")
+    def validate_azure_credentials(self) -> Self:
+        has_id = self.azure_client_id is not None
+        has_secret = self.azure_client_secret is not None
+        if has_id != has_secret:
+            msg = "Azure Client ID and Client Secret must both be provided or both omitted"
+            raise ValueError(msg)
+        return self
 
 
 class AppUpdate(BaseModel):

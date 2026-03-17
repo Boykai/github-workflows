@@ -76,6 +76,54 @@ class RepositoryMixin:
             "default_branch": data.get("default_branch", "main"),
         }
 
+    async def set_repository_secret(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        secret_name: str,
+        secret_value: str,
+    ) -> None:
+        """Store an encrypted secret in a GitHub repository via Secrets API.
+
+        Uses ``libsodium`` sealed-box encryption (PyNaCl) as required by the
+        GitHub Actions Secrets API.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            owner: Repository owner.
+            repo: Repository name.
+            secret_name: Name of the secret (e.g. ``AZURE_CLIENT_ID``).
+            secret_value: Plaintext value to encrypt and store.
+        """
+        from nacl.public import PublicKey, SealedBox
+
+        # 1. Get repository public key
+        key_data = cast(
+            dict,
+            await self._rest(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/actions/secrets/public-key",
+            ),
+        )
+        public_key = key_data["key"]
+        key_id = key_data["key_id"]
+
+        # 2. Encrypt the secret using libsodium sealed box
+        pk_bytes = base64.b64decode(public_key)
+        sealed_box = SealedBox(PublicKey(pk_bytes))
+        encrypted = sealed_box.encrypt(secret_value.encode())
+        encrypted_b64 = base64.b64encode(encrypted).decode()
+
+        # 3. Store the encrypted secret
+        await self._rest(
+            access_token,
+            "PUT",
+            f"/repos/{owner}/{repo}/actions/secrets/{secret_name}",
+            json={"encrypted_value": encrypted_b64, "key_id": key_id},
+        )
+
     async def list_available_owners(
         self,
         access_token: str,
