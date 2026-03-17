@@ -72,7 +72,7 @@ specs/051-agent-config-cleanup/
 │   ├── designer.agent.md            # MODIFY: Add tools, remove handoffs, rewrite validation
 │   ├── judge.agent.md               # MODIFY: Add tools, remove handoffs (no validation section to rewrite)
 │   ├── linter.agent.md              # MODIFY: Add tools field to frontmatter
-│   ├── quality-assurance.agent.md   # MODIFY: Add tools, remove handoffs, update output requirements
+│   ├── quality-assurance.agent.md   # MODIFY: Add tools, remove handoffs, rewrite validation
 │   ├── tester.agent.md              # MODIFY: Add tools, remove handoffs, rewrite validation
 │   └── copilot-instructions.md      # MODIFY: Add degradation guidance, $ARGUMENTS docs, invocability notes
 ```
