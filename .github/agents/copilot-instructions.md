@@ -203,6 +203,7 @@ All agents live in `.github/agents/`. The repository includes both **Spec Kit pi
 ### Utility Agents
 | Agent | Purpose |
 |-------|---------|
+| `architect` | Generates Azure IaC (Bicep), `azd` scaffolds, architecture diagrams, and deploy buttons. Always runs for new apps. |
 | `archivist` | Updates documentation and README to match code changes |
 | `designer` | Creates or refines design assets scoped to changes |
 | `judge` | Triages PR review comments and applies justified changes |
@@ -211,7 +212,7 @@ All agents live in `.github/agents/`. The repository includes both **Spec Kit pi
 | `tester` | Adds tests for changed behavior and improves testability |
 
 ### MCP Configuration
-- `.github/agents/mcp.json` — Declares MCP servers available to remote GitHub Custom Agents (currently Context7 for documentation lookup).
+- `.github/agents/mcp.json` — Declares MCP servers available to remote GitHub Custom Agents (Context7 for documentation lookup and Azure MCP for resource schema lookups, Bicep best practices, and Well-Architected Framework guidance).
 
 ## MCP Presets
 

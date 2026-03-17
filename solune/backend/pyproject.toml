@@ -28,6 +28,8 @@ dependencies = [
     "slowapi>=0.1.9,<1",
     # Code graph analysis (MCP server + CLI)
     "codegraphcontext>=0.2.9,<1",
+    # GitHub Secrets API encryption (libsodium sealed box)
+    "pynacl>=1.5.0,<2",
 ]
 
 [project.optional-dependencies]

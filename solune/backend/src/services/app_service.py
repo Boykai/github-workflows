@@ -401,6 +401,37 @@ async def create_app_with_new_repo(
         else:
             logger.warning("Failed to commit template files to %s", repo_data["full_name"])
 
+    # 3a. Store Azure credentials as GitHub Secrets (best-effort, synchronous).
+    # Failure here is non-fatal: the app is still created, but the user must
+    # add AZURE_CLIENT_ID / AZURE_CLIENT_SECRET to the repo secrets manually.
+    azure_warning: str | None = None
+    if payload.azure_client_id and payload.azure_client_secret:
+        try:
+            await github_service.set_repository_secret(
+                access_token,
+                repo_owner,
+                repo_name,
+                "AZURE_CLIENT_ID",
+                payload.azure_client_id,
+            )
+            await github_service.set_repository_secret(
+                access_token,
+                repo_owner,
+                repo_name,
+                "AZURE_CLIENT_SECRET",
+                payload.azure_client_secret,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Failed to store Azure credentials for '%s': %s",
+                payload.name,
+                exc,
+            )
+            azure_warning = (
+                "Azure credentials could not be stored as GitHub Secrets. "
+                "Add AZURE_CLIENT_ID and AZURE_CLIENT_SECRET to the repository secrets manually."
+            )
+
     # 4. Optionally create and link a Project V2
     github_repo_url: str | None = repo_data.get("html_url")
     github_project_url: str | None = None
@@ -475,7 +506,10 @@ async def create_app_with_new_repo(
     row = await cursor.fetchone()
     if not row:
         raise NotFoundError(f"App '{payload.name}' not found after creation.")
-    return _row_to_app(row)
+    app = _row_to_app(row)
+    if azure_warning:
+        app = app.model_copy(update={"warnings": [azure_warning]})
+    return app
 
 
 async def _get_authenticated_username(

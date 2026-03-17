@@ -1,9 +1,9 @@
 """Application data models for Solune multi-app management."""
 
 from enum import StrEnum
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 APP_NAME_PATTERN = r"^[a-z0-9][a-z0-9-]*[a-z0-9]$"
 
@@ -52,6 +52,10 @@ class App(BaseModel):
     error_message: str | None = None
     created_at: str = ""
     updated_at: str = ""
+    # Transient field — populated in memory only, not persisted in the DB.
+    # Set by create_app_with_new_repo when optional steps (e.g. Azure secret
+    # storage) fail non-fatally so the frontend can surface a notice.
+    warnings: list[str] | None = None
 
 
 class AppCreate(BaseModel):
@@ -74,6 +78,19 @@ class AppCreate(BaseModel):
     )
     create_project: bool = True
     ai_enhance: bool = True
+    azure_client_id: str | None = Field(default=None, min_length=1)
+    azure_client_secret: str | None = Field(
+        default=None, min_length=1, json_schema_extra={"writeOnly": True}
+    )
+
+    @model_validator(mode="after")
+    def validate_azure_credentials(self) -> Self:
+        has_id = self.azure_client_id is not None
+        has_secret = self.azure_client_secret is not None
+        if has_id != has_secret:
+            msg = "Azure Client ID and Client Secret must both be provided or both omitted."
+            raise ValueError(msg)
+        return self
 
 
 class AppUpdate(BaseModel):
