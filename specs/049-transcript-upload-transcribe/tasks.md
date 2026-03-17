@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/049-transcript-upload-transcribe/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Included — tests are explicitly requested in the feature specification (Phase 3).
+**Tests**: Included — tests are explicitly requested in the feature specification and are organized throughout implementation phases.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -127,7 +127,7 @@
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
 - [ ] T024 [P] [US4] Create comprehensive test file `solune/backend/tests/test_transcript_detector.py` with detection cases: `.vtt` extension → detected as `format="vtt"` with confidence 1.0; `.srt` extension → detected as `format="srt"` with confidence 1.0; `.txt` with speaker labels → detected as `format="speaker_labeled"` with confidence 0.8; `.txt` with timestamps → detected as `format="timestamped"` with confidence 0.7; `.txt` with VTT markers → detected as `format="vtt"` with confidence 0.95; `.txt` with SRT arrows → detected as `format="srt"` with confidence 0.95
-- [ ] T025 [P] [US4] Add edge case tests in `solune/backend/tests/test_transcript_detector.py`: mixed format content (multiple patterns match → first priority wins), malformed VTT/SRT files, empty filename, content with exactly threshold-boundary counts
+- [ ] T025 [P] [US4] Add edge case tests in `solune/backend/tests/test_transcript_detector.py`: mixed format content (multiple patterns match → highest-priority pattern wins per detection order in T007), malformed VTT/SRT files, empty filename, content with exactly threshold-boundary counts
 
 ### Implementation for User Story 4
 
