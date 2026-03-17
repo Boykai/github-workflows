@@ -952,3 +952,67 @@ mutation(
   }
 }
 """
+
+# ---------------------------------------------------------------------------
+# 049 — New Repository & Project Creation mutations / queries
+# ---------------------------------------------------------------------------
+
+CREATE_PROJECT_V2_MUTATION = """
+mutation($ownerId: ID!, $title: String!) {
+  createProjectV2(input: {ownerId: $ownerId, title: $title}) {
+    projectV2 {
+      id
+      number
+      url
+    }
+  }
+}
+"""
+
+LINK_PROJECT_V2_TO_REPO_MUTATION = """
+mutation($projectId: ID!, $repositoryId: ID!) {
+  linkProjectV2ToRepository(input: {projectId: $projectId, repositoryId: $repositoryId}) {
+    repository {
+      id
+    }
+  }
+}
+"""
+
+UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION = """
+mutation($fieldId: ID!, $projectId: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
+  updateProjectV2SingleSelectField(input: {
+    fieldId: $fieldId,
+    projectId: $projectId,
+    singleSelectOptions: $options
+  }) {
+    projectV2SingleSelectField {
+      id
+      options {
+        id
+        name
+        color
+      }
+    }
+  }
+}
+"""
+
+GET_PROJECT_STATUS_FIELD_QUERY = """
+query($projectId: ID!) {
+  node(id: $projectId) {
+    ... on ProjectV2 {
+      field(name: "Status") {
+        ... on ProjectV2SingleSelectField {
+          id
+          options {
+            id
+            name
+            color
+          }
+        }
+      }
+    }
+  }
+}
+"""

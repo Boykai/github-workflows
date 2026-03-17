@@ -1,12 +1,12 @@
 /**
  * AppCard — displays a single application in the apps grid.
- * Shows name, description, status badge, and action buttons.
+ * Shows name, description, status badge, repo type badge, and action buttons.
  */
 
-import { Play, Square, Trash2 } from 'lucide-react';
+import { ExternalLink, Play, Square, Trash2 } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
-import type { App, AppStatus } from '@/types/apps';
+import type { App, AppStatus, RepoType } from '@/types/apps';
 
 const STATUS_STYLES: Record<AppStatus, { bg: string; text: string; label: string }> = {
   creating: {
@@ -29,6 +29,18 @@ const STATUS_STYLES: Record<AppStatus, { bg: string; text: string; label: string
     text: 'text-red-700 dark:text-red-300',
     label: 'Error',
   },
+};
+
+const REPO_TYPE_LABELS: Record<RepoType, string> = {
+  'same-repo': 'Same Repo',
+  'new-repo': 'New Repo',
+  'external-repo': 'External',
+};
+
+const REPO_TYPE_STYLES: Record<RepoType, string> = {
+  'same-repo': 'bg-sky-100/80 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300',
+  'new-repo': 'bg-violet-100/80 text-violet-700 dark:bg-violet-950/40 dark:text-violet-300',
+  'external-repo': 'bg-amber-100/80 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
 };
 
 interface AppCardProps {
@@ -72,17 +84,50 @@ export function AppCard({
             {app.display_name}
           </h3>
         </Tooltip>
-        <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-xs font-medium', style.bg, style.text)}>
-          {style.label}
-        </span>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', REPO_TYPE_STYLES[app.repo_type])}>
+            {REPO_TYPE_LABELS[app.repo_type] ?? app.repo_type}
+          </span>
+          <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', style.bg, style.text)}>
+            {style.label}
+          </span>
+        </div>
       </div>
 
       {/* Description */}
       <Tooltip content={app.description || 'No description'}>
-        <p className="relative z-10 mb-4 line-clamp-2 flex-1 text-sm text-zinc-500 dark:text-zinc-400">
+        <p className="relative z-10 mb-2 line-clamp-2 flex-1 text-sm text-zinc-500 dark:text-zinc-400">
           {app.description || 'No description'}
         </p>
       </Tooltip>
+
+      {/* GitHub links */}
+      {(app.github_repo_url || app.github_project_url) && (
+        <div className="relative z-10 mb-3 flex flex-wrap gap-2">
+          {app.github_repo_url && (
+            <a
+              href={app.github_repo_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-3 w-3" /> Repo
+            </a>
+          )}
+          {app.github_project_url && (
+            <a
+              href={app.github_project_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-300"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ExternalLink className="h-3 w-3" /> Project
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Actions — z-10 to sit above the card overlay button */}
       <div

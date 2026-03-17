@@ -16,6 +16,85 @@ logger = get_logger(__name__)
 class RepositoryMixin:
     """Repository info, file/directory contents, and commit operations."""
 
+    async def create_repository(
+        self,
+        access_token: str,
+        name: str,
+        *,
+        owner: str | None = None,
+        private: bool = True,
+        description: str = "",
+        auto_init: bool = True,
+    ) -> dict:
+        """Create a new GitHub repository.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            name: Repository name.
+            owner: Organisation login. ``None`` = personal account.
+            private: Whether the repository should be private.
+            description: Repository description.
+            auto_init: Initialise with a README so the default branch exists.
+
+        Returns:
+            ``{id, node_id, name, full_name, html_url, default_branch}``
+        """
+        body: dict = {
+            "name": name,
+            "private": private,
+            "description": description,
+            "auto_init": auto_init,
+        }
+
+        if owner:
+            endpoint = f"/orgs/{owner}/repos"
+        else:
+            endpoint = "/user/repos"
+
+        data = cast(dict, await self._rest(access_token, "POST", endpoint, json=body))
+        return {
+            "id": data.get("id"),
+            "node_id": data.get("node_id"),
+            "name": data.get("name"),
+            "full_name": data.get("full_name"),
+            "html_url": data.get("html_url"),
+            "default_branch": data.get("default_branch", "main"),
+        }
+
+    async def list_available_owners(
+        self,
+        access_token: str,
+    ) -> list[dict]:
+        """Return accounts where the user can create repositories.
+
+        Returns the personal account first, followed by organisations.
+
+        Returns:
+            ``[{login, avatar_url, type}, …]``
+        """
+        # Personal account
+        user = cast(dict, await self._rest(access_token, "GET", "/user"))
+        owners: list[dict] = [
+            {
+                "login": user.get("login", ""),
+                "avatar_url": user.get("avatar_url", ""),
+                "type": "User",
+            }
+        ]
+
+        # Organisations
+        orgs = cast(list, await self._rest(access_token, "GET", "/user/orgs"))
+        owners.extend(
+            {
+                "login": org.get("login", ""),
+                "avatar_url": org.get("avatar_url", ""),
+                "type": "Organization",
+            }
+            for org in orgs
+        )
+
+        return owners
+
     async def get_repository_owner(
         self,
         access_token: str,

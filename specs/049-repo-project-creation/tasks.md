@@ -24,9 +24,9 @@
 
 **Purpose**: Create new files and infrastructure that multiple user stories depend on
 
-- [ ] T001 Add GraphQL mutation strings (CREATE_PROJECT_V2_MUTATION, LINK_PROJECT_V2_TO_REPO_MUTATION, UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION) and GET_PROJECT_STATUS_FIELD_QUERY to `solune/backend/src/services/github_projects/graphql.py`
-- [ ] T002 [P] Create template file service module with GENERIC_COPILOT_INSTRUCTIONS constant, `build_template_files()` function, path traversal/symlink validation, and startup caching in `solune/backend/src/services/template_files.py`
-- [ ] T003 [P] Create DB migration with ALTER TABLE for new columns and recreated CHECK constraint for new-repo type in `solune/backend/src/migrations/028_new_repo_support.sql`
+- [x] T001 Add GraphQL mutation strings (CREATE_PROJECT_V2_MUTATION, LINK_PROJECT_V2_TO_REPO_MUTATION, UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION) and GET_PROJECT_STATUS_FIELD_QUERY to `solune/backend/src/services/github_projects/graphql.py`
+- [x] T002 [P] Create template file service module with GENERIC_COPILOT_INSTRUCTIONS constant, `build_template_files()` function, path traversal/symlink validation, and startup caching in `solune/backend/src/services/template_files.py`
+- [x] T003 [P] Create DB migration with ALTER TABLE for new columns and recreated CHECK constraint for new-repo type in `solune/backend/src/migrations/028_new_repo_support.sql`
 
 ---
 
@@ -36,14 +36,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 [P] Add `create_repository()` method to RepositoryMixin using GitHubKit REST (`async_create_for_authenticated_user` for personal, `async_create_in_org` for org, `auto_init=True`) returning `{id, node_id, name, full_name, html_url, default_branch}` in `solune/backend/src/services/github_projects/repository.py`
-- [ ] T005 Add `list_available_owners()` method to RepositoryMixin using REST `GET /user` + `GET /user/orgs` returning personal account + permitted orgs as `[{login, avatar_url, type}]` in `solune/backend/src/services/github_projects/repository.py`
-- [ ] T006 [P] Add `create_project_v2()` method to ProjectsMixin that fetches owner node_id, calls CREATE_PROJECT_V2_MUTATION, then best-effort configures Status field options (Backlog, In Progress, In Review, Done) via UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION in `solune/backend/src/services/github_projects/projects.py`
-- [ ] T007 Add `link_project_to_repository()` method to ProjectsMixin using LINK_PROJECT_V2_TO_REPO_MUTATION in `solune/backend/src/services/github_projects/projects.py`
-- [ ] T008 [P] Extend `RepoType` enum with `NEW_REPO = "new-repo"` in `solune/backend/src/models/app.py`
-- [ ] T009 Extend `AppCreate` model with optional fields `repo_owner: str | None`, `repo_visibility: Literal["public", "private"]`, `create_project: bool` and make `branch` optional when `repo_type == "new-repo"` in `solune/backend/src/models/app.py`
-- [ ] T010 Extend `App` model with nullable fields `github_repo_url: str | None`, `github_project_url: str | None`, `github_project_id: str | None` in `solune/backend/src/models/app.py`
-- [ ] T011 [P] Extend TypeScript types: add `'new-repo'` to `RepoType` union, add `Owner` interface `{login, avatar_url, type}`, add `repo_owner`, `repo_visibility`, `create_project` to `AppCreate`, add `github_repo_url`, `github_project_url`, `github_project_id` to `App`, add `CreateProjectRequest` and `CreateProjectResponse` types in `solune/frontend/src/types/apps.ts`
+- [x] T004 [P] Add `create_repository()` method to RepositoryMixin using GitHubKit REST (`async_create_for_authenticated_user` for personal, `async_create_in_org` for org, `auto_init=True`) returning `{id, node_id, name, full_name, html_url, default_branch}` in `solune/backend/src/services/github_projects/repository.py`
+- [x] T005 Add `list_available_owners()` method to RepositoryMixin using REST `GET /user` + `GET /user/orgs` returning personal account + permitted orgs as `[{login, avatar_url, type}]` in `solune/backend/src/services/github_projects/repository.py`
+- [x] T006 [P] Add `create_project_v2()` method to ProjectsMixin that fetches owner node_id, calls CREATE_PROJECT_V2_MUTATION, then best-effort configures Status field options (Backlog, In Progress, In Review, Done) via UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION in `solune/backend/src/services/github_projects/projects.py`
+- [x] T007 Add `link_project_to_repository()` method to ProjectsMixin using LINK_PROJECT_V2_TO_REPO_MUTATION in `solune/backend/src/services/github_projects/projects.py`
+- [x] T008 [P] Extend `RepoType` enum with `NEW_REPO = "new-repo"` in `solune/backend/src/models/app.py`
+- [x] T009 Extend `AppCreate` model with optional fields `repo_owner: str | None`, `repo_visibility: Literal["public", "private"]`, `create_project: bool` and make `branch` optional when `repo_type == "new-repo"` in `solune/backend/src/models/app.py`
+- [x] T010 Extend `App` model with nullable fields `github_repo_url: str | None`, `github_project_url: str | None`, `github_project_id: str | None` in `solune/backend/src/models/app.py`
+- [x] T011 [P] Extend TypeScript types: add `'new-repo'` to `RepoType` union, add `Owner` interface `{login, avatar_url, type}`, add `repo_owner`, `repo_visibility`, `create_project` to `AppCreate`, add `github_repo_url`, `github_project_url`, `github_project_id` to `App`, add `CreateProjectRequest` and `CreateProjectResponse` types in `solune/frontend/src/types/apps.ts`
 
 **Checkpoint**: Foundation ready — all backend service methods, models, and types are in place for user story implementation
 
@@ -59,19 +59,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T012 [P] [US1] Unit tests for `create_repository()` (personal + org, auto_init, response shape) and `list_available_owners()` (user + orgs, empty orgs) in `solune/backend/tests/unit/test_github_repository.py`
-- [ ] T013 [P] [US1] Unit tests for `create_project_v2()` (happy path, status config failure is non-blocking) and `link_project_to_repository()` (happy path, idempotent) in `solune/backend/tests/unit/test_github_projects_create.py`
-- [ ] T014 [P] [US1] Unit tests for `build_template_files()` (file reading, copilot-instructions replacement with generic version, path traversal rejection, symlink rejection, caching) in `solune/backend/tests/unit/test_template_files.py`
-- [ ] T015 [P] [US1] Unit tests for `create_app_with_new_repo()` (happy path with project, happy path without project, repo failure → full failure, project failure after repo → partial success with null project fields) in `solune/backend/tests/unit/test_app_service_new_repo.py`
+- [x] T012 [P] [US1] Unit tests for `create_repository()` (personal + org, auto_init, response shape) and `list_available_owners()` (user + orgs, empty orgs) in `solune/backend/tests/unit/test_github_repository.py`
+- [x] T013 [P] [US1] Unit tests for `create_project_v2()` (happy path, status config failure is non-blocking) and `link_project_to_repository()` (happy path, idempotent) in `solune/backend/tests/unit/test_github_projects_create.py`
+- [x] T014 [P] [US1] Unit tests for `build_template_files()` (file reading, copilot-instructions replacement with generic version, path traversal rejection, symlink rejection, caching) in `solune/backend/tests/unit/test_template_files.py`
+- [x] T015 [P] [US1] Unit tests for `create_app_with_new_repo()` (happy path with project, happy path without project, repo failure → full failure, project failure after repo → partial success with null project fields) in `solune/backend/tests/unit/test_app_service_new_repo.py`
 
 ### Implementation for User Story 1
 
-- [ ] T016 [US1] Implement `create_app_with_new_repo()` orchestration in `solune/backend/src/services/app_service.py`: validate → create repo → poll for default branch → commit template files → optionally create project → link project → insert DB record with error tolerance (repo fail → fail, project fail → succeed with null project fields)
-- [ ] T017 [US1] Update `POST /apps` handler to route by `repo_type`: if `RepoType.NEW_REPO` → call `create_app_with_new_repo()`, else existing flow in `solune/backend/src/api/apps.py`
-- [ ] T018 [US1] Add `GET /apps/owners` endpoint that calls `list_available_owners()` and returns `[{login, avatar_url, type}]` in `solune/backend/src/api/apps.py`
-- [ ] T019 [P] [US1] Add `appsApi.owners()` method returning `Promise<Owner[]>` via `GET /apps/owners` in `solune/frontend/src/services/api.ts`
-- [ ] T020 [P] [US1] Add `useOwners()` hook with TanStack Query (30s stale time) in `solune/frontend/src/hooks/useApps.ts`
-- [ ] T021 [US1] Update "New App" create dialog with segmented control for repo type ("Same Repo" | "New Repository" | "External Repo") and conditional fields: New Repository mode shows owner dropdown, visibility toggle (default private), create-project checkbox (default on); Same Repo mode shows existing branch + project fields; External Repo mode shows URL field in `solune/frontend/src/pages/AppsPage.tsx`
+- [x] T016 [US1] Implement `create_app_with_new_repo()` orchestration in `solune/backend/src/services/app_service.py`: validate → create repo → poll for default branch → commit template files → optionally create project → link project → insert DB record with error tolerance (repo fail → fail, project fail → succeed with null project fields)
+- [x] T017 [US1] Update `POST /apps` handler to route by `repo_type`: if `RepoType.NEW_REPO` → call `create_app_with_new_repo()`, else existing flow in `solune/backend/src/api/apps.py`
+- [x] T018 [US1] Add `GET /apps/owners` endpoint that calls `list_available_owners()` and returns `[{login, avatar_url, type}]` in `solune/backend/src/api/apps.py`
+- [x] T019 [P] [US1] Add `appsApi.owners()` method returning `Promise<Owner[]>` via `GET /apps/owners` in `solune/frontend/src/services/api.ts`
+- [x] T020 [P] [US1] Add `useOwners()` hook with TanStack Query (30s stale time) in `solune/frontend/src/hooks/useApps.ts`
+- [x] T021 [US1] Update "New App" create dialog with segmented control for repo type ("Same Repo" | "New Repository" | "External Repo") and conditional fields: New Repository mode shows owner dropdown, visibility toggle (default private), create-project checkbox (default on); Same Repo mode shows existing branch + project fields; External Repo mode shows URL field in `solune/frontend/src/pages/AppsPage.tsx`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently — users can create a new app with a new GitHub repository, template files, and a linked project board
 
@@ -87,15 +87,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T022 [P] [US2] Unit tests for `create_standalone_project()` (happy path without repo link, happy path with repo link, project creation failure, linking failure is non-blocking) in `solune/backend/tests/unit/test_app_service_new_repo.py`
+- [x] T022 [P] [US2] Unit tests for `create_standalone_project()` (happy path without repo link, happy path with repo link, project creation failure, linking failure is non-blocking) in `solune/backend/tests/unit/test_app_service_new_repo.py`
 
 ### Implementation for User Story 2
 
-- [ ] T023 [US2] Implement `create_standalone_project()` in `solune/backend/src/services/app_service.py`: takes `access_token, owner, title, repo_owner?, repo_name?` → calls `create_project_v2()` → optionally `link_project_to_repository()` → returns `{project_id, project_number, project_url}`
-- [ ] T024 [US2] Add `POST /projects/create` endpoint with request body `{title, owner, repo_owner?, repo_name?}` and response `{project_id, project_number, project_url}` (201 Created) in `solune/backend/src/api/projects.py`
-- [ ] T025 [P] [US2] Add `projectsApi.create()` method returning `Promise<CreateProjectResponse>` via `POST /projects/create` in `solune/frontend/src/services/api.ts`
-- [ ] T026 [P] [US2] Add `useCreateProject()` mutation hook that invalidates project list cache on success in `solune/frontend/src/hooks/useProjects.ts`
-- [ ] T027 [US2] Add "+ New Project" option at bottom of project list in ProjectSelector dropdown, opening a dialog with fields for project title (required), owner dropdown (from `useOwners()`), optional repo link; on success auto-select the new project in `solune/frontend/src/layout/ProjectSelector.tsx`
+- [x] T023 [US2] Implement `create_standalone_project()` in `solune/backend/src/services/app_service.py`: takes `access_token, owner, title, repo_owner?, repo_name?` → calls `create_project_v2()` → optionally `link_project_to_repository()` → returns `{project_id, project_number, project_url}`
+- [x] T024 [US2] Add `POST /projects/create` endpoint with request body `{title, owner, repo_owner?, repo_name?}` and response `{project_id, project_number, project_url}` (201 Created) in `solune/backend/src/api/projects.py`
+- [x] T025 [P] [US2] Add `projectsApi.create()` method returning `Promise<CreateProjectResponse>` via `POST /projects/create` in `solune/frontend/src/services/api.ts`
+- [x] T026 [P] [US2] Add `useCreateProject()` mutation hook that invalidates project list cache on success in `solune/frontend/src/hooks/useProjects.ts`
+- [x] T027 [US2] Add "+ New Project" option at bottom of project list in ProjectSelector dropdown, opening a dialog with fields for project title (required), owner dropdown (from `useOwners()`), optional repo link; on success auto-select the new project in `solune/frontend/src/layout/ProjectSelector.tsx`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently — users can create standalone projects from the project selector
 
@@ -109,7 +109,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Add "+ New Project" inline option within the project selector field in Same Repo app creation flow, reusing the creation dialog from US2 (ProjectSelector) with the repo automatically pre-filled, in `solune/frontend/src/pages/AppsPage.tsx`
+- [x] T028 [US3] Add "+ New Project" inline option within the project selector field in Same Repo app creation flow, reusing the creation dialog from US2 (ProjectSelector) with the repo automatically pre-filled, in `solune/frontend/src/pages/AppsPage.tsx`
 
 **Checkpoint**: Same Repo mode now supports inline project creation alongside existing project selection
 
@@ -123,7 +123,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T029 [US4] Add standalone "New Repository" button on Apps page (next to existing "New App" button) that opens the create dialog pre-set to "New Repository" mode in `solune/frontend/src/pages/AppsPage.tsx`
+- [x] T029 [US4] Add standalone "New Repository" button on Apps page (next to existing "New App" button) that opens the create dialog pre-set to "New Repository" mode in `solune/frontend/src/pages/AppsPage.tsx`
 
 **Checkpoint**: Apps page now has a dedicated shortcut for the most common creation action
 
@@ -137,8 +137,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T030 [P] [US5] Add repo type badge (styled by type: same-repo, new-repo, external-repo) and clickable links to `github_repo_url` and `github_project_url` (when available) to `solune/frontend/src/components/apps/AppCard.tsx`
-- [ ] T031 [P] [US5] Add clickable links to `github_repo_url` and `github_project_url` (when available) with labels to `solune/frontend/src/components/apps/AppDetailView.tsx`
+- [x] T030 [P] [US5] Add repo type badge (styled by type: same-repo, new-repo, external-repo) and clickable links to `github_repo_url` and `github_project_url` (when available) to `solune/frontend/src/components/apps/AppCard.tsx`
+- [x] T031 [P] [US5] Add clickable links to `github_repo_url` and `github_project_url` (when available) with labels to `solune/frontend/src/components/apps/AppDetailView.tsx`
 
 **Checkpoint**: All app cards and detail views now surface GitHub resource links for easy navigation
 
@@ -148,9 +148,9 @@
 
 **Purpose**: Docker configuration, integration testing, and final verification
 
-- [ ] T032 [P] Update Dockerfile to bundle template files via `COPY .github/ /app/templates/.github/`, `COPY .specify/ /app/templates/.specify/`, `COPY .gitignore /app/templates/.gitignore` and set `TEMPLATE_SOURCE_DIR=/app/templates` in `solune/backend/Dockerfile`
-- [ ] T033 [P] Integration test for end-to-end new-repo app creation flow (API call → DB state verification) in `solune/backend/tests/unit/test_app_service_new_repo.py`
-- [ ] T034 Run quickstart.md verification checklist: `pyright src` (0 errors), `ruff check src/` (clean), `pytest tests/ -x -q` (all pass), `npx tsc --noEmit` (no TS errors), `npx vitest run` (FE tests pass)
+- [x] T032 [P] Update Dockerfile to bundle template files via `COPY .github/ /app/templates/.github/`, `COPY .specify/ /app/templates/.specify/`, `COPY .gitignore /app/templates/.gitignore` and set `TEMPLATE_SOURCE_DIR=/app/templates` in `solune/backend/Dockerfile`
+- [x] T033 [P] Integration test for end-to-end new-repo app creation flow (API call → DB state verification) in `solune/backend/tests/unit/test_app_service_new_repo.py`
+- [x] T034 Run quickstart.md verification checklist: `pyright src` (0 errors), `ruff check src/` (clean), `pytest tests/ -x -q` (all pass), `npx tsc --noEmit` (no TS errors), `npx vitest run` (FE tests pass)
 
 ---
 

@@ -4,7 +4,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, appsApi } from '@/services/api';
-import type { App, AppCreate, AppStatusResponse, AppUpdate } from '@/types/apps';
+import type { App, AppCreate, AppStatusResponse, AppUpdate, Owner } from '@/types/apps';
 
 /** Query key factory for apps data. */
 export const appKeys = {
@@ -12,6 +12,7 @@ export const appKeys = {
   list: () => [...appKeys.all, 'list'] as const,
   detail: (name: string) => [...appKeys.all, 'detail', name] as const,
   status: (name: string) => [...appKeys.all, 'status', name] as const,
+  owners: () => [...appKeys.all, 'owners'] as const,
 };
 
 /** Type guard to check if an error is an ApiError. */
@@ -104,5 +105,14 @@ export function useStopApp() {
       queryClient.invalidateQueries({ queryKey: appKeys.list() });
       queryClient.invalidateQueries({ queryKey: appKeys.detail(appName) });
     },
+  });
+}
+
+/** Fetch available repository owners (personal + orgs). */
+export function useOwners() {
+  return useQuery<Owner[], ApiError>({
+    queryKey: appKeys.owners(),
+    queryFn: () => appsApi.owners(),
+    staleTime: 30_000,
   });
 }
