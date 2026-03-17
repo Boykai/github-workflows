@@ -323,7 +323,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 ## Risks
 
 - **Frontend coverage gap**: Current frontend test coverage is 49%, and the 70% target represents a significant increase. If 70% is not achievable by release, consider shipping at 60% with a tracked post-release commitment and a documented plan to close the remaining gap.
-- **God class refactor**: The largest backend service file is over 5,000 lines and must be split into multiple focused services. This is the highest-risk refactor — complete it early in Phase B to maximize time for regression discovery before release.
+- **God class refactor**: The largest backend service file is over 5,000 lines and must be split into multiple focused services. This is the highest-risk refactor — complete it early in Phase 2 (Code Quality Foundation) to maximize time for regression discovery before release.
 - **Prior feature validation**: Features 037–042 are assumed to be already implemented and merged. Confirm all prior feature branches are fully integrated before starting v0.1.0 tasks to avoid scope surprises or merge conflicts.
 
 ## Constraints & Decisions
