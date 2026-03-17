@@ -53,7 +53,7 @@
 - [ ] T007 [P] [US1] Add `tools:` block with `- '*'` after `description:` field in `.github/agents/linter.agent.md`
 - [ ] T008 [P] [US1] Add `tools:` block with `- '*'` after `description:` field in `.github/agents/quality-assurance.agent.md`
 - [ ] T009 [P] [US1] Add `tools:` block with `- '*'` after `description:` field in `.github/agents/tester.agent.md`
-- [ ] T010 [US1] Verify: `grep -c "^tools:" .github/agents/*.agent.md` returns 7 matches (one per agent file, excluding mcp-server-level tools entries)
+- [ ] T010 [US1] Verify: each of the 7 `.github/agents/*.agent.md` files contains a top-level `tools:` field with `- '*'` in the YAML frontmatter (between `description:` and `mcp-servers:`)
 
 **Checkpoint**: All 7 agents now declare explicit full tool access. YAML frontmatter is valid. No other fields modified.
 
@@ -253,9 +253,9 @@ Task T028: "Add $ARGUMENTS convention docs"
 
 With multiple developers:
 
-1. **Developer A**: US1 (tools field — 7 files) + US3 (validation rewrites — 4 files, after US2 merges)
-2. **Developer B**: US2 (handoff removal — 5 files) + US4 (degradation guidance — 1 file)
-3. **Developer C**: US5 + US6 (documentation — 1 file each, same target file)
+1. **Developer A**: US1 (tools field — 7 agents) + US3 (validation rewrites — 4 agents, after US2 merges)
+2. **Developer B**: US2 (handoff removal — 5 agents) + US4 (degradation guidance — 1 file)
+3. **Developer C**: US5 + US6 (documentation — both in copilot-instructions.md)
 4. Stories complete and integrate independently
 
 ---
