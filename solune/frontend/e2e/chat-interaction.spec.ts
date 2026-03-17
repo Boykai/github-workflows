@@ -3,7 +3,7 @@
  * Tests: verify chat popup toggle, basic chat UI interactions.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { VIEWPORTS } from './viewports';
 
 test.describe('Chat Interaction', () => {

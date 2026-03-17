@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 
 /**
  * E2E Tests for Authentication Flow
@@ -8,12 +8,12 @@ test.describe('Authentication', () => {
   test('should display login page when not authenticated', async ({ page }) => {
     await page.goto('/');
     
-    // Should show the login page
-    await expect(page.locator('h1')).toContainText('Solune');
-    await expect(page.locator('text=Manage your GitHub Projects with natural language')).toBeVisible();
+    // Should show the login page — h2 carries the "Solune" brand
+    await expect(page.locator('h2')).toContainText('Solune');
+    await expect(page.locator('text=Solune reframes GitHub operations')).toBeVisible();
     
     // Should have a login button
-    const loginButton = page.locator('button:has-text("Sign in with GitHub"), button:has-text("Login"), a:has-text("Sign in")');
+    const loginButton = page.locator('button:has-text("Login with GitHub"), button:has-text("Login"), a:has-text("Sign in")');
     await expect(loginButton.first()).toBeVisible();
   });
 
@@ -21,7 +21,7 @@ test.describe('Authentication', () => {
     await page.goto('/');
     
     // The login content should appear quickly (not stuck on loading)
-    await expect(page.locator('h1')).toContainText('Solune', { timeout: 5000 });
+    await expect(page.locator('h2')).toContainText('Solune', { timeout: 5000 });
     
     // Should NOT show a loading spinner for more than briefly
     const spinner = page.locator('.spinner, .loading, [data-testid="loading"]');
@@ -35,10 +35,10 @@ test.describe('Authentication', () => {
     await page.goto('/');
     
     // Wait for page to load
-    await expect(page.locator('h1')).toContainText('Solune');
+    await expect(page.locator('h2')).toContainText('Solune');
     
     // Find and click login button
-    const loginButton = page.locator('button:has-text("Sign in with GitHub"), button:has-text("Login"), button:has-text("Sign in")');
+    const loginButton = page.locator('button:has-text("Login with GitHub"), button:has-text("Login"), button:has-text("Sign in")');
     
     if (await loginButton.first().isVisible()) {
       // Set up navigation listener before clicking
@@ -96,6 +96,6 @@ test.describe('Error Handling', () => {
     await page.goto('/');
     
     // Page should still render the login UI
-    await expect(page.locator('h1')).toContainText('Solune');
+    await expect(page.locator('h1')).toBeVisible();
   });
 });

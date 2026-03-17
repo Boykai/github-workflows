@@ -3,7 +3,7 @@
  * Tests: navigate to settings view, verify settings sections display.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { VIEWPORTS } from './viewports';
 
 test.describe('Settings Flow', () => {

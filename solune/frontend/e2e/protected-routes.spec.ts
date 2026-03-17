@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
 
 const protectedRoutes = ['/apps', '/help', '/tools'];

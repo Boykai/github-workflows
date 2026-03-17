@@ -2,7 +2,7 @@
  * E2E test for responsive home layout at mobile/tablet/desktop viewports.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import { VIEWPORTS } from './viewports';
 
 test.describe('Responsive Home Layout', () => {

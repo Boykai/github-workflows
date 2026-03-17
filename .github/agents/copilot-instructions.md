@@ -244,6 +244,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite (async), in-memory SQLite for test fixtures (048-test-coverage-bugs)
 - Python 3.13 (backend), TypeScript 5.9 (frontend) + FastAPI + Pydantic + GitHubKit (backend), React 19 + Vite 7 + TanStack Query (frontend) (049-repo-project-creation)
 - aiosqlite (SQLite — `apps` table extended with new columns) (049-repo-project-creation)
+- Python ≥3.12 (backend), TypeScript 5.x / React 19 (frontend) + FastAPI, Pydantic, pytest (backend); Vite, Vitest, React Testing Library (frontend) (049-transcript-upload-transcribe)
+- SQLite (existing `ChatStore` for message/recommendation persistence — no changes) (049-transcript-upload-transcribe)
 
 ## Recent Changes
 - 047-advanced-testing: Added Python ≥3.12 (backend), TypeScript ~5.9 (frontend) + FastAPI, Pydantic 2, aiosqlite, httpx, hypothesis (backend); React 19, Vite 7, Vitest 4, Zod 4 (frontend)
