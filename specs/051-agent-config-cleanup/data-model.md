@@ -76,7 +76,7 @@ The shared instructions file (`copilot-instructions.md`) gains 3 new sections.
 | Archivist | `## Validation` (lines ~169–177) | Rewrite to explicit commands |
 | Designer | `## Validation` (lines ~170–178) | Rewrite to explicit commands |
 | Judge | No explicit validation section | No body change needed |
-| Quality Assurance | Validation mentioned in `## Output Requirements` | Add explicit validation step |
+| Quality Assurance | `### 5. Validate the PR Changes` (lines ~123–131) | Rewrite to explicit commands |
 | Tester | `### 6. Validate the Changes` (lines ~156–165) | Rewrite to explicit commands |
 
 ## State Transitions

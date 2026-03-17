@@ -247,19 +247,33 @@ The Judge agent does not have a dedicated `## Validation` section in its markdow
 
 ---
 
-## Contract 7: Quality Assurance Agent — Update Output Requirements
+## Contract 7: Quality Assurance Agent — Rewrite Validation Section
 
 **File**: `.github/agents/quality-assurance.agent.md`
-**Type**: MODIFY — add explicit validation step to `## Output Requirements`
+**Type**: MODIFY — rewrite `### 5. Validate the PR Changes` section in markdown body
 
-The QA agent's output requirements mention "Validation run" as item 7 but don't provide explicit commands. Add a validation execution section before the output requirements.
+The QA agent has a validation step (`### 5. Validate the PR Changes`) within its Workflow section that uses vague language ("Run the most relevant checks"). This should be rewritten with explicit commands, consistent with the Tester agent's approach (Contract 5).
 
-### Addition (insert before `## Output Requirements`)
+### Current Content (approximate)
 
 ```markdown
-## Validation
+### 5. Validate the PR Changes
 
-Run validation directly using terminal access before producing your final output. Execute the checks most relevant to the code paths you reviewed and changed:
+Run the most relevant checks for the files and behaviors you touched:
+
+- Targeted tests first.
+- Broader tests when the changed code is shared.
+- Type checks, lint checks, or builds when they are relevant to the touched surface.
+
+Quality claims must be backed by executed validation, not inference.
+```
+
+### Replacement Content
+
+```markdown
+### 5. Validate the PR Changes
+
+Run validation directly using terminal access. Execute the checks most relevant to the code paths you reviewed and changed:
 
 **Backend validation** (if applicable):
 - `cd solune/backend && ruff check src/ tests/` — lint check
@@ -273,5 +287,5 @@ Run validation directly using terminal access before producing your final output
 - `cd solune/frontend && npm run test` — Vitest unit tests
 - `cd solune/frontend && npm run build` — production build
 
-Do not claim quality assurance completeness without running the validation checks relevant to the code you changed.
+Quality claims must be backed by executed validation, not inference.
 ```

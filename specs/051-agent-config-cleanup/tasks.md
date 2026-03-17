@@ -92,7 +92,7 @@
 - [ ] T018 [P] [US3] Rewrite `## Validation` section in `.github/agents/archivist.agent.md` — replace passive "run the most relevant validation" with explicit documentation and backend/frontend terminal commands per Contract 3
 - [ ] T019 [P] [US3] Rewrite `## Validation` section in `.github/agents/designer.agent.md` — replace passive validation text with explicit frontend terminal commands and visual validation checklist per Contract 4
 - [ ] T020 [P] [US3] Rewrite `### 6. Validate the Changes` section in `.github/agents/tester.agent.md` — replace passive validation text with explicit backend/frontend terminal commands per Contract 5
-- [ ] T021 [P] [US3] Add new `## Validation` section before `## Output Requirements` in `.github/agents/quality-assurance.agent.md` with explicit backend/frontend terminal commands per Contract 7
+- [ ] T021 [P] [US3] Rewrite `### 5. Validate the PR Changes` section in `.github/agents/quality-assurance.agent.md` — replace vague "most relevant checks" with explicit backend/frontend terminal commands per Contract 7
 - [ ] T022 [US3] Verify: `grep -ri "handoff\|hand off" .github/agents/archivist.agent.md .github/agents/designer.agent.md .github/agents/judge.agent.md .github/agents/quality-assurance.agent.md .github/agents/tester.agent.md` returns 0 results
 - [ ] T023 [US3] Verify: each rewritten section contains actual shell commands (ruff, pyright, pytest, npm run lint, etc.)
 

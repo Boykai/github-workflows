@@ -48,7 +48,7 @@ As a developer relying on agents for code quality, I want the agents' validation
 
 **Acceptance Scenarios**:
 
-1. **Given** the Archivist, Designer, Judge, Quality Assurance, or Tester agent definition file, **When** a reviewer reads the validation-related sections, **Then** the instructions tell the agent to run validation commands itself (e.g., run linters, tests, type-checks via terminal).
+1. **Given** the Archivist, Designer, Judge, Quality Assurance, or Tester agent definition file, **When** a reviewer reads the validation-related sections, **Then** the instructions tell the agent to run validation commands itself (e.g., run linters, tests, type-checks via terminal). **Note**: The Judge agent has no dedicated validation section in its markdown body — this scenario is satisfied by default for Judge with no body text changes required.
 2. **Given** any of the 5 affected agent definition files, **When** a reviewer searches for the word "handoff" or "hand off," **Then** no references to handing off to another agent for validation are found.
 3. **Given** an agent executes its workflow, **When** it reaches the validation step, **Then** it runs the validation commands directly rather than attempting to delegate to another agent.
 
