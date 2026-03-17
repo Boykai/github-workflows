@@ -437,7 +437,7 @@
 
 ### Version & Changelog (FR-045)
 
-- [ ] T150 [US10] Finalize CHANGELOG.md under [0.1.0] section in solune/CHANGELOG.md
+- [ ] T150 [US10] Finalize CHANGELOG.md under [0.1.0] section — document all user-facing changes grouped by category (Security, Pipeline, Agents, Chat, UI, Performance, Docs) with references to FR numbers in solune/CHANGELOG.md
 - [ ] T151 [P] [US10] Verify version string 0.1.0 in solune/backend/pyproject.toml
 - [ ] T152 [P] [US10] Verify version string 0.1.0 in solune/frontend/package.json
 - [ ] T153 [US10] Tag release as v0.1.0
