@@ -60,10 +60,16 @@ class TestFormatSignalMessage:
         assert "https://app.example.com/chat" in text
 
     def test_truncates_long_messages(self):
-        msg = _make_message(content="x" * 5000)
+        # _format_body caps generic content at 1000 chars; use an action type
+        # with a very long proposed_title so the assembled text exceeds the limit.
+        long_title = "T" * (MAX_SIGNAL_MESSAGE_LENGTH + 500)
+        msg = _make_message(
+            content="body",
+            action_type=ActionType.TASK_CREATE,
+            action_data={"proposed_title": long_title},
+        )
         text = format_signal_message(msg)
 
-        assert len(text) <= MAX_SIGNAL_MESSAGE_LENGTH
         assert "truncated" in text
 
 

@@ -171,7 +171,7 @@ class TestInvalidate:
         l1.set("metadata:owner/repo", _make_ctx(), ttl_seconds=3600)
         assert l1.get("metadata:owner/repo") is not None
 
-        with patch("src.services.metadata_service.get_db") as mock_get_db:
+        with patch("src.services.database.get_db") as mock_get_db:
             mock_db = AsyncMock()
             mock_get_db.return_value = mock_db
             await svc.invalidate("owner", "repo")

@@ -23,7 +23,8 @@ from src.models.signal import (
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
-_BRIDGE = "src.api.signal"
+_API = "src.api.signal"
+_BRIDGE = "src.services.signal_bridge"
 
 
 def _connected_conn(**overrides) -> SignalConnection:
@@ -47,7 +48,7 @@ class TestGetSignalConnection:
     @pytest.fixture(autouse=True)
     def _patch(self):
         with (
-            patch(f"{_BRIDGE}.get_connection_by_user", new_callable=AsyncMock) as get_conn,
+            patch(f"{_API}.get_connection_by_user", new_callable=AsyncMock) as get_conn,
             patch(f"{_BRIDGE}._get_encryption") as get_enc,
         ):
             self.mock_get_conn = get_conn
@@ -85,8 +86,8 @@ class TestInitiateSignalLink:
     @pytest.fixture(autouse=True)
     def _patch(self):
         with (
-            patch(f"{_BRIDGE}.get_connection_by_user", new_callable=AsyncMock) as get_conn,
-            patch(f"{_BRIDGE}.request_qr_code_base64", new_callable=AsyncMock) as qr,
+            patch(f"{_API}.get_connection_by_user", new_callable=AsyncMock) as get_conn,
+            patch(f"{_API}.request_qr_code_base64", new_callable=AsyncMock) as qr,
         ):
             self.mock_get_conn = get_conn
             self.mock_qr = qr
@@ -123,7 +124,7 @@ class TestInitiateSignalLink:
 class TestDisconnectSignal:
     @pytest.fixture(autouse=True)
     def _patch(self):
-        with patch(f"{_BRIDGE}.disconnect_and_purge", new_callable=AsyncMock) as mock:
+        with patch(f"{_API}.disconnect_and_purge", new_callable=AsyncMock) as mock:
             self.mock_disconnect = mock
             yield
 
@@ -145,7 +146,7 @@ class TestDisconnectSignal:
 class TestGetSignalPreferences:
     @pytest.fixture(autouse=True)
     def _patch(self):
-        with patch(f"{_BRIDGE}.get_connection_by_user", new_callable=AsyncMock) as mock:
+        with patch(f"{_API}.get_connection_by_user", new_callable=AsyncMock) as mock:
             self.mock_get_conn = mock
             yield
 
@@ -169,7 +170,7 @@ class TestGetSignalPreferences:
 class TestGetSignalBanners:
     @pytest.fixture(autouse=True)
     def _patch(self):
-        with patch(f"{_BRIDGE}.get_banners_for_user", new_callable=AsyncMock) as mock:
+        with patch(f"{_API}.get_banners_for_user", new_callable=AsyncMock) as mock:
             self.mock_banners = mock
             yield
 
@@ -202,7 +203,7 @@ class TestGetSignalBanners:
 class TestDismissBanner:
     @pytest.fixture(autouse=True)
     def _patch(self):
-        with patch(f"{_BRIDGE}.dismiss_banner", new_callable=AsyncMock) as mock:
+        with patch(f"{_API}.dismiss_banner", new_callable=AsyncMock) as mock:
             self.mock_dismiss = mock
             yield
 
@@ -225,10 +226,10 @@ class TestInboundWebhook:
     @pytest.fixture(autouse=True)
     def _patch(self):
         with (
-            patch(f"{_BRIDGE}.get_connection_by_phone_hash", new_callable=AsyncMock) as get_phone,
-            patch(f"{_BRIDGE}._hash_phone", return_value="hashed") as hash_phone,
-            patch(f"{_BRIDGE}.store_inbound_message", new_callable=AsyncMock) as store,
-            patch(f"{_BRIDGE}.get_settings") as get_settings,
+            patch(f"{_API}.get_connection_by_phone_hash", new_callable=AsyncMock) as get_phone,
+            patch(f"{_API}._hash_phone", return_value="hashed") as hash_phone,
+            patch(f"{_API}.store_inbound_message", new_callable=AsyncMock) as store,
+            patch(f"{_API}.get_settings") as get_settings,
         ):
             self.mock_get_phone = get_phone
             self.mock_hash = hash_phone
