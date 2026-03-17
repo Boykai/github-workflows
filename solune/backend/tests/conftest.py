@@ -13,6 +13,8 @@ Provides shared fixtures for all backend tests:
 """
 
 import os
+import sys
+import types
 
 # Set test environment variables BEFORE any src imports can trigger
 # module-level Settings() instantiation (e.g. github_auth_service, cache).
@@ -20,6 +22,10 @@ os.environ.setdefault("GITHUB_CLIENT_ID", "test-client-id")
 os.environ.setdefault("GITHUB_CLIENT_SECRET", "test-client-secret")
 os.environ.setdefault("SESSION_SECRET_KEY", "test-session-secret-key-that-is-long-enough")
 os.environ.setdefault("DATABASE_PATH", ":memory:")
+# Mutmut's stats collection imports instrumented modules before selecting a
+# concrete mutant. Defaulting to "stats" keeps those import-time trampolines safe
+# while still allowing mutmut to override the variable for actual mutant runs.
+os.environ.setdefault("MUTANT_UNDER_TEST", "stats")
 # Pin COPILOT_MODEL so seed_global_settings (which reads the @lru_cache'd
 # get_settings()) always produces the value the tests expect, regardless
 # of the host environment.
@@ -28,6 +34,26 @@ os.environ["COPILOT_MODEL"] = "gpt-4o"
 os.environ.setdefault("DEBUG", "true")
 # Disable rate limiting during tests.
 os.environ["TESTING"] = "1"
+
+try:
+    import mutmut
+except Exception:
+    mutmut = None
+else:
+    mutmut_main = types.ModuleType("mutmut.__main__")
+
+    class MutmutProgrammaticFailException(Exception):
+        pass
+
+    def _record_trampoline_hit(name: str) -> None:
+        """Normalize src-layout module names for mutmut stats collection."""
+        if name.startswith("src."):
+            name = name.removeprefix("src.")
+        mutmut._stats.add(name)
+
+    mutmut_main.MutmutProgrammaticFailException = MutmutProgrammaticFailException
+    mutmut_main.record_trampoline_hit = _record_trampoline_hit
+    sys.modules.setdefault("mutmut.__main__", mutmut_main)
 
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -194,23 +220,22 @@ def mock_websocket_manager() -> AsyncMock:
 
 
 @pytest.fixture(autouse=True)
-def _clear_resolve_repo_cache():
-    """Clear resolve_repository cache entries between tests.
+def _clear_test_caches():
+    """Clear the global in-memory cache between tests.
 
-    resolve_repository() caches results in the global InMemoryCache to avoid
-    repeated GitHub API calls.  This fixture ensures tests that mock different
-    fallback paths are not polluted by a prior test's cached result.
+    Unit and integration suites both exercise endpoints that reuse shared cache
+    entries such as ``projects:*`` and ``board_projects:*``. Clearing the cache
+    before and after each test prevents cross-suite contamination while still
+    allowing individual tests to verify cache reuse within a single request flow.
     """
     from src.services.cache import cache as _cache
+    from src.services.copilot_polling.state import _system_marked_ready_prs
 
-    # Clear all resolve_repo:* entries before and after each test
-    keys_to_clear = [k for k in list(_cache._cache.keys()) if k.startswith("resolve_repo:")]
-    for k in keys_to_clear:
-        _cache.delete(k)
+    _cache.clear()
+    _system_marked_ready_prs.clear()
     yield
-    keys_to_clear = [k for k in list(_cache._cache.keys()) if k.startswith("resolve_repo:")]
-    for k in keys_to_clear:
-        _cache.delete(k)
+    _cache.clear()
+    _system_marked_ready_prs.clear()
 
 
 # =============================================================================

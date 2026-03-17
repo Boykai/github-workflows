@@ -14,7 +14,7 @@ from datetime import UTC, datetime
 from src.config import get_settings
 from src.logging_utils import get_logger
 from src.models.settings import ModelOption, ModelsResponse
-from src.services.completion_providers import CopilotClientPool, copilot_client_pool
+from src.services.completion_providers import CopilotClientPool, get_copilot_client_pool
 from src.utils import BoundedDict
 
 logger = get_logger(__name__)
@@ -80,7 +80,7 @@ class GitHubCopilotModelFetcher(ModelFetchProvider):
     """
 
     def __init__(self, pool: CopilotClientPool | None = None) -> None:
-        self._pool = pool or copilot_client_pool
+        self._pool = pool or get_copilot_client_pool()
         self._last_list_models_at: float = 0.0
         self._min_list_models_interval: float = 2.0
         self._lock: asyncio.Lock | None = None

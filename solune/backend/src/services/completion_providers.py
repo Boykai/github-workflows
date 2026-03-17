@@ -16,6 +16,8 @@ from src.utils import BoundedDict
 
 logger = get_logger(__name__)
 
+_copilot_client_pool: "CopilotClientPool | None" = None
+
 
 class CopilotClientPool:
     """Shared, bounded cache of CopilotClient instances keyed by token hash.
@@ -92,8 +94,12 @@ class CopilotClientPool:
                 logger.warning("Error stopping CopilotClient: %s", e)
 
 
-# Module-level shared pool instance used by both providers and model fetcher
-copilot_client_pool = CopilotClientPool()
+def get_copilot_client_pool() -> CopilotClientPool:
+    """Return the shared Copilot client pool, creating it on first use."""
+    global _copilot_client_pool
+    if _copilot_client_pool is None:
+        _copilot_client_pool = CopilotClientPool()
+    return _copilot_client_pool
 
 
 class CompletionProvider(ABC):
@@ -140,7 +146,7 @@ class CopilotCompletionProvider(CompletionProvider):
 
     def __init__(self, model: str = "gpt-4o", pool: CopilotClientPool | None = None):
         self._model = model
-        self._pool = pool or copilot_client_pool
+        self._pool = pool or get_copilot_client_pool()
         logger.info("Initialized Copilot completion provider (model: %s)", model)
 
     async def complete(

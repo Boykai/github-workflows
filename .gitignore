@@ -79,6 +79,7 @@ solune/frontend/reports/
 
 # Mutation testing artifacts
 .mutmut-cache
+mutants/
 stryker-tmp/
 
 # Hypothesis database (property test caches)

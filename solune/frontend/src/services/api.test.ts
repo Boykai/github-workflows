@@ -131,6 +131,33 @@ describe('request URL and header construction', () => {
     expect(opts.method).toBe('DELETE');
   });
 
+  it('appsApi.list appends the status query when provided', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse([]));
+    await appsApi.list('active');
+
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toContain('/apps?status=active');
+    expect(opts.method ?? 'GET').toBe('GET');
+  });
+
+  it('appsApi.start sends POST /apps/:name/start', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ status: 'active' }));
+    await appsApi.start('my-app');
+
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toContain('/apps/my-app/start');
+    expect(opts.method).toBe('POST');
+  });
+
+  it('appsApi.stop sends POST /apps/:name/stop', async () => {
+    mockFetch.mockResolvedValueOnce(jsonResponse({ status: 'stopped' }));
+    await appsApi.stop('my-app');
+
+    const [url, opts] = mockFetch.mock.calls[0];
+    expect(url).toContain('/apps/my-app/stop');
+    expect(opts.method).toBe('POST');
+  });
+
   it('attaches CSRF token header on state-changing requests', async () => {
     document.cookie = 'csrf_token=abc123';
     mockFetch.mockResolvedValueOnce(jsonResponse({ message: 'ok' }));
@@ -202,6 +229,30 @@ describe('HTTP error responses', () => {
     const result = await appsApi.delete('x');
     expect(result).toEqual({});
   });
+
+  it('merges rate_limit details into the ApiError payload', async () => {
+    mockFetch.mockResolvedValueOnce(
+      jsonResponse(
+        {
+          detail: 'Slow down',
+          details: { source: 'github' },
+          rate_limit: { remaining: 0, reset_at: 'later' },
+        },
+        429
+      )
+    );
+
+    await expect(projectsApi.list()).rejects.toMatchObject({
+      status: 429,
+      error: {
+        error: 'Slow down',
+        details: {
+          source: 'github',
+          rate_limit: { remaining: 0, reset_at: 'later' },
+        },
+      },
+    });
+  });
 });
 
 // ── Auth expiry listener ───────────────────────────────────────────────
@@ -226,5 +277,40 @@ describe('onAuthExpired', () => {
     mockFetch.mockResolvedValueOnce(jsonResponse({ error: 'expired' }, 401));
     await expect(projectsApi.list()).rejects.toThrow(ApiError);
     expect(listener).not.toHaveBeenCalled();
+  });
+
+  it('does not fire listeners for auth endpoint 401 responses', async () => {
+    const listener = vi.fn();
+    const unsub = onAuthExpired(listener);
+
+    mockFetch.mockResolvedValueOnce(jsonResponse({ error: 'expired' }, 401));
+    await expect(authApi.getCurrentUser()).rejects.toThrow(ApiError);
+
+    expect(listener).not.toHaveBeenCalled();
+    unsub();
+  });
+
+  it('continues notifying remaining listeners when one throws', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const throwingListener = vi.fn(() => {
+      throw new Error('listener boom');
+    });
+    const healthyListener = vi.fn();
+    const unsubThrowing = onAuthExpired(throwingListener);
+    const unsubHealthy = onAuthExpired(healthyListener);
+
+    mockFetch.mockResolvedValueOnce(jsonResponse({ error: 'expired' }, 401));
+    await expect(projectsApi.list()).rejects.toThrow(ApiError);
+
+    expect(throwingListener).toHaveBeenCalledOnce();
+    expect(healthyListener).toHaveBeenCalledOnce();
+    expect(consoleErrorSpy).toHaveBeenCalledWith(
+      'Auth-expired listener threw:',
+      expect.any(Error)
+    );
+
+    unsubThrowing();
+    unsubHealthy();
+    consoleErrorSpy.mockRestore();
   });
 });

@@ -14,6 +14,14 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        shard:
+          - auth-and-projects
+          - orchestration
+          - app-and-data
+          - agents-and-integrations
     defaults:
       run:
         working-directory: solune/backend
@@ -32,18 +40,18 @@ jobs:
 
       - name: Run mutmut
         continue-on-error: true
-        run: mutmut run --no-progress
+        run: python scripts/run_mutmut_shard.py --shard "${{ matrix.shard }}" --max-children 1
 
       - name: Generate mutmut report
         continue-on-error: true
-        run: mutmut results > mutmut-report.txt 2>&1
+        run: python -m mutmut results > "mutmut-report-${{ matrix.shard }}.txt" 2>&1
 
       - name: Upload mutation report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: backend-mutation-report
-          path: solune/backend/mutmut-report.txt
+          name: backend-mutation-report-${{ matrix.shard }}
+          path: solune/backend/mutmut-report-${{ matrix.shard }}.txt
           retention-days: 14
           if-no-files-found: warn
 

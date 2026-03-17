@@ -7,9 +7,12 @@ T033:
 - Rate limit key function falls back to IP for unauthenticated requests
 """
 
+from types import SimpleNamespace
 from unittest.mock import MagicMock
 
-from src.middleware.rate_limit import get_user_key, limiter
+import pytest
+
+from src.middleware.rate_limit import RateLimitKeyMiddleware, get_user_key, limiter
 
 
 class TestRateLimiterConfiguration:
@@ -71,3 +74,136 @@ class TestRateLimitKeyFunction:
 
         key = get_user_key(request)
         assert key == "user:12345"
+
+
+class TestRateLimitKeyMiddleware:
+    @pytest.mark.asyncio
+    async def test_passthrough_for_non_http_scopes(self):
+        called = False
+
+        async def app(scope, receive, send):
+            nonlocal called
+            called = True
+
+        middleware = RateLimitKeyMiddleware(app)
+
+        await middleware({"type": "websocket"}, None, None)
+
+        assert called is True
+
+    @pytest.mark.asyncio
+    async def test_sets_rate_limit_key_from_resolved_session(self, monkeypatch):
+        seen_key = None
+
+        async def app(scope, receive, send):
+            nonlocal seen_key
+            seen_key = scope["state"].get("rate_limit_key")
+
+        async def fake_get_session(_db, session_id):
+            assert session_id == "session-123"
+            return SimpleNamespace(github_user_id="gh-user-42")
+
+        monkeypatch.setattr("src.services.database.get_db", lambda: object())
+        monkeypatch.setattr("src.services.session_store.get_session", fake_get_session)
+
+        middleware = RateLimitKeyMiddleware(app)
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/limited",
+            "headers": [(b"cookie", b"session_id=session-123")],
+            "query_string": b"",
+            "state": {},
+            "client": ("127.0.0.1", 1234),
+            "server": ("testserver", 80),
+            "scheme": "http",
+            "http_version": "1.1",
+        }
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(_message):
+            return None
+
+        await middleware(scope, receive, send)
+
+        assert seen_key == "user:gh-user-42"
+
+    @pytest.mark.asyncio
+    async def test_keeps_fallback_behavior_when_session_has_no_github_user(self, monkeypatch):
+        seen_key = "sentinel"
+
+        async def app(scope, receive, send):
+            nonlocal seen_key
+            seen_key = scope["state"].get("rate_limit_key")
+
+        async def fake_get_session(_db, _session_id):
+            return SimpleNamespace(github_user_id=None)
+
+        monkeypatch.setattr("src.services.database.get_db", lambda: object())
+        monkeypatch.setattr("src.services.session_store.get_session", fake_get_session)
+
+        middleware = RateLimitKeyMiddleware(app)
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/limited",
+            "headers": [(b"cookie", b"session_id=session-123")],
+            "query_string": b"",
+            "state": {},
+            "client": ("127.0.0.1", 1234),
+            "server": ("testserver", 80),
+            "scheme": "http",
+            "http_version": "1.1",
+        }
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(_message):
+            return None
+
+        await middleware(scope, receive, send)
+
+        assert seen_key is None
+
+    @pytest.mark.asyncio
+    async def test_swallows_resolution_errors_and_continues(self, monkeypatch):
+        called = False
+
+        async def app(scope, receive, send):
+            nonlocal called
+            called = True
+            assert scope["state"].get("rate_limit_key") is None
+
+        monkeypatch.setattr("src.services.database.get_db", lambda: object())
+
+        async def fake_get_session(_db, _session_id):
+            raise RuntimeError("db unavailable")
+
+        monkeypatch.setattr("src.services.session_store.get_session", fake_get_session)
+
+        middleware = RateLimitKeyMiddleware(app)
+        scope = {
+            "type": "http",
+            "method": "GET",
+            "path": "/limited",
+            "headers": [(b"cookie", b"session_id=session-123")],
+            "query_string": b"",
+            "state": {},
+            "client": ("127.0.0.1", 1234),
+            "server": ("testserver", 80),
+            "scheme": "http",
+            "http_version": "1.1",
+        }
+
+        async def receive():
+            return {"type": "http.request", "body": b"", "more_body": False}
+
+        async def send(_message):
+            return None
+
+        await middleware(scope, receive, send)
+
+        assert called is True

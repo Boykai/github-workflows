@@ -6,7 +6,43 @@
 |------|-------|---------------|
 | pytest + pytest-asyncio | Backend unit / integration / e2e | Extensive suite (hundreds of tests, auto-discovered) |
 | Vitest + React Testing Library | Frontend unit | Growing suite of frontend unit tests (auto-discovered) |
+| fast-check / Hypothesis | Property + fuzz testing | Input invariants, schema drift, and malformed payload coverage |
 | Playwright | Frontend E2E | Multiple E2E spec files (auto-discovered) |
+| mutmut / Stryker | Mutation testing | Scheduled CI plus local focused baselines |
+
+## Mutation Testing
+
+### Backend Mutation (mutmut)
+
+```bash
+cd backend
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python -m mutmut run
+
+# Review the latest result summary
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python -m mutmut results
+
+# Run a smaller shard locally
+PATH="$PWD/.venv/bin:$PATH" .venv/bin/python scripts/run_mutmut_shard.py --shard app-and-data --max-children 1
+```
+
+Notes:
+
+- Run `mutmut` from `backend/` so the generated `mutants/` tree uses the backend `pyproject.toml` configuration.
+- The backend config mutates `src/services/` but also copies the rest of the `src/` modules required by the test suite into `mutants/`.
+- Backend tests seed `MUTANT_UNDER_TEST=stats` during stats collection so import-time service wiring does not crash the initial mutmut analysis pass.
+- The shard runner temporarily narrows `paths_to_mutate` and restores `pyproject.toml` after each run, which keeps local and CI shard invocations aligned.
+
+### Frontend Mutation (Stryker)
+
+```bash
+cd frontend
+
+# Full mutation run
+npx stryker run
+
+# Focused baseline on a single file
+npx stryker run --mutate src/utils/formatTime.ts --testFiles src/utils/formatTime.property.test.ts --reporters clear-text
+```
 
 ## Backend Tests
 
@@ -19,6 +55,9 @@ pytest tests/ -v
 
 # Run with coverage
 pytest tests/ --cov=src --cov-report=html
+
+# Run a focused fuzz suite
+pytest tests/fuzz/test_api_input_fuzz.py -q
 
 # Run specific test file
 pytest tests/unit/test_copilot_polling.py -v
@@ -129,6 +168,9 @@ npm run test:watch
 
 # With coverage
 npm run test:coverage
+
+# Run a focused property-based suite
+npm test -- src/utils/formatTime.property.test.ts
 ```
 
 Test files are co-located with components:
@@ -194,11 +236,21 @@ E2E specs:
 - `e2e/board-navigation.spec.ts`
 - `e2e/chat-interaction.spec.ts`
 - `e2e/integration.spec.ts`
+- `e2e/protected-routes.spec.ts`
 - `e2e/responsive-board.spec.ts`
 - `e2e/responsive-home.spec.ts`
 - `e2e/responsive-settings.spec.ts`
 - `e2e/settings-flow.spec.ts`
 - `e2e/ui.spec.ts`
+
+## CI Gates
+
+- Backend CI enforces coverage and uploads `coverage.xml` plus `htmlcov/` artifacts.
+- Frontend CI enforces Vitest coverage thresholds and uploads the `coverage/` artifact.
+- Frontend E2E runs Playwright in Chromium on every push and pull request and uploads `e2e-report/` and `test-results/`.
+- Contract validation exports backend OpenAPI, regenerates frontend types, and type-checks the generated contract.
+- Flaky detection and mutation testing run in dedicated workflows on schedule or manual dispatch.
+- Backend mutation CI runs four shard jobs (`auth-and-projects`, `orchestration`, `app-and-data`, `agents-and-integrations`) to keep reports smaller and faster to finish.
 
 ## Code Quality
 

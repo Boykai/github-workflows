@@ -53,7 +53,18 @@ jobs:
         run: pyright src
 
       - name: Run tests with coverage enforcement
-        run: pytest --cov=src --cov-report=term-missing --durations=20
+        run: pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --durations=20
+
+      - name: Upload backend coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: backend-coverage-report
+          path: |
+            solune/backend/coverage.xml
+            solune/backend/htmlcov/
+          retention-days: 14
+          if-no-files-found: warn
 
   # Frontend tests run directly on the runner
   frontend:
@@ -90,8 +101,56 @@ jobs:
       - name: Run tests with coverage enforcement
         run: npm run test:coverage
 
+      - name: Upload frontend coverage report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-coverage-report
+          path: solune/frontend/coverage/
+          retention-days: 14
+          if-no-files-found: warn
+
       - name: Build
         run: npm run build
+
+  frontend-e2e:
+    name: Frontend E2E
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: solune/frontend
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: solune/frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright smoke suite in Chromium
+        run: npm run test:e2e -- --project=chromium
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: frontend-e2e-report
+          path: |
+            solune/frontend/e2e-report/
+            solune/frontend/test-results/
+          retention-days: 14
+          if-no-files-found: warn
 
   # Documentation linting — markdownlint + link verification
   docs:
