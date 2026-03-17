@@ -175,7 +175,7 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 2. **Given** the Docker container images, **When** inspecting the running processes, **Then** no container runs as the root user.
 3. **Given** the version strings in the changelog, backend config, and frontend config, **When** they are compared, **Then** all display `0.1.0` consistently.
 4. **Given** a production environment configuration, **When** the application starts with insecure settings (e.g., debug mode enabled, default secrets), **Then** startup is rejected with a clear error explaining the insecure configuration.
-5. **Given** the complete release checklist, **When** each item is verified, **Then** all tests pass, coverage thresholds are met (≥70% frontend, ≥80% backend), security scans report no critical/high findings, and documentation is current.
+5. **Given** the complete release checklist, **When** each item is verified, **Then** all tests pass, coverage thresholds are met (≥70% frontend, ≥80% backend), mutation score thresholds are met (≥75% backend, ≥60% frontend), security scans report no critical/high findings, and documentation is current.
 
 ---
 
@@ -261,6 +261,9 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - **FR-042**: Frontend test coverage MUST reach at least 70% line coverage.
 - **FR-043**: End-to-end tests MUST cover all major user flows including project creation, pipeline configuration, agent execution, and PR review.
 - **FR-044**: End-to-end tests MUST include automated accessibility assertions.
+- **FR-050**: Backend tests MUST achieve a mutation score of at least 75%, validating that tests effectively detect code changes.
+- **FR-051**: Frontend tests MUST achieve a mutation score of at least 60%, validating that tests effectively detect code changes.
+- **FR-052**: The test suite MUST maintain reliability with no more than 5 quarantined flaky tests at any time.
 
 **Phase 9 — Release Engineering**
 
@@ -313,3 +316,19 @@ As an administrator preparing to deploy Solune v0.1.0, I need a fully validated 
 - **SC-013**: Voice input functions correctly in both Chrome and Firefox.
 - **SC-014**: All version strings consistently display `0.1.0` across all configuration files and the changelog.
 - **SC-015**: Zero open P1 or P2 bugs at release time.
+- **SC-016**: Backend mutation score reaches at least 75%, confirming tests catch real code defects.
+- **SC-017**: Frontend mutation score reaches at least 60%, confirming tests catch real code defects.
+- **SC-018**: No more than 5 tests are quarantined for flakiness at any point during the release cycle.
+
+## Risks
+
+- **Frontend coverage gap**: Current frontend test coverage is 49%, and the 70% target represents a significant increase. If 70% is not achievable by release, consider shipping at 60% with a tracked post-release commitment and a documented plan to close the remaining gap.
+- **God class refactor**: The largest backend service file is over 5,000 lines and must be split into multiple focused services. This is the highest-risk refactor — complete it early in Phase B to maximize time for regression discovery before release.
+- **Prior feature validation**: Features 037–042 are assumed to be already implemented and merged. Confirm all prior feature branches are fully integrated before starting v0.1.0 tasks to avoid scope surprises or merge conflicts.
+
+## Constraints & Decisions
+
+- Docker Compose is the sole supported deployment method for v0.1.0; cloud-hosted deployment options are explicitly out of scope and will ship post-release.
+- Coverage targets (≥80% backend, ≥70% frontend) are minimum release gates, not aspirational targets. The separate comprehensive test coverage specification targets higher thresholds for a future milestone.
+- Prior features (037–042) are already implemented — v0.1.0 wraps them into a coherent, production-ready package rather than building them from scratch.
+- The Azure infrastructure-as-code specification is not a release blocker and will ship independently after v0.1.0.
