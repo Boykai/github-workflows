@@ -8,7 +8,6 @@ from githubkit.exception import RequestFailed
 from src.exceptions import ValidationError
 from src.services.github_projects import GitHubProjectsService
 
-
 # ---------------------------------------------------------------------------
 # create_issue
 # ---------------------------------------------------------------------------
@@ -35,8 +34,14 @@ class TestCreateIssue:
         """Should include labels, milestone, and assignees in the payload."""
         service._rest = AsyncMock(return_value={"number": 1})
         await service.create_issue(
-            "tok", "owner", "repo", "T", "B",
-            labels=["bug"], milestone=5, assignees=["alice"],
+            "tok",
+            "owner",
+            "repo",
+            "T",
+            "B",
+            labels=["bug"],
+            milestone=5,
+            assignees=["alice"],
         )
         call_kwargs = service._rest.call_args
         payload = call_kwargs.kwargs.get("json") or call_kwargs[1].get("json")
@@ -123,7 +128,12 @@ class TestUpdateIssueState:
         service._rest = AsyncMock(return_value={})
         service._invalidate_cycle_cache = Mock()
         result = await service.update_issue_state(
-            "tok", "owner", "repo", 1, state="closed", state_reason="completed",
+            "tok",
+            "owner",
+            "repo",
+            1,
+            state="closed",
+            state_reason="completed",
         )
         assert result is True
         # First call should be the PATCH
@@ -136,7 +146,11 @@ class TestUpdateIssueState:
         service._rest = AsyncMock(return_value={})
         service._invalidate_cycle_cache = Mock()
         await service.update_issue_state(
-            "tok", "owner", "repo", 1, labels_add=["bug", "urgent"],
+            "tok",
+            "owner",
+            "repo",
+            1,
+            labels_add=["bug", "urgent"],
         )
         # No state payload → skip PATCH; one POST for labels
         assert service._rest.await_count == 1
@@ -150,7 +164,11 @@ class TestUpdateIssueState:
         service._rest = AsyncMock(return_value={})
         service._invalidate_cycle_cache = Mock()
         await service.update_issue_state(
-            "tok", "owner", "repo", 1, labels_remove=["stale", "wontfix"],
+            "tok",
+            "owner",
+            "repo",
+            1,
+            labels_remove=["stale", "wontfix"],
         )
         # Two DELETE calls (one per label)
         assert service._rest.await_count == 2
@@ -162,7 +180,11 @@ class TestUpdateIssueState:
         service._rest = AsyncMock(side_effect=RequestFailed(resp_404))
         service._invalidate_cycle_cache = Mock()
         result = await service.update_issue_state(
-            "tok", "owner", "repo", 1, labels_remove=["gone"],
+            "tok",
+            "owner",
+            "repo",
+            1,
+            labels_remove=["gone"],
         )
         assert result is True
 
@@ -173,7 +195,11 @@ class TestUpdateIssueState:
         service._rest = AsyncMock(side_effect=RequestFailed(resp_500))
         service._invalidate_cycle_cache = Mock()
         result = await service.update_issue_state(
-            "tok", "owner", "repo", 1, labels_remove=["oops"],
+            "tok",
+            "owner",
+            "repo",
+            1,
+            labels_remove=["oops"],
         )
         assert result is False
 
@@ -183,7 +209,10 @@ class TestUpdateIssueState:
         service._rest = AsyncMock(return_value={})
         service._invalidate_cycle_cache = Mock()
         result = await service.update_issue_state(
-            "tok", "owner", "repo", 10,
+            "tok",
+            "owner",
+            "repo",
+            10,
             state="open",
             labels_add=["reopened"],
             labels_remove=["done"],
@@ -322,18 +351,20 @@ class TestVerifyItemOnProject:
     @pytest.mark.asyncio
     async def test_returns_true_when_item_found(self, service):
         """Returns True when the issue is on the project."""
-        service._graphql = AsyncMock(return_value={
-            "node": {
-                "projectItems": {
-                    "nodes": [
-                        {
-                            "isArchived": False,
-                            "project": {"id": "PVT_1"},
-                        }
-                    ]
+        service._graphql = AsyncMock(
+            return_value={
+                "node": {
+                    "projectItems": {
+                        "nodes": [
+                            {
+                                "isArchived": False,
+                                "project": {"id": "PVT_1"},
+                            }
+                        ]
+                    }
                 }
             }
-        })
+        )
         with patch("src.services.github_projects.issues.asyncio.sleep", new_callable=AsyncMock):
             result = await service._verify_item_on_project("tok", "I_1", "PVT_1")
         assert result is True
@@ -341,18 +372,20 @@ class TestVerifyItemOnProject:
     @pytest.mark.asyncio
     async def test_returns_false_when_wrong_project(self, service):
         """Returns False when the issue is on a different project."""
-        service._graphql = AsyncMock(return_value={
-            "node": {
-                "projectItems": {
-                    "nodes": [
-                        {
-                            "isArchived": False,
-                            "project": {"id": "PVT_other"},
-                        }
-                    ]
+        service._graphql = AsyncMock(
+            return_value={
+                "node": {
+                    "projectItems": {
+                        "nodes": [
+                            {
+                                "isArchived": False,
+                                "project": {"id": "PVT_other"},
+                            }
+                        ]
+                    }
                 }
             }
-        })
+        )
         with patch("src.services.github_projects.issues.asyncio.sleep", new_callable=AsyncMock):
             result = await service._verify_item_on_project("tok", "I_1", "PVT_1")
         assert result is False
@@ -360,18 +393,20 @@ class TestVerifyItemOnProject:
     @pytest.mark.asyncio
     async def test_returns_false_when_archived(self, service):
         """Returns False when the matching item is archived."""
-        service._graphql = AsyncMock(return_value={
-            "node": {
-                "projectItems": {
-                    "nodes": [
-                        {
-                            "isArchived": True,
-                            "project": {"id": "PVT_1"},
-                        }
-                    ]
+        service._graphql = AsyncMock(
+            return_value={
+                "node": {
+                    "projectItems": {
+                        "nodes": [
+                            {
+                                "isArchived": True,
+                                "project": {"id": "PVT_1"},
+                            }
+                        ]
+                    }
                 }
             }
-        })
+        )
         with patch("src.services.github_projects.issues.asyncio.sleep", new_callable=AsyncMock):
             result = await service._verify_item_on_project("tok", "I_1", "PVT_1")
         assert result is False
@@ -379,9 +414,7 @@ class TestVerifyItemOnProject:
     @pytest.mark.asyncio
     async def test_returns_false_when_no_items(self, service):
         """Returns False when projectItems is empty."""
-        service._graphql = AsyncMock(return_value={
-            "node": {"projectItems": {"nodes": []}}
-        })
+        service._graphql = AsyncMock(return_value={"node": {"projectItems": {"nodes": []}}})
         with patch("src.services.github_projects.issues.asyncio.sleep", new_callable=AsyncMock):
             result = await service._verify_item_on_project("tok", "I_1", "PVT_1")
         assert result is False
@@ -410,21 +443,27 @@ class TestGetIssueWithComments:
     @pytest.mark.asyncio
     async def test_single_page(self, service):
         """Fetches title, body, and comments from a single page."""
-        service._graphql = AsyncMock(return_value={
-            "repository": {
-                "issue": {
-                    "title": "Bug",
-                    "body": "Details",
-                    "author": {"login": "alice"},
-                    "comments": {
-                        "nodes": [
-                            {"author": {"login": "bob"}, "body": "Fix it", "createdAt": "2024-01-01"},
-                        ],
-                        "pageInfo": {"hasNextPage": False, "endCursor": None},
-                    },
+        service._graphql = AsyncMock(
+            return_value={
+                "repository": {
+                    "issue": {
+                        "title": "Bug",
+                        "body": "Details",
+                        "author": {"login": "alice"},
+                        "comments": {
+                            "nodes": [
+                                {
+                                    "author": {"login": "bob"},
+                                    "body": "Fix it",
+                                    "createdAt": "2024-01-01",
+                                },
+                            ],
+                            "pageInfo": {"hasNextPage": False, "endCursor": None},
+                        },
+                    }
                 }
             }
-        })
+        )
         result = await service.get_issue_with_comments("tok", "o", "r", 1)
         assert result["title"] == "Bug"
         assert result["body"] == "Details"
@@ -467,7 +506,12 @@ class TestGetIssueWithComments:
     @pytest.mark.asyncio
     async def test_returns_cached_result(self, service):
         """Returns cached result without calling GraphQL."""
-        service._cycle_cache["issue:o/r/1"] = {"title": "cached", "body": "", "comments": [], "user": {"login": ""}}
+        service._cycle_cache["issue:o/r/1"] = {
+            "title": "cached",
+            "body": "",
+            "comments": [],
+            "user": {"login": ""},
+        }
         service._graphql = AsyncMock()
         result = await service.get_issue_with_comments("tok", "o", "r", 1)
         assert result["title"] == "cached"
@@ -501,8 +545,13 @@ class TestCreateSubIssue:
         service.create_issue = AsyncMock(return_value=sub)
         service._rest = AsyncMock(return_value={})
         result = await service.create_sub_issue(
-            "tok", "owner", "repo", parent_issue_number=1,
-            title="Sub", body="Detail", labels=["task"],
+            "tok",
+            "owner",
+            "repo",
+            parent_issue_number=1,
+            title="Sub",
+            body="Detail",
+            labels=["task"],
         )
         assert result == sub
         service.create_issue.assert_awaited_once()
@@ -518,7 +567,12 @@ class TestCreateSubIssue:
         service.create_issue = AsyncMock(return_value=sub)
         service._rest = AsyncMock(side_effect=RuntimeError("attach failed"))
         result = await service.create_sub_issue(
-            "tok", "o", "r", parent_issue_number=1, title="S", body="B",
+            "tok",
+            "o",
+            "r",
+            parent_issue_number=1,
+            title="S",
+            body="B",
         )
         assert result == sub
 

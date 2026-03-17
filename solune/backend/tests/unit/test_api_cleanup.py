@@ -16,7 +16,6 @@ from src.models.cleanup import (
     CleanupPreflightResponse,
 )
 
-
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
 
@@ -71,9 +70,7 @@ _EXECUTE_BODY = {
 class TestCleanupPreflight:
     @pytest.fixture(autouse=True)
     def _patch_service(self):
-        with patch(
-            "src.api.cleanup.cleanup_service.preflight", new_callable=AsyncMock
-        ) as mock:
+        with patch("src.api.cleanup.cleanup_service.preflight", new_callable=AsyncMock) as mock:
             self.mock_preflight = mock
             yield
 

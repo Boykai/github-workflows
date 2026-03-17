@@ -1,6 +1,6 @@
 """Unit tests for CopilotMixin (copilot.py)."""
 
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -130,9 +130,7 @@ class TestCheckAgentCompletionComment:
         """Should return False when get_issue_with_comments returns falsy."""
         service.get_issue_with_comments.return_value = None
 
-        result = await service.check_agent_completion_comment(
-            "tok", "owner", "repo", 1, "agent"
-        )
+        result = await service.check_agent_completion_comment("tok", "owner", "repo", 1, "agent")
         assert result is False
 
     @pytest.mark.asyncio
@@ -140,9 +138,7 @@ class TestCheckAgentCompletionComment:
         """Should return False on exception."""
         service.get_issue_with_comments.side_effect = RuntimeError("boom")
 
-        result = await service.check_agent_completion_comment(
-            "tok", "owner", "repo", 1, "agent"
-        )
+        result = await service.check_agent_completion_comment("tok", "owner", "repo", 1, "agent")
         assert result is False
 
 
@@ -158,9 +154,7 @@ class TestAssignCopilotGraphQL:
         service.get_copilot_bot_id = AsyncMock(return_value=("B_cop", "R_abc"))
         service._graphql.return_value = {
             "addAssigneesToAssignable": {
-                "assignable": {
-                    "assignees": {"nodes": [{"login": "copilot-swe-agent[bot]"}]}
-                }
+                "assignable": {"assignees": {"nodes": [{"login": "copilot-swe-agent[bot]"}]}}
             }
         }
 
@@ -174,9 +168,7 @@ class TestAssignCopilotGraphQL:
         """Should return False when Copilot bot is not available."""
         service.get_copilot_bot_id = AsyncMock(return_value=(None, "R_abc"))
 
-        result = await service._assign_copilot_graphql(
-            "tok", "owner", "repo", "I_node"
-        )
+        result = await service._assign_copilot_graphql("tok", "owner", "repo", "I_node")
         assert result is False
 
     @pytest.mark.asyncio
@@ -184,9 +176,7 @@ class TestAssignCopilotGraphQL:
         """Should return False when repo ID is missing."""
         service.get_copilot_bot_id = AsyncMock(return_value=("B_cop", None))
 
-        result = await service._assign_copilot_graphql(
-            "tok", "owner", "repo", "I_node"
-        )
+        result = await service._assign_copilot_graphql("tok", "owner", "repo", "I_node")
         assert result is False
 
     @pytest.mark.asyncio
@@ -195,9 +185,7 @@ class TestAssignCopilotGraphQL:
         service.get_copilot_bot_id = AsyncMock(return_value=("B_cop", "R_abc"))
         service._graphql.side_effect = RuntimeError("mutation failed")
 
-        result = await service._assign_copilot_graphql(
-            "tok", "owner", "repo", "I_node"
-        )
+        result = await service._assign_copilot_graphql("tok", "owner", "repo", "I_node")
         assert result is False
 
 

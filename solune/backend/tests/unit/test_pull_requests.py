@@ -6,7 +6,6 @@ import pytest
 
 from src.services.github_projects import GitHubProjectsService
 
-
 # ---------------------------------------------------------------------------
 # _search_open_prs_for_issue_rest
 # ---------------------------------------------------------------------------
@@ -124,36 +123,38 @@ class TestGetPullRequest:
     @pytest.mark.asyncio
     async def test_success_returns_pr_dict(self, service):
         """Successful query returns a formatted PR dict."""
-        service._graphql = AsyncMock(return_value={
-            "repository": {
-                "pullRequest": {
-                    "id": "PR_node",
-                    "number": 10,
-                    "title": "Add feature",
-                    "body": "Description",
-                    "state": "OPEN",
-                    "isDraft": False,
-                    "url": "https://github.com/o/r/pull/10",
-                    "headRefName": "feature/x",
-                    "baseRefName": "main",
-                    "author": {"login": "alice"},
-                    "createdAt": "2024-01-01",
-                    "updatedAt": "2024-01-02",
-                    "changedFiles": 3,
-                    "commits": {
-                        "nodes": [
-                            {
-                                "commit": {
-                                    "oid": "abc123",
-                                    "committedDate": "2024-01-02",
-                                    "statusCheckRollup": {"state": "SUCCESS"},
+        service._graphql = AsyncMock(
+            return_value={
+                "repository": {
+                    "pullRequest": {
+                        "id": "PR_node",
+                        "number": 10,
+                        "title": "Add feature",
+                        "body": "Description",
+                        "state": "OPEN",
+                        "isDraft": False,
+                        "url": "https://github.com/o/r/pull/10",
+                        "headRefName": "feature/x",
+                        "baseRefName": "main",
+                        "author": {"login": "alice"},
+                        "createdAt": "2024-01-01",
+                        "updatedAt": "2024-01-02",
+                        "changedFiles": 3,
+                        "commits": {
+                            "nodes": [
+                                {
+                                    "commit": {
+                                        "oid": "abc123",
+                                        "committedDate": "2024-01-02",
+                                        "statusCheckRollup": {"state": "SUCCESS"},
+                                    }
                                 }
-                            }
-                        ]
-                    },
+                            ]
+                        },
+                    }
                 }
             }
-        })
+        )
         result = await service.get_pull_request("tok", "o", "r", 10)
         assert result is not None
         assert result["number"] == 10
@@ -164,9 +165,7 @@ class TestGetPullRequest:
     @pytest.mark.asyncio
     async def test_returns_none_when_pr_not_found(self, service):
         """Returns None when pullRequest is None."""
-        service._graphql = AsyncMock(return_value={
-            "repository": {"pullRequest": None}
-        })
+        service._graphql = AsyncMock(return_value={"repository": {"pullRequest": None}})
         result = await service.get_pull_request("tok", "o", "r", 999)
         assert result is None
 
@@ -180,26 +179,28 @@ class TestGetPullRequest:
     @pytest.mark.asyncio
     async def test_caches_result(self, service):
         """Result is stored in the cycle cache."""
-        service._graphql = AsyncMock(return_value={
-            "repository": {
-                "pullRequest": {
-                    "id": "PR_1",
-                    "number": 10,
-                    "title": "T",
-                    "body": "",
-                    "state": "OPEN",
-                    "isDraft": False,
-                    "url": "",
-                    "headRefName": "h",
-                    "baseRefName": "b",
-                    "author": {"login": "u"},
-                    "createdAt": "",
-                    "updatedAt": "",
-                    "changedFiles": 0,
-                    "commits": {"nodes": []},
+        service._graphql = AsyncMock(
+            return_value={
+                "repository": {
+                    "pullRequest": {
+                        "id": "PR_1",
+                        "number": 10,
+                        "title": "T",
+                        "body": "",
+                        "state": "OPEN",
+                        "isDraft": False,
+                        "url": "",
+                        "headRefName": "h",
+                        "baseRefName": "b",
+                        "author": {"login": "u"},
+                        "createdAt": "",
+                        "updatedAt": "",
+                        "changedFiles": 0,
+                        "commits": {"nodes": []},
+                    }
                 }
             }
-        })
+        )
         await service.get_pull_request("tok", "o", "r", 10)
         assert "pr:o/r/10" in service._cycle_cache
 
@@ -216,26 +217,28 @@ class TestGetPullRequest:
     @pytest.mark.asyncio
     async def test_no_commits(self, service):
         """PR with no commits has None last_commit and check_status."""
-        service._graphql = AsyncMock(return_value={
-            "repository": {
-                "pullRequest": {
-                    "id": "PR_2",
-                    "number": 11,
-                    "title": "T",
-                    "body": "",
-                    "state": "OPEN",
-                    "isDraft": True,
-                    "url": "",
-                    "headRefName": "h",
-                    "baseRefName": "b",
-                    "author": {"login": "u"},
-                    "createdAt": "",
-                    "updatedAt": "",
-                    "changedFiles": 0,
-                    "commits": {"nodes": []},
+        service._graphql = AsyncMock(
+            return_value={
+                "repository": {
+                    "pullRequest": {
+                        "id": "PR_2",
+                        "number": 11,
+                        "title": "T",
+                        "body": "",
+                        "state": "OPEN",
+                        "isDraft": True,
+                        "url": "",
+                        "headRefName": "h",
+                        "baseRefName": "b",
+                        "author": {"login": "u"},
+                        "createdAt": "",
+                        "updatedAt": "",
+                        "changedFiles": 0,
+                        "commits": {"nodes": []},
+                    }
                 }
             }
-        })
+        )
         result = await service.get_pull_request("tok", "o", "r", 11)
         assert result["last_commit"] is None
         assert result["check_status"] is None
@@ -256,31 +259,33 @@ class TestGetLinkedPullRequests:
     @pytest.mark.asyncio
     async def test_extracts_prs_from_timeline(self, service):
         """Extracts PRs from ConnectedEvent timeline items."""
-        service._graphql = AsyncMock(return_value={
-            "repository": {
-                "issue": {
-                    "timelineItems": {
-                        "nodes": [
-                            {
-                                "subject": {
-                                    "__typename": "PullRequest",
-                                    "id": "PR_1",
-                                    "number": 5,
-                                    "title": "Fix",
-                                    "state": "OPEN",
-                                    "isDraft": False,
-                                    "url": "https://pr",
-                                    "headRefName": "fix-branch",
-                                    "author": {"login": "alice"},
-                                    "createdAt": "",
-                                    "updatedAt": "",
+        service._graphql = AsyncMock(
+            return_value={
+                "repository": {
+                    "issue": {
+                        "timelineItems": {
+                            "nodes": [
+                                {
+                                    "subject": {
+                                        "__typename": "PullRequest",
+                                        "id": "PR_1",
+                                        "number": 5,
+                                        "title": "Fix",
+                                        "state": "OPEN",
+                                        "isDraft": False,
+                                        "url": "https://pr",
+                                        "headRefName": "fix-branch",
+                                        "author": {"login": "alice"},
+                                        "createdAt": "",
+                                        "updatedAt": "",
+                                    }
                                 }
-                            }
-                        ]
+                            ]
+                        }
                     }
                 }
             }
-        })
+        )
         result = await service.get_linked_pull_requests("tok", "o", "r", 1)
         assert len(result) == 1
         assert result[0]["number"] == 5
@@ -302,18 +307,20 @@ class TestGetLinkedPullRequests:
             "createdAt": "",
             "updatedAt": "",
         }
-        service._graphql = AsyncMock(return_value={
-            "repository": {
-                "issue": {
-                    "timelineItems": {
-                        "nodes": [
-                            {"subject": pr_node},
-                            {"source": pr_node},
-                        ]
+        service._graphql = AsyncMock(
+            return_value={
+                "repository": {
+                    "issue": {
+                        "timelineItems": {
+                            "nodes": [
+                                {"subject": pr_node},
+                                {"source": pr_node},
+                            ]
+                        }
                     }
                 }
             }
-        })
+        )
         result = await service.get_linked_pull_requests("tok", "o", "r", 1)
         assert len(result) == 1
 
@@ -350,29 +357,33 @@ class TestMarkPrReadyForReview:
     @pytest.mark.asyncio
     async def test_success_returns_true(self, service):
         """Returns True when PR is successfully marked ready."""
-        service._graphql = AsyncMock(return_value={
-            "markPullRequestReadyForReview": {
-                "pullRequest": {
-                    "isDraft": False,
-                    "number": 10,
-                    "url": "https://pr",
+        service._graphql = AsyncMock(
+            return_value={
+                "markPullRequestReadyForReview": {
+                    "pullRequest": {
+                        "isDraft": False,
+                        "number": 10,
+                        "url": "https://pr",
+                    }
                 }
             }
-        })
+        )
         result = await service.mark_pr_ready_for_review("tok", "PR_node_1")
         assert result is True
 
     @pytest.mark.asyncio
     async def test_returns_false_when_still_draft(self, service):
         """Returns False when PR is still a draft after mutation."""
-        service._graphql = AsyncMock(return_value={
-            "markPullRequestReadyForReview": {
-                "pullRequest": {
-                    "isDraft": True,
-                    "number": 10,
+        service._graphql = AsyncMock(
+            return_value={
+                "markPullRequestReadyForReview": {
+                    "pullRequest": {
+                        "isDraft": True,
+                        "number": 10,
+                    }
                 }
             }
-        })
+        )
         result = await service.mark_pr_ready_for_review("tok", "PR_node_1")
         assert result is False
 
@@ -387,15 +398,17 @@ class TestMarkPrReadyForReview:
     async def test_invalidates_cache(self, service):
         """Invalidates the cycle cache for the PR on success."""
         service._cycle_cache["pr:o/r/10"] = {"number": 10}
-        service._graphql = AsyncMock(return_value={
-            "markPullRequestReadyForReview": {
-                "pullRequest": {
-                    "isDraft": False,
-                    "number": 10,
-                    "url": "",
+        service._graphql = AsyncMock(
+            return_value={
+                "markPullRequestReadyForReview": {
+                    "pullRequest": {
+                        "isDraft": False,
+                        "number": 10,
+                        "url": "",
+                    }
                 }
             }
-        })
+        )
         await service.mark_pr_ready_for_review("tok", "PR_node_1")
         assert "pr:o/r/10" not in service._cycle_cache
 
@@ -415,18 +428,20 @@ class TestMergePullRequest:
     @pytest.mark.asyncio
     async def test_success_returns_merge_details(self, service):
         """Successful merge returns a result dict."""
-        service._graphql = AsyncMock(return_value={
-            "mergePullRequest": {
-                "pullRequest": {
-                    "number": 10,
-                    "state": "MERGED",
-                    "merged": True,
-                    "mergedAt": "2024-01-01T00:00:00Z",
-                    "mergeCommit": {"oid": "abc123def456"},
-                    "url": "https://github.com/o/r/pull/10",
+        service._graphql = AsyncMock(
+            return_value={
+                "mergePullRequest": {
+                    "pullRequest": {
+                        "number": 10,
+                        "state": "MERGED",
+                        "merged": True,
+                        "mergedAt": "2024-01-01T00:00:00Z",
+                        "mergeCommit": {"oid": "abc123def456"},
+                        "url": "https://github.com/o/r/pull/10",
+                    }
                 }
             }
-        })
+        )
         result = await service.merge_pull_request("tok", "PR_node", pr_number=10)
         assert result is not None
         assert result["merged"] is True
@@ -435,15 +450,17 @@ class TestMergePullRequest:
     @pytest.mark.asyncio
     async def test_returns_none_when_not_merged(self, service):
         """Returns None when PR was not actually merged."""
-        service._graphql = AsyncMock(return_value={
-            "mergePullRequest": {
-                "pullRequest": {
-                    "number": 10,
-                    "state": "OPEN",
-                    "merged": False,
+        service._graphql = AsyncMock(
+            return_value={
+                "mergePullRequest": {
+                    "pullRequest": {
+                        "number": 10,
+                        "state": "OPEN",
+                        "merged": False,
+                    }
                 }
             }
-        })
+        )
         result = await service.merge_pull_request("tok", "PR_node", pr_number=10)
         assert result is None
 
@@ -457,21 +474,26 @@ class TestMergePullRequest:
     @pytest.mark.asyncio
     async def test_passes_merge_method_and_headline(self, service):
         """Passes mergeMethod and commitHeadline variables."""
-        service._graphql = AsyncMock(return_value={
-            "mergePullRequest": {
-                "pullRequest": {
-                    "number": 10,
-                    "state": "MERGED",
-                    "merged": True,
-                    "mergedAt": "",
-                    "mergeCommit": {"oid": "abc"},
-                    "url": "",
+        service._graphql = AsyncMock(
+            return_value={
+                "mergePullRequest": {
+                    "pullRequest": {
+                        "number": 10,
+                        "state": "MERGED",
+                        "merged": True,
+                        "mergedAt": "",
+                        "mergeCommit": {"oid": "abc"},
+                        "url": "",
+                    }
                 }
             }
-        })
+        )
         await service.merge_pull_request(
-            "tok", "PR_node", pr_number=10,
-            commit_headline="Custom message", merge_method="MERGE",
+            "tok",
+            "PR_node",
+            pr_number=10,
+            commit_headline="Custom message",
+            merge_method="MERGE",
         )
         variables = service._graphql.call_args[0][2]
         assert variables["mergeMethod"] == "MERGE"
@@ -481,18 +503,20 @@ class TestMergePullRequest:
     async def test_invalidates_cache_on_merge(self, service):
         """Invalidates cached PR data after a successful merge."""
         service._cycle_cache["pr:o/r/10"] = {"number": 10}
-        service._graphql = AsyncMock(return_value={
-            "mergePullRequest": {
-                "pullRequest": {
-                    "number": 10,
-                    "state": "MERGED",
-                    "merged": True,
-                    "mergedAt": "",
-                    "mergeCommit": {"oid": "abc"},
-                    "url": "",
+        service._graphql = AsyncMock(
+            return_value={
+                "mergePullRequest": {
+                    "pullRequest": {
+                        "number": 10,
+                        "state": "MERGED",
+                        "merged": True,
+                        "mergedAt": "",
+                        "mergeCommit": {"oid": "abc"},
+                        "url": "",
+                    }
                 }
             }
-        })
+        )
         await service.merge_pull_request("tok", "PR_node", pr_number=10)
         assert "pr:o/r/10" not in service._cycle_cache
 
@@ -642,17 +666,24 @@ class TestCreatePullRequest:
     @pytest.mark.asyncio
     async def test_success_returns_pr_info(self, service):
         """Returns PR id, number, url on success."""
-        service._graphql = AsyncMock(return_value={
-            "createPullRequest": {
-                "pullRequest": {
-                    "id": "PR_1",
-                    "number": 42,
-                    "url": "https://github.com/o/r/pull/42",
+        service._graphql = AsyncMock(
+            return_value={
+                "createPullRequest": {
+                    "pullRequest": {
+                        "id": "PR_1",
+                        "number": 42,
+                        "url": "https://github.com/o/r/pull/42",
+                    }
                 }
             }
-        })
+        )
         result = await service.create_pull_request(
-            "tok", "REPO_ID", "Title", "Body", "feature", "main",
+            "tok",
+            "REPO_ID",
+            "Title",
+            "Body",
+            "feature",
+            "main",
         )
         assert result is not None
         assert result["number"] == 42
@@ -664,7 +695,12 @@ class TestCreatePullRequest:
             side_effect=ValueError("A pull request already exists for this head/base")
         )
         result = await service.create_pull_request(
-            "tok", "REPO_ID", "Title", "Body", "feature", "main",
+            "tok",
+            "REPO_ID",
+            "Title",
+            "Body",
+            "feature",
+            "main",
         )
         assert result is not None
         assert result.get("existing") is True
@@ -674,6 +710,11 @@ class TestCreatePullRequest:
         """Non-duplicate ValueError returns None."""
         service._graphql = AsyncMock(side_effect=ValueError("Something else"))
         result = await service.create_pull_request(
-            "tok", "REPO_ID", "Title", "Body", "feature", "main",
+            "tok",
+            "REPO_ID",
+            "Title",
+            "Body",
+            "feature",
+            "main",
         )
         assert result is None

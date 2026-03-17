@@ -10,7 +10,6 @@ from typing import Any
 
 from src.protocols import CacheInvalidationPolicy, ModelProvider
 
-
 # =============================================================================
 # ModelProvider
 # =============================================================================

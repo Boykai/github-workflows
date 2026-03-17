@@ -7,7 +7,6 @@ import pytest
 
 from src.services.github_projects import GitHubProjectsService
 
-
 # ---------------------------------------------------------------------------
 # get_repository_owner
 # ---------------------------------------------------------------------------
@@ -23,9 +22,7 @@ class TestGetRepositoryOwner:
     @pytest.mark.asyncio
     async def test_returns_owner_login(self, service):
         """Should return the owner login from REST response."""
-        service._rest = AsyncMock(
-            return_value={"owner": {"login": "octocat"}, "name": "my-repo"}
-        )
+        service._rest = AsyncMock(return_value={"owner": {"login": "octocat"}, "name": "my-repo"})
         result = await service.get_repository_owner("tok", "octocat", "my-repo")
         assert result == "octocat"
 
@@ -39,9 +36,7 @@ class TestGetRepositoryOwner:
     @pytest.mark.asyncio
     async def test_calls_rest_with_correct_path(self, service):
         """Should call REST GET /repos/{owner}/{repo}."""
-        service._rest = AsyncMock(
-            return_value={"owner": {"login": "org1"}, "name": "repo1"}
-        )
+        service._rest = AsyncMock(return_value={"owner": {"login": "org1"}, "name": "repo1"})
         await service.get_repository_owner("tok", "org1", "repo1")
         service._rest.assert_awaited_once_with("tok", "GET", "/repos/org1/repo1")
 
@@ -176,18 +171,14 @@ class TestGetFileContentFromRef:
         """Should return None when the API returns a non-200 status."""
         mock_resp = Mock(status_code=404)
         service._rest_response = AsyncMock(return_value=mock_resp)
-        result = await service.get_file_content_from_ref(
-            "tok", "o", "r", "gone.py", "main"
-        )
+        result = await service.get_file_content_from_ref("tok", "o", "r", "gone.py", "main")
         assert result is None
 
     @pytest.mark.asyncio
     async def test_returns_none_on_exception(self, service):
         """Network error returns None."""
         service._rest_response = AsyncMock(side_effect=Exception("connection reset"))
-        result = await service.get_file_content_from_ref(
-            "tok", "o", "r", "file.py", "main"
-        )
+        result = await service.get_file_content_from_ref("tok", "o", "r", "file.py", "main")
         assert result is None
 
     @pytest.mark.asyncio
@@ -195,9 +186,7 @@ class TestGetFileContentFromRef:
         """Should include the ref query parameter."""
         mock_resp = Mock(status_code=200, text="ok")
         service._rest_response = AsyncMock(return_value=mock_resp)
-        await service.get_file_content_from_ref(
-            "tok", "owner", "repo", "path/file.py", "my-branch"
-        )
+        await service.get_file_content_from_ref("tok", "owner", "repo", "path/file.py", "my-branch")
         call_kwargs = service._rest_response.call_args
         assert call_kwargs[1]["params"] == {"ref": "my-branch"}
 
@@ -328,9 +317,7 @@ class TestCommitFiles:
             "_graphql",
             new_callable=AsyncMock,
             return_value={
-                "createCommitOnBranch": {
-                    "commit": {"oid": "newsha123", "url": "https://..."}
-                }
+                "createCommitOnBranch": {"commit": {"oid": "newsha123", "url": "https://..."}}
             },
         ):
             result = await service.commit_files(
@@ -345,9 +332,7 @@ class TestCommitFiles:
             service,
             "_graphql",
             new_callable=AsyncMock,
-            return_value={
-                "createCommitOnBranch": {"commit": {"oid": "abc"}}
-            },
+            return_value={"createCommitOnBranch": {"commit": {"oid": "abc"}}},
         ) as mock_gql:
             await service.commit_files(
                 "tok", "owner", "repo", "br", "oid1", self._make_files(), "commit"
@@ -394,9 +379,7 @@ class TestCommitFiles:
     @pytest.mark.asyncio
     async def test_returns_none_after_max_oid_retries(self, service):
         """Should return None after exhausting all OID retry attempts."""
-        service._graphql = AsyncMock(
-            side_effect=ValueError("expected head oid did not match")
-        )
+        service._graphql = AsyncMock(side_effect=ValueError("expected head oid did not match"))
         service.get_branch_head_oid = AsyncMock(return_value="fresh_oid")
 
         result = await service.commit_files(
@@ -445,9 +428,7 @@ class TestCommitFiles:
             service,
             "_graphql",
             new_callable=AsyncMock,
-            return_value={
-                "createCommitOnBranch": {"commit": {"oid": "del_oid"}}
-            },
+            return_value={"createCommitOnBranch": {"commit": {"oid": "del_oid"}}},
         ) as mock_gql:
             await service.commit_files(
                 "tok",

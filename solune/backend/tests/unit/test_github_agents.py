@@ -149,9 +149,7 @@ class TestFormatIssueContextAsPrompt:
     def test_with_agent_name_speckit_implement(self, service):
         """speckit.implement has no .md output files; instructions should still appear."""
         issue_data = {"title": "Test", "body": "Test body"}
-        result = service.format_issue_context_as_prompt(
-            issue_data, agent_name="speckit.implement"
-        )
+        result = service.format_issue_context_as_prompt(issue_data, agent_name="speckit.implement")
 
         assert "## Output Instructions" in result
         assert "commit all changes" in result
@@ -341,7 +339,9 @@ class TestListAvailableAgents:
             },
         ]
         # Mock REST response: raw file content with YAML frontmatter
-        raw_content = "---\nname: Code Reviewer\ndescription: Reviews PRs\nicon: review\n---\nReview all PRs."
+        raw_content = (
+            "---\nname: Code Reviewer\ndescription: Reviews PRs\nicon: review\n---\nReview all PRs."
+        )
         mock_response = SimpleNamespace(text=raw_content)
 
         with (
@@ -394,9 +394,7 @@ class TestListAvailableAgents:
     @pytest.mark.asyncio
     async def test_non_list_contents_returns_builtins(self, service):
         """If the API returns a non-list (e.g. single file), should return builtins only."""
-        with patch.object(
-            service, "_rest", new_callable=AsyncMock, return_value={"type": "file"}
-        ):
+        with patch.object(service, "_rest", new_callable=AsyncMock, return_value={"type": "file"}):
             result = await service.list_available_agents(OWNER, REPO, TOKEN)
 
         assert len(result) == len(AgentsMixin.BUILTIN_AGENTS)
@@ -405,8 +403,16 @@ class TestListAvailableAgents:
     async def test_filters_non_agent_files(self, service):
         """Should only process *.agent.md files."""
         dir_contents = [
-            {"name": "reviewer.agent.md", "type": "file", "download_url": "https://raw.example.com/reviewer.agent.md"},
-            {"name": "README.md", "type": "file", "download_url": "https://raw.example.com/README.md"},
+            {
+                "name": "reviewer.agent.md",
+                "type": "file",
+                "download_url": "https://raw.example.com/reviewer.agent.md",
+            },
+            {
+                "name": "README.md",
+                "type": "file",
+                "download_url": "https://raw.example.com/README.md",
+            },
             {"name": "sub-dir", "type": "dir"},
         ]
         raw_content = "---\nname: Reviewer\n---\nContent"
@@ -428,7 +434,11 @@ class TestListAvailableAgents:
     async def test_agent_without_frontmatter(self, service):
         """Agent files without YAML frontmatter should use slug-derived display name."""
         dir_contents = [
-            {"name": "quality-assurance.agent.md", "type": "file", "download_url": "https://raw.example.com/qa.agent.md"},
+            {
+                "name": "quality-assurance.agent.md",
+                "type": "file",
+                "download_url": "https://raw.example.com/qa.agent.md",
+            },
         ]
         raw_content = "No frontmatter, just instructions."
         mock_response = SimpleNamespace(text=raw_content)
@@ -450,7 +460,11 @@ class TestListAvailableAgents:
     async def test_agent_file_fetch_failure(self, service):
         """If fetching agent file content fails, agent should still be added with defaults."""
         dir_contents = [
-            {"name": "broken.agent.md", "type": "file", "download_url": "https://raw.example.com/broken.agent.md"},
+            {
+                "name": "broken.agent.md",
+                "type": "file",
+                "download_url": "https://raw.example.com/broken.agent.md",
+            },
         ]
 
         with (

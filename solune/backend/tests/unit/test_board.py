@@ -118,28 +118,36 @@ def _make_item_node(
         content["milestone"] = {"title": milestone}
 
     field_values_nodes = []
-    field_values_nodes.append({
-        "field": {"name": "Status"},
-        "name": status_name,
-        "optionId": status_option_id,
-    })
+    field_values_nodes.append(
+        {
+            "field": {"name": "Status"},
+            "name": status_name,
+            "optionId": status_option_id,
+        }
+    )
     if priority:
-        field_values_nodes.append({
-            "field": {"name": "Priority"},
-            "name": priority,
-            "color": "ORANGE",
-        })
+        field_values_nodes.append(
+            {
+                "field": {"name": "Priority"},
+                "name": priority,
+                "color": "ORANGE",
+            }
+        )
     if size:
-        field_values_nodes.append({
-            "field": {"name": "Size"},
-            "name": size,
-            "color": "BLUE",
-        })
+        field_values_nodes.append(
+            {
+                "field": {"name": "Size"},
+                "name": size,
+                "color": "BLUE",
+            }
+        )
     if estimate is not None:
-        field_values_nodes.append({
-            "field": {"name": "Estimate"},
-            "number": estimate,
-        })
+        field_values_nodes.append(
+            {
+                "field": {"name": "Estimate"},
+                "number": estimate,
+            }
+        )
 
     return {
         "id": item_id,
@@ -172,6 +180,7 @@ def _make_get_board_data_response(items, *, has_next_page=False, end_cursor=None
             },
         }
     }
+
 
 # ============ Model Tests ============
 

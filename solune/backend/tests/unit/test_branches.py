@@ -1,11 +1,10 @@
 """Unit tests for BranchesMixin (delete, create, HEAD lookup)."""
 
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
 from src.services.github_projects import GitHubProjectsService
-
 
 # ---------------------------------------------------------------------------
 # delete_branch
