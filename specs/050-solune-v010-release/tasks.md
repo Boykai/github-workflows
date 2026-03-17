@@ -44,11 +44,11 @@
 
 ---
 
-## Phase 2: Foundational — Security & Data Integrity (Release Blockers)
+## Phase 2: Foundational — Security & Data Integrity (Release Blockers) 🎯 MVP
 
 **Purpose**: Core security and data persistence that MUST be complete before ANY feature work
 
-**⚠️ CRITICAL**: No feature work (Phases 4+) can begin until this phase is complete. US1 and US2 tasks in this phase are release blockers.
+**⚠️ CRITICAL**: No feature work (Phases 4+) can begin until this phase is complete. US1 and US2 tasks in this phase are release blockers. Completing Phases 1–2 alone makes Solune viable for real-world use (MVP).
 
 ### US1: Pipeline State Persistence (FR-001, FR-002, FR-003)
 
@@ -81,7 +81,7 @@
 
 ---
 
-## Phase 3: User Story 3 — Clean, Maintainable Codebase (Priority: P2) 🎯
+## Phase 3: User Story 3 — Clean, Maintainable Codebase (Priority: P2)
 
 **Goal**: Refactor backend God class, reduce complexity, eliminate dead code, decompose frontend modules — all files under limits
 
