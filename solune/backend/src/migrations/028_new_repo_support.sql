@@ -2,44 +2,43 @@
 -- Adds columns for GitHub repo/project URLs and project ID.
 -- Recreates the repo_type CHECK constraint to include 'new-repo'.
 
--- Step 1: Add new columns (nullable TEXT)
-ALTER TABLE apps ADD COLUMN github_repo_url TEXT DEFAULT NULL;
-ALTER TABLE apps ADD COLUMN github_project_url TEXT DEFAULT NULL;
-ALTER TABLE apps ADD COLUMN github_project_id TEXT DEFAULT NULL;
+-- Disable FK checks during table recreation
+PRAGMA foreign_keys = OFF;
 
--- Step 2: Recreate the apps table with the updated CHECK constraint.
+-- Recreate the apps table with updated CHECK constraint and new columns.
 -- SQLite does not support ALTER TABLE … DROP CONSTRAINT, so we must
 -- recreate the table to update the CHECK.
 
 CREATE TABLE apps_new (
     name TEXT PRIMARY KEY,
     display_name TEXT NOT NULL,
-    description TEXT DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
     directory_path TEXT NOT NULL,
     associated_pipeline_id TEXT,
-    status TEXT NOT NULL CHECK (status IN ('creating', 'active', 'stopped', 'error')),
-    repo_type TEXT NOT NULL CHECK (repo_type IN ('same-repo', 'external-repo', 'new-repo')),
+    status TEXT NOT NULL DEFAULT 'creating'
+        CHECK (status IN ('creating', 'active', 'stopped', 'error')),
+    repo_type TEXT NOT NULL DEFAULT 'same-repo'
+        CHECK (repo_type IN ('same-repo', 'external-repo', 'new-repo')),
     external_repo_url TEXT,
     github_repo_url TEXT,
     github_project_url TEXT,
     github_project_id TEXT,
     port INTEGER,
     error_message TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    FOREIGN KEY (associated_pipeline_id) REFERENCES workflow_configurations(id)
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+    FOREIGN KEY (associated_pipeline_id) REFERENCES pipeline_configs(id)
+        ON DELETE SET NULL
 );
 
 INSERT INTO apps_new (
     name, display_name, description, directory_path,
     associated_pipeline_id, status, repo_type, external_repo_url,
-    github_repo_url, github_project_url, github_project_id,
     port, error_message, created_at, updated_at
 )
 SELECT
     name, display_name, description, directory_path,
     associated_pipeline_id, status, repo_type, external_repo_url,
-    github_repo_url, github_project_url, github_project_id,
     port, error_message, created_at, updated_at
 FROM apps;
 
@@ -56,5 +55,9 @@ CREATE TRIGGER IF NOT EXISTS trg_apps_updated_at
 AFTER UPDATE ON apps
 FOR EACH ROW
 BEGIN
-    UPDATE apps SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now') WHERE name = NEW.name;
+    UPDATE apps SET updated_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now')
+    WHERE name = NEW.name;
 END;
+
+-- Re-enable FK checks
+PRAGMA foreign_keys = ON;
