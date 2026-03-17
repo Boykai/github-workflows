@@ -10,7 +10,7 @@ on:
 permissions: {}
 
 jobs:
-  # Backend mutation testing with mutmut, split across 4 shards
+  # Backend mutation testing with mutmut, split across named shards
   backend-mutation:
     name: Backend Mutation
     runs-on: ubuntu-latest
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [auth-and-projects, orchestration, app-and-data, agents-and-integrations]
     defaults:
       run:
         working-directory: solune/backend
@@ -38,14 +38,16 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Run mutmut shard ${{ matrix.shard }}
-        run: python scripts/run_mutmut_shard.py --shard ${{ matrix.shard }} --total-shards 4
+        run: |
+          python scripts/run_mutmut_shard.py --shard ${{ matrix.shard }} \
+            2>&1 | tee mutmut-report-${{ matrix.shard }}.txt
 
       - name: Upload mutation report
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: backend-mutation-report-shard-${{ matrix.shard }}
-          path: solune/backend/mutmut-report*.txt
+          name: backend-mutation-report-${{ matrix.shard }}
+          path: solune/backend/mutmut-report-${{ matrix.shard }}.txt
           retention-days: 30
           if-no-files-found: warn
 
@@ -66,7 +68,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: solune/frontend/package-lock.json
 

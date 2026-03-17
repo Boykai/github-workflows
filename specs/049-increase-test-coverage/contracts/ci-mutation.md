@@ -19,12 +19,12 @@ on:
 
 jobs:
   backend-mutation:
-    name: Backend Mutation Testing (4 shards)
+    name: Backend Mutation Testing (4 named shards)
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
       matrix:
-        shard: [1, 2, 3, 4]
+        shard: [auth-and-projects, orchestration, app-and-data, agents-and-integrations]
     defaults:
       run:
         working-directory: solune/backend
@@ -35,12 +35,14 @@ jobs:
           python-version: "3.12"
       - run: pip install -e ".[dev]"
       - name: Run mutmut shard ${{ matrix.shard }}
-        run: python scripts/run_mutmut_shard.py --shard=${{ matrix.shard }} --total-shards=4
+        run: |
+          python scripts/run_mutmut_shard.py --shard ${{ matrix.shard }} \
+            2>&1 | tee mutmut-report-${{ matrix.shard }}.txt
       - name: Upload mutation report
         uses: actions/upload-artifact@v4
         with:
-          name: backend-mutation-report-shard-${{ matrix.shard }}
-          path: solune/backend/mutation-report-shard-${{ matrix.shard }}.txt
+          name: backend-mutation-report-${{ matrix.shard }}
+          path: solune/backend/mutmut-report-${{ matrix.shard }}.txt
           retention-days: 30
 
   frontend-mutation:
@@ -73,8 +75,8 @@ jobs:
 |--------|--------------|
 | **Trigger** | `schedule` (weekly Monday 03:00 UTC) + `workflow_dispatch` (manual) |
 | **Backend tool** | `mutmut` (configured in `pyproject.toml` `[tool.mutmut]`) |
-| **Backend scope** | `src/services/` (highest-value mutation targets), 4 shards for parallelism |
-| **Backend shard runner** | `scripts/run_mutmut_shard.py` — existing shard runner script |
+| **Backend scope** | `src/services/` (highest-value mutation targets), 4 named shards (`auth-and-projects`, `orchestration`, `app-and-data`, `agents-and-integrations`) |
+| **Backend shard runner** | `scripts/run_mutmut_shard.py --shard <name>` — existing shard runner script |
 | **Frontend tool** | `@stryker-mutator` (configured via `stryker.config.mjs`) |
 | **Frontend scope** | Hooks and lib modules (configured in Stryker config) |
 | **Timeout** | 60 minutes per job |

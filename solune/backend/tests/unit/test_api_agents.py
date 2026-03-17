@@ -240,8 +240,8 @@ class TestCreateAgent:
         )
         assert resp.status_code == 422
 
-    async def test_create_agent_runtime_error_returns_500(self, client):
-        """RuntimeError from service is mapped to 500 (via GitHubAPIError)."""
+    async def test_create_agent_runtime_error_returns_502(self, client):
+        """RuntimeError from service is mapped to 502 (via GitHubAPIError)."""
         self.svc.create_agent.side_effect = RuntimeError("GitHub API down")
         resp = await client.post(
             BASE,

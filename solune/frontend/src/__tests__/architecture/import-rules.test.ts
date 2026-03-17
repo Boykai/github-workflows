@@ -1,7 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const SRC_ROOT = path.resolve(__dirname, '../../');
 
 // Pre-existing violations that are permitted (do not add new ones)
