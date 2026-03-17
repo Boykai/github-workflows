@@ -1,104 +1,117 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: New Repository & New Project Creation for Solune
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `049-repo-project-creation` | **Date**: 2026-03-17 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/049-repo-project-creation/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Add "New Repository" and "New Project" creation capabilities throughout Solune. This plan extends the existing GitHub service layer with repository creation (REST), project creation (GraphQL), and project-to-repository linking (GraphQL). A template file manager reads bundled `.github/`, `.specify/`, and `.gitignore` files and replaces `copilot-instructions.md` with a generic placeholder. The backend models, database schema, and API endpoints are extended to support the `new-repo` app type and standalone project creation. The frontend gains a repo type selector in the app creation dialog, a standalone "New Repository" button, a "+ New Project" option in the project selector dropdown, and repo type badges on app cards.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.13 (backend), TypeScript 5.9 (frontend)
+**Primary Dependencies**: FastAPI + Pydantic + GitHubKit (backend), React 19 + Vite 7 + TanStack Query (frontend)
+**Storage**: aiosqlite (SQLite — `apps` table extended with new columns)
+**Testing**: pytest + pytest-asyncio (backend), Vitest + Testing Library (frontend)
+**Target Platform**: Linux (Docker containers)
+**Project Type**: Web application (backend + frontend monorepo under `solune/`)
+**Performance Goals**: App creation completes in <60s including all GitHub API calls; standalone project creation in <15s
+**Constraints**: ~4 GitHub API calls per new-repo creation — well within rate limits; existing OAuth scopes (`repo` + `project`) are sufficient
+**Scale/Scope**: 5 new backend service methods, 1 new service module, 1 DB migration, 3 new/updated API endpoints, 6 frontend file modifications
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|---|---|---|
+| I. Specification-First | PASS | `spec.md` created with 5 prioritized user stories (P1–P3), Given-When-Then acceptance scenarios, and explicit scope boundaries |
+| II. Template-Driven | PASS | Using canonical `plan-template.md`; all artifacts in `specs/049-repo-project-creation/` |
+| III. Agent-Orchestrated | PASS | Plan produced by `/speckit.plan`; tasks will follow via `/speckit.tasks` |
+| IV. Test Optionality | PASS | Tests included as Phase 5 — spec explicitly defines unit + integration test requirements |
+| V. Simplicity / DRY | PASS | Extends existing mixin pattern for GitHub service methods; reuses existing AppCreate model with optional fields; no new abstractions beyond the template file reader |
+| Branch/Dir Naming | PASS | `049-repo-project-creation` follows `###-short-name` pattern |
+| Phase-Based Execution | PASS | Specify → Plan (this) → Tasks → Implement |
+| Independent User Stories | PASS | All 5 stories are independently implementable — Story 1 (new repo) can ship alone; Story 2 (standalone project) is independent; Stories 3–5 build on shared infrastructure but are individually testable |
+
+No violations. No complexity-tracking entries required.
+
+### Post-Design Re-evaluation
+
+| Principle | Status | Notes |
+|---|---|---|
+| I. Specification-First | PASS | All research findings align with spec requirements; no spec amendments needed |
+| II. Template-Driven | PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated | PASS | Phase handoff from plan → tasks is clean |
+| IV. Test Optionality | PASS | Test phase (Phase 5) is included per spec requirements |
+| V. Simplicity / DRY | PASS | Template file reader is the only new module; all other changes extend existing patterns. Generic copilot-instructions is a hardcoded string to avoid filesystem dependency at runtime |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/049-repo-project-creation/
+├── plan.md              # This file
+├── research.md          # Phase 0 output
+├── data-model.md        # Phase 1 output
+├── quickstart.md        # Phase 1 output
+├── contracts/           # Phase 1 output
+│   ├── backend-api.md   # REST API endpoint contracts
+│   └── graphql-mutations.md  # GraphQL mutation contracts
+└── tasks.md             # Phase 2 output (/speckit.tasks)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+solune/
+├── backend/
+│   ├── Dockerfile                                  # MODIFY: Add COPY for template files
+│   ├── src/
+│   │   ├── models/
+│   │   │   └── app.py                              # MODIFY: Extend RepoType, AppCreate, App
+│   │   ├── services/
+│   │   │   ├── app_service.py                      # MODIFY: Add create_app_with_new_repo(), create_standalone_project()
+│   │   │   ├── template_files.py                   # CREATE: Template file reader + generic copilot-instructions
+│   │   │   └── github_projects/
+│   │   │       ├── graphql.py                      # MODIFY: Add 3 new GraphQL mutations
+│   │   │       ├── repository.py                   # MODIFY: Add create_repository(), list_available_owners()
+│   │   │       └── projects.py                     # MODIFY: Add create_project_v2(), link_project_to_repository()
+│   │   ├── api/
+│   │   │   ├── apps.py                             # MODIFY: Route POST /apps by repo_type, add GET /apps/owners
+│   │   │   └── projects.py                         # MODIFY: Add POST /projects/create
+│   │   └── migrations/
+│   │       └── 028_new_repo_support.sql            # CREATE: Schema extension for new-repo type
+│   └── tests/
+│       └── unit/
+│           ├── test_github_repository.py           # CREATE: Tests for create_repository, list_available_owners
+│           ├── test_github_projects_create.py       # CREATE: Tests for create_project_v2, link_project_to_repository
+│           ├── test_template_files.py              # CREATE: Tests for template reader
+│           └── test_app_service_new_repo.py        # CREATE: Tests for create_app_with_new_repo, create_standalone_project
+├── frontend/
+│   ├── src/
+│   │   ├── types/
+│   │   │   └── apps.ts                             # MODIFY: Add 'new-repo' to RepoType, new fields, Owner type
+│   │   ├── services/
+│   │   │   └── api.ts                              # MODIFY: Add appsApi.owners(), projectsApi.create()
+│   │   ├── hooks/
+│   │   │   ├── useApps.ts                          # MODIFY: Add useOwners() hook
+│   │   │   └── useProjects.ts                      # MODIFY: Add useCreateProject() hook
+│   │   ├── pages/
+│   │   │   └── AppsPage.tsx                        # MODIFY: Repo type selector, conditional fields, "New Repository" button
+│   │   ├── layout/
+│   │   │   └── ProjectSelector.tsx                 # MODIFY: Add "+ New Project" option + creation dialog
+│   │   └── components/
+│   │       └── apps/
+│   │           ├── AppCard.tsx                      # MODIFY: Add repo type badge + repo/project links
+│   │           └── AppDetailView.tsx               # MODIFY: Add repo/project links
+│   └── ...
+└── ...
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application. All changes land in the existing `solune/backend/` and `solune/frontend/` structure. New backend code extends existing mixin classes and service modules. The only new module is `template_files.py`. Frontend changes are modifications to existing components and hooks. No new top-level directories.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No violations. No entries required.

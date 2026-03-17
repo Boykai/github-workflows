@@ -242,6 +242,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite with SQL migration files (023–027), `BoundedDict`/`BoundedSet` L1 in-memory caches (047-advanced-testing)
 - Python ≥3.12 (target 3.13) backend; TypeScript ~5.9 / React 19.2 frontend + FastAPI ≥0.135, github-copilot-sdk, githubkit, Pydantic 2.12, aiosqlite (backend); Vite 7.3, @tanstack/react-query 5.90, Zod 4.3, react-hook-form 7.71 (frontend) (048-test-coverage-bugs)
 - SQLite via aiosqlite (async), in-memory SQLite for test fixtures (048-test-coverage-bugs)
+- Python 3.13 (backend), TypeScript 5.9 (frontend) + FastAPI + Pydantic + GitHubKit (backend), React 19 + Vite 7 + TanStack Query (frontend) (049-repo-project-creation)
+- aiosqlite (SQLite — `apps` table extended with new columns) (049-repo-project-creation)
 
 ## Recent Changes
 - 047-advanced-testing: Added Python ≥3.12 (backend), TypeScript ~5.9 (frontend) + FastAPI, Pydantic 2, aiosqlite, httpx, hypothesis (backend); React 19, Vite 7, Vitest 4, Zod 4 (frontend)
