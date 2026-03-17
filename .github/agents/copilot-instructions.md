@@ -1,6 +1,6 @@
 # Solune — Development Guidelines
 
-Last updated: 2026-03-15
+Last updated: 2026-03-17
 
 > Prefer official documentation sources and repo-discovery tools when working with frameworks, libraries, or external APIs. Treat tool availability as situational rather than mandatory.
 
@@ -9,12 +9,12 @@ Last updated: 2026-03-15
 ### Backend
 
 - **Runtime floor:** Python `>=3.12` (`solune/backend/pyproject.toml`); primary dev/runtime target is Python 3.13 (`ruff` target `py313`, `pyright` `pythonVersion = "3.13"`, Docker image `python:3.13-slim`)
-- **Framework:** FastAPI `>=0.135.0`, Uvicorn `>=0.41.0`
+- **Framework:** FastAPI `>=0.135.0`, Uvicorn `>=0.42.0`
 - **GitHub integration:** `githubkit>=0.14.6`, `httpx>=0.28.0`
 - **Validation / config:** `pydantic>=2.12.0`, `pydantic-settings>=2.13.0`
 - **Storage:** SQLite via `aiosqlite>=0.22.0` (WAL mode, single persistent connection, migrations run on startup)
 - **AI providers:** `github-copilot-sdk>=0.1.30` (default), `openai>=2.26.0`, `azure-ai-inference>=1.0.0b9` (optional fallbacks)
-- **Security / crypto:** `cryptography>=44.0.0` (Fernet token-at-rest encryption)
+- **Security / crypto:** `cryptography>=46.0.5` (Fernet token-at-rest encryption)
 - **Rate limiting:** `slowapi>=0.1.9`
 - **Utilities:** `tenacity>=9.1.0`, `websockets>=16.0`, `python-multipart>=0.0.22`, `pyyaml>=6.0.3`
 - **Code graph analysis:** `codegraphcontext>=0.2.9` (MCP server + CLI)
@@ -31,7 +31,7 @@ Last updated: 2026-03-15
 - **Drag-and-drop:** `@dnd-kit/core` 6.3, `@dnd-kit/modifiers` 9.0, `@dnd-kit/sortable` 10.0, `@dnd-kit/utilities` 3.2
 - **Forms:** `react-hook-form` 7.71, `@hookform/resolvers` 5.2, `zod` 4.3
 - **Markdown:** `react-markdown` 10.1, `remark-gfm` 4.0
-- **Dev tools:** ESLint 9.39, Prettier 3.8, Vitest 4.0 (`happy-dom` environment), Playwright 1.58
+- **Dev tools:** ESLint 9.39, Prettier 3.8, Vitest 4.1 (`happy-dom` environment), Playwright 1.58
 - **Testing:** `@testing-library/react` 16.3, `@testing-library/user-event` 14.6, `jest-axe` 10.0
 
 ### Infrastructure
@@ -54,7 +54,7 @@ Last updated: 2026-03-15
 
 - **Auth:** GitHub OAuth with secure HTTP-only session cookies. No JWT / `python-jose` layer.
 - **Real-time:** Native WebSocket (`ConnectionManager` in `solune/backend/src/services/websocket.py`) with SSE fallback in the projects API.
-- **Storage:** SQLite via `aiosqlite` in WAL mode. Migrations (`001`–`025`, with the consolidated schema at `023`) run automatically on startup from `solune/backend/src/migrations/`.
+- **Storage:** SQLite via `aiosqlite` in WAL mode. Migrations (`001`–`028`, with the consolidated schema at `023`) run automatically on startup from `solune/backend/src/migrations/`.
 - **Tailwind v4:** CSS-first config lives in `solune/frontend/src/index.css`. Do not add `tailwind.config.js` or `postcss.config.js` unless the build model changes.
 - **Repository resolution:** Use the shared `resolve_repository()` helper in `solune/backend/src/utils.py`. Avoid ad-hoc owner/repo fallback logic.
 - **AI providers:** `completion_providers.py` abstracts GitHub Copilot SDK (default, user OAuth token) and Azure OpenAI (static keys, optional). Selected via `AI_PROVIDER` env var.
@@ -75,11 +75,11 @@ solune/
   backend/
     src/
     api/              FastAPI route handlers
-                      (agents, auth, board, chat, chores, cleanup, health,
+                      (agents, apps, auth, board, chat, chores, cleanup, health,
                        mcp, metadata, pipelines, projects, settings, signal,
                        tasks, tools, webhooks, workflow)
     middleware/       Request middleware (request_id context var)
-    migrations/       SQL schema migrations (001–025, run on startup)
+    migrations/       SQL schema migrations (001–028, run on startup)
     models/           Pydantic request/response models
     prompts/          AI prompt templates (issue_generation, task_generation)
     services/         Business logic
@@ -232,24 +232,3 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - Prefer Context7 when you need up-to-date library documentation and examples.
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
-
-## Active Technologies
-- TypeScript 5.9, React 19.2.0 + `@tanstack/react-query@^5.90.0`, `react-router-dom`, `lucide-react`, `@radix-ui/react-tooltip`, `@dnd-kit/core` (drag-and-drop), Tailwind CSS 4.2 (043-projects-page-audit)
-- N/A — frontend-only audit; backend API unchanged (043-projects-page-audit)
-- Python 3.12+ (backend), TypeScript 5.9 (frontend) + FastAPI + Pydantic (backend), React 19 + Vite 7 + TanStack Query (frontend) (046-modernize-testing)
-- aiosqlite (backend sessions/settings) (046-modernize-testing)
-- Python ≥3.12 (backend), TypeScript ~5.9 (frontend) + FastAPI, Pydantic 2, aiosqlite, httpx, hypothesis (backend); React 19, Vite 7, Vitest 4, Zod 4 (frontend) (047-advanced-testing)
-- SQLite via aiosqlite with SQL migration files (023–027), `BoundedDict`/`BoundedSet` L1 in-memory caches (047-advanced-testing)
-- Python ≥3.12 (target 3.13) backend; TypeScript ~5.9 / React 19.2 frontend + FastAPI ≥0.135, github-copilot-sdk, githubkit, Pydantic 2.12, aiosqlite (backend); Vite 7.3, @tanstack/react-query 5.90, Zod 4.3, react-hook-form 7.71 (frontend) (048-test-coverage-bugs)
-- SQLite via aiosqlite (async), in-memory SQLite for test fixtures (048-test-coverage-bugs)
-- Python 3.13 (backend), TypeScript 5.9 (frontend) + FastAPI + Pydantic + GitHubKit (backend), React 19 + Vite 7 + TanStack Query (frontend) (049-repo-project-creation)
-- aiosqlite (SQLite — `apps` table extended with new columns) (049-repo-project-creation)
-- Python ≥3.12 (backend), TypeScript 5.x / React 19 (frontend) + FastAPI, Pydantic, pytest (backend); Vite, Vitest, React Testing Library (frontend) (049-transcript-upload-transcribe)
-- SQLite (existing `ChatStore` for message/recommendation persistence — no changes) (049-transcript-upload-transcribe)
-
-## Recent Changes
-- 047-advanced-testing: Added Python ≥3.12 (backend), TypeScript ~5.9 (frontend) + FastAPI, Pydantic 2, aiosqlite, httpx, hypothesis (backend); React 19, Vite 7, Vitest 4, Zod 4 (frontend)
-- 046-modernize-testing: Added Python 3.12+ (backend), TypeScript 5.9 (frontend) + FastAPI + Pydantic (backend), React 19 + Vite 7 + TanStack Query (frontend)
-- 043-chores-page-audit: Added TypeScript 5.9 with React 19.2, TanStack React Query 5.90, Tailwind CSS 4.2, Radix UI, Lucide React icons, tailwind-merge, react-router-dom 7.13
-- 043-projects-page-audit: Added TypeScript 5.9, React 19.2.0 + `@tanstack/react-query@^5.90.0`, `react-router-dom`, `lucide-react`, `@radix-ui/react-tooltip`, `@dnd-kit/core` (drag-and-drop), Tailwind CSS 4.2
-- 043-tools-page-audit: TypeScript ~5.9 (frontend), React 19.2.0 + TanStack React Query 5.90, Tailwind CSS 4.2, Vite 7.3, lucide-react, Radix UI primitives via shadcn/ui components
