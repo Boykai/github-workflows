@@ -279,7 +279,9 @@ describe('ProjectIssueLaunchPanel', () => {
     await user.upload(fileInput, file);
 
     expect(
-      screen.getByText('Only Markdown (.md) and plain-text (.txt) files are supported.')
+      screen.getByText(
+        'Only Markdown (.md), plain-text (.txt), WebVTT (.vtt), and SubRip (.srt) files are supported.'
+      )
     ).toBeInTheDocument();
     expect(mockLaunch).not.toHaveBeenCalled();
   });

@@ -3,7 +3,7 @@
  * Tests: load app, navigate to board view, verify columns display.
  */
 
-import { test, expect } from '@playwright/test';
+import { test, expect } from './fixtures';
 import AxeBuilder from '@axe-core/playwright';
 import { VIEWPORTS } from './viewports';
 
