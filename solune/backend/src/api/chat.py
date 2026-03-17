@@ -411,9 +411,10 @@ async def _handle_transcript_upload(
             metadata_context: dict | None = None
             try:
                 owner, repo = await _resolve_repository(session)
+                from src.services.github_projects import github_projects_service
                 from src.services.metadata_service import MetadataService
 
-                metadata_svc = MetadataService()
+                metadata_svc = MetadataService(github_service=github_projects_service)
                 ctx = await metadata_svc.get_or_fetch(session.access_token, owner, repo)
                 metadata_context = ctx.model_dump()
             except Exception as md_err:
@@ -522,9 +523,10 @@ async def _handle_feature_request(
         metadata_context: dict | None = None
         try:
             owner, repo = await _resolve_repository(session)
+            from src.services.github_projects import github_projects_service
             from src.services.metadata_service import MetadataService
 
-            metadata_svc = MetadataService()
+            metadata_svc = MetadataService(github_service=github_projects_service)
             ctx = await metadata_svc.get_or_fetch(session.access_token, owner, repo)
             metadata_context = ctx.model_dump()
         except Exception as md_err:

@@ -28,7 +28,7 @@ import yaml
 from src.logging_utils import get_logger
 
 if TYPE_CHECKING:
-    import httpx
+    from src.services.github_projects.service import GitHubProjectsService
 
 logger = get_logger(__name__)
 
@@ -138,22 +138,27 @@ async def _build_active_mcp_dict(db: aiosqlite.Connection, project_id: str) -> d
     return mcps
 
 
-async def _discover_agent_files(owner: str, repo: str, token: str) -> list[dict]:
+async def _discover_agent_files(
+    owner: str,
+    repo: str,
+    token: str,
+    github_service: GitHubProjectsService | None = None,
+) -> list[dict]:
     """Discover all ``*.agent.md`` files in ``.github/agents/`` via GitHub API.
 
     Returns a list of dicts with keys: ``path``, ``sha``, ``download_url``.
     """
-    import httpx
+    if github_service is None:
+        from src.services.github_projects import github_projects_service
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
-        "X-GitHub-Api-Version": "2022-11-28",
-    }
+        github_service = github_projects_service
 
-    url = f"https://api.github.com/repos/{owner}/{repo}/contents/.github/agents"
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        resp = await client.get(url, headers=headers)
+    path = f"/repos/{owner}/{repo}/contents/.github/agents"
+    try:
+        resp = await github_service.rest_request(token, "GET", path)
+    except Exception:
+        logger.error("Network error listing .github/agents/ in %s/%s", owner, repo)
+        return []
 
     if resp.status_code == 404:
         logger.debug("No .github/agents/ directory in %s/%s", owner, repo)
@@ -250,6 +255,7 @@ async def sync_agent_mcps(
     access_token: str,
     trigger: str = "manual",
     db: aiosqlite.Connection,
+    github_service: GitHubProjectsService | None = None,
 ) -> AgentMcpSyncResult:
     """Synchronize MCP configurations across all agent files.
 
@@ -265,11 +271,15 @@ async def sync_agent_mcps(
         access_token: GitHub access token.
         trigger: What initiated this sync (startup, tool_toggle, agent_create, etc.).
         db: Database connection for reading active MCPs.
+        github_service: Optional GitHubProjectsService for REST requests.
 
     Returns:
         AgentMcpSyncResult with counts and any warnings/errors.
     """
-    import httpx
+    if github_service is None:
+        from src.services.github_projects import github_projects_service
+
+        github_service = github_projects_service
 
     result = AgentMcpSyncResult()
 
@@ -279,7 +289,12 @@ async def sync_agent_mcps(
         result.synced_mcps = list(active_mcps.keys())
 
         # 2. Discover agent files
-        agent_files = await _discover_agent_files(owner, repo, access_token)
+        agent_files = await _discover_agent_files(
+            owner,
+            repo,
+            access_token,
+            github_service=github_service,
+        )
         if not agent_files:
             logger.info(
                 "No agent files found in %s/%s — sync complete (trigger=%s)",
@@ -290,30 +305,23 @@ async def sync_agent_mcps(
             return result
 
         # 3. Process each agent file
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
-
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            for agent_entry in agent_files:
-                file_path = agent_entry["path"]
-                try:
-                    await _process_agent_file(
-                        client=client,
-                        headers=headers,
-                        owner=owner,
-                        repo=repo,
-                        file_path=file_path,
-                        active_mcps=active_mcps,
-                        result=result,
-                    )
-                except Exception as exc:
-                    error_msg = f"{file_path}: {exc}"
-                    result.errors.append(error_msg)
-                    result.files_skipped += 1
-                    logger.exception("Error processing agent file %s", file_path)
+        for agent_entry in agent_files:
+            file_path = agent_entry["path"]
+            try:
+                await _process_agent_file(
+                    github_service=github_service,
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    file_path=file_path,
+                    active_mcps=active_mcps,
+                    result=result,
+                )
+            except Exception as exc:
+                error_msg = f"{file_path}: {exc}"
+                result.errors.append(error_msg)
+                result.files_skipped += 1
+                logger.exception("Error processing agent file %s", file_path)
 
     except Exception as exc:
         result.success = False
@@ -333,8 +341,8 @@ async def sync_agent_mcps(
 
 async def _process_agent_file(
     *,
-    client: httpx.AsyncClient,
-    headers: dict[str, str],
+    github_service: GitHubProjectsService,
+    access_token: str,
     owner: str,
     repo: str,
     file_path: str,
@@ -343,8 +351,8 @@ async def _process_agent_file(
 ) -> None:
     """Fetch, merge, validate, and (if changed) write back a single agent file."""
     # Fetch current file content
-    get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{file_path}"
-    resp = await client.get(get_url, headers=headers)
+    api_path = f"/repos/{owner}/{repo}/contents/{file_path}"
+    resp = await github_service.rest_request(access_token, "GET", api_path)
     if resp.status_code != 200:
         result.errors.append(f"{file_path}: GitHub API GET failed ({resp.status_code})")
         result.files_skipped += 1
@@ -389,7 +397,12 @@ async def _process_agent_file(
     if file_sha:
         put_body["sha"] = file_sha
 
-    put_resp = await client.put(get_url, headers=headers, json=put_body)
+    put_resp = await github_service.rest_request(
+        access_token,
+        "PUT",
+        api_path,
+        json=put_body,
+    )
     if put_resp.status_code not in (200, 201):
         result.errors.append(f"{file_path}: GitHub API PUT failed ({put_resp.status_code})")
         result.files_skipped += 1

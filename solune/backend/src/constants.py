@@ -1,6 +1,12 @@
 """Application-wide constants."""
 
+from __future__ import annotations
+
 import warnings
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from src.services.github_projects.service import GitHubProjectsService
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Workflow Status Names
@@ -272,6 +278,7 @@ async def ensure_pipeline_labels_exist(
     access_token: str,
     owner: str,
     repo: str,
+    github_service: GitHubProjectsService | None = None,
 ) -> None:
     """Pre-create fixed pipeline labels with correct colours.
 
@@ -281,7 +288,10 @@ async def ensure_pipeline_labels_exist(
 
     Idempotent — 422 (already exists) is silently ignored.
     """
-    import httpx
+    if github_service is None:
+        from src.services.github_projects import github_projects_service
+
+        github_service = github_projects_service
 
     _FIXED_LABELS = [
         (ACTIVE_LABEL, ACTIVE_LABEL_COLOR, "Marks the active agent sub-issue"),
@@ -289,38 +299,30 @@ async def ensure_pipeline_labels_exist(
     ]
 
     try:
-        async with httpx.AsyncClient() as client:
-            for name, color, description in _FIXED_LABELS:
-                try:
-                    resp = await client.post(
-                        f"https://api.github.com/repos/{owner}/{repo}/labels",
-                        headers={
-                            "Authorization": f"Bearer {access_token}",
-                            "Accept": "application/vnd.github+json",
-                            "X-GitHub-Api-Version": "2022-11-28",
-                        },
-                        json={"name": name, "color": color, "description": description},
-                    )
-                    if resp.status_code == 422:
-                        pass  # already exists — idempotent
-                    elif resp.status_code >= 400:
-                        from src.logging_utils import get_logger
-
-                        get_logger(__name__).warning(
-                            "Failed to pre-create label '%s': %d %s",
-                            name,
-                            resp.status_code,
-                            resp.text,
-                        )
-                except Exception:
+        for name, color, description in _FIXED_LABELS:
+            try:
+                resp = await github_service.rest_request(
+                    access_token,
+                    "POST",
+                    f"/repos/{owner}/{repo}/labels",
+                    json={"name": name, "color": color, "description": description},
+                )
+                if resp.status_code == 422:
+                    pass  # already exists — idempotent
+                elif resp.status_code >= 400:
                     from src.logging_utils import get_logger
 
                     get_logger(__name__).warning(
-                        "Failed to pre-create label '%s'", name, exc_info=True
+                        "Failed to pre-create label '%s': %d %s",
+                        name,
+                        resp.status_code,
+                        resp.text,
                     )
+            except Exception:
+                from src.logging_utils import get_logger
+
+                get_logger(__name__).warning("Failed to pre-create label '%s'", name, exc_info=True)
     except Exception:
         from src.logging_utils import get_logger
 
-        get_logger(__name__).warning(
-            "Failed to create httpx client for label pre-creation", exc_info=True
-        )
+        get_logger(__name__).warning("Failed to pre-create pipeline labels", exc_info=True)

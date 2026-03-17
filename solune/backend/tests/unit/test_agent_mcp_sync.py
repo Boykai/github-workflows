@@ -358,22 +358,20 @@ class TestSyncAgentMcps:
             mock_put_response = MagicMock()
             mock_put_response.status_code = 200
 
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_get_response
-            mock_client.put.return_value = mock_put_response
+            mock_github_service = AsyncMock()
+            mock_github_service.rest_request = AsyncMock(
+                side_effect=[mock_get_response, mock_put_response]
+            )
 
-            with patch("httpx.AsyncClient") as mock_httpx:
-                mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-                mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
-
-                result = await sync_agent_mcps(
-                    owner="test",
-                    repo="repo",
-                    project_id="proj",
-                    access_token="token",
-                    trigger="tool_toggle",
-                    db=db,
-                )
+            result = await sync_agent_mcps(
+                owner="test",
+                repo="repo",
+                project_id="proj",
+                access_token="token",
+                trigger="tool_toggle",
+                db=db,
+                github_service=mock_github_service,
+            )
 
         assert result.success is True
         assert result.files_updated == 1
@@ -412,27 +410,24 @@ class TestSyncAgentMcps:
                 "content": encoded_content,
             }
 
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_get_response
+            mock_github_service = AsyncMock()
+            mock_github_service.rest_request = AsyncMock(return_value=mock_get_response)
 
-            with patch("httpx.AsyncClient") as mock_httpx:
-                mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-                mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
-
-                result = await sync_agent_mcps(
-                    owner="test",
-                    repo="repo",
-                    project_id="proj",
-                    access_token="token",
-                    trigger="tool_toggle",
-                    db=db,
-                )
+            result = await sync_agent_mcps(
+                owner="test",
+                repo="repo",
+                project_id="proj",
+                access_token="token",
+                trigger="tool_toggle",
+                db=db,
+                github_service=mock_github_service,
+            )
 
         assert result.success is True
         assert result.files_updated == 0
         assert result.files_unchanged == 1
-        # put should not have been called
-        mock_client.put.assert_not_called()
+        # rest_request should have been called once for GET only (no PUT needed)
+        assert mock_github_service.rest_request.call_count == 1
 
     @pytest.mark.asyncio
     async def test_sync_no_agent_files_returns_early(self):
@@ -474,21 +469,18 @@ class TestSyncAgentMcps:
                 {"path": ".github/agents/bad.agent.md", "sha": "sha1", "download_url": ""}
             ],
         ):
-            mock_client = AsyncMock()
-            mock_client.get.side_effect = RuntimeError("network error")
+            mock_github_service = AsyncMock()
+            mock_github_service.rest_request = AsyncMock(side_effect=RuntimeError("network error"))
 
-            with patch("httpx.AsyncClient") as mock_httpx:
-                mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-                mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
-
-                result = await sync_agent_mcps(
-                    owner="test",
-                    repo="repo",
-                    project_id="proj",
-                    access_token="token",
-                    trigger="tool_toggle",
-                    db=db,
-                )
+            result = await sync_agent_mcps(
+                owner="test",
+                repo="repo",
+                project_id="proj",
+                access_token="token",
+                trigger="tool_toggle",
+                db=db,
+                github_service=mock_github_service,
+            )
 
         assert result.success is True  # overall success; individual file errors
         assert result.files_skipped == 1
@@ -535,22 +527,20 @@ class TestSyncAgentMcps:
             mock_put_response = MagicMock()
             mock_put_response.status_code = 200
 
-            mock_client = AsyncMock()
-            mock_client.get.side_effect = [mock_get_resp_1, mock_get_resp_2]
-            mock_client.put.return_value = mock_put_response
+            mock_github_service = AsyncMock()
+            mock_github_service.rest_request = AsyncMock(
+                side_effect=[mock_get_resp_1, mock_put_response, mock_get_resp_2]
+            )
 
-            with patch("httpx.AsyncClient") as mock_httpx:
-                mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-                mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
-
-                result = await sync_agent_mcps(
-                    owner="test",
-                    repo="repo",
-                    project_id="proj",
-                    access_token="token",
-                    trigger="agent_create",
-                    db=db,
-                )
+            result = await sync_agent_mcps(
+                owner="test",
+                repo="repo",
+                project_id="proj",
+                access_token="token",
+                trigger="agent_create",
+                db=db,
+                github_service=mock_github_service,
+            )
 
         assert result.success is True
         assert result.files_updated == 1
@@ -616,13 +606,10 @@ class TestDiscoverAgentFiles:
             {"name": "linter.agent.md", "path": ".github/agents/linter.agent.md", "sha": "ghi"},
         ]
 
-        with patch("httpx.AsyncClient") as mock_httpx:
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_resp
-            mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(return_value=mock_resp)
 
-            files = await _discover_agent_files("owner", "repo", "token")
+        files = await _discover_agent_files("owner", "repo", "token", github_service=mock_svc)
 
         assert len(files) == 2
         assert files[0]["path"] == ".github/agents/reviewer.agent.md"
@@ -634,13 +621,10 @@ class TestDiscoverAgentFiles:
         mock_resp = MagicMock()
         mock_resp.status_code = 404
 
-        with patch("httpx.AsyncClient") as mock_httpx:
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_resp
-            mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(return_value=mock_resp)
 
-            files = await _discover_agent_files("owner", "repo", "token")
+        files = await _discover_agent_files("owner", "repo", "token", github_service=mock_svc)
 
         assert files == []
 
@@ -651,13 +635,10 @@ class TestDiscoverAgentFiles:
         mock_resp.status_code = 500
         mock_resp.text = "Internal Server Error"
 
-        with patch("httpx.AsyncClient") as mock_httpx:
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_resp
-            mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(return_value=mock_resp)
 
-            files = await _discover_agent_files("owner", "repo", "token")
+        files = await _discover_agent_files("owner", "repo", "token", github_service=mock_svc)
 
         assert files == []
 
@@ -668,13 +649,10 @@ class TestDiscoverAgentFiles:
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"name": "not-a-list"}
 
-        with patch("httpx.AsyncClient") as mock_httpx:
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_resp
-            mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(return_value=mock_resp)
 
-            files = await _discover_agent_files("owner", "repo", "token")
+        files = await _discover_agent_files("owner", "repo", "token", github_service=mock_svc)
 
         assert files == []
 
@@ -688,13 +666,10 @@ class TestDiscoverAgentFiles:
             {"name": "valid.agent.md", "path": ".github/agents/valid.agent.md", "sha": "abc"},
         ]
 
-        with patch("httpx.AsyncClient") as mock_httpx:
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_resp
-            mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(return_value=mock_resp)
 
-            files = await _discover_agent_files("owner", "repo", "token")
+        files = await _discover_agent_files("owner", "repo", "token", github_service=mock_svc)
 
         assert len(files) == 1
 
@@ -707,13 +682,10 @@ class TestDiscoverAgentFiles:
             {"name": "test.agent.md", "path": ".github/agents/test.agent.md", "sha": "abc"},
         ]
 
-        with patch("httpx.AsyncClient") as mock_httpx:
-            mock_client = AsyncMock()
-            mock_client.get.return_value = mock_resp
-            mock_httpx.return_value.__aenter__ = AsyncMock(return_value=mock_client)
-            mock_httpx.return_value.__aexit__ = AsyncMock(return_value=False)
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(return_value=mock_resp)
 
-            files = await _discover_agent_files("owner", "repo", "token")
+        files = await _discover_agent_files("owner", "repo", "token", github_service=mock_svc)
 
         assert files[0]["download_url"] == ""
 
@@ -725,15 +697,16 @@ class TestProcessAgentFile:
     @pytest.mark.asyncio
     async def test_skips_on_get_failure(self):
         """File is skipped when GET returns non-200."""
-        mock_client = AsyncMock()
         mock_resp = MagicMock()
         mock_resp.status_code = 404
-        mock_client.get.return_value = mock_resp
+
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(return_value=mock_resp)
 
         result = AgentMcpSyncResult()
         await _process_agent_file(
-            client=mock_client,
-            headers={},
+            github_service=mock_svc,
+            access_token="tok",
             owner="o",
             repo="r",
             file_path=".github/agents/test.agent.md",
@@ -753,13 +726,13 @@ class TestProcessAgentFile:
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"sha": "sha1", "content": encoded}
 
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_resp
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(return_value=mock_resp)
 
         result = AgentMcpSyncResult()
         await _process_agent_file(
-            client=mock_client,
-            headers={},
+            github_service=mock_svc,
+            access_token="tok",
             owner="o",
             repo="r",
             file_path=".github/agents/no_fm.agent.md",
@@ -781,16 +754,16 @@ class TestProcessAgentFile:
         mock_resp.status_code = 200
         mock_resp.json.return_value = {"sha": "sha1", "content": encoded}
 
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_resp
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(return_value=mock_resp)
 
         # Pass an MCP with missing type field to trigger validation error
         bad_mcps = {"bad_server": {"url": "https://example.com"}}
 
         result = AgentMcpSyncResult()
         await _process_agent_file(
-            client=mock_client,
-            headers={},
+            github_service=mock_svc,
+            access_token="tok",
             owner="o",
             repo="r",
             file_path=".github/agents/bad.agent.md",
@@ -812,14 +785,13 @@ class TestProcessAgentFile:
         mock_put_resp = MagicMock()
         mock_put_resp.status_code = 422  # Unprocessable entity
 
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_get_resp
-        mock_client.put.return_value = mock_put_resp
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(side_effect=[mock_get_resp, mock_put_resp])
 
         result = AgentMcpSyncResult()
         await _process_agent_file(
-            client=mock_client,
-            headers={},
+            github_service=mock_svc,
+            access_token="tok",
             owner="o",
             repo="r",
             file_path=".github/agents/test.agent.md",
@@ -841,14 +813,13 @@ class TestProcessAgentFile:
         mock_put_resp = MagicMock()
         mock_put_resp.status_code = 200
 
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_get_resp
-        mock_client.put.return_value = mock_put_resp
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(side_effect=[mock_get_resp, mock_put_resp])
 
         result = AgentMcpSyncResult()
         await _process_agent_file(
-            client=mock_client,
-            headers={},
+            github_service=mock_svc,
+            access_token="tok",
             owner="o",
             repo="r",
             file_path=".github/agents/test.agent.md",
@@ -859,9 +830,8 @@ class TestProcessAgentFile:
         assert result.files_updated == 1
         assert result.files_skipped == 0
         # Verify the PUT payload includes the file sha
-        put_call = mock_client.put.call_args
-        assert put_call is not None
-        body = put_call.kwargs.get("json") or put_call[1].get("json", {})
+        put_call = mock_svc.rest_request.call_args_list[1]
+        body = put_call.kwargs.get("json", {})
         assert body["sha"] == "sha1"
 
     @pytest.mark.asyncio
@@ -875,14 +845,13 @@ class TestProcessAgentFile:
         mock_put_resp = MagicMock()
         mock_put_resp.status_code = 200
 
-        mock_client = AsyncMock()
-        mock_client.get.return_value = mock_get_resp
-        mock_client.put.return_value = mock_put_resp
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(side_effect=[mock_get_resp, mock_put_resp])
 
         result = AgentMcpSyncResult()
         await _process_agent_file(
-            client=mock_client,
-            headers={},
+            github_service=mock_svc,
+            access_token="tok",
             owner="o",
             repo="r",
             file_path=".github/agents/test.agent.md",

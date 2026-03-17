@@ -10,6 +10,7 @@ from __future__ import annotations
 import base64
 import json
 import uuid
+from typing import TYPE_CHECKING
 
 import aiosqlite
 
@@ -29,6 +30,9 @@ from src.models.tools import (
 )
 from src.utils import utcnow
 
+if TYPE_CHECKING:
+    from src.services.github_projects.service import GitHubProjectsService
+
 logger = get_logger(__name__)
 
 MAX_TOOLS_PER_PROJECT = 25
@@ -40,8 +44,21 @@ ALLOWED_SERVER_TYPES = {"http", "stdio", "local", "sse"}
 class ToolsService:
     """Manages MCP tool configuration CRUD, validation, and GitHub sync."""
 
-    def __init__(self, db: aiosqlite.Connection) -> None:
+    def __init__(
+        self,
+        db: aiosqlite.Connection,
+        github_service: GitHubProjectsService | None = None,
+    ) -> None:
         self.db = db
+        self._github_service = github_service
+
+    def _get_github_service(self) -> GitHubProjectsService:
+        """Return the injected service or fall back to the module-level singleton."""
+        if self._github_service is not None:
+            return self._github_service
+        from src.services.github_projects import github_projects_service
+
+        return github_projects_service
 
     # ── Validation ──
 
@@ -624,38 +641,34 @@ class ToolsService:
         access_token: str,
     ) -> RepoMcpConfigResponse:
         """Read repository MCP configuration from all supported GitHub paths."""
-        import httpx
-
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
+        svc = self._get_github_service()
         merged_servers: dict[str, dict[str, object]] = {}
         source_paths: dict[str, list[str]] = {}
         available_paths: list[str] = []
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            for path in MCP_CONFIG_PATHS:
-                get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-                resp = await client.get(get_url, headers=headers)
-                if resp.status_code == 404:
-                    continue
-                if resp.status_code != 200:
-                    raise RuntimeError(f"GitHub API error: {resp.status_code} {resp.text[:200]}")
+        for path in MCP_CONFIG_PATHS:
+            resp = await svc.rest_request(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/contents/{path}",
+            )
+            if resp.status_code == 404:
+                continue
+            if resp.status_code != 200:
+                raise RuntimeError(f"GitHub API error: {resp.status_code} {resp.text[:200]}")
 
-                available_paths.append(path)
-                file_data = resp.json()
-                raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
-                parsed = json.loads(raw)
-                servers = parsed.get("mcpServers") if isinstance(parsed, dict) else None
-                if not isinstance(servers, dict):
-                    continue
-                for server_name, server_config in servers.items():
-                    server_key = str(server_name)
-                    if isinstance(server_config, dict):
-                        merged_servers[server_key] = dict(server_config)
-                        source_paths.setdefault(server_key, []).append(path)
+            available_paths.append(path)
+            file_data = resp.json()
+            raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
+            parsed = json.loads(raw)
+            servers = parsed.get("mcpServers") if isinstance(parsed, dict) else None
+            if not isinstance(servers, dict):
+                continue
+            for server_name, server_config in servers.items():
+                server_key = str(server_name)
+                if isinstance(server_config, dict):
+                    merged_servers[server_key] = dict(server_config)
+                    source_paths.setdefault(server_key, []).append(path)
 
         ordered_servers = [
             RepoMcpServerConfig(
@@ -683,8 +696,6 @@ class ToolsService:
         data: RepoMcpServerUpdate,
     ) -> RepoMcpServerConfig:
         """Update a repository MCP server directly in supported repo config files."""
-        import httpx
-
         is_valid, error_msg = self.validate_mcp_config(data.config_content)
         if not is_valid:
             raise ValueError(error_msg)
@@ -698,70 +709,70 @@ class ToolsService:
         )
         next_config: dict[str, object] = dict(next(iter(next_servers.values())))  # type: ignore[arg-type]
 
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
+        svc = self._get_github_service()
 
         updated_paths: list[str] = []
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            pending_updates: list[tuple[str, str | None, dict[str, object]]] = []
+        pending_updates: list[tuple[str, str | None, dict[str, object]]] = []
 
-            for path in MCP_CONFIG_PATHS:
-                get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-                resp = await client.get(get_url, headers=headers)
-                if resp.status_code == 404:
-                    continue
-                if resp.status_code != 200:
-                    raise RuntimeError(
-                        f"GitHub API error for {path}: {resp.status_code} {resp.text[:200]}"
-                    )
-
-                file_data = resp.json()
-                existing_sha = file_data.get("sha")
-                raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
-                existing_content = self._parse_repo_mcp_content(raw, path=path)
-                mcp_servers = existing_content.get("mcpServers", {})
-                if not isinstance(mcp_servers, dict):
-                    mcp_servers = {}
-
-                if server_name not in mcp_servers:
-                    continue
-                if next_name != server_name and next_name in mcp_servers:
-                    raise ValueError(f"An MCP server named '{next_name}' already exists in {path}")
-
-                mcp_servers.pop(server_name, None)
-                mcp_servers.update(next_servers)
-                existing_content["mcpServers"] = mcp_servers
-
-                pending_updates.append(
-                    (
-                        get_url,
-                        existing_sha if isinstance(existing_sha, str) else None,
-                        existing_content,
-                    )
+        for path in MCP_CONFIG_PATHS:
+            api_path = f"/repos/{owner}/{repo}/contents/{path}"
+            resp = await svc.rest_request(access_token, "GET", api_path)
+            if resp.status_code == 404:
+                continue
+            if resp.status_code != 200:
+                raise RuntimeError(
+                    f"GitHub API error for {path}: {resp.status_code} {resp.text[:200]}"
                 )
 
-            if not pending_updates:
-                raise LookupError(f"Repository MCP server '{server_name}' not found")
+            file_data = resp.json()
+            existing_sha = file_data.get("sha")
+            raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
+            existing_content = self._parse_repo_mcp_content(raw, path=path)
+            mcp_servers = existing_content.get("mcpServers", {})
+            if not isinstance(mcp_servers, dict):
+                mcp_servers = {}
 
-            for get_url, existing_sha, existing_content in pending_updates:
-                new_content = json.dumps(existing_content, indent=2) + "\n"
-                encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
-                put_body: dict[str, object] = {
-                    "message": f"chore: update MCP server '{server_name}'",
-                    "content": encoded,
-                }
-                if existing_sha:
-                    put_body["sha"] = existing_sha
+            if server_name not in mcp_servers:
+                continue
+            if next_name != server_name and next_name in mcp_servers:
+                raise ValueError(f"An MCP server named '{next_name}' already exists in {path}")
 
-                put_resp = await client.put(get_url, headers=headers, json=put_body)
-                if put_resp.status_code not in (200, 201):
-                    raise RuntimeError(
-                        f"GitHub API write error for {get_url.rsplit('/contents/', 1)[-1]}: {put_resp.status_code} {put_resp.text[:200]}"
-                    )
-                updated_paths.append(get_url.rsplit("/contents/", 1)[-1])
+            mcp_servers.pop(server_name, None)
+            mcp_servers.update(next_servers)
+            existing_content["mcpServers"] = mcp_servers
+
+            pending_updates.append(
+                (
+                    api_path,
+                    existing_sha if isinstance(existing_sha, str) else None,
+                    existing_content,
+                )
+            )
+
+        if not pending_updates:
+            raise LookupError(f"Repository MCP server '{server_name}' not found")
+
+        for api_path, existing_sha, existing_content in pending_updates:
+            new_content = json.dumps(existing_content, indent=2) + "\n"
+            encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
+            put_body: dict[str, object] = {
+                "message": f"chore: update MCP server '{server_name}'",
+                "content": encoded,
+            }
+            if existing_sha:
+                put_body["sha"] = existing_sha
+
+            put_resp = await svc.rest_request(
+                access_token,
+                "PUT",
+                api_path,
+                json=put_body,
+            )
+            if put_resp.status_code not in (200, 201):
+                raise RuntimeError(
+                    f"GitHub API write error for {api_path.rsplit('/contents/', 1)[-1]}: {put_resp.status_code} {put_resp.text[:200]}"
+                )
+            updated_paths.append(api_path.rsplit("/contents/", 1)[-1])
 
         return RepoMcpServerConfig(
             name=next_name,
@@ -778,58 +789,54 @@ class ToolsService:
         server_name: str,
     ) -> RepoMcpServerConfig:
         """Delete a repository MCP server directly from supported repo config files."""
-        import httpx
-
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
+        svc = self._get_github_service()
 
         removed_config: dict[str, object] | None = None
         removed_paths: list[str] = []
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            for path in MCP_CONFIG_PATHS:
-                get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-                resp = await client.get(get_url, headers=headers)
-                if resp.status_code == 404:
-                    continue
-                if resp.status_code != 200:
-                    raise RuntimeError(
-                        f"GitHub API error for {path}: {resp.status_code} {resp.text[:200]}"
-                    )
-
-                file_data = resp.json()
-                existing_sha = file_data.get("sha")
-                raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
-                existing_content = self._parse_repo_mcp_content(raw, path=path)
-                mcp_servers = existing_content.get("mcpServers", {})
-                if not isinstance(mcp_servers, dict) or server_name not in mcp_servers:
-                    continue
-
-                removed_config = (
-                    dict(mcp_servers[server_name])
-                    if isinstance(mcp_servers[server_name], dict)
-                    else {}
+        for path in MCP_CONFIG_PATHS:
+            api_path = f"/repos/{owner}/{repo}/contents/{path}"
+            resp = await svc.rest_request(access_token, "GET", api_path)
+            if resp.status_code == 404:
+                continue
+            if resp.status_code != 200:
+                raise RuntimeError(
+                    f"GitHub API error for {path}: {resp.status_code} {resp.text[:200]}"
                 )
-                mcp_servers.pop(server_name, None)
-                existing_content["mcpServers"] = mcp_servers
 
-                new_content = json.dumps(existing_content, indent=2) + "\n"
-                encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
-                put_body: dict[str, object] = {
-                    "message": f"chore: remove MCP server '{server_name}'",
-                    "content": encoded,
-                }
-                if existing_sha:
-                    put_body["sha"] = existing_sha
+            file_data = resp.json()
+            existing_sha = file_data.get("sha")
+            raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
+            existing_content = self._parse_repo_mcp_content(raw, path=path)
+            mcp_servers = existing_content.get("mcpServers", {})
+            if not isinstance(mcp_servers, dict) or server_name not in mcp_servers:
+                continue
 
-                put_resp = await client.put(get_url, headers=headers, json=put_body)
-                if put_resp.status_code not in (200, 201):
-                    raise RuntimeError(
-                        f"GitHub API write error for {path}: {put_resp.status_code} {put_resp.text[:200]}"
-                    )
-                removed_paths.append(path)
+            removed_config = (
+                dict(mcp_servers[server_name]) if isinstance(mcp_servers[server_name], dict) else {}
+            )
+            mcp_servers.pop(server_name, None)
+            existing_content["mcpServers"] = mcp_servers
+
+            new_content = json.dumps(existing_content, indent=2) + "\n"
+            encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
+            put_body: dict[str, object] = {
+                "message": f"chore: remove MCP server '{server_name}'",
+                "content": encoded,
+            }
+            if existing_sha:
+                put_body["sha"] = existing_sha
+
+            put_resp = await svc.rest_request(
+                access_token,
+                "PUT",
+                api_path,
+                json=put_body,
+            )
+            if put_resp.status_code not in (200, 201):
+                raise RuntimeError(
+                    f"GitHub API write error for {path}: {put_resp.status_code} {put_resp.text[:200]}"
+                )
+            removed_paths.append(path)
 
         if removed_config is None:
             raise LookupError(f"Repository MCP server '{server_name}' not found")
@@ -850,8 +857,6 @@ class ToolsService:
         access_token: str,
     ) -> McpToolConfigSyncResult:
         """Sync an MCP tool configuration to all supported GitHub MCP config files."""
-        import httpx
-
         tool = await self.get_tool(project_id, tool_id, github_user_id)
         if not tool:
             return McpToolConfigSyncResult(
@@ -881,53 +886,53 @@ class ToolsService:
                     f"MCP server-name collision detected during sync. Conflicts: {details}"
                 )
 
-            headers = {
-                "Authorization": f"Bearer {access_token}",
-                "Accept": "application/vnd.github+json",
-                "X-GitHub-Api-Version": "2022-11-28",
-            }
+            svc = self._get_github_service()
 
             synced_paths: list[str] = []
-            async with httpx.AsyncClient(timeout=30.0) as client:
-                tool_config = json.loads(tool.config_content)
-                for path in MCP_CONFIG_PATHS:
-                    existing_sha = None
-                    existing_content: dict[str, object] = {"mcpServers": {}}
-                    get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-                    resp = await client.get(get_url, headers=headers)
+            tool_config = json.loads(tool.config_content)
+            for path in MCP_CONFIG_PATHS:
+                existing_sha = None
+                existing_content: dict[str, object] = {"mcpServers": {}}
+                api_path = f"/repos/{owner}/{repo}/contents/{path}"
+                resp = await svc.rest_request(access_token, "GET", api_path)
 
-                    if resp.status_code == 200:
-                        file_data = resp.json()
-                        existing_sha = file_data.get("sha")
-                        raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
-                        existing_content = json.loads(raw)
-                    elif resp.status_code != 404:
-                        raise RuntimeError(
-                            f"GitHub API error for {path}: {resp.status_code} {resp.text[:200]}"
-                        )
+                if resp.status_code == 200:
+                    file_data = resp.json()
+                    existing_sha = file_data.get("sha")
+                    raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
+                    existing_content = json.loads(raw)
+                elif resp.status_code != 404:
+                    raise RuntimeError(
+                        f"GitHub API error for {path}: {resp.status_code} {resp.text[:200]}"
+                    )
 
-                    mcp_servers = existing_content.get("mcpServers", {})
-                    if not isinstance(mcp_servers, dict):
-                        mcp_servers = {}
-                    mcp_servers.update(tool_config.get("mcpServers", {}))
-                    existing_content["mcpServers"] = mcp_servers
+                mcp_servers = existing_content.get("mcpServers", {})
+                if not isinstance(mcp_servers, dict):
+                    mcp_servers = {}
+                mcp_servers.update(tool_config.get("mcpServers", {}))
+                existing_content["mcpServers"] = mcp_servers
 
-                    new_content = json.dumps(existing_content, indent=2) + "\n"
-                    encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
+                new_content = json.dumps(existing_content, indent=2) + "\n"
+                encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
 
-                    put_body: dict[str, object] = {
-                        "message": f"chore: sync MCP tool '{tool.name}' configuration",
-                        "content": encoded,
-                    }
-                    if existing_sha:
-                        put_body["sha"] = existing_sha
+                put_body: dict[str, object] = {
+                    "message": f"chore: sync MCP tool '{tool.name}' configuration",
+                    "content": encoded,
+                }
+                if existing_sha:
+                    put_body["sha"] = existing_sha
 
-                    put_resp = await client.put(get_url, headers=headers, json=put_body)
-                    if put_resp.status_code not in (200, 201):
-                        raise RuntimeError(
-                            f"GitHub API write error for {path}: {put_resp.status_code} {put_resp.text[:200]}"
-                        )
-                    synced_paths.append(path)
+                put_resp = await svc.rest_request(
+                    access_token,
+                    "PUT",
+                    api_path,
+                    json=put_body,
+                )
+                if put_resp.status_code not in (200, 201):
+                    raise RuntimeError(
+                        f"GitHub API write error for {path}: {put_resp.status_code} {put_resp.text[:200]}"
+                    )
+                synced_paths.append(path)
 
             # Update status
             now = utcnow().isoformat()
@@ -990,57 +995,53 @@ class ToolsService:
         protected_server_names: set[str] | None = None,
     ) -> None:
         """Remove an MCP server entry from all supported GitHub MCP config files."""
-        import httpx
+        svc = self._get_github_service()
 
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
+        for path in MCP_CONFIG_PATHS:
+            api_path = f"/repos/{owner}/{repo}/contents/{path}"
+            resp = await svc.rest_request(access_token, "GET", api_path)
+            if resp.status_code != 200:
+                continue
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            for path in MCP_CONFIG_PATHS:
-                get_url = f"https://api.github.com/repos/{owner}/{repo}/contents/{path}"
-                resp = await client.get(get_url, headers=headers)
-                if resp.status_code != 200:
-                    continue
+            file_data = resp.json()
+            existing_sha = file_data.get("sha")
+            raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
+            existing_content = json.loads(raw)
 
-                file_data = resp.json()
-                existing_sha = file_data.get("sha")
-                raw = base64.b64decode(file_data.get("content", "")).decode("utf-8")
-                existing_content = json.loads(raw)
+            try:
+                tool_config = json.loads(tool.config_content)
+                tool_server_names = list(tool_config.get("mcpServers", {}).keys())
+            except (json.JSONDecodeError, AttributeError):
+                tool_server_names = []
 
-                try:
-                    tool_config = json.loads(tool.config_content)
-                    tool_server_names = list(tool_config.get("mcpServers", {}).keys())
-                except (json.JSONDecodeError, AttributeError):
-                    tool_server_names = []
+            protected_names = protected_server_names or set()
+            removable_names = [name for name in tool_server_names if name not in protected_names]
+            if not removable_names:
+                continue
 
-                protected_names = protected_server_names or set()
-                removable_names = [
-                    name for name in tool_server_names if name not in protected_names
-                ]
-                if not removable_names:
-                    continue
+            mcp_servers = existing_content.get("mcpServers", {})
+            if not isinstance(mcp_servers, dict):
+                mcp_servers = {}
+            for name in removable_names:
+                mcp_servers.pop(name, None)
+            existing_content["mcpServers"] = mcp_servers
 
-                mcp_servers = existing_content.get("mcpServers", {})
-                if not isinstance(mcp_servers, dict):
-                    mcp_servers = {}
-                for name in removable_names:
-                    mcp_servers.pop(name, None)
-                existing_content["mcpServers"] = mcp_servers
+            new_content = json.dumps(existing_content, indent=2) + "\n"
+            encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
 
-                new_content = json.dumps(existing_content, indent=2) + "\n"
-                encoded = base64.b64encode(new_content.encode("utf-8")).decode("utf-8")
+            put_body: dict[str, object] = {
+                "message": f"chore: remove MCP tool '{tool.name}' configuration",
+                "content": encoded,
+            }
+            if existing_sha:
+                put_body["sha"] = existing_sha
 
-                put_body: dict[str, object] = {
-                    "message": f"chore: remove MCP tool '{tool.name}' configuration",
-                    "content": encoded,
-                }
-                if existing_sha:
-                    put_body["sha"] = existing_sha
-
-                await client.put(get_url, headers=headers, json=put_body)
+            await svc.rest_request(
+                access_token,
+                "PUT",
+                api_path,
+                json=put_body,
+            )
 
     # ── Agent-Tool Associations ──
 
