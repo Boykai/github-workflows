@@ -25,9 +25,9 @@
 
 **Purpose**: Add new file type support across backend and frontend validation layers
 
-- [ ] T001 Add `.vtt` and `.srt` to `ALLOWED_DOC_TYPES` set in `solune/backend/src/api/chat.py`
-- [ ] T002 [P] Add `'.vtt'` and `'.srt'` to `FILE_VALIDATION.allowedDocTypes` array in `solune/frontend/src/types/index.ts`
-- [ ] T003 [P] Update file input `accept` attribute to include `.vtt,.srt` in `solune/frontend/src/components/chat/ChatToolbar.tsx`
+- [x] T001 Add `.vtt` and `.srt` to `ALLOWED_DOC_TYPES` set in `solune/backend/src/api/chat.py`
+- [x] T002 [P] Add `'.vtt'` and `'.srt'` to `FILE_VALIDATION.allowedDocTypes` array in `solune/frontend/src/types/index.ts`
+- [x] T003 [P] Update file input `accept` attribute to include `.vtt,.srt` in `solune/frontend/src/components/chat/ChatToolbar.tsx`
 
 ---
 
@@ -37,13 +37,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Create `TranscriptDetectionResult` dataclass with `is_transcript`, `format`, and `confidence` fields in `solune/backend/src/services/transcript_detector.py`
-- [ ] T005 Implement extension-based detection (`.vtt` → always transcript with confidence 1.0, `.srt` → always transcript with confidence 1.0) in `solune/backend/src/services/transcript_detector.py`
-- [ ] T006 Implement content-based regex patterns (speaker labels `^\s*(?:\[?\w[\w\s]{0,30}\]?\s*:\s)`, timestamps `\d{1,2}:\d{2}:\d{2}(?:[.,]\d{1,3})?`, VTT header `^WEBVTT\b`, SRT arrows `\d+:\d{2}:\d{2}[.,]?\d*\s*-->\s*\d+:\d{2}:\d{2}`) in `solune/backend/src/services/transcript_detector.py`
-- [ ] T007 Implement `detect_transcript(filename, content)` function with priority-ordered checks (extension → VTT markers → SRT markers → speaker labels ≥3 → timestamps ≥5 → not transcript) in `solune/backend/src/services/transcript_detector.py`
-- [ ] T008 [P] Create `TRANSCRIPT_ANALYSIS_SYSTEM_PROMPT` constant following `issue_generation.py` pattern (role definition, task description, JSON output schema matching `IssueRecommendation` fields) in `solune/backend/src/prompts/transcript_analysis.py`
-- [ ] T009 Implement `create_transcript_analysis_prompt(transcript_content, project_name, metadata_context)` factory function returning `list[dict]` with system and user messages in `solune/backend/src/prompts/transcript_analysis.py`
-- [ ] T010 Add `analyze_transcript(self, transcript_content, project_name, session_id, github_token, metadata_context=None)` async method to `AIAgentService` that calls `create_transcript_analysis_prompt()` → `self._call_completion(temperature=0.7, max_tokens=8000)` → `self._parse_issue_recommendation_response()` and sets `original_input` to `transcript_content[:500]` in `solune/backend/src/services/ai_agent.py`
+- [x] T004 Create `TranscriptDetectionResult` dataclass with `is_transcript`, `format`, and `confidence` fields in `solune/backend/src/services/transcript_detector.py`
+- [x] T005 Implement extension-based detection (`.vtt` → always transcript with confidence 1.0, `.srt` → always transcript with confidence 1.0) in `solune/backend/src/services/transcript_detector.py`
+- [x] T006 Implement content-based regex patterns (speaker labels `^\s*(?:\[?\w[\w\s]{0,30}\]?\s*:\s)`, timestamps `\d{1,2}:\d{2}:\d{2}(?:[.,]\d{1,3})?`, VTT header `^WEBVTT\b`, SRT arrows `\d+:\d{2}:\d{2}[.,]?\d*\s*-->\s*\d+:\d{2}:\d{2}`) in `solune/backend/src/services/transcript_detector.py`
+- [x] T007 Implement `detect_transcript(filename, content)` function with priority-ordered checks (extension → VTT markers → SRT markers → speaker labels ≥3 → timestamps ≥5 → not transcript) in `solune/backend/src/services/transcript_detector.py`
+- [x] T008 [P] Create `TRANSCRIPT_ANALYSIS_SYSTEM_PROMPT` constant following `issue_generation.py` pattern (role definition, task description, JSON output schema matching `IssueRecommendation` fields) in `solune/backend/src/prompts/transcript_analysis.py`
+- [x] T009 Implement `create_transcript_analysis_prompt(transcript_content, project_name, metadata_context)` factory function returning `list[dict]` with system and user messages in `solune/backend/src/prompts/transcript_analysis.py`
+- [x] T010 Add `analyze_transcript(self, transcript_content, project_name, session_id, github_token, metadata_context=None)` async method to `AIAgentService` that calls `create_transcript_analysis_prompt()` → `self._call_completion(temperature=0.7, max_tokens=8000)` → `self._parse_issue_recommendation_response()` and sets `original_input` to `transcript_content[:500]` in `solune/backend/src/services/ai_agent.py`
 
 **Checkpoint**: Foundation ready — transcript detection utility, Transcribe agent prompt, and AI service method are all available. User story implementation can now begin.
 
@@ -59,13 +59,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T011 [P] [US1] Create test file `solune/backend/tests/test_chat_transcript.py` with test cases: upload VTT transcript → recommendation generated with `action_type=ISSUE_CREATE`; upload SRT transcript → recommendation generated; upload speaker-labeled `.txt` → recommendation generated; mock `AIAgentService` for predictable responses
-- [ ] T012 [P] [US1] Add test case in `solune/backend/tests/test_chat_transcript.py` for non-transcript file upload → falls through to normal flow (returns `None` from transcript handler)
+- [x] T011 [P] [US1] Create test file `solune/backend/tests/test_chat_transcript.py` with test cases: upload VTT transcript → recommendation generated with `action_type=ISSUE_CREATE`; upload SRT transcript → recommendation generated; upload speaker-labeled `.txt` → recommendation generated; mock `AIAgentService` for predictable responses
+- [x] T012 [P] [US1] Add test case in `solune/backend/tests/test_chat_transcript.py` for non-transcript file upload → falls through to normal flow (returns `None` from transcript handler)
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Create `_handle_transcript_upload(chat_request, session, user_message, ai_service)` async handler function in `solune/backend/src/api/chat.py` that checks `file_urls`, reads file content, runs `detect_transcript()`, calls `ai_service.analyze_transcript()` if transcript detected, stores `IssueRecommendation`, and returns `ChatMessage` with `action_type=ISSUE_CREATE` (or `None` if no transcript)
-- [ ] T014 [US1] Insert `_handle_transcript_upload()` call at Priority 0.5 in `send_message()` dispatch chain (after `_handle_agent_command()`, before `_handle_feature_request()`) in `solune/backend/src/api/chat.py`
+- [x] T013 [US1] Create `_handle_transcript_upload(chat_request, session, user_message, ai_service)` async handler function in `solune/backend/src/api/chat.py` that checks `file_urls`, reads file content, runs `detect_transcript()`, calls `ai_service.analyze_transcript()` if transcript detected, stores `IssueRecommendation`, and returns `ChatMessage` with `action_type=ISSUE_CREATE` (or `None` if no transcript)
+- [x] T014 [US1] Insert `_handle_transcript_upload()` call at Priority 0.5 in `send_message()` dispatch chain (after `_handle_agent_command()`, before `_handle_feature_request()`) in `solune/backend/src/api/chat.py`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — uploading a transcript in Chat generates an issue recommendation via the existing `IssueRecommendationPreview` → confirm → create parent issue + sub-issues pipeline.
 
@@ -81,13 +81,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T015 [P] [US2] Add test cases in `solune/backend/tests/test_chat_transcript.py` (or a new file) for pipeline integration: transcript description → `analyze_transcript()` called, generated title and formatted body used; non-transcript description → existing behavior unchanged
+- [x] T015 [P] [US2] Add test cases in `solune/backend/tests/test_chat_transcript.py` (or a new file) for pipeline integration: transcript description → `analyze_transcript()` called, generated title and formatted body used; non-transcript description → existing behavior unchanged
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Add transcript detection at start of `launch_pipeline_issue()` in `solune/backend/src/api/pipelines.py` — call `detect_transcript("inline", issue_description)` before creating GitHub issue
-- [ ] T017 [US2] If transcript detected in `launch_pipeline_issue()`, call `ai_service.analyze_transcript()` and use generated `title` + formatted requirements body for the GitHub issue, then continue normal pipeline flow in `solune/backend/src/api/pipelines.py`
-- [ ] T018 [P] [US2] Update `isAcceptedIssueFile()` to accept `.vtt` and `.srt` extensions, add `'.vtt'` and `'.srt'` to `ACCEPTED_FILE_EXTENSIONS`, update file input `accept` attribute, and update error message to mention transcript formats in `solune/frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
+- [x] T016 [US2] Add transcript detection at start of `launch_pipeline_issue()` in `solune/backend/src/api/pipelines.py` — call `detect_transcript("inline", issue_description)` before creating GitHub issue
+- [x] T017 [US2] If transcript detected in `launch_pipeline_issue()`, call `ai_service.analyze_transcript()` and use generated `title` + formatted requirements body for the GitHub issue, then continue normal pipeline flow in `solune/backend/src/api/pipelines.py`
+- [x] T018 [P] [US2] Update `isAcceptedIssueFile()` to accept `.vtt` and `.srt` extensions, add `'.vtt'` and `'.srt'` to `ACCEPTED_FILE_EXTENSIONS`, update file input `accept` attribute, and update error message to mention transcript formats in `solune/frontend/src/components/board/ProjectIssueLaunchPanel.tsx`
 
 **Checkpoint**: At this point, User Story 2 should be fully functional — uploading a transcript in Parent Issue Intake creates a GitHub issue with structured requirements.
 
@@ -103,14 +103,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T019 [P] [US3] Add test cases in `solune/backend/tests/test_transcript_detector.py` for non-transcript detection: plain prose `.txt` → NOT detected, standard markdown `.md` → NOT detected, empty content → NOT detected, `.txt` with exactly 2 speaker labels (below threshold) → NOT detected
-- [ ] T020 [P] [US3] Add test cases in `solune/backend/tests/test_chat_transcript.py` for passthrough behavior: non-transcript `.txt` upload in Chat → `_handle_transcript_upload()` returns `None`, falls through to `_handle_feature_request()`
+- [x] T019 [P] [US3] Add test cases in `solune/backend/tests/test_transcript_detector.py` for non-transcript detection: plain prose `.txt` → NOT detected, standard markdown `.md` → NOT detected, empty content → NOT detected, `.txt` with exactly 2 speaker labels (below threshold) → NOT detected
+- [x] T020 [P] [US3] Add test cases in `solune/backend/tests/test_chat_transcript.py` for passthrough behavior: non-transcript `.txt` upload in Chat → `_handle_transcript_upload()` returns `None`, falls through to `_handle_feature_request()`
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Verify and validate that `detect_transcript()` returns `TranscriptDetectionResult(is_transcript=False, format=None, confidence=0.0)` for plain prose, standard markdown, empty content, and below-threshold inputs — add any missing edge-case handling in `solune/backend/src/services/transcript_detector.py`
-- [ ] T022 [US3] Verify that `_handle_transcript_upload()` returns `None` for non-transcript files, allowing fallthrough to existing handlers in `solune/backend/src/api/chat.py`
-- [ ] T023 [US3] Verify that `launch_pipeline_issue()` in `solune/backend/src/api/pipelines.py` proceeds with existing behavior when `detect_transcript()` returns `is_transcript=False`
+- [x] T021 [US3] Verify and validate that `detect_transcript()` returns `TranscriptDetectionResult(is_transcript=False, format=None, confidence=0.0)` for plain prose, standard markdown, empty content, and below-threshold inputs — add any missing edge-case handling in `solune/backend/src/services/transcript_detector.py`
+- [x] T022 [US3] Verify that `_handle_transcript_upload()` returns `None` for non-transcript files, allowing fallthrough to existing handlers in `solune/backend/src/api/chat.py`
+- [x] T023 [US3] Verify that `launch_pipeline_issue()` in `solune/backend/src/api/pipelines.py` proceeds with existing behavior when `detect_transcript()` returns `is_transcript=False`
 
 **Checkpoint**: At this point, User Story 3 should be verified — all existing non-transcript workflows remain unchanged.
 
@@ -126,12 +126,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T024 [P] [US4] Create comprehensive test file `solune/backend/tests/test_transcript_detector.py` with detection cases: `.vtt` extension → detected as `format="vtt"` with confidence 1.0; `.srt` extension → detected as `format="srt"` with confidence 1.0; `.txt` with speaker labels → detected as `format="speaker_labeled"` with confidence 0.8; `.txt` with timestamps → detected as `format="timestamped"` with confidence 0.7; `.txt` with VTT markers → detected as `format="vtt"` with confidence 0.95; `.txt` with SRT arrows → detected as `format="srt"` with confidence 0.95
-- [ ] T025 [P] [US4] Add edge case tests in `solune/backend/tests/test_transcript_detector.py`: mixed format content (multiple patterns match → highest-priority pattern wins per detection order in T007), malformed VTT/SRT files, empty filename, content with exactly threshold-boundary counts
+- [x] T024 [P] [US4] Create comprehensive test file `solune/backend/tests/test_transcript_detector.py` with detection cases: `.vtt` extension → detected as `format="vtt"` with confidence 1.0; `.srt` extension → detected as `format="srt"` with confidence 1.0; `.txt` with speaker labels → detected as `format="speaker_labeled"` with confidence 0.8; `.txt` with timestamps → detected as `format="timestamped"` with confidence 0.7; `.txt` with VTT markers → detected as `format="vtt"` with confidence 0.95; `.txt` with SRT arrows → detected as `format="srt"` with confidence 0.95
+- [x] T025 [P] [US4] Add edge case tests in `solune/backend/tests/test_transcript_detector.py`: mixed format content (multiple patterns match → highest-priority pattern wins per detection order in T007), malformed VTT/SRT files, empty filename, content with exactly threshold-boundary counts
 
 ### Implementation for User Story 4
 
-- [ ] T026 [US4] Validate all detection patterns work correctly for diverse real-world transcript formats and edge cases — refine regex patterns if any test cases fail in `solune/backend/src/services/transcript_detector.py`
+- [x] T026 [US4] Validate all detection patterns work correctly for diverse real-world transcript formats and edge cases — refine regex patterns if any test cases fail in `solune/backend/src/services/transcript_detector.py`
 
 **Checkpoint**: All transcript detection formats are verified with comprehensive test coverage.
 
@@ -143,19 +143,19 @@
 
 ### Backend Tests
 
-- [ ] T027 [P] Create prompt construction tests in `solune/backend/tests/test_transcript_analysis_prompt.py`: verify `create_transcript_analysis_prompt()` returns 2-message list with system and user roles; verify system prompt contains JSON schema instructions; verify user message includes project name, date, and transcript content; verify metadata_context is included when provided; follow pattern from existing `test_issue_generation.py`
-- [ ] T028 [P] Add `analyze_transcript()` integration test in `solune/backend/tests/test_chat_transcript.py`: mock `CompletionProvider` with predictable JSON response → verify `IssueRecommendation` is correctly populated with `original_input` truncated to 500 chars
+- [x] T027 [P] Create prompt construction tests in `solune/backend/tests/test_transcript_analysis_prompt.py`: verify `create_transcript_analysis_prompt()` returns 2-message list with system and user roles; verify system prompt contains JSON schema instructions; verify user message includes project name, date, and transcript content; verify metadata_context is included when provided; follow pattern from existing `test_issue_generation.py`
+- [x] T028 [P] Add `analyze_transcript()` integration test in `solune/backend/tests/test_chat_transcript.py`: mock `CompletionProvider` with predictable JSON response → verify `IssueRecommendation` is correctly populated with `original_input` truncated to 500 chars
 
 ### Frontend Tests
 
-- [ ] T029 [P] Update `useFileUpload` tests (if they exist) to verify `.vtt` and `.srt` are accepted by file validation in `solune/frontend/`
-- [ ] T030 [P] Add test cases for `isAcceptedIssueFile()` with `.vtt` and `.srt` extensions in `solune/frontend/src/components/board/ProjectIssueLaunchPanel.test.tsx` (if test file exists)
+- [x] T029 [P] Update `useFileUpload` tests (if they exist) to verify `.vtt` and `.srt` are accepted by file validation in `solune/frontend/`
+- [x] T030 [P] Add test cases for `isAcceptedIssueFile()` with `.vtt` and `.srt` extensions in `solune/frontend/src/components/board/ProjectIssueLaunchPanel.test.tsx` (if test file exists)
 
 ### Regression Verification
 
-- [ ] T031 Run full backend test suite: `cd solune/backend && pytest --cov=src --cov-report=term-missing --durations=20` — verify no regressions
-- [ ] T032 Run backend linting: `cd solune/backend && ruff check src tests && ruff format --check src tests && bandit -r src/ -ll -ii --skip B104,B608`
-- [ ] T033 [P] Run frontend type check and linting: `cd solune/frontend && npm run type-check && npm run lint`
+- [x] T031 Run full backend test suite: `cd solune/backend && pytest --cov=src --cov-report=term-missing --durations=20` — verify no regressions
+- [x] T032 Run backend linting: `cd solune/backend && ruff check src tests && ruff format --check src tests && bandit -r src/ -ll -ii --skip B104,B608`
+- [x] T033 [P] Run frontend type check and linting: `cd solune/frontend && npm run type-check && npm run lint`
 
 ---
 
@@ -163,9 +163,9 @@
 
 **Purpose**: Final cleanup and cross-cutting improvements
 
-- [ ] T034 Run quickstart.md verification checklist end-to-end
-- [ ] T035 Verify `.vtt` and `.srt` files are visible in file pickers for both Chat and Parent Issue Intake (manual verification)
-- [ ] T036 Code cleanup: ensure all new functions have docstrings, type hints, and follow existing code conventions
+- [x] T034 Run quickstart.md verification checklist end-to-end
+- [x] T035 Verify `.vtt` and `.srt` files are visible in file pickers for both Chat and Parent Issue Intake (manual verification)
+- [x] T036 Code cleanup: ensure all new functions have docstrings, type hints, and follow existing code conventions
 
 ---
 

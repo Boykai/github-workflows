@@ -199,6 +199,38 @@ async def launch_pipeline_issue(
     issue_description = _normalize_issue_description(body.issue_description)
     ctx: WorkflowContext | None = None
     owner, repo = await resolve_repository(session.access_token, project_id)
+
+    # ── Transcript detection: if the description looks like a transcript,
+    #    extract structured requirements via the Transcribe agent. ─────────
+    issue_title_override: str | None = None
+    from src.services.transcript_detector import detect_transcript
+
+    detection = detect_transcript("pasted_content.txt", issue_description)
+    if detection.is_transcript:
+        try:
+            from src.services.ai_agent import get_ai_agent_service
+
+            ai_service = get_ai_agent_service()
+            recommendation = await ai_service.analyze_transcript(
+                transcript_content=issue_description,
+                project_name=project_id,
+                session_id=str(session.session_id),
+                github_token=session.access_token,
+            )
+            issue_title_override = recommendation.title
+
+            # Build a structured body from the recommendation
+            reqs = "\n".join(f"- {r}" for r in recommendation.functional_requirements)
+            issue_description = (
+                f"## {recommendation.title}\n\n"
+                f"**User Story:** {recommendation.user_story}\n\n"
+                f"**UI/UX Description:** {recommendation.ui_ux_description}\n\n"
+                f"**Functional Requirements:**\n{reqs}\n\n"
+                f"**Technical Notes:** {recommendation.technical_notes}"
+            )
+        except Exception as exc:
+            logger.warning("Transcript analysis failed, using raw description: %s", exc)
+
     service = _get_service()
     pipeline = await service.get_pipeline(project_id, body.pipeline_id)
     if pipeline is None:
@@ -234,7 +266,7 @@ async def launch_pipeline_issue(
             access_token=session.access_token,
             owner=owner,
             repo=repo,
-            title=_derive_issue_title(issue_description),
+            title=issue_title_override or _derive_issue_title(issue_description),
             body=issue_body,
             labels=issue_labels,
         )
