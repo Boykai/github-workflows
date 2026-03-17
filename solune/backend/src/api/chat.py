@@ -390,8 +390,8 @@ async def _handle_transcript_upload(
             logger.warning("Could not read uploaded file %s: %s", filename, exc)
             continue
 
-        # Use the original filename (strip the UUID prefix added during upload)
-        original_name = filename.split("-", 1)[1] if "-" in filename else filename
+        # Strip the 8-char UUID prefix added during upload (format: "abcd1234-original.ext")
+        original_name = filename[9:] if len(filename) > 9 and filename[8] == "-" else filename
         result = detect_transcript(original_name, content)
 
         if not result.is_transcript:
@@ -477,7 +477,7 @@ Click **Confirm** to create this issue in GitHub, or **Reject** to discard.""",
             error_message = ChatMessage(
                 session_id=session.session_id,
                 sender_type=SenderType.ASSISTANT,
-                content="I couldn't extract requirements from the uploaded transcript. Please try again or paste the transcript content directly.",
+                content=f"I couldn't extract requirements from the uploaded transcript ({type(e).__name__}). Please try again or paste the transcript content directly.",
             )
             await add_message(session.session_id, error_message)
             return error_message

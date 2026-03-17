@@ -205,7 +205,7 @@ async def launch_pipeline_issue(
     issue_title_override: str | None = None
     from src.services.transcript_detector import detect_transcript
 
-    detection = detect_transcript("inline", issue_description)
+    detection = detect_transcript("pasted_content.txt", issue_description)
     if detection.is_transcript:
         try:
             from src.services.ai_agent import get_ai_agent_service

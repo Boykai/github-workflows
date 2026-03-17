@@ -2,8 +2,7 @@
 
 import pytest
 
-from src.services.transcript_detector import TranscriptDetectionResult, detect_transcript
-
+from src.services.transcript_detector import detect_transcript
 
 # ── Extension-based detection ────────────────────────────────────────────
 
