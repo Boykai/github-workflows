@@ -175,14 +175,17 @@ async def _check_copilot_review_done(
     copilot_review_marker = None
     latest_other_done_at = None
     marker_text = "copilot-review: Done!"
-    done_suffix = ": Done!"
+    # Pattern: exact line matching for "<agent>: Done!" markers,
+    # consistent with CopilotMixin.check_agent_completion_comment.
+    _done_marker_re = re.compile(r"^[a-zA-Z0-9._-]+: Done!$")
 
     for comment in comments:
         body = comment.get("body", "")
         created_at = comment.get("created_at", "")
-        if any(line.strip() == marker_text for line in body.split("\n")):
+        lines = [line.strip() for line in body.split("\n")]
+        if any(line == marker_text for line in lines):
             copilot_review_marker = comment
-        elif body.strip().endswith(done_suffix) and created_at:
+        elif any(_done_marker_re.match(line) for line in lines) and created_at:
             # Track the latest non-copilot-review Done! comment
             if latest_other_done_at is None or created_at > latest_other_done_at:
                 latest_other_done_at = created_at
