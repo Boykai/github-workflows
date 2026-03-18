@@ -246,7 +246,14 @@ export function AppsPage() {
       onSuccess: (createdApp) => {
         closeCreateDialog();
         // Build structured success feedback
-        const lines: string[] = ['✓ Repository created', '✓ Template files committed'];
+        const lines: string[] = [];
+        if (createdApp.repo_type === 'new-repo') {
+          lines.push('✓ Repository created', '✓ Template files committed');
+        } else if (createdApp.repo_type === 'external-repo') {
+          lines.push('✓ External repository linked');
+        } else {
+          lines.push('✓ App created');
+        }
         if (createdApp.parent_issue_url) {
           lines.push('✓ Pipeline started');
         }

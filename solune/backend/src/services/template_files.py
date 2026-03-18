@@ -47,6 +47,7 @@ _COPILOT_INSTRUCTIONS_BASENAME = "copilot-instructions.md"
 
 # In-memory cache populated on first call.
 _cached_files: list[dict[str, str]] | None = None
+_cached_warnings: list[str] | None = None
 
 
 def _is_safe_path(base: Path, target: Path) -> bool:
@@ -133,10 +134,10 @@ async def build_template_files(
         A tuple of ``(files, warnings)`` where *warnings* lists paths
         that could not be read.
     """
-    global _cached_files
+    global _cached_files, _cached_warnings
 
     if _cached_files is not None:
-        return list(_cached_files), []
+        return list(_cached_files), list(_cached_warnings or [])
 
     source_dir_env = os.environ.get("TEMPLATE_SOURCE_DIR", "")
     if source_dir_env:
@@ -152,6 +153,7 @@ async def build_template_files(
 
     files, warnings = _read_template_dir(source_dir)
     _cached_files = files
+    _cached_warnings = warnings
     logger.info(
         "Loaded %d template files from %s for repo '%s' (%s)",
         len(files),
@@ -164,5 +166,6 @@ async def build_template_files(
 
 def clear_template_cache() -> None:
     """Clear the in-memory template cache (useful for testing)."""
-    global _cached_files
+    global _cached_files, _cached_warnings
     _cached_files = None
+    _cached_warnings = None

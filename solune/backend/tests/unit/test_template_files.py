@@ -76,6 +76,21 @@ class TestBuildTemplateFiles:
         assert ".github/extra.md" not in second_paths
 
     @pytest.mark.asyncio
+    async def test_cached_warnings_returned_on_subsequent_calls(self, tmp_path: Path) -> None:
+        """Warnings should be cached and returned alongside files on cache hit."""
+        source = _make_template_tree(tmp_path)
+        # Create a file that will fail to read (binary / invalid UTF-8)
+        bad_file = source / ".github" / "bad.bin"
+        bad_file.write_bytes(b"\x80\x81\x82")
+
+        with patch.dict(os.environ, {"TEMPLATE_SOURCE_DIR": str(source)}):
+            _files1, warnings1 = await build_template_files("a", "A")
+            _files2, warnings2 = await build_template_files("b", "B")
+
+        assert len(warnings1) > 0, "First call should produce warnings"
+        assert warnings1 == warnings2, "Cached warnings should match first-call warnings"
+
+    @pytest.mark.asyncio
     async def test_skips_symlinks(self, tmp_path: Path) -> None:
         source = _make_template_tree(tmp_path)
         # Create a symlink inside .github/

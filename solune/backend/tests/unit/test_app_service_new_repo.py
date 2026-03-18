@@ -539,8 +539,8 @@ class TestExponentialBackoff:
                     mock_db, payload, access_token="tok", github_service=github_svc
                 )
 
-        # Should have called sleep 10 times (once per retry)
-        assert mock_sleep.await_count == 10
+        # Should have called sleep 9 times (no sleep after final attempt)
+        assert mock_sleep.await_count == 9
         # First sleep should be ~1.0s, later sleeps should be capped at 4.0s
         first_delay = mock_sleep.call_args_list[0][0][0]
         assert 0.9 <= first_delay <= 1.1

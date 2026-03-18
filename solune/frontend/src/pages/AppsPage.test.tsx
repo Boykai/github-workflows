@@ -279,10 +279,11 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
 
   it('shows pipeline started in success feedback when parent_issue_url is present', async () => {
     mocks.createMutate.mockImplementation(
-      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
+      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; repo_type: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
         options?.onSuccess?.({
           name: 'pipeline-app',
           display_name: 'Pipeline App',
+          repo_type: 'new-repo',
           warnings: null,
           parent_issue_url: 'https://github.com/alice/pipeline-app/issues/1',
         });

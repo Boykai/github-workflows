@@ -384,7 +384,8 @@ async def create_app_with_new_repo(
 
     head_oid: str | None = None
     last_poll_exc: Exception | None = None
-    for attempt in range(10):
+    max_attempts = 10
+    for attempt in range(max_attempts):
         try:
             info = await github_service.get_repository_info(access_token, repo_owner, repo_name)
             head_oid = info.get("head_oid")
@@ -392,7 +393,8 @@ async def create_app_with_new_repo(
                 break
         except Exception as exc:
             last_poll_exc = exc
-        await asyncio.sleep(min(1.0 * (1.5**attempt), 4.0))
+        if attempt < max_attempts - 1:
+            await asyncio.sleep(min(1.0 * (1.5**attempt), 4.0))
 
     if not head_oid:
         detail = f" Last error: {last_poll_exc}" if last_poll_exc else ""
@@ -734,7 +736,8 @@ async def delete_app(
 
     # Best-effort close the parent issue on GitHub
     if app.parent_issue_number and access_token and github_service:
-        repo_url = app.github_repo_url or app.external_repo_url
+        # Prefer parent_issue_url (reliable across all repo types) over repo URLs
+        repo_url = app.parent_issue_url or app.github_repo_url or app.external_repo_url
         if repo_url:
             try:
                 from urllib.parse import urlparse
