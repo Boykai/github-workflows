@@ -81,8 +81,7 @@ class TestSchedulePersistClosesCoroutines:
         coro = _dummy_coro()
 
         with patch(
-            "src.services.workflow_orchestrator.transitions.task_registry",
-            create=True,
+            "src.services.task_registry.task_registry",
         ) as mock_registry:
             mock_registry.create_task.side_effect = RuntimeError("no loop")
 

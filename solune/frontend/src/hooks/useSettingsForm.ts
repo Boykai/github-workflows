@@ -13,7 +13,7 @@
  * ```
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 
 export interface UseSettingsFormReturn<T extends object> {
   /** Mutable local copy of the server state. */
@@ -28,7 +28,6 @@ export interface UseSettingsFormReturn<T extends object> {
 
 export function useSettingsForm<T extends object>(serverState: T): UseSettingsFormReturn<T> {
   const [localState, setLocalState] = useState<T>({ ...serverState });
-  const serverRef = useRef(serverState);
 
   // Re-sync when server state changes (e.g. after a successful save
   // or when a different user is selected).
@@ -39,12 +38,6 @@ export function useSettingsForm<T extends object>(serverState: T): UseSettingsFo
     setPrevServerState(serverState);
     setLocalState({ ...serverState });
   }
-
-  useEffect(() => {
-    if (serverChanged) {
-      serverRef.current = serverState;
-    }
-  });
 
   const setField = useCallback(<K extends keyof T>(key: K, value: T[K]) => {
     setLocalState((prev) => ({ ...prev, [key]: value }));
