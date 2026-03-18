@@ -2,8 +2,6 @@
 name: Linter
 description: Runs linting, tests, CI steps, and git hooks against local changes or
   a related PR, and resolves all errors automatically.
-tools:
-- '*'
 mcp-servers:
   context7:
     type: http
