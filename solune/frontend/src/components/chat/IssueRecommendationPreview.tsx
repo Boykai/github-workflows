@@ -174,7 +174,7 @@ export function IssueRecommendationPreview({
         </h5>
         <ul className="m-0 pl-5 text-sm text-foreground">
           {recommendation.functional_requirements.slice(0, 5).map((req, index) => (
-            <li key={index} className="mb-1">
+            <li key={`fr-${index}-${req.slice(0, 30)}`} className="mb-1">
               {req}
             </li>
           ))}
