@@ -455,11 +455,17 @@ async def delete_pipeline(
 # ══════════════════════════════════════════════════════════════
 
 
-def _get_run_service() -> PipelineRunService:
-    """Instantiate PipelineRunService with the current DB connection."""
-    from src.services.copilot_polling.pipeline_state_service import PipelineRunService
+_run_service_instance: PipelineRunService | None = None
 
-    return PipelineRunService(get_db())
+
+def _get_run_service() -> PipelineRunService:
+    """Return a shared PipelineRunService so the asyncio.Lock is effective."""
+    global _run_service_instance
+    if _run_service_instance is None:
+        from src.services.copilot_polling.pipeline_state_service import PipelineRunService
+
+        _run_service_instance = PipelineRunService(get_db())
+    return _run_service_instance
 
 
 @router.post("/{pipeline_id}/runs", status_code=201)
@@ -500,6 +506,12 @@ async def list_pipeline_runs(
 
     No artificial cap on total results.
     """
+    # Verify the pipeline belongs to the user's selected project
+    service = _get_service()
+    pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)
+    if pipeline is None:
+        raise NotFoundError("Pipeline configuration not found")
+
     run_service = _get_run_service()
     result = await run_service.list_runs(
         pipeline_config_id=pipeline_id,
@@ -517,6 +529,12 @@ async def get_pipeline_run(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """Get detailed run state with all stages/groups (FR-001, FR-002)."""
+    # Verify the pipeline belongs to the user's selected project
+    service = _get_service()
+    pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)
+    if pipeline is None:
+        raise NotFoundError("Pipeline configuration not found")
+
     run_service = _get_run_service()
     run = await run_service.get_run(run_id)
     if run is None or run.pipeline_config_id != pipeline_id:
@@ -531,6 +549,12 @@ async def cancel_pipeline_run(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """Cancel a running or pending pipeline run."""
+    # Verify the pipeline belongs to the user's selected project
+    service = _get_service()
+    pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)
+    if pipeline is None:
+        raise NotFoundError("Pipeline configuration not found")
+
     run_service = _get_run_service()
 
     # Verify the run exists and belongs to this pipeline
@@ -555,6 +579,12 @@ async def recover_pipeline_run(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
     """Rebuild state and resume a pipeline run (FR-002)."""
+    # Verify the pipeline belongs to the user's selected project
+    service = _get_service()
+    pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)
+    if pipeline is None:
+        raise NotFoundError("Pipeline configuration not found")
+
     run_service = _get_run_service()
 
     run = await run_service.get_run(run_id)

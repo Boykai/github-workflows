@@ -9,6 +9,7 @@ Returns per-component health status following the IETF health check format:
 """
 
 import time
+from importlib.metadata import PackageNotFoundError, version
 
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
@@ -18,7 +19,10 @@ from src.logging_utils import get_logger
 logger = get_logger(__name__)
 router = APIRouter()
 
-_APP_VERSION = "0.1.0"
+try:
+    _APP_VERSION = version("solune-backend")
+except PackageNotFoundError:
+    _APP_VERSION = "0.0.0-dev"
 
 
 def get_db():
@@ -86,6 +90,12 @@ def _check_startup_config() -> dict:
             issues.append("ENCRYPTION_KEY not configured")
         if not settings.github_client_id:
             issues.append("GITHUB_CLIENT_ID not configured")
+        if not settings.github_client_secret:
+            issues.append("GITHUB_CLIENT_SECRET not configured")
+        if not settings.session_secret_key or len(settings.session_secret_key) < 32:
+            issues.append("SESSION_SECRET_KEY not configured or too short")
+        if not settings.github_webhook_secret:
+            issues.append("GITHUB_WEBHOOK_SECRET not configured")
 
         if issues:
             return {

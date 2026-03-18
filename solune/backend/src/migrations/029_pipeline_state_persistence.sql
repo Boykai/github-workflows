@@ -126,6 +126,6 @@ END;
 ALTER TABLE project_settings ADD COLUMN access_control_enabled INTEGER NOT NULL DEFAULT 1;
 
 -- ── Extend agents ──────────────────────────────────────────────
--- Add visual_identifier and display_order for parallel layout (FR-018)
--- Note: agents are stored as JSON within pipeline_configs, not a separate table.
--- These columns are added to pipeline_configs for per-pipeline agent metadata.
+-- Agent visual_identifier and display_order for parallel layout (FR-018)
+-- are stored within the pipeline_configs JSON blob (agents array), not as
+-- separate columns.  No ALTER TABLE is needed.

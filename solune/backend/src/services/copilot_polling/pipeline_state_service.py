@@ -26,6 +26,9 @@ from src.utils import utcnow
 
 logger = get_logger(__name__)
 
+_VALID_RUN_STATUSES = frozenset({"pending", "running", "completed", "failed", "cancelled"})
+_VALID_STAGE_STATUSES = frozenset({"pending", "running", "completed", "failed", "skipped"})
+
 
 def _now_iso() -> str:
     """Return the current UTC time as an ISO 8601 string."""
@@ -196,6 +199,10 @@ class PipelineRunService:
 
         Uses transactional writes for concurrent safety (edge case #2).
         """
+        if new_status not in _VALID_RUN_STATUSES:
+            msg = f"Invalid run status '{new_status}'. Must be one of: {', '.join(sorted(_VALID_RUN_STATUSES))}"
+            raise ValueError(msg)
+
         async with self._lock:
             cursor = await self._db.execute(
                 "SELECT status, pipeline_config_id, project_id FROM pipeline_runs WHERE id = ?",
@@ -253,6 +260,10 @@ class PipelineRunService:
         label_name: str | None = None,
     ) -> PipelineStageStateChanged | None:
         """Update a stage's status and return the state change event."""
+        if new_status not in _VALID_STAGE_STATUSES:
+            msg = f"Invalid stage status '{new_status}'. Must be one of: {', '.join(sorted(_VALID_STAGE_STATUSES))}"
+            raise ValueError(msg)
+
         async with self._lock:
             cursor = await self._db.execute(
                 """
@@ -274,13 +285,17 @@ class PipelineRunService:
             started_at = now if new_status == "running" and previous_status == "pending" else None
             completed_at = now if new_status in {"completed", "failed", "skipped"} else None
 
+            # Clear timestamps when resetting to pending (e.g. during recovery)
+            clear_started = new_status == "pending"
+            clear_completed = new_status in {"pending", "running"}
+
             try:
                 await self._db.execute(
                     """
                     UPDATE pipeline_stage_states
                     SET status = ?,
-                        started_at = COALESCE(?, started_at),
-                        completed_at = COALESCE(?, completed_at),
+                        started_at = CASE WHEN ? THEN NULL ELSE COALESCE(?, started_at) END,
+                        completed_at = CASE WHEN ? THEN NULL ELSE COALESCE(?, completed_at) END,
                         agent_id = COALESCE(?, agent_id),
                         error_message = ?,
                         label_name = COALESCE(?, label_name),
@@ -289,7 +304,9 @@ class PipelineRunService:
                     """,
                     (
                         new_status,
+                        clear_started,
                         started_at,
+                        clear_completed,
                         completed_at,
                         agent_id,
                         error_message,
@@ -303,6 +320,16 @@ class PipelineRunService:
                 await self._db.rollback()
                 raise
 
+            # Use stored agent_id if the argument is None so the event
+            # accurately reflects the persisted value.
+            effective_agent_id = (
+                agent_id
+                if agent_id is not None
+                else row["agent_id"]
+                if "agent_id" in row.keys()
+                else None
+            )
+
             return PipelineStageStateChanged(
                 stage_state_id=stage_state_id,
                 pipeline_run_id=row["pipeline_run_id"],
@@ -310,7 +337,7 @@ class PipelineRunService:
                 group_id=row["group_id"],
                 previous_status=previous_status,
                 new_status=new_status,
-                agent_id=agent_id,
+                agent_id=effective_agent_id,
                 timestamp=now,
             )
 
