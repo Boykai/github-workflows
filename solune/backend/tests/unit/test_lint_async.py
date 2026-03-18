@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 
 
 def test_no_async_or_ruf006_violations() -> None:
@@ -13,7 +14,15 @@ def test_no_async_or_ruf006_violations() -> None:
     operations are acceptable for brief filesystem calls.
     """
     result = subprocess.run(
-        ["python", "-m", "ruff", "check", "--select=ASYNC,RUF006", "--ignore=ASYNC240", "src/"],
+        [
+            sys.executable,
+            "-m",
+            "ruff",
+            "check",
+            "--select=ASYNC,RUF006",
+            "--ignore=ASYNC240",
+            "src/",
+        ],
         capture_output=True,
         text=True,
         cwd=".",

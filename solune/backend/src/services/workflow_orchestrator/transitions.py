@@ -58,7 +58,7 @@ def _schedule_persist(coro) -> None:
 
         task_registry.create_task(coro, name="wf-persist")
     except RuntimeError:
-        pass
+        coro.close()
 
 
 def _agent_trigger_key(issue_number: int, status: str, agent_name: str) -> str:
