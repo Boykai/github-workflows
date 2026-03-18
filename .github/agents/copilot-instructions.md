@@ -214,6 +214,29 @@ All agents live in `.github/agents/`. The repository includes both **Spec Kit pi
 ### MCP Configuration
 - `.github/agents/mcp.json` — Declares MCP servers available to remote GitHub Custom Agents (Context7 for documentation lookup and Azure MCP for resource schema lookups, Bicep best practices, and Well-Architected Framework guidance).
 
+### Agent Degradation Rules
+
+When tools, context, or commands are unavailable, agents should degrade gracefully rather than fail silently or hallucinate:
+
+- **MCP server fails to start**: Proceed without MCP-dependent context. Use file reads and search as fallback. Note the unavailability in output.
+- **PR diff or branch info unavailable**: Fall back to local mode. Use `git diff` or `git log` to reconstruct the change set. If that also fails, ask the user to specify the scope.
+- **Terminal commands fail repeatedly** (lint, test, build): Report the exact error output. Attempt the most common fix (missing dependencies → install, wrong directory → cd to correct path). After 2 failed retries, report the failure and continue with other phases rather than blocking entirely.
+- **GitHub API unavailable**: If the agent cannot fetch PR metadata, review comments, or repo contents, switch to local file analysis and note the limitation.
+
+### Agent Input Convention
+
+All agent `.agent.md` files include a `$ARGUMENTS` block in their markdown body:
+
+````markdown
+## User Input
+
+```text
+$ARGUMENTS
+```
+````
+
+`$ARGUMENTS` is replaced at invocation time with the user's input message. Agents must check this block before proceeding — it may scope the work to specific files, PRs, features, or constraints. New agents should include this block following the same pattern.
+
 ## MCP Presets
 
 The Tools page exposes a **Preset Library** of built-in MCP server configurations. Presets are defined statically in `backend/src/services/tools/presets.py` and served via `GET /api/v1/tools/presets`.

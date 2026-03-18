@@ -5,7 +5,6 @@ from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
-import httpx
 import pytest
 
 from src.services.metadata_service import MetadataService, RepositoryMetadataContext
@@ -303,46 +302,42 @@ class TestFetchPaginated:
         self, metadata_service: MetadataService
     ):
         page1 = Mock()
-        page1.raise_for_status.return_value = None
+        page1.status_code = 200
         page1.json.return_value = [{"name": f"label-{index}"} for index in range(100)]
 
         page2 = Mock()
-        page2.raise_for_status.return_value = None
+        page2.status_code = 200
         page2.json.return_value = [{"name": "final"}]
 
-        client = AsyncMock()
-        client.get.side_effect = [page1, page2]
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(side_effect=[page1, page2])
+        metadata_service._github_service = mock_svc
 
         results, complete = await metadata_service._fetch_paginated(
-            client, "https://example.test/labels", {}
+            "token", "/repos/o/r/labels", {}
         )
 
         assert complete is True
         assert len(results) == 101
-        assert client.get.await_count == 2
+        assert mock_svc.rest_request.await_count == 2
 
     @pytest.mark.asyncio
     async def test_returns_partial_results_and_false_on_rate_limit(
         self, metadata_service: MetadataService
     ):
         ok_response = Mock()
-        ok_response.raise_for_status.return_value = None
+        ok_response.status_code = 200
         ok_response.json.return_value = [{"name": f"label-{index}"} for index in range(100)]
 
         rate_limited = Mock()
-        rate_limited.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "rate limited",
-            request=httpx.Request("GET", "https://example.test/labels"),
-            response=httpx.Response(
-                429, request=httpx.Request("GET", "https://example.test/labels")
-            ),
-        )
+        rate_limited.status_code = 429
 
-        client = AsyncMock()
-        client.get.side_effect = [ok_response, rate_limited]
+        mock_svc = AsyncMock()
+        mock_svc.rest_request = AsyncMock(side_effect=[ok_response, rate_limited])
+        metadata_service._github_service = mock_svc
 
         results, complete = await metadata_service._fetch_paginated(
-            client, "https://example.test/labels", {}
+            "token", "/repos/o/r/labels", {}
         )
 
         assert len(results) == 100
@@ -352,27 +347,22 @@ class TestFetchPaginated:
     @pytest.mark.asyncio
     async def test_handles_404_and_connect_errors(self, metadata_service: MetadataService):
         missing = Mock()
-        missing.raise_for_status.side_effect = httpx.HTTPStatusError(
-            "missing",
-            request=httpx.Request("GET", "https://example.test/labels"),
-            response=httpx.Response(
-                404, request=httpx.Request("GET", "https://example.test/labels")
-            ),
-        )
-        connect_error = httpx.ConnectError(
-            "offline", request=httpx.Request("GET", "https://example.test/labels")
-        )
+        missing.status_code = 404
 
-        client_404 = AsyncMock()
-        client_404.get.return_value = missing
-        client_connect = AsyncMock()
-        client_connect.get.side_effect = connect_error
+        mock_svc_404 = AsyncMock()
+        mock_svc_404.rest_request = AsyncMock(return_value=missing)
+        metadata_service._github_service = mock_svc_404
 
         missing_results, missing_complete = await metadata_service._fetch_paginated(
-            client_404, "https://example.test/labels", {}
+            "token", "/repos/o/r/labels", {}
         )
+
+        mock_svc_err = AsyncMock()
+        mock_svc_err.rest_request = AsyncMock(side_effect=Exception("offline"))
+        metadata_service._github_service = mock_svc_err
+
         connect_results, connect_complete = await metadata_service._fetch_paginated(
-            client_connect, "https://example.test/labels", {}
+            "token", "/repos/o/r/labels", {}
         )
 
         assert missing_results == []
@@ -383,23 +373,27 @@ class TestFetchPaginated:
     @pytest.mark.asyncio
     async def test_stops_on_non_list_or_empty_payload(self, metadata_service: MetadataService):
         non_list = Mock()
-        non_list.raise_for_status.return_value = None
+        non_list.status_code = 200
         non_list.json.return_value = {"unexpected": True}
 
         empty = Mock()
-        empty.raise_for_status.return_value = None
+        empty.status_code = 200
         empty.json.return_value = []
 
-        client_non_list = AsyncMock()
-        client_non_list.get.return_value = non_list
-        client_empty = AsyncMock()
-        client_empty.get.return_value = empty
+        mock_svc_non_list = AsyncMock()
+        mock_svc_non_list.rest_request = AsyncMock(return_value=non_list)
+        metadata_service._github_service = mock_svc_non_list
 
         non_list_results, non_list_complete = await metadata_service._fetch_paginated(
-            client_non_list, "https://example.test/labels", {}
+            "token", "/repos/o/r/labels", {}
         )
+
+        mock_svc_empty = AsyncMock()
+        mock_svc_empty.rest_request = AsyncMock(return_value=empty)
+        metadata_service._github_service = mock_svc_empty
+
         empty_results, empty_complete = await metadata_service._fetch_paginated(
-            client_empty, "https://example.test/labels", {}
+            "token", "/repos/o/r/labels", {}
         )
 
         assert non_list_results == []

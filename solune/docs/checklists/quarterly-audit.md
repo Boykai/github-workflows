@@ -41,4 +41,5 @@ Review `docs/decisions/` directory and its `README.md` index:
 
 ## See Also
 
-- [Bi-weekly Documentation Refresh Playbook](../../specs/040-doc-refresh-playbook/quickstart.md) — the bi-weekly process that actively rewrites documentation for evolution; this quarterly audit complements it as a deep structural review
+- [Weekly Sweep](weekly-sweep.md) — lightweight weekly validation pass
+- [Monthly Review](monthly-review.md) — monthly quality gate

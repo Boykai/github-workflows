@@ -3,12 +3,8 @@ name: Designer
 description: Analyzes local changes or a related PR and its changed product surfaces,
   creates or refines change-scoped creative and design assets, and applies themed
   visual improvements that strengthen quality without drifting beyond the active scope.
-handoffs:
-- label: Run Validation
-  agent: Linter
-  prompt: Run the relevant lint, type-check, test, and build validation for the designer
-    changes
-  send: true
+tools:
+- '*'
 mcp-servers:
   context7:
     type: http
@@ -169,11 +165,11 @@ Bad examples:
 
 ## Validation
 
-Run the most relevant validation for the changed area:
+Run validation directly for the changed area:
 
-- Targeted lint, type-check, build, or test validation for touched files.
-- Any available visual or component-level checks relevant to the changed surface.
-- Manual sanity review of responsive and themed behavior when possible.
+- **Frontend changes**: `cd solune/frontend && npm run lint && npm run type-check && npm run test && npm run build`
+- **Backend changes**: `cd solune/backend && ruff check src/ tests/ && ruff format --check src/ tests/ && pyright src/`
+- **Visual sanity**: Review responsive and themed behavior manually when possible.
 
 Do not claim polish or production readiness without validating the changed surface appropriately.
 

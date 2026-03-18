@@ -52,4 +52,5 @@ For each file, verify:
 
 ## See Also
 
-- [Bi-weekly Documentation Refresh Playbook](../../specs/040-doc-refresh-playbook/quickstart.md) — the bi-weekly process that detects changes and rewrites docs; this monthly review complements that cycle as a deeper quality gate
+- [Weekly Sweep](weekly-sweep.md) — lightweight weekly validation pass
+- [Quarterly Audit](quarterly-audit.md) — comprehensive structural review

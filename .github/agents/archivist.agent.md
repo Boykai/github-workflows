@@ -3,12 +3,8 @@ name: Archivist
 description: Analyzes local changes or a related PR, updates the affected documentation
   and README content to keep docs accurate, current, and aligned with the live codebase,
   and fixes documentation drift based on findings.
-handoffs:
-- label: Run Validation
-  agent: Linter
-  prompt: Run the relevant lint, type-check, test, build, and documentation validation
-    for the archivist changes
-  send: true
+tools:
+- '*'
 mcp-servers:
   context7:
     type: http
@@ -168,11 +164,12 @@ Bad examples:
 
 ## Validation
 
-Run the most relevant validation for the changed area:
+Run validation directly for the changed area:
 
-- Markdown linting or docs checks when available.
-- Targeted build, type-check, test, or command verification when the docs depend on executable behavior.
-- Manual consistency checks between docs and the changed code when tooling is unavailable.
+- **Backend changes**: `cd solune/backend && ruff check src/ tests/ && ruff format --check src/ tests/ && pyright src/`
+- **Frontend changes**: `cd solune/frontend && npm run lint && npm run type-check && npm run build`
+- **Markdown**: Check that links resolve and examples match the current code.
+- **Manual consistency**: Verify docs match the changed implementation when automated checks are insufficient.
 
 Do not claim documentation accuracy without checking the changed behavior against the live implementation.
 

@@ -4,10 +4,12 @@ Provides labels, branches, milestones, and collaborators from the GitHub REST AP
 persisted in SQLite with an in-memory L1 cache layer for performance.
 """
 
+from __future__ import annotations
+
 import json
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING
 
-import httpx
 from pydantic import BaseModel, Field
 
 from src.config import get_settings
@@ -15,6 +17,9 @@ from src.constants import LABELS
 from src.logging_utils import get_logger
 from src.services.cache import InMemoryCache
 from src.utils import utcnow
+
+if TYPE_CHECKING:
+    from src.services.github_projects.service import GitHubProjectsService
 
 logger = get_logger(__name__)
 
@@ -46,9 +51,14 @@ class MetadataService:
     TTL and three-tier fallback (API → SQLite → hardcoded constants).
     """
 
-    def __init__(self, l1_cache: InMemoryCache | None = None) -> None:
+    def __init__(
+        self,
+        l1_cache: InMemoryCache | None = None,
+        github_service: GitHubProjectsService | None = None,
+    ) -> None:
         self._l1 = l1_cache or _shared_l1_cache
         self._settings = get_settings()
+        self._github_service = github_service
 
     # ──────────────────────────────────────────────────────────────────
     # Public API
@@ -126,28 +136,24 @@ class MetadataService:
     ) -> RepositoryMetadataContext:
         """Fetch metadata from GitHub REST API and persist in both caches."""
         repo_key = f"{owner}/{repo}"
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Accept": "application/vnd.github+json",
-            "X-GitHub-Api-Version": "2022-11-28",
-        }
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            labels, labels_ok = await self._fetch_paginated(
-                client, f"https://api.github.com/repos/{owner}/{repo}/labels", headers
-            )
-            branches, branches_ok = await self._fetch_paginated(
-                client, f"https://api.github.com/repos/{owner}/{repo}/branches", headers
-            )
-            milestones, milestones_ok = await self._fetch_paginated(
-                client,
-                f"https://api.github.com/repos/{owner}/{repo}/milestones",
-                headers,
-                params={"state": "open"},
-            )
-            collaborators, collabs_ok = await self._fetch_paginated(
-                client, f"https://api.github.com/repos/{owner}/{repo}/collaborators", headers
-            )
+        labels, labels_ok = await self._fetch_paginated(
+            access_token,
+            f"/repos/{owner}/{repo}/labels",
+        )
+        branches, branches_ok = await self._fetch_paginated(
+            access_token,
+            f"/repos/{owner}/{repo}/branches",
+        )
+        milestones, milestones_ok = await self._fetch_paginated(
+            access_token,
+            f"/repos/{owner}/{repo}/milestones",
+            params={"state": "open"},
+        )
+        collaborators, collabs_ok = await self._fetch_paginated(
+            access_token,
+            f"/repos/{owner}/{repo}/collaborators",
+        )
 
         all_fetches_ok = labels_ok and branches_ok and milestones_ok and collabs_ok
 
@@ -269,11 +275,18 @@ class MetadataService:
     # Private helpers
     # ──────────────────────────────────────────────────────────────────
 
+    def _get_github_service(self) -> GitHubProjectsService:
+        """Return the injected service or fall back to the module-level singleton."""
+        if self._github_service is not None:
+            return self._github_service
+        from src.services.github_projects import github_projects_service
+
+        return github_projects_service
+
     async def _fetch_paginated(
         self,
-        client: httpx.AsyncClient,
-        url: str,
-        headers: dict,
+        access_token: str,
+        path: str,
         params: dict | None = None,
     ) -> tuple[list[dict], bool]:
         """Fetch all pages from a GitHub REST API list endpoint.
@@ -284,6 +297,7 @@ class MetadataService:
         with complete=False — the caller can decide whether to persist the
         partial data.
         """
+        svc = self._get_github_service()
         results: list[dict] = []
         page = 1
         per_page = 100
@@ -293,24 +307,32 @@ class MetadataService:
         while True:
             request_params = {**base_params, "per_page": per_page, "page": page}
             try:
-                response = await client.get(url, headers=headers, params=request_params)
-                response.raise_for_status()
-            except httpx.HTTPStatusError as exc:
+                response = await svc.rest_request(
+                    access_token,
+                    "GET",
+                    path,
+                    params=request_params,
+                )
+            except Exception:
                 complete = False
-                if exc.response.status_code in (403, 429):
-                    logger.warning(
-                        "GitHub API rate limit or forbidden for %s: %s",
-                        url,
-                        exc.response.status_code,
-                    )
-                elif exc.response.status_code == 404:
-                    logger.debug("GitHub API 404 for %s (resource may not exist)", url)
-                else:
-                    logger.warning("GitHub API error for %s: %s", url, exc.response.status_code)
+                logger.warning("Network error fetching %s", path)
                 break
-            except httpx.ConnectError:
+
+            if response.status_code in (403, 429):
                 complete = False
-                logger.warning("Network error fetching %s", url)
+                logger.warning(
+                    "GitHub API rate limit or forbidden for %s: %s",
+                    path,
+                    response.status_code,
+                )
+                break
+            if response.status_code == 404:
+                complete = False
+                logger.debug("GitHub API 404 for %s (resource may not exist)", path)
+                break
+            if response.status_code >= 400:
+                complete = False
+                logger.warning("GitHub API error for %s: %s", path, response.status_code)
                 break
 
             data = response.json()
