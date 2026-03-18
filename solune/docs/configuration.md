@@ -1,12 +1,17 @@
 # Configuration
 
-This document is the authoritative reference for every environment variable the backend reads. Copy `.env.example` to `.env` and set the values described here before starting the application.
+This is the authoritative reference for every environment variable Solune reads. Whether you're getting started with the three required variables or fine-tuning polling intervals and cache TTLs, you'll find the complete reference here.
+
+> **Quick start — the only 3 variables you need:**
+> `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, `SESSION_SECRET_KEY`
 
 All configuration is managed through environment variables. Copy `.env.example` to `.env` and customize.
 
 ## Environment Variables
 
 ### Required
+
+These variables are the minimum needed to get Solune running.
 
 | Variable | Description |
 |----------|-------------|
@@ -16,6 +21,8 @@ All configuration is managed through environment variables. Copy `.env.example` 
 
 ### GitHub OAuth
 
+These variables control the OAuth callback flow between Solune and GitHub.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GITHUB_REDIRECT_URI` | `http://localhost:8000/api/v1/auth/github/callback` | OAuth callback URL |
@@ -23,7 +30,7 @@ All configuration is managed through environment variables. Copy `.env.example` 
 
 ### AI Provider
 
-The AI provider controls which LLM generates GitHub Issues from natural language input.
+The AI provider controls which LLM generates GitHub Issues from natural language input. Switch providers or models without changing any application code.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -35,12 +42,16 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 ### Webhook (Optional)
 
+Webhooks provide faster detection when Copilot marks PRs as ready for review. The polling service handles this automatically, but webhooks reduce latency.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `GITHUB_WEBHOOK_SECRET` | — | Secret for webhook signature verification |
 | `GITHUB_WEBHOOK_TOKEN` | — | GitHub PAT (classic) with `repo` + `project` scopes |
 
 ### Polling
+
+Controls how frequently Solune checks for agent activity on GitHub.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -55,6 +66,8 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 | `DEFAULT_ASSIGNEE` | `""` | Default assignee for In Progress issues |
 
 ### Server
+
+General server binding, debug mode, and CORS configuration.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -79,6 +92,8 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 
 ### Signal (Optional)
 
+Connect Solune to Signal for bidirectional phone notifications. See the [Signal Integration](signal-integration.md) guide for full setup.
+
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `SIGNAL_API_URL` | `http://signal-api:8080` | URL of signal-cli-rest-api sidecar |
@@ -86,6 +101,8 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 | `SIGNAL_WEBHOOK_SECRET` | — | Secret for verifying inbound Signal webhook payloads |
 
 ### Security
+
+Production hardening settings for authentication, encryption, and cookie security.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -95,6 +112,8 @@ The AI provider controls which LLM generates GitHub Issues from natural language
 | `COOKIE_MAX_AGE` | `28800` | Session cookie max-age in seconds (default: 8 hours) |
 
 ### Cache
+
+Tune in-memory cache lifetimes for GitHub metadata and other frequently accessed data.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -173,3 +192,11 @@ Settings are stored per-user in SQLite with a 3-tier fallback:
 3. Any-user fallback with automatic backfill
 
 Case-insensitive status deduplication is applied on both save (backend) and load (frontend).
+
+---
+
+## What's next?
+
+- [Setup Guide](setup.md) — Installation instructions for Docker, Codespaces, and local development
+- [Architecture](architecture.md) — How the services are designed and connected
+- [Troubleshooting](troubleshooting.md) — Solutions to common issues

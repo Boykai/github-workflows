@@ -1,5 +1,7 @@
 # Project Structure
 
+Understanding the directory layout helps you navigate the codebase quickly, find the right file to edit, and understand how the pieces fit together. This document maps every directory and file with a brief description of its purpose.
+
 ```text
 solune/
 ├── .devcontainer/                # GitHub Codespaces / Dev Container config
@@ -219,3 +221,11 @@ solune/
 │
 └── specs/                        # Feature specifications (Spec Kit output)
 ```
+
+---
+
+## What's Next?
+
+- [Explore the architecture](architecture.md) — how the services connect
+- [Set up your environment](setup.md) — get running locally or in Codespaces
+- [Create custom agents](custom-agents-best-practices.md) — build your own AI agents

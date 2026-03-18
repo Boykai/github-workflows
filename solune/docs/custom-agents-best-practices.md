@@ -1,6 +1,17 @@
 # Custom GitHub Agents — Best Practices Guide
 
-This guide covers how to create effective Custom GitHub Agent configurations using the `.agent.md` and `.prompt.md` file formats.
+One of Solune's most powerful features is the ability to create your own AI agents. Whether you need a security reviewer, a documentation writer, or a test specialist, this guide covers everything from file format to prompt engineering.
+
+## Your First Custom Agent
+
+Getting started takes four steps:
+
+1. Create a file in `.github/agents/` named `my-agent.agent.md`
+2. Add YAML frontmatter with `description` and `tools`
+3. Write your system prompt in the body
+4. The agent appears in the Pipeline Builder automatically
+
+The sections below cover each step in detail.
 
 ## Overview
 
@@ -241,3 +252,11 @@ Documentation style guidelines:
 - [GitHub Custom Agents Configuration Reference](https://docs.github.com/en/copilot/reference/custom-agents-configuration)
 - [Creating Custom Agents for Copilot](https://docs.github.com/en/copilot/how-tos/use-copilot-agents/coding-agent/create-custom-agents)
 - [Custom Agents Customization Library](https://docs.github.com/en/copilot/tutorials/customization-library/custom-agents)
+
+---
+
+## What's Next?
+
+- [Learn about agent pipelines](agent-pipeline.md) — orchestrate agents into workflows
+- [Explore the architecture](architecture.md) — understand how agents fit into the system
+- [Troubleshoot common issues](troubleshooting.md) — when agents don't behave as expected

@@ -1,6 +1,13 @@
 # Signal Messaging Integration
 
-Bidirectional Signal messaging allows users to receive chat notifications on their phone and reply directly from Signal.
+Stay connected to your development workflow from your phone. Solune's Signal integration lets you receive notifications about pipeline progress, review AI-generated proposals, and reply directly — all from Signal.
+
+## What You Get
+
+- **Outbound notifications** — pipeline status, action proposals, confirmations delivered to your phone
+- **Inbound replies** — respond from Signal and messages route to the right project
+- **Customizable preferences** — all messages, proposals only, confirmations only, or none
+- **Automatic retry** — exponential backoff for delivery reliability (4 attempts, 30 s → 8 min)
 
 ## How It Works
 
@@ -71,3 +78,11 @@ docker compose exec signal-api curl -s -X POST \
 | `signal_chat.py` | Inbound message processing, routing to AI workflow |
 
 The WebSocket listener starts at application boot and reconnects automatically.
+
+---
+
+## What's Next?
+
+- [Configure environment variables](configuration.md) — including Signal-specific settings
+- [Troubleshoot common issues](troubleshooting.md) — Signal delivery and connection problems
+- [Set up your environment](setup.md) — full installation walkthrough

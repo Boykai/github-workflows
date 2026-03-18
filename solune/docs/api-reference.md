@@ -1,10 +1,8 @@
 # API Reference
 
-This document lists every HTTP, WebSocket, and SSE endpoint exposed by the backend. Use it to understand which paths exist, what authentication they require, and what they do.
+This document lists every HTTP, WebSocket, and SSE endpoint exposed by the Solune backend. For interactive browsing and testing, start the backend with `ENABLE_DOCS=true` and visit `/api/docs` for the auto-generated OpenAPI interface.
 
-All endpoints are prefixed with `/api/v1`. Interactive docs available at `/api/docs` when `ENABLE_DOCS=true`.
-
-Unless noted, all endpoints require an active session cookie set by the OAuth flow. The `/health`, `/auth/github`, `/auth/github/callback`, and `/webhooks/github` endpoints are unauthenticated. The `/auth/dev-login` endpoint is also unauthenticated when `DEBUG=true`.
+All endpoints are prefixed with `/api/v1`. Unless noted, all endpoints require an active session cookie set by the OAuth flow. The `/health`, `/auth/github`, `/auth/github/callback`, and `/webhooks/github` endpoints are unauthenticated. The `/auth/dev-login` endpoint is also unauthenticated when `DEBUG=true`.
 
 ## Health
 
@@ -24,6 +22,8 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 
 ## Projects
 
+Project and board endpoints let you list, select, and subscribe to real-time updates from your GitHub Projects.
+
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/projects` | List user's GitHub Projects |
@@ -41,6 +41,8 @@ Unless noted, all endpoints require an active session cookie set by the OAuth fl
 | GET | `/board/projects/{project_id}` | Get board data (columns + items) |
 
 ## Chat
+
+Chat endpoints power the conversational interface — send messages, receive AI responses, manage proposals, and use the `#agent` command to create custom agents inline.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -104,6 +106,8 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 
 ## Workflow & Pipeline
 
+Workflow and pipeline endpoints control the agent pipeline engine — confirm or reject recommendations, retry failed agents, and manage polling.
+
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/workflow/recommendations/{id}/confirm` | Confirm issue recommendation → full workflow |
@@ -124,6 +128,8 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 
 ## Signal
 
+Signal endpoints manage the bidirectional phone messaging connection — link your account, set notification preferences, and handle conflict banners.
+
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/signal/connection` | Get Signal connection status |
@@ -138,7 +144,7 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 
 ## Agents
 
-Manage custom GitHub Agent configurations stored per-project.
+Agent endpoints let you create, update, and manage custom GitHub Agent configurations stored per-project.
 
 | Method | Path | Description |
 |--------|------|-------------|
@@ -211,3 +217,11 @@ Read and refresh cached GitHub repository metadata (labels, branches, milestones
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/webhooks/github` | Handle GitHub webhook events (PR `ready_for_review`) |
+
+---
+
+## What's Next?
+
+- [Explore the architecture](architecture.md) — understand how the services connect
+- [Configure environment variables](configuration.md) — set up providers, secrets, and tuning
+- [Troubleshoot common issues](troubleshooting.md) — when endpoints return unexpected results

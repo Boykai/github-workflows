@@ -1,5 +1,13 @@
 # Troubleshooting
 
+Running into something unexpected? You're in the right place. This guide covers the most common issues organized by component, with step-by-step solutions.
+
+> **Most frequent first-time issues:**
+>
+> 1. **OAuth callback fails** — Check `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`, and redirect URI match your GitHub OAuth App settings
+> 2. **AI generation returns empty** — Verify your GitHub token has Copilot access and the `AI_PROVIDER` setting matches your setup
+> 3. **Pipeline stuck / agents not assigned** — Ensure polling is started (`POST /api/v1/workflow/polling/start`) and the project has the expected status columns
+
 ## Authentication
 
 **OAuth callback fails / Login doesn't work:**
@@ -171,3 +179,13 @@ docker compose logs -f            # All containers
 docker compose logs -f backend    # Backend only
 docker compose logs -f frontend   # Frontend only
 ```
+
+If you've tried the steps above and the issue persists, [open a GitHub Issue](https://github.com/Boykai/github-workflows/issues/new) with your error logs and we'll help you out.
+
+---
+
+## What's Next?
+
+- [Review configuration options](configuration.md) — environment variables and defaults
+- [Set up your environment](setup.md) — installation and prerequisites
+- [Connect Signal messaging](signal-integration.md) — phone notifications and replies

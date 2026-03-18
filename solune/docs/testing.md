@@ -1,5 +1,19 @@
 # Testing
 
+Solune is built test-first. The backend alone has 1,450+ tests spanning unit, integration, property, fuzz, and mutation testing. The frontend adds component tests (Vitest), end-to-end tests (Playwright), and its own mutation suite (Stryker). This guide covers how to run everything.
+
+## Quick Commands
+
+| What | Command |
+|------|----------|
+| Backend tests | `cd backend && pytest tests/ -v` |
+| Frontend unit | `cd frontend && npm test` |
+| Frontend E2E | `cd frontend && npm run test:e2e` |
+| Backend coverage | `cd backend && pytest tests/ --cov=src` |
+| Frontend coverage | `cd frontend && npm run test:coverage` |
+| Backend mutation | `cd backend && mutmut run` |
+| Frontend mutation | `cd frontend && npx stryker run` |
+
 ## Overview
 
 | Tool | Scope | Count / Notes |
@@ -293,3 +307,15 @@ Install the git pre-commit hook that runs ruff, pyright, eslint, tsc, vitest, an
 ```bash
 ./scripts/setup-hooks.sh
 ```
+
+## Contributing Tests
+
+When adding a new feature or fixing a bug, include tests that cover the change. Place backend tests in the appropriate `tests/unit/` or `tests/integration/` directory. Frontend component tests live alongside their source files. End-to-end tests go in `frontend/e2e/`.
+
+---
+
+## What's Next?
+
+- [Explore the architecture](architecture.md) — understand how the components connect
+- [Browse the project structure](project-structure.md) — find the right file to edit
+- [Troubleshoot common issues](troubleshooting.md) — when tests fail unexpectedly
