@@ -41,6 +41,26 @@
       "tools": [
         "*"
       ]
+    },
+    "bicep-mcp": {
+      "type": "local",
+      "command": "dnx",
+      "args": [
+        "Azure.Bicep.McpServer",
+        "--yes"
+      ],
+      "tools": [
+        "get_bicep_best_practices",
+        "list_az_resource_types_for_provider",
+        "get_az_resource_type_schema",
+        "decompile_arm_template_file",
+        "decompile_arm_parameters_file",
+        "format_bicep_file",
+        "get_bicep_file_diagnostics",
+        "get_file_references",
+        "get_deployment_snapshot",
+        "list_avm_metadata"
+      ]
     }
   }
 }

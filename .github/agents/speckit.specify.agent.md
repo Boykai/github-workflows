@@ -20,6 +20,14 @@ mcp-servers:
     - start
     tools:
     - '*'
+  Bicep:
+    type: local
+    command: dnx
+    args:
+    - Azure.Bicep.McpServer
+    - --yes
+    tools:
+    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp

@@ -65,7 +65,7 @@ Last updated: 2026-03-18
 - **Signal messaging:** `solune/backend/src/services/signal_bridge.py`, `signal_chat.py`, and `signal_delivery.py` integrate with the Signal sidecar.
 - **MCP tools:** `solune/backend/src/services/mcp_store.py` + `api/mcp.py` manage MCP server configurations and agent tool associations. `solune/backend/src/services/tools/presets.py` defines the preset catalog; `solune/backend/src/services/tools/service.py` handles per-project CRUD and repo sync.
 - **MCP presets flow:** User selects preset on Tools page → draft form → saves as user tool in DB → agent dispatch calls `_resolve_agent_tool_selection()` → `generate_config_files()` writes `mcp-servers:` into `.github/agents/{slug}.agent.md` YAML frontmatter → GitHub reads agent file on assignment.
-- **Remote MCP config:** `.github/agents/mcp.json` defines MCP servers available to remote GitHub Custom Agents (e.g., Context7 HTTP endpoint). This file is co-located with agent definitions and read by GitHub.com during coding agent sessions.
+- **Remote MCP config:** `.github/agents/mcp.json` defines MCP servers available to remote GitHub Custom Agents (e.g., Context7 HTTP endpoint, Azure MCP, Bicep MCP). This file is co-located with agent definitions and read by GitHub.com during coding agent sessions.
 - **Encryption:** Fernet (`cryptography` package) used for token-at-rest encryption when `ENCRYPTION_KEY` is set.
 - **`AsyncGenerator` typing:** Always include both type parameters for Python 3.12 compatibility: `AsyncGenerator[str, None]`.
 
@@ -138,7 +138,7 @@ npx playwright test             # E2E
 - Prefer focused, minimal fixes over broad refactors unless the task explicitly calls for architectural work.
 - Tailwind v4 uses the CSS-first setup in `solune/frontend/src/index.css`; do not add `tailwind.config.js` or `postcss.config.js` unless the build model changes.
 - Agent `.agent.md` files live in `.github/agents/`; corresponding `.prompt.md` shortcuts live in `.github/prompts/`.
-- `.github/agents/mcp.json` declares MCP servers for remote GitHub Custom Agents (currently Context7). Do not confuse with `.vscode/mcp.json` (local IDE MCP servers).
+- `.github/agents/mcp.json` declares MCP servers for remote GitHub Custom Agents (currently Context7, Azure MCP, CodeGraphContext, and Bicep MCP). Do not confuse with `.vscode/mcp.json` (local IDE MCP servers).
 
 ## CHANGELOG
 
@@ -213,7 +213,7 @@ All agents live in `.github/agents/`. The repository includes both **Spec Kit pi
 | `tester` | Adds tests for changed behavior and improves testability |
 
 ### MCP Configuration
-- `.github/agents/mcp.json` — Declares MCP servers available to remote GitHub Custom Agents (Context7 for documentation lookup and Azure MCP for resource schema lookups, Bicep best practices, and Well-Architected Framework guidance).
+- `.github/agents/mcp.json` — Declares MCP servers available to remote GitHub Custom Agents (Context7 for documentation lookup, Azure MCP for resource schema lookups and Well-Architected Framework guidance, Bicep MCP for Bicep best practices, resource type schemas, and Azure Verified Modules metadata, and CodeGraphContext for codebase analysis).
 
 ### Agent Degradation Rules
 
