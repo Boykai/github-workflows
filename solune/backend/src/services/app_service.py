@@ -403,7 +403,9 @@ async def create_app_with_new_repo(
 
     # 3. Commit template files
     warnings: list[str] = []
-    template_files, template_warnings = await build_template_files(payload.name, payload.display_name)
+    template_files, template_warnings = await build_template_files(
+        payload.name, payload.display_name
+    )
     warnings.extend(template_warnings)
     if template_files:
         commit_oid = await github_service.commit_files(
