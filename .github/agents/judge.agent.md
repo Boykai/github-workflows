@@ -2,8 +2,6 @@
 name: Judge
 description: Triages GitHub PR review comments, decides which recommendations should
   be adopted, and applies only justified follow-up changes.
-tools:
-- '*'
 mcp-servers:
   context7:
     type: http
