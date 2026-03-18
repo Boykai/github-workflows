@@ -387,7 +387,22 @@ async def websocket_subscribe(
             tasks = await github_projects_service.get_project_items(
                 session.access_token, project_id
             )
-            cache.set(cache_key, tasks)
+            # Compare fetched data against previously cached entry using
+            # data_hash (FR-004 change detection).  When the data is
+            # unchanged we refresh the TTL instead of storing a new entry,
+            # keeping the stale-revalidation counter at zero and avoiding
+            # unnecessary downstream refresh messages.
+            tasks_payload = [t.model_dump(mode="json") for t in tasks]
+            new_hash = compute_data_hash(tasks_payload)
+            existing_entry = cache.get_entry(cache_key)
+            if existing_entry is not None and existing_entry.data_hash == new_hash:
+                cache.refresh_ttl(cache_key)
+                logger.debug(
+                    "Refreshed cache TTL for project %s — data unchanged",
+                    project_id,
+                )
+            else:
+                cache.set(cache_key, tasks, data_hash=new_hash)
             stale_revalidation_count = 0
             return tasks
         except Exception as e:
@@ -519,7 +534,12 @@ async def sse_subscribe(
 
                 except Exception as e:
                     logger.error("SSE polling error: %s", e)
-                    yield 'event: error\ndata: {"message": "Polling error"}\n\n'
+                    # Serve stale cached data on fetch failure instead of
+                    # cascading the error to the client (SC-005 safety).
+                    stale = cache.get_stale(cache_key)
+                    if stale is not None:
+                        cached_tasks = stale
+                    yield f'event: heartbeat\ndata: {{"timestamp": "{asyncio.get_running_loop().time()}"}}\n\n'
 
                 # Wait before next poll (30 seconds to reduce API call volume)
                 await asyncio.sleep(30)

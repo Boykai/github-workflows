@@ -303,3 +303,41 @@ class TestCacheWarmPreventsOutboundCalls:
         # TTL should be 300s, not the default 60s
         remaining = (entry.expires_at - utcnow()).total_seconds()
         assert 295 <= remaining <= 305
+
+    @patch("src.services.cache.get_settings")
+    def test_hash_based_change_detection_ttl_refresh(self, mock_settings):
+        """Unchanged data (same hash) should allow TTL refresh without replacing value (T048)."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+
+        data = {"columns": [{"name": "Backlog"}]}
+        data_hash = compute_data_hash(data)
+        c.set("board:proj1", data, data_hash=data_hash)
+
+        entry_before = c.get_entry("board:proj1")
+        assert entry_before is not None
+        original_expires = entry_before.expires_at
+
+        time.sleep(0.01)
+        c.refresh_ttl("board:proj1")
+
+        entry_after = c.get_entry("board:proj1")
+        assert entry_after is not None
+        # TTL refreshed — new expiry is later
+        assert entry_after.expires_at > original_expires
+        # Data hash preserved
+        assert entry_after.data_hash == data_hash
+        # Value unchanged
+        assert entry_after.value == data
+
+    @patch("src.services.cache.get_settings")
+    def test_300s_ttl_aligns_with_frontend_auto_refresh(self, mock_settings):
+        """Board data cache uses 300-second TTL consistent with frontend (T048/SC-002)."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+
+        c.set("board_data:proj1", {"columns": []})
+        entry = c.get_entry("board_data:proj1")
+        assert entry is not None
+        remaining = (entry.expires_at - utcnow()).total_seconds()
+        assert 295 <= remaining <= 305

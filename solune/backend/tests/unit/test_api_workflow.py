@@ -1143,3 +1143,19 @@ class TestWorkflowErrorSanitization:
         assert "DB lock timeout" not in body.get("error", "")
         assert "5000ms" not in body.get("error", "")
         chat_mod._recommendations.pop(rec_id, None)
+
+
+# ── Performance: workflow.py shared resolve_repository (T014) ──────────────
+
+
+class TestWorkflowSharedResolveRepository:
+    """Verify workflow.py uses shared resolve_repository() from utils.py."""
+
+    def test_workflow_imports_resolve_repository_from_utils(self):
+        """workflow.py must import resolve_repository from src.utils."""
+        import src.api.workflow as workflow_module
+        from src.utils import resolve_repository
+
+        # Verify workflow module has resolve_repository from utils
+        assert hasattr(workflow_module, "resolve_repository")
+        assert workflow_module.resolve_repository is resolve_repository
