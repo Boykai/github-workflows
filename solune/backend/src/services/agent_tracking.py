@@ -50,7 +50,7 @@ STATE_DONE = "✅ Done"
 
 # Regex to detect the tracking section already present in issue body
 _TRACKING_SECTION_RE = re.compile(
-    r"---\s*\n\s*##\s*🤖\s*(?:Agent Pipeline|Agents Pipelines).*",
+    r"---[ \t]*\n(?:[ \t]*\n)*[ \t]*##\s*🤖\s*(?:Agent Pipeline|Agents Pipelines).*",
     re.DOTALL,
 )
 
