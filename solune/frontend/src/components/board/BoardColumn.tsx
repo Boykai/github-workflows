@@ -30,7 +30,7 @@ export const BoardColumn = memo(function BoardColumn({
       {/* Column Header */}
       <div className="project-board-column-header flex items-center justify-between border-b border-border/70 p-4 backdrop-blur-sm">
         <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor }} aria-hidden="true" />
+          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: dotColor }} />
           <span className="font-semibold text-sm">{column.status.name}</span>
           <span className="flex items-center justify-center rounded-full border border-border/70 bg-background/78 px-2.5 py-0.5 text-xs font-medium text-muted-foreground shadow-sm">
             {column.item_count}

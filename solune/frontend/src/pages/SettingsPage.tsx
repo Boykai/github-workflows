@@ -8,11 +8,9 @@
 
 import { useEffect, useCallback } from 'react';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
-import { RefreshCw } from 'lucide-react';
 import { PrimarySettings } from '@/components/settings/PrimarySettings';
 import { AdvancedSettings } from '@/components/settings/AdvancedSettings';
 import { useUserSettings, useGlobalSettings } from '@/hooks/useSettings';
-import { isRateLimitApiError } from '@/utils/rateLimit';
 import type { UserPreferencesUpdate, GlobalSettingsUpdate } from '@/types';
 
 /**
@@ -44,10 +42,8 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
   const {
     settings: userSettings,
     isLoading: userLoading,
-    error: userError,
     updateSettings: updateUserSettings,
     isUpdating: isUserUpdating,
-    refetch: refetchUserSettings,
   } = useUserSettings();
 
   const {
@@ -74,28 +70,6 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
       <div className="flex h-full w-full max-w-4xl flex-col overflow-y-auto p-8 mx-auto">
         <div className="flex flex-col items-center justify-center flex-1 gap-4">
           <CelestialLoader size="md" label="Loading settings…" />
-        </div>
-      </div>
-    );
-  }
-
-  if (userError) {
-    const isRateLimited = isRateLimitApiError(userError);
-    return (
-      <div className="flex h-full w-full max-w-4xl flex-col overflow-y-auto p-8 mx-auto">
-        <div className="flex flex-col items-center justify-center flex-1 gap-4" aria-live="polite">
-          <p className="text-sm text-muted-foreground">
-            {isRateLimited
-              ? 'You have exceeded the API rate limit. Please wait a moment before trying again.'
-              : 'Could not load settings. Please try again.'}
-          </p>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm font-medium text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-            onClick={() => refetchUserSettings()}
-          >
-            <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" /> Retry
-          </button>
         </div>
       </div>
     );

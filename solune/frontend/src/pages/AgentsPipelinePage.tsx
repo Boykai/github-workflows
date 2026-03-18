@@ -3,7 +3,7 @@
  * Composes useProjectBoard columns with agent configuration, pipeline board, and saved workflows.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useQueryClient } from '@tanstack/react-query';
@@ -16,17 +16,18 @@ import { useModels } from '@/hooks/useModels';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { pipelinesApi } from '@/services/api';
 
+import { statusColorToCSS } from '@/components/board/colorUtils';
 import { PipelineBoard } from '@/components/pipeline/PipelineBoard';
 import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
 import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 import { PipelineAnalytics } from '@/components/pipeline/PipelineAnalytics';
-import { PipelineStagesOverview } from '@/components/pipeline/PipelineStagesOverview';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
+import { formatAgentName } from '@/utils/formatAgentName';
 
 export function AgentsPipelinePage() {
   const { user } = useAuth();
@@ -57,6 +58,9 @@ export function AgentsPipelinePage() {
     pipelineConfig.pipeline?.stages.length ?? 0,
     1
   );
+  const alignedGridStyle: CSSProperties = {
+    gridTemplateColumns: `repeat(${alignedColumnCount}, minmax(14rem, 1fr))`,
+  };
   const pipelineEditorRef = useRef<HTMLDivElement | null>(null);
 
   const focusPipelineEditor = useCallback(() => {
@@ -345,11 +349,44 @@ export function AgentsPipelinePage() {
           )}
 
           {/* Pipeline Stages Visualization */}
-          <PipelineStagesOverview
-            columns={columns}
-            localMappings={agentConfig.localMappings}
-            alignedColumnCount={alignedColumnCount}
-          />
+          <div>
+            <h3 className="text-lg font-semibold mb-3">Pipeline Stages</h3>
+            <div className="overflow-x-auto pb-2">
+              <div className="grid min-w-full items-stretch gap-3" style={alignedGridStyle}>
+                {columns.map((col) => {
+                  const assigned = agentConfig.localMappings[col.status.name] ?? [];
+                  const dotColor = statusColorToCSS(col.status.color);
+                  return (
+                    <div
+                      key={col.status.option_id}
+                      className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm"
+                    >
+                      <span
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: dotColor }}
+                      />
+                      <span className="text-sm font-medium">{col.status.name}</span>
+                      <span className="text-xs text-muted-foreground">{col.item_count} items</span>
+                      {assigned.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 justify-center mt-1">
+                          {assigned.map((a) => (
+                            <span
+                              key={a.id}
+                              className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
+                            >
+                              {formatAgentName(a.slug, a.display_name)}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-muted-foreground/60 mt-1">No agents</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
 
           {/* Saved Workflows List */}
           <SavedWorkflowsList
