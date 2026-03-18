@@ -13,7 +13,7 @@ A user opens a project board and leaves it visible without interacting. The syst
 
 **Why this priority**: Unnecessary background activity is the highest-cost problem. It depletes rate-limit budget, increases server load, and produces no user value. Eliminating it is the single highest-leverage fix and blocks accurate measurement of all other improvements.
 
-**Independent Test**: Open a board, leave it idle for five minutes, and count external service calls made during that interval. The count must stay below the defined budget.
+**Independent Test**: Open a board, leave it idle for five minutes, and count external service calls made during that interval. The count must stay at or below two calls per minute on average (see SC-001).
 
 **Acceptance Scenarios**:
 
@@ -33,7 +33,7 @@ A user navigates to a project board or triggers a manual refresh. The board data
 
 **Acceptance Scenarios**:
 
-1. **Given** a user navigates to a board with warm caches, **When** the board data loads, **Then** the system reuses cached sub-issue data and the board is interactive within a target time.
+1. **Given** a user navigates to a board with warm caches, **When** the board data loads, **Then** the system reuses cached sub-issue data and the board is interactive within at least 30% less time than the pre-optimization baseline (see SC-002).
 2. **Given** a user triggers a manual refresh, **When** the refresh completes, **Then** all caches (including sub-issue caches) are cleared and fresh data is fetched.
 3. **Given** a board has 50+ tasks across multiple columns, **When** the board loads, **Then** the board renders and is interactive without visible lag or jank.
 
@@ -121,7 +121,7 @@ Before any optimization work begins, the team captures measurable baselines for 
 - **FR-001**: The system MUST provide a procedure to measure idle external service call volume for an open board over a fixed interval (minimum 5 minutes).
 - **FR-002**: The system MUST provide a procedure to measure board endpoint request cost including sub-issue fetch count and total response time.
 - **FR-003**: The system MUST provide a procedure to profile frontend board load time-to-interactive, render cycle count, and network request volume.
-- **FR-004**: The system MUST verify current implementation state against existing Spec 022 targets for idle-rate-limit reduction, cache TTL alignment, and sub-issue cache invalidation.
+- **FR-004**: The system MUST verify current implementation state against existing rate-limit protection targets: idle external service calls at or below two per minute, board cache TTL of 300 seconds, and sub-issue cache invalidation on manual refresh.
 
 #### Phase 2 — Backend Optimization
 
@@ -165,7 +165,7 @@ Before any optimization work begins, the team captures measurable baselines for 
 - Major service decomposition or architectural restructuring
 - Adding new external dependencies
 - Request-budget instrumentation or structured performance logging
-- Broader caching architecture changes beyond what Spec 022 defines
+- Broader caching architecture changes beyond the existing rate-limit protection targets (≤2 idle calls/min, 300s board cache TTL, manual-refresh sub-issue invalidation)
 
 ### Key Entities
 
@@ -177,7 +177,7 @@ Before any optimization work begins, the team captures measurable baselines for 
 
 ## Assumptions
 
-- The existing Spec 022 implementation has partially landed (300-second cache TTL and manual-refresh sub-issue cache clearing are already in place). This specification targets remaining gaps rather than reimplementing completed work.
+- The existing rate-limit protection implementation has partially landed (300-second cache TTL and manual-refresh sub-issue cache clearing are already in place). This specification targets remaining gaps rather than reimplementing completed work.
 - The real-time channel (WebSocket) is the primary update path; fallback polling is activated only when the real-time channel is unavailable.
 - "Expensive board refresh" refers to a full re-fetch of all board data including sub-issues from the external data source, as opposed to a lightweight task-level update.
 - Representative board size for testing is 50–100 tasks across 4–6 columns, which reflects typical usage. Boards with 100+ tasks are considered edge cases for the first pass.
