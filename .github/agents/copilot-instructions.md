@@ -263,6 +263,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite (persistent module-level connection, `init_database()` / `get_db()`), SQL-based migrations (001–030) in `backend/src/migrations/`
 - ESLint 10, eslint-plugin-react-hooks 7, eslint-plugin-security 4, Vitest 4.0, Playwright 1.58
 - Docker images: python:3.14-slim (backend), node:25-alpine + nginx:1.29-alpine (frontend)
+- TypeScript ~5.9.0, React 19.2.0 + TanStack React Query ^5.91.0, React Router DOM ^7.13.1, React Hook Form ^7.71.2, Radix UI (primitives), Tailwind CSS ^4.2.0, Zod ^4.3.6, Vite ^8.0.0 (052-ui-audit)
+- N/A (frontend-only; backend uses SQLite via aiosqlite — not modified by this feature) (052-ui-audit)
 
 ## Recent Changes
 - Dependabot upgrades: ESLint 9→10, Vite 7→8, react-hooks 5→7, security 3→4, @vitejs/plugin-react 5→6, Docker images (python 3.14, node 25, nginx 1.29), GitHub Actions (checkout v6, setup-python v6, upload-artifact v7, setup-node v6)
