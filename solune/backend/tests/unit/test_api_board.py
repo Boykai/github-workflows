@@ -432,7 +432,11 @@ class TestStaleRevalidationHash:
 
     def test_unchanged_data_refreshes_ttl(self):
         """When fetched data matches cached data hash, TTL is refreshed."""
-        from src.services.cache import CacheEntry, cache, compute_data_hash, get_project_items_cache_key
+        from src.services.cache import (
+            cache,
+            compute_data_hash,
+            get_project_items_cache_key,
+        )
 
         cache_key = get_project_items_cache_key("PVT_revalidate")
         test_data = [{"id": "1", "title": "test"}]
@@ -449,6 +453,7 @@ class TestStaleRevalidationHash:
         # Refresh TTL (simulating unchanged data detection)
         original_expires = entry.expires_at
         import time
+
         time.sleep(0.01)  # Ensure time difference
         cache.refresh_ttl(cache_key)
 
@@ -498,7 +503,7 @@ class TestWorkflowSharedResolveRepository:
         assert workflow_module.resolve_repository is resolve_repository
 
 
-# ── Performance: sub-issue cache reuse on non-manual refresh (T019–T021) ───
+# ── Performance: sub-issue cache reuse on non-manual refresh (T019-T021) ───
 
 
 class TestSubIssueCacheReuse:
@@ -508,6 +513,7 @@ class TestSubIssueCacheReuse:
         """Non-manual refresh should check sub-issue cache before external calls (T019)."""
         bd = _make_board_data()
         from src.models.board import Repository
+
         bd.columns[0].items[0].repository = Repository(owner="test-owner", name="test-repo")
         bd.columns[0].items[0].number = 42
         mock_github_service.get_board_data.return_value = bd
@@ -525,6 +531,7 @@ class TestSubIssueCacheReuse:
         """Manual refresh (refresh=True) must clear sub-issue cache entries (T020)."""
         bd = _make_board_data()
         from src.models.board import Repository
+
         bd.columns[0].items[0].repository = Repository(owner="test-owner", name="test-repo")
         bd.columns[0].items[0].number = 42
         mock_github_service.get_board_data.return_value = bd

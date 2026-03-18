@@ -10663,7 +10663,9 @@ class TestPollingCycleCost:
         entry = cache.get_entry(cache_key)
         assert entry is not None
         from datetime import timedelta
+
         from src.utils import utcnow
+
         entry.expires_at = utcnow() - timedelta(seconds=10)
 
         # get_stale should still return the expired data (degraded-mode fallback)
