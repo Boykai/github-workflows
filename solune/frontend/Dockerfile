@@ -5,8 +5,8 @@ FROM node:25-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json package-lock.json* ./
+# Copy package files (including .npmrc for peer-dep compat)
+COPY package.json package-lock.json* .npmrc ./
 
 # Install dependencies
 RUN npm ci
