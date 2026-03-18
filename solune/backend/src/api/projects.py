@@ -395,10 +395,7 @@ async def websocket_subscribe(
             tasks_payload = [t.model_dump(mode="json") for t in tasks]
             new_hash = compute_data_hash(tasks_payload)
             existing_entry = cache.get_entry(cache_key)
-            if (
-                existing_entry is not None
-                and existing_entry.data_hash == new_hash
-            ):
+            if existing_entry is not None and existing_entry.data_hash == new_hash:
                 cache.refresh_ttl(cache_key)
                 logger.debug(
                     "Refreshed cache TTL for project %s — data unchanged",
