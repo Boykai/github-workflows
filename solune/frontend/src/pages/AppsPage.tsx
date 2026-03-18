@@ -7,12 +7,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronDown, GitBranch, Plus, RefreshCw, Sparkles } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useApps, useCreateApp, useOwners, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
 import { AppCard } from '@/components/apps/AppCard';
 import { AppDetailView } from '@/components/apps/AppDetailView';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useConfirmation } from '@/hooks/useConfirmation';
+import { useAuth } from '@/hooks/useAuth';
+import { useProjects } from '@/hooks/useProjects';
+import { pipelinesApi } from '@/services/api';
 import { isRateLimitApiError } from '@/utils/rateLimit';
 import type { AppCreate, RepoType } from '@/types/apps';
 
@@ -43,11 +47,29 @@ export function AppsPage() {
   const [createProject, setCreateProject] = useState(true);
   const [azureClientId, setAzureClientId] = useState('');
   const [azureClientSecret, setAzureClientSecret] = useState('');
+  const [pipelineId, setPipelineId] = useState('');
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [warningMessages, setWarningMessages] = useState<string[]>([]);
   const [actionError, setActionError] = useState<string | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const successTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const warningTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
+
+  // Fetch pipelines from the currently selected project for the pipeline selector
+  const { user } = useAuth();
+  const { selectedProject } = useProjects(user?.selected_project_id);
+  const projectId = selectedProject?.project_id ?? null;
+  const { data: pipelineList } = useQuery({
+    queryKey: ['pipelines', 'list', projectId],
+    queryFn: () => pipelinesApi.list(projectId!),
+    staleTime: 60_000,
+    enabled: !!projectId,
+  });
+  const pipelines = useMemo(
+    () => pipelineList?.pipelines ?? [],
+    [pipelineList]
+  );
 
   // Set default owner when owners are loaded
   useEffect(() => {
@@ -60,6 +82,7 @@ export function AppsPage() {
     return () => {
       clearTimeout(successTimerRef.current);
       clearTimeout(errorTimerRef.current);
+      clearTimeout(warningTimerRef.current);
     };
   }, []);
 
@@ -75,6 +98,12 @@ export function AppsPage() {
     errorTimerRef.current = setTimeout(() => setActionError(null), 5000);
   }, []);
 
+  const showWarnings = useCallback((messages: string[]) => {
+    setWarningMessages(messages);
+    clearTimeout(warningTimerRef.current);
+    warningTimerRef.current = setTimeout(() => setWarningMessages([]), 8000);
+  }, []);
+
   const openCreateDialog = (initialRepoType?: RepoType) => {
     createMutation.reset();
     setCreateError(null);
@@ -84,6 +113,7 @@ export function AppsPage() {
     setRepoType(initialRepoType ?? 'same-repo');
     setRepoVisibility('private');
     setCreateProject(true);
+    setPipelineId('');
     if (owners && owners.length > 0) {
       setRepoOwner(owners[0].login);
     }
@@ -96,6 +126,7 @@ export function AppsPage() {
     setDisplayName('');
     setAzureClientId('');
     setAzureClientSecret('');
+    setPipelineId('');
     setShowCreateDialog(false);
     createButtonRef.current?.focus();
   }, [createMutation]);
@@ -206,6 +237,9 @@ export function AppsPage() {
       payload.repo_owner = repoOwner;
       payload.repo_visibility = repoVisibility;
       payload.create_project = createProject;
+      if (pipelineId) {
+        payload.pipeline_id = pipelineId;
+      }
       // Azure credentials — paired validation
       const trimmedAzureId = azureClientId.trim();
       // Trim only for the presence check — send the secret exactly as entered
@@ -245,9 +279,16 @@ export function AppsPage() {
     createMutation.mutate(payload, {
       onSuccess: (createdApp) => {
         closeCreateDialog();
-        showSuccess(`App "${createdApp.display_name}" created successfully.`);
+        // Build a structured success summary
+        const summaryParts = ['✓ Repository created'];
+        summaryParts.push('✓ Template files committed');
+        if (createdApp.parent_issue_number) {
+          summaryParts.push('✓ Pipeline started');
+        }
+        showSuccess(summaryParts.join(' · '));
+        // Show ALL warnings with warning-style toast
         if (createdApp.warnings?.length) {
-          showError(createdApp.warnings[0]);
+          showWarnings(createdApp.warnings);
         }
         navigate(`/apps/${createdApp.name}`);
       },
@@ -306,6 +347,18 @@ export function AppsPage() {
             role="alert"
           >
             {actionError}
+          </div>
+        )}
+
+        {/* Warning feedback — styled as warnings, not errors */}
+        {warningMessages.length > 0 && (
+          <div
+            className="mb-4 space-y-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-300"
+            role="status"
+          >
+            {warningMessages.map((msg) => (
+              <p key={msg}>⚠ {msg}</p>
+            ))}
           </div>
         )}
 
@@ -537,6 +590,28 @@ export function AppsPage() {
                           Create linked GitHub Project (with Solune default columns)
                         </span>
                       </label>
+                      {/* Pipeline selector */}
+                      <div>
+                        <label htmlFor="pipeline-selector" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                          Agent Pipeline (optional)
+                        </label>
+                        <select
+                          id="pipeline-selector"
+                          value={pipelineId}
+                          onChange={(e) => setPipelineId(e.target.value)}
+                          className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                        >
+                          <option value="">None</option>
+                          {pipelines.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                        <p className="mt-1 text-xs text-zinc-400">
+                          Select a pipeline to automatically create a parent issue and start automation.
+                        </p>
+                      </div>
                       {/* Azure credentials (optional) */}
                       <div>
                         <label htmlFor="azure-client-id" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">

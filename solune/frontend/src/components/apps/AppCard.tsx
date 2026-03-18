@@ -85,6 +85,11 @@ export function AppCard({
           </h3>
         </Tooltip>
         <div className="flex items-center gap-1.5 shrink-0">
+          {app.parent_issue_number && (
+            <span className="rounded-full bg-indigo-100/80 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+              Pipeline
+            </span>
+          )}
           <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', REPO_TYPE_STYLES[app.repo_type])}>
             {REPO_TYPE_LABELS[app.repo_type] ?? app.repo_type}
           </span>

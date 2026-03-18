@@ -24,7 +24,7 @@
 
 **Purpose**: Database migration and model changes required by multiple user stories
 
-- [ ] T001 Create SQL migration adding parent issue columns to apps table in `apps/solune/backend/src/migrations/029_app_parent_issue.sql`
+- [x] T001 Create SQL migration adding parent issue columns to apps table in `apps/solune/backend/src/migrations/029_app_parent_issue.sql`
 
 ---
 
@@ -34,8 +34,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 [P] Add `parent_issue_number` and `parent_issue_url` fields to App Pydantic model in `apps/solune/backend/src/models/app.py`
-- [ ] T003 [P] Add `parent_issue_number` and `parent_issue_url` fields to TypeScript App interface in `apps/solune/frontend/src/types/apps.ts`
+- [x] T002 [P] Add `parent_issue_number` and `parent_issue_url` fields to App Pydantic model in `apps/solune/backend/src/models/app.py`
+- [x] T003 [P] Add `parent_issue_number` and `parent_issue_url` fields to TypeScript App interface in `apps/solune/frontend/src/types/apps.ts`
 
 **Checkpoint**: Foundation ready — all model/type changes in place, user story implementation can now begin
 
@@ -51,14 +51,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T004 [US1] Write test for `build_template_files()` returning `tuple[list[dict], list[str]]` with warning collection for unreadable files in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
-- [ ] T005 [US1] Write test for exponential backoff in branch-readiness polling (8 retries, base_delay=0.5s, max_delay=3s) in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
+- [x] T004 [US1] Write test for `build_template_files()` returning `tuple[list[dict], list[str]]` with warning collection for unreadable files in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
+- [x] T005 [US1] Write test for exponential backoff in branch-readiness polling (8 retries, base_delay=0.5s, max_delay=3s) in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
 
 ### Implementation for User Story 1
 
-- [ ] T006 [P] [US1] Harden `build_template_files()` — add explicit error collection for file read failures and return `tuple[list[dict], list[str]]` (files, warnings) in `apps/solune/backend/src/services/template_files.py`
-- [ ] T007 [P] [US1] Increase branch-readiness poll to 8 retries with exponential backoff (base_delay=0.5s, max_delay=3s, ~18.5s max) in `apps/solune/backend/src/services/app_service.py`
-- [ ] T008 [US1] Surface template file warnings in `create_app_with_new_repo()` — unpack tuple from `build_template_files()` and append warnings to the App response `warnings[]` in `apps/solune/backend/src/services/app_service.py`
+- [x] T006 [P] [US1] Harden `build_template_files()` — add explicit error collection for file read failures and return `tuple[list[dict], list[str]]` (files, warnings) in `apps/solune/backend/src/services/template_files.py`
+- [x] T007 [P] [US1] Increase branch-readiness poll to 8 retries with exponential backoff (base_delay=0.5s, max_delay=3s, ~18.5s max) in `apps/solune/backend/src/services/app_service.py`
+- [x] T008 [US1] Surface template file warnings in `create_app_with_new_repo()` — unpack tuple from `build_template_files()` and append warnings to the App response `warnings[]` in `apps/solune/backend/src/services/app_service.py`
 
 **Checkpoint**: Template file copying is robust and transparent. Branch-readiness poll handles GitHub latency. All file failures surfaced as warnings.
 
@@ -74,17 +74,17 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T009 [US2] Write test for parent issue creation when `pipeline_id` is provided in `create_app_with_new_repo()` in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
-- [ ] T010 [US2] Write test for parent issue creation failure adding warning (best-effort pattern) in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
-- [ ] T011 [US2] Write test for `DELETE /apps/{name}` closing parent issue when `parent_issue_number` is set in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
+- [x] T009 [US2] Write test for parent issue creation when `pipeline_id` is provided in `create_app_with_new_repo()` in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
+- [x] T010 [US2] Write test for parent issue creation failure adding warning (best-effort pattern) in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
+- [x] T011 [US2] Write test for `DELETE /apps/{name}` closing parent issue when `parent_issue_number` is set in `apps/solune/backend/tests/unit/test_app_service_new_repo.py`
 
 ### Implementation for User Story 2
 
-- [ ] T012 [US2] Wire up pipeline loading — load `WorkflowConfiguration` from `pipeline_id` when provided in `create_app_with_new_repo()` in `apps/solune/backend/src/services/app_service.py`
-- [ ] T013 [US2] Create parent issue after repo + files commit — call `github_projects_service.create_issue()` with body from `append_tracking_to_body()`, title "Build {display_name}", store `parent_issue_number` and `parent_issue_url` on App record (best-effort) in `apps/solune/backend/src/services/app_service.py`
-- [ ] T014 [US2] Create sub-issues and start pipeline polling — call `orchestrator.create_all_sub_issues()`, init `PipelineState`, call `ensure_polling_started()` (best-effort) in `apps/solune/backend/src/services/app_service.py`
-- [ ] T015 [US2] Handle `same-repo` and `external-repo` types — parse correct owner/repo from `github_repo_url` or `external_repo_url` for parent issue creation in `apps/solune/backend/src/services/app_service.py`
-- [ ] T016 [US2] Close parent issue on app deletion — in DELETE handler, if `parent_issue_number` and `github_repo_url` are set, call GitHub API to close the issue (best-effort, log warning on failure) in `apps/solune/backend/src/services/app_service.py`
+- [x] T012 [US2] Wire up pipeline loading — load `WorkflowConfiguration` from `pipeline_id` when provided in `create_app_with_new_repo()` in `apps/solune/backend/src/services/app_service.py`
+- [x] T013 [US2] Create parent issue after repo + files commit — call `github_projects_service.create_issue()` with body from `append_tracking_to_body()`, title "Build {display_name}", store `parent_issue_number` and `parent_issue_url` on App record (best-effort) in `apps/solune/backend/src/services/app_service.py`
+- [x] T014 [US2] Create sub-issues and start pipeline polling — call `orchestrator.create_all_sub_issues()`, init `PipelineState`, call `ensure_polling_started()` (best-effort) in `apps/solune/backend/src/services/app_service.py`
+- [x] T015 [US2] Handle `same-repo` and `external-repo` types — parse correct owner/repo from `github_repo_url` or `external_repo_url` for parent issue creation in `apps/solune/backend/src/services/app_service.py`
+- [x] T016 [US2] Close parent issue on app deletion — in DELETE handler, if `parent_issue_number` and `github_repo_url` are set, call GitHub API to close the issue (best-effort, log warning on failure) in `apps/solune/backend/src/services/app_service.py`
 
 **Checkpoint**: Pipeline-driven app creation is fully functional. Parent Issue + sub-issues + polling all wired up. Deletion closes the parent issue.
 
@@ -100,13 +100,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T017 [US3] Write test for pipeline selector dropdown visible in create dialog and defaults to "None" in `apps/solune/frontend/src/pages/AppsPage.test.tsx`
-- [ ] T018 [US3] Write test for `pipeline_id` included in creation payload when a pipeline is selected in `apps/solune/frontend/src/pages/AppsPage.test.tsx`
+- [x] T017 [US3] Write test for pipeline selector dropdown visible in create dialog and defaults to "None" in `apps/solune/frontend/src/pages/AppsPage.test.tsx`
+- [x] T018 [US3] Write test for `pipeline_id` included in creation payload when a pipeline is selected in `apps/solune/frontend/src/pages/AppsPage.test.tsx`
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Add pipeline selector dropdown to Create App dialog — fetch pipelines via `['pipelines', projectId]` query, render `<select>` with "None" default, position after "Create Project" checkbox in `apps/solune/frontend/src/pages/AppsPage.tsx`
-- [ ] T020 [US3] Wire `pipelineId` state into creation payload — add `useState`, include `pipeline_id` in `AppCreate` payload, reset on dialog close in `apps/solune/frontend/src/pages/AppsPage.tsx`
+- [x] T019 [US3] Add pipeline selector dropdown to Create App dialog — fetch pipelines via `['pipelines', projectId]` query, render `<select>` with "None" default, position after "Create Project" checkbox in `apps/solune/frontend/src/pages/AppsPage.tsx`
+- [x] T020 [US3] Wire `pipelineId` state into creation payload — add `useState`, include `pipeline_id` in `AppCreate` payload, reset on dialog close in `apps/solune/frontend/src/pages/AppsPage.tsx`
 
 **Checkpoint**: Users can select a pipeline during app creation. The `pipeline_id` is sent to the backend.
 
@@ -122,13 +122,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T021 [US4] Write test for all warnings displayed (iterate `warnings[]` instead of only `warnings[0]`) in `apps/solune/frontend/src/pages/AppsPage.test.tsx`
-- [ ] T022 [US4] Write test for warning toast style (not error style) and structured success summary toast in `apps/solune/frontend/src/pages/AppsPage.test.tsx`
+- [x] T021 [US4] Write test for all warnings displayed (iterate `warnings[]` instead of only `warnings[0]`) in `apps/solune/frontend/src/pages/AppsPage.test.tsx`
+- [x] T022 [US4] Write test for warning toast style (not error style) and structured success summary toast in `apps/solune/frontend/src/pages/AppsPage.test.tsx`
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Show ALL warnings — replace `showError(createdApp.warnings[0])` with iteration over all warnings using `showWarning()` or warning-style equivalent in `apps/solune/frontend/src/pages/AppsPage.tsx`
-- [ ] T024 [US4] Add structured success summary toast — display "✓ Repository created / ✓ Template files committed / ✓ Pipeline started / ⚠ {warning}" after successful creation in `apps/solune/frontend/src/pages/AppsPage.tsx`
+- [x] T023 [US4] Show ALL warnings — replace `showError(createdApp.warnings[0])` with iteration over all warnings using `showWarning()` or warning-style equivalent in `apps/solune/frontend/src/pages/AppsPage.tsx`
+- [x] T024 [US4] Add structured success summary toast — display "✓ Repository created / ✓ Template files committed / ✓ Pipeline started / ⚠ {warning}" after successful creation in `apps/solune/frontend/src/pages/AppsPage.tsx`
 
 **Checkpoint**: Users see full transparency into app creation results. All warnings visible, styled correctly.
 
@@ -144,15 +144,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T025 [P] [US5] Write test for parent issue link rendered as clickable `<a>` tag when `parent_issue_url` is non-null in `apps/solune/frontend/src/components/apps/AppDetailView.test.tsx`
-- [ ] T026 [P] [US5] Write test for pipeline badge shown on AppCard when `parent_issue_number` is non-null in `apps/solune/frontend/src/components/apps/AppCard.test.tsx`
-- [ ] T027 [US5] Write test for backward compatibility — app without `parent_issue_url` renders cleanly without errors in `apps/solune/frontend/src/components/apps/AppDetailView.test.tsx`
+- [x] T025 [P] [US5] Write test for parent issue link rendered as clickable `<a>` tag when `parent_issue_url` is non-null in `apps/solune/frontend/src/components/apps/AppDetailView.test.tsx`
+- [x] T026 [P] [US5] Write test for pipeline badge shown on AppCard when `parent_issue_number` is non-null in `apps/solune/frontend/src/components/apps/AppCard.test.tsx`
+- [x] T027 [US5] Write test for backward compatibility — app without `parent_issue_url` renders cleanly without errors in `apps/solune/frontend/src/components/apps/AppDetailView.test.tsx`
 
 ### Implementation for User Story 5
 
-- [ ] T028 [US5] Add parent issue link — conditionally render `<a href={parent_issue_url}>` with "Parent Issue #{parent_issue_number}" label, opens in new tab, in GitHub links section in `apps/solune/frontend/src/components/apps/AppDetailView.tsx`
-- [ ] T029 [US5] Add pipeline name display — conditionally render pipeline name (or fallback to `associated_pipeline_id`) when pipeline is set in `apps/solune/frontend/src/components/apps/AppDetailView.tsx`
-- [ ] T030 [P] [US5] Add pipeline status badge — conditionally render small indigo pill badge "Pipeline" when `parent_issue_number` is non-null, positioned after status badge in `apps/solune/frontend/src/components/apps/AppCard.tsx`
+- [x] T028 [US5] Add parent issue link — conditionally render `<a href={parent_issue_url}>` with "Parent Issue #{parent_issue_number}" label, opens in new tab, in GitHub links section in `apps/solune/frontend/src/components/apps/AppDetailView.tsx`
+- [x] T029 [US5] Add pipeline name display — conditionally render pipeline name (or fallback to `associated_pipeline_id`) when pipeline is set in `apps/solune/frontend/src/components/apps/AppDetailView.tsx`
+- [x] T030 [P] [US5] Add pipeline status badge — conditionally render small indigo pill badge "Pipeline" when `parent_issue_number` is non-null, positioned after status badge in `apps/solune/frontend/src/components/apps/AppCard.tsx`
 
 **Checkpoint**: All user stories are independently functional. Detail view shows parent issue + pipeline info. Cards show pipeline badge. Legacy apps display correctly.
 
@@ -162,10 +162,10 @@
 
 **Purpose**: Verification, backward compatibility, and full test suite execution
 
-- [ ] T031 Run quickstart.md validation steps — verify migration applied, all endpoints return expected data
-- [ ] T032 Backward compatibility verification — confirm apps created before this feature display correctly in list and detail views
-- [ ] T033 Run full backend test suite: `cd apps/solune/backend && python -m pytest tests/unit/test_app_service*.py tests/unit/test_api_apps.py -v`
-- [ ] T034 Run full frontend test suite: `cd apps/solune/frontend && npx vitest run src/pages/AppsPage.test.tsx src/components/apps/`
+- [x] T031 Run quickstart.md validation steps — verify migration applied, all endpoints return expected data
+- [x] T032 Backward compatibility verification — confirm apps created before this feature display correctly in list and detail views
+- [x] T033 Run full backend test suite: `cd apps/solune/backend && python -m pytest tests/unit/test_app_service*.py tests/unit/test_api_apps.py -v`
+- [x] T034 Run full frontend test suite: `cd apps/solune/frontend && npx vitest run src/pages/AppsPage.test.tsx src/components/apps/`
 
 ---
 
