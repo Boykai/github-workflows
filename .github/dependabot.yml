@@ -1,0 +1,51 @@
+# Dependabot dependency update configuration
+# Note: Dependabot supports daily/weekly/monthly intervals.
+# "daily" is used here as the closest supported frequency to every 3 days.
+version: 2
+updates:
+  # Python (pip) — backend
+  - package-ecosystem: "pip"
+    directory: "/solune/backend"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "python"
+
+  # npm — frontend
+  - package-ecosystem: "npm"
+    directory: "/solune/frontend"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+
+  # Docker — backend
+  - package-ecosystem: "docker"
+    directory: "/solune/backend"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # Docker — frontend
+  - package-ecosystem: "docker"
+    directory: "/solune/frontend"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+      - "docker"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    labels:
+      - "dependencies"
+      - "github-actions"
