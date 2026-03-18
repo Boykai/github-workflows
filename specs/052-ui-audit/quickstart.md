@@ -172,7 +172,7 @@ grep -rn 'useEffect.*fetch\|fetch(' src/pages/[PageName].tsx src/hooks/use[Featu
 
 ### Step 4: Evaluate Checklist
 
-Score each of the 65 checklist items as Pass/Fail/N/A using the criteria defined in `contracts/audit-checklist.md`.
+Score each of the 60 checklist items as Pass/Fail/N/A using the criteria defined in `contracts/audit-checklist.md`.
 
 ### Step 5: Document Findings
 

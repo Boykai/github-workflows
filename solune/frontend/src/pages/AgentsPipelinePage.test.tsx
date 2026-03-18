@@ -70,7 +70,7 @@ vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
   return {
     ...actual,
-    useBlocker: vi.fn(),
+    useBlocker: vi.fn(() => ({ state: 'idle', reset: vi.fn(), proceed: vi.fn() })),
   };
 });
 

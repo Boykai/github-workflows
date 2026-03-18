@@ -3,9 +3,9 @@
  * guards for the pipeline editor. Extracted from AgentsPipelinePage.
  */
 
-import { useState, useCallback, useEffect } from 'react';
-import { useBlocker } from 'react-router-dom';
+import { useState, useCallback } from 'react';
 import type { ConfirmationOptions } from '@/hooks/useConfirmation';
+import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 
 interface PipelineConfigActions {
   isDirty: boolean;
@@ -36,20 +36,8 @@ export function useUnsavedPipelineGuard({
     description: string;
   }>({ isOpen: false, pendingAction: null, description: '' });
 
-  // Block in-app SPA navigation when there are unsaved changes
-  useBlocker(pipelineConfig.isDirty);
-
-  // Browser navigation guard
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (pipelineConfig.isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [pipelineConfig.isDirty]);
+  // Reuse the generic unsaved-changes guard for beforeunload + SPA navigation blocking
+  useUnsavedChanges({ isDirty: pipelineConfig.isDirty });
 
   const handleWorkflowSelect = useCallback(
     (pipelineId: string) => {
