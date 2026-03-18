@@ -1,6 +1,14 @@
 # Setup Guide
 
-This guide walks through every supported way to run Solune locally: GitHub Codespaces (easiest), Docker Compose (recommended), and bare-metal without Docker. Follow the steps in order for your chosen path.
+Whether you're trying Solune for the first time or setting up a new development environment, this guide walks you through every option — from a one-click Codespaces launch to a full local development setup.
+
+## Which path is right for you?
+
+| Path | Best For | Time | Prerequisites |
+|------|----------|------|---------------|
+| **Codespaces** | Fastest start, no local setup | ~2 min | GitHub account |
+| **Docker** | Production-like environment | ~5 min | Docker Desktop |
+| **Local** | Full development control | ~10 min | Python 3.12+, Node.js 20+ |
 
 ## Prerequisites
 
@@ -191,3 +199,11 @@ docker compose down && docker compose up --build -d
 ## Optional: Signal Messaging
 
 See [Signal Integration](signal-integration.md) for full setup instructions.
+
+---
+
+## What's next?
+
+- [Configuration](configuration.md) — Customize environment variables for your deployment
+- [Architecture](architecture.md) — Understand how the services fit together
+- [Agent Pipeline](agent-pipeline.md) — Learn how to build and launch your first pipeline

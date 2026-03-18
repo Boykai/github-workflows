@@ -1,5 +1,7 @@
 # Documentation Owners
 
+> **Internal document** — This file is for project maintainers. It defines documentation ownership and review cadences. If you're looking for user-facing documentation, see the [main README](../README.md).
+
 Each doc file has a designated owner responsible for keeping it accurate. Owners must review relevant PRs and perform the weekly staleness sweep on their files.
 
 | File | Owner | Key Things to Verify |

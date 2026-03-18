@@ -1,8 +1,6 @@
 # Architecture Decision Records
 
-This directory contains Architecture Decision Records (ADRs) for Solune.
-
-Each ADR captures a significant technical decision that shaped the system design.
+Architecture Decision Records (ADRs) capture the key design decisions made during Solune's development — what was decided, why, and what alternatives were considered. We publish these to provide transparency into the project's technical direction and to help contributors understand the reasoning behind the codebase.
 
 ## Format
 

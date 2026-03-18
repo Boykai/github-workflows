@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the system design of Solune: how the services are composed, how data flows between them, and how the key backend modules are structured. Read this before making cross-service changes or onboarding to the codebase.
+Solune is a three-service application — a React frontend, a FastAPI backend, and a Signal messaging sidecar — orchestrated by Docker Compose. The backend manages all GitHub API interactions, AI-powered issue generation, and the autonomous agent pipeline engine. This document describes how these pieces fit together.
 
 ## Overview
 
@@ -56,6 +56,8 @@ Volumes: `solune-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 
 ## Frontend Architecture
 
+The frontend is a single-page React application that provides the visual pipeline builder, Kanban board, chat interface, and settings UI. It communicates with the backend over REST and WebSocket connections, proxied through nginx.
+
 - **Framework**: React 19 with TypeScript 5.9, built by Vite 8
 - **State Management**: TanStack Query v5 for server state; local `useState` for UI state
 - **Real-Time**: Native `WebSocket` connection for live board updates (with polling fallback)
@@ -81,6 +83,8 @@ Volumes: `solune-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 | `services/` | `api.ts` — centralized HTTP/WS client for all backend endpoints |
 
 ## Backend Architecture
+
+The backend is the core of Solune — it handles authentication, GitHub API interactions, AI completion, pipeline orchestration, and database management. All endpoints are async, and background tasks run in managed task groups.
 
 - **Framework**: FastAPI with async endpoints, Pydantic v2 models
 - **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (SQL migration files `001` through `026`)
@@ -144,3 +148,13 @@ The frontend nginx config (`nginx.conf`):
 - SPA fallback: all non-file routes serve `index.html`
 - Security headers: `X-Frame-Options`, `X-Content-Type-Options`, `X-XSS-Protection`
 - Health endpoint: `/health` returns 200 OK
+
+---
+
+For the rationale behind key design decisions, see the [Architecture Decision Records](decisions/README.md).
+
+## What's next?
+
+- [Agent Pipeline](agent-pipeline.md) — How pipelines orchestrate agents through execution stages
+- [Configuration](configuration.md) — Every environment variable and how to customize your deployment
+- [Project Structure](project-structure.md) — The complete directory layout with file descriptions

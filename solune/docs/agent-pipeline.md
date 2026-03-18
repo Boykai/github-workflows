@@ -1,5 +1,18 @@
 # Agent Pipeline
 
+Agent Pipelines are the heart of Solune — the engine that turns a feature description into working code through a choreographed sequence of AI agents. Each pipeline is a customizable plan where you choose which agents run, in what order, and whether they execute in series or parallel.
+
+## Quick Concept
+
+- A pipeline is a sequence of **stages**, each assigned to one or more AI agents
+- Agents can run in **series** (one after another) or **parallel** (concurrently within a group)
+- Each agent creates a **sub-issue**, branches from the main PR, and merges back when done
+- The pipeline is tracked with a durable **markdown table** in the GitHub Issue body — visible directly on GitHub and survives server restarts
+
+### Creating Your First Pipeline
+
+Open the **Agents Pipelines** page in Solune, drag agents from the sidebar into execution stages, choose series or parallel mode for each group, and click **Launch**. The built-in **Spec Kit** preset is a great starting point — or create a blank pipeline and compose your own agent combinations.
+
 ## Overview
 
 Agent Pipelines are customizable execution plans that orchestrate AI Custom GitHub Agents to perform remote work in series or parallel. Through the visual pipeline GUI, you compose any combination of agents into stages, assign AI models, and choose execution modes (series or parallel). When a pipeline is launched, the system creates a GitHub Issue, attaches it to a **GitHub Project** board, and executes each agent stage automatically — advancing the issue across board columns as agents complete their work.
@@ -241,3 +254,11 @@ Agent Pipelines are fully integrated with **GitHub Projects**:
 - Sub-issues appear on the same project board with `ai-generated` + `sub-issue` labels
 - The durable tracking table is embedded directly in the GitHub Issue body, providing visibility without needing the Solune UI
 - Pipeline progress is reflected in real-time on the Solune Kanban board, synced bidirectionally with GitHub Project columns
+
+---
+
+## What's next?
+
+- [Custom Agents Best Practices](custom-agents-best-practices.md) — Create your own agents with custom prompts and tools
+- [Architecture](architecture.md) — Understand how the pipeline engine fits into the overall system
+- [Troubleshooting](troubleshooting.md) — Solutions to common pipeline issues
