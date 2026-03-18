@@ -24,7 +24,7 @@
 **Purpose**: Prepare the measurement infrastructure and verify the current implementation state before any optimization code changes.
 
 - [x] T001 Create the baseline capture checklist document in `specs/051-performance-review/checklists/baseline.md` using the metric definitions from `contracts/baseline-metrics.md`
-- [x] T002 [P] Review and document current implementation state against Spec 022 targets using `solune/specs/022-api-rate-limit-protection/spec.md` as the reference
+- [x] T002 [P] Review and document current implementation state against rate-limit protection targets (≤2 idle calls/min, 300s board cache TTL, manual-refresh sub-issue invalidation)
 
 ---
 
@@ -138,7 +138,7 @@
 - [x] T035 [P] [US4] Add `useMemo` for derived data (sorting, filtering, aggregation) in `solune/frontend/src/pages/ProjectsPage.tsx`
 - [x] T036 [US4] Add `useCallback` for event handlers passed as props to memoized `BoardColumn` and `IssueCard` children in `solune/frontend/src/pages/ProjectsPage.tsx`
 - [x] T037 [P] [US4] Throttle resize/drag event handler with `requestAnimationFrame` gating in `solune/frontend/src/components/chat/ChatPopup.tsx`
-- [x] T038 [P] [US4] Review and throttle positioning listener update frequency in `solune/frontend/src/components/agents/AddAgentPopover.tsx` if custom listeners exist
+- [x] T038 [P] [US4] Review and throttle positioning listener update frequency in `solune/frontend/src/components/board/AddAgentPopover.tsx` if custom listeners exist
 - [ ] T039 [US4] Measure interaction frame rates post-optimization (drag, popover, scroll) and compare against FM-3 baseline in `specs/051-performance-review/checklists/baseline.md`
 
 **Checkpoint**: Board interactions maintain ≥30 FPS. SC-006 (≥30 FPS on 50+ card board) should be met.

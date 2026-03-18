@@ -39,10 +39,7 @@ export function useRealTimeSync(
   const onRefreshTriggeredRef = useRef(options?.onRefreshTriggered);
   /** Timestamp of the last reconnection invalidation for debounce. */
   const lastReconnectInvalidationRef = useRef(0);
-  /** Last polled data reference for fallback polling change detection.
-   *  TanStack Query preserves references via structural sharing when data
-   *  is unchanged, so reference equality reliably detects real changes. */
-  const lastPolledDataRef = useRef<unknown>(undefined);
+
 
   // Keep the callback ref up to date
   onRefreshTriggeredRef.current = options?.onRefreshTriggered;
@@ -105,20 +102,8 @@ export function useRealTimeSync(
 
     setStatus('polling');
     setLastUpdate(new Date()); // Mark as updated when polling starts
-    // Reset polled data reference so first poll always invalidates
-    lastPolledDataRef.current = undefined;
 
     pollingIntervalRef.current = window.setInterval(() => {
-      // Change detection: compare current cached data against last poll.
-      // TanStack Query uses structural sharing, so reference equality
-      // reliably detects whether the server returned new data.
-      const currentData = queryClient.getQueryData(['projects', projectId, 'tasks']);
-      if (currentData !== undefined && currentData === lastPolledDataRef.current) {
-        // Data unchanged since last poll — skip invalidation to avoid
-        // unnecessary refetches and auto-refresh timer resets.
-        return;
-      }
-      lastPolledDataRef.current = currentData;
       // Only invalidate tasks — board data refreshes on its own 5-minute schedule
       queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
       setLastUpdate(new Date());
@@ -212,8 +197,6 @@ export function useRealTimeSync(
       reconnectAttempts.current = 0;
       // Reset debounce so the first initial_data for the new project is not suppressed
       lastReconnectInvalidationRef.current = 0;
-      // Reset polled data reference so change detection starts fresh
-      lastPolledDataRef.current = undefined;
       // Try WebSocket first. Polling starts only as a fallback
       // (on WS error/close/timeout). Starting both simultaneously
       // caused a polling storm that froze the UI.

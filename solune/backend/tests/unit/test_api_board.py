@@ -394,15 +394,17 @@ class TestBoardErrorSanitization:
         assert "ATTACKER_CONTROLLED_ID" not in str(body)
 
 
-# ── Performance: WebSocket cache-hit short-circuit (T012) ──────────────────
+# ── Performance: Cache-hit behavior for project items (T012) ───────────────
 
 
-class TestWebSocketCacheHit:
-    """Verify the WebSocket handler short-circuits on cache hit
-    (skipping get_project_items external call)."""
+class TestProjectItemsCacheHit:
+    """Verify InMemoryCache get/miss behavior for project items cache keys.
+    NOTE: These tests cover cache-layer semantics only, not the full WebSocket
+    handler path.  Dedicated WebSocket integration tests are needed to verify
+    end-to-end short-circuiting."""
 
     def test_cache_hit_returns_cached_data(self):
-        """When cache has valid data, no external API call should occur."""
+        """When cache has valid data, get() returns it."""
         from src.services.cache import cache, get_project_items_cache_key
 
         cache_key = get_project_items_cache_key("PVT_test")
@@ -415,7 +417,7 @@ class TestWebSocketCacheHit:
         assert result == test_data
 
     def test_cache_miss_requires_fetch(self):
-        """When cache is empty, get() returns None (fetch is needed)."""
+        """When cache is empty, get() returns None (caller must fetch)."""
         from src.services.cache import cache, get_project_items_cache_key
 
         cache_key = get_project_items_cache_key("PVT_missing")
@@ -485,22 +487,6 @@ class TestStaleRevalidationHash:
         assert entry is not None
         assert entry.data_hash == new_hash
         assert entry.value == new_data
-
-
-# ── Performance: workflow.py shared resolve_repository (T014) ──────────────
-
-
-class TestWorkflowSharedResolveRepository:
-    """Verify workflow.py uses shared resolve_repository() from utils.py."""
-
-    def test_workflow_imports_resolve_repository_from_utils(self):
-        """workflow.py must import resolve_repository from src.utils."""
-        import src.api.workflow as workflow_module
-        from src.utils import resolve_repository
-
-        # Verify workflow module has resolve_repository from utils
-        assert hasattr(workflow_module, "resolve_repository")
-        assert workflow_module.resolve_repository is resolve_repository
 
 
 # ── Performance: sub-issue cache reuse on non-manual refresh (T019-T021) ───

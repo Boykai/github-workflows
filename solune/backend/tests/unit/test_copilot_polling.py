@@ -10623,12 +10623,15 @@ class TestCopilotReviewRequestTimestamp:
         assert 42 not in _copilot_review_requested_at
 
 
-# ── T043: Polling cycle cost — unchanged data produces ≤1 call ────────────
+# ── T043: Cache semantics supporting polling cycle cost (SC-005) ───────────
 
 
-class TestPollingCycleCost:
-    """Verify that a polling cycle with unchanged data produces at most
-    1 lightweight external call (SC-005)."""
+class TestCacheSemanticsForPolling:
+    """Verify InMemoryCache warm-hit and stale-fallback semantics that
+    underpin polling cycle cost guarantees (SC-005).
+    NOTE: These tests cover cache-layer behavior only, not the actual
+    polling endpoint or loop.  End-to-end polling tests are needed to
+    fully verify SC-005."""
 
     def test_warm_cache_prevents_redundant_api_calls(self):
         """When project items cache is warm, polling should not trigger

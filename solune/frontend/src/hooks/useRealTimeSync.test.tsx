@@ -920,6 +920,7 @@ describe('useRealTimeSync', () => {
     });
 
     it('T027: initial_data and refresh messages invalidate tasks query correctly', async () => {
+      vi.useFakeTimers();
       const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
       });
@@ -945,8 +946,10 @@ describe('useRealTimeSync', () => {
       );
 
       invalidateSpy.mockClear();
-      // Wait past debounce window to allow a second initial_data
-      await new Promise((resolve) => setTimeout(resolve, 2100));
+      // Advance past debounce window to allow a second initial_data
+      await act(async () => {
+        vi.advanceTimersByTime(2100);
+      });
 
       await act(async () => {
         mockWebSocketInstances[0]?.simulateMessage({ type: 'refresh' });
@@ -955,6 +958,7 @@ describe('useRealTimeSync', () => {
       expect(invalidateSpy).toHaveBeenCalledWith(
         expect.objectContaining({ queryKey: ['projects', 'PVT_123', 'tasks'] })
       );
+      vi.useRealTimers();
     });
 
     it('T028: board data query is NOT invalidated on any WebSocket message', async () => {
@@ -990,10 +994,10 @@ describe('useRealTimeSync', () => {
     });
   });
 
-  // ── T040-T042: Fallback polling change detection ──────────────────
+  // ── T040-T042: Fallback polling behavior ────────────────────────
 
-  describe('fallback polling change detection (T040-T042)', () => {
-    it('T040: fallback polling compares cached data before invalidating', async () => {
+  describe('fallback polling behavior (T040-T042)', () => {
+    it('T040: fallback polling always invalidates tasks query each interval', async () => {
       vi.useFakeTimers();
       const queryClient = new QueryClient({
         defaultOptions: { queries: { retry: false } },
@@ -1015,21 +1019,23 @@ describe('useRealTimeSync', () => {
         mockWebSocketInstances[0]?.simulateError();
       });
 
-      // First poll — data is new to the poller, should invalidate
+      // First poll — should invalidate
       invalidateSpy.mockClear();
       await act(async () => {
         vi.advanceTimersByTime(30_000);
       });
-      const firstPollCalls = invalidateSpy.mock.calls.length;
-      expect(firstPollCalls).toBeGreaterThan(0);
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['projects', 'PVT_123', 'tasks'] })
+      );
 
-      // Second poll — data has NOT changed (same reference via structural sharing)
+      // Second poll — must still invalidate to detect server-side changes
       invalidateSpy.mockClear();
       await act(async () => {
         vi.advanceTimersByTime(30_000);
       });
-      // Should skip invalidation since data reference hasn't changed
-      expect(invalidateSpy).not.toHaveBeenCalled();
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['projects', 'PVT_123', 'tasks'] })
+      );
 
       vi.useRealTimers();
     });
