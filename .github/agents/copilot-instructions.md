@@ -264,8 +264,6 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite (async), SQL-based migrations in `backend/src/migrations/` (050-solune-v010-release)
 - Python 3.12+ (backend), TypeScript 5.9.0 + React 19.2.0 (frontend) + FastAPI ≥0.135.0, githubkit ≥0.14.6, TanStack React Query ^5.90.0, @dnd-kit (drag-and-drop), Radix UI (popovers) (051-performance-review)
 - SQLite via aiosqlite (persistent settings, completed tasks); in-memory `InMemoryCache` (board data, sub-issues, rate limits) (051-performance-review)
-- TypeScript ~5.9.0, React 19.2.0 + TanStack Query v5.90.0 (data fetching), React Router v7.13.1 (routing), React Hook Form v7.71.2 (forms), Zod v4.3.6 (validation), Radix UI (accessible primitives), Tailwind CSS v4.2.0 (styling), Lucide React v0.577.0 (icons), clsx + tailwind-merge via `cn()` helper (052-ui-audit)
-- N/A (frontend only — consumes backend REST API via `src/services/api.ts`) (052-ui-audit)
 
 ## Recent Changes
 - 050-solune-v010-release: Added Python 3.13 (backend runtime, 3.12 CI), TypeScript ~5.9 (frontend) + FastAPI >=0.135, React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit (drag-and-drop), Pydantic 2.12, aiosqlite, cryptography 46
