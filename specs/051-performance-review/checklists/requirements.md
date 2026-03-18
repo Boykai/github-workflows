@@ -32,6 +32,6 @@
 ## Notes
 
 - All items pass validation. Spec is ready for `/speckit.clarify` or `/speckit.plan`.
-- The specification intentionally avoids naming specific technologies, frameworks, or file paths — those details belong in the planning phase.
+- The specification uses technology-neutral language in user stories and functional requirements ("real-time channel", "external data source"). Specific technologies (WebSocket, GitHub API) appear only in the Assumptions section as implementation context; file paths and framework choices are deferred to the planning phase.
 - Scope boundaries are explicitly defined with a clear "in scope" and "out of scope" separation to prevent scope creep.
 - Assumptions section documents reasonable defaults that were inferred from the parent issue context rather than requiring clarification.
