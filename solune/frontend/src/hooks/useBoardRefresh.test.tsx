@@ -669,4 +669,89 @@ describe('useBoardRefresh', () => {
     );
     expect(laterInvalidations.length).toBe(1);
   });
+
+  // ── T052: Refresh policy contract verification ──────────────────
+
+  describe('refresh policy contract (T052)', () => {
+    it('auto-refresh timer pauses on hidden tab and resumes on visible', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      // Hide tab — timer paused
+      Object.defineProperty(document, 'hidden', { value: true, writable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+      invalidateSpy.mockClear();
+
+      // No auto-refresh while hidden
+      await act(async () => {
+        vi.advanceTimersByTime(5000);
+      });
+      expect(invalidateSpy).not.toHaveBeenCalled();
+
+      // Show tab — should resume and refresh stale data
+      Object.defineProperty(document, 'hidden', { value: false, writable: true });
+      await act(async () => {
+        document.dispatchEvent(new Event('visibilitychange'));
+      });
+      expect(invalidateSpy).toHaveBeenCalled();
+
+      // Restore
+      Object.defineProperty(document, 'hidden', { value: false, writable: true });
+    });
+
+    it('manual refresh bypasses cache by calling getBoardData with refresh=true', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+
+      const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      await act(async () => {
+        result.current.refresh();
+      });
+
+      // Should call getBoardData with refresh=true (second argument)
+      expect(mockGetBoardData).toHaveBeenCalledWith('PVT_123', true);
+    });
+
+    it('deduplication: only one refresh within BOARD_RELOAD_DEBOUNCE_MS window', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      const { result } = renderHook(() => useBoardRefresh({ projectId: 'PVT_123' }), {
+        wrapper: createWrapper(queryClient),
+      });
+
+      invalidateSpy.mockClear();
+
+      // Fire requestBoardReload twice rapidly
+      await act(async () => {
+        result.current.requestBoardReload();
+      });
+
+      const firstCount = invalidateSpy.mock.calls.filter((c) => {
+        const qk = c[0]?.queryKey;
+        return Array.isArray(qk) && qk[0] === 'board';
+      }).length;
+
+      invalidateSpy.mockClear();
+      await act(async () => {
+        result.current.requestBoardReload();
+      });
+
+      // Second call is debounced — no immediate invalidation
+      expect(invalidateSpy).not.toHaveBeenCalled();
+      expect(firstCount).toBe(1);
+    });
+  });
 });

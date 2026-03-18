@@ -884,4 +884,219 @@ describe('useRealTimeSync', () => {
       vi.useRealTimers();
     });
   });
+
+  // ── T026-T028: WebSocket message → query invalidation scope ────────
+
+  describe('WebSocket message query invalidation scope (T026-T028)', () => {
+    it('T026: task_update, task_created, status_changed invalidate only tasks query', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+      invalidateSpy.mockClear();
+
+      // Send all three task-level message types
+      for (const type of ['task_update', 'task_created', 'status_changed']) {
+        await act(async () => {
+          mockWebSocketInstances[0]?.simulateMessage({ type });
+        });
+      }
+
+      // All invalidations should target the tasks query
+      for (const call of invalidateSpy.mock.calls) {
+        const queryKey = (call[0] as { queryKey: unknown[] }).queryKey;
+        expect(queryKey).toEqual(['projects', 'PVT_123', 'tasks']);
+      }
+    });
+
+    it('T027: initial_data and refresh messages invalidate tasks query correctly', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+      invalidateSpy.mockClear();
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'initial_data' });
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['projects', 'PVT_123', 'tasks'] })
+      );
+
+      invalidateSpy.mockClear();
+      // Wait past debounce window to allow a second initial_data
+      await new Promise((resolve) => setTimeout(resolve, 2100));
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({ type: 'refresh' });
+      });
+
+      expect(invalidateSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ queryKey: ['projects', 'PVT_123', 'tasks'] })
+      );
+    });
+
+    it('T028: board data query is NOT invalidated on any WebSocket message', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+      invalidateSpy.mockClear();
+
+      // Send every known message type
+      for (const type of ['task_update', 'task_created', 'status_changed', 'refresh']) {
+        await act(async () => {
+          mockWebSocketInstances[0]?.simulateMessage({ type });
+        });
+      }
+
+      // No call should target the board data query
+      const boardCalls = invalidateSpy.mock.calls.filter(([opts]) => {
+        const key = (opts as { queryKey: unknown[] }).queryKey;
+        return Array.isArray(key) && key[0] === 'board' && key[1] === 'data';
+      });
+      expect(boardCalls.length).toBe(0);
+    });
+  });
+
+  // ── T040-T042: Fallback polling change detection ──────────────────
+
+  describe('fallback polling change detection (T040-T042)', () => {
+    it('T040: fallback polling compares cached data before invalidating', async () => {
+      vi.useFakeTimers();
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      // Pre-populate tasks data in cache
+      const tasksData = [{ id: '1', title: 'Task A' }];
+      queryClient.setQueryData(['projects', 'PVT_123', 'tasks'], tasksData);
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      // Force polling fallback
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateError();
+      });
+
+      // First poll — data is new to the poller, should invalidate
+      invalidateSpy.mockClear();
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+      });
+      const firstPollCalls = invalidateSpy.mock.calls.length;
+      expect(firstPollCalls).toBeGreaterThan(0);
+
+      // Second poll — data has NOT changed (same reference via structural sharing)
+      invalidateSpy.mockClear();
+      await act(async () => {
+        vi.advanceTimersByTime(30_000);
+      });
+      // Should skip invalidation since data reference hasn't changed
+      expect(invalidateSpy).not.toHaveBeenCalled();
+
+      vi.useRealTimers();
+    });
+
+    it('T041: fallback polling does NOT invalidate board data query when no changes', async () => {
+      vi.useFakeTimers();
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
+
+      queryClient.setQueryData(['projects', 'PVT_123', 'tasks'], [{ id: '1' }]);
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateError();
+      });
+      invalidateSpy.mockClear();
+
+      // Advance through multiple poll cycles
+      for (let i = 0; i < 3; i++) {
+        await act(async () => {
+          vi.advanceTimersByTime(30_000);
+        });
+      }
+
+      // No board data query should be invalidated
+      const boardCalls = invalidateSpy.mock.calls.filter(([opts]) => {
+        const key = (opts as { queryKey: unknown[] }).queryKey;
+        return Array.isArray(key) && key[0] === 'board' && key[1] === 'data';
+      });
+      expect(boardCalls.length).toBe(0);
+
+      vi.useRealTimers();
+    });
+
+    it('T042: fallback polling intervals remain consistent', async () => {
+      vi.useFakeTimers();
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const setIntervalSpy = vi.spyOn(global, 'setInterval');
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      // Force polling
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateError();
+      });
+
+      // Check that setInterval was called with 30s (WS_FALLBACK_POLL_MS)
+      const pollIntervalCalls = setIntervalSpy.mock.calls.filter(
+        ([, delay]) => delay === 30_000
+      );
+      expect(pollIntervalCalls.length).toBeGreaterThan(0);
+
+      setIntervalSpy.mockRestore();
+      vi.useRealTimers();
+    });
+  });
 });

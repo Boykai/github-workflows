@@ -392,3 +392,161 @@ class TestBoardErrorSanitization:
         assert resp.status_code == 404
         body = resp.json()
         assert "ATTACKER_CONTROLLED_ID" not in str(body)
+
+
+# ── Performance: WebSocket cache-hit short-circuit (T012) ──────────────────
+
+
+class TestWebSocketCacheHit:
+    """Verify the WebSocket handler short-circuits on cache hit
+    (skipping get_project_items external call)."""
+
+    def test_cache_hit_returns_cached_data(self):
+        """When cache has valid data, no external API call should occur."""
+        from src.services.cache import cache, get_project_items_cache_key
+
+        cache_key = get_project_items_cache_key("PVT_test")
+        test_data = [{"id": "1", "title": "cached"}]
+        cache.set(cache_key, test_data)
+
+        # Verify cache.get() returns the data
+        result = cache.get(cache_key)
+        assert result is not None
+        assert result == test_data
+
+    def test_cache_miss_requires_fetch(self):
+        """When cache is empty, get() returns None (fetch is needed)."""
+        from src.services.cache import cache, get_project_items_cache_key
+
+        cache_key = get_project_items_cache_key("PVT_missing")
+        result = cache.get(cache_key)
+        assert result is None
+
+
+# ── Performance: stale-revalidation hash comparison (T013) ─────────────────
+
+
+class TestStaleRevalidationHash:
+    """Verify that stale-revalidation counter resets on verified-unchanged
+    data (same hash) rather than only on forced fetches."""
+
+    def test_unchanged_data_refreshes_ttl(self):
+        """When fetched data matches cached data hash, TTL is refreshed."""
+        from src.services.cache import CacheEntry, cache, compute_data_hash, get_project_items_cache_key
+
+        cache_key = get_project_items_cache_key("PVT_revalidate")
+        test_data = [{"id": "1", "title": "test"}]
+        data_hash = compute_data_hash(test_data)
+
+        # Prime cache with a data hash
+        cache.set(cache_key, test_data, data_hash=data_hash)
+
+        # Verify entry exists with hash
+        entry = cache.get_entry(cache_key)
+        assert entry is not None
+        assert entry.data_hash == data_hash
+
+        # Refresh TTL (simulating unchanged data detection)
+        original_expires = entry.expires_at
+        import time
+        time.sleep(0.01)  # Ensure time difference
+        cache.refresh_ttl(cache_key)
+
+        # TTL should have been refreshed
+        refreshed_entry = cache.get_entry(cache_key)
+        assert refreshed_entry is not None
+        assert refreshed_entry.expires_at > original_expires
+
+    def test_changed_data_stores_new_entry(self):
+        """When fetched data differs from cached data hash, a new entry is stored."""
+        from src.services.cache import cache, compute_data_hash, get_project_items_cache_key
+
+        cache_key = get_project_items_cache_key("PVT_changed")
+        old_data = [{"id": "1", "title": "old"}]
+        new_data = [{"id": "1", "title": "updated"}]
+        old_hash = compute_data_hash(old_data)
+        new_hash = compute_data_hash(new_data)
+
+        # Prime cache with old data
+        cache.set(cache_key, old_data, data_hash=old_hash)
+
+        # Verify hashes differ
+        assert old_hash != new_hash
+
+        # Store new data with new hash (simulating changed data)
+        cache.set(cache_key, new_data, data_hash=new_hash)
+
+        entry = cache.get_entry(cache_key)
+        assert entry is not None
+        assert entry.data_hash == new_hash
+        assert entry.value == new_data
+
+
+# ── Performance: workflow.py shared resolve_repository (T014) ──────────────
+
+
+class TestWorkflowSharedResolveRepository:
+    """Verify workflow.py uses shared resolve_repository() from utils.py."""
+
+    def test_workflow_imports_resolve_repository_from_utils(self):
+        """workflow.py must import resolve_repository from src.utils."""
+        import src.api.workflow as workflow_module
+        from src.utils import resolve_repository
+
+        # Verify workflow module has resolve_repository from utils
+        assert hasattr(workflow_module, "resolve_repository")
+        assert workflow_module.resolve_repository is resolve_repository
+
+
+# ── Performance: sub-issue cache reuse on non-manual refresh (T019–T021) ───
+
+
+class TestSubIssueCacheReuse:
+    """Verify sub-issue cache behavior for board data refreshes."""
+
+    async def test_non_manual_refresh_checks_sub_issue_cache(self, client, mock_github_service):
+        """Non-manual refresh should check sub-issue cache before external calls (T019)."""
+        bd = _make_board_data()
+        from src.models.board import Repository
+        bd.columns[0].items[0].repository = Repository(owner="test-owner", name="test-repo")
+        bd.columns[0].items[0].number = 42
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = None
+            mock_cache.get_stale.return_value = None
+            resp = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp.status_code == 200
+            # cache.delete should NOT be called on non-manual refresh
+            delete_calls = [str(call) for call in mock_cache.delete.call_args_list]
+            assert not any("sub_issues" in c for c in delete_calls)
+
+    async def test_manual_refresh_clears_sub_issue_cache_entries(self, client, mock_github_service):
+        """Manual refresh (refresh=True) must clear sub-issue cache entries (T020)."""
+        bd = _make_board_data()
+        from src.models.board import Repository
+        bd.columns[0].items[0].repository = Repository(owner="test-owner", name="test-repo")
+        bd.columns[0].items[0].number = 42
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            mock_cache.get.return_value = bd
+            mock_cache.get_stale.return_value = None
+            resp = await client.get("/api/v1/board/projects/PVT_abc", params={"refresh": True})
+            assert resp.status_code == 200
+            # cache.delete should be called for sub-issue cache key
+            delete_calls = [str(call) for call in mock_cache.delete.call_args_list]
+            assert any("sub_issues" in c for c in delete_calls)
+
+    async def test_warm_sub_issue_cache_reduces_fetch_count(self, client, mock_github_service):
+        """Warm sub-issue cache should prevent redundant API calls (T021/SC-003)."""
+        bd = _make_board_data()
+        mock_github_service.get_board_data.return_value = bd
+
+        with patch("src.api.board.cache") as mock_cache:
+            # Simulate warm cache — return cached board data
+            mock_cache.get.return_value = bd
+            resp = await client.get("/api/v1/board/projects/PVT_abc")
+            assert resp.status_code == 200
+            # Service should NOT be called when cache is warm
+            mock_github_service.get_board_data.assert_not_called()

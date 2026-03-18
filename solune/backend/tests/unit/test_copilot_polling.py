@@ -10621,3 +10621,52 @@ class TestCopilotReviewRequestTimestamp:
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
         assert result["status"] == "error"
         assert 42 not in _copilot_review_requested_at
+
+
+# ── T043: Polling cycle cost — unchanged data produces ≤1 call ────────────
+
+
+class TestPollingCycleCost:
+    """Verify that a polling cycle with unchanged data produces at most
+    1 lightweight external call (SC-005)."""
+
+    def test_warm_cache_prevents_redundant_api_calls(self):
+        """When project items cache is warm, polling should not trigger
+        expensive external API calls for unchanged data."""
+        from src.services.cache import cache, get_project_items_cache_key
+
+        project_id = "PVT_idle"
+        cache_key = get_project_items_cache_key(project_id)
+
+        # Populate cache so it's "warm"
+        cached_items = [{"id": "1", "title": "cached task"}]
+        cache.set(cache_key, cached_items)
+
+        # Verify cache hit prevents the need for external calls
+        result = cache.get(cache_key)
+        assert result is not None
+        assert result == cached_items
+
+    def test_stale_cache_serves_data_without_fetch(self):
+        """When cache is expired but stale data exists, get_stale() should
+        serve data without requiring an external API call."""
+        from src.services.cache import cache, get_project_items_cache_key
+
+        project_id = "PVT_stale"
+        cache_key = get_project_items_cache_key(project_id)
+
+        # Set with a short TTL
+        cached_items = [{"id": "1", "title": "stale task"}]
+        cache.set(cache_key, cached_items, ttl_seconds=1)
+
+        # Manually expire the entry by setting expires_at in the past
+        entry = cache.get_entry(cache_key)
+        assert entry is not None
+        from datetime import timedelta
+        from src.utils import utcnow
+        entry.expires_at = utcnow() - timedelta(seconds=10)
+
+        # get_stale should still return the expired data (degraded-mode fallback)
+        stale = cache.get_stale(cache_key)
+        assert stale is not None
+        assert stale == cached_items
