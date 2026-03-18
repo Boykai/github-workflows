@@ -211,7 +211,7 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
       </dl>
 
       {/* GitHub Links */}
-      {(app.github_repo_url || app.github_project_url) && (
+      {(app.github_repo_url || app.github_project_url || app.parent_issue_url) && (
         <div className="flex flex-wrap gap-3">
           {app.github_repo_url && (
             <a
@@ -233,6 +233,23 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
               <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" /> GitHub Project
             </a>
           )}
+          {app.parent_issue_url && (
+            <a
+              href={app.parent_issue_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-300 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:border-indigo-600 dark:text-indigo-400 dark:hover:bg-indigo-950/30"
+            >
+              <ExternalLink aria-hidden="true" className="h-3.5 w-3.5" /> Parent Issue #{app.parent_issue_number}
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* Pipeline info */}
+      {app.associated_pipeline_id && (
+        <div className="text-xs text-zinc-500 dark:text-zinc-400">
+          Pipeline: <span className="font-medium text-zinc-700 dark:text-zinc-300">{app.associated_pipeline_id}</span>
         </div>
       )}
 
