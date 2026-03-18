@@ -115,6 +115,7 @@ cat package.json | jq '.scripts' 2>/dev/null
   - Run build steps, type checks, coverage thresholds, security scans as defined in CI.
 - Flag any CI-only steps that cannot be run locally, and document what would be needed.
 - If `act` (GitHub Actions local runner) is available, use it: `act push`.
+- **In PR mode**: after replicating CI steps locally, review the actual CI run results on the PR. If any CI jobs have failed, diagnose the failures from the workflow logs, fix the root causes in the source code, and re-verify locally before proceeding. Repeat until all CI checks are green or the remaining failures are outside your control (e.g., infrastructure flakes, secrets unavailable locally).
 
 ### 6. Final Verification Pass
 
@@ -128,6 +129,16 @@ Run a complete, clean sweep to confirm zero issues remain:
 ```
 
 Report any items that could **not** be resolved locally and explain why.
+
+### 7. Specs Cleanup
+
+After all checks pass and the final verification is complete, run the specs cleanup script from the repository root:
+
+```bash
+bash .github/scripts/cleanup-specs.sh
+```
+
+This removes the `specs/` directory (Spec Kit working artifacts) from the branch so it is not included in the final PR. If `specs/` does not exist, the script exits cleanly with no changes.
 
 ---
 
