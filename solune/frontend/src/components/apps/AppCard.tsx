@@ -3,7 +3,7 @@
  * Shows name, description, status badge, repo type badge, and action buttons.
  */
 
-import { ExternalLink, Play, Square, Trash2 } from 'lucide-react';
+import { ExternalLink, Play, Square, Trash2, Workflow } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { App, AppStatus, RepoType } from '@/types/apps';
@@ -85,6 +85,11 @@ export function AppCard({
           </h3>
         </Tooltip>
         <div className="flex items-center gap-1.5 shrink-0">
+          {(app.parent_issue_url || app.associated_pipeline_id) && (
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-indigo-100/80 px-2 py-0.5 text-xs font-medium text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-300">
+              <Workflow aria-hidden="true" className="h-3 w-3" /> Pipeline
+            </span>
+          )}
           <span className={cn('rounded-full px-2 py-0.5 text-xs font-medium', REPO_TYPE_STYLES[app.repo_type])}>
             {REPO_TYPE_LABELS[app.repo_type] ?? app.repo_type}
           </span>
