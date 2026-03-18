@@ -3,7 +3,7 @@
  * Extracted from AppsPage to keep the page file ≤250 lines.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ChevronDown, Sparkles } from 'lucide-react';
 import type { AppCreate, Owner, RepoType } from '@/types/apps';
 
@@ -50,11 +50,31 @@ export function CreateAppDialog({
   // Fall back to first available owner when owners load asynchronously
   const effectiveRepoOwner = repoOwner || owners?.[0]?.login || '';
 
-  // Document-level Escape key handler
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  // Focus trapping and Escape key handling
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+        return;
+      }
+
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href], input, select, textarea'
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -176,6 +196,7 @@ export function CreateAppDialog({
 
       {/* Dialog */}
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="create-app-dialog-title"

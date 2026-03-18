@@ -144,7 +144,7 @@ Audit Item (0..1)      ──── has ──────── (1)   Audit Fin
 | 9 | Test Coverage | 5 items |
 | 10 | Code Hygiene | 6 items |
 
-**Total**: 65 checklist items per page × 11 pages = 715 total evaluations
+**Total**: 60 checklist items per page × 11 pages = 660 total evaluations
 
 ### Pages to Audit (11 pages)
 

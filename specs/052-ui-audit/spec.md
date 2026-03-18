@@ -7,7 +7,7 @@
 
 ## Overview
 
-A comprehensive, repeatable audit of every user-facing page in the Solune frontend to ensure modern best practices across ten quality dimensions: component architecture, data management, state handling (loading/error/empty), type safety, accessibility, copy and UX polish, styling and layout, performance, test coverage, and code hygiene. Each page is evaluated against a standardized checklist, findings are documented, and defects are remediated — resulting in a uniformly high-quality user experience across the entire application.
+A comprehensive, repeatable audit of every user-facing page in the Solune frontend to ensure modern best practices across ten quality dimensions: component architecture, data fetching and state management, loading/error/empty states, type safety, accessibility, text and UX polish, styling and layout, performance, test coverage, and code hygiene. Each page is evaluated against a standardized checklist, findings are documented, and defects are remediated — resulting in a uniformly high-quality user experience across the entire application.
 
 ### Assumptions
 
@@ -15,7 +15,7 @@ A comprehensive, repeatable audit of every user-facing page in the Solune fronte
 - Each page is audited independently — one page can pass the audit even if other pages have outstanding issues
 - Existing shared UI primitives (buttons, cards, inputs, tooltips, confirmation dialogs) and common components (loaders, error boundaries, empty states) are considered the standard and should be reused rather than reimplemented
 - The application supports both light and dark modes, and all audited pages must function correctly in both
-- The target viewport range for responsive design is 768px to 1920px
+- The target viewport range for responsive design is 320px to 1920px (aligned with the v0.1.0 release spec)
 - Accessibility compliance targets WCAG AA level (4.5:1 contrast ratio, full keyboard navigation, proper ARIA attributes)
 - The audit does not introduce new features — it identifies and remediates defects, gaps, and inconsistencies in existing pages
 - Standard web application performance expectations apply (interactions feel instant, lists render smoothly)
@@ -155,7 +155,7 @@ As a developer auditing a page, I need to verify that the page's hooks and inter
 
 **Acceptance Scenarios**:
 
-1. **Given** a page has a custom hook, **When** the audit checks for tests, **Then** a test file exists that covers the hook's happy path, error state, and loading state.
+1. **Given** a page has a custom hook, **When** the audit checks for tests, **Then** a test file exists that covers the hook's happy path, error state, loading state, and empty state.
 2. **Given** a page has interactive components (forms, dialogs, toggles), **When** the audit checks for tests, **Then** test files exist that simulate user interactions and assert expected outcomes.
 3. **Given** a page has no tests at all, **When** the audit identifies this, **Then** the finding lists the specific test scenarios that must be added.
 
@@ -236,7 +236,7 @@ As a developer auditing a page, I need to verify that the page's hooks and inter
 **Styling & Layout**
 
 - **FR-040**: Pages MUST use utility classes exclusively — no inline style attributes.
-- **FR-041**: Pages MUST be responsive across viewport widths from 768px to 1920px.
+- **FR-041**: Pages MUST be responsive across viewport widths from 320px to 1920px.
 - **FR-042**: Pages MUST support dark mode using theme-aware variables — no hardcoded colors.
 - **FR-043**: Spacing MUST use the project's standard spacing scale — no arbitrary values.
 - **FR-044**: Content sections MUST use the shared Card component with consistent padding and rounding.
@@ -258,7 +258,7 @@ As a developer auditing a page, I need to verify that the page's hooks and inter
 
 - **FR-052**: Dead code (unused imports, commented-out blocks, unreachable branches) MUST be removed.
 - **FR-053**: Console.log statements MUST be removed.
-- **FR-054**: Project imports MUST use the path alias — not relative paths.
+- **FR-054**: Cross-feature project imports MUST use the path alias (`@/`). Same-folder relative imports (e.g., within `__tests__/` or a feature directory) are acceptable.
 - **FR-055**: Repeated strings (status values, route paths, query keys) MUST be defined as constants.
 - **FR-056**: The linter MUST report zero warnings for all audited files.
 
@@ -270,9 +270,9 @@ As a developer auditing a page, I need to verify that the page's hooks and inter
 - **SC-002**: All audited pages display a loading indicator or skeleton during data fetching — zero blank screens across the application.
 - **SC-003**: All audited pages show user-friendly error messages with retry actions when API calls fail — zero raw error codes or stack traces shown to users.
 - **SC-004**: All interactive elements on audited pages are reachable and activatable via keyboard alone (Tab, Enter, Space).
-- **SC-005**: All audited pages render correctly in both light and dark modes across viewport widths from 768px to 1920px.
+- **SC-005**: All audited pages render correctly in both light and dark modes across viewport widths from 320px to 1920px.
 - **SC-006**: Zero instances of placeholder text (TODO, Lorem ipsum, Test) remain in user-visible strings across audited pages.
 - **SC-007**: All destructive actions across audited pages require confirmation before execution.
 - **SC-008**: The linter reports zero warnings and the type checker reports zero errors for all audited page files and their associated components, hooks, and types.
-- **SC-009**: All custom hooks and key interactive components on audited pages have test files with assertion-based tests covering at minimum happy path, error state, and loading state.
+- **SC-009**: All custom hooks and key interactive components on audited pages have test files with assertion-based tests covering at minimum happy path, error state, loading state, and empty state.
 - **SC-010**: Users can complete their primary task on any audited page within a consistent, predictable experience — no inconsistencies in terminology, button labeling, feedback patterns, or visual styling between pages.

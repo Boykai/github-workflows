@@ -47,7 +47,7 @@
 
 **Purpose**: Establish the audit framework, scoring templates, and automated scanning tooling before any per-page work begins.
 
-- [ ] T001 Create audit checklist template at `specs/052-ui-audit/checklists/page-audit-template.md` following the output format defined in `specs/052-ui-audit/contracts/audit-checklist.md` with all 10 categories and 65 checklist items
+- [ ] T001 Create audit checklist template at `specs/052-ui-audit/checklists/page-audit-template.md` following the output format defined in `specs/052-ui-audit/contracts/audit-checklist.md` with all 10 categories and 60 checklist items
 - [ ] T002 [P] Create automated scanning script at `specs/052-ui-audit/checklists/scan.sh` to run line count, ESLint, TypeScript type check, `any`-type grep, `console.log` grep, inline style grep, hardcoded color grep, index key grep, and relative import grep across all 11 pages
 - [ ] T003 [P] Run initial `npx eslint src/pages/` in `solune/frontend/` and capture baseline ESLint warning/error count for all pages
 - [ ] T004 [P] Run initial `npx tsc --noEmit` in `solune/frontend/` and capture baseline TypeScript error count
@@ -63,17 +63,17 @@
 
 ### Discovery & Scoring for All Pages
 
-- [ ] T006 [P] [US1] Audit AgentsPage: Read `solune/frontend/src/pages/AgentsPage.tsx`, `solune/frontend/src/components/agents/`, `solune/frontend/src/hooks/useAgents*.ts`, related types in `solune/frontend/src/types/`; run automated scans; score all 65 checklist items; produce findings at `specs/052-ui-audit/checklists/agents-page-audit.md`
-- [ ] T007 [P] [US1] Audit AgentsPipelinePage: Read `solune/frontend/src/pages/AgentsPipelinePage.tsx`, `solune/frontend/src/components/pipeline/`, `solune/frontend/src/hooks/usePipelineConfig*.ts`, related types; run automated scans; score all 65 checklist items; produce findings at `specs/052-ui-audit/checklists/agents-pipeline-page-audit.md`
-- [ ] T008 [P] [US1] Audit AppPage: Read `solune/frontend/src/pages/AppPage.tsx`, `solune/frontend/src/components/apps/`, `solune/frontend/src/hooks/useApps*.ts`, related types; run automated scans; score all 65 checklist items; produce findings at `specs/052-ui-audit/checklists/app-page-audit.md`
-- [ ] T009 [P] [US1] Audit AppsPage: Read `solune/frontend/src/pages/AppsPage.tsx`, `solune/frontend/src/components/apps/`, `solune/frontend/src/hooks/useApps*.ts`, related types; run automated scans; score all 65 checklist items; produce findings at `specs/052-ui-audit/checklists/apps-page-audit.md`
-- [ ] T010 [P] [US1] Audit ChoresPage: Read `solune/frontend/src/pages/ChoresPage.tsx`, `solune/frontend/src/components/chores/`, `solune/frontend/src/hooks/useChores*.ts`, related types; run automated scans; score all 65 checklist items; produce findings at `specs/052-ui-audit/checklists/chores-page-audit.md`
-- [ ] T011 [P] [US1] Audit HelpPage: Read `solune/frontend/src/pages/HelpPage.tsx`, `solune/frontend/src/components/help/`, related types; run automated scans; score all 65 checklist items (Data Fetching items may be N/A for static content); produce findings at `specs/052-ui-audit/checklists/help-page-audit.md`
-- [ ] T012 [P] [US1] Audit LoginPage: Read `solune/frontend/src/pages/LoginPage.tsx`, `solune/frontend/src/components/auth/`, `solune/frontend/src/hooks/useAuth*.ts`, related types; run automated scans; score all 65 checklist items; produce findings at `specs/052-ui-audit/checklists/login-page-audit.md`
-- [ ] T013 [P] [US1] Audit NotFoundPage: Read `solune/frontend/src/pages/NotFoundPage.tsx`; run automated scans; score all 65 checklist items (many Data Fetching, State, Performance items will be N/A); produce findings at `specs/052-ui-audit/checklists/not-found-page-audit.md`
-- [ ] T014 [P] [US1] Audit ProjectsPage: Read `solune/frontend/src/pages/ProjectsPage.tsx`, `solune/frontend/src/components/board/`, `solune/frontend/src/hooks/useProjects*.ts`, related types; run automated scans; score all 65 checklist items; produce findings at `specs/052-ui-audit/checklists/projects-page-audit.md`
-- [ ] T015 [P] [US1] Audit SettingsPage: Read `solune/frontend/src/pages/SettingsPage.tsx`, `solune/frontend/src/components/settings/`, `solune/frontend/src/hooks/useSettings*.ts`, related types; run automated scans; score all 65 checklist items; produce findings at `specs/052-ui-audit/checklists/settings-page-audit.md`
-- [ ] T016 [P] [US1] Audit ToolsPage: Read `solune/frontend/src/pages/ToolsPage.tsx`, `solune/frontend/src/components/tools/`, `solune/frontend/src/hooks/useTools*.ts`, related types; run automated scans; score all 65 checklist items; produce findings at `specs/052-ui-audit/checklists/tools-page-audit.md`
+- [ ] T006 [P] [US1] Audit AgentsPage: Read `solune/frontend/src/pages/AgentsPage.tsx`, `solune/frontend/src/components/agents/`, `solune/frontend/src/hooks/useAgents*.ts`, related types in `solune/frontend/src/types/`; run automated scans; score all 60 checklist items; produce findings at `specs/052-ui-audit/checklists/agents-page-audit.md`
+- [ ] T007 [P] [US1] Audit AgentsPipelinePage: Read `solune/frontend/src/pages/AgentsPipelinePage.tsx`, `solune/frontend/src/components/pipeline/`, `solune/frontend/src/hooks/usePipelineConfig*.ts`, related types; run automated scans; score all 60 checklist items; produce findings at `specs/052-ui-audit/checklists/agents-pipeline-page-audit.md`
+- [ ] T008 [P] [US1] Audit AppPage: Read `solune/frontend/src/pages/AppPage.tsx`, `solune/frontend/src/components/apps/`, `solune/frontend/src/hooks/useApps*.ts`, related types; run automated scans; score all 60 checklist items; produce findings at `specs/052-ui-audit/checklists/app-page-audit.md`
+- [ ] T009 [P] [US1] Audit AppsPage: Read `solune/frontend/src/pages/AppsPage.tsx`, `solune/frontend/src/components/apps/`, `solune/frontend/src/hooks/useApps*.ts`, related types; run automated scans; score all 60 checklist items; produce findings at `specs/052-ui-audit/checklists/apps-page-audit.md`
+- [ ] T010 [P] [US1] Audit ChoresPage: Read `solune/frontend/src/pages/ChoresPage.tsx`, `solune/frontend/src/components/chores/`, `solune/frontend/src/hooks/useChores*.ts`, related types; run automated scans; score all 60 checklist items; produce findings at `specs/052-ui-audit/checklists/chores-page-audit.md`
+- [ ] T011 [P] [US1] Audit HelpPage: Read `solune/frontend/src/pages/HelpPage.tsx`, `solune/frontend/src/components/help/`, related types; run automated scans; score all 60 checklist items (Data Fetching items may be N/A for static content); produce findings at `specs/052-ui-audit/checklists/help-page-audit.md`
+- [ ] T012 [P] [US1] Audit LoginPage: Read `solune/frontend/src/pages/LoginPage.tsx`, `solune/frontend/src/components/auth/`, `solune/frontend/src/hooks/useAuth*.ts`, related types; run automated scans; score all 60 checklist items; produce findings at `specs/052-ui-audit/checklists/login-page-audit.md`
+- [ ] T013 [P] [US1] Audit NotFoundPage: Read `solune/frontend/src/pages/NotFoundPage.tsx`; run automated scans; score all 60 checklist items (many Data Fetching, State, Performance items will be N/A); produce findings at `specs/052-ui-audit/checklists/not-found-page-audit.md`
+- [ ] T014 [P] [US1] Audit ProjectsPage: Read `solune/frontend/src/pages/ProjectsPage.tsx`, `solune/frontend/src/components/board/`, `solune/frontend/src/hooks/useProjects*.ts`, related types; run automated scans; score all 60 checklist items; produce findings at `specs/052-ui-audit/checklists/projects-page-audit.md`
+- [ ] T015 [P] [US1] Audit SettingsPage: Read `solune/frontend/src/pages/SettingsPage.tsx`, `solune/frontend/src/components/settings/`, `solune/frontend/src/hooks/useSettings*.ts`, related types; run automated scans; score all 60 checklist items; produce findings at `specs/052-ui-audit/checklists/settings-page-audit.md`
+- [ ] T016 [P] [US1] Audit ToolsPage: Read `solune/frontend/src/pages/ToolsPage.tsx`, `solune/frontend/src/components/tools/`, `solune/frontend/src/hooks/useTools*.ts`, related types; run automated scans; score all 60 checklist items; produce findings at `specs/052-ui-audit/checklists/tools-page-audit.md`
 - [ ] T017 [US1] Compile consolidated audit summary table aggregating all 11 page audits with total Pass/Fail/N/A counts per category and severity counts (Critical/Major/Minor) at `specs/052-ui-audit/checklists/audit-summary.md`
 
 **Checkpoint**: All 11 pages have scored findings. The full remediation backlog is known. Phases 3–9 can now proceed.
@@ -373,17 +373,17 @@
 
 ```bash
 # Launch all 11 page audits in parallel (each is independent):
-Task T006: "Audit AgentsPage — score 65 items, produce agents-page-audit.md"
-Task T007: "Audit AgentsPipelinePage — score 65 items, produce agents-pipeline-page-audit.md"
-Task T008: "Audit AppPage — score 65 items, produce app-page-audit.md"
-Task T009: "Audit AppsPage — score 65 items, produce apps-page-audit.md"
-Task T010: "Audit ChoresPage — score 65 items, produce chores-page-audit.md"
-Task T011: "Audit HelpPage — score 65 items, produce help-page-audit.md"
-Task T012: "Audit LoginPage — score 65 items, produce login-page-audit.md"
-Task T013: "Audit NotFoundPage — score 65 items, produce not-found-page-audit.md"
-Task T014: "Audit ProjectsPage — score 65 items, produce projects-page-audit.md"
-Task T015: "Audit SettingsPage — score 65 items, produce settings-page-audit.md"
-Task T016: "Audit ToolsPage — score 65 items, produce tools-page-audit.md"
+Task T006: "Audit AgentsPage — score 60 items, produce agents-page-audit.md"
+Task T007: "Audit AgentsPipelinePage — score 60 items, produce agents-pipeline-page-audit.md"
+Task T008: "Audit AppPage — score 60 items, produce app-page-audit.md"
+Task T009: "Audit AppsPage — score 60 items, produce apps-page-audit.md"
+Task T010: "Audit ChoresPage — score 60 items, produce chores-page-audit.md"
+Task T011: "Audit HelpPage — score 60 items, produce help-page-audit.md"
+Task T012: "Audit LoginPage — score 60 items, produce login-page-audit.md"
+Task T013: "Audit NotFoundPage — score 60 items, produce not-found-page-audit.md"
+Task T014: "Audit ProjectsPage — score 60 items, produce projects-page-audit.md"
+Task T015: "Audit SettingsPage — score 60 items, produce settings-page-audit.md"
+Task T016: "Audit ToolsPage — score 60 items, produce tools-page-audit.md"
 ```
 
 ## Parallel Example: Phase 4 — Loading States
@@ -464,5 +464,5 @@ With multiple developers after Phase 2 completes:
 - Tests (US8) come last to verify the remediated state, not the pre-audit state
 - Commit after each task or logical group of parallel tasks
 - Stop at any checkpoint to validate independently
-- Total pages: 11 | Total checklist items per page: 65 | Total evaluations: 715
+- Total pages: 11 | Total checklist items per page: 60 | Total evaluations: 660
 - Avoid: cross-page tasks that modify the same file, remediation before discovery is complete
