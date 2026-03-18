@@ -3,8 +3,7 @@
  * Composes useProjectBoard columns with agent configuration, pipeline board, and saved workflows.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef, type CSSProperties } from 'react';
-import { useBlocker } from 'react-router-dom';
+import { useEffect, useCallback, useMemo, useRef } from 'react';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
@@ -14,20 +13,20 @@ import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
 import { usePipelineConfig, pipelineKeys } from '@/hooks/usePipelineConfig';
 import { useModels } from '@/hooks/useModels';
 import { useConfirmation } from '@/hooks/useConfirmation';
+import { useUnsavedPipelineGuard } from '@/hooks/useUnsavedPipelineGuard';
 import { pipelinesApi } from '@/services/api';
 
-import { statusColorToCSS } from '@/components/board/colorUtils';
 import { PipelineBoard } from '@/components/pipeline/PipelineBoard';
 import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
 import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 import { PipelineAnalytics } from '@/components/pipeline/PipelineAnalytics';
+import { PipelineStagesOverview } from '@/components/pipeline/PipelineStagesOverview';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
-import { formatAgentName } from '@/utils/formatAgentName';
 
 export function AgentsPipelinePage() {
   const { user } = useAuth();
@@ -58,9 +57,6 @@ export function AgentsPipelinePage() {
     pipelineConfig.pipeline?.stages.length ?? 0,
     1
   );
-  const alignedGridStyle: CSSProperties = {
-    gridTemplateColumns: `repeat(${alignedColumnCount}, minmax(14rem, 1fr))`,
-  };
   const pipelineEditorRef = useRef<HTMLDivElement | null>(null);
 
   const focusPipelineEditor = useCallback(() => {
@@ -84,119 +80,22 @@ export function AgentsPipelinePage() {
       });
   }, [projectId, queryClient]);
 
-  // Block in-app SPA navigation when there are unsaved changes
-  useBlocker(pipelineConfig.isDirty);
-
-  // Unsaved changes dialog state
-  const [unsavedDialog, setUnsavedDialog] = useState<{
-    isOpen: boolean;
-    pendingAction: (() => void) | null;
-    description: string;
-  }>({ isOpen: false, pendingAction: null, description: '' });
-
-  // Browser navigation guard
-  useEffect(() => {
-    const handler = (e: BeforeUnloadEvent) => {
-      if (pipelineConfig.isDirty) {
-        e.preventDefault();
-        e.returnValue = '';
-      }
-    };
-    window.addEventListener('beforeunload', handler);
-    return () => window.removeEventListener('beforeunload', handler);
-  }, [pipelineConfig.isDirty]);
-
-  // Handle selecting a saved workflow with unsaved changes check
-  const handleWorkflowSelect = useCallback(
-    (pipelineId: string) => {
-      if (pipelineConfig.isDirty) {
-        setUnsavedDialog({
-          isOpen: true,
-          pendingAction: async () => {
-            await pipelineConfig.loadPipeline(pipelineId);
-            focusPipelineEditor();
-          },
-          description: 'Loading a different workflow will discard your changes',
-        });
-      } else {
-        pipelineConfig.loadPipeline(pipelineId).then(() => {
-          focusPipelineEditor();
-        });
-      }
-    },
-    [focusPipelineEditor, pipelineConfig]
-  );
-
-  const handleWorkflowCopy = useCallback(
-    (pipelineId: string) => {
-      if (pipelineConfig.isDirty) {
-        setUnsavedDialog({
-          isOpen: true,
-          pendingAction: async () => {
-            await pipelineConfig.duplicatePipeline(pipelineId);
-            focusPipelineEditor();
-          },
-          description: 'Copying a saved workflow will discard your changes',
-        });
-      } else {
-        pipelineConfig.duplicatePipeline(pipelineId).then((copiedPipeline) => {
-          if (copiedPipeline) {
-            focusPipelineEditor();
-          }
-        });
-      }
-    },
-    [focusPipelineEditor, pipelineConfig]
-  );
-
-  // Handle new pipeline with unsaved changes check
-  const handleNewPipeline = useCallback(() => {
-    const initialStageNames = columns.map((column) => column.status.name);
-
-    if (pipelineConfig.isDirty) {
-      setUnsavedDialog({
-        isOpen: true,
-        pendingAction: () => pipelineConfig.newPipeline(initialStageNames),
-        description: 'Creating a new pipeline will discard your changes',
-      });
-    } else {
-      pipelineConfig.newPipeline(initialStageNames);
-    }
-  }, [columns, pipelineConfig]);
-
-  // Handle delete with confirmation
-  const handleDelete = useCallback(async () => {
-    const confirmed = await confirm({
-      title: 'Delete Pipeline',
-      description: 'Are you sure you want to delete this pipeline? This action cannot be undone.',
-      variant: 'danger',
-      confirmLabel: 'Delete Pipeline',
-    });
-    if (confirmed) {
-      pipelineConfig.deletePipeline();
-    }
-  }, [pipelineConfig, confirm]);
-
-  // Unsaved dialog handlers
-  const handleUnsavedSave = useCallback(async () => {
-    const saved = await pipelineConfig.savePipeline();
-    const action = unsavedDialog.pendingAction;
-    setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
-    if (saved) {
-      action?.();
-    }
-  }, [pipelineConfig, unsavedDialog.pendingAction]);
-
-  const handleUnsavedDiscard = useCallback(() => {
-    pipelineConfig.discardChanges();
-    const action = unsavedDialog.pendingAction;
-    setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
-    action?.();
-  }, [pipelineConfig, unsavedDialog.pendingAction]);
-
-  const handleUnsavedCancel = useCallback(() => {
-    setUnsavedDialog({ isOpen: false, pendingAction: null, description: '' });
-  }, []);
+  // Unsaved changes guard (handles SPA blocker, browser unload, dialog state)
+  const {
+    unsavedDialog,
+    handleWorkflowSelect,
+    handleWorkflowCopy,
+    handleNewPipeline,
+    handleDelete,
+    handleUnsavedSave,
+    handleUnsavedDiscard,
+    handleUnsavedCancel,
+  } = useUnsavedPipelineGuard({
+    pipelineConfig,
+    confirm,
+    focusPipelineEditor,
+    columns,
+  });
 
   return (
     <div className="celestial-fade-in flex h-full flex-col gap-6 overflow-auto rounded-[1.75rem] border border-border/70 bg-background/42 p-6 backdrop-blur-sm dark:border-border/85 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.96)_0%,hsl(var(--panel)/0.9)_100%)]">
@@ -349,44 +248,11 @@ export function AgentsPipelinePage() {
           )}
 
           {/* Pipeline Stages Visualization */}
-          <div>
-            <h3 className="text-lg font-semibold mb-3">Pipeline Stages</h3>
-            <div className="overflow-x-auto pb-2">
-              <div className="grid min-w-full items-stretch gap-3" style={alignedGridStyle}>
-                {columns.map((col) => {
-                  const assigned = agentConfig.localMappings[col.status.name] ?? [];
-                  const dotColor = statusColorToCSS(col.status.color);
-                  return (
-                    <div
-                      key={col.status.option_id}
-                      className="celestial-panel flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm"
-                    >
-                      <span
-                        className="w-3 h-3 rounded-full"
-                        style={{ backgroundColor: dotColor }}
-                      />
-                      <span className="text-sm font-medium">{col.status.name}</span>
-                      <span className="text-xs text-muted-foreground">{col.item_count} items</span>
-                      {assigned.length > 0 ? (
-                        <div className="flex flex-wrap gap-1 justify-center mt-1">
-                          {assigned.map((a) => (
-                            <span
-                              key={a.id}
-                              className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
-                            >
-                              {formatAgentName(a.slug, a.display_name)}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-[10px] text-muted-foreground/60 mt-1">No agents</span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <PipelineStagesOverview
+            columns={columns}
+            localMappings={agentConfig.localMappings}
+            alignedColumnCount={alignedColumnCount}
+          />
 
           {/* Saved Workflows List */}
           <SavedWorkflowsList
