@@ -380,6 +380,8 @@ async def create_app_with_new_repo(
     default_branch = repo_data.get("default_branch", "main")
 
     # 2. Get HEAD OID for template commit (exponential backoff)
+    # 8 retries with base_delay=0.5s, max_delay=3.0s
+    # Delays: 0.5, 1.0, 2.0, 3.0, 3.0, 3.0, 3.0, 3.0 = ~18.5s max total wait
     import asyncio
 
     head_oid: str | None = None
@@ -775,12 +777,13 @@ async def delete_app(
         and github_service
     ):
         try:
-            # Parse owner/repo from github_repo_url
-            # e.g. "https://github.com/alice/test-app" → alice, test-app
-            parts = app.github_repo_url.rstrip("/").split("/")
-            if len(parts) >= 2:
-                issue_owner = parts[-2]
-                issue_repo = parts[-1]
+            from urllib.parse import urlparse
+
+            parsed = urlparse(app.github_repo_url)
+            path_parts = [p for p in parsed.path.strip("/").split("/") if p]
+            if len(path_parts) >= 2:
+                issue_owner = path_parts[0]
+                issue_repo = path_parts[1].removesuffix(".git")
                 await github_service.update_issue_state(
                     access_token,
                     owner=issue_owner,
