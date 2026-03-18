@@ -289,3 +289,106 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
     });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Pipeline selector — new-repo dialog
+// ---------------------------------------------------------------------------
+
+describe('AppsPage — Pipeline selector', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows pipeline selector dropdown when new-repo is selected', async () => {
+    render(<AppsPage />);
+    await userEvent.click(screen.getByRole('button', { name: /create app/i }));
+
+    // Switch to new-repo
+    const newRepoBtn = screen.getAllByRole('button').find((b) => /new.repo/i.test(b.textContent ?? ''));
+    if (newRepoBtn) {
+      await userEvent.click(newRepoBtn);
+    }
+
+    // Pipeline selector should be visible
+    const pipelineSelect = screen.queryByLabelText(/agent pipeline/i);
+    expect(pipelineSelect).toBeInTheDocument();
+    // Default to "None"
+    if (pipelineSelect) {
+      expect((pipelineSelect as HTMLSelectElement).value).toBe('');
+    }
+  });
+
+  it('does not show pipeline selector in same-repo mode', async () => {
+    render(<AppsPage />);
+    await userEvent.click(screen.getByRole('button', { name: /create app/i }));
+
+    // In same-repo mode (default), pipeline selector should NOT be visible
+    expect(screen.queryByLabelText(/agent pipeline/i)).not.toBeInTheDocument();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// All-warnings display
+// ---------------------------------------------------------------------------
+
+describe('AppsPage — All warnings display', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('shows all warnings (not just first) when creation succeeds with multiple warnings', async () => {
+    mocks.createMutate.mockImplementation(
+      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null; parent_issue_number: number | null }) => void }) => {
+        options?.onSuccess?.({
+          name: 'warn-app',
+          display_name: 'Warn App',
+          parent_issue_number: null,
+          warnings: [
+            'Template file .specify/memory/notes.md could not be read.',
+            'Azure credentials could not be stored as GitHub Secrets.',
+          ],
+        });
+      }
+    );
+
+    render(<AppsPage />);
+    await userEvent.click(screen.getByRole('button', { name: /create app/i }));
+    await userEvent.type(screen.getByLabelText(/display name/i), 'Warn App');
+
+    const dialog = screen.getByRole('dialog');
+    const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;
+    await userEvent.click(submitButton);
+
+    // Both warnings should be displayed
+    await waitFor(() => {
+      expect(screen.queryByText(/Template file .specify\/memory\/notes.md could not be read/i)).toBeInTheDocument();
+      expect(screen.queryByText(/Azure credentials could not be stored/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows structured success summary after creation', async () => {
+    mocks.createMutate.mockImplementation(
+      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null; parent_issue_number: number | null }) => void }) => {
+        options?.onSuccess?.({
+          name: 'success-app',
+          display_name: 'Success App',
+          parent_issue_number: null,
+          warnings: null,
+        });
+      }
+    );
+
+    render(<AppsPage />);
+    await userEvent.click(screen.getByRole('button', { name: /create app/i }));
+    await userEvent.type(screen.getByLabelText(/display name/i), 'Success App');
+
+    const dialog = screen.getByRole('dialog');
+    const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;
+    await userEvent.click(submitButton);
+
+    // Success summary should be shown
+    await waitFor(() => {
+      expect(screen.queryByText(/✓ Repository created/)).toBeInTheDocument();
+    });
+  });
+});

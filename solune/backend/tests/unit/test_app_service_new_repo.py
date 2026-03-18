@@ -18,6 +18,16 @@ async def _insert_schema(mock_db) -> None:
     # mock_db from conftest already has migrations applied, so nothing extra needed.
 
 
+async def _insert_pipeline_config(db, pipeline_id: str = "pipe-123") -> None:
+    """Insert a fake pipeline_configs record to satisfy FK constraints."""
+    await db.execute(
+        """INSERT INTO pipeline_configs (id, project_id, name, created_at, updated_at)
+        VALUES (?, 'proj-1', 'Test Pipeline', '2024-01-01T00:00:00Z', '2024-01-01T00:00:00Z')""",
+        (pipeline_id,),
+    )
+    await db.commit()
+
+
 def _new_repo_payload(**overrides) -> AppCreate:
     defaults = {
         "name": "test-app",
@@ -422,3 +432,226 @@ class TestCreateAppWithNewRepoAzureCredentials:
         assert app.warnings is not None
         assert len(app.warnings) == 1
         assert "Azure credentials could not be stored" in app.warnings[0]
+
+
+# ---------------------------------------------------------------------------
+# Tests — parent issue creation
+# ---------------------------------------------------------------------------
+
+
+class TestCreateAppWithParentIssue:
+    """Validate parent issue creation when pipeline_id is provided."""
+
+    @pytest.mark.asyncio
+    async def test_creates_parent_issue_when_pipeline_id_provided(self, mock_db) -> None:
+        from src.services.app_service import create_app_with_new_repo
+
+        await _insert_pipeline_config(mock_db)
+        github_svc = _mock_github_service()
+        github_svc.create_issue = AsyncMock(
+            return_value={
+                "number": 42,
+                "html_url": "https://github.com/alice/test-app/issues/42",
+            }
+        )
+        payload = _new_repo_payload(pipeline_id="pipe-123")
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = ([], [])
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        assert app.parent_issue_number == 42
+        assert app.parent_issue_url == "https://github.com/alice/test-app/issues/42"
+        github_svc.create_issue.assert_awaited_once()
+        # Verify issue title follows the pattern
+        call_kwargs = github_svc.create_issue.call_args
+        assert call_kwargs.kwargs["title"] == "Build Test App"
+
+    @pytest.mark.asyncio
+    async def test_no_parent_issue_when_pipeline_id_absent(self, mock_db) -> None:
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        payload = _new_repo_payload()  # no pipeline_id
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = ([], [])
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        assert app.parent_issue_number is None
+        assert app.parent_issue_url is None
+
+    @pytest.mark.asyncio
+    async def test_parent_issue_failure_adds_warning(self, mock_db) -> None:
+        """Parent issue creation failure should add a warning, not block app creation."""
+        from src.services.app_service import create_app_with_new_repo
+
+        await _insert_pipeline_config(mock_db)
+        github_svc = _mock_github_service()
+        github_svc.create_issue = AsyncMock(side_effect=Exception("API error"))
+        payload = _new_repo_payload(pipeline_id="pipe-123")
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = ([], [])
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        # App is still created
+        assert app.name == "test-app"
+        assert app.status == AppStatus.ACTIVE
+        # Parent issue fields are null
+        assert app.parent_issue_number is None
+        assert app.parent_issue_url is None
+        # Warning is surfaced
+        assert app.warnings is not None
+        assert any("Parent issue could not be created" in w for w in app.warnings)
+
+
+# ---------------------------------------------------------------------------
+# Tests — template file warning propagation
+# ---------------------------------------------------------------------------
+
+
+class TestTemplateWarningPropagation:
+    """Validate that template file warnings are surfaced to the caller."""
+
+    @pytest.mark.asyncio
+    async def test_template_warnings_propagated_to_app(self, mock_db) -> None:
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        payload = _new_repo_payload()
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = (
+                [{"path": ".gitignore", "content": "node_modules/\n"}],
+                ["Could not read template file .specify/memory/notes.md: encoding error"],
+            )
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        assert app.warnings is not None
+        assert len(app.warnings) == 1
+        assert "Could not read template file" in app.warnings[0]
+
+    @pytest.mark.asyncio
+    async def test_template_and_azure_warnings_combined(self, mock_db) -> None:
+        """Both template and Azure warnings should appear in the warnings list."""
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        github_svc.set_repository_secret.side_effect = Exception("403 Forbidden")
+        payload = _new_repo_payload(
+            azure_client_id="my-client-id",
+            azure_client_secret="my-client-secret",
+        )
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = (
+                [],
+                ["Could not read .specify/memory/notes.md: encoding error"],
+            )
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        # Both warnings should be present
+        assert app.warnings is not None
+        assert len(app.warnings) == 2
+        assert any("Could not read" in w for w in app.warnings)
+        assert any("Azure credentials could not be stored" in w for w in app.warnings)
+
+
+# ---------------------------------------------------------------------------
+# Tests — delete app with parent issue
+# ---------------------------------------------------------------------------
+
+
+class TestDeleteAppWithParentIssue:
+    """Validate that delete_app closes the parent issue when present."""
+
+    @pytest.mark.asyncio
+    async def test_closes_parent_issue_on_delete(self, mock_db) -> None:
+        from src.services.app_service import create_app_with_new_repo, delete_app, stop_app
+
+        await _insert_pipeline_config(mock_db)
+        github_svc = _mock_github_service()
+        github_svc.create_issue = AsyncMock(
+            return_value={
+                "number": 42,
+                "html_url": "https://github.com/alice/test-app/issues/42",
+            }
+        )
+        github_svc.update_issue_state = AsyncMock(return_value=True)
+        payload = _new_repo_payload(pipeline_id="pipe-123")
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = ([], [])
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        assert app.parent_issue_number == 42
+
+        # Stop the app first (required before deletion)
+        await stop_app(mock_db, "test-app")
+
+        # Delete should close the parent issue
+        await delete_app(
+            mock_db,
+            "test-app",
+            access_token="tok",
+            github_service=github_svc,
+        )
+
+        github_svc.update_issue_state.assert_awaited_once_with(
+            "tok",
+            owner="alice",
+            repo="test-app",
+            issue_number=42,
+            state="closed",
+        )
+
+    @pytest.mark.asyncio
+    async def test_delete_without_parent_issue_skips_close(self, mock_db) -> None:
+        from src.services.app_service import create_app_with_new_repo, delete_app, stop_app
+
+        github_svc = _mock_github_service()
+        github_svc.update_issue_state = AsyncMock(return_value=True)
+        payload = _new_repo_payload()  # no pipeline_id
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = ([], [])
+            await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        await stop_app(mock_db, "test-app")
+        await delete_app(
+            mock_db,
+            "test-app",
+            access_token="tok",
+            github_service=github_svc,
+        )
+
+        github_svc.update_issue_state.assert_not_awaited()

@@ -114,6 +114,22 @@ class TestBuildTemplateFiles:
         paths = {f["path"] for f in files}
         assert ".github/evil" not in paths
 
+    @pytest.mark.asyncio
+    async def test_unreadable_file_produces_warning(self, tmp_path: Path) -> None:
+        """Files that cannot be read should produce warnings, not be silently skipped."""
+        source = _make_template_tree(tmp_path)
+        # Create a file that will fail to read — make it a binary file
+        bad_file = source / ".github" / "binary.dat"
+        bad_file.write_bytes(b"\x80\x81\x82\x83")
+
+        with patch.dict(os.environ, {"TEMPLATE_SOURCE_DIR": str(source)}):
+            files, warnings = await build_template_files("x", "X")
+
+        paths = {f["path"] for f in files}
+        assert ".github/binary.dat" not in paths
+        assert len(warnings) == 1
+        assert ".github/binary.dat" in warnings[0]
+
 
 class TestGenericCopilotInstructions:
     def test_contains_todo_sections(self) -> None:
