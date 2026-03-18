@@ -47,7 +47,7 @@
 
 **Purpose**: Create the audit process infrastructure and findings directory structure
 
-- [ ] T001 Create findings report directory at `specs/052-ui-audit/findings/`
+- [x] T001 Create findings report directory at `specs/052-ui-audit/findings/`
 - [ ] T002 [P] Run initial line-count assessment on all 11 pages in `solune/frontend/src/pages/`
 - [ ] T003 [P] Run initial ESLint check on all pages: `cd solune/frontend && npx eslint src/pages/`
 - [ ] T004 [P] Run initial TypeScript check: `cd solune/frontend && npx tsc --noEmit`
@@ -180,14 +180,14 @@
 
 ### Implementation for User Story 4
 
-- [ ] T065 [US4] Extract sub-components from `solune/frontend/src/pages/AppsPage.tsx` (707 lines) into `solune/frontend/src/components/apps/` — identify 3–4 self-contained sections (e.g., app list, app detail, app creation form, app actions) and extract each into a dedicated component file
-- [ ] T066 [US4] Extract complex state logic from AppsPage into `solune/frontend/src/hooks/useApps.ts` or new hook files — move >15-line stateful blocks (useState/useEffect/useCallback chains) into dedicated custom hooks
-- [ ] T067 [US4] Remove inline business logic from AppsPage render tree — move data transformations (sorting, filtering, mapping) into hooks or helper functions
+- [x] T065 [US4] Extract sub-components from `solune/frontend/src/pages/AppsPage.tsx` (707 lines) into `solune/frontend/src/components/apps/` — identify 3–4 self-contained sections (e.g., app list, app detail, app creation form, app actions) and extract each into a dedicated component file
+- [x] T066 [US4] Extract complex state logic from AppsPage into `solune/frontend/src/hooks/useApps.ts` or new hook files — move >15-line stateful blocks (useState/useEffect/useCallback chains) into dedicated custom hooks
+- [x] T067 [US4] Remove inline business logic from AppsPage render tree — move data transformations (sorting, filtering, mapping) into hooks or helper functions
 - [ ] T068 [US4] Verify AppsPage has no prop drilling >2 levels — refactor to use composition, context, or hook extraction if needed
 - [ ] T069 [P] [US4] Extract sub-components from `solune/frontend/src/pages/ProjectsPage.tsx` (629 lines) into `solune/frontend/src/components/board/` — identify 3–4 self-contained sections and extract each into a dedicated component file
 - [ ] T070 [P] [US4] Extract complex state logic from ProjectsPage into hooks under `solune/frontend/src/hooks/useProject*.ts` — move >15-line stateful blocks into custom hooks
 - [ ] T071 [US4] Remove inline business logic from ProjectsPage render tree and fix prop drilling >2 levels
-- [ ] T072 [P] [US4] Extract sub-components from `solune/frontend/src/pages/AgentsPipelinePage.tsx` (417 lines) into `solune/frontend/src/components/pipeline/` — identify 1–2 self-contained sections and extract each into a dedicated component file
+- [x] T072 [P] [US4] Extract sub-components from `solune/frontend/src/pages/AgentsPipelinePage.tsx` (417 lines) into `solune/frontend/src/components/pipeline/` — identify 1–2 self-contained sections and extract each into a dedicated component file
 - [ ] T073 [P] [US4] Extract complex state logic from AgentsPipelinePage into hooks under `solune/frontend/src/hooks/usePipeline*.ts`
 - [ ] T074 [US4] Remove inline business logic from AgentsPipelinePage render tree and fix prop drilling >2 levels
 - [ ] T075 [US4] Verify remaining 8 pages (AgentsPage, ChoresPage, HelpPage, SettingsPage, ToolsPage, AppPage, LoginPage, NotFoundPage) are within 250-line limit and have no inline business logic in JSX — fix any violations found in findings reports

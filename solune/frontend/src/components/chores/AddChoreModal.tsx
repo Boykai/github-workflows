@@ -315,6 +315,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
               className={cn('relative inline-flex h-6 w-11 items-center rounded-full transition-colors', aiEnhance ? 'bg-primary' : 'bg-muted-foreground/30')}
               role="switch"
               aria-checked={aiEnhance}
+              aria-label="AI Enhance"
             >
               <span
                 className={cn('inline-block h-4 w-4 transform rounded-full bg-white transition-transform', aiEnhance ? 'translate-x-6' : 'translate-x-1')}

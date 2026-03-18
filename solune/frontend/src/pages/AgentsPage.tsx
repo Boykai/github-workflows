@@ -176,6 +176,7 @@ export function AgentsPage() {
                       <span
                         className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
                         style={{ backgroundColor: dotColor }}
+                        aria-hidden="true"
                       />
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">

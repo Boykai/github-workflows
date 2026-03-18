@@ -57,6 +57,7 @@ export function useUserSettings() {
     settings: query.data,
     isLoading: query.isLoading,
     error: query.error,
+    refetch: query.refetch,
     updateSettings: mutation.mutateAsync,
     isUpdating: mutation.isPending,
   };
