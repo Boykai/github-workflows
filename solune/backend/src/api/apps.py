@@ -75,13 +75,16 @@ async def create_app_endpoint(
         github_service=github_service,
     )
 
-    # If a pipeline was selected and a project exists, launch the pipeline
-    if payload.pipeline_id and app.github_project_id:
+    # If a pipeline was selected and a project context exists, launch the pipeline.
+    # project_id comes from the user's selected project (where the pipeline lives);
+    # for new-repo apps the app's own github_project_id can also serve.
+    launch_project_id = payload.project_id or app.github_project_id
+    if payload.pipeline_id and launch_project_id:
         try:
             from src.api.pipelines import execute_pipeline_launch
 
             result = await execute_pipeline_launch(
-                project_id=app.github_project_id,
+                project_id=launch_project_id,
                 issue_description=payload.description or app.description or app.display_name,
                 pipeline_id=payload.pipeline_id,
                 session=session,

@@ -324,6 +324,7 @@ export function AppsPage() {
             pipelines={pipelines}
             isLoadingPipelines={pipelinesLoading}
             defaultPipelineId={defaultPipelineId}
+            projectId={projectId}
           />
         )}
       </div>

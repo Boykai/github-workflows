@@ -71,6 +71,7 @@ class AppCreate(BaseModel):
         description="Target branch for app scaffold commit (required for same-repo/external-repo)",
     )
     pipeline_id: str | None = None
+    project_id: str | None = None
     repo_type: RepoType = RepoType.SAME_REPO
     external_repo_url: str | None = None
     repo_owner: str | None = None

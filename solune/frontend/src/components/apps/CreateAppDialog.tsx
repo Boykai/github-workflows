@@ -58,6 +58,7 @@ interface CreateAppDialogProps {
   pipelines?: PipelineConfigSummary[];
   isLoadingPipelines?: boolean;
   defaultPipelineId?: string;
+  projectId?: string | null;
 }
 
 export function CreateAppDialog({
@@ -70,6 +71,7 @@ export function CreateAppDialog({
   pipelines = [],
   isLoadingPipelines = false,
   defaultPipelineId = '',
+  projectId = null,
 }: CreateAppDialogProps) {
   const [createError, setCreateError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
@@ -205,6 +207,9 @@ export function CreateAppDialog({
 
       if (selectedPipelineId) {
         payload.pipeline_id = selectedPipelineId;
+        if (projectId) {
+          payload.project_id = projectId;
+        }
       }
 
       if (repoType === 'new-repo') {

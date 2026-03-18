@@ -31,6 +31,7 @@ export interface AppCreate {
   description?: string;
   branch?: string;
   pipeline_id?: string;
+  project_id?: string;
   repo_type?: RepoType;
   external_repo_url?: string;
   repo_owner?: string;
