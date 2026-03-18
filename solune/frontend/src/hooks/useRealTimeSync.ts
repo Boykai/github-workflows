@@ -40,6 +40,7 @@ export function useRealTimeSync(
   /** Timestamp of the last reconnection invalidation for debounce. */
   const lastReconnectInvalidationRef = useRef(0);
 
+
   // Keep the callback ref up to date
   onRefreshTriggeredRef.current = options?.onRefreshTriggered;
 
