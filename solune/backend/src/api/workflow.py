@@ -11,7 +11,7 @@ from src.api.auth import get_session_dep
 from src.api.chat import get_recommendation
 from src.dependencies import require_selected_project, verify_project_access
 from src.exceptions import AppException, NotFoundError, ValidationError
-from src.logging_utils import get_logger, handle_service_error
+from src.logging_utils import get_logger, handle_github_errors, handle_service_error
 from src.middleware.rate_limit import limiter
 from src.models.agent import AgentAssignment, AvailableAgentsResponse
 from src.models.recommendation import RecommendationStatus
@@ -794,6 +794,7 @@ async def notify_in_review(
 
 
 @router.get("/polling/status")
+@handle_github_errors("get polling status")
 async def get_polling_status(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> PollingStatus:
@@ -804,6 +805,7 @@ async def get_polling_status(
 
 
 @router.post("/polling/check-issue/{issue_number}")
+@handle_github_errors("check issue Copilot completion")
 async def check_issue_copilot_completion(
     issue_number: int,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -848,6 +850,7 @@ async def check_issue_copilot_completion(
 
 
 @router.post("/polling/start")
+@handle_github_errors("start Copilot polling")
 async def start_copilot_polling(
     session: Annotated[UserSession, Depends(get_session_dep)],
     interval_seconds: int = 15,
@@ -897,6 +900,7 @@ async def start_copilot_polling(
 
 
 @router.post("/polling/stop")
+@handle_github_errors("stop Copilot polling")
 async def stop_copilot_polling(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
@@ -915,6 +919,7 @@ async def stop_copilot_polling(
 
 
 @router.post("/polling/check-all")
+@handle_github_errors("check all in-progress issues")
 async def check_all_in_progress_issues(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> dict:
