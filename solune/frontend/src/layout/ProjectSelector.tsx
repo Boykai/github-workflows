@@ -38,11 +38,13 @@ export function ProjectSelector({
   const createProject = useCreateProject();
 
   // Set default owner when owners load
-  useEffect(() => {
+  const [prevOwnersLength, setPrevOwnersLength] = useState(owners?.length ?? 0);
+  if ((owners?.length ?? 0) !== prevOwnersLength) {
+    setPrevOwnersLength(owners?.length ?? 0);
     if (owners && owners.length > 0 && !newProjectOwner) {
       setNewProjectOwner(owners[0].login);
     }
-  }, [owners, newProjectOwner]);
+  }
 
   // Close on outside click
   useEffect(() => {
@@ -73,13 +75,15 @@ export function ProjectSelector({
   }, [isOpen, onClose, showNewProjectDialog]);
 
   // Reset form state when the selector closes
-  useEffect(() => {
+  const [prevSelectorIsOpen, setPrevSelectorIsOpen] = useState(isOpen);
+  if (isOpen !== prevSelectorIsOpen) {
+    setPrevSelectorIsOpen(isOpen);
     if (!isOpen) {
       setShowNewProjectDialog(false);
       setNewProjectTitle('');
       setNewProjectError(null);
     }
-  }, [isOpen]);
+  }
 
   // Focus the title input when the new-project form opens
   useEffect(() => {

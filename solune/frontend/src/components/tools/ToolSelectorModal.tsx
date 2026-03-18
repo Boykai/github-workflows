@@ -28,12 +28,19 @@ export function ToolSelectorModal({
   const [search, setSearch] = useState('');
 
   // Sync initial selection
-  useEffect(() => {
-    if (isOpen) {
-      setSelectedIds(new Set(initialSelectedIds));
-      setSearch('');
-    }
-  }, [isOpen, initialSelectedIds]);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const initialIdsKey = initialSelectedIds.join(',');
+  const [prevInitialIdsKey, setPrevInitialIdsKey] = useState(initialIdsKey);
+  if (isOpen && (isOpen !== prevIsOpen || initialIdsKey !== prevInitialIdsKey)) {
+    setPrevIsOpen(true);
+    setPrevInitialIdsKey(initialIdsKey);
+    setSelectedIds(new Set(initialSelectedIds));
+    setSearch('');
+  } else if (!isOpen && prevIsOpen) {
+    setPrevIsOpen(false);
+  } else if (initialIdsKey !== prevInitialIdsKey) {
+    setPrevInitialIdsKey(initialIdsKey);
+  }
 
   // Escape key handler
   useEffect(() => {

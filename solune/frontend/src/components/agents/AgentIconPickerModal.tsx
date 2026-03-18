@@ -28,9 +28,13 @@ export function AgentIconPickerModal({
     isCelestialIconName(currentIconName) ? currentIconName : null
   );
 
-  useEffect(() => {
+  const [prevCurrentIconName, setPrevCurrentIconName] = useState(currentIconName);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (currentIconName !== prevCurrentIconName || isOpen !== prevIsOpen) {
+    setPrevCurrentIconName(currentIconName);
+    setPrevIsOpen(isOpen);
     setSelectedIconName(isCelestialIconName(currentIconName) ? currentIconName : null);
-  }, [currentIconName, isOpen]);
+  }
 
   useScrollLock(isOpen);
 

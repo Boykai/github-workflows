@@ -191,9 +191,11 @@ export function ProjectsPage() {
     };
   }, [pipelineSelectorOpen]);
 
-  useEffect(() => {
+  const [prevSelectedProjectId, setPrevSelectedProjectId] = useState(selectedProjectId);
+  if (selectedProjectId !== prevSelectedProjectId) {
+    setPrevSelectedProjectId(selectedProjectId);
     setPipelineSelectorOpen(false);
-  }, [selectedProjectId]);
+  }
 
   const handlePipelineSelection = useCallback(
     (pipelineId: string) => {

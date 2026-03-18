@@ -32,16 +32,19 @@ export function useSettingsForm<T extends object>(serverState: T): UseSettingsFo
 
   // Re-sync when server state changes (e.g. after a successful save
   // or when a different user is selected).
+  const [prevServerState, setPrevServerState] = useState(serverState);
+  const keys = Object.keys(serverState) as Array<keyof T & string>;
+  const serverChanged = keys.some((k) => serverState[k] !== prevServerState[k]);
+  if (serverChanged) {
+    setPrevServerState(serverState);
+    setLocalState({ ...serverState });
+  }
+
   useEffect(() => {
-    // Only re-sync if the server state actually changed (shallow key compare).
-    const prev = serverRef.current;
-    const keys = Object.keys(serverState) as Array<keyof T & string>;
-    const changed = keys.some((k) => serverState[k] !== prev[k]);
-    if (changed) {
-      setLocalState({ ...serverState });
+    if (serverChanged) {
       serverRef.current = serverState;
     }
-  }, [serverState]);
+  });
 
   const setField = useCallback(<K extends keyof T>(key: K, value: T[K]) => {
     setLocalState((prev) => ({ ...prev, [key]: value }));
@@ -52,7 +55,6 @@ export function useSettingsForm<T extends object>(serverState: T): UseSettingsFo
   }, [serverState]);
 
   // isDirty: shallow compare each key
-  const keys = Object.keys(serverState) as Array<keyof T & string>;
   const isDirty = keys.some((k) => localState[k] !== serverState[k]);
 
   return { localState, setField, isDirty, reset };

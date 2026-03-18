@@ -103,18 +103,21 @@ export const MentionInput = forwardRef<MentionInputHandle, MentionInputProps>(
       divRef.current?.focus();
   }, []);
 
+    // Sync isEmpty when value prop changes (render-time adjustment)
+    const [prevValue, setPrevValue] = useState(value);
+    if (value !== prevValue) {
+      setPrevValue(value);
+      setIsEmpty(!value.trim());
+    }
+
   useEffect(() => {
     const el = divRef.current;
     if (!el) return;
 
     const currentText = extractPlainText(el);
-    if (currentText === value) {
-      setIsEmpty(!value.trim());
-      return;
-    }
+    if (currentText === value) return;
 
     setPlainTextContent(el, value);
-    setIsEmpty(!value.trim());
   }, [value]);
 
   const handleInput = useCallback(() => {

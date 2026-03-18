@@ -78,11 +78,14 @@ export function StageCard({
     }
   }, [isEditing]);
 
+  const [prevShowAgentPicker, setPrevShowAgentPicker] = useState(showAgentPicker);
+  if (showAgentPicker !== prevShowAgentPicker) {
+    setPrevShowAgentPicker(showAgentPicker);
+    if (!showAgentPicker) setPickerPosition(null);
+  }
+
   useEffect(() => {
-    if (!showAgentPicker) {
-      setPickerPosition(null);
-      return;
-    }
+    if (!showAgentPicker) return;
 
     const updatePickerPosition = () => {
       if (!addButtonRef.current) return;

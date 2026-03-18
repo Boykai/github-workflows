@@ -5,7 +5,7 @@
  * and loading / error states. Mirrors ChoresPanel pattern.
  */
 
-import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
 import { Search, Sparkles, RefreshCw } from 'lucide-react';
 import { useAgentsList, usePendingAgentsList, useClearPendingAgents } from '@/hooks/useAgents';
 import { useModels } from '@/hooks/useModels';
@@ -87,14 +87,17 @@ export function AgentsPanel({
     setUnsavedDialog({ isOpen: true, pendingAction, description });
   }, []);
 
-  useEffect(() => {
-    if (!isBlocked) return;
+  const [prevIsBlocked, setPrevIsBlocked] = useState(isBlocked);
+  if (isBlocked && !prevIsBlocked) {
+    setPrevIsBlocked(true);
     setUnsavedDialog({
       isOpen: true,
       pendingAction: () => blocker.proceed?.(),
       description: 'Leave the Agents page',
     });
-  }, [blocker, isBlocked]);
+  } else if (isBlocked !== prevIsBlocked) {
+    setPrevIsBlocked(isBlocked);
+  }
 
   const handleEditRequest = useCallback(
     (agent: AgentConfig) => {
@@ -176,7 +179,9 @@ export function AgentsPanel({
   // Two-pass Featured Agents algorithm:
   // Pass 1: agents with usage > 0, sorted descending, up to 3
   // Pass 2: supplement with agents created within past 3 days
-  const spotlightAgents = (() => {
+  // Capture stable time reference to keep render pure
+  const [stableNow] = useState(() => Date.now());
+  const spotlightAgents = useMemo(() => {
     const allAgents = agents ?? [];
     const usageAgents = allAgents
       .filter((a) => (agentUsageCounts[a.slug] ?? 0) > 0)
@@ -185,7 +190,7 @@ export function AgentsPanel({
 
     if (usageAgents.length >= 3) return usageAgents;
 
-    const threeDaysAgo = Date.now() - 3 * 24 * 60 * 60 * 1000;
+    const threeDaysAgo = stableNow - 3 * 24 * 60 * 60 * 1000;
     const usageSlugs = new Set(usageAgents.map((a) => a.slug));
     const recentAgents = allAgents
       .filter(
@@ -195,7 +200,7 @@ export function AgentsPanel({
       .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
 
     return [...usageAgents, ...recentAgents].slice(0, 3);
-  })();
+  }, [agents, agentUsageCounts, stableNow]);
 
   const totalAgents = agents?.length ?? 0;
   const usedAgents = agents?.filter((agent) => (agentUsageCounts[agent.slug] ?? 0) > 0).length ?? 0;

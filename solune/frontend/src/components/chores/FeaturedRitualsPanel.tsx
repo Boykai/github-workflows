@@ -4,7 +4,7 @@
  * Computed from the chores list and parentIssueCount.
  */
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Clock, PlayCircle, Trophy, type LucideIcon } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatMsRemaining, formatMsAgo, computeCountRemaining, computeTimeProgress, computeCountProgress } from '@/lib/time-utils';
@@ -63,6 +63,8 @@ export function FeaturedRitualsPanel({
   parentIssueCount,
   onChoreClick,
 }: FeaturedRitualsPanelProps) {
+  // Capture stable time reference to keep render pure
+  const [stableNow] = useState(() => Date.now());
   const rituals = useMemo(() => {
     if (chores.length === 0) {
       return [];
@@ -105,7 +107,7 @@ export function FeaturedRitualsPanel({
       const ts = new Date(chore.last_triggered_at).getTime();
       if (ts > latestTimestamp) {
         latestTimestamp = ts;
-        const stat = formatMsAgo(Date.now() - ts);
+        const stat = formatMsAgo(stableNow - ts);
         mostRecentlyRun = {
           choreId: chore.id,
           choreName: chore.name,
@@ -159,7 +161,7 @@ export function FeaturedRitualsPanel({
         isEmpty: true,
       },
     ];
-  }, [chores, parentIssueCount]);
+  }, [chores, parentIssueCount, stableNow]);
 
   if (chores.length === 0) {
     return (
