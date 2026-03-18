@@ -32,22 +32,18 @@ interface BoardColumn {
 interface PipelineStagesSectionProps {
   columns: BoardColumn[];
   savedPipelines: Pipeline[];
-  savedPipelinesLoading: boolean;
   assignedPipelineId: string | undefined;
   assignPipelineMutation: {
     mutate: (pipelineId: string) => void;
     isPending: boolean;
   };
-  selectedProjectId: string;
 }
 
 export function PipelineStagesSection({
   columns,
   savedPipelines,
-  savedPipelinesLoading: _savedPipelinesLoading,
   assignedPipelineId,
   assignPipelineMutation,
-  selectedProjectId: _selectedProjectId,
 }: PipelineStagesSectionProps) {
   const [pipelineSelectorOpen, setPipelineSelectorOpen] = useState(false);
   const pipelineSelectorRef = useRef<HTMLDivElement>(null);

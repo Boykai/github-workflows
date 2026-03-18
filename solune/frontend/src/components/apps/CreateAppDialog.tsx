@@ -67,14 +67,12 @@ export function CreateAppDialog({
     }
   }, [isOpen, initialRepoType, owners]);
 
-  // Set default owner when owners are loaded
-  const [prevOwnersLength, setPrevOwnersLength] = useState(owners?.length ?? 0);
-  if ((owners?.length ?? 0) !== prevOwnersLength) {
-    setPrevOwnersLength(owners?.length ?? 0);
+  // Set default owner when owners are loaded after dialog is already open
+  useEffect(() => {
     if (owners && owners.length > 0 && !repoOwner) {
       setRepoOwner(owners[0].login);
     }
-  }
+  }, [owners, repoOwner]);
 
   // Document-level Escape key handler
   useEffect(() => {

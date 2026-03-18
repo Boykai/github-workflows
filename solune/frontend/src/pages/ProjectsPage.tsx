@@ -305,10 +305,8 @@ export function ProjectsPage() {
           <PipelineStagesSection
             columns={transformedBoardData.columns}
             savedPipelines={savedPipelines?.pipelines ?? []}
-            savedPipelinesLoading={savedPipelinesLoading}
             assignedPipelineId={pipelineAssignment?.pipeline_id}
             assignPipelineMutation={assignPipelineMutation}
-            selectedProjectId={selectedProjectId}
           />
 
           <ProjectBoardContent
