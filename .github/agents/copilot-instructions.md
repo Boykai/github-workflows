@@ -256,3 +256,10 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 - Prefer Context7 when you need up-to-date library documentation and examples.
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
+
+## Active Technologies
+- Python 3.13 (backend runtime, 3.12 CI), TypeScript ~5.9 (frontend) + FastAPI >=0.135, React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit (drag-and-drop), Pydantic 2.12, aiosqlite, cryptography 46 (050-solune-v010-release)
+- SQLite via aiosqlite (async), SQL-based migrations in `backend/src/migrations/` (050-solune-v010-release)
+
+## Recent Changes
+- 050-solune-v010-release: Added Python 3.13 (backend runtime, 3.12 CI), TypeScript ~5.9 (frontend) + FastAPI >=0.135, React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit (drag-and-drop), Pydantic 2.12, aiosqlite, cryptography 46

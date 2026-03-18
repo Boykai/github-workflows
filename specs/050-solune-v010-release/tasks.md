@@ -36,11 +36,11 @@
 
 **Purpose**: Project initialization — verify current state and prepare for phased delivery
 
-- [ ] T001 Verify monorepo structure and "Solune" rebrand completeness per plan assumption in solune/
-- [ ] T002 [P] Verify backend dependencies are current in solune/backend/pyproject.toml (FastAPI >=0.135, Pydantic 2.12, aiosqlite, cryptography 46)
-- [ ] T003 [P] Verify frontend dependencies are current in solune/frontend/package.json (React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit)
+- [x] T001 Verify monorepo structure and "Solune" rebrand completeness per plan assumption in solune/
+- [x] T002 [P] Verify backend dependencies are current in solune/backend/pyproject.toml (FastAPI >=0.135, Pydantic 2.12, aiosqlite, cryptography 46)
+- [x] T003 [P] Verify frontend dependencies are current in solune/frontend/package.json (React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit)
 - [ ] T004 [P] Verify existing CI pipeline passes: ruff check, pyright, pytest, eslint, tsc, vitest per .github/workflows/ci.yml
-- [ ] T005 Confirm existing migration chain integrity (023–028) in solune/backend/src/migrations/
+- [x] T005 Confirm existing migration chain integrity (023–028) in solune/backend/src/migrations/
 
 ---
 
@@ -52,27 +52,27 @@
 
 ### US1: Pipeline State Persistence (FR-001, FR-002, FR-003)
 
-- [ ] T006 [US1] Create database migration 029_pipeline_state_persistence.sql with pipeline_runs, pipeline_stage_states, stage_groups, and onboarding_tour_state tables per data-model.md in solune/backend/src/migrations/029_pipeline_state_persistence.sql
-- [ ] T007 [US1] Add access_control_enabled column to projects table and visual_identifier/display_order columns to agents table in solune/backend/src/migrations/029_pipeline_state_persistence.sql
-- [ ] T008 [US1] Create PipelineRun Pydantic model with state validation rules per data-model.md in solune/backend/src/models/pipeline_run.py
-- [ ] T009 [P] [US1] Create PipelineStageState Pydantic model with transition rules per data-model.md in solune/backend/src/models/pipeline_stage_state.py
-- [ ] T010 [P] [US1] Create StageGroup Pydantic model with execution_mode enum (sequential/parallel) in solune/backend/src/models/stage_group.py
-- [ ] T011 [US1] Create PipelineStateService for persisting pipeline runs to SQLite via aiosqlite in solune/backend/src/services/copilot_polling/pipeline_state_service.py
-- [ ] T012 [US1] Implement startup state rebuild — query incomplete runs from DB and reconstruct in-memory working set in solune/backend/src/services/copilot_polling/pipeline_state_service.py
-- [ ] T013 [US1] Add SQLite PRAGMA integrity_check on startup with fallback to in-memory + admin notification (edge case #1) in solune/backend/src/services/copilot_polling/pipeline_state_service.py
-- [ ] T014 [US1] Remove 500-entry cap on in-memory pipeline state dict in solune/backend/src/services/copilot_polling/
-- [ ] T015 [US1] Implement transactional writes for concurrent pipeline state updates (edge case #2) in solune/backend/src/services/copilot_polling/pipeline_state_service.py
-- [ ] T016 [US1] Wire PipelineStateService into FastAPI dependency injection in solune/backend/src/dependencies.py
+- [x] T006 [US1] Create database migration 029_pipeline_state_persistence.sql with pipeline_runs, pipeline_stage_states, stage_groups, and onboarding_tour_state tables per data-model.md in solune/backend/src/migrations/029_pipeline_state_persistence.sql
+- [x] T007 [US1] Add access_control_enabled column to projects table and visual_identifier/display_order columns to agents table in solune/backend/src/migrations/029_pipeline_state_persistence.sql
+- [x] T008 [US1] Create PipelineRun Pydantic model with state validation rules per data-model.md in solune/backend/src/models/pipeline_run.py
+- [x] T009 [P] [US1] Create PipelineStageState Pydantic model with transition rules per data-model.md in solune/backend/src/models/pipeline_stage_state.py
+- [x] T010 [P] [US1] Create StageGroup Pydantic model with execution_mode enum (sequential/parallel) in solune/backend/src/models/stage_group.py
+- [x] T011 [US1] Create PipelineStateService for persisting pipeline runs to SQLite via aiosqlite in solune/backend/src/services/copilot_polling/pipeline_state_service.py
+- [x] T012 [US1] Implement startup state rebuild — query incomplete runs from DB and reconstruct in-memory working set in solune/backend/src/services/copilot_polling/pipeline_state_service.py
+- [x] T013 [US1] Add SQLite PRAGMA integrity_check on startup with fallback to in-memory + admin notification (edge case #1) in solune/backend/src/services/copilot_polling/pipeline_state_service.py
+- [x] T014 [US1] Remove 500-entry cap on in-memory pipeline state dict in solune/backend/src/services/copilot_polling/
+- [x] T015 [US1] Implement transactional writes for concurrent pipeline state updates (edge case #2) in solune/backend/src/services/copilot_polling/pipeline_state_service.py
+- [x] T016 [US1] Wire PipelineStateService into FastAPI dependency injection in solune/backend/src/dependencies.py
 
 ### US2: Security Critical Fixes (FR-004, FR-005, FR-006, FR-007, FR-008)
 
-- [ ] T017 [P] [US2] Set HttpOnly=True and SameSite=Strict on the session/OAuth cookies in solune/backend/src/api/auth.py — CSRF cookie in middleware/csrf.py is out of scope here (must remain HttpOnly=False and SameSite=Lax for JS readability) (FR-004)
-- [ ] T018 [P] [US2] Add startup validation for ENCRYPTION_KEY — refuse to start if missing or default value in solune/backend/src/main.py (FR-005)
-- [ ] T019 [P] [US2] Add startup validation for SESSION_SECRET_KEY — refuse if missing or default in solune/backend/src/main.py (FR-005)
-- [ ] T020 [P] [US2] Add startup validation for GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in solune/backend/src/main.py (FR-005)
-- [ ] T021 [US2] Enumerate ALL missing config variables in a single error message on startup failure (edge case #3) in solune/backend/src/main.py
-- [ ] T022 [US2] Implement project-level access control middleware — verify user membership, return 403 on unauthorized access in solune/backend/src/middleware/project_access.py (FR-006)
-- [ ] T023 [US2] Wire project access control middleware into FastAPI app in solune/backend/src/main.py
+- [x] T017 [P] [US2] Set HttpOnly=True and SameSite=Strict on the session/OAuth cookies in solune/backend/src/api/auth.py — CSRF cookie in middleware/csrf.py is out of scope here (must remain HttpOnly=False and SameSite=Lax for JS readability) (FR-004)
+- [x] T018 [P] [US2] Add startup validation for ENCRYPTION_KEY — refuse to start if missing or default value in solune/backend/src/main.py (FR-005)
+- [x] T019 [P] [US2] Add startup validation for SESSION_SECRET_KEY — refuse if missing or default in solune/backend/src/main.py (FR-005)
+- [x] T020 [P] [US2] Add startup validation for GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET in solune/backend/src/main.py (FR-005)
+- [x] T021 [US2] Enumerate ALL missing config variables in a single error message on startup failure (edge case #3) in solune/backend/src/main.py
+- [x] T022 [US2] Implement project-level access control middleware — verify user membership, return 403 on unauthorized access in solune/backend/src/middleware/project_access.py (FR-006)
+- [x] T023 [US2] Wire project access control middleware into FastAPI app in solune/backend/src/main.py
 - [ ] T024 [US2] Audit codebase for hardcoded secrets using bandit and manual review — move findings to env vars (FR-007)
 - [ ] T025 [P] [US2] Add Pydantic validation models for all API input boundaries lacking explicit validation in solune/backend/src/api/ (FR-008)
 - [ ] T026 [P] [US2] Validate and sanitize file upload inputs (path traversal, MIME type) in solune/backend/src/api/chat.py (FR-008)
@@ -140,19 +140,19 @@
 
 ### Label-Based Pipeline State (FR-015)
 
-- [ ] T049 [US1] Implement GitHub label manager for pipeline state labels (format: `solune:pipeline:{run_id}:stage:{stage_id}:{status}`) in solune/backend/src/services/copilot_polling/label_manager.py
-- [ ] T050 [US1] Implement label lifecycle — create on stage running, update (delete+create) on state change per contracts/events.md in solune/backend/src/services/copilot_polling/label_manager.py
-- [ ] T051 [US1] Implement recovery protocol — query solune:pipeline:* labels on startup, reconcile with DB, resume running pipelines per contracts/events.md in solune/backend/src/services/copilot_polling/label_manager.py
-- [ ] T052 [US1] Implement PipelineRunStateChanged and PipelineStageStateChanged internal event dataclasses per contracts/events.md in solune/backend/src/models/pipeline_events.py
-- [ ] T053 [US1] Wire label manager as consumer of pipeline state change events in solune/backend/src/services/copilot_polling/
+- [x] T049 [US1] Implement GitHub label manager for pipeline state labels (format: `solune:pipeline:{run_id}:stage:{stage_id}:{status}`) in solune/backend/src/services/copilot_polling/label_manager.py
+- [x] T050 [US1] Implement label lifecycle — create on stage running, update (delete+create) on state change per contracts/events.md in solune/backend/src/services/copilot_polling/label_manager.py
+- [x] T051 [US1] Implement recovery protocol — query solune:pipeline:* labels on startup, reconcile with DB, resume running pipelines per contracts/events.md in solune/backend/src/services/copilot_polling/label_manager.py
+- [x] T052 [US1] Implement PipelineRunStateChanged and PipelineStageStateChanged internal event dataclasses per contracts/events.md in solune/backend/src/models/pipeline_events.py
+- [x] T053 [US1] Wire label manager as consumer of pipeline state change events in solune/backend/src/services/copilot_polling/
 
 ### Pipeline Run API Endpoints
 
-- [ ] T054 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs — create and start pipeline run per contracts/rest-api.md in solune/backend/src/api/pipelines.py
-- [ ] T055 [US1] Implement GET /api/v1/pipelines/{pipeline_id}/runs — list runs with pagination, no artificial cap (FR-003) in solune/backend/src/api/pipelines.py
-- [ ] T056 [US1] Implement GET /api/v1/pipelines/{pipeline_id}/runs/{run_id} — detailed run state with all stages/groups in solune/backend/src/api/pipelines.py
-- [ ] T057 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs/{run_id}/cancel per contracts/rest-api.md in solune/backend/src/api/pipelines.py
-- [ ] T058 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs/{run_id}/recover — rebuild state and resume (FR-002) in solune/backend/src/api/pipelines.py
+- [x] T054 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs — create and start pipeline run per contracts/rest-api.md in solune/backend/src/api/pipelines.py
+- [x] T055 [US1] Implement GET /api/v1/pipelines/{pipeline_id}/runs — list runs with pagination, no artificial cap (FR-003) in solune/backend/src/api/pipelines.py
+- [x] T056 [US1] Implement GET /api/v1/pipelines/{pipeline_id}/runs/{run_id} — detailed run state with all stages/groups in solune/backend/src/api/pipelines.py
+- [x] T057 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs/{run_id}/cancel per contracts/rest-api.md in solune/backend/src/api/pipelines.py
+- [x] T058 [US1] Implement POST /api/v1/pipelines/{pipeline_id}/runs/{run_id}/recover — rebuild state and resume (FR-002) in solune/backend/src/api/pipelines.py
 - [ ] T059 [US1] Add WebSocket pipeline state push notifications per contracts/events.md in solune/backend/src/api/pipelines.py
 
 **Checkpoint**: Pipeline state fully persistent, label-based recovery functional, all run endpoints operational.
@@ -170,8 +170,8 @@
 ### Stage Group Backend (FR-016)
 
 - [ ] T060 [US4] Implement group execution orchestrator — sequential groups complete before next, parallel stages launch simultaneously in solune/backend/src/services/copilot_polling/group_executor.py
-- [ ] T061 [US4] Implement GET /api/v1/pipelines/{pipeline_id}/groups — list stage groups per contracts/rest-api.md in solune/backend/src/api/pipelines.py
-- [ ] T062 [US4] Implement PUT /api/v1/pipelines/{pipeline_id}/groups — create/update groups atomically with validation per contracts/rest-api.md in solune/backend/src/api/pipelines.py
+- [x] T061 [US4] Implement GET /api/v1/pipelines/{pipeline_id}/groups — list stage groups per contracts/rest-api.md in solune/backend/src/api/pipelines.py
+- [x] T062 [US4] Implement PUT /api/v1/pipelines/{pipeline_id}/groups — create/update groups atomically with validation per contracts/rest-api.md in solune/backend/src/api/pipelines.py
 
 ### Pipeline Builder Frontend (FR-017)
 
@@ -248,15 +248,15 @@
 
 ### High-Priority Security (FR-024, FR-025)
 
-- [ ] T082 [US2] Verify and enforce non-root user in solune/backend/Dockerfile — confirm appuser UID/GID set (FR-024)
-- [ ] T083 [P] [US2] Configure non-root nginx user in solune/frontend/Dockerfile (FR-024)
-- [ ] T084 [US2] Add HTTP security headers (CSP, HSTS, Referrer-Policy, Permissions-Policy, X-Content-Type-Options, X-Frame-Options) to nginx config per contracts/rest-api.md in solune/frontend/nginx.conf (FR-025)
-- [ ] T085 [P] [US2] Add HTTP security headers to FastAPI middleware for API responses in solune/backend/src/middleware/ (FR-025)
+- [x] T082 [US2] Verify and enforce non-root user in solune/backend/Dockerfile — confirm appuser UID/GID set (FR-024)
+- [x] T083 [P] [US2] Configure non-root nginx user in solune/frontend/Dockerfile (FR-024)
+- [x] T084 [US2] Add HTTP security headers (CSP, HSTS, Referrer-Policy, Permissions-Policy, X-Content-Type-Options, X-Frame-Options) to nginx config per contracts/rest-api.md in solune/frontend/nginx.conf (FR-025)
+- [x] T085 [P] [US2] Add HTTP security headers to FastAPI middleware for API responses in solune/backend/src/middleware/ (FR-025)
 - [ ] T086 [US2] Minimize OAuth scope to minimum required permissions in solune/backend/src/api/auth.py
 
 ### Medium-Priority Security (FR-026, FR-027, FR-028)
 
-- [ ] T087 [US2] Extend slowapi rate limiting to auth endpoints (/api/v1/auth/*) and pipeline run creation per contracts/rest-api.md in solune/backend/src/api/auth.py (FR-026)
+- [x] T087 [US2] Extend slowapi rate limiting to auth endpoints (/api/v1/auth/*) and pipeline run creation per contracts/rest-api.md in solune/backend/src/api/auth.py (FR-026)
 - [ ] T088 [US2] Audit frontend for sensitive data in localStorage — encrypt or move to session cookies in solune/frontend/src/ (FR-027)
 - [ ] T089 [US2] Decouple debug mode from production config — ensure DEBUG defaults to false, reject DEBUG=true when ENCRYPTION_KEY is production-grade in solune/backend/src/main.py (FR-028)
 
@@ -352,7 +352,7 @@
 
 ### Onboarding Tour (FR-038)
 
-- [ ] T117 [US8] Create OnboardingTourState API endpoints (GET/PUT /api/v1/onboarding/state) per contracts/rest-api.md in solune/backend/src/api/onboarding.py
+- [x] T117 [US8] Create OnboardingTourState API endpoints (GET/PUT /api/v1/onboarding/state) per contracts/rest-api.md in solune/backend/src/api/onboarding.py
 - [ ] T118 [US8] Create OnboardingTour component with 9-step celestial-themed spotlight tour per contracts/events.md steps 1-9 in solune/frontend/src/components/onboarding/OnboardingTour.tsx
 - [ ] T119 [US8] Implement tour state persistence hook (useOnboardingTour) with advance/dismiss/complete/restart actions in solune/frontend/src/hooks/useOnboardingTour.ts
 - [ ] T120 [US8] Wire onboarding tour to first login detection — auto-start for new users in solune/frontend/src/App.tsx
@@ -385,45 +385,52 @@
 
 ---
 
-## Phase 13: Test Coverage Gap Closure (FR-041, FR-042, FR-043, FR-044)
+## Phase 13: Test Coverage Gap Closure (Parallel Track — FR-041, FR-042, FR-043, FR-044, FR-050, FR-051, FR-052)
 
-**Purpose**: Achieve coverage targets — 80% backend, 70% frontend, E2E for all major flows
+**Purpose**: Achieve coverage targets — ≥80% backend, ≥70% frontend, E2E for all major flows, mutation testing (≥75% BE / ≥60% FE), flaky management (≤5 quarantined)
 
-**Depends on**: All feature phases complete (test final code state)
+**⚠️ PARALLEL TRACK**: This phase runs alongside Phases 4–12 (start immediately after Phase 3). Test tasks target stable code surfaces from completed phases. Final verification (T139, T147) waits for all feature phases to complete.
 
-### Backend Coverage (71% → 80%) (FR-041)
+### Backend Coverage (71% → ≥80%) (FR-041)
 
-- [ ] T130 [P] Add unit tests for security middleware (auth, CSRF, rate limiting, project access) in solune/backend/tests/unit/test_middleware/
-- [ ] T131 [P] Add unit tests for pipeline state persistence service in solune/backend/tests/unit/test_pipeline_state_service.py
-- [ ] T132 [P] Add unit tests for pipeline orchestration and group execution in solune/backend/tests/unit/test_group_executor.py
-- [ ] T133 [P] Add unit tests for webhook handlers in solune/backend/tests/unit/
-- [ ] T134 [P] Add unit tests for extracted GitHub services (issues, PR, branches) in solune/backend/tests/unit/test_github_services/
-- [ ] T135 Verify backend coverage ≥ 80% with `pytest --cov=src --cov-report=term-missing`
+- [ ] T130 [P] Add parameterized API tests covering 200, 401, 403, 404, 422, 429, 500 status codes for all REST endpoints in solune/backend/tests/unit/test_api_status_codes.py
+- [ ] T131 [P] Add unit tests for security middleware (auth, CSRF, rate limiting, project access) in solune/backend/tests/unit/test_middleware/
+- [x] T132 [P] Add unit tests for pipeline state persistence service in solune/backend/tests/unit/test_pipeline_state_service.py
+- [ ] T133 [P] Add unit tests for pipeline orchestration and group execution in solune/backend/tests/unit/test_group_executor.py
+- [ ] T134 [P] Add unit tests for webhook handlers in solune/backend/tests/unit/
+- [ ] T135 [P] Add unit tests for extracted GitHub services (issues, PR, branches) in solune/backend/tests/unit/test_github_services/
+- [ ] T136 [P] Add property-based tests with Hypothesis for pipeline state transitions and API input validation in solune/backend/tests/property/
+- [ ] T137 [P] Add fuzz tests for webhook payload parsing and chat message injection in solune/backend/tests/fuzz/
+- [ ] T138 Configure CI coverage ratchet — block PRs on any backend coverage decrease in .github/workflows/ci.yml
+- [ ] T139 Verify backend coverage ≥ 80% with `pytest --cov=src --cov-report=term-missing`
 
-### Frontend Coverage (50% → 70%) (FR-042)
+### Frontend Coverage (49% → ≥70%) (FR-042)
 
-- [ ] T136 [P] Add component tests for PipelineBuilder in solune/frontend/tests/components/PipelineBuilder.test.tsx
-- [ ] T137 [P] Add component tests for settings sub-components in solune/frontend/tests/components/settings/
-- [ ] T138 [P] Add component tests for chat attachments and voice input in solune/frontend/tests/components/chat/
-- [ ] T139 [P] Add component tests for auth flow components in solune/frontend/tests/components/auth/
-- [ ] T140 [P] Add component tests for parallel agent layout in solune/frontend/tests/components/agents/
-- [ ] T141 [P] Add hook tests for split pipeline hooks in solune/frontend/tests/hooks/
-- [ ] T142 Verify frontend coverage ≥ 70% with `npm run test:coverage`
+- [ ] T140 [P] Add component tests for PipelineBuilder in solune/frontend/tests/components/PipelineBuilder.test.tsx
+- [ ] T141 [P] Add component tests for settings sub-components in solune/frontend/tests/components/settings/
+- [ ] T142 [P] Add component tests for chat attachments and voice input in solune/frontend/tests/components/chat/
+- [ ] T143 [P] Add component tests for auth flow components in solune/frontend/tests/components/auth/
+- [ ] T144 [P] Add component tests for parallel agent layout in solune/frontend/tests/components/agents/
+- [ ] T145 [P] Add hook tests for split pipeline hooks in solune/frontend/tests/hooks/
+- [ ] T146 [P] Add contract tests with schemathesis against OpenAPI spec in solune/frontend/tests/contract/
+- [ ] T147 Verify frontend coverage ≥ 70% with `npm run test:coverage`
 
 ### E2E Coverage (FR-043, FR-044)
 
-- [ ] T143 [P] Add Playwright E2E test for full flow: create project → configure pipeline → run agents → review PR in solune/frontend/e2e/
-- [ ] T144 [P] Add Playwright E2E test for onboarding tour completion in solune/frontend/e2e/
-- [ ] T145 [P] Add Playwright E2E test for voice input in Chrome and Firefox in solune/frontend/e2e/
-- [ ] T146 [P] Add Playwright E2E test for chat attachment upload in solune/frontend/e2e/
-- [ ] T147 Add axe-core accessibility assertions to all Playwright page navigations (FR-044) in solune/frontend/e2e/
+- [ ] T148 [P] Add Playwright E2E test for full flow: create project → configure pipeline → run agents → review PR in solune/frontend/e2e/
+- [ ] T149 [P] Add Playwright E2E test for onboarding tour completion in solune/frontend/e2e/
+- [ ] T150 [P] Add Playwright E2E test for voice input in Chrome and Firefox in solune/frontend/e2e/
+- [ ] T151 [P] Add Playwright E2E test for chat attachment upload in solune/frontend/e2e/
+- [ ] T152 [P] Add Playwright visual regression tests at 3 viewports (320px, 1024px, 1920px) × light/dark themes (42 snapshots) in solune/frontend/e2e/
+- [ ] T153 Add axe-core accessibility assertions to all Playwright page navigations (FR-044) in solune/frontend/e2e/
 
-### Mutation Testing
+### Mutation & Flaky Management (FR-050, FR-051, FR-052)
 
-- [ ] T148 Run mutmut full suite on backend — address surviving mutants in security and pipeline logic in solune/backend/
-- [ ] T149 Run Stryker full suite on frontend — address surviving mutants in critical paths in solune/frontend/
+- [ ] T154 Run mutmut full suite on backend — address surviving mutants until mutation score ≥ 75% in solune/backend/
+- [ ] T155 Run Stryker full suite on frontend — address surviving mutants until mutation score ≥ 60% in solune/frontend/
+- [ ] T156 Configure nightly flaky test detection and quarantine system — enforce max 5 quarantined tests at any time in .github/workflows/
 
-**Checkpoint**: Backend ≥ 80%, frontend ≥ 70%, E2E covers all major flows, accessibility assertions in place.
+**Checkpoint**: Backend ≥ 80%, frontend ≥ 70%, mutation scores met (≥75% BE, ≥60% FE), E2E covers all major flows, accessibility assertions in place, flaky tests managed.
 
 ---
 
@@ -433,35 +440,36 @@
 
 **Independent Test**: Fresh docker compose up from .env.example — all services healthy in 120s, version strings consistent at 0.1.0
 
-**Depends on**: All previous phases complete
+**Depends on**: All previous phases complete (including Phase 13 parallel track)
 
 ### Version & Changelog (FR-045)
 
-- [ ] T150 [US10] Finalize CHANGELOG.md under [0.1.0] section — document all user-facing changes grouped by category (Security, Pipeline, Agents, Chat, UI, Performance, Docs) with references to FR numbers in solune/CHANGELOG.md
-- [ ] T151 [P] [US10] Verify version string 0.1.0 in solune/backend/pyproject.toml
-- [ ] T152 [P] [US10] Verify version string 0.1.0 in solune/frontend/package.json
-- [ ] T153 [US10] Tag release as v0.1.0
+- [x] T157 [US10] Finalize CHANGELOG.md under [0.1.0] section — document all user-facing changes grouped by category (Security, Pipeline, Agents, Chat, UI, Performance, Docs) with references to FR numbers in solune/CHANGELOG.md
+- [x] T158 [P] [US10] Verify version string 0.1.0 in solune/backend/pyproject.toml
+- [x] T159 [P] [US10] Verify version string 0.1.0 in solune/frontend/package.json
+- [ ] T160 [US10] Tag release as v0.1.0
 
 ### Docker Image Finalization (FR-046)
 
-- [ ] T154 [US10] Verify pinned base image digests (not :latest tags) in solune/backend/Dockerfile (FR-046)
-- [ ] T155 [P] [US10] Verify pinned base image digests in solune/frontend/Dockerfile (FR-046)
-- [ ] T156 [US10] Verify optimized multi-stage builds and healthcheck in solune/docker-compose.yml
+- [ ] T161 [US10] Verify pinned base image digests (not :latest tags) in solune/backend/Dockerfile (FR-046)
+- [ ] T162 [P] [US10] Verify pinned base image digests in solune/frontend/Dockerfile (FR-046)
+- [ ] T163 [US10] Verify optimized multi-stage builds and healthcheck in solune/docker-compose.yml
 
 ### Environment Validation (FR-047, FR-048)
 
-- [ ] T157 [US10] Verify .env.example covers ALL required configuration variables in solune/.env.example (FR-047)
-- [ ] T158 [US10] Verify startup rejects insecure production config (default secrets, debug=true) via integration test (FR-048)
+- [x] T164 [US10] Verify .env.example covers ALL required configuration variables in solune/.env.example (FR-047)
+- [ ] T165 [US10] Verify startup rejects insecure production config (default secrets, debug=true) via integration test (FR-048)
 
 ### Enhanced Health Endpoint
 
-- [ ] T159 [US10] Enhance GET /api/v1/health to include startup_checks and version per contracts/rest-api.md in solune/backend/src/api/health.py
+- [x] T166 [US10] Enhance GET /api/v1/health to include startup_checks and version per contracts/rest-api.md in solune/backend/src/api/health.py
 
 ### Release Checklist (FR-049)
 
-- [ ] T160 [US10] Execute full release verification checklist per quickstart.md Release Verification Checklist section:
+- [ ] T167 [US10] Execute full release verification checklist per quickstart.md Release Verification Checklist section:
   - All tests green (pytest, vitest, playwright)
   - Coverage thresholds met (≥70% FE, ≥80% BE)
+  - Mutation thresholds met (≥75% BE, ≥60% FE)
   - Static analysis clean (ruff, pyright, eslint, tsc)
   - Security scans clean (pip-audit, bandit, npm audit)
   - Docker Compose from scratch — all 3 services healthy
@@ -470,7 +478,8 @@
   - WCAG AA contrast verified in both themes
   - Cross-browser: Chrome, Firefox, Edge, Safari
   - No open P1/P2 bugs
-- [ ] T161 [US10] Create release notes summarizing all changes for v0.1.0
+  - Max 5 quarantined flaky tests
+- [ ] T168 [US10] Create release notes summarizing all changes for v0.1.0
 
 **Checkpoint**: Release package validated. All gates passed. Ready to ship v0.1.0.
 
@@ -493,17 +502,21 @@ Phase 1 (Setup) ──────────► Phase 2 (Security & Data Integ
              US1)           US5)          US7)          Hardening     Blocking)
                 |                                        — US2)
                 ▼
-              Phase 5
-           (Builder —
-              US4)
+              Phase 5                    Phase 13 (Test Coverage — PARALLEL TRACK)
+           (Builder —                    ════════════════════════════════════════
+              US4)                       Starts after Phase 3, runs alongside
+                                         Phases 4–12. Tests target stable code
+                                         surfaces as each phase completes.
+                                         Final verification gates (T139, T147)
+                                         wait for all feature phases.
                                  │ (all features complete)
-                    ┌────────────┼────────────┬──────────────┐
-                    ▼            ▼            ▼              ▼
-              Phase 9       Phase 10      Phase 11      Phase 13
-           (Performance    (Visual       (Docs —       (Test
-             — US9)        Polish —       US8)          Coverage)
+                    ┌────────────┼────────────┐
+                    ▼            ▼            ▼
+              Phase 9       Phase 10      Phase 11
+           (Performance    (Visual       (Docs —
+             — US9)        Polish —       US8)
                             US6)
-                                 │ (all done)
+                                 │ (all done + Phase 13 complete)
                                  ▼
                             Phase 14 (Release — US10)
 ```
@@ -519,7 +532,7 @@ Phase 1 (Setup) ──────────► Phase 2 (Security & Data Integ
 - **US7 (P3) Chat & Voice**: Voice fix (T075-T076) has no dependencies. Issue upload depends on US1 (pipeline config). Phase 7.
 - **US8 (P3) Documentation**: Depends on all features complete. Phase 11.
 - **US9 (P3) Performance**: Depends on feature stabilization. Phase 9.
-- **US10 (P1) Release**: Depends on ALL other phases. Phase 14.
+- **US10 (P1) Release**: Depends on ALL other phases (including Phase 13 parallel track). Phase 14.
 
 ### Within Each User Story
 
@@ -543,11 +556,16 @@ Phase 1 (Setup) ──────────► Phase 2 (Security & Data Integ
 - Phase 4 (Pipeline/US1), Phase 6 (Agents/US5), Phase 7 (Chat/US7) can proceed in parallel once Phase 3 is complete
 - Within each track, [P]-marked tasks can parallelize
 
+**Phase 13 (Test Coverage — Parallel Track)**:
+- Starts after Phase 3 and runs alongside Phases 4–12
+- Backend test tasks (T130-T139) can start as backend code stabilizes
+- Frontend test tasks (T140-T147) can start as frontend code stabilizes
+- E2E tasks (T148-T153) can start as features reach checkpoint
+- All [P]-marked test tasks can run in parallel across backend/frontend/E2E
+- **Biggest risk**: Frontend coverage gap (49% → 70%) — start immediately
+
 **Phase 9-11 (Post-Feature)**:
 - Performance (Phase 9), Visual Polish (Phase 10), Documentation (Phase 11) can proceed in parallel
-
-**Within Phase 13 (Test Coverage)**:
-- All [P]-marked test tasks can run in parallel across backend/frontend/E2E
 
 ---
 
@@ -580,6 +598,29 @@ Task T039: "Split usePipelineConfig hook"
 Task T041: "Split GlobalSettings component"
 ```
 
+## Parallel Example: Phase 13 (Test Coverage — Parallel Track)
+
+```bash
+# Phase 13 starts alongside Phase 4 and runs in parallel with feature work:
+
+# Backend tests (start as backend services stabilize):
+Task T130: "Parameterized API tests for status codes"
+Task T131: "Unit tests for security middleware"
+Task T132: "Unit tests for pipeline state persistence"
+Task T136: "Property-based tests with Hypothesis"
+Task T137: "Fuzz tests for webhook payloads and chat injection"
+
+# Frontend tests (start as frontend components stabilize):
+Task T140: "Component tests for PipelineBuilder"
+Task T141: "Component tests for settings sub-components"
+Task T145: "Hook tests for split pipeline hooks"
+Task T146: "Contract tests with schemathesis"
+
+# E2E tests (start as features reach checkpoint):
+Task T148: "E2E full flow test"
+Task T152: "Visual regression at 3 viewports × light/dark"
+```
+
 ## Parallel Example: Feature Tracks (Phases 4-7)
 
 ```bash
@@ -607,12 +648,14 @@ Task T041: "Split GlobalSettings component"
 
 1. Phase 1-2 → Security & persistence foundation ready
 2. Phase 3 → Codebase is clean and maintainable (US3)
-3. Phase 4 → Pipeline features operational (US1 label-based state)
-4. Phase 5 → Visual builder live (US4)
-5. Phase 6-7 → Agent layout + Chat enhancements (US5, US7)
-6. Phase 8-11 → Polish: security hardening, performance, accessibility, docs (US2, US6, US8, US9)
-7. Phase 12-13 → Cleanup + test coverage
-8. Phase 14 → Release validation (US10)
+3. Phase 13 starts → Test coverage parallel track begins (runs alongside all subsequent phases)
+4. Phase 4 → Pipeline features operational (US1 label-based state)
+5. Phase 5 → Visual builder live (US4)
+6. Phase 6-7 → Agent layout + Chat enhancements (US5, US7)
+7. Phase 8-11 → Polish: security hardening, performance, accessibility, docs (US2, US6, US8, US9)
+8. Phase 12 → Blocking feature removal
+9. Phase 13 completes → Test coverage gates verified
+10. Phase 14 → Release validation (US10)
 
 Each phase adds value without breaking previous work.
 
@@ -626,8 +669,9 @@ With multiple developers:
    - Developer B: Track B — Agents + Track D Removal (Phase 6 + 12)
    - Developer C: Track C — Chat & Voice (Phase 7)
    - Developer D: Security Hardening (Phase 8)
+   - Developer E: Test Coverage (Phase 13 — parallel with all tracks above)
 3. Post-feature (Phases 9-11): parallelize performance, polish, docs
-4. Phase 13-14: Full team on test coverage and release
+4. Phase 13 verification + Phase 14: Full team on release
 
 ---
 
@@ -640,5 +684,5 @@ With multiple developers:
 - Stop at any checkpoint to validate story independently
 - All file paths are relative to repository root
 - Migration numbering continues from existing 028 → 029
-- Tests are spec-mandated (FR-041 through FR-044) and grouped in Phase 13 for efficiency
-- Total: 161 tasks across 14 phases covering all 49 functional requirements and 10 user stories
+- Tests are spec-mandated (FR-041 through FR-044, FR-050 through FR-052) and grouped in Phase 13 as a parallel track
+- Total: 168 tasks across 14 phases covering all 49 functional requirements and 10 user stories

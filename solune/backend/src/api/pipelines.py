@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import re
-from typing import Annotated
+from typing import TYPE_CHECKING, Annotated
 
 from fastapi import APIRouter, Depends
 
@@ -21,6 +21,7 @@ from src.models.pipeline import (
     ProjectPipelineAssignment,
     ProjectPipelineAssignmentUpdate,
 )
+from src.models.pipeline_run import PipelineRunCreate
 from src.models.user import UserSession
 from src.models.workflow import WorkflowConfiguration, WorkflowResult
 from src.services.agent_tracking import append_tracking_to_body
@@ -40,6 +41,9 @@ from src.services.workflow_orchestrator import (
 )
 from src.services.workflow_orchestrator.config import load_pipeline_as_agent_mappings
 from src.utils import resolve_repository, utcnow
+
+if TYPE_CHECKING:
+    from src.services.copilot_polling.pipeline_state_service import PipelineRunService
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -444,3 +448,192 @@ async def delete_pipeline(
     if not deleted:
         raise NotFoundError("Pipeline not found")
     return {"success": True, "deleted_id": pipeline_id}
+
+
+# ══════════════════════════════════════════════════════════════
+# Pipeline Runs — FR-001, FR-002, FR-003
+# ══════════════════════════════════════════════════════════════
+
+
+_run_service_instance: PipelineRunService | None = None
+
+
+def _get_run_service() -> PipelineRunService:
+    """Return a shared PipelineRunService so the asyncio.Lock is effective."""
+    global _run_service_instance
+    if _run_service_instance is None:
+        from src.services.copilot_polling.pipeline_state_service import PipelineRunService
+
+        _run_service_instance = PipelineRunService(get_db())
+    return _run_service_instance
+
+
+@router.post("/{pipeline_id}/runs", status_code=201)
+async def create_pipeline_run(
+    pipeline_id: str,
+    body: PipelineRunCreate,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Create and start a new pipeline run (FR-001, FR-016)."""
+    # Verify the pipeline exists
+    service = _get_service()
+    pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)
+    if pipeline is None:
+        raise NotFoundError("Pipeline configuration not found")
+
+    # Build stage list from pipeline config
+    stages = [{"stage_id": stage.id, "group_id": None} for stage in pipeline.stages]
+
+    run_service = _get_run_service()
+    run = await run_service.create_run(
+        pipeline_config_id=pipeline_id,
+        project_id=session.selected_project_id or "",
+        trigger=body.trigger if isinstance(body, PipelineRunCreate) else "manual",
+        stages=stages,
+    )
+    return run.model_dump()
+
+
+@router.get("/{pipeline_id}/runs")
+async def list_pipeline_runs(
+    pipeline_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+    status: str | None = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> dict:
+    """List all runs for a pipeline configuration (FR-003).
+
+    No artificial cap on total results.
+    """
+    # Verify the pipeline belongs to the user's selected project
+    service = _get_service()
+    pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)
+    if pipeline is None:
+        raise NotFoundError("Pipeline configuration not found")
+
+    run_service = _get_run_service()
+    result = await run_service.list_runs(
+        pipeline_config_id=pipeline_id,
+        status=status,
+        limit=min(limit, 100),
+        offset=max(offset, 0),
+    )
+    return result.model_dump()
+
+
+@router.get("/{pipeline_id}/runs/{run_id}")
+async def get_pipeline_run(
+    pipeline_id: str,
+    run_id: int,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Get detailed run state with all stages/groups (FR-001, FR-002)."""
+    # Verify the pipeline belongs to the user's selected project
+    service = _get_service()
+    pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)
+    if pipeline is None:
+        raise NotFoundError("Pipeline configuration not found")
+
+    run_service = _get_run_service()
+    run = await run_service.get_run(run_id)
+    if run is None or run.pipeline_config_id != pipeline_id:
+        raise NotFoundError("Pipeline run not found")
+    return run.model_dump()
+
+
+@router.post("/{pipeline_id}/runs/{run_id}/cancel")
+async def cancel_pipeline_run(
+    pipeline_id: str,
+    run_id: int,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Cancel a running or pending pipeline run."""
+    # Verify the pipeline belongs to the user's selected project
+    service = _get_service()
+    pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)
+    if pipeline is None:
+        raise NotFoundError("Pipeline configuration not found")
+
+    run_service = _get_run_service()
+
+    # Verify the run exists and belongs to this pipeline
+    run = await run_service.get_run(run_id)
+    if run is None or run.pipeline_config_id != pipeline_id:
+        raise NotFoundError("Pipeline run not found")
+
+    if run.status not in ("pending", "running"):
+        raise ValidationError(f"Cannot cancel a run with status '{run.status}'")
+
+    event = await run_service.cancel_run(run_id)
+    if event is None:
+        raise NotFoundError("Pipeline run not found")
+
+    return {"success": True, "run_id": run_id, "status": "cancelled"}
+
+
+@router.post("/{pipeline_id}/runs/{run_id}/recover")
+async def recover_pipeline_run(
+    pipeline_id: str,
+    run_id: int,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Rebuild state and resume a pipeline run (FR-002)."""
+    # Verify the pipeline belongs to the user's selected project
+    service = _get_service()
+    pipeline = await service.get_pipeline(session.selected_project_id or "", pipeline_id)
+    if pipeline is None:
+        raise NotFoundError("Pipeline configuration not found")
+
+    run_service = _get_run_service()
+
+    run = await run_service.get_run(run_id)
+    if run is None or run.pipeline_config_id != pipeline_id:
+        raise NotFoundError("Pipeline run not found")
+
+    if run.status not in ("running", "failed"):
+        raise ValidationError(f"Cannot recover a run with status '{run.status}'")
+
+    # Reset failed stages to pending for re-execution
+    for stage in run.stages:
+        if stage.status == "failed":
+            await run_service.update_stage_status(stage.id, "pending")
+
+    # Set run back to running if it was failed
+    if run.status == "failed":
+        await run_service.update_run_status(run_id, "running")
+
+    return {"success": True, "run_id": run_id, "status": "running"}
+
+
+# ── Stage Groups ──
+
+
+@router.get("/{pipeline_id}/groups")
+async def list_stage_groups(
+    pipeline_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """List stage groups for a pipeline configuration."""
+    run_service = _get_run_service()
+    result = await run_service.list_groups(pipeline_id)
+    return result.model_dump()
+
+
+@router.put("/{pipeline_id}/groups")
+async def upsert_stage_groups(
+    pipeline_id: str,
+    body: list[dict],
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> dict:
+    """Create or update stage groups atomically."""
+    # Validate input
+    for group in body:
+        if not group.get("name"):
+            raise ValidationError("Each group must have a name")
+        if "order_index" not in group:
+            raise ValidationError("Each group must have an order_index")
+
+    run_service = _get_run_service()
+    result = await run_service.upsert_groups(pipeline_id, body)
+    return result.model_dump()
