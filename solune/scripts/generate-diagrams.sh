@@ -56,7 +56,7 @@ generate_high_level() {
     diagram=$(cat <<'MERMAID'
 graph TB
     subgraph Client["Client Browser"]
-        FE["Frontend<br/>React 19 · Vite 7<br/>TypeScript 5.9"]
+        FE["Frontend<br/>React 19 · Vite 8<br/>TypeScript 5.9"]
     end
 
     subgraph DockerCompose["Docker Compose Network"]
