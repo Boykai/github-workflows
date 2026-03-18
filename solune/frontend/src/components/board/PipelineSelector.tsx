@@ -28,6 +28,12 @@ export function PipelineSelector({
     (p) => p.id === (assignedPipelineId ?? ''),
   ) ?? null;
 
+  // Close the dropdown when the assigned pipeline or pipeline list changes
+  // (e.g. user switches projects while the menu is open).
+  useEffect(() => {
+    setIsOpen(false);
+  }, [assignedPipelineId, savedPipelines]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -79,6 +85,7 @@ export function PipelineSelector({
           {assignedPipeline?.name ?? 'No pipeline selected'}
         </span>
         <ChevronDown
+          aria-hidden="true"
           className={cn(
             'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
             isOpen && 'rotate-180',
