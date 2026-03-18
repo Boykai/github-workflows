@@ -81,6 +81,14 @@
         "server",
         "start"
       ]
+    },
+    "azure/bicep-mcp": {
+      "type": "stdio",
+      "command": "dnx",
+      "args": [
+        "Azure.Bicep.McpServer",
+        "--yes"
+      ]
     }
   },
   "inputs": [
@@ -100,6 +108,17 @@
         "@azure/mcp@latest",
         "server",
         "start"
+      ],
+      "tools": [
+        "*"
+      ]
+    },
+    "Bicep": {
+      "type": "local",
+      "command": "dnx",
+      "args": [
+        "Azure.Bicep.McpServer",
+        "--yes"
       ],
       "tools": [
         "*"
