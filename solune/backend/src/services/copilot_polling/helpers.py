@@ -137,6 +137,12 @@ async def _check_copilot_review_done(
     the request is stored in ``_copilot_review_requested_at`` and passed
     to ``has_copilot_reviewed_pr`` as ``min_submitted_after``.
 
+    **Stale marker protection**: A ``copilot-review: Done!`` comment may
+    exist from an earlier auto-triggered review cycle.  The marker is only
+    accepted if its timestamp is NEWER than the latest non-copilot-review
+    ``<agent>: Done!`` comment on the same issue.  Stale markers are
+    deleted to prevent them from permanently short-circuiting future checks.
+
     **Self-healing**: if the PR is still a draft or the review was never
     requested (the initial assignment can fail silently), this function
     retries the un-draft and review-request operations before checking for
@@ -151,17 +157,68 @@ async def _check_copilot_review_done(
         _copilot_review_requested_at,
     )
 
-    # Also check for a Done! marker (posted by a previous detection cycle
-    # — belt & suspenders for restarts where we lost in-memory state).
-    done_marker = await _cp.github_projects_service.check_agent_completion_comment(
+    # ── Check for a durable Done! marker with timestamp validation ──
+    # A Done! marker may exist from a previous detection cycle (belt &
+    # suspenders for restarts where in-memory state was lost).  However,
+    # GitHub.com can auto-trigger a Copilot review when the PR is first
+    # opened, producing a stale Done! marker that predates the pipeline
+    # agents.  We validate the marker timestamp against the latest
+    # non-copilot-review agent Done! comment.
+    issue_data = await _cp.github_projects_service.get_issue_with_comments(
         access_token=access_token,
         owner=owner,
         repo=repo,
         issue_number=parent_issue_number,
-        agent_name="copilot-review",
     )
-    if done_marker:
-        return True
+    comments = issue_data.get("comments", [])
+
+    copilot_review_marker = None
+    latest_other_done_at = None
+    marker_text = "copilot-review: Done!"
+    done_suffix = ": Done!"
+
+    for comment in comments:
+        body = comment.get("body", "")
+        created_at = comment.get("created_at", "")
+        if any(line.strip() == marker_text for line in body.split("\n")):
+            copilot_review_marker = comment
+        elif body.strip().endswith(done_suffix) and created_at:
+            # Track the latest non-copilot-review Done! comment
+            if latest_other_done_at is None or created_at > latest_other_done_at:
+                latest_other_done_at = created_at
+
+    if copilot_review_marker:
+        marker_created = copilot_review_marker.get("created_at", "")
+        if latest_other_done_at and marker_created < latest_other_done_at:
+            # Stale marker — predates the latest coding agent's completion.
+            # Delete it so it cannot short-circuit future checks.
+            logger.warning(
+                "Stale 'copilot-review: Done!' marker on issue #%d "
+                "(marker at %s, latest agent Done! at %s) — deleting",
+                parent_issue_number,
+                marker_created,
+                latest_other_done_at,
+            )
+            db_id = copilot_review_marker.get("database_id")
+            if db_id:
+                try:
+                    await _cp.github_projects_service.delete_issue_comment(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        comment_database_id=db_id,
+                        issue_number=parent_issue_number,
+                    )
+                except Exception as e:
+                    logger.warning(
+                        "Failed to delete stale copilot-review marker on issue #%d: %s",
+                        parent_issue_number,
+                        e,
+                    )
+        else:
+            # Marker is valid (newer than all other agent Done! comments,
+            # or no other Done! comments exist for comparison).
+            return True
 
     # Locate the main PR for this issue using comprehensive discovery
     discovered = await _discover_main_pr_for_review(
