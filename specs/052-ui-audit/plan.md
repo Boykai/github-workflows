@@ -1,104 +1,114 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: UI Audit
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `052-ui-audit` | **Date**: 2026-03-18 | **Spec**: [`specs/052-ui-audit/spec.md`](spec.md)
+**Input**: Feature specification from `specs/052-ui-audit/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Comprehensive audit of every user-facing page in the Solune frontend against ten quality dimensions: component architecture, data fetching, state handling (loading/error/empty), type safety, accessibility, text/UX polish, styling/layout, performance, test coverage, and code hygiene. Each of the 11 pages is evaluated against a standardized checklist, findings are documented, and defects are remediated — resulting in a uniformly high-quality user experience. The audit is frontend-only, modifying existing code rather than introducing new features.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript ~5.9.0, React 19.2.0
+**Primary Dependencies**: TanStack React Query ^5.91.0, React Router DOM ^7.13.1, React Hook Form ^7.71.2, Radix UI (primitives), Tailwind CSS ^4.2.0, Zod ^4.3.6, Vite ^8.0.0
+**Storage**: N/A (frontend-only; backend uses SQLite via aiosqlite — not modified by this feature)
+**Testing**: Vitest ^4.0.18 + React Testing Library (unit/component), Playwright ^1.58.2 (E2E), @axe-core/playwright (a11y), jest-axe (a11y unit), Stryker (mutation)
+**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge); viewport 768px–1920px
+**Project Type**: Web application (frontend only — `solune/frontend/`)
+**Performance Goals**: Interactions feel instant, lists render smoothly (≥30 fps drag), no unnecessary re-renders
+**Constraints**: No new features — audit and remediate only; no new external dependencies; maintain all existing test coverage; ESLint 0 warnings, TypeScript 0 errors
+**Scale/Scope**: 11 pages, 13 component directories, 42 custom hooks, 7 UI primitives, 6 common components, 139 existing test files
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### I. Specification-First Development — ✅ PASS
+
+The feature specification (`specs/052-ui-audit/spec.md`) contains 8 prioritized user stories (P1–P3) with independent testing criteria and Given-When-Then acceptance scenarios. Scope boundaries are explicit: audit and remediate only, no new features. Out-of-scope items are clear.
+
+### II. Template-Driven Workflow — ✅ PASS
+
+All artifacts follow canonical templates from `.specify/templates/`. This plan follows `plan-template.md`. Research, data model, contracts, and quickstart documents are generated per the template structure.
+
+### III. Agent-Orchestrated Execution — ✅ PASS
+
+This plan is produced by the `speckit.plan` agent with clear inputs (spec.md) and outputs (plan.md, research.md, data-model.md, contracts/, quickstart.md). Handoff to `speckit.tasks` for task generation is explicit.
+
+### IV. Test Optionality with Clarity — ✅ PASS
+
+Tests are explicitly requested in the spec (US-8, FR-048 through FR-051). Test tasks are scoped to verifying audit findings: hooks must have tests for happy path, error, loading, and empty states; interactive components must have interaction tests. Snapshot tests are explicitly prohibited (FR-051). Tests follow the project's existing Vitest + React Testing Library conventions.
+
+### V. Simplicity and DRY — ✅ PASS
+
+The plan favors reusing existing shared components (`CelestialLoader`, `ErrorBoundary`, `ProjectSelectionEmptyState`, `ConfirmationDialog`, `Tooltip`) over creating new abstractions. Audit remediation modifies existing files rather than introducing new patterns. Hook extraction follows the existing `src/hooks/use[Feature].ts` convention already established in the codebase.
+
+### Post-Design Re-evaluation — ✅ PASS
+
+After Phase 1 design, all principles remain satisfied. The data model introduces only audit-tracking entities (Audit Checklist, Audit Finding) that formalize the evaluation process. No new runtime abstractions or dependencies are added. All changes modify existing files and patterns.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/052-ui-audit/
+├── plan.md              # This file (speckit.plan output)
+├── research.md          # Phase 0 output (speckit.plan)
+├── data-model.md        # Phase 1 output (speckit.plan)
+├── quickstart.md        # Phase 1 output (speckit.plan)
+├── contracts/           # Phase 1 output (speckit.plan)
+│   ├── audit-checklist.md    # Per-page audit evaluation contract
+│   └── remediation-policy.md # Standards for fixing audit findings
+├── checklists/
+│   └── requirements.md # Spec quality checklist (already exists)
+└── tasks.md             # Phase 2 output (speckit.tasks — NOT created by speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
+solune/frontend/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
+│   ├── pages/                    # 11 page files — primary audit targets
+│   │   ├── AgentsPage.tsx        # 230 lines
+│   │   ├── AgentsPipelinePage.tsx # 417 lines (exceeds 250-line threshold)
+│   │   ├── AppPage.tsx           # 141 lines
+│   │   ├── AppsPage.tsx          # 709 lines (exceeds 250-line threshold)
+│   │   ├── ChoresPage.tsx        # 166 lines
+│   │   ├── HelpPage.tsx          # 195 lines
+│   │   ├── LoginPage.tsx         # 119 lines
+│   │   ├── NotFoundPage.tsx      # 29 lines
+│   │   ├── ProjectsPage.tsx      # 631 lines (exceeds 250-line threshold)
+│   │   ├── SettingsPage.tsx      # 107 lines
+│   │   └── ToolsPage.tsx         # 87 lines
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   ├── agents/               # Agent feature components
+│   │   ├── apps/                 # App feature components
+│   │   ├── auth/                 # Authentication components
+│   │   ├── board/                # Board/kanban components
+│   │   ├── chat/                 # Chat interface components
+│   │   ├── chores/               # Chores feature components
+│   │   ├── common/               # Shared: CelestialLoader, ErrorBoundary, etc.
+│   │   ├── help/                 # Help feature components
+│   │   ├── onboarding/           # Onboarding flow components
+│   │   ├── pipeline/             # Pipeline workflow components
+│   │   ├── settings/             # Settings feature components
+│   │   ├── tools/                # Tools feature components
+│   │   └── ui/                   # Primitives: Button, Card, Input, Tooltip, etc.
+│   ├── hooks/                    # 42 custom hooks
+│   ├── services/
+│   │   └── api.ts                # 1,199 lines — 18 API module exports
+│   ├── types/
+│   │   ├── index.ts              # Main type definitions
+│   │   └── apps.ts               # App-specific types
+│   └── lib/
+│       └── utils.ts              # cn() helper (clsx + tailwind-merge)
+└── eslint.config.js              # ESLint flat config with jsx-a11y, security plugins
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application (frontend-only). All audit work targets existing files under `solune/frontend/src/`. No new directories are created. Sub-components extracted during remediation go into the existing `src/components/[feature]/` directories. Hooks extracted go into the existing `src/hooks/` directory.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No constitution violations detected. No complexity justifications needed.
