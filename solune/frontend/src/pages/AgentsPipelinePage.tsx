@@ -80,7 +80,7 @@ export function AgentsPipelinePage() {
         queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
       })
       .catch((err) => {
-        console.warn('Failed to seed preset pipelines:', err);
+        // Seeding is best-effort and idempotent — silent failure is acceptable
       });
   }, [projectId, queryClient]);
 

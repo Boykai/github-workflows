@@ -68,7 +68,7 @@ export function LoginPage() {
           <div className="solar-halo celestial-pulse-glow absolute left-8 top-16 h-16 w-16 rounded-full" />
           <div className="lunar-disc celestial-float absolute right-7 top-12 h-14 w-14 rounded-full" />
 
-          <div className="relative flex h-[29rem] w-full items-center justify-center">
+          <div className="relative flex h-[29rem] w-full items-center justify-center" aria-hidden="true">
             <div className="absolute bottom-20 h-[18rem] w-[18rem] rounded-full bg-[linear-gradient(180deg,hsl(var(--muted)),color-mix(in_srgb,hsl(var(--muted))_82%,black))] opacity-90" />
             <div className="absolute bottom-24 h-[19rem] w-[11rem] rounded-[999px] border border-border/50 bg-card/65 backdrop-blur-md" />
             <div className="absolute bottom-[16.5rem] left-1/2 h-14 w-14 -translate-x-1/2 rounded-full border border-border/60 bg-background/90" />

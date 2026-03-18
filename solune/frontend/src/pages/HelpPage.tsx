@@ -167,7 +167,7 @@ export function HelpPage() {
         <h2 className="mb-4 text-lg font-semibold text-foreground">Slash Commands</h2>
         {commands.length > 0 ? (
           <div className="celestial-panel overflow-hidden rounded-2xl border border-border/50">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm"><caption className="sr-only">Slash Commands Reference</caption>
               <thead>
                 <tr className="border-b border-border/50">
                   <th className="px-5 py-3 text-left font-semibold text-foreground">Command</th>
