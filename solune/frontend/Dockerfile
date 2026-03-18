@@ -1,7 +1,7 @@
 # Frontend Dockerfile - Multi-stage build
 
 # Build stage
-FROM node:22-alpine AS builder
+FROM node:25-alpine AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM nginx:1.27-alpine
+FROM nginx:1.29-alpine
 
 # Create non-root user for nginx
 RUN addgroup -S nginx-app && adduser -S -G nginx-app nginx-app \
