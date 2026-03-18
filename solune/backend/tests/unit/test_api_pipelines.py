@@ -175,3 +175,193 @@ class TestLaunchPipelineIssue:
 
         assignment = await PipelineService(mock_db).get_assignment("PVT_1")
         assert assignment.pipeline_id == ""
+
+
+# ══════════════════════════════════════════════════════════════
+# Pipeline CRUD — negative / error path tests
+# ══════════════════════════════════════════════════════════════
+
+
+class TestGetPipeline:
+    """Tests for GET /pipelines/{project_id}/{pipeline_id}."""
+
+    @pytest.mark.anyio
+    async def test_get_returns_pipeline(self, client, mock_db):
+        """Returns a saved pipeline by ID."""
+        pid = await _create_pipeline(mock_db)
+        resp = await client.get(f"/api/v1/pipelines/PVT_1/{pid}")
+        assert resp.status_code == 200
+        assert resp.json()["id"] == pid
+
+    @pytest.mark.anyio
+    async def test_get_returns_404_for_missing_pipeline(self, client):
+        """Returns 404 for a non-existent pipeline."""
+        resp = await client.get("/api/v1/pipelines/PVT_1/no-such-id")
+        assert resp.status_code == 404
+
+    @pytest.mark.anyio
+    async def test_get_returns_404_for_wrong_project(self, client, mock_db):
+        """Pipeline exists under project A but request uses project B."""
+        pid = await _create_pipeline(mock_db, project_id="PVT_A")
+        resp = await client.get(f"/api/v1/pipelines/PVT_B/{pid}")
+        assert resp.status_code == 404
+
+
+class TestDeletePipeline:
+    """Tests for DELETE /pipelines/{project_id}/{pipeline_id}."""
+
+    @pytest.mark.anyio
+    async def test_delete_existing_pipeline(self, client, mock_db):
+        """Deletes a pipeline and returns success."""
+        pid = await _create_pipeline(mock_db)
+        resp = await client.delete(f"/api/v1/pipelines/PVT_1/{pid}")
+        assert resp.status_code == 200
+        assert resp.json()["success"] is True
+        assert resp.json()["deleted_id"] == pid
+
+        # Verify it's gone
+        resp2 = await client.get(f"/api/v1/pipelines/PVT_1/{pid}")
+        assert resp2.status_code == 404
+
+    @pytest.mark.anyio
+    async def test_delete_returns_404_for_missing_pipeline(self, client):
+        """Returns 404 when deleting a non-existent pipeline."""
+        resp = await client.delete("/api/v1/pipelines/PVT_1/no-such-id")
+        assert resp.status_code == 404
+
+
+class TestUpdatePipeline:
+    """Tests for PUT /pipelines/{project_id}/{pipeline_id}."""
+
+    @pytest.mark.anyio
+    async def test_update_name_and_description(self, client, mock_db):
+        """Updates pipeline name and description."""
+        pid = await _create_pipeline(mock_db)
+        resp = await client.put(
+            f"/api/v1/pipelines/PVT_1/{pid}",
+            json={"name": "Renamed Pipeline", "description": "New desc"},
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["name"] == "Renamed Pipeline"
+        assert data["description"] == "New desc"
+
+    @pytest.mark.anyio
+    async def test_update_returns_404_for_missing_pipeline(self, client):
+        """Returns 404 when updating a non-existent pipeline."""
+        resp = await client.put(
+            "/api/v1/pipelines/PVT_1/no-such-id",
+            json={"name": "Nope"},
+        )
+        assert resp.status_code == 404
+
+
+class TestListPipelines:
+    """Tests for GET /pipelines/{project_id}."""
+
+    @pytest.mark.anyio
+    async def test_list_returns_empty_for_no_pipelines(self, client):
+        """Returns empty list for a project with no pipelines."""
+        resp = await client.get("/api/v1/pipelines/PVT_EMPTY")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["pipelines"] == []
+        assert data["total"] == 0
+
+    @pytest.mark.anyio
+    async def test_list_returns_created_pipelines(self, client, mock_db):
+        """Lists all pipelines for a project."""
+        service = PipelineService(mock_db)
+        await service.create_pipeline(
+            "PVT_LIST",
+            PipelineConfigCreate(
+                name="Pipeline Alpha",
+                description="First",
+                stages=[
+                    PipelineStage(
+                        id="s1",
+                        name="S1",
+                        order=0,
+                        agents=[
+                            PipelineAgentNode(
+                                id="a1",
+                                agent_slug="speckit.specify",
+                                agent_display_name="Specify",
+                                model_id="",
+                                model_name="",
+                                tool_ids=[],
+                                tool_count=0,
+                                config={},
+                            )
+                        ],
+                    )
+                ],
+            ),
+        )
+        await service.create_pipeline(
+            "PVT_LIST",
+            PipelineConfigCreate(
+                name="Pipeline Beta",
+                description="Second",
+                stages=[
+                    PipelineStage(
+                        id="s2",
+                        name="S2",
+                        order=0,
+                        agents=[
+                            PipelineAgentNode(
+                                id="a2",
+                                agent_slug="speckit.plan",
+                                agent_display_name="Plan",
+                                model_id="",
+                                model_name="",
+                                tool_ids=[],
+                                tool_count=0,
+                                config={},
+                            )
+                        ],
+                    )
+                ],
+            ),
+        )
+        resp = await client.get("/api/v1/pipelines/PVT_LIST")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] == 2
+        assert len(data["pipelines"]) == 2
+
+
+class TestCreatePipeline:
+    """Tests for POST /pipelines/{project_id}."""
+
+    @pytest.mark.anyio
+    async def test_create_pipeline(self, client, mock_db):
+        """Creates a pipeline and returns 201."""
+        resp = await client.post(
+            "/api/v1/pipelines/PVT_1",
+            json={
+                "name": "New Pipeline",
+                "description": "Testing creation",
+                "stages": [
+                    {
+                        "id": "s1",
+                        "name": "Build",
+                        "order": 0,
+                        "agents": [],
+                    }
+                ],
+            },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["name"] == "New Pipeline"
+        assert data["project_id"] == "PVT_1"
+
+    @pytest.mark.anyio
+    async def test_create_pipeline_missing_name(self, client):
+        """Missing name field returns 422."""
+        resp = await client.post(
+            "/api/v1/pipelines/PVT_1",
+            json={"description": "No name", "stages": []},
+        )
+        assert resp.status_code == 422

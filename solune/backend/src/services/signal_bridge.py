@@ -53,6 +53,13 @@ def _hash_phone(phone: str) -> str:
     return hashlib.sha256(phone.encode()).hexdigest()
 
 
+def _mask_phone(phone: str) -> str:
+    """Mask a phone number for safe logging, showing only the last 4 digits."""
+    if len(phone) <= 4:
+        return "****"
+    return "*" * (len(phone) - 4) + phone[-4:]
+
+
 # ── Core HTTP helpers ────────────────────────────────────────────────────
 
 
@@ -478,7 +485,7 @@ async def start_signal_ws_listener() -> None:
     from src.services.task_registry import task_registry
 
     _ws_listener_task = task_registry.create_task(_ws_listen_loop(phone), name="signal-ws-listener")
-    logger.info("Signal WebSocket listener started for %s", phone)
+    logger.info("Signal WebSocket listener started")
 
 
 async def restart_signal_ws_listener() -> None:
@@ -516,7 +523,7 @@ async def _ws_listen_loop(phone: str) -> None:
     while True:
         try:
             async with websockets.connect(url, ping_interval=30) as ws:
-                logger.info("Connected to Signal WebSocket at %s", url)
+                logger.info("Connected to Signal WebSocket")
                 # Reset backoff on successful connection.
                 consecutive_failures = 0
                 async for raw_message in ws:

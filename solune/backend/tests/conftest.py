@@ -305,6 +305,7 @@ async def client(
         patch("src.api.settings.get_db", return_value=mock_db),
         patch("src.api.mcp.get_db", return_value=mock_db),
         patch("src.api.tools.get_db", return_value=mock_db),
+        patch("src.api.onboarding.get_db", return_value=mock_db),
     ]
 
     with contextlib.ExitStack() as stack:

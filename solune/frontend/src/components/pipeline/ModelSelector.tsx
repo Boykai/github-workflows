@@ -3,7 +3,7 @@
  * Groups models by provider, shows metadata, tracks recently used.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { useModels } from '@/hooks/useModels';
 import { ChevronDown, Search, Check, Zap, DollarSign, Crown } from 'lucide-react';
@@ -19,16 +19,6 @@ interface ModelSelectorProps {
   allowAuto?: boolean;
   autoLabel?: string;
   triggerClassName?: string;
-}
-
-// Session-level recently used tracking
-const recentModelIds: string[] = [];
-
-function addRecentModel(modelId: string) {
-  const idx = recentModelIds.indexOf(modelId);
-  if (idx !== -1) recentModelIds.splice(idx, 1);
-  recentModelIds.unshift(modelId);
-  if (recentModelIds.length > 3) recentModelIds.pop();
 }
 
 function CostTierBadge({ tier }: { tier: string }) {
@@ -78,10 +68,19 @@ export function ModelSelector({
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const { models, modelsByProvider, isLoading, isRefreshing, refreshModels } = useModels();
+  const recentModelIdsRef = useRef<string[]>([]);
+
+  const addRecentModel = useCallback((modelId: string) => {
+    const ids = recentModelIdsRef.current;
+    const idx = ids.indexOf(modelId);
+    if (idx !== -1) ids.splice(idx, 1);
+    ids.unshift(modelId);
+    if (ids.length > 3) ids.pop();
+  }, []);
 
   const recentModels = useMemo(
     () =>
-      recentModelIds
+      recentModelIdsRef.current
         .map((id) => models.find((m) => m.id === id))
         .filter((m): m is AIModel => m !== undefined),
     // eslint-disable-next-line react-hooks/exhaustive-deps

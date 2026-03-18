@@ -102,11 +102,16 @@ async def update_pipeline_label(
     """Update a pipeline state label by deleting the old and creating a new one.
 
     GitHub labels are immutable names — updates require delete + create.
+    Creates the new label first so that if creation fails, the old label
+    is preserved (no state loss).
     Returns the new label name on success, None on failure.
     """
+    new_label = await create_pipeline_label(access_token, owner, repo, run_id, stage_id, new_status)
+    if new_label is None:
+        return None
     old_name = build_label_name(run_id, stage_id, old_status)
     await delete_pipeline_label(access_token, owner, repo, old_name)
-    return await create_pipeline_label(access_token, owner, repo, run_id, stage_id, new_status)
+    return new_label
 
 
 async def delete_pipeline_label(
