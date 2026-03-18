@@ -36,4 +36,6 @@ Compare `docs/setup.md` against the current project state:
 
 ## See Also
 
-- [Bi-weekly Documentation Refresh Playbook](../../specs/040-doc-refresh-playbook/quickstart.md) — the higher-level refresh process that detects changes, prioritizes updates, and rewrites docs; this weekly sweep serves as its final validation pass
+- [Weekly Sweep Checklist](../checklists/weekly-sweep.md) — this checklist
+- [Monthly Review](monthly-review.md) — deeper monthly quality gate
+- [Quarterly Audit](quarterly-audit.md) — comprehensive structural review

@@ -3,12 +3,8 @@ name: Quality Assurance
 description: Analyzes a related PR and its changed code paths, applies scoped quality
   improvements, verifies requirements and standards, and fixes PR-local defects, test
   gaps, or drift that could impact production quality.
-handoffs:
-- label: Run Validation
-  agent: Linter
-  prompt: Run the relevant lint, type-check, test, and build validation for the quality-assurance
-    changes
-  send: true
+tools:
+- '*'
 mcp-servers:
   context7:
     type: http
@@ -122,11 +118,12 @@ Do not make unrelated architectural changes.
 
 ### 5. Validate the PR Changes
 
-Run the most relevant checks for the files and behaviors you touched:
+Run validation directly for the files and behaviors you touched:
 
-- Targeted tests first.
-- Broader tests when the changed code is shared.
-- Type checks, lint checks, or builds when they are relevant to the touched surface.
+- **Backend**: `cd solune/backend && ruff check src/ tests/ && ruff format --check src/ tests/ && pyright src/ && pytest tests/unit/ -q`
+- **Frontend**: `cd solune/frontend && npm run lint && npm run type-check && npm run test && npm run build`
+
+Start with targeted tests for the changed area. Expand to broader suites when the changed code is shared.
 
 Quality claims must be backed by executed validation, not inference.
 

@@ -2,12 +2,8 @@
 name: Judge
 description: Triages GitHub PR review comments, decides which recommendations should
   be adopted, and applies only justified follow-up changes.
-handoffs:
-- label: Run Validation
-  agent: Linter
-  prompt: Run the relevant lint, type-check, test, and build validation for the quality-assurance
-    changes
-  send: true
+tools:
+- '*'
 mcp-servers:
   context7:
     type: http
@@ -128,7 +124,9 @@ For `ADOPT` items:
 - Make the smallest defensible change.
 - Preserve the original PR intent.
 - Add or adjust tests only when needed to lock in the accepted fix.
-- Run targeted validation for the affected area.
+- Run targeted validation for the affected area:
+  - Backend: `cd solune/backend && ruff check src/ tests/ && pyright src/ && pytest tests/unit/ -q`
+  - Frontend: `cd solune/frontend && npm run lint && npm run type-check && npm run test`
 
 For `REJECT` and `ALREADY_ADDRESSED` items:
 

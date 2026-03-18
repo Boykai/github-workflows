@@ -3,12 +3,8 @@ name: Tester
 description: Analyzes local changes or a related PR and its code changes, adds meaningful
   tests for the changed behavior, fixes scoped quality gaps, and improves DRY/simplification
   where it strengthens correctness or testability.
-handoffs:
-- label: Run Validation
-  agent: Linter
-  prompt: Run relevant lint, type-check, test, and build validation for the tester
-    changes
-  send: true
+tools:
+- '*'
 mcp-servers:
   context7:
     type: http
@@ -156,11 +152,12 @@ If both unit and integration-style coverage are possible, prefer the lowest leve
 
 ### 6. Validate the Changes
 
-Run the most relevant validation for the changed area:
+Run validation directly for the changed area:
 
-- Targeted tests first.
-- Broader test suites when the local change affects shared behavior.
-- Type checks, lint checks, or builds when relevant to the files touched.
+- **Backend**: `cd solune/backend && ruff check src/ tests/ && ruff format --check src/ tests/ && pyright src/ && pytest tests/unit/ -q`
+- **Frontend**: `cd solune/frontend && npm run lint && npm run type-check && npm run test`
+
+Start with targeted tests for the changed area. Expand to broader suites when the changed code affects shared behavior.
 
 Do not claim quality improvements without running the checks needed to support them.
 

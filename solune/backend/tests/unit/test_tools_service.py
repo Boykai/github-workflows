@@ -30,29 +30,37 @@ class _FakeResponse:
         return self._payload
 
 
-class _FakeAsyncClient:
+class _FakeGitHubService:
+    """Mock GitHubProjectsService that maps (method, path) → responses."""
+
     def __init__(
         self, *, get_responses: dict[str, list[_FakeResponse]], put_status: int = 200
     ) -> None:
-        self.get_responses = {url: list(responses) for url, responses in get_responses.items()}
+        self.get_responses = {path: list(responses) for path, responses in get_responses.items()}
         self.put_status = put_status
         self.put_calls: list[tuple[str, dict]] = []
 
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc, tb):
-        return False
-
-    async def get(self, url: str, headers=None):
-        responses = self.get_responses.get(url)
-        if not responses:
-            return _FakeResponse(404)
-        return responses.pop(0)
-
-    async def put(self, url: str, headers=None, json=None):
-        self.put_calls.append((url, json or {}))
-        return _FakeResponse(self.put_status, {"content": {}})
+    async def rest_request(
+        self,
+        access_token: str,
+        method: str,
+        path: str,
+        *,
+        json: dict | None = None,
+        params: dict | None = None,
+        headers: dict | None = None,
+    ) -> _FakeResponse:
+        if method == "GET":
+            responses = self.get_responses.get(path)
+            if not responses:
+                return _FakeResponse(404)
+            return responses.pop(0)
+        elif method == "PUT":
+            self.put_calls.append((path, json or {}))
+            return _FakeResponse(self.put_status, {"content": {}})
+        elif method == "POST":
+            return _FakeResponse(self.put_status, {"content": {}})
+        return _FakeResponse(404)
 
 
 async def _insert_tool(
@@ -313,12 +321,11 @@ class TestToolsServiceMcpSync:
 
     async def test_sync_tool_to_github_writes_both_supported_paths(self, mock_db):
         await _insert_tool(mock_db)
-        service = ToolsService(mock_db)
-        base_url = "https://api.github.com/repos/octo/repo/contents"
-        fake_client = _FakeAsyncClient(
+        base_path = "/repos/octo/repo/contents"
+        fake_svc = _FakeGitHubService(
             get_responses={
-                f"{base_url}/.copilot/mcp.json": [_FakeResponse(404)],
-                f"{base_url}/.vscode/mcp.json": [
+                f"{base_path}/.copilot/mcp.json": [_FakeResponse(404)],
+                f"{base_path}/.vscode/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -336,24 +343,24 @@ class TestToolsServiceMcpSync:
                 ],
             }
         )
+        service = ToolsService(mock_db, github_service=fake_svc)
 
-        with patch("httpx.AsyncClient", return_value=fake_client):
-            result = await service.sync_tool_to_github(
-                TOOL_ID,
-                PROJECT_ID,
-                USER_ID,
-                "octo",
-                "repo",
-                "token",
-            )
+        result = await service.sync_tool_to_github(
+            TOOL_ID,
+            PROJECT_ID,
+            USER_ID,
+            "octo",
+            "repo",
+            "token",
+        )
 
         assert result.sync_status == "synced"
         assert result.synced_paths == [".copilot/mcp.json", ".vscode/mcp.json"]
-        assert len(fake_client.put_calls) == 2
+        assert len(fake_svc.put_calls) == 2
 
-        put_by_url = dict(fake_client.put_calls)
-        copilot_body = put_by_url[f"{base_url}/.copilot/mcp.json"]
-        vscode_body = put_by_url[f"{base_url}/.vscode/mcp.json"]
+        put_by_path = dict(fake_svc.put_calls)
+        copilot_body = put_by_path[f"{base_path}/.copilot/mcp.json"]
+        vscode_body = put_by_path[f"{base_path}/.vscode/mcp.json"]
 
         copilot_content = json.loads(base64.b64decode(copilot_body["content"]).decode("utf-8"))
         vscode_content = json.loads(base64.b64decode(vscode_body["content"]).decode("utf-8"))
@@ -363,11 +370,10 @@ class TestToolsServiceMcpSync:
         assert vscode_body["sha"] == "sha-vscode"
 
     async def test_get_repo_mcp_config_reads_both_paths(self, mock_db):
-        service = ToolsService(mock_db)
-        base_url = "https://api.github.com/repos/octo/repo/contents"
-        fake_client = _FakeAsyncClient(
+        base_path = "/repos/octo/repo/contents"
+        fake_svc = _FakeGitHubService(
             get_responses={
-                f"{base_url}/.copilot/mcp.json": [
+                f"{base_path}/.copilot/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -383,7 +389,7 @@ class TestToolsServiceMcpSync:
                         ),
                     )
                 ],
-                f"{base_url}/.vscode/mcp.json": [
+                f"{base_path}/.vscode/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -405,13 +411,13 @@ class TestToolsServiceMcpSync:
                 ],
             }
         )
+        service = ToolsService(mock_db, github_service=fake_svc)
 
-        with patch("httpx.AsyncClient", return_value=fake_client):
-            result = await service.get_repo_mcp_config(
-                owner="octo",
-                repo="repo",
-                access_token="token",
-            )
+        result = await service.get_repo_mcp_config(
+            owner="octo",
+            repo="repo",
+            access_token="token",
+        )
 
         assert result.primary_path == ".copilot/mcp.json"
         assert result.available_paths == [".copilot/mcp.json", ".vscode/mcp.json"]
@@ -453,14 +459,10 @@ class TestToolsServiceMcpSync:
             name="GitHub MCP",
             config_content='{"mcpServers":{"github":{"type":"http","url":"https://api.githubcopilot.com/mcp/readonly"}}}',
         )
-        service = ToolsService(mock_db)
-        tool = await service.get_tool(PROJECT_ID, "tool-a", USER_ID)
-        assert tool is not None
-
-        base_url = "https://api.github.com/repos/octo/repo/contents"
-        fake_client = _FakeAsyncClient(
+        base_path = "/repos/octo/repo/contents"
+        fake_svc = _FakeGitHubService(
             get_responses={
-                f"{base_url}/.copilot/mcp.json": [
+                f"{base_path}/.copilot/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -476,7 +478,7 @@ class TestToolsServiceMcpSync:
                         ),
                     )
                 ],
-                f"{base_url}/.vscode/mcp.json": [
+                f"{base_path}/.vscode/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -494,26 +496,27 @@ class TestToolsServiceMcpSync:
                 ],
             }
         )
+        service = ToolsService(mock_db, github_service=fake_svc)
+        tool = await service.get_tool(PROJECT_ID, "tool-a", USER_ID)
+        assert tool is not None
 
-        with patch("httpx.AsyncClient", return_value=fake_client):
-            await service._remove_from_github(
-                tool,
-                "octo",
-                "repo",
-                "token",
-                protected_server_names={"github"},
-            )
+        await service._remove_from_github(
+            tool,
+            "octo",
+            "repo",
+            "token",
+            protected_server_names={"github"},
+        )
 
-        assert fake_client.put_calls == []
+        assert fake_svc.put_calls == []
 
     async def test_update_repo_mcp_server_updates_existing_server_in_each_present_path(
         self, mock_db
     ):
-        service = ToolsService(mock_db)
-        base_url = "https://api.github.com/repos/octo/repo/contents"
-        fake_client = _FakeAsyncClient(
+        base_path = "/repos/octo/repo/contents"
+        fake_svc = _FakeGitHubService(
             get_responses={
-                f"{base_url}/.copilot/mcp.json": [
+                f"{base_path}/.copilot/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -529,7 +532,7 @@ class TestToolsServiceMcpSync:
                         ),
                     )
                 ],
-                f"{base_url}/.vscode/mcp.json": [
+                f"{base_path}/.vscode/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -551,37 +554,40 @@ class TestToolsServiceMcpSync:
                 ],
             }
         )
+        service = ToolsService(mock_db, github_service=fake_svc)
 
-        with patch("httpx.AsyncClient", return_value=fake_client):
-            result = await service.update_repo_mcp_server(
-                owner="octo",
-                repo="repo",
-                access_token="token",
-                server_name="legacy",
-                data=RepoMcpServerUpdate(
-                    name="modern",
-                    config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
-                ),
-            )
+        result = await service.update_repo_mcp_server(
+            owner="octo",
+            repo="repo",
+            access_token="token",
+            server_name="legacy",
+            data=RepoMcpServerUpdate(
+                name="modern",
+                config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
+            ),
+        )
 
         assert result.name == "modern"
         assert result.source_paths == [".copilot/mcp.json", ".vscode/mcp.json"]
-        put_by_url = dict(fake_client.put_calls)
+        put_by_path = dict(fake_svc.put_calls)
         copilot_content = json.loads(
-            base64.b64decode(put_by_url[f"{base_url}/.copilot/mcp.json"]["content"]).decode("utf-8")
+            base64.b64decode(put_by_path[f"{base_path}/.copilot/mcp.json"]["content"]).decode(
+                "utf-8"
+            )
         )
         vscode_content = json.loads(
-            base64.b64decode(put_by_url[f"{base_url}/.vscode/mcp.json"]["content"]).decode("utf-8")
+            base64.b64decode(put_by_path[f"{base_path}/.vscode/mcp.json"]["content"]).decode(
+                "utf-8"
+            )
         )
         assert set(copilot_content["mcpServers"].keys()) == {"modern"}
         assert set(vscode_content["mcpServers"].keys()) == {"modern", "other"}
 
     async def test_delete_repo_mcp_server_removes_server_from_present_paths(self, mock_db):
-        service = ToolsService(mock_db)
-        base_url = "https://api.github.com/repos/octo/repo/contents"
-        fake_client = _FakeAsyncClient(
+        base_path = "/repos/octo/repo/contents"
+        fake_svc = _FakeGitHubService(
             get_responses={
-                f"{base_url}/.copilot/mcp.json": [
+                f"{base_path}/.copilot/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -597,7 +603,7 @@ class TestToolsServiceMcpSync:
                         ),
                     )
                 ],
-                f"{base_url}/.vscode/mcp.json": [
+                f"{base_path}/.vscode/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -619,33 +625,36 @@ class TestToolsServiceMcpSync:
                 ],
             }
         )
+        service = ToolsService(mock_db, github_service=fake_svc)
 
-        with patch("httpx.AsyncClient", return_value=fake_client):
-            result = await service.delete_repo_mcp_server(
-                owner="octo",
-                repo="repo",
-                access_token="token",
-                server_name="legacy",
-            )
+        result = await service.delete_repo_mcp_server(
+            owner="octo",
+            repo="repo",
+            access_token="token",
+            server_name="legacy",
+        )
 
         assert result.name == "legacy"
         assert result.source_paths == [".copilot/mcp.json", ".vscode/mcp.json"]
-        put_by_url = dict(fake_client.put_calls)
+        put_by_path = dict(fake_svc.put_calls)
         copilot_content = json.loads(
-            base64.b64decode(put_by_url[f"{base_url}/.copilot/mcp.json"]["content"]).decode("utf-8")
+            base64.b64decode(put_by_path[f"{base_path}/.copilot/mcp.json"]["content"]).decode(
+                "utf-8"
+            )
         )
         vscode_content = json.loads(
-            base64.b64decode(put_by_url[f"{base_url}/.vscode/mcp.json"]["content"]).decode("utf-8")
+            base64.b64decode(put_by_path[f"{base_path}/.vscode/mcp.json"]["content"]).decode(
+                "utf-8"
+            )
         )
         assert copilot_content["mcpServers"] == {}
         assert set(vscode_content["mcpServers"].keys()) == {"other"}
 
     async def test_update_repo_mcp_server_rejects_invalid_json_in_existing_repo_file(self, mock_db):
-        service = ToolsService(mock_db)
-        base_url = "https://api.github.com/repos/octo/repo/contents"
-        fake_client = _FakeAsyncClient(
+        base_path = "/repos/octo/repo/contents"
+        fake_svc = _FakeGitHubService(
             get_responses={
-                f"{base_url}/.copilot/mcp.json": [
+                f"{base_path}/.copilot/mcp.json": [
                     _FakeResponse(
                         200,
                         {
@@ -656,31 +665,30 @@ class TestToolsServiceMcpSync:
                 ]
             }
         )
+        service = ToolsService(mock_db, github_service=fake_svc)
 
-        with patch("httpx.AsyncClient", return_value=fake_client):
-            try:
-                await service.update_repo_mcp_server(
-                    owner="octo",
-                    repo="repo",
-                    access_token="token",
-                    server_name="legacy",
-                    data=RepoMcpServerUpdate(
-                        name="modern",
-                        config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
-                    ),
-                )
-            except ValueError as exc:
-                assert ".copilot/mcp.json" in str(exc)
-                assert "Invalid JSON" in str(exc)
-            else:
-                raise AssertionError("Expected ValueError for invalid repository MCP JSON")
+        try:
+            await service.update_repo_mcp_server(
+                owner="octo",
+                repo="repo",
+                access_token="token",
+                server_name="legacy",
+                data=RepoMcpServerUpdate(
+                    name="modern",
+                    config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
+                ),
+            )
+        except ValueError as exc:
+            assert ".copilot/mcp.json" in str(exc)
+            assert "Invalid JSON" in str(exc)
+        else:
+            raise AssertionError("Expected ValueError for invalid repository MCP JSON")
 
     async def test_update_repo_mcp_server_preflights_all_paths_before_writing(self, mock_db):
-        service = ToolsService(mock_db)
-        base_url = "https://api.github.com/repos/octo/repo/contents"
-        fake_client = _FakeAsyncClient(
+        base_path = "/repos/octo/repo/contents"
+        fake_svc = _FakeGitHubService(
             get_responses={
-                f"{base_url}/.copilot/mcp.json": [
+                f"{base_path}/.copilot/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -696,7 +704,7 @@ class TestToolsServiceMcpSync:
                         ),
                     )
                 ],
-                f"{base_url}/.vscode/mcp.json": [
+                f"{base_path}/.vscode/mcp.json": [
                     _FakeResponse(
                         200,
                         _github_file_response(
@@ -718,33 +726,32 @@ class TestToolsServiceMcpSync:
                 ],
             }
         )
+        service = ToolsService(mock_db, github_service=fake_svc)
 
-        with patch("httpx.AsyncClient", return_value=fake_client):
-            try:
-                await service.update_repo_mcp_server(
-                    owner="octo",
-                    repo="repo",
-                    access_token="token",
-                    server_name="legacy",
-                    data=RepoMcpServerUpdate(
-                        name="modern",
-                        config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
-                    ),
-                )
-            except ValueError as exc:
-                assert ".vscode/mcp.json" in str(exc)
-                assert "already exists" in str(exc)
-            else:
-                raise AssertionError("Expected ValueError for rename collision")
+        try:
+            await service.update_repo_mcp_server(
+                owner="octo",
+                repo="repo",
+                access_token="token",
+                server_name="legacy",
+                data=RepoMcpServerUpdate(
+                    name="modern",
+                    config_content='{"mcpServers":{"ignored":{"type":"http","url":"https://modern.example/mcp"}}}',
+                ),
+            )
+        except ValueError as exc:
+            assert ".vscode/mcp.json" in str(exc)
+            assert "already exists" in str(exc)
+        else:
+            raise AssertionError("Expected ValueError for rename collision")
 
-        assert fake_client.put_calls == []
+        assert fake_svc.put_calls == []
 
     async def test_delete_repo_mcp_server_rejects_invalid_json_in_existing_repo_file(self, mock_db):
-        service = ToolsService(mock_db)
-        base_url = "https://api.github.com/repos/octo/repo/contents"
-        fake_client = _FakeAsyncClient(
+        base_path = "/repos/octo/repo/contents"
+        fake_svc = _FakeGitHubService(
             get_responses={
-                f"{base_url}/.copilot/mcp.json": [
+                f"{base_path}/.copilot/mcp.json": [
                     _FakeResponse(
                         200,
                         {
@@ -755,17 +762,17 @@ class TestToolsServiceMcpSync:
                 ]
             }
         )
+        service = ToolsService(mock_db, github_service=fake_svc)
 
-        with patch("httpx.AsyncClient", return_value=fake_client):
-            try:
-                await service.delete_repo_mcp_server(
-                    owner="octo",
-                    repo="repo",
-                    access_token="token",
-                    server_name="legacy",
-                )
-            except ValueError as exc:
-                assert ".copilot/mcp.json" in str(exc)
-                assert "Invalid JSON" in str(exc)
-            else:
-                raise AssertionError("Expected ValueError for invalid repository MCP JSON")
+        try:
+            await service.delete_repo_mcp_server(
+                owner="octo",
+                repo="repo",
+                access_token="token",
+                server_name="legacy",
+            )
+        except ValueError as exc:
+            assert ".copilot/mcp.json" in str(exc)
+            assert "Invalid JSON" in str(exc)
+        else:
+            raise AssertionError("Expected ValueError for invalid repository MCP JSON")
