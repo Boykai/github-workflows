@@ -264,15 +264,16 @@ export function AppsPage() {
         )}
 
         {/* Create dialog */}
-        <CreateAppDialog
-          isOpen={showCreateDialog}
-          onClose={closeCreateDialog}
-          onSubmit={handleCreateSubmit}
-          isPending={createMutation.isPending}
-          owners={owners}
-          getErrorMessage={getErrorMessage}
-          initialRepoType={createRepoType}
-        />
+        {showCreateDialog && (
+          <CreateAppDialog
+            onClose={closeCreateDialog}
+            onSubmit={handleCreateSubmit}
+            isPending={createMutation.isPending}
+            owners={owners}
+            getErrorMessage={getErrorMessage}
+            initialRepoType={createRepoType}
+          />
+        )}
       </div>
     </ErrorBoundary>
   );

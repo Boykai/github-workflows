@@ -14,7 +14,6 @@ const REPO_TYPE_OPTIONS: { value: RepoType; label: string }[] = [
 ];
 
 interface CreateAppDialogProps {
-  isOpen: boolean;
   onClose: () => void;
   onSubmit: (
     payload: AppCreate,
@@ -30,7 +29,6 @@ interface CreateAppDialogProps {
 }
 
 export function CreateAppDialog({
-  isOpen,
   onClose,
   onSubmit,
   isPending,
@@ -43,40 +41,17 @@ export function CreateAppDialog({
   const [aiEnhance, setAiEnhance] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [repoType, setRepoType] = useState<RepoType>(initialRepoType ?? 'same-repo');
-  const [repoOwner, setRepoOwner] = useState('');
+  const [repoOwner, setRepoOwner] = useState(() => owners?.[0]?.login ?? '');
   const [repoVisibility, setRepoVisibility] = useState<'public' | 'private'>('private');
   const [createProject, setCreateProject] = useState(true);
   const [azureClientId, setAzureClientId] = useState('');
   const [azureClientSecret, setAzureClientSecret] = useState('');
 
-  // Reset state when the dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      setCreateError(null);
-      setDisplayName('');
-      setAiEnhance(true);
-      setShowAdvanced(false);
-      setRepoType(initialRepoType ?? 'same-repo');
-      setRepoVisibility('private');
-      setCreateProject(true);
-      setAzureClientId('');
-      setAzureClientSecret('');
-      if (owners && owners.length > 0) {
-        setRepoOwner(owners[0].login);
-      }
-    }
-  }, [isOpen, initialRepoType, owners]);
-
-  // Set default owner when owners are loaded after dialog is already open
-  useEffect(() => {
-    if (owners && owners.length > 0 && !repoOwner) {
-      setRepoOwner(owners[0].login);
-    }
-  }, [owners, repoOwner]);
+  // Fall back to first available owner when owners load asynchronously
+  const effectiveRepoOwner = repoOwner || owners?.[0]?.login || '';
 
   // Document-level Escape key handler
   useEffect(() => {
-    if (!isOpen) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
@@ -84,7 +59,7 @@ export function CreateAppDialog({
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [onClose]);
 
   /** Derive a kebab-case slug from a display name. */
   const slugify = (text: string): string =>
@@ -125,11 +100,11 @@ export function CreateAppDialog({
       };
 
       if (repoType === 'new-repo') {
-        if (!repoOwner) {
+        if (!effectiveRepoOwner) {
           setCreateError('Repository owner is required for new repository.');
           return;
         }
-        payload.repo_owner = repoOwner;
+        payload.repo_owner = effectiveRepoOwner;
         payload.repo_visibility = repoVisibility;
         payload.create_project = createProject;
         const trimmedAzureId = azureClientId.trim();
@@ -179,7 +154,7 @@ export function CreateAppDialog({
       derivedBranch,
       aiEnhance,
       repoType,
-      repoOwner,
+      effectiveRepoOwner,
       repoVisibility,
       createProject,
       azureClientId,
@@ -188,8 +163,6 @@ export function CreateAppDialog({
       getErrorMessage,
     ],
   );
-
-  if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -307,7 +280,7 @@ export function CreateAppDialog({
                   </label>
                   <select
                     id="repo-owner"
-                    value={repoOwner}
+                    value={effectiveRepoOwner}
                     onChange={(e) => setRepoOwner(e.target.value)}
                     className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
                   >
