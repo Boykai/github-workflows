@@ -9,7 +9,7 @@ export function NotFoundPage() {
 
   return (
     <div className="starfield flex h-full flex-col items-center justify-center gap-4 p-8 text-center">
-      <span className="text-6xl font-bold text-primary/30 celestial-float">404</span>
+      <span className="text-6xl font-bold text-primary/30 celestial-float" aria-hidden="true">404</span>
       <h1 className="text-4xl font-display font-medium tracking-[0.06em] celestial-fade-in">
         Lost Between Sun & Moon
       </h1>

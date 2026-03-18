@@ -9,6 +9,7 @@ import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useChoresList, useEvaluateChoresTriggers, choreKeys } from '@/hooks/useChores';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog';
 import { ChoresPanel } from '@/components/chores/ChoresPanel';
 import { FeaturedRitualsPanel } from '@/components/chores/FeaturedRitualsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
@@ -42,7 +43,7 @@ export function ChoresPage() {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       })
       .catch((err) => {
-        console.warn('Failed to seed preset chores:', err);
+        // Seeding is best-effort and idempotent — silent failure is acceptable
       });
   }, [projectId, queryClient]);
 
@@ -141,26 +142,17 @@ export function ChoresPage() {
         </div>
       )}
 
-      {/* Unsaved changes confirmation modal */}
-      {isBlocked && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" role="presentation" />
-          <div className="relative z-10 w-full max-w-sm mx-4 rounded-lg border border-border bg-background shadow-xl p-6 text-center">
-            <h3 className="text-lg font-semibold text-foreground mb-2">Unsaved Changes</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              You have unsaved changes — are you sure you want to leave?
-            </p>
-            <div className="flex justify-center gap-3">
-              <Button variant="outline" onClick={() => blocker.reset?.()}>
-                Stay
-              </Button>
-              <Button variant="destructive" onClick={() => blocker.proceed?.()}>
-                Discard and Leave
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Unsaved changes confirmation dialog */}
+      <ConfirmationDialog
+        open={isBlocked}
+        title="Unsaved Changes"
+        description="You have unsaved changes — are you sure you want to leave?"
+        variant="danger"
+        confirmLabel="Discard and Leave"
+        cancelLabel="Stay"
+        onConfirm={() => blocker.proceed?.()}
+        onCancel={() => blocker.reset?.()}
+      />
     </div>
   );
 }

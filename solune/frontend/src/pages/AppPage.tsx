@@ -80,7 +80,7 @@ export function AppPage() {
         </section>
 
         <div className="relative mx-auto flex h-[32rem] w-full max-w-[32rem] items-center justify-center">
-          <div className="absolute inset-x-10 top-10 h-24 rounded-full bg-primary/10 blur-3xl" />
+          <div aria-hidden="true" className="absolute inset-x-10 top-10 h-24 rounded-full bg-primary/10 blur-3xl" />
           <div className="hanging-stars absolute inset-x-8 top-0 hidden h-28 lg:block" />
           <div className="celestial-orbit inset-5" />
           <div className="celestial-orbit inset-14 border-primary/20" />
@@ -124,7 +124,7 @@ export function AppPage() {
                   className="rounded-[1.25rem] border border-border/70 bg-background/55 p-5 text-left transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/10 hover:shadow-md"
                 >
                   <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-primary/12 text-primary">
-                    <link.icon className="h-5 w-5" />
+                    <link.icon className="h-5 w-5" aria-hidden="true" />
                   </div>
                   <h3 className="mb-1 text-sm font-semibold uppercase tracking-[0.12em] text-foreground">
                     {link.label}

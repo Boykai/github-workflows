@@ -3,10 +3,10 @@
  * Migrated from ProjectBoardPage with page header, toolbar, and enhanced cards.
  */
 
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
-import { ChevronDown, Inbox, Search, TriangleAlert } from 'lucide-react';
+import { Inbox, Search } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -18,17 +18,17 @@ import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { ProjectIssueLaunchPanel } from '@/components/board/ProjectIssueLaunchPanel';
+import { PipelineStagesPanel } from '@/components/board/PipelineStagesPanel';
 import { RefreshButton } from '@/components/board/RefreshButton';
-import { statusColorToCSS } from '@/components/board/colorUtils';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useBoardControls } from '@/hooks/useBoardControls';
 import { formatTimeAgo, formatTimeUntil } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
-import { formatAgentName } from '@/utils/formatAgentName';
 import { cn } from '@/lib/utils';
 import type { BoardItem } from '@/types';
-import { ApiError, pipelinesApi } from '@/services/api';
+import { pipelinesApi } from '@/services/api';
+import { BoardStatusBanners } from '@/components/board/BoardStatusBanners';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
 
@@ -73,8 +73,6 @@ export function ProjectsPage() {
   });
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
-  const [pipelineSelectorOpen, setPipelineSelectorOpen] = useState(false);
-  const pipelineSelectorRef = useRef<HTMLDivElement>(null);
 
   const { agents: availableAgents } = useAvailableAgents(selectedProjectId);
 
@@ -164,41 +162,14 @@ export function ProjectsPage() {
     updateRateLimit({ info: effectiveRateLimitInfo ?? null, hasError: hasActiveRateLimitError });
   }, [effectiveRateLimitInfo, hasActiveRateLimitError, updateRateLimit]);
 
-  useEffect(() => {
-    if (!pipelineSelectorOpen) return;
-
-    function handlePointerDown(event: MouseEvent) {
-      if (
-        pipelineSelectorRef.current &&
-        !pipelineSelectorRef.current.contains(event.target as Node)
-      ) {
-        setPipelineSelectorOpen(false);
-      }
-    }
-
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') {
-        setPipelineSelectorOpen(false);
-      }
-    }
-
-    document.addEventListener('mousedown', handlePointerDown);
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('mousedown', handlePointerDown);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [pipelineSelectorOpen]);
-
-  useEffect(() => {
-    setPipelineSelectorOpen(false);
-  }, [selectedProjectId]);
-
   const handlePipelineSelection = useCallback(
     (pipelineId: string) => {
-      setPipelineSelectorOpen(false);
-      assignPipelineMutation.mutate(pipelineId);
+      assignPipelineMutation.mutate(pipelineId, {
+        onError: () => {
+          // Pipeline assignment failed — no user feedback from state needed here
+          // since PipelineStagesPanel manages its own selector state
+        },
+      });
     },
     [assignPipelineMutation]
   );
@@ -302,89 +273,20 @@ export function ProjectsPage() {
       </div>
 
       {/* Rate limit / error banners */}
-      {showRateLimitBanner && (
-        <div
-          className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground"
-          role="alert"
-        >
-          <span className="text-lg">⏳</span>
-          <div className="flex flex-col gap-1">
-            <strong>Rate limit reached</strong>
-            <p>
-              {rateLimitRetryAfter
-                ? `Resets ${formatTimeUntil(rateLimitRetryAfter)}.`
-                : 'GitHub API rate limit reached. Retry after the quota window resets.'}
-            </p>
-          </div>
-        </div>
-      )}
-
-      {isRateLimitLow && !showRateLimitBanner && rateLimitInfo && (
-        <div
-          className="flex items-start gap-3 rounded-[1.1rem] border border-accent/30 bg-accent/12 p-4 text-accent-foreground"
-          role="alert"
-        >
-          <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className="flex flex-col gap-1">
-            <strong>Rate limit low</strong>
-            <p>Only {rateLimitInfo.remaining} API requests remaining.</p>
-          </div>
-        </div>
-      )}
-
-      {refreshError && refreshError.type !== 'rate_limit' && (
-        <div
-          className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive"
-          role="alert"
-        >
-          <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className="flex flex-col gap-1">
-            <strong>Refresh failed</strong>
-            <p>{refreshError.message}</p>
-          </div>
-        </div>
-      )}
-
-      {projectsError && !projectsRateLimitError && (
-        <div
-          className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive"
-          role="alert"
-        >
-          <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className="flex flex-col gap-1">
-            <strong>Failed to load projects</strong>
-            <p>{projectsError.message}</p>
-            {(() => {
-              if (!(projectsError instanceof ApiError)) return null;
-              const reason = projectsError.error.details?.reason;
-              return typeof reason === 'string' ? (
-                <p className="text-sm opacity-75">{reason}</p>
-              ) : null;
-            })()}
-          </div>
-        </div>
-      )}
-
-      {boardError && !boardLoading && !boardRateLimitError && (
-        <div
-          className="flex items-start gap-3 rounded-[1.1rem] border border-destructive/30 bg-destructive/10 p-4 text-destructive"
-          role="alert"
-        >
-          <TriangleAlert className="h-5 w-5 shrink-0" />
-          <div className="flex flex-col gap-1">
-            <strong>Failed to load board data</strong>
-            <p>{boardError.message}</p>
-          </div>
-          <Button
-            variant="destructive"
-            size="sm"
-            className="ml-auto self-start"
-            onClick={() => selectBoardProject(selectedProjectId!)}
-          >
-            Retry loading board data
-          </Button>
-        </div>
-      )}
+      <BoardStatusBanners
+        showRateLimitBanner={showRateLimitBanner}
+        rateLimitRetryAfter={rateLimitRetryAfter}
+        isRateLimitLow={isRateLimitLow}
+        rateLimitInfo={rateLimitInfo}
+        refreshError={refreshError}
+        projectsError={projectsError}
+        projectsRateLimitError={projectsRateLimitError}
+        boardError={boardError}
+        boardLoading={boardLoading}
+        boardRateLimitError={boardRateLimitError}
+        selectedProjectId={selectedProjectId}
+        onRetryBoard={() => selectBoardProject(selectedProjectId!)}
+      />
 
       {/* Content area */}
       {!selectedProjectId && !projectsLoading && (
@@ -424,162 +326,16 @@ export function ProjectsPage() {
             }}
           />
 
-          <section id="pipeline-stages" className="space-y-4 scroll-mt-24">
-            <div>
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                <h3 id="pipeline-stages-heading" className="text-lg font-semibold">
-                  Pipeline Stages
-                </h3>
-                {(savedPipelines?.pipelines.length ?? 0) > 0 ? (
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      <span>Agent Pipeline</span>
-                      <div ref={pipelineSelectorRef} className="relative">
-                        <button
-                          type="button"
-                          onClick={() => setPipelineSelectorOpen((current) => !current)}
-                          disabled={assignPipelineMutation.isPending}
-                          className={cn(
-                            'project-pipeline-select project-pipeline-trigger flex h-9 min-w-[12rem] items-center justify-between gap-3 rounded-full px-4 text-xs font-medium text-foreground',
-                            pipelineAssignment?.pipeline_id && 'project-pipeline-select-active',
-                            pipelineSelectorOpen && 'project-pipeline-select-open'
-                          )}
-                          aria-haspopup="listbox"
-                          aria-expanded={pipelineSelectorOpen}
-                          aria-label="Agent Pipeline"
-                        >
-                          <span className="truncate">
-                            {assignedPipeline?.name ?? 'No pipeline selected'}
-                          </span>
-                          <ChevronDown
-                            className={cn(
-                              'h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform',
-                              pipelineSelectorOpen && 'rotate-180'
-                            )}
-                          />
-                        </button>
-
-                        {pipelineSelectorOpen && (
-                          <div className="project-pipeline-menu absolute right-0 top-full z-30 mt-2 w-[min(20rem,calc(100vw-3rem))] overflow-hidden rounded-[1.1rem] border border-border/80">
-                            <div className="border-b border-border/65 px-3 py-2.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/90">
-                              Select pipeline
-                            </div>
-                            <div
-                              className="max-h-72 overflow-y-auto p-1.5"
-                              role="listbox"
-                              aria-label="Agent Pipeline options"
-                            >
-                              <button
-                                type="button"
-                                role="option"
-                                aria-selected={!pipelineAssignment?.pipeline_id}
-                                onClick={() => handlePipelineSelection('')}
-                                disabled={assignPipelineMutation.isPending}
-                                className={cn(
-                                  'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60',
-                                  !pipelineAssignment?.pipeline_id &&
-                                    'project-pipeline-option-active'
-                                )}
-                              >
-                                <span className="truncate">No pipeline selected</span>
-                                {!pipelineAssignment?.pipeline_id && (
-                                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">
-                                    Current
-                                  </span>
-                                )}
-                              </button>
-                              {savedPipelines?.pipelines.map((pipeline) => {
-                                const isSelected =
-                                  pipeline.id === (pipelineAssignment?.pipeline_id ?? '');
-
-                                return (
-                                  <button
-                                    key={pipeline.id}
-                                    type="button"
-                                    role="option"
-                                    aria-selected={isSelected}
-                                    onClick={() => handlePipelineSelection(pipeline.id)}
-                                    disabled={assignPipelineMutation.isPending}
-                                    className={cn(
-                                      'project-pipeline-option flex w-full items-center justify-between gap-3 rounded-[0.9rem] px-3 py-2.5 text-left text-sm disabled:cursor-not-allowed disabled:opacity-60',
-                                      isSelected && 'project-pipeline-option-active'
-                                    )}
-                                  >
-                                    <span className="truncate">{pipeline.name}</span>
-                                    {isSelected && (
-                                      <span className="text-[10px] font-semibold uppercase tracking-[0.18em]">
-                                        Current
-                                      </span>
-                                    )}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <Link
-                    to="/pipeline"
-                    className="solar-chip-soft inline-flex items-center rounded-full px-3 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors hover:bg-primary/10 hover:text-foreground"
-                  >
-                    Create new pipeline
-                  </Link>
-                )}
-              </div>
-              <div className="overflow-x-auto pb-2">
-                <div
-                  className="grid min-w-full items-stretch gap-3"
-                  style={pipelineGridStyle}
-                  role="region"
-                  aria-labelledby="pipeline-stages-heading"
-                >
-                  {transformedBoardData.columns.map((col) => {
-                    const assigned =
-                      assignedStageMap.get(col.status.name.toLowerCase())?.agents ?? [];
-                    const dotColor = statusColorToCSS(col.status.color);
-
-                    return (
-                      <div
-                        key={col.status.option_id}
-                        className="celestial-panel pipeline-stage-card flex h-full min-w-0 flex-col items-center gap-2 rounded-[1.2rem] border border-border/75 bg-background/28 p-4 text-center shadow-sm sm:rounded-[1.35rem]"
-                      >
-                        <span
-                          className="h-3 w-3 rounded-full"
-                          style={{ backgroundColor: dotColor }}
-                        />
-                        <span className="text-sm font-medium">{col.status.name}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {col.item_count} items
-                        </span>
-                        {assigned.length > 0 ? (
-                          <div className="mt-1 flex flex-wrap justify-center gap-1">
-                            {assigned.map((assignment) => (
-                              <span
-                                key={assignment.id}
-                                className="solar-chip rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em]"
-                              >
-                                {formatAgentName(
-                                  assignment.agent_slug,
-                                  assignment.agent_display_name
-                                )}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="mt-1 text-[10px] text-muted-foreground/60">
-                            No agents
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </section>
+          <PipelineStagesPanel
+            columns={transformedBoardData.columns}
+            pipelineGridStyle={pipelineGridStyle}
+            assignedStageMap={assignedStageMap}
+            savedPipelines={savedPipelines?.pipelines}
+            pipelineAssignment={pipelineAssignment ?? undefined}
+            assignedPipeline={assignedPipeline}
+            isAssigning={assignPipelineMutation.isPending}
+            onPipelineSelect={handlePipelineSelection}
+          />
 
           <div id="board" className="flex flex-1 gap-6 scroll-mt-24">
             {transformedBoardData.columns.every((col) => col.items.length === 0) ? (

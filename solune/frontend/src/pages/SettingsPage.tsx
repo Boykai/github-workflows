@@ -42,6 +42,7 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
   const {
     settings: userSettings,
     isLoading: userLoading,
+    error: userError,
     updateSettings: updateUserSettings,
     isUpdating: isUserUpdating,
   } = useUserSettings();
@@ -65,11 +66,21 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
     await updateGlobalSettings(update);
   };
 
+  if (userError) {
+    return (
+      <div className="flex h-full w-full max-w-4xl flex-col overflow-y-auto p-8 mx-auto">
+        <div className="flex flex-col items-center justify-center flex-1 gap-4">
+          <p className="text-sm text-destructive">Could not load settings. Please refresh the page.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (userLoading) {
     return (
       <div className="flex h-full w-full max-w-4xl flex-col overflow-y-auto p-8 mx-auto">
         <div className="flex flex-col items-center justify-center flex-1 gap-4">
-          <CelestialLoader size="md" label="Loading settings…" />
+          <CelestialLoader size="md" label="Loading settings…" aria-label="Loading settings" />
         </div>
       </div>
     );
