@@ -305,6 +305,7 @@ query($owner: String!, $name: String!, $number: Int!, $after: String) {
         }
         nodes {
           id
+          databaseId
           author {
             login
           }
