@@ -68,7 +68,7 @@ def _normalize_issue_description(issue_description: str) -> str:
 def _derive_issue_title(issue_description: str) -> str:
     """Derive a concise issue title from the first heading or opening line."""
     markdown_heading = re.search(
-        r"^\s{0,3}#{1,6}[ \t]+(.+)$", issue_description, flags=re.MULTILINE
+        r"^\s{0,3}#{1,6}[ \t]+(\S.*)$", issue_description, flags=re.MULTILINE
     )
     if markdown_heading:
         candidate = markdown_heading.group(1).strip()

@@ -485,7 +485,7 @@ async def start_signal_ws_listener() -> None:
     from src.services.task_registry import task_registry
 
     _ws_listener_task = task_registry.create_task(_ws_listen_loop(phone), name="signal-ws-listener")
-    logger.info("Signal WebSocket listener started for %s", _mask_phone(phone))
+    logger.info("Signal WebSocket listener started")
 
 
 async def restart_signal_ws_listener() -> None:
@@ -523,7 +523,7 @@ async def _ws_listen_loop(phone: str) -> None:
     while True:
         try:
             async with websockets.connect(url, ping_interval=30) as ws:
-                logger.info("Connected to Signal WebSocket (phone=%s)", _mask_phone(phone))
+                logger.info("Connected to Signal WebSocket")
                 # Reset backoff on successful connection.
                 consecutive_failures = 0
                 async for raw_message in ws:
