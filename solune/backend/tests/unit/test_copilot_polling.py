@@ -7233,7 +7233,9 @@ class TestCheckCopilotReviewDone:
     async def test_review_submitted_returns_true(self, mock_main_branch, mock_service):
         """When Copilot has submitted a PR review and confirmation delay elapsed, the step is done."""
         mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_1", "is_draft": False}
         )
@@ -7271,7 +7273,9 @@ class TestCheckCopilotReviewDone:
     async def test_review_first_detection_returns_false(self, mock_main_branch, mock_service):
         """On first detection of a Copilot review, return False (await confirmation)."""
         mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_1", "is_draft": False}
         )
@@ -7294,7 +7298,9 @@ class TestCheckCopilotReviewDone:
     async def test_review_confirmation_delay_not_elapsed(self, mock_main_branch, mock_service):
         """While confirmation delay has not elapsed, return False."""
         mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_1", "is_draft": False}
         )
@@ -7320,7 +7326,9 @@ class TestCheckCopilotReviewDone:
     async def test_no_review_returns_false(self, mock_main_branch, mock_service):
         """When Copilot has not yet submitted a review, the step is not done."""
         mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_1", "is_draft": False}
         )
@@ -7344,7 +7352,9 @@ class TestCheckCopilotReviewDone:
     async def test_no_main_branch_falls_back_to_api(self, mock_main_branch, mock_service):
         """When main branch is not cached, fall back to API to find the PR."""
         mock_main_branch.return_value = None
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.find_existing_pr_for_issue = AsyncMock(
             return_value={"number": 200, "head_ref": "feature/issue-42"}
         )
@@ -7390,7 +7400,9 @@ class TestCheckCopilotReviewDone:
     async def test_no_pr_found_returns_false(self, mock_main_branch, mock_service):
         """When no main PR can be found, return False."""
         mock_main_branch.return_value = None
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.find_existing_pr_for_issue = AsyncMock(return_value=None)
         mock_service.get_sub_issues = AsyncMock(return_value=[])
 
@@ -7408,7 +7420,9 @@ class TestCheckCopilotReviewDone:
     ):
         """If review detected then vanishes on next cycle, first-detection timestamp is cleared."""
         mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_1", "is_draft": False}
         )
@@ -7438,7 +7452,9 @@ class TestCheckCopilotReviewDone:
     async def test_two_cycle_confirmation_flow(self, mock_main_branch, mock_service):
         """Full two-cycle flow: first detection returns False, after delay returns True."""
         mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_1", "is_draft": False}
         )
@@ -7475,7 +7491,9 @@ class TestCheckCopilotReviewDone:
         """_check_agent_done_on_sub_or_parent should route copilot-review to PR review check."""
         with patch("src.services.copilot_polling.get_issue_main_branch") as mock_main_branch:
             mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
-            mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+            mock_service.get_issue_with_comments = AsyncMock(
+                return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+            )
             mock_service.get_pull_request = AsyncMock(
                 return_value={"id": "PR_node_1", "is_draft": False}
             )
@@ -7499,7 +7517,7 @@ class TestCheckCopilotReviewDone:
             )
 
             assert result is True
-            # check_agent_completion_comment IS called now (for Done! marker check)
+            # get_issue_with_comments IS called (for Done! marker check)
             # but the actual completion is detected via has_copilot_reviewed_pr
             mock_service.has_copilot_reviewed_pr.assert_awaited_once()
 
@@ -7509,7 +7527,9 @@ class TestCheckCopilotReviewDone:
         """_check_agent_done_on_sub_or_parent returns False when review not submitted."""
         with patch("src.services.copilot_polling.get_issue_main_branch") as mock_main_branch:
             mock_main_branch.return_value = {"branch": "feature/issue-42", "pr_number": 100}
-            mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+            mock_service.get_issue_with_comments = AsyncMock(
+                return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+            )
             mock_service.get_pull_request = AsyncMock(
                 return_value={"id": "PR_node_1", "is_draft": False}
             )
@@ -7528,7 +7548,7 @@ class TestCheckCopilotReviewDone:
             )
 
             assert result is False
-            # check_agent_completion_comment IS called (for Done! marker)
+            # get_issue_with_comments IS called (for Done! marker)
             # but has_copilot_reviewed_pr returned False so step is not done
             mock_service.has_copilot_reviewed_pr.assert_awaited_once()
 
@@ -8052,7 +8072,9 @@ class TestCopilotReviewSelfHealing:
     async def test_undrafts_pr_before_checking_review(self, mock_main_branch, mock_service):
         """When the main PR is still a draft, self-healing converts it to ready."""
         mock_main_branch.return_value = {"branch": "copilot/issue-99", "pr_number": 300}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_300", "is_draft": True}
         )
@@ -8079,7 +8101,9 @@ class TestCopilotReviewSelfHealing:
     async def test_undraft_failure_returns_false(self, mock_main_branch, mock_service):
         """When un-drafting fails, return False without checking review status."""
         mock_main_branch.return_value = {"branch": "copilot/issue-99", "pr_number": 300}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_300", "is_draft": True}
         )
@@ -8101,7 +8125,9 @@ class TestCopilotReviewSelfHealing:
     async def test_re_requests_review_when_not_reviewed(self, mock_main_branch, mock_service):
         """When PR is ready but not yet reviewed, re-request the Copilot review."""
         mock_main_branch.return_value = {"branch": "copilot/issue-99", "pr_number": 300}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_300", "is_draft": False}
         )
@@ -8132,7 +8158,9 @@ class TestCopilotReviewSelfHealing:
     async def test_skips_self_healing_when_already_reviewed(self, mock_main_branch, mock_service):
         """When Copilot has already reviewed, no self-healing calls are made."""
         mock_main_branch.return_value = {"branch": "copilot/issue-99", "pr_number": 300}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_300", "is_draft": False}
         )
@@ -8188,7 +8216,9 @@ class TestCopilotReviewAutoTriggerProtection:
     ):
         """When Solune never requested copilot-review, an existing review is ignored."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_500", "is_draft": False}
         )
@@ -8217,7 +8247,9 @@ class TestCopilotReviewAutoTriggerProtection:
     async def test_review_detected_after_solune_request(self, mock_main_branch, mock_service):
         """When Solune requested the review and a review exists, step completes."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_500", "is_draft": False}
         )
@@ -8246,7 +8278,9 @@ class TestCopilotReviewAutoTriggerProtection:
     ):
         """Self-healing dismisses, requests the review, records timestamp, returns False."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_500", "is_draft": False}
         )
@@ -8272,7 +8306,9 @@ class TestCopilotReviewAutoTriggerProtection:
     ):
         """If self-healing request_copilot_review fails, timestamp is not recorded."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_500", "is_draft": False}
         )
@@ -8295,7 +8331,9 @@ class TestCopilotReviewAutoTriggerProtection:
     async def test_min_submitted_after_includes_buffer(self, mock_main_branch, mock_service):
         """min_submitted_after = request_ts + buffer is passed to has_copilot_reviewed_pr."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_500", "is_draft": False}
         )
@@ -8324,7 +8362,9 @@ class TestCopilotReviewAutoTriggerProtection:
     async def test_review_within_buffer_window_rejected(self, mock_main_branch, mock_service):
         """A review submitted within the buffer window after Solune's request is rejected."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
         mock_service.get_pull_request = AsyncMock(
             return_value={"id": "PR_node_500", "is_draft": False}
         )
@@ -8344,12 +8384,27 @@ class TestCopilotReviewAutoTriggerProtection:
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
     @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
-    async def test_done_marker_still_works_without_request_timestamp(
+    async def test_done_marker_accepted_when_no_other_done_comments(
         self, mock_main_branch, mock_service
     ):
-        """The Done! marker bypasses the auto-trigger gate (survives restarts)."""
+        """A Done! marker is accepted when no other agent Done! comments exist (e.g. restart)."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=True)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "title": "",
+                "body": "",
+                "user": {"login": ""},
+                "comments": [
+                    {
+                        "body": "copilot-review: Done!",
+                        "created_at": "2026-03-18T20:00:00Z",
+                        "database_id": 123,
+                        "node_id": "IC_1",
+                        "author": "solune-bot",
+                    },
+                ],
+            }
+        )
 
         # No request timestamp (simulates server restart)
         result = await _check_copilot_review_done(
@@ -8358,6 +8413,102 @@ class TestCopilotReviewAutoTriggerProtection:
 
         assert result is True
         # Should not even try to discover the PR
+        mock_service.get_pull_request.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
+    @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
+    async def test_stale_done_marker_rejected_and_deleted(self, mock_main_branch, mock_service):
+        """A Done! marker older than the latest agent Done! is stale — rejected and deleted."""
+        mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "title": "",
+                "body": "",
+                "user": {"login": ""},
+                "comments": [
+                    # Stale copilot-review marker from auto-triggered review
+                    {
+                        "body": "copilot-review: Done!",
+                        "created_at": "2026-03-18T17:00:00Z",
+                        "database_id": 100,
+                        "node_id": "IC_stale",
+                        "author": "solune-bot",
+                    },
+                    # Agent that completed AFTER the stale marker
+                    {
+                        "body": "speckit.implement: Done!",
+                        "created_at": "2026-03-18T19:00:00Z",
+                        "database_id": 200,
+                        "node_id": "IC_impl",
+                        "author": "copilot-bot",
+                    },
+                ],
+            }
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_500", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
+        mock_service.delete_issue_comment = AsyncMock(return_value=True)
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=50
+        )
+
+        assert result is False
+        # Stale marker should be deleted
+        mock_service.delete_issue_comment.assert_awaited_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            comment_database_id=100,
+            issue_number=50,
+        )
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
+    @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
+    async def test_valid_done_marker_accepted_when_newer_than_agents(
+        self, mock_main_branch, mock_service
+    ):
+        """A Done! marker newer than all other agent Done! comments is valid."""
+        mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "title": "",
+                "body": "",
+                "user": {"login": ""},
+                "comments": [
+                    # Agent completed first
+                    {
+                        "body": "speckit.implement: Done!",
+                        "created_at": "2026-03-18T19:00:00Z",
+                        "database_id": 200,
+                        "node_id": "IC_impl",
+                        "author": "copilot-bot",
+                    },
+                    # Valid copilot-review marker posted AFTER
+                    {
+                        "body": "copilot-review: Done!",
+                        "created_at": "2026-03-18T20:00:00Z",
+                        "database_id": 300,
+                        "node_id": "IC_valid",
+                        "author": "solune-bot",
+                    },
+                ],
+            }
+        )
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=50
+        )
+
+        assert result is True
+        # Should not attempt to delete or discover PR
+        mock_service.delete_issue_comment.assert_not_called()
         mock_service.get_pull_request.assert_not_called()
 
 
@@ -9926,10 +10077,14 @@ class TestRecoveryIncludesInReview:
             agent_mappings={"In Review": ["copilot-review"]},
         )
         mock_service.get_issue_with_comments = AsyncMock(
-            return_value={"body": self.TRACKING_IN_REVIEW}
+            return_value={
+                "body": self.TRACKING_IN_REVIEW,
+                "title": "",
+                "comments": [],
+                "user": {"login": ""},
+            }
         )
         # Copilot-review is a non-coding agent — recovery only checks completion
-        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
         mock_service.is_copilot_assigned_to_issue = AsyncMock(return_value=True)
         mock_service.get_linked_pull_requests = AsyncMock(return_value=[])
         mock_get_branch.return_value = None
@@ -9943,7 +10098,7 @@ class TestRecoveryIncludesInReview:
         )
 
         # The issue was PROCESSED (not skipped) — get_issue_with_comments was called
-        mock_service.get_issue_with_comments.assert_called_once()
+        assert mock_service.get_issue_with_comments.call_count >= 1
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.get_workflow_orchestrator")

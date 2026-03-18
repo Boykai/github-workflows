@@ -468,6 +468,8 @@ class IssuesMixin:
                 nodes = comments_data.get("nodes", [])
                 all_comments.extend(
                     {
+                        "node_id": c.get("id", ""),
+                        "database_id": c.get("databaseId"),
                         "author": c.get("author", {}).get("login", "unknown"),
                         "body": c.get("body", ""),
                         "created_at": c.get("createdAt", ""),
@@ -828,3 +830,53 @@ class IssuesMixin:
         except Exception as e:
             logger.error("Error creating comment on issue #%d: %s", issue_number, e)
             return None
+
+    async def delete_issue_comment(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        comment_database_id: int,
+        issue_number: int | None = None,
+    ) -> bool:
+        """Delete a comment on a GitHub Issue by its database ID.
+
+        Args:
+            access_token: GitHub OAuth access token
+            owner: Repository owner
+            repo: Repository name
+            comment_database_id: The integer database ID of the comment
+            issue_number: Optional issue number for cache invalidation
+
+        Returns:
+            True if the comment was deleted successfully
+        """
+        try:
+            response = await self._rest_response(
+                access_token,
+                "DELETE",
+                f"/repos/{owner}/{repo}/issues/comments/{comment_database_id}",
+            )
+
+            if response.status_code == 204:
+                logger.info(
+                    "Deleted comment %d on %s/%s",
+                    comment_database_id,
+                    owner,
+                    repo,
+                )
+                if issue_number is not None:
+                    self._invalidate_cycle_cache(f"issue:{owner}/{repo}/{issue_number}")
+                return True
+            else:
+                logger.error(
+                    "Failed to delete comment %d: %s %s",
+                    comment_database_id,
+                    response.status_code,
+                    response.text[:300] if response.text else "",
+                )
+                return False
+
+        except Exception as e:
+            logger.error("Error deleting comment %d: %s", comment_database_id, e)
+            return False
