@@ -245,10 +245,24 @@ export function AppsPage() {
     createMutation.mutate(payload, {
       onSuccess: (createdApp) => {
         closeCreateDialog();
-        showSuccess(`App "${createdApp.display_name}" created successfully.`);
-        if (createdApp.warnings?.length) {
-          showError(createdApp.warnings[0]);
+        // Build structured success feedback
+        const lines: string[] = [];
+        if (createdApp.repo_type === 'new-repo') {
+          lines.push('✓ Repository created', '✓ Template files committed');
+        } else if (createdApp.repo_type === 'external-repo') {
+          lines.push('✓ External repository linked');
+        } else {
+          lines.push('✓ App created');
         }
+        if (createdApp.parent_issue_url) {
+          lines.push('✓ Pipeline started');
+        }
+        if (createdApp.warnings?.length) {
+          for (const w of createdApp.warnings) {
+            lines.push(`⚠ ${w}`);
+          }
+        }
+        showSuccess(lines.join(' | '));
         navigate(`/apps/${createdApp.name}`);
       },
       onError: (err) => {

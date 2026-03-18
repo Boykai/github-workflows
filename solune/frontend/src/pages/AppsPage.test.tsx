@@ -184,8 +184,8 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
 
   it('includes both azure fields in the payload when both are provided', async () => {
     mocks.createMutate.mockImplementation(
-      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null }) => void }) => {
-        options?.onSuccess?.({ name: 'azure-app', display_name: 'Azure App', warnings: null });
+      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
+        options?.onSuccess?.({ name: 'azure-app', display_name: 'Azure App', warnings: null, parent_issue_url: null });
       }
     );
 
@@ -222,11 +222,12 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
 
   it('shows a warning notification when creation succeeds with azure warnings', async () => {
     mocks.createMutate.mockImplementation(
-      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null }) => void }) => {
+      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
         options?.onSuccess?.({
           name: 'azure-app',
           display_name: 'Azure App',
           warnings: ['Azure credentials could not be stored as GitHub Secrets.'],
+          parent_issue_url: null,
         });
       }
     );
@@ -239,9 +240,69 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
     const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;
     await userEvent.click(submitButton);
 
-    // Warning should be displayed after success
+    // Warning should be displayed in the success message
     await waitFor(() => {
       expect(screen.queryByText(/Azure credentials could not be stored/i)).toBeInTheDocument();
+    });
+  });
+
+  it('shows structured success feedback with all warnings after creation', async () => {
+    mocks.createMutate.mockImplementation(
+      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
+        options?.onSuccess?.({
+          name: 'multi-warn-app',
+          display_name: 'Multi Warn App',
+          warnings: [
+            'Azure credentials could not be stored.',
+            'Failed to read template file: .specify/memory/index.md',
+          ],
+          parent_issue_url: null,
+        });
+      }
+    );
+
+    render(<AppsPage />);
+    await userEvent.click(screen.getByRole('button', { name: /create app/i }));
+    await userEvent.type(screen.getByLabelText(/display name/i), 'Multi Warn App');
+
+    const dialog = screen.getByRole('dialog');
+    const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;
+    await userEvent.click(submitButton);
+
+    // Both warnings should appear in the success message
+    await waitFor(() => {
+      const status = screen.getByRole('status');
+      expect(status).toHaveTextContent(/Azure credentials could not be stored/i);
+      expect(status).toHaveTextContent(/Failed to read template file/i);
+    });
+  });
+
+  it('shows pipeline started in success feedback when parent_issue_url is present', async () => {
+    mocks.createMutate.mockImplementation(
+      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; repo_type: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
+        options?.onSuccess?.({
+          name: 'pipeline-app',
+          display_name: 'Pipeline App',
+          repo_type: 'new-repo',
+          warnings: null,
+          parent_issue_url: 'https://github.com/alice/pipeline-app/issues/1',
+        });
+      }
+    );
+
+    render(<AppsPage />);
+    await userEvent.click(screen.getByRole('button', { name: /create app/i }));
+    await userEvent.type(screen.getByLabelText(/display name/i), 'Pipeline App');
+
+    const dialog = screen.getByRole('dialog');
+    const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;
+    await userEvent.click(submitButton);
+
+    await waitFor(() => {
+      const status = screen.getByRole('status');
+      expect(status).toHaveTextContent(/Pipeline started/i);
+      expect(status).toHaveTextContent(/Repository created/i);
+      expect(status).toHaveTextContent(/Template files committed/i);
     });
   });
 });

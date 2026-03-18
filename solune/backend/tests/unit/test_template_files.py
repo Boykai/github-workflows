@@ -43,18 +43,19 @@ class TestBuildTemplateFiles:
     async def test_reads_files_from_source_dir(self, tmp_path: Path) -> None:
         source = _make_template_tree(tmp_path)
         with patch.dict(os.environ, {"TEMPLATE_SOURCE_DIR": str(source)}):
-            files = await build_template_files("my-app", "My App")
+            files, warnings = await build_template_files("my-app", "My App")
 
         paths = {f["path"] for f in files}
         assert ".github/CODEOWNERS" in paths
         assert ".specify/constitution.md" in paths
         assert ".gitignore" in paths
+        assert warnings == []
 
     @pytest.mark.asyncio
     async def test_replaces_copilot_instructions_with_generic(self, tmp_path: Path) -> None:
         source = _make_template_tree(tmp_path)
         with patch.dict(os.environ, {"TEMPLATE_SOURCE_DIR": str(source)}):
-            files = await build_template_files("my-app", "My App")
+            files, _warnings = await build_template_files("my-app", "My App")
 
         copilot_file = next(f for f in files if f["path"].endswith("copilot-instructions.md"))
         assert copilot_file["content"] == GENERIC_COPILOT_INSTRUCTIONS
@@ -64,15 +65,30 @@ class TestBuildTemplateFiles:
     async def test_caches_files_after_first_call(self, tmp_path: Path) -> None:
         source = _make_template_tree(tmp_path)
         with patch.dict(os.environ, {"TEMPLATE_SOURCE_DIR": str(source)}):
-            first_call = await build_template_files("a", "A")
+            first_call, _w1 = await build_template_files("a", "A")
             # Mutate the source dir — cached result should be returned
             (source / ".github" / "extra.md").write_text("extra\n")
-            second_call = await build_template_files("b", "B")
+            second_call, _w2 = await build_template_files("b", "B")
 
         assert len(first_call) == len(second_call)
         # "extra.md" was written AFTER cache, so it should NOT appear
         second_paths = {f["path"] for f in second_call}
         assert ".github/extra.md" not in second_paths
+
+    @pytest.mark.asyncio
+    async def test_cached_warnings_returned_on_subsequent_calls(self, tmp_path: Path) -> None:
+        """Warnings should be cached and returned alongside files on cache hit."""
+        source = _make_template_tree(tmp_path)
+        # Create a file that will fail to read (binary / invalid UTF-8)
+        bad_file = source / ".github" / "bad.bin"
+        bad_file.write_bytes(b"\x80\x81\x82")
+
+        with patch.dict(os.environ, {"TEMPLATE_SOURCE_DIR": str(source)}):
+            _files1, warnings1 = await build_template_files("a", "A")
+            _files2, warnings2 = await build_template_files("b", "B")
+
+        assert len(warnings1) > 0, "First call should produce warnings"
+        assert warnings1 == warnings2, "Cached warnings should match first-call warnings"
 
     @pytest.mark.asyncio
     async def test_skips_symlinks(self, tmp_path: Path) -> None:
@@ -84,7 +100,7 @@ class TestBuildTemplateFiles:
         symlink.symlink_to(target)
 
         with patch.dict(os.environ, {"TEMPLATE_SOURCE_DIR": str(source)}):
-            files = await build_template_files("x", "X")
+            files, _warnings = await build_template_files("x", "X")
 
         paths = {f["path"] for f in files}
         assert ".github/linked.md" not in paths
@@ -92,8 +108,9 @@ class TestBuildTemplateFiles:
     @pytest.mark.asyncio
     async def test_returns_empty_for_missing_dir(self) -> None:
         with patch.dict(os.environ, {"TEMPLATE_SOURCE_DIR": "/nonexistent/path"}):
-            files = await build_template_files("x", "X")
+            files, warnings = await build_template_files("x", "X")
         assert files == []
+        assert warnings == []
 
     @pytest.mark.asyncio
     async def test_path_traversal_rejection(self, tmp_path: Path) -> None:
@@ -107,7 +124,7 @@ class TestBuildTemplateFiles:
         evil_link.symlink_to(outside)
 
         with patch.dict(os.environ, {"TEMPLATE_SOURCE_DIR": str(source)}):
-            files = await build_template_files("x", "X")
+            files, _warnings = await build_template_files("x", "X")
 
         paths = {f["path"] for f in files}
         assert ".github/evil" not in paths

@@ -122,6 +122,8 @@ def _row_to_app(row: aiosqlite.Row) -> App:
         github_repo_url=row["github_repo_url"],
         github_project_url=row["github_project_url"],
         github_project_id=row["github_project_id"],
+        parent_issue_number=row["parent_issue_number"],
+        parent_issue_url=row["parent_issue_url"],
         port=row["port"],
         error_message=row["error_message"],
         created_at=row["created_at"],
@@ -382,7 +384,8 @@ async def create_app_with_new_repo(
 
     head_oid: str | None = None
     last_poll_exc: Exception | None = None
-    for _attempt in range(5):
+    max_attempts = 10
+    for attempt in range(max_attempts):
         try:
             info = await github_service.get_repository_info(access_token, repo_owner, repo_name)
             head_oid = info.get("head_oid")
@@ -390,7 +393,8 @@ async def create_app_with_new_repo(
                 break
         except Exception as exc:
             last_poll_exc = exc
-        await asyncio.sleep(1)
+        if attempt < max_attempts - 1:
+            await asyncio.sleep(min(1.0 * (1.5**attempt), 4.0))
 
     if not head_oid:
         detail = f" Last error: {last_poll_exc}" if last_poll_exc else ""
@@ -400,7 +404,11 @@ async def create_app_with_new_repo(
         )
 
     # 3. Commit template files
-    template_files = await build_template_files(payload.name, payload.display_name)
+    warnings: list[str] = []
+    template_files, template_warnings = await build_template_files(
+        payload.name, payload.display_name
+    )
+    warnings.extend(template_warnings)
     if template_files:
         commit_oid = await github_service.commit_files(
             access_token=access_token,
@@ -421,7 +429,6 @@ async def create_app_with_new_repo(
     # 3a. Store Azure credentials as GitHub Secrets (best-effort, synchronous).
     # Failure here is non-fatal: the app is still created, but the user must
     # add AZURE_CLIENT_ID / AZURE_CLIENT_SECRET to the repo secrets manually.
-    azure_warning: str | None = None
     if payload.azure_client_id and payload.azure_client_secret:
         try:
             await github_service.set_repository_secret(
@@ -444,7 +451,7 @@ async def create_app_with_new_repo(
                 payload.name,
                 exc,
             )
-            azure_warning = (
+            warnings.append(
                 "Azure credentials could not be stored as GitHub Secrets. "
                 "Add AZURE_CLIENT_ID and AZURE_CLIENT_SECRET to the repository secrets manually."
             )
@@ -491,8 +498,9 @@ async def create_app_with_new_repo(
             name, display_name, description, directory_path,
             associated_pipeline_id, status, repo_type, external_repo_url,
             github_repo_url, github_project_url, github_project_id,
+            parent_issue_number, parent_issue_url,
             created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             payload.name,
@@ -506,6 +514,8 @@ async def create_app_with_new_repo(
             github_repo_url,
             github_project_url,
             github_project_id,
+            None,  # parent_issue_number — set later if pipeline is used
+            None,  # parent_issue_url — set later if pipeline is used
             now,
             now,
         ),
@@ -524,8 +534,8 @@ async def create_app_with_new_repo(
     if not row:
         raise NotFoundError(f"App '{payload.name}' not found after creation.")
     app = _row_to_app(row)
-    if azure_warning:
-        app = app.model_copy(update={"warnings": [azure_warning]})
+    if warnings:
+        app = app.model_copy(update={"warnings": warnings})
     return app
 
 
@@ -705,14 +715,56 @@ async def stop_app(db: aiosqlite.Connection, name: str) -> AppStatusResponse:
     )
 
 
-async def delete_app(db: aiosqlite.Connection, name: str) -> None:
-    """Delete an application — must be stopped or in error/creating state first."""
+async def delete_app(
+    db: aiosqlite.Connection,
+    name: str,
+    *,
+    access_token: str | None = None,
+    github_service: GitHubProjectsService | None = None,
+) -> None:
+    """Delete an application — must be stopped or in error/creating state first.
+
+    When *access_token* and *github_service* are provided and the app has a
+    ``parent_issue_number``, the parent issue is closed (best-effort).
+    """
     app = await get_app(db, name)
 
     if app.status == AppStatus.ACTIVE:
         raise ValidationError(f"Cannot delete app '{name}': must stop the app first.")
 
     validate_app_name(app.name)
+
+    # Best-effort close the parent issue on GitHub
+    if app.parent_issue_number and access_token and github_service:
+        # Prefer parent_issue_url (reliable across all repo types) over repo URLs
+        repo_url = app.parent_issue_url or app.github_repo_url or app.external_repo_url
+        if repo_url:
+            try:
+                from urllib.parse import urlparse
+
+                parsed = urlparse(repo_url)
+                path_parts = parsed.path.strip("/").split("/")
+                if len(path_parts) >= 2:
+                    owner, repo = path_parts[0], path_parts[1]
+                    await github_service._rest(
+                        access_token,
+                        "PATCH",
+                        f"/repos/{owner}/{repo}/issues/{app.parent_issue_number}",
+                        json={"state": "closed"},
+                    )
+                    logger.info(
+                        "Closed parent issue #%d in %s/%s",
+                        app.parent_issue_number,
+                        owner,
+                        repo,
+                    )
+            except Exception as exc:
+                logger.warning(
+                    "Could not close parent issue #%d for app '%s': %s",
+                    app.parent_issue_number,
+                    name,
+                    exc,
+                )
 
     await db.execute("DELETE FROM apps WHERE name = ?", (name,))
     await db.commit()

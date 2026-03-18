@@ -47,6 +47,7 @@ _COPILOT_INSTRUCTIONS_BASENAME = "copilot-instructions.md"
 
 # In-memory cache populated on first call.
 _cached_files: list[dict[str, str]] | None = None
+_cached_warnings: list[str] | None = None
 
 
 def _is_safe_path(base: Path, target: Path) -> bool:
@@ -58,13 +59,18 @@ def _is_safe_path(base: Path, target: Path) -> bool:
     return real_target.startswith(real_base + os.sep) or real_target == real_base
 
 
-def _read_template_dir(source_dir: Path) -> list[dict[str, str]]:
+def _read_template_dir(source_dir: Path) -> tuple[list[dict[str, str]], list[str]]:
     """Walk the template source directory and return file entries.
 
     Each entry is ``{"path": "relative/path", "content": "…"}``.
     Symlinks and paths that escape the source directory are rejected.
+
+    Returns:
+        A tuple of ``(files, warnings)`` where *warnings* lists paths
+        that could not be read.
     """
     files: list[dict[str, str]] = []
+    warnings: list[str] = []
 
     for dir_name in _TEMPLATE_DIRS:
         dir_path = source_dir / dir_name
@@ -92,6 +98,7 @@ def _read_template_dir(source_dir: Path) -> list[dict[str, str]]:
                     content = file_path.read_text(encoding="utf-8")
                 except Exception:
                     logger.warning("Could not read %s, skipping", file_path)
+                    warnings.append(f"Failed to read template file: {relative}")
                     continue
 
             files.append({"path": str(relative), "content": content})
@@ -109,26 +116,28 @@ def _read_template_dir(source_dir: Path) -> list[dict[str, str]]:
                 files.append({"path": root_file, "content": content})
             except Exception:
                 logger.warning("Could not read root template %s, skipping", root_file)
+                warnings.append(f"Failed to read template file: {root_file}")
 
-    return files
+    return files, warnings
 
 
 async def build_template_files(
     repo_name: str,
     display_name: str,
-) -> list[dict[str, str]]:
+) -> tuple[list[dict[str, str]], list[str]]:
     """Build the list of template files for a new repository.
 
     Reads templates from ``TEMPLATE_SOURCE_DIR`` (env var) or falls back
     to the workspace root.  Results are cached after the first call.
 
     Returns:
-        ``[{"path": "relative/path", "content": "…"}, …]``
+        A tuple of ``(files, warnings)`` where *warnings* lists paths
+        that could not be read.
     """
-    global _cached_files
+    global _cached_files, _cached_warnings
 
     if _cached_files is not None:
-        return list(_cached_files)
+        return list(_cached_files), list(_cached_warnings or [])
 
     source_dir_env = os.environ.get("TEMPLATE_SOURCE_DIR", "")
     if source_dir_env:
@@ -140,10 +149,11 @@ async def build_template_files(
 
     if not source_dir.is_dir():
         logger.warning("Template source directory %s does not exist", source_dir)
-        return []
+        return [], []
 
-    files = _read_template_dir(source_dir)
+    files, warnings = _read_template_dir(source_dir)
     _cached_files = files
+    _cached_warnings = warnings
     logger.info(
         "Loaded %d template files from %s for repo '%s' (%s)",
         len(files),
@@ -151,10 +161,11 @@ async def build_template_files(
         repo_name,
         display_name,
     )
-    return list(files)
+    return list(files), warnings
 
 
 def clear_template_cache() -> None:
     """Clear the in-memory template cache (useful for testing)."""
-    global _cached_files
+    global _cached_files, _cached_warnings
     _cached_files = None
+    _cached_warnings = None
