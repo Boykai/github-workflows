@@ -255,7 +255,7 @@ export function AppsPage() {
             lines.push(`⚠ ${w}`);
           }
         }
-        showSuccess(lines.join(' · '));
+        showSuccess(lines.join(' | '));
         navigate(`/apps/${createdApp.name}`);
       },
       onError: (err) => {

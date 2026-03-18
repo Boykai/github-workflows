@@ -735,25 +735,24 @@ async def delete_app(
         repo_url = app.github_repo_url or app.external_repo_url
         if repo_url:
             try:
-                parts = repo_url.rstrip("/").split("/")
-                owner, repo = parts[-2], parts[-1]
-                from typing import cast
+                from urllib.parse import urlparse
 
-                cast(
-                    dict,
+                parsed = urlparse(repo_url)
+                path_parts = parsed.path.strip("/").split("/")
+                if len(path_parts) >= 2:
+                    owner, repo = path_parts[0], path_parts[1]
                     await github_service._rest(
                         access_token,
                         "PATCH",
                         f"/repos/{owner}/{repo}/issues/{app.parent_issue_number}",
                         json={"state": "closed"},
-                    ),
-                )
-                logger.info(
-                    "Closed parent issue #%d in %s/%s",
-                    app.parent_issue_number,
-                    owner,
-                    repo,
-                )
+                    )
+                    logger.info(
+                        "Closed parent issue #%d in %s/%s",
+                        app.parent_issue_number,
+                        owner,
+                        repo,
+                    )
             except Exception as exc:
                 logger.warning(
                     "Could not close parent issue #%d for app '%s': %s",
