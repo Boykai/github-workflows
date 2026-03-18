@@ -48,6 +48,8 @@ class App(BaseModel):
     github_repo_url: str | None = None
     github_project_url: str | None = None
     github_project_id: str | None = None
+    parent_issue_number: int | None = None
+    parent_issue_url: str | None = None
     port: int | None = None
     error_message: str | None = None
     created_at: str = ""

@@ -76,7 +76,7 @@ class TestCreateAppWithNewRepo:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = [{"path": ".gitignore", "content": "node_modules/\n"}]
+            mock_templates.return_value = ([{"path": ".gitignore", "content": "node_modules/\n"}], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -103,7 +103,7 @@ class TestCreateAppWithNewRepo:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -139,7 +139,7 @@ class TestCreateAppWithNewRepo:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -163,7 +163,7 @@ class TestCreateAppWithNewRepo:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -173,7 +173,7 @@ class TestCreateAppWithNewRepo:
             with patch(
                 "src.services.template_files.build_template_files", new_callable=AsyncMock
             ) as mock_templates:
-                mock_templates.return_value = []
+                mock_templates.return_value = ([], [])
                 await create_app_with_new_repo(
                     mock_db, payload, access_token="tok", github_service=github_svc
                 )
@@ -363,7 +363,7 @@ class TestCreateAppWithNewRepoAzureCredentials:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -387,7 +387,7 @@ class TestCreateAppWithNewRepoAzureCredentials:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -410,7 +410,7 @@ class TestCreateAppWithNewRepoAzureCredentials:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -422,3 +422,246 @@ class TestCreateAppWithNewRepoAzureCredentials:
         assert app.warnings is not None
         assert len(app.warnings) == 1
         assert "Azure credentials could not be stored" in app.warnings[0]
+
+
+# ---------------------------------------------------------------------------
+# Tests — template warning propagation
+# ---------------------------------------------------------------------------
+
+
+class TestTemplateWarningPropagation:
+    """Validate that template file warnings flow through to the App response."""
+
+    @pytest.mark.asyncio
+    async def test_template_warnings_propagated_to_app(self, mock_db) -> None:
+        """When build_template_files returns warnings, they appear on the App."""
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        payload = _new_repo_payload()
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = (
+                [{"path": ".gitignore", "content": "node_modules/\n"}],
+                ["Failed to read template file: .specify/memory/index.md"],
+            )
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        assert app.warnings is not None
+        assert len(app.warnings) == 1
+        assert "Failed to read template file" in app.warnings[0]
+
+    @pytest.mark.asyncio
+    async def test_template_and_azure_warnings_combined(self, mock_db) -> None:
+        """Both template and Azure warnings should be present on the response."""
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        github_svc.set_repository_secret.side_effect = Exception("403 Forbidden")
+        payload = _new_repo_payload(
+            azure_client_id="my-client-id",
+            azure_client_secret="my-client-secret",
+        )
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = (
+                [],
+                ["Failed to read template file: .specify/memory/index.md"],
+            )
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        assert app.warnings is not None
+        assert len(app.warnings) == 2
+        assert any("template file" in w.lower() for w in app.warnings)
+        assert any("azure" in w.lower() for w in app.warnings)
+
+    @pytest.mark.asyncio
+    async def test_no_warnings_when_all_succeed(self, mock_db) -> None:
+        """When everything succeeds, no warnings are set."""
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        payload = _new_repo_payload()
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = (
+                [{"path": ".gitignore", "content": "node_modules/\n"}],
+                [],
+            )
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        assert app.warnings is None
+
+
+# ---------------------------------------------------------------------------
+# Tests — exponential backoff
+# ---------------------------------------------------------------------------
+
+
+class TestExponentialBackoff:
+    """Validate the branch-readiness poll uses exponential backoff."""
+
+    @pytest.mark.asyncio
+    async def test_exponential_backoff_retries_up_to_10(self, mock_db) -> None:
+        """When HEAD OID is unavailable, should retry up to 10 times."""
+        from src.services.app_service import create_app_with_new_repo
+
+        github_svc = _mock_github_service()
+        github_svc.get_repository_info.return_value = {"head_oid": None}
+        payload = _new_repo_payload()
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates, patch("asyncio.sleep", new_callable=AsyncMock) as mock_sleep:
+            mock_templates.return_value = ([], [])
+            from src.exceptions import ValidationError
+
+            with pytest.raises(ValidationError, match="not yet available"):
+                await create_app_with_new_repo(
+                    mock_db, payload, access_token="tok", github_service=github_svc
+                )
+
+        # Should have called sleep 10 times (once per retry)
+        assert mock_sleep.await_count == 10
+        # First sleep should be ~1.0s, later sleeps should be capped at 4.0s
+        first_delay = mock_sleep.call_args_list[0][0][0]
+        assert 0.9 <= first_delay <= 1.1
+        last_delay = mock_sleep.call_args_list[-1][0][0]
+        assert 3.9 <= last_delay <= 4.1
+
+
+# ---------------------------------------------------------------------------
+# Tests — delete_app with parent issue close
+# ---------------------------------------------------------------------------
+
+
+class TestDeleteAppParentIssueClose:
+    """Validate that delete_app closes the parent issue when present."""
+
+    @pytest.mark.asyncio
+    async def test_closes_parent_issue_on_delete(self, mock_db) -> None:
+        """When app has parent_issue_number, delete should close the issue."""
+        from src.services.app_service import create_app_with_new_repo, delete_app, stop_app
+
+        github_svc = _mock_github_service()
+        payload = _new_repo_payload()
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = ([], [])
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        # Manually set parent issue fields on the DB record
+        await mock_db.execute(
+            "UPDATE apps SET parent_issue_number = ?, parent_issue_url = ? WHERE name = ?",
+            (42, "https://github.com/alice/test-app/issues/42", app.name),
+        )
+        await mock_db.commit()
+
+        # Stop the app first (required before delete)
+        await stop_app(mock_db, app.name)
+
+        # Now delete
+        await delete_app(
+            mock_db,
+            app.name,
+            access_token="tok",
+            github_service=github_svc,
+        )
+
+        # Verify the PATCH call to close the issue
+        github_svc._rest.assert_any_call(
+            "tok",
+            "PATCH",
+            "/repos/alice/test-app/issues/42",
+            json={"state": "closed"},
+        )
+
+    @pytest.mark.asyncio
+    async def test_delete_without_parent_issue_skips_close(self, mock_db) -> None:
+        """When app has no parent issue, delete should not attempt to close."""
+        from src.services.app_service import create_app_with_new_repo, delete_app, stop_app
+
+        github_svc = _mock_github_service()
+        payload = _new_repo_payload()
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = ([], [])
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        await stop_app(mock_db, app.name)
+
+        # Reset mock to track only delete-related calls
+        github_svc._rest.reset_mock()
+
+        await delete_app(
+            mock_db,
+            app.name,
+            access_token="tok",
+            github_service=github_svc,
+        )
+
+        # Should NOT have called PATCH to close any issue
+        for call in github_svc._rest.call_args_list:
+            assert "PATCH" not in str(call) or "issues" not in str(call)
+
+    @pytest.mark.asyncio
+    async def test_close_failure_does_not_block_delete(self, mock_db) -> None:
+        """When closing parent issue fails, app deletion still proceeds."""
+        from src.services.app_service import create_app_with_new_repo, delete_app, get_app, stop_app
+
+        github_svc = _mock_github_service()
+        payload = _new_repo_payload()
+
+        with patch(
+            "src.services.template_files.build_template_files", new_callable=AsyncMock
+        ) as mock_templates:
+            mock_templates.return_value = ([], [])
+            app = await create_app_with_new_repo(
+                mock_db, payload, access_token="tok", github_service=github_svc
+            )
+
+        # Set parent issue fields
+        await mock_db.execute(
+            "UPDATE apps SET parent_issue_number = ?, parent_issue_url = ? WHERE name = ?",
+            (42, "https://github.com/alice/test-app/issues/42", app.name),
+        )
+        await mock_db.commit()
+
+        await stop_app(mock_db, app.name)
+
+        # Make the REST call fail
+        github_svc._rest.side_effect = Exception("API error")
+
+        # Delete should NOT raise
+        await delete_app(
+            mock_db,
+            app.name,
+            access_token="tok",
+            github_service=github_svc,
+        )
+
+        # App should be gone
+        from src.exceptions import NotFoundError
+
+        with pytest.raises(NotFoundError):
+            await get_app(mock_db, app.name)

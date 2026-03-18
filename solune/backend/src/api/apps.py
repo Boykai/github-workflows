@@ -90,12 +90,19 @@ async def update_app_endpoint(
 
 @router.delete("/{app_name}", status_code=204)
 async def delete_app_endpoint(
+    request: Request,
     app_name: str,
-    _session: _SessionDep,
+    session: _SessionDep,
 ) -> None:
     """Delete an application (must be stopped first)."""
     db = get_db()
-    await delete_app(db, app_name)
+    github_service = get_github_service(request)
+    await delete_app(
+        db,
+        app_name,
+        access_token=session.access_token,
+        github_service=github_service,
+    )
 
 
 @router.post("/{app_name}/start", response_model=AppStatusResponse)
