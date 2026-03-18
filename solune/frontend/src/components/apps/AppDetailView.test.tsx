@@ -176,7 +176,7 @@ describe('AppDetailView', () => {
 
   it('deletes the app after confirmation and navigates back on success', async () => {
     mocks.deleteMutate.mockImplementation(
-      (_appName: string, options?: { onSuccess?: () => void }) => options?.onSuccess?.()
+      (_vars: { appName: string; force?: boolean }, options?: { onSuccess?: () => void }) => options?.onSuccess?.()
     );
 
     render(<AppDetailView appName="demo-app" onBack={mocks.onBack} />);
@@ -185,7 +185,7 @@ describe('AppDetailView', () => {
 
     await waitFor(() => {
       expect(mocks.deleteMutate).toHaveBeenCalledWith(
-        'demo-app',
+        { appName: 'demo-app', force: true },
         expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) })
       );
       expect(mocks.onBack).toHaveBeenCalledOnce();

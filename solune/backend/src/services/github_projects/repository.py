@@ -93,6 +93,45 @@ class RepositoryMixin:
             "default_branch": data.get("default_branch", "main"),
         }
 
+    async def delete_repository(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+    ) -> bool:
+        """Delete a GitHub repository.
+
+        Requires the ``delete_repo`` OAuth scope on the access token.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            owner: Repository owner.
+            repo: Repository name.
+
+        Returns:
+            ``True`` if the repository was deleted.
+
+        Raises:
+            GitHubAPIError: If deletion fails (e.g. insufficient permissions).
+        """
+        response = await self._rest_response(access_token, "DELETE", f"/repos/{owner}/{repo}")
+        if response.status_code == 204:
+            logger.info("Deleted repository %s/%s", owner, repo)
+            return True
+        if response.status_code == 403:
+            raise GitHubAPIError(
+                f"Insufficient permissions to delete repository '{owner}/{repo}'. "
+                "The token requires the 'delete_repo' scope.",
+                details={"status_code": 403},
+            )
+        if response.status_code == 404:
+            logger.warning("Repository %s/%s not found (already deleted?)", owner, repo)
+            return False
+        raise GitHubAPIError(
+            f"Failed to delete repository '{owner}/{repo}' (status {response.status_code})",
+            details={"status_code": response.status_code},
+        )
+
     async def set_repository_secret(
         self,
         access_token: str,

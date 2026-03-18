@@ -3,15 +3,44 @@
  * Extracted from AppsPage to keep the page file ≤250 lines.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ChevronDown, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
+import { ChevronDown, FileUp, Sparkles } from 'lucide-react';
 import type { AppCreate, Owner, RepoType } from '@/types/apps';
+import type { PipelineConfigSummary } from '@/types';
 
 const REPO_TYPE_OPTIONS: { value: RepoType; label: string }[] = [
   { value: 'same-repo', label: 'Same Repo' },
   { value: 'new-repo', label: 'New Repository' },
   { value: 'external-repo', label: 'External Repo' },
 ];
+
+const MAX_DESCRIPTION_LENGTH = 65_536;
+const ACCEPTED_FILE_EXTENSIONS = ['.md', '.txt', '.vtt', '.srt'];
+const MAX_PREVIEW_TITLE_LENGTH = 120;
+const PREVIEW_TITLE_TRUNCATE_AT = MAX_PREVIEW_TITLE_LENGTH - 3;
+const MARKDOWN_TITLE_PREFIX_RE = /^[>\-*+\d.\s`_~]+/;
+
+function deriveIssueTitlePreview(description: string): string {
+  const headingMatch = description.match(/^\s{0,3}#{1,6}\s+(.+)$/m);
+  const firstLine =
+    headingMatch?.[1]?.trim() ??
+    description
+      .split('\n')
+      .map((line) => line.trim())
+      .find(Boolean) ??
+    '';
+  if (!firstLine) return '';
+  const normalized = firstLine.replace(MARKDOWN_TITLE_PREFIX_RE, '').replace(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+  return normalized.length > MAX_PREVIEW_TITLE_LENGTH
+    ? `${normalized.slice(0, PREVIEW_TITLE_TRUNCATE_AT).trimEnd()}...`
+    : normalized;
+}
+
+function isAcceptedFile(file: File): boolean {
+  const lowerName = file.name.toLowerCase();
+  return ACCEPTED_FILE_EXTENSIONS.some((ext) => lowerName.endsWith(ext));
+}
 
 interface CreateAppDialogProps {
   onClose: () => void;
@@ -26,6 +55,9 @@ interface CreateAppDialogProps {
   owners: Owner[] | undefined;
   getErrorMessage: (err: unknown, fallback: string) => string;
   initialRepoType?: RepoType;
+  pipelines?: PipelineConfigSummary[];
+  isLoadingPipelines?: boolean;
+  defaultPipelineId?: string;
 }
 
 export function CreateAppDialog({
@@ -35,9 +67,13 @@ export function CreateAppDialog({
   owners,
   getErrorMessage,
   initialRepoType,
+  pipelines = [],
+  isLoadingPipelines = false,
+  defaultPipelineId = '',
 }: CreateAppDialogProps) {
   const [createError, setCreateError] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
+  const [description, setDescription] = useState('');
   const [aiEnhance, setAiEnhance] = useState(true);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [repoType, setRepoType] = useState<RepoType>(initialRepoType ?? 'same-repo');
@@ -46,6 +82,9 @@ export function CreateAppDialog({
   const [createProject, setCreateProject] = useState(true);
   const [azureClientId, setAzureClientId] = useState('');
   const [azureClientSecret, setAzureClientSecret] = useState('');
+  const [selectedPipelineId, setSelectedPipelineId] = useState(defaultPipelineId);
+  const [uploadedFileName, setUploadedFileName] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fall back to first available owner when owners load asynchronously
   const effectiveRepoOwner = repoOwner || owners?.[0]?.login || '';
@@ -103,6 +142,38 @@ export function CreateAppDialog({
     [derivedName],
   );
 
+  const issueTitlePreview = useMemo(
+    () => deriveIssueTitlePreview(description),
+    [description],
+  );
+
+  const handleFileUpload = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!isAcceptedFile(file)) {
+      setCreateError('Only .md, .txt, .vtt, and .srt files are supported.');
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      const text = await file.text();
+      if (text.length > MAX_DESCRIPTION_LENGTH) {
+        setCreateError(`File exceeds ${MAX_DESCRIPTION_LENGTH.toLocaleString()} character limit.`);
+        event.target.value = '';
+        return;
+      }
+      setDescription(text);
+      setUploadedFileName(file.name);
+      setCreateError(null);
+    } catch {
+      setCreateError('Could not read the selected file.');
+    } finally {
+      event.target.value = '';
+    }
+  }, []);
+
   const handleCreate = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -110,7 +181,7 @@ export function CreateAppDialog({
 
       const formData = new FormData(e.currentTarget);
       const trimmedDisplayName = displayName.trim();
-      const description = String(formData.get('description') ?? '').trim();
+      const trimmedDescription = description.trim();
       const nameOverride = String(formData.get('name') ?? '').trim();
       const name = nameOverride || derivedName;
 
@@ -119,13 +190,22 @@ export function CreateAppDialog({
         return;
       }
 
+      if (trimmedDescription.length > MAX_DESCRIPTION_LENGTH) {
+        setCreateError(`Description exceeds ${MAX_DESCRIPTION_LENGTH.toLocaleString()} character limit.`);
+        return;
+      }
+
       const payload: AppCreate = {
         name,
         display_name: trimmedDisplayName,
-        description,
+        description: trimmedDescription,
         ai_enhance: aiEnhance,
         repo_type: repoType,
       };
+
+      if (selectedPipelineId) {
+        payload.pipeline_id = selectedPipelineId;
+      }
 
       if (repoType === 'new-repo') {
         if (!effectiveRepoOwner) {
@@ -178,6 +258,7 @@ export function CreateAppDialog({
     },
     [
       displayName,
+      description,
       derivedName,
       derivedBranch,
       aiEnhance,
@@ -187,6 +268,7 @@ export function CreateAppDialog({
       createProject,
       azureClientId,
       azureClientSecret,
+      selectedPipelineId,
       onSubmit,
       getErrorMessage,
     ],
@@ -280,19 +362,59 @@ export function CreateAppDialog({
 
             {/* Description */}
             <div>
-              <label htmlFor="app-description" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                Description
-              </label>
+              <div className="mb-1 flex items-center justify-between">
+                <label htmlFor="app-description" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Description
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".md,.txt,.vtt,.srt,text/plain,text/markdown"
+                    className="sr-only"
+                    onChange={(event) => { void handleFileUpload(event); }}
+                  />
+                  <button
+                    type="button"
+                    className="inline-flex items-center gap-1 rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <FileUp aria-hidden="true" className="h-3 w-3" />
+                    Upload
+                  </button>
+                  {uploadedFileName && (
+                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300">
+                      {uploadedFileName}
+                    </span>
+                  )}
+                </div>
+              </div>
               <textarea
                 id="app-description"
                 name="description"
-                rows={3}
-                placeholder={aiEnhance ? 'Describe your app in a few words or sentences \u2014 AI will generate a short repo description and a rich project overview from your input.' : 'A brief description of your app\u2026'}
+                rows={5}
+                maxLength={MAX_DESCRIPTION_LENGTH}
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setUploadedFileName('');
+                }}
+                placeholder={aiEnhance
+                  ? 'Describe your app — AI will generate a short repo description and a rich project overview.\n\nSupports Markdown, transcripts (.vtt, .srt), or upload a file.'
+                  : 'A brief description of your app… Supports Markdown or file upload (.md, .txt, .vtt, .srt).'}
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               />
-              {aiEnhance && (
+              <div className="mt-1 flex items-center justify-between text-xs text-zinc-400">
+                <span>
+                  {aiEnhance
+                    ? 'AI will produce a short repo description (≤350 chars) and a detailed project description.'
+                    : 'Supports Markdown and file upload.'}
+                </span>
+                <span>{description.length.toLocaleString()} / {MAX_DESCRIPTION_LENGTH.toLocaleString()}</span>
+              </div>
+              {issueTitlePreview && (
                 <p className="mt-1 text-xs text-zinc-400">
-                  AI will produce a short repo description ({'\u2264'}350 chars) and a detailed project description.
+                  Derived issue title: <span className="font-medium text-zinc-600 dark:text-zinc-300">{issueTitlePreview}</span>
                 </p>
               )}
             </div>
@@ -453,6 +575,36 @@ export function CreateAppDialog({
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiEnhance ? 'translate-x-6' : 'translate-x-1'}`} />
               </button>
             </div>
+
+            {/* Pipeline Selection */}
+            {pipelines.length > 0 && (
+              <div>
+                <label htmlFor="pipeline-select" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  Agent Pipeline
+                </label>
+                <select
+                  id="pipeline-select"
+                  value={selectedPipelineId}
+                  onChange={(e) => setSelectedPipelineId(e.target.value)}
+                  disabled={isLoadingPipelines || isPending}
+                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+                >
+                  <option value="">
+                    {isLoadingPipelines ? 'Loading pipelines…' : 'No pipeline (skip issue creation)'}
+                  </option>
+                  {pipelines.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name} ({p.stage_count} stages · {p.agent_count} agents)
+                    </option>
+                  ))}
+                </select>
+                {selectedPipelineId && (
+                  <p className="mt-1 text-xs text-zinc-400">
+                    A parent issue and sub-issues will be created for each pipeline agent.
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Advanced (collapsible) — for name override */}
             <div>

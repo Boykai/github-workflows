@@ -199,10 +199,30 @@ async def launch_pipeline_issue(
     session: Annotated[UserSession, Depends(get_session_dep)],
 ) -> WorkflowResult:
     """Create a project issue from raw issue text and launch the selected agent pipeline."""
+    return await execute_pipeline_launch(
+        project_id=project_id,
+        issue_description=body.issue_description,
+        pipeline_id=body.pipeline_id,
+        session=session,
+    )
+
+
+async def execute_pipeline_launch(
+    *,
+    project_id: str,
+    issue_description: str,
+    pipeline_id: str,
+    session: UserSession,
+) -> WorkflowResult:
+    """Core pipeline launch logic — reusable by both the endpoint and app creation.
+
+    Creates a parent issue from the description, adds it to the project,
+    creates sub-issues for each pipeline agent, and starts the first agent.
+    """
     from src.services.copilot_polling import ensure_polling_started
     from src.services.workflow_orchestrator import PipelineState, find_next_actionable_status
 
-    issue_description = _normalize_issue_description(body.issue_description)
+    issue_description = _normalize_issue_description(issue_description)
     ctx: WorkflowContext | None = None
     owner, repo = await resolve_repository(session.access_token, project_id)
 
@@ -238,7 +258,7 @@ async def launch_pipeline_issue(
             logger.warning("Transcript analysis failed, using raw description: %s", exc)
 
     service = _get_service()
-    pipeline = await service.get_pipeline(project_id, body.pipeline_id)
+    pipeline = await service.get_pipeline(project_id, pipeline_id)
     if pipeline is None:
         raise NotFoundError("Selected pipeline config is no longer available")
 
@@ -247,7 +267,7 @@ async def launch_pipeline_issue(
             project_id=project_id,
             owner=owner,
             repo=repo,
-            pipeline_id=body.pipeline_id,
+            pipeline_id=pipeline_id,
         )
 
         issue_body = issue_description
@@ -276,7 +296,7 @@ async def launch_pipeline_issue(
             body=issue_body,
             labels=issue_labels,
         )
-        await service.set_assignment(project_id, body.pipeline_id)
+        await service.set_assignment(project_id, pipeline_id)
 
         ctx = WorkflowContext(
             session_id=str(session.session_id),
@@ -284,7 +304,7 @@ async def launch_pipeline_issue(
             access_token=session.access_token,
             repository_owner=owner,
             repository_name=repo,
-            selected_pipeline_id=body.pipeline_id,
+            selected_pipeline_id=pipeline_id,
             config=config,
             user_agent_model=await _load_user_agent_model(session),
         )

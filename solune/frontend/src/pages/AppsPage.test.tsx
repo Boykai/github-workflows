@@ -44,9 +44,38 @@ vi.mock('@/hooks/useApps', () => ({
   getErrorMessage: (_err: unknown, fallback: string) => fallback,
 }));
 
-vi.mock('@/hooks/useConfirmation', () => ({
-  useConfirmation: () => ({ confirm: mocks.confirm }),
+vi.mock('@/hooks/useConfirmation', async () => {
+  const actual = await vi.importActual<typeof import('@/hooks/useConfirmation')>('@/hooks/useConfirmation');
+  return {
+    ...actual,
+    useConfirmation: () => ({ confirm: mocks.confirm }),
+  };
+});
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { selected_project_id: 'PVT_test123' }, isAuthenticated: true }),
 }));
+
+vi.mock('@/hooks/useProjects', () => ({
+  useProjects: () => ({ selectedProject: { project_id: 'PVT_test123' } }),
+}));
+
+vi.mock('@/hooks/useSelectedPipeline', () => ({
+  useSelectedPipeline: () => ({ pipelineId: null }),
+}));
+
+vi.mock('@/services/api', () => ({
+  appsApi: { assets: vi.fn().mockResolvedValue({ app_name: '', github_repo: null, github_project_id: null, parent_issue_number: null, sub_issues: [], branches: [], has_azure_secrets: false }) },
+  pipelinesApi: { list: vi.fn().mockResolvedValue({ pipelines: [] }) },
+}));
+
+vi.mock('@tanstack/react-query', async () => {
+  const actual = await vi.importActual<typeof import('@tanstack/react-query')>('@tanstack/react-query');
+  return {
+    ...actual,
+    useQuery: () => ({ data: { pipelines: [] }, isLoading: false, error: null }),
+  };
+});
 
 vi.mock('@/utils/rateLimit', () => ({
   isRateLimitApiError: () => false,

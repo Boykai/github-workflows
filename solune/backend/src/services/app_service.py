@@ -22,10 +22,12 @@ from src.models.app import (
     APP_NAME_PATTERN,
     RESERVED_NAMES,
     App,
+    AppAssetInventory,
     AppCreate,
     AppStatus,
     AppStatusResponse,
     AppUpdate,
+    DeleteAppResult,
     RepoType,
 )
 
@@ -715,18 +717,102 @@ async def stop_app(db: aiosqlite.Connection, name: str) -> AppStatusResponse:
     )
 
 
+async def get_app_assets(
+    db: aiosqlite.Connection,
+    name: str,
+    *,
+    access_token: str | None = None,
+    github_service: GitHubProjectsService | None = None,
+) -> AppAssetInventory:
+    """Return an inventory of all GitHub assets associated with an app.
+
+    Fetches sub-issues and branches live from GitHub when credentials are provided.
+    """
+    app = await get_app(db, name)
+
+    owner: str | None = None
+    repo: str | None = None
+    github_repo: str | None = None
+
+    # Resolve owner/repo from available URLs
+    repo_url = app.github_repo_url or app.external_repo_url
+    if repo_url:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(repo_url)
+        path_parts = parsed.path.strip("/").split("/")
+        if len(path_parts) >= 2:
+            owner, repo = path_parts[0], path_parts[1]
+            github_repo = f"{owner}/{repo}"
+
+    sub_issues: list[int] = []
+    branches: list[str] = []
+
+    if access_token and github_service and owner and repo:
+        # Fetch sub-issues of the parent issue
+        if app.parent_issue_number:
+            try:
+                timeline = await github_service._rest(
+                    access_token,
+                    "GET",
+                    f"/repos/{owner}/{repo}/issues/{app.parent_issue_number}/timeline",
+                    params={"per_page": "100"},
+                )
+                if isinstance(timeline, list):
+                    for event in timeline:
+                        if isinstance(event, dict) and event.get("event") == "cross-referenced":
+                            source = event.get("source", {}).get("issue", {})
+                            if source.get("number"):
+                                sub_issues.append(source["number"])
+            except Exception as exc:
+                logger.debug("Could not fetch sub-issues for app '%s': %s", name, exc)
+
+        # Fetch branches matching the app name pattern
+        try:
+            branch_prefix = f"app/{app.name}"
+            refs = await github_service._rest(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/git/matching-refs/heads/{branch_prefix}",
+            )
+            if isinstance(refs, list):
+                for ref in refs:
+                    ref_name = ref.get("ref", "").removeprefix("refs/heads/")
+                    if ref_name:
+                        branches.append(ref_name)
+        except Exception as exc:
+            logger.debug("Could not fetch branches for app '%s': %s", name, exc)
+
+    return AppAssetInventory(
+        app_name=app.name,
+        github_repo=github_repo,
+        github_project_id=app.github_project_id,
+        parent_issue_number=app.parent_issue_number,
+        sub_issues=sub_issues,
+        branches=branches,
+        has_azure_secrets=False,  # Cannot detect from outside; conservative default
+    )
+
+
 async def delete_app(
     db: aiosqlite.Connection,
     name: str,
     *,
     access_token: str | None = None,
     github_service: GitHubProjectsService | None = None,
-) -> None:
+    force: bool = False,
+) -> DeleteAppResult | None:
     """Delete an application — must be stopped or in error/creating state first.
+
+    When *force* is ``True``, performs a full cleanup of all associated GitHub
+    assets (issues, branches, project, repository) before removing the DB record.
+    Returns a ``DeleteAppResult`` in force mode, ``None`` otherwise.
 
     When *access_token* and *github_service* are provided and the app has a
     ``parent_issue_number``, the parent issue is closed (best-effort).
     """
+    import asyncio
+
     app = await get_app(db, name)
 
     if app.status == AppStatus.ACTIVE:
@@ -734,30 +820,35 @@ async def delete_app(
 
     validate_app_name(app.name)
 
-    # Best-effort close the parent issue on GitHub
-    if app.parent_issue_number and access_token and github_service:
-        # Prefer parent_issue_url (reliable across all repo types) over repo URLs
-        repo_url = app.parent_issue_url or app.github_repo_url or app.external_repo_url
-        if repo_url:
-            try:
-                from urllib.parse import urlparse
+    owner: str | None = None
+    repo: str | None = None
 
-                parsed = urlparse(repo_url)
-                path_parts = parsed.path.strip("/").split("/")
-                if len(path_parts) >= 2:
-                    owner, repo = path_parts[0], path_parts[1]
-                    await github_service._rest(
-                        access_token,
-                        "PATCH",
-                        f"/repos/{owner}/{repo}/issues/{app.parent_issue_number}",
-                        json={"state": "closed"},
-                    )
-                    logger.info(
-                        "Closed parent issue #%d in %s/%s",
-                        app.parent_issue_number,
-                        owner,
-                        repo,
-                    )
+    # Resolve owner/repo from available URLs
+    repo_url = app.parent_issue_url or app.github_repo_url or app.external_repo_url
+    if repo_url:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(repo_url)
+        path_parts = parsed.path.strip("/").split("/")
+        if len(path_parts) >= 2:
+            owner, repo = path_parts[0], path_parts[1]
+
+    if not force:
+        # Legacy behaviour: best-effort close parent issue + delete DB record
+        if app.parent_issue_number and access_token and github_service and owner and repo:
+            try:
+                await github_service._rest(
+                    access_token,
+                    "PATCH",
+                    f"/repos/{owner}/{repo}/issues/{app.parent_issue_number}",
+                    json={"state": "closed"},
+                )
+                logger.info(
+                    "Closed parent issue #%d in %s/%s",
+                    app.parent_issue_number,
+                    owner,
+                    repo,
+                )
             except Exception as exc:
                 logger.warning(
                     "Could not close parent issue #%d for app '%s': %s",
@@ -766,9 +857,103 @@ async def delete_app(
                     exc,
                 )
 
+        await db.execute("DELETE FROM apps WHERE name = ?", (name,))
+        await db.commit()
+        logger.info("Deleted app '%s'", name)
+        return None
+
+    # ── Force mode: full asset cleanup ──────────────────────────────────
+    result = DeleteAppResult(app_name=name)
+    RATE_LIMIT_DELAY = 0.2
+
+    if access_token and github_service and owner and repo:
+        # 1. Close parent issue and sub-issues
+        all_issues: list[int] = []
+        if app.parent_issue_number:
+            all_issues.append(app.parent_issue_number)
+            # Fetch sub-issues
+            try:
+                timeline = await github_service._rest(
+                    access_token,
+                    "GET",
+                    f"/repos/{owner}/{repo}/issues/{app.parent_issue_number}/timeline",
+                    params={"per_page": "100"},
+                )
+                if isinstance(timeline, list):
+                    for event in timeline:
+                        if isinstance(event, dict) and event.get("event") == "cross-referenced":
+                            source = event.get("source", {}).get("issue", {})
+                            if source.get("number"):
+                                all_issues.append(source["number"])
+            except Exception as exc:
+                logger.debug("Could not fetch sub-issues: %s", exc)
+
+        for issue_number in all_issues:
+            try:
+                await github_service._rest(
+                    access_token,
+                    "PATCH",
+                    f"/repos/{owner}/{repo}/issues/{issue_number}",
+                    json={"state": "closed", "state_reason": "not_planned"},
+                )
+                result.issues_closed += 1
+                await asyncio.sleep(RATE_LIMIT_DELAY)
+            except Exception as exc:
+                result.errors.append(f"Could not close issue #{issue_number}: {exc}")
+
+        # 2. Delete app-related branches
+        try:
+            branch_prefix = f"app/{app.name}"
+            refs = await github_service._rest(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/git/matching-refs/heads/{branch_prefix}",
+            )
+            if isinstance(refs, list):
+                for ref in refs:
+                    branch_name = ref.get("ref", "").removeprefix("refs/heads/")
+                    if branch_name:
+                        try:
+                            await github_service.delete_branch(
+                                access_token, owner, repo, branch_name
+                            )
+                            result.branches_deleted += 1
+                            await asyncio.sleep(RATE_LIMIT_DELAY)
+                        except Exception as exc:
+                            result.errors.append(f"Could not delete branch '{branch_name}': {exc}")
+        except Exception as exc:
+            result.errors.append(f"Could not list branches: {exc}")
+
+        # 3. Delete GitHub project (new-repo apps only)
+        if app.github_project_id:
+            try:
+                await github_service.delete_project_v2(access_token, app.github_project_id)
+                result.project_deleted = True
+            except Exception as exc:
+                result.errors.append(f"Could not delete project: {exc}")
+
+        # 4. Delete GitHub repository (new-repo apps only)
+        if app.repo_type == RepoType.NEW_REPO and app.github_repo_url:
+            try:
+                await github_service.delete_repository(access_token, owner, repo)
+                result.repo_deleted = True
+            except Exception as exc:
+                result.errors.append(f"Could not delete repository: {exc}")
+
+    # 5. Delete database record
     await db.execute("DELETE FROM apps WHERE name = ?", (name,))
     await db.commit()
-    logger.info("Deleted app '%s'", name)
+    result.db_deleted = True
+    logger.info(
+        "Force-deleted app '%s' (issues=%d, branches=%d, project=%s, repo=%s, errors=%d)",
+        name,
+        result.issues_closed,
+        result.branches_deleted,
+        result.project_deleted,
+        result.repo_deleted,
+        len(result.errors),
+    )
+    return result
 
 
 async def get_app_status(db: aiosqlite.Connection, name: str) -> AppStatusResponse:

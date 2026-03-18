@@ -152,6 +152,55 @@ class ProjectsMixin:
         )
         logger.info("Linked project %s to repository %s", project_id, repository_id)
 
+    async def delete_project_v2(
+        self,
+        access_token: str,
+        project_id: str,
+    ) -> bool:
+        """Delete a GitHub Project V2 by its GraphQL node ID.
+
+        Falls back to closing (archiving) the project when the deletion
+        mutation is unavailable or fails due to permissions.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            project_id: Project GraphQL node ID (PVT_xxx).
+
+        Returns:
+            ``True`` if the project was deleted or closed.
+        """
+        delete_mutation = """
+        mutation($projectId: ID!) {
+          deleteProjectV2(input: {projectId: $projectId}) {
+            projectV2 { id }
+          }
+        }
+        """
+        try:
+            await self._graphql(access_token, delete_mutation, {"projectId": project_id})
+            logger.info("Deleted project %s", project_id)
+            return True
+        except Exception as exc:
+            logger.warning(
+                "deleteProjectV2 failed for %s, falling back to close: %s", project_id, exc
+            )
+
+        # Fallback: archive/close the project instead of deleting
+        close_mutation = """
+        mutation($projectId: ID!) {
+          updateProjectV2(input: {projectId: $projectId, closed: true}) {
+            projectV2 { id closed }
+          }
+        }
+        """
+        try:
+            await self._graphql(access_token, close_mutation, {"projectId": project_id})
+            logger.info("Closed (archived) project %s", project_id)
+            return True
+        except Exception as exc:
+            logger.warning("Could not close project %s: %s", project_id, exc)
+            return False
+
     async def list_user_projects(
         self, access_token: str, username: str, limit: int = 20
     ) -> list[GitHubProject]:

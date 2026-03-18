@@ -4,7 +4,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, appsApi } from '@/services/api';
-import type { App, AppCreate, AppStatusResponse, AppUpdate, Owner } from '@/types/apps';
+import type { App, AppAssetInventory, AppCreate, AppStatusResponse, AppUpdate, DeleteAppResult, Owner } from '@/types/apps';
 
 /** Query key factory for apps data. */
 export const appKeys = {
@@ -73,14 +73,24 @@ export function useUpdateApp(name: string) {
   });
 }
 
-/** Delete an application. */
+/** Delete an application. Pass `true` for full asset cleanup. */
 export function useDeleteApp() {
   const queryClient = useQueryClient();
-  return useMutation<void, ApiError, string>({
-    mutationFn: (appName) => appsApi.delete(appName),
+  return useMutation<DeleteAppResult | void, ApiError, { appName: string; force?: boolean }>({
+    mutationFn: ({ appName, force }) => appsApi.delete(appName, force),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: appKeys.list() });
     },
+  });
+}
+
+/** Fetch the asset inventory for an app (sub-issues, branches, project, repo). */
+export function useAppAssets(appName: string | null) {
+  return useQuery<AppAssetInventory, ApiError>({
+    queryKey: [...appKeys.all, 'assets', appName],
+    queryFn: () => appsApi.assets(appName!),
+    enabled: !!appName,
+    staleTime: 10_000,
   });
 }
 

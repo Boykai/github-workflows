@@ -111,10 +111,10 @@ describe('useDeleteApp', () => {
     });
 
     await act(async () => {
-      await result.current.mutateAsync('my-app');
+      await result.current.mutateAsync({ appName: 'my-app' });
     });
 
-    expect(mockAppsApi.delete).toHaveBeenCalledWith('my-app');
+    expect(mockAppsApi.delete).toHaveBeenCalledWith('my-app', undefined);
   });
 });
 

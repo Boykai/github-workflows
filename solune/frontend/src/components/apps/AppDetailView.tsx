@@ -131,7 +131,7 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
       confirmLabel: 'Delete App',
     });
     if (confirmed) {
-      deleteMutation.mutate(appName, {
+      deleteMutation.mutate({ appName, force: true }, {
         onSuccess: () => onBack(),
         onError: (err) => showError(getErrorMessage(err, `Could not delete app "${app.display_name}".`)),
       });

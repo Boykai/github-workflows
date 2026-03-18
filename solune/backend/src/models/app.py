@@ -106,3 +106,27 @@ class AppStatusResponse(BaseModel):
     status: AppStatus
     port: int | None = None
     error_message: str | None = None
+
+
+class AppAssetInventory(BaseModel):
+    """Inventory of all GitHub assets associated with an app."""
+
+    app_name: str
+    github_repo: str | None = None
+    github_project_id: str | None = None
+    parent_issue_number: int | None = None
+    sub_issues: list[int] = Field(default_factory=list)
+    branches: list[str] = Field(default_factory=list)
+    has_azure_secrets: bool = False
+
+
+class DeleteAppResult(BaseModel):
+    """Result of a force-delete operation with asset cleanup details."""
+
+    app_name: str
+    issues_closed: int = 0
+    branches_deleted: int = 0
+    project_deleted: bool = False
+    repo_deleted: bool = False
+    db_deleted: bool = False
+    errors: list[str] = Field(default_factory=list)
