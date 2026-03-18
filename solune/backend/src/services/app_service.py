@@ -122,6 +122,8 @@ def _row_to_app(row: aiosqlite.Row) -> App:
         github_repo_url=row["github_repo_url"],
         github_project_url=row["github_project_url"],
         github_project_id=row["github_project_id"],
+        parent_issue_number=row["parent_issue_number"],
+        parent_issue_url=row["parent_issue_url"],
         port=row["port"],
         error_message=row["error_message"],
         created_at=row["created_at"],
@@ -377,12 +379,14 @@ async def create_app_with_new_repo(
     repo_name = repo_data["name"]
     default_branch = repo_data.get("default_branch", "main")
 
-    # 2. Get HEAD OID for template commit
+    # 2. Get HEAD OID for template commit (exponential backoff)
     import asyncio
 
     head_oid: str | None = None
     last_poll_exc: Exception | None = None
-    for _attempt in range(5):
+    base_delay = 0.5
+    max_delay = 3.0
+    for attempt in range(8):
         try:
             info = await github_service.get_repository_info(access_token, repo_owner, repo_name)
             head_oid = info.get("head_oid")
@@ -390,7 +394,8 @@ async def create_app_with_new_repo(
                 break
         except Exception as exc:
             last_poll_exc = exc
-        await asyncio.sleep(1)
+        delay = min(base_delay * (2 ** attempt), max_delay)
+        await asyncio.sleep(delay)
 
     if not head_oid:
         detail = f" Last error: {last_poll_exc}" if last_poll_exc else ""
@@ -400,7 +405,9 @@ async def create_app_with_new_repo(
         )
 
     # 3. Commit template files
-    template_files = await build_template_files(payload.name, payload.display_name)
+    template_files, template_warnings = await build_template_files(
+        payload.name, payload.display_name
+    )
     if template_files:
         commit_oid = await github_service.commit_files(
             access_token=access_token,
@@ -418,10 +425,12 @@ async def create_app_with_new_repo(
         else:
             logger.warning("Failed to commit template files to %s", repo_data["full_name"])
 
+    # Collect all non-fatal warnings for the response
+    all_warnings: list[str] = list(template_warnings)
+
     # 3a. Store Azure credentials as GitHub Secrets (best-effort, synchronous).
     # Failure here is non-fatal: the app is still created, but the user must
     # add AZURE_CLIENT_ID / AZURE_CLIENT_SECRET to the repo secrets manually.
-    azure_warning: str | None = None
     if payload.azure_client_id and payload.azure_client_secret:
         try:
             await github_service.set_repository_secret(
@@ -444,7 +453,7 @@ async def create_app_with_new_repo(
                 payload.name,
                 exc,
             )
-            azure_warning = (
+            all_warnings.append(
                 "Azure credentials could not be stored as GitHub Secrets. "
                 "Add AZURE_CLIENT_ID and AZURE_CLIENT_SECRET to the repository secrets manually."
             )
@@ -482,6 +491,38 @@ async def create_app_with_new_repo(
             )
             # Partial success — app is still created with null project fields.
 
+    # 4a. Create Parent Issue for pipeline (best-effort)
+    parent_issue_number: int | None = None
+    parent_issue_url: str | None = None
+
+    if payload.pipeline_id:
+        try:
+            issue_title = f"Build {payload.display_name}"
+            issue_body = f"Parent issue for **{payload.display_name}** — created by Solune.\n"
+            issue = await github_service.create_issue(
+                access_token,
+                owner=repo_owner,
+                repo=repo_name,
+                title=issue_title,
+                body=issue_body,
+            )
+            parent_issue_number = issue.get("number")
+            parent_issue_url = issue.get("html_url")
+            logger.info(
+                "Created parent issue #%s for app '%s'",
+                parent_issue_number,
+                payload.name,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Non-blocking: parent issue creation failed for app '%s': %s",
+                payload.name,
+                exc,
+            )
+            all_warnings.append(
+                "Parent issue could not be created. Pipeline automation was not started."
+            )
+
     # 5. Insert into database
     directory_path = f"apps/{payload.name}"
     now = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -491,8 +532,9 @@ async def create_app_with_new_repo(
             name, display_name, description, directory_path,
             associated_pipeline_id, status, repo_type, external_repo_url,
             github_repo_url, github_project_url, github_project_id,
+            parent_issue_number, parent_issue_url,
             created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             payload.name,
@@ -506,6 +548,8 @@ async def create_app_with_new_repo(
             github_repo_url,
             github_project_url,
             github_project_id,
+            parent_issue_number,
+            parent_issue_url,
             now,
             now,
         ),
@@ -524,8 +568,8 @@ async def create_app_with_new_repo(
     if not row:
         raise NotFoundError(f"App '{payload.name}' not found after creation.")
     app = _row_to_app(row)
-    if azure_warning:
-        app = app.model_copy(update={"warnings": [azure_warning]})
+    if all_warnings:
+        app = app.model_copy(update={"warnings": all_warnings})
     return app
 
 
@@ -705,14 +749,57 @@ async def stop_app(db: aiosqlite.Connection, name: str) -> AppStatusResponse:
     )
 
 
-async def delete_app(db: aiosqlite.Connection, name: str) -> None:
-    """Delete an application — must be stopped or in error/creating state first."""
+async def delete_app(
+    db: aiosqlite.Connection,
+    name: str,
+    *,
+    access_token: str | None = None,
+    github_service: GitHubProjectsService | None = None,
+) -> None:
+    """Delete an application — must be stopped or in error/creating state first.
+
+    If the app has a parent issue, attempts to close it (best-effort).
+    """
     app = await get_app(db, name)
 
     if app.status == AppStatus.ACTIVE:
         raise ValidationError(f"Cannot delete app '{name}': must stop the app first.")
 
     validate_app_name(app.name)
+
+    # Best-effort: close parent issue if present
+    if (
+        app.parent_issue_number
+        and app.github_repo_url
+        and access_token
+        and github_service
+    ):
+        try:
+            # Parse owner/repo from github_repo_url
+            # e.g. "https://github.com/alice/test-app" → alice, test-app
+            parts = app.github_repo_url.rstrip("/").split("/")
+            if len(parts) >= 2:
+                issue_owner = parts[-2]
+                issue_repo = parts[-1]
+                await github_service.update_issue_state(
+                    access_token,
+                    owner=issue_owner,
+                    repo=issue_repo,
+                    issue_number=app.parent_issue_number,
+                    state="closed",
+                )
+                logger.info(
+                    "Closed parent issue #%s for deleted app '%s'",
+                    app.parent_issue_number,
+                    name,
+                )
+        except Exception as exc:
+            logger.warning(
+                "Non-blocking: could not close parent issue #%s for app '%s': %s",
+                app.parent_issue_number,
+                name,
+                exc,
+            )
 
     await db.execute("DELETE FROM apps WHERE name = ?", (name,))
     await db.commit()

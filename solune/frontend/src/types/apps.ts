@@ -15,6 +15,8 @@ export interface App {
   github_repo_url: string | null;
   github_project_url: string | null;
   github_project_id: string | null;
+  parent_issue_number: number | null;
+  parent_issue_url: string | null;
   port: number | null;
   error_message: string | null;
   created_at: string;

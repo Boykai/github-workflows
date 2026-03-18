@@ -76,7 +76,7 @@ class TestCreateAppWithNewRepo:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = [{"path": ".gitignore", "content": "node_modules/\n"}]
+            mock_templates.return_value = ([{"path": ".gitignore", "content": "node_modules/\n"}], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -103,7 +103,7 @@ class TestCreateAppWithNewRepo:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -139,7 +139,7 @@ class TestCreateAppWithNewRepo:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -163,7 +163,7 @@ class TestCreateAppWithNewRepo:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -173,7 +173,7 @@ class TestCreateAppWithNewRepo:
             with patch(
                 "src.services.template_files.build_template_files", new_callable=AsyncMock
             ) as mock_templates:
-                mock_templates.return_value = []
+                mock_templates.return_value = ([], [])
                 await create_app_with_new_repo(
                     mock_db, payload, access_token="tok", github_service=github_svc
                 )
@@ -363,7 +363,7 @@ class TestCreateAppWithNewRepoAzureCredentials:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -387,7 +387,7 @@ class TestCreateAppWithNewRepoAzureCredentials:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
@@ -410,7 +410,7 @@ class TestCreateAppWithNewRepoAzureCredentials:
         with patch(
             "src.services.template_files.build_template_files", new_callable=AsyncMock
         ) as mock_templates:
-            mock_templates.return_value = []
+            mock_templates.return_value = ([], [])
             app = await create_app_with_new_repo(
                 mock_db, payload, access_token="tok", github_service=github_svc
             )
