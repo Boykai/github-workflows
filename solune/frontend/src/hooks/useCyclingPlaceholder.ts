@@ -22,13 +22,14 @@ export function useCyclingPlaceholder(
   const intervalMs = options?.intervalMs ?? 5000;
   const enabled = options?.enabled ?? true;
   const [index, setIndex] = useState(0);
-  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
 
   // Listen for reduced motion preference changes
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const mql = window.matchMedia('(prefers-reduced-motion: reduce)') as LegacyMediaQueryList;
-    setPrefersReducedMotion(mql.matches);
     const handler = (e: MediaQueryListEvent) => setPrefersReducedMotion(e.matches);
 
     if (typeof mql.addEventListener === 'function') {
@@ -53,9 +54,11 @@ export function useCyclingPlaceholder(
   }, [prompts.length, intervalMs, enabled, prefersReducedMotion]);
 
   // Reset to 0 when disabled so the cycle restarts cleanly
-  useEffect(() => {
+  const [prevEnabled, setPrevEnabled] = useState(enabled);
+  if (enabled !== prevEnabled) {
+    setPrevEnabled(enabled);
     if (!enabled) setIndex(0);
-  }, [enabled]);
+  }
 
   if (prefersReducedMotion) return prompts[0] ?? '';
   return prompts[index] ?? '';

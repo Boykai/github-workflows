@@ -44,14 +44,16 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
       [agent]
     );
 
-    useEffect(() => {
+    const [prevAgentId, setPrevAgentId] = useState(agent.id);
+    if (agent.id !== prevAgentId) {
+      setPrevAgentId(agent.id);
       setName(agent.name);
       setSystemPrompt(agent.system_prompt || '');
       setSelectedToolIds([...(agent.tools ?? [])]);
       setSelectedIconName(isCelestialIconName(agent.icon_name) ? agent.icon_name : null);
       setError(null);
       setToolsError(null);
-    }, [agent]);
+    }
 
     const isDirty = useMemo(() => {
       if (name !== snapshot.name) return true;
@@ -62,14 +64,17 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
     }, [name, selectedIconName, selectedToolIds, snapshot, systemPrompt]);
 
     useEffect(() => {
-      onDirtyChange(isDirty);
+      let active = true;
+      queueMicrotask(() => {
+        if (active) onDirtyChange(isDirty);
+      });
+      return () => { active = false; };
     }, [isDirty, onDirtyChange]);
 
-    useEffect(() => {
-      if (selectedToolIds.length > 0 && toolsError) {
-        setToolsError(null);
-      }
-    }, [selectedToolIds, toolsError]);
+    // Clear tools error when tools are selected (render-time adjustment)
+    if (selectedToolIds.length > 0 && toolsError) {
+      setToolsError(null);
+    }
 
     const handleDiscard = useCallback(() => {
       setName(snapshot.name);

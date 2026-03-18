@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from urllib.parse import quote
 
 from src.logging_utils import get_logger
 
@@ -127,7 +128,7 @@ async def delete_pipeline_label(
         await github_projects_service.rest_request(
             access_token,
             "DELETE",
-            f"/repos/{owner}/{repo}/labels/{label_name}",
+            f"/repos/{owner}/{repo}/labels/{quote(label_name, safe='')}",
         )
         logger.debug("Deleted pipeline label: %s", label_name)
         return True

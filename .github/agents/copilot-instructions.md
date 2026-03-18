@@ -1,6 +1,6 @@
 # Solune — Development Guidelines
 
-Last updated: 2026-03-17
+Last updated: 2026-03-18
 
 > Prefer official documentation sources and repo-discovery tools when working with frameworks, libraries, or external APIs. Treat tool availability as situational rather than mandatory.
 
@@ -8,7 +8,7 @@ Last updated: 2026-03-17
 
 ### Backend
 
-- **Runtime floor:** Python `>=3.12` (`solune/backend/pyproject.toml`); primary dev/runtime target is Python 3.13 (`ruff` target `py313`, `pyright` `pythonVersion = "3.13"`, Docker image `python:3.13-slim`)
+- **Runtime floor:** Python `>=3.12` (`solune/backend/pyproject.toml`); primary dev/runtime target is Python 3.13 (`ruff` target `py313`, `pyright` `pythonVersion = "3.13"`); Docker image is `python:3.14-slim`; CI uses Python 3.12
 - **Framework:** FastAPI `>=0.135.0`, Uvicorn `>=0.42.0`
 - **GitHub integration:** `githubkit>=0.14.6`, `httpx>=0.28.0`
 - **Validation / config:** `pydantic>=2.12.0`, `pydantic-settings>=2.13.0`
@@ -22,17 +22,18 @@ Last updated: 2026-03-17
 
 ### Frontend
 
-- **Node / build:** Node 22 for local dev and Docker; CI currently uses Node 20. Vite 7.3 config lives in `solune/frontend/vite.config.ts`.
+- **Node / build:** Node 25 for Docker; CI currently uses Node 20. Vite 8 config lives in `solune/frontend/vite.config.ts`.
 - **Framework:** React 19.2, react-router-dom v7
 - **Language:** TypeScript ~5.9 (strict mode, `@/` alias → `frontend/src`)
-- **State / data fetching:** `@tanstack/react-query` 5.90
+- **State / data fetching:** `@tanstack/react-query` 5.91
 - **Styling:** Tailwind CSS 4.2 via `@tailwindcss/vite` (CSS-first v4 model; config lives in `frontend/src/index.css`)
 - **UI primitives:** `@radix-ui/react-slot`, `@radix-ui/react-tooltip`, `class-variance-authority`, `clsx`, `tailwind-merge`, `lucide-react 0.577`, `@tailwindcss/typography`
 - **Drag-and-drop:** `@dnd-kit/core` 6.3, `@dnd-kit/modifiers` 9.0, `@dnd-kit/sortable` 10.0, `@dnd-kit/utilities` 3.2
 - **Forms:** `react-hook-form` 7.71, `@hookform/resolvers` 5.2, `zod` 4.3
 - **Markdown:** `react-markdown` 10.1, `remark-gfm` 4.0
-- **Dev tools:** ESLint 9.39, Prettier 3.8, Vitest 4.1 (`happy-dom` environment), Playwright 1.58
-- **Testing:** `@testing-library/react` 16.3, `@testing-library/user-event` 14.6, `jest-axe` 10.0
+- **Dev tools:** ESLint 10.0, Prettier 3.8, Vitest 4.0 (`happy-dom` environment), Playwright 1.58
+- **Linting:** `eslint-plugin-react-hooks` 7.0, `eslint-plugin-security` 4.0, `eslint-plugin-jsx-a11y` 6.10, `typescript-eslint` 8.56
+- **Testing:** `@testing-library/react` 16.3, `@testing-library/user-event` 14.6, `jest-axe` 10.0, `@fast-check/vitest` 0.3
 
 ### Infrastructure
 
@@ -54,12 +55,12 @@ Last updated: 2026-03-17
 
 - **Auth:** GitHub OAuth with secure HTTP-only session cookies. No JWT / `python-jose` layer.
 - **Real-time:** Native WebSocket (`ConnectionManager` in `solune/backend/src/services/websocket.py`) with SSE fallback in the projects API.
-- **Storage:** SQLite via `aiosqlite` in WAL mode. Migrations (`001`–`028`, with the consolidated schema at `023`) run automatically on startup from `solune/backend/src/migrations/`.
+- **Storage:** SQLite via `aiosqlite` in WAL mode. Migrations (`001`–`030`, with the consolidated schema at `023`) run automatically on startup from `solune/backend/src/migrations/`.
 - **Tailwind v4:** CSS-first config lives in `solune/frontend/src/index.css`. Do not add `tailwind.config.js` or `postcss.config.js` unless the build model changes.
 - **Repository resolution:** Use the shared `resolve_repository()` helper in `solune/backend/src/utils.py`. Avoid ad-hoc owner/repo fallback logic.
 - **AI providers:** `completion_providers.py` abstracts GitHub Copilot SDK (default, user OAuth token) and Azure OpenAI (static keys, optional). Selected via `AI_PROVIDER` env var.
 - **Agent pipelines:** Configured in SQLite (`pipeline_configs`) and executed by `solune/backend/src/services/copilot_polling/` + `solune/backend/src/services/workflow_orchestrator/`.
-- **Blocking queue:** `solune/backend/src/services/blocking_queue.py` serializes issue activation with per-repo `asyncio.Lock`.
+- **Pipeline state:** `solune/backend/src/services/pipeline_state_store.py` persists pipeline execution state across restarts.
 - **Chores:** `solune/backend/src/services/chores/` manages scheduled recurring tasks.
 - **Signal messaging:** `solune/backend/src/services/signal_bridge.py`, `signal_chat.py`, and `signal_delivery.py` integrate with the Signal sidecar.
 - **MCP tools:** `solune/backend/src/services/mcp_store.py` + `api/mcp.py` manage MCP server configurations and agent tool associations. `solune/backend/src/services/tools/presets.py` defines the preset catalog; `solune/backend/src/services/tools/service.py` handles per-project CRUD and repo sync.
@@ -76,12 +77,12 @@ solune/
     src/
     api/              FastAPI route handlers
                       (agents, apps, auth, board, chat, chores, cleanup, health,
-                       mcp, metadata, pipelines, projects, settings, signal,
-                       tasks, tools, webhooks, workflow)
+                       mcp, metadata, onboarding, pipelines, projects, settings,
+                       signal, tasks, tools, webhook_models, webhooks, workflow)
     middleware/       Request middleware (request_id context var)
-    migrations/       SQL schema migrations (001–028, run on startup)
+    migrations/       SQL schema migrations (001–030, run on startup)
     models/           Pydantic request/response models
-    prompts/          AI prompt templates (issue_generation, task_generation)
+    prompts/          AI prompt templates (issue_generation, task_generation, transcript_analysis)
     services/         Business logic
       agents/         Agent config CRUD
       chores/         Scheduled chores (scheduler, counter, chat, template)
@@ -177,7 +178,7 @@ Each entry should be a single concise line describing the change from a user's p
 - **Frontend changes:** validate with `npm run lint`, `npm run type-check`, `npm run test`, and `npm run build`.
 - **Pre-commit hook** (`scripts/pre-commit`): runs ruff format (auto-fix) + ruff lint (auto-fix) + pyright on staged Python files; ESLint (auto-fix) on staged frontend files.
 - **Pre-push hook** (`scripts/setup-hooks.sh`): full backend + frontend test gates.
-- **CI** (`.github/workflows/ci.yml`): backend uses Python 3.12; frontend uses Node 20. Keep local-vs-CI runtime differences in mind when debugging build or lint mismatches.
+- **CI** (`.github/workflows/ci.yml`): backend uses Python 3.12; frontend uses Node 20. Docker images use Python 3.14 and Node 25. Keep local-vs-CI runtime differences in mind when debugging build or lint mismatches.
 - A known flaky failure can occur in `frontend/src/hooks/useAuth.test.tsx` under full parallel runs — confirm isolated behavior before changing unrelated code.
 
 ## Frontend Pattern Notes
@@ -258,12 +259,12 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
 
 ## Active Technologies
-- Python 3.13 (backend runtime, 3.12 CI), TypeScript ~5.9 (frontend) + FastAPI >=0.135, React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit (drag-and-drop), Pydantic 2.12, aiosqlite, cryptography 46, githubkit >=0.14.6, Radix UI
-- SQLite via aiosqlite (persistent module-level connection, `init_database()` / `get_db()`), SQL-based migrations in `backend/src/migrations/`
-- Python 3.13 (backend runtime, 3.12 CI), TypeScript ~5.9 (frontend) + FastAPI >=0.135, React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit (drag-and-drop), Pydantic 2.12, aiosqlite, cryptography 46 (050-solune-v010-release)
-- SQLite via aiosqlite (async), SQL-based migrations in `backend/src/migrations/` (050-solune-v010-release)
-- Python 3.12+ (backend), TypeScript 5.9.0 + React 19.2.0 (frontend) + FastAPI ≥0.135.0, githubkit ≥0.14.6, TanStack React Query ^5.90.0, @dnd-kit (drag-and-drop), Radix UI (popovers) (051-performance-review)
-- SQLite via aiosqlite (persistent settings, completed tasks); in-memory `InMemoryCache` (board data, sub-issues, rate limits) (051-performance-review)
+- Python 3.13 (backend runtime target, 3.12 CI, 3.14 Docker), TypeScript ~5.9 (frontend) + FastAPI >=0.135, React 19.2, Vite 8, TanStack Query 5.91, Tailwind CSS 4.2, @dnd-kit (drag-and-drop), Pydantic 2.12, aiosqlite, cryptography 46, githubkit >=0.14.6, Radix UI
+- SQLite via aiosqlite (persistent module-level connection, `init_database()` / `get_db()`), SQL-based migrations (001–030) in `backend/src/migrations/`
+- ESLint 10, eslint-plugin-react-hooks 7, eslint-plugin-security 4, Vitest 4.0, Playwright 1.58
+- Docker images: python:3.14-slim (backend), node:25-alpine + nginx:1.29-alpine (frontend)
 
 ## Recent Changes
-- 050-solune-v010-release: Added Python 3.13 (backend runtime, 3.12 CI), TypeScript ~5.9 (frontend) + FastAPI >=0.135, React 19.2, Vite 7.3, TanStack Query 5.90, Tailwind CSS 4.2, @dnd-kit (drag-and-drop), Pydantic 2.12, aiosqlite, cryptography 46
+- Dependabot upgrades: ESLint 9→10, Vite 7→8, react-hooks 5→7, security 3→4, @vitejs/plugin-react 5→6, Docker images (python 3.14, node 25, nginx 1.29), GitHub Actions (checkout v6, setup-python v6, upload-artifact v7, setup-node v6)
+- Frontend lint compliance: 28 react-hooks v7 errors fixed (render-time state adjustments, purity fixes, memoization preservation)
+- Backend bug fixes: coroutine leak in transitions, dict mutation in completion polling, URL-encoding in label manager, exception handling in agent output, sys.executable in lint test

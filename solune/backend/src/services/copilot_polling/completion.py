@@ -386,7 +386,7 @@ async def _find_completed_child_pr(
             # Check if this PR has already been claimed by another agent
             # This prevents subsequent agents from re-using completed child PRs
             claimed_by_other = False
-            for key in _claimed_child_prs:
+            for key in list(_claimed_child_prs):
                 if key.startswith(f"{issue_number}:{pr_number}:"):
                     # Extract the agent that claimed this PR
                     claimed_agent = key.split(":")[-1]

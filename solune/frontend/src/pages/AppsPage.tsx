@@ -50,11 +50,13 @@ export function AppsPage() {
   const errorTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Set default owner when owners are loaded
-  useEffect(() => {
+  const [prevOwnersLength, setPrevOwnersLength] = useState(owners?.length ?? 0);
+  if ((owners?.length ?? 0) !== prevOwnersLength) {
+    setPrevOwnersLength(owners?.length ?? 0);
     if (owners && owners.length > 0 && !repoOwner) {
       setRepoOwner(owners[0].login);
     }
-  }, [owners, repoOwner]);
+  }
 
   useEffect(() => {
     return () => {

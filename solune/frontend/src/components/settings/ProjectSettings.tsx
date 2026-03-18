@@ -5,7 +5,7 @@
  * project selector dropdown to switch between projects.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { SettingsSection } from './SettingsSection';
 import { useProjectSettings } from '@/hooks/useSettings';
 import type { ProjectSettingsUpdate, ProjectBoardConfig, ProjectAgentMapping } from '@/types';
@@ -30,11 +30,11 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
   const [agentMappingsText, setAgentMappingsText] = useState('');
 
   // Sync local state from loaded settings
-  useEffect(() => {
-    if (!settings?.project) return;
-    const ps = settings.project;
-
-    if (ps.board_display_config) {
+  const [prevSettingsProject, setPrevSettingsProject] = useState(settings?.project);
+  if (settings?.project !== prevSettingsProject) {
+    setPrevSettingsProject(settings?.project);
+    const ps = settings?.project;
+    if (ps?.board_display_config) {
       setColumnOrder(ps.board_display_config.column_order.join(', '));
       setCollapsedColumns(ps.board_display_config.collapsed_columns.join(', '));
       setShowEstimates(ps.board_display_config.show_estimates);
@@ -44,17 +44,19 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
       setShowEstimates(false);
     }
 
-    if (ps.agent_pipeline_mappings) {
+    if (ps?.agent_pipeline_mappings) {
       setAgentMappingsText(JSON.stringify(ps.agent_pipeline_mappings, null, 2));
     } else {
       setAgentMappingsText('');
     }
-  }, [settings?.project]);
+  }
 
   // Sync project selector with external selection
-  useEffect(() => {
+  const [prevSelectedProjectId, setPrevSelectedProjectId] = useState(selectedProjectId);
+  if (selectedProjectId !== prevSelectedProjectId) {
+    setPrevSelectedProjectId(selectedProjectId);
     if (selectedProjectId) setProjectId(selectedProjectId);
-  }, [selectedProjectId]);
+  }
 
   const buildBoardConfig = (): ProjectBoardConfig => ({
     column_order: columnOrder

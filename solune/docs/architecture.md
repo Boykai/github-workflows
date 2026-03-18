@@ -9,7 +9,7 @@ Solune is a full-stack web application with a React frontend, a FastAPI backend,
 ```text
 ┌───────────────────────────┐     ┌──────────────────────────────────┐     ┌──────────────────┐
 │        Frontend            │────▶│            Backend                │────▶│    GitHub API     │
-│  React 19 + Vite 7          │◀────│            FastAPI                │◀────│  GraphQL + REST   │
+│  React 19 + Vite 8          │◀────│            FastAPI                │◀────│  GraphQL + REST   │
 │  TypeScript 5.9              │ WS  │                                  │     │                  │
 │  TanStack Query v5          │     │  ┌──────────────────────────┐    │     │  ┌────────────┐  │
 │  dnd-kit (drag-drop)        │     │  │ Workflow Orchestrator     │    │     │  │ Projects   │  │
@@ -56,7 +56,7 @@ Volumes: `solune-data` (SQLite DB), `signal-cli-config` (Signal protocol state).
 
 ## Frontend Architecture
 
-- **Framework**: React 19 with TypeScript 5.9, built by Vite 7
+- **Framework**: React 19 with TypeScript 5.9, built by Vite 8
 - **State Management**: TanStack Query v5 for server state; local `useState` for UI state
 - **Real-Time**: Native `WebSocket` connection for live board updates (with polling fallback)
 - **Routing**: Hash-based view switching (`#board`, `#settings`, `#chat`)

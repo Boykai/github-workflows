@@ -42,17 +42,28 @@ export function EditRepoMcpModal({
     onClose();
   }, [onClose]);
 
-  useEffect(() => {
-    if (!isOpen || !server) {
-      return;
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  const [prevServerId, setPrevServerId] = useState(server?.name);
+  if (isOpen && (isOpen !== prevIsOpen || server?.name !== prevServerId)) {
+    setPrevIsOpen(true);
+    setPrevServerId(server?.name);
+    if (server) {
+      setName(server.name);
+      setConfigContent(buildConfigContent(server));
+      setValidationError(null);
     }
+  } else if (!isOpen && prevIsOpen) {
+    setPrevIsOpen(false);
+    setPrevServerId(undefined);
+  } else if (server?.name !== prevServerId) {
+    setPrevServerId(server?.name);
+  }
 
-    setName(server.name);
-    setConfigContent(buildConfigContent(server));
-    setValidationError(null);
-    queueMicrotask(() => {
+  // Focus name input when modal opens
+  useEffect(() => {
+    if (isOpen && server) {
       nameInputRef.current?.focus();
-    });
+    }
   }, [isOpen, server]);
 
   useEffect(() => {

@@ -157,6 +157,52 @@ if [ -n "$STAGED_FRONTEND_FILES" ]; then
 fi
 
 # ============================================
+# Documentation Lint (mirrors CI: Docs Lint)
+# ============================================
+STAGED_DOC_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.md$' || true)
+
+if [ -n "$STAGED_DOC_FILES" ]; then
+    echo ""
+    echo "📄 Documentation checks..."
+
+    if command -v markdownlint > /dev/null 2>&1; then
+        echo -n "  📝 Markdownlint... "
+        if markdownlint "solune/docs/**/*.md" "*.md" --config solune/.markdownlint.json > /dev/null 2>&1; then
+            echo -e "${GREEN}✓${NC}"
+        else
+            echo -e "${RED}✗${NC}"
+            echo -e "${YELLOW}    Markdown lint errors:${NC}"
+            markdownlint "solune/docs/**/*.md" "*.md" --config solune/.markdownlint.json 2>&1 | head -10
+            FAILED=1
+        fi
+    else
+        echo -e "  📝 Markdownlint... ${YELLOW}⊘ skipped (not installed)${NC}"
+    fi
+fi
+
+# ============================================
+# Contract Validation (mirrors CI: Contract Validation)
+# ============================================
+STAGED_CONTRACT_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '(^solune/backend/src/(api|models)/|^solune/frontend/src/types/)' || true)
+
+if [ -n "$STAGED_CONTRACT_FILES" ]; then
+    echo ""
+    echo "📋 Contract validation..."
+
+    echo -n "  🔗 OpenAPI schema + type generation... "
+    if bash "$REPO_ROOT/solune/scripts/validate-contracts.sh" > /dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC}"
+        # Stage regenerated openapi.json and types if they changed
+        git add "$REPO_ROOT/solune/backend/openapi.json" 2>/dev/null || true
+        git add "$REPO_ROOT/solune/frontend/src/types/openapi-generated.d.ts" 2>/dev/null || true
+    else
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}    Contract validation failed — run: bash solune/scripts/validate-contracts.sh${NC}"
+        FAILED=1
+    fi
+fi
+
+# ============================================
 # Architecture Diagram Regeneration
 # ============================================
 if [ -n "$STAGED_ARCH_FILES" ]; then

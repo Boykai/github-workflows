@@ -62,7 +62,7 @@ See [solune/docs/setup.md](solune/docs/setup.md) for full instructions including
 
 | Component | Stack |
 |-----------|-------|
-| **Frontend** | React 19, TypeScript 5.9, Vite 7, TanStack Query v5, Tailwind CSS 4 |
+| **Frontend** | React 19, TypeScript 5.9, Vite 8, TanStack Query v5, Tailwind CSS 4 |
 | **Backend** | Python 3.12+, FastAPI, Pydantic v2, aiosqlite (SQLite WAL), githubkit |
 | **Signal Sidecar** | `signal-cli-rest-api` (Docker) |
 

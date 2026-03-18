@@ -43,7 +43,7 @@ Before touching any doc, read and internalize the ground truth:
 This file is the highest-priority target. An AI coding assistant reading stale instructions will make wrong decisions.
 
 - [ ] **Stack versions** — compare every version pinned in this file against `pyproject.toml` and `package.json`. Update any that have drifted.
-- [ ] **Python/Node targets** — confirm runtime targets (e.g. `python:3.13-slim`, `node:22-alpine`) match the actual Docker images and CI setup actions.
+- [ ] **Python/Node targets** — confirm runtime targets (e.g. `python:3.14-slim`, `node:25-alpine`) match the actual Docker images and CI setup actions.
 - [ ] **Backend dependencies** — verify listed packages and versions against `pyproject.toml` `[dependencies]` and `[optional-dependencies]`. Add missing packages; remove deleted ones.
 - [ ] **Frontend dependencies** — verify listed packages and versions against `package.json` `dependencies` and `devDependencies`. Add missing; remove deleted.
 - [ ] **Infrastructure section** — verify service names, port mappings, volume names, and health check paths against `docker-compose.yml`.

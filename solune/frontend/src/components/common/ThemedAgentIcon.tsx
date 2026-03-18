@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   CelestialGlyph,
   getIconToneStyles,
@@ -54,9 +54,11 @@ export function ThemedAgentIcon({
 }: ThemedAgentIconProps) {
   const [imageErrored, setImageErrored] = useState(false);
 
-  useEffect(() => {
+  const [prevAvatarUrl, setPrevAvatarUrl] = useState(avatarUrl);
+  if (avatarUrl !== prevAvatarUrl) {
+    setPrevAvatarUrl(avatarUrl);
     setImageErrored(false);
-  }, [avatarUrl]);
+  }
 
   const resolvedIconName = useMemo(() => resolveAgentIconName(iconName, slug), [iconName, slug]);
   const sizeStyle = SIZE_STYLES[size];

@@ -63,11 +63,10 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     return selectedToolIds.some((id, index) => id !== snapshot.tools[index]);
   }, [isEditMode, name, selectedIconName, selectedToolIds, snapshot, systemPrompt]);
 
-  useEffect(() => {
-    if (selectedToolIds.length > 0 && toolsError) {
-      setToolsError(null);
-    }
-  }, [selectedToolIds, toolsError]);
+  // Clear tools error when tools are selected (render-time adjustment)
+  if (selectedToolIds.length > 0 && toolsError) {
+    setToolsError(null);
+  }
 
   const resetAndClose = useCallback(() => {
     setName('');
@@ -85,9 +84,12 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
     onClose();
   }, [onClose]);
 
-  useEffect(() => {
-    if (!isOpen) return;
-
+  const [prevIsOpen, setPrevIsOpen] = useState(false);
+  const [prevEditAgentId, setPrevEditAgentId] = useState<string | undefined>(undefined);
+  const editAgentId = editAgent?.id;
+  if (isOpen && (!prevIsOpen || editAgentId !== prevEditAgentId)) {
+    setPrevIsOpen(true);
+    setPrevEditAgentId(editAgentId);
     setError(null);
     setToolsError(null);
     setSuccessPrUrl(null);
@@ -108,16 +110,20 @@ export function AddAgentModal({ projectId, isOpen, onClose, editAgent }: AddAgen
         tools: nextTools,
         iconName: nextIcon,
       });
-      return;
+    } else {
+      setName('');
+      setSystemPrompt('');
+      setAiEnhance(true);
+      setSelectedToolIds([]);
+      setSelectedIconName(null);
+      setSnapshot(null);
     }
-
-    setName('');
-    setSystemPrompt('');
-    setAiEnhance(true);
-    setSelectedToolIds([]);
-    setSelectedIconName(null);
-    setSnapshot(null);
-  }, [editAgent, isOpen]);
+  } else if (!isOpen && prevIsOpen) {
+    setPrevIsOpen(false);
+    setPrevEditAgentId(undefined);
+  } else if (editAgentId !== prevEditAgentId) {
+    setPrevEditAgentId(editAgentId);
+  }
 
   const handleSave = useCallback(async () => {
     setError(null);

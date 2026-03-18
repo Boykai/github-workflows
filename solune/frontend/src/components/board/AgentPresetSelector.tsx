@@ -211,12 +211,18 @@ export function AgentPresetSelector({
     setShowDropdown(open);
   }, []);
 
-  useEffect(() => {
-    restoredProjectRef.current = null;
+  const [prevProjectId, setPrevProjectId] = useState(projectId);
+  if (projectId !== prevProjectId) {
+    setPrevProjectId(projectId);
     setApplyError(null);
     setShowDropdown(false);
     setConfirmPreset(null);
     setConfirmPipeline(null);
+  }
+
+  // Reset restored project ref when projectId changes (must be in effect, not render)
+  useEffect(() => {
+    restoredProjectRef.current = null;
   }, [projectId]);
 
   useEffect(() => {

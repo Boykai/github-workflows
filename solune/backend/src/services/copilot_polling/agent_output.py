@@ -785,15 +785,23 @@ async def _process_task_agent_completion(
         )
 
     # Track the "main" branch for this issue (first PR's branch)
-    await _track_main_branch_if_needed(
-        access_token=access_token,
-        owner=task_owner,
-        repo=task_repo,
-        issue_number=task.issue_number,
-        pr_number=pr_number,
-        pr_details=pr_details,
-        head_ref=head_ref,
-    )
+    try:
+        await _track_main_branch_if_needed(
+            access_token=access_token,
+            owner=task_owner,
+            repo=task_repo,
+            issue_number=task.issue_number,
+            pr_number=pr_number,
+            pr_details=pr_details,
+            head_ref=head_ref,
+        )
+    except Exception:
+        logger.warning(
+            "Failed to track main branch for issue #%d PR #%d — continuing with completion",
+            task.issue_number,
+            pr_number,
+            exc_info=True,
+        )
 
     # Get changed files and post markdown outputs
     pr_files = await _cp.github_projects_service.get_pr_changed_files(

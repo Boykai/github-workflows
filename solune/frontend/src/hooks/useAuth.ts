@@ -90,11 +90,13 @@ export function useAuth(): UseAuthReturn {
   }, [queryClient, user]);
 
   // Handle auth errors (401 means not logged in, which is expected)
-  useEffect(() => {
+  const [prevQueryError, setPrevQueryError] = useState(queryError);
+  if (queryError !== prevQueryError) {
+    setPrevQueryError(queryError);
     if (queryError && !(queryError instanceof ApiError && queryError.status === 401)) {
       setError(queryError as Error);
     }
-  }, [queryError]);
+  }
 
   // Auto-logout: when any API call returns 401 (session/token expired),
   // clear the cached user so the app shows the login screen immediately

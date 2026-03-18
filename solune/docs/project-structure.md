@@ -3,7 +3,7 @@
 ```text
 solune/
 ├── .devcontainer/                # GitHub Codespaces / Dev Container config
-│   ├── devcontainer.json         #   Python 3.13, Node 22, Docker-in-Docker
+│   ├── devcontainer.json         #   Python 3.13, Node 25, Docker-in-Docker
 │   ├── docker-compose.devcontainer.yml
 │   ├── post-create.sh            #   Installs deps, creates venv, Playwright
 │   └── post-start.sh             #   Prints Codespaces callback URL
@@ -35,7 +35,7 @@ solune/
 ├── docs/                         # Documentation (this directory)
 │
 ├── backend/
-│   ├── Dockerfile                # Python 3.13-slim, non-root user, health check
+│   ├── Dockerfile                # Python 3.14-slim, non-root user, health check
 │   ├── pyproject.toml            # Dependencies + dev tools (ruff, pyright, pytest)
 │   ├── src/
 │   │   ├── main.py               # FastAPI app factory, lifespan, CORS, exception handlers
@@ -147,7 +147,7 @@ solune/
 │       └── test_api_e2e.py       # API end-to-end tests
 │
 ├── frontend/
-│   ├── Dockerfile                # Multi-stage: Node 22 build → nginx:alpine
+│   ├── Dockerfile                # Multi-stage: Node 25 build → nginx:1.29-alpine
 │   ├── nginx.conf                # SPA + /api/ reverse proxy + security headers
 │   ├── package.json              # Dependencies + scripts
 │   ├── vite.config.ts            # Vite configuration

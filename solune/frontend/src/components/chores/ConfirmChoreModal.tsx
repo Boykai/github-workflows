@@ -5,7 +5,7 @@
  * Step 2: Final confirmation to create the Chore.
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -27,9 +27,11 @@ export function ConfirmChoreModal({
   const [step, setStep] = useState<1 | 2>(1);
 
   // Reset to step 1 when modal reopens
-  useEffect(() => {
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) setStep(1);
-  }, [isOpen]);
+  }
 
   if (!isOpen) return null;
 

@@ -222,7 +222,7 @@ export function AgentConfigRow({
       if (!sourceColumn) return;
 
       // Determine the target column: either the over item's column, or the droppable column ID
-      let targetColumn: string | null = null;
+      let targetColumn: string | null;
       let targetIndex: number | undefined;
 
       // Check if over is a column (droppable) or an agent (sortable item)

@@ -7,7 +7,7 @@ This guide walks through every supported way to run Solune locally: GitHub Codes
 - [Fork the repository](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo)
 - [Create a GitHub Project (Kanban)](https://docs.github.com/en/issues/planning-and-tracking-with-projects/creating-projects/creating-a-project) with columns: **Backlog**, **Ready**, **In Progress**, **In Review**, **Done**
 - [GitHub Copilot subscription](https://github.com/features/copilot) (required for agent pipeline and default AI provider)
-- Docker and Docker Compose (recommended), OR Node.js 22+ and Python 3.13+ for bare-metal/local installs
+- Docker and Docker Compose (recommended), OR Node.js 22+ and Python 3.12+ for bare-metal/local installs
 - GitHub OAuth App credentials
 
 ## Quick Start: GitHub Codespaces (Easiest)
@@ -20,7 +20,7 @@ Click **Code** → **Codespaces** → **Create codespace on main**, or use:
 
 ### 2. Wait for Setup
 
-The dev container currently installs Python 3.13 and Node.js 22 (see `.devcontainer/devcontainer.json` for exact versions), plus the backend virtual environment, all dependencies, and Playwright browsers.
+The dev container currently installs Python 3.13 and Node.js 25 (see `.devcontainer/devcontainer.json` for exact versions), plus the backend virtual environment, all dependencies, and Playwright browsers.
 
 ### 3. Configure Environment
 

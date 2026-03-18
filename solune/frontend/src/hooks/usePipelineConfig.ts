@@ -153,6 +153,11 @@ export function usePipelineConfig(projectId: string | null) {
     }
   }, [state.pipeline, projectId, queryClient]);
 
+  const existingPipelineNames = useMemo(
+    () => (pipelines?.pipelines ?? []).map((pipeline) => pipeline.name),
+    [pipelines?.pipelines]
+  );
+
   const duplicatePipeline = useCallback(async (pipelineId: string) => {
     if (!projectId) return null;
     dispatch({ type: 'SAVE_START' });
@@ -160,7 +165,7 @@ export function usePipelineConfig(projectId: string | null) {
       const source = await pipelinesApi.get(projectId, pipelineId);
       const copyName = buildCopyName(
         source.name,
-        (pipelines?.pipelines ?? []).map((pipeline) => pipeline.name),
+        existingPipelineNames,
       );
       const saved = await pipelinesApi.create(projectId, {
         ...buildPayload(source),
@@ -173,7 +178,7 @@ export function usePipelineConfig(projectId: string | null) {
       dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to copy pipeline') });
       return null;
     }
-  }, [pipelines?.pipelines, projectId, queryClient]);
+  }, [existingPipelineNames, projectId, queryClient]);
 
   const deletePipeline = useCallback(async () => {
     if (!state.editingPipelineId || !projectId) return;
