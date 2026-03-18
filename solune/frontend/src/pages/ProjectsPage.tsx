@@ -303,6 +303,7 @@ export function ProjectsPage() {
           />
 
           <PipelineStagesSection
+            key={selectedProjectId}
             columns={transformedBoardData.columns}
             savedPipelines={savedPipelines?.pipelines ?? []}
             assignedPipelineId={pipelineAssignment?.pipeline_id}

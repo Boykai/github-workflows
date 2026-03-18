@@ -37,7 +37,7 @@ export function useUnsavedPipelineGuard({
   }>({ isOpen: false, pendingAction: null, description: '' });
 
   // Reuse the generic unsaved-changes guard for beforeunload + SPA navigation blocking
-  useUnsavedChanges({ isDirty: pipelineConfig.isDirty });
+  const { blocker, isBlocked } = useUnsavedChanges({ isDirty: pipelineConfig.isDirty });
 
   const handleWorkflowSelect = useCallback(
     (pipelineId: string) => {
@@ -129,6 +129,8 @@ export function useUnsavedPipelineGuard({
 
   return {
     unsavedDialog,
+    blocker,
+    isBlocked,
     handleWorkflowSelect,
     handleWorkflowCopy,
     handleNewPipeline,

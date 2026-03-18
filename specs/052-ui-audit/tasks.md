@@ -240,7 +240,7 @@
 
 ## Phase 8: Styling, Performance, and Code Hygiene (US7) — Priority: P2
 
-**Goal**: All pages use Tailwind utility classes exclusively. Dark mode works. Responsive from 768px to 1920px. No inline styles. No hardcoded colors. Stable list keys. Memoized transforms. No dead code. No console.log. Path alias imports. ESLint clean.
+**Goal**: All pages use Tailwind utility classes exclusively. Dark mode works. Responsive from 320px to 1920px. No inline styles. No hardcoded colors. Stable list keys. Memoized transforms. No dead code. No console.log. Path alias imports. ESLint clean.
 
 **Independent Test**: Grep for `style=`, hardcoded color hex codes, `key={index}`, `console.log`, relative imports (0 matches each). Run `npx eslint src/pages/` — 0 warnings.
 
@@ -248,7 +248,7 @@
 
 - [ ] T081 [P] [US7] Audit and fix inline `style={}` attributes across all pages and feature components — convert to Tailwind utility classes using `cn()` from `solune/frontend/src/lib/utils.ts`
 - [ ] T082 [P] [US7] Audit and fix hardcoded colors across all pages — replace `#fff`, `bg-white`, `text-black`, etc. with theme-aware CSS variables or `dark:` variants
-- [ ] T083 [P] [US7] Audit responsive design across all pages — verify layouts work from 768px to 1920px viewport widths; fix grid/flex layouts that break at narrow or wide viewports
+- [ ] T083 [P] [US7] Audit responsive design across all pages — verify layouts work from 320px to 1920px viewport widths; fix grid/flex layouts that break at narrow or wide viewports
 - [ ] T084 [P] [US7] Audit and fix arbitrary spacing values across all pages — replace `p-[13px]`, `m-[7px]`, etc. with standard Tailwind spacing scale values (`p-3`, `m-2`, etc.)
 - [ ] T085 [P] [US7] Audit content section consistency across all pages — verify sections use `<Card>` from `solune/frontend/src/components/ui/card.tsx` with consistent padding/rounding
 
@@ -318,7 +318,7 @@
 - [ ] T116 [P] Update all 11 page audit files in `specs/052-ui-audit/checklists/` — re-score all Fail items that were remediated; update status to "Audit Passed" for pages with 0 remaining Fail items
 - [ ] T117 [P] Update consolidated audit summary at `specs/052-ui-audit/checklists/audit-summary.md` — final Pass/Fail/N/A counts, all severity counts, overall status
 - [ ] T118 Run `specs/052-ui-audit/quickstart.md` verification commands — full lint, type check, test, build, page line count check
-- [ ] T119 Manual browser verification: light mode + dark mode, viewport 768px to 1920px, keyboard-only navigation through all 11 pages, screen reader spot check
+- [ ] T119 Manual browser verification: light mode + dark mode, viewport 320px to 1920px, keyboard-only navigation through all 11 pages, screen reader spot check
 
 ---
 

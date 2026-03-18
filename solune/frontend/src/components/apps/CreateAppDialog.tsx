@@ -51,6 +51,14 @@ export function CreateAppDialog({
   const effectiveRepoOwner = repoOwner || owners?.[0]?.login || '';
 
   const dialogRef = useRef<HTMLDivElement>(null);
+  const initialFocusRef = useRef<HTMLInputElement>(null);
+
+  // Move initial focus into the dialog when it opens
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      initialFocusRef.current?.focus();
+    });
+  }, []);
 
   // Focus trapping and Escape key handling
   useEffect(() => {
@@ -248,6 +256,7 @@ export function CreateAppDialog({
               </label>
               <input
                 id="app-display-name"
+                ref={initialFocusRef}
                 name="display_name"
                 type="text"
                 required

@@ -339,7 +339,7 @@ export function GitHubMcpConfigGenerator({ tools }: GitHubMcpConfigGeneratorProp
 
               return (
                 <div
-                  key={`config-line-${index}`}
+                  key={`${line}-${index}`}
                   className="grid grid-cols-[auto_1fr_auto] items-start gap-4 border-b border-white/6 px-4 py-1.5 font-mono text-xs leading-6 last:border-b-0"
                 >
                   <span className="select-none text-[10px] text-slate-500">{index + 1}</span>

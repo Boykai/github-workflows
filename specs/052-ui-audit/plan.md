@@ -13,7 +13,7 @@ Comprehensive audit of every user-facing page in the Solune frontend against ten
 **Primary Dependencies**: TanStack React Query ^5.91.0, React Router DOM ^7.13.1, React Hook Form ^7.71.2, Radix UI (primitives), Tailwind CSS ^4.2.0, Zod ^4.3.6, Vite ^8.0.0
 **Storage**: N/A (frontend-only; backend uses SQLite via aiosqlite — not modified by this feature)
 **Testing**: Vitest ^4.0.18 + React Testing Library (unit/component), Playwright ^1.58.2 (E2E), @axe-core/playwright (a11y), jest-axe (a11y unit), Stryker (mutation)
-**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge); viewport 768px–1920px
+**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge); viewport 320px–1920px
 **Project Type**: Web application (frontend only — `solune/frontend/`)
 **Performance Goals**: Interactions feel instant, lists render smoothly (≥30 fps drag), no unnecessary re-renders
 **Constraints**: No new features — audit and remediate only; no new external dependencies; maintain all existing test coverage; ESLint 0 warnings, TypeScript 0 errors

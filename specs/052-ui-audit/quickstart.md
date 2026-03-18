@@ -243,7 +243,7 @@ npm run build
 1. Start the dev server: `npm run dev`
 2. Navigate to each page
 3. Toggle dark mode — verify all elements visible and contrasted
-4. Resize viewport from 768px to 1920px — verify no layout breakage
+4. Resize viewport from 320px to 1920px — verify no layout breakage
 5. Tab through all interactive elements — verify focus is visible and correct
 6. Trigger destructive actions — verify confirmation dialogs appear
 7. Simulate API errors (disconnect network) — verify error states render correctly
