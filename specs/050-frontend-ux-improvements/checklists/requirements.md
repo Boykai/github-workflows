@@ -33,5 +33,6 @@
 
 - All 16 checklist items pass validation
 - Specification covers 6 phases with 33 functional requirements, 11 success criteria, and 8 edge cases
-- No [NEEDS CLARIFICATION] markers — all decisions resolved with reasonable defaults based on existing codebase patterns
+- No [NEEDS CLARIFICATION] markers — all decisions resolved with reasonable defaults based on existing product patterns
+- Implementation detail references (library names, framework-specific terms) removed to maintain technology-agnostic quality
 - Ready for `/speckit.clarify` or `/speckit.plan`

@@ -28,7 +28,7 @@ A user saves settings, adds an agent, deletes a workflow, or performs any mutati
 
 A user interacts with the AI chat assistant and receives a response containing markdown — code snippets, bold text, links, bullet lists, or tables. Today the response renders as raw text, making code unreadable and links non-clickable. With this improvement, AI messages render through a markdown processor with GitHub Flavored Markdown (GFM) support, code blocks display with syntax highlighting and a copy-to-clipboard button, and users can copy entire AI messages via a hover action.
 
-**Why this priority**: Chat is the primary interaction surface for AI-assisted workflows. Unreadable AI responses directly reduce user productivity and trust in the AI assistant. The required libraries (`react-markdown`, `remark-gfm`) are already installed — only wiring is needed.
+**Why this priority**: Chat is the primary interaction surface for AI-assisted workflows. Unreadable AI responses directly reduce user productivity and trust in the AI assistant. The required markdown-rendering capabilities are already available in the project — only wiring is needed.
 
 **Independent Test**: Send a chat message that triggers an AI response containing markdown with a fenced code block. Verify the response renders formatted text, the code block has a copy button, and the hover "Copy message" action works.
 
@@ -46,7 +46,7 @@ A user interacts with the AI chat assistant and receives a response containing m
 
 A user views the project board and wants to move an issue card from one status column to another (e.g., "To Do" → "In Progress"). Today the board is a static grid with no drag-and-drop capability. With this improvement, users can drag issue cards between columns, the system updates the issue status via the backend API with an optimistic UI update, and visual feedback (column highlighting, ghost card overlay) guides the interaction.
 
-**Why this priority**: The project board is central to issue management. Manual status changes require opening individual issues, which breaks flow. Drag-and-drop is an expected interaction pattern for kanban boards. The `dnd-kit` library is already installed and used in the pipeline builder — the pattern exists and can be reused.
+**Why this priority**: The project board is central to issue management. Manual status changes require opening individual issues, which breaks flow. Drag-and-drop is an expected interaction pattern for kanban boards. The drag-and-drop capability is already used in the pipeline builder — the pattern exists and can be reused.
 
 **Independent Test**: Drag an issue card from one column to a different column. Verify the card moves immediately (optimistic), the backend API is called, and the column highlights during the drag.
 
@@ -73,7 +73,7 @@ A user navigates to a page that requires data loading (project board, agent list
 1. **Given** a user navigates to the project board while data is loading, **When** the page renders during the loading state, **Then** skeleton placeholders shaped like board columns and issue cards appear instead of a generic spinner.
 2. **Given** skeletons are displaying, **When** data finishes loading, **Then** content replaces skeletons smoothly without visible layout shift (content dimensions match skeleton dimensions).
 3. **Given** the chat interface is loading message history, **When** the loading state renders, **Then** message-shaped skeletons appear in the chat pane.
-4. **Given** a route-level page transition occurs, **When** the entire page is loading via React Suspense, **Then** the `CelestialLoader` spinner is used (not skeletons).
+4. **Given** a route-level page transition occurs, **When** the entire page is loading at the application routing level, **Then** the `CelestialLoader` spinner is used (not skeletons).
 5. **Given** a user with a screen reader navigates during loading, **When** skeletons are visible, **Then** an appropriate ARIA live region announces that content is loading.
 
 ---
@@ -150,7 +150,7 @@ A collection of independent, low-to-medium impact improvements that polish the o
 - **FR-017**: Drag-and-drop MUST be operable via keyboard (activate with Enter/Space, navigate with arrow keys, drop with Enter).
 - **FR-018**: Data-loading states for board columns, issue cards, agent cards, and chat messages MUST display content-shaped skeleton placeholders instead of a generic spinner.
 - **FR-019**: Skeleton placeholders MUST match the approximate dimensions of the content they represent to prevent layout shift.
-- **FR-020**: Route-level Suspense boundaries MUST continue using the `CelestialLoader` spinner.
+- **FR-020**: Route-level page loading boundaries MUST continue using the `CelestialLoader` spinner.
 - **FR-021**: Skeleton animations MUST use the existing `celestial-shimmer` keyframe for visual consistency.
 - **FR-022**: Users MUST be able to press `?` (when no text input is focused) to open a keyboard shortcut help modal.
 - **FR-023**: Users MUST be able to press `Ctrl+K` / `Cmd+K` to focus the chat input from any page.
