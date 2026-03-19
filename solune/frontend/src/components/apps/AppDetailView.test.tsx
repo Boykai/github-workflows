@@ -185,7 +185,7 @@ describe('AppDetailView', () => {
 
     await waitFor(() => {
       expect(mocks.deleteMutate).toHaveBeenCalledWith(
-        { appName: 'demo-app', force: true },
+        { appName: 'demo-app' },
         expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) })
       );
       expect(mocks.onBack).toHaveBeenCalledOnce();

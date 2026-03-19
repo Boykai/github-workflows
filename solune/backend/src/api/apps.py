@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from src.api.auth import get_session_dep
 from src.dependencies import get_github_service
@@ -153,12 +153,14 @@ async def delete_app_endpoint(
     request: Request,
     app_name: str,
     session: _SessionDep,
+    response: Response,
     force: Annotated[bool, Query(description="Perform full asset cleanup when True")] = False,
 ) -> DeleteAppResult | None:
     """Delete an application (must be stopped first).
 
     When ``force=true``, all related GitHub assets (issues, branches,
     project, and repository) are deleted before removing the DB record.
+    Returns 204 for non-force delete, 200 with ``DeleteAppResult`` for force.
     """
     db = get_db()
     github_service = get_github_service(request)
@@ -169,6 +171,8 @@ async def delete_app_endpoint(
         github_service=github_service,
         force=force,
     )
+    if not force:
+        response.status_code = 204
     return result
 
 

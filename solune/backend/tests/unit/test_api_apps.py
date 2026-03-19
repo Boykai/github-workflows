@@ -168,7 +168,7 @@ class TestDeleteApp:
     async def test_delete_app_success(self, client):
         self.mock_delete.return_value = None
         resp = await client.delete("/api/v1/apps/my-app")
-        assert resp.status_code == 200
+        assert resp.status_code == 204
 
     async def test_delete_running_app_fails(self, client):
         from src.exceptions import AppException
