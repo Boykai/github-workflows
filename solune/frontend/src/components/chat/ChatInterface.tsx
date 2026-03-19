@@ -367,6 +367,15 @@ export function ChatInterface({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mention.mentionTokens]);
 
+  // Listen for global Ctrl+K focus-chat event
+  useEffect(() => {
+    const handleFocusChat = () => {
+      mentionInputRef.current?.focus();
+    };
+    window.addEventListener('solune:focus-chat', handleFocusChat);
+    return () => window.removeEventListener('solune:focus-chat', handleFocusChat);
+  }, []);
+
   return (
     <div className="flex h-full flex-col bg-background">
       {messages.length > 0 && (

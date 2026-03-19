@@ -3,6 +3,7 @@
  * ChatPopup is rendered globally here so it persists across route navigation.
  */
 
+import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { TriangleAlert, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,6 +23,8 @@ import { SpotlightTour } from '@/components/onboarding/SpotlightTour';
 import { OnboardingProvider } from '@/hooks/useOnboarding';
 import { RateLimitProvider } from '@/context/RateLimitContext';
 import { Toaster } from 'sonner';
+import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
+import { KeyboardShortcutModal } from '@/components/ui/keyboard-shortcut-modal';
 
 /** Dismissible Signal conflict banner bar. */
 function SignalBannerBar() {
@@ -84,6 +87,11 @@ export function AppLayout() {
   } = useChat();
 
   const { confirmRecommendation, rejectRecommendation } = useWorkflow();
+
+  const [shortcutModalOpen, setShortcutModalOpen] = useState(false);
+  useGlobalShortcuts({
+    onOpenShortcutModal: () => setShortcutModalOpen(true),
+  });
 
   return (
     <OnboardingProvider>
@@ -165,6 +173,10 @@ export function AppLayout() {
         <SpotlightTour
           isSidebarCollapsed={isCollapsed}
           onToggleSidebar={toggleSidebar}
+        />
+        <KeyboardShortcutModal
+          isOpen={shortcutModalOpen}
+          onClose={() => setShortcutModalOpen(false)}
         />
         <Toaster
           position="bottom-right"
