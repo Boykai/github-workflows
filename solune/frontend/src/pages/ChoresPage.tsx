@@ -13,6 +13,7 @@ import { ChoresPanel } from '@/components/chores/ChoresPanel';
 import { FeaturedRitualsPanel } from '@/components/chores/FeaturedRitualsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { workflowApi, choresApi } from '@/services/api';
@@ -47,7 +48,7 @@ export function ChoresPage() {
   }, [projectId, queryClient]);
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
-  const { data: chores } = useChoresList(projectId);
+  const { data: chores, isLoading: choresLoading } = useChoresList(projectId);
   const [isAnyDirty, setIsAnyDirty] = useState(false);
 
   const parentIssueCount = useMemo(() => countParentIssues(boardData), [boardData]);
@@ -131,13 +132,27 @@ export function ChoresPage() {
 
       {projectId && (
         <div className="flex-1 min-w-0">
-          <ChoresPanel
-            projectId={projectId}
-            owner={owner}
-            repo={repoName}
-            parentIssueCount={parentIssueCount}
-            onDirtyChange={setIsAnyDirty}
-          />
+          {choresLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="celestial-panel flex items-start gap-3 rounded-[1.25rem] border border-border/75 p-4">
+                  <Skeleton variant="shimmer" className="h-10 w-10 rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton variant="shimmer" className="h-4 w-40" />
+                    <Skeleton variant="shimmer" className="h-3 w-56" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <ChoresPanel
+              projectId={projectId}
+              owner={owner}
+              repo={repoName}
+              parentIssueCount={parentIssueCount}
+              onDirtyChange={setIsAnyDirty}
+            />
+          )}
         </div>
       )}
 

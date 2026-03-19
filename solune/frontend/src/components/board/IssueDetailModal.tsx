@@ -10,6 +10,7 @@ import { Circle, CircleCheckBig, X } from 'lucide-react';
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { useScrollLock } from '@/hooks/useScrollLock';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 
 const SAFE_MARKDOWN_PROTOCOLS = new Set(['http', 'https', 'mailto', 'tel']);
@@ -44,6 +45,7 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeBtnRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedElementRef = useRef<HTMLElement | null>(null);
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   useScrollLock(true);
 
@@ -122,7 +124,12 @@ export function IssueDetailModal({ item, onClose }: IssueDetailModalProps) {
     >
       <div
         ref={dialogRef}
-        className="celestial-fade-in celestial-panel relative m-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[1.4rem] border border-border p-6 text-card-foreground shadow-lg"
+        className={cn(
+          'celestial-fade-in celestial-panel relative border border-border text-card-foreground shadow-lg',
+          isMobile
+            ? 'fixed inset-0 overflow-y-auto rounded-none p-4'
+            : 'm-4 w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-[1.4rem] p-6'
+        )}
         role="dialog"
         aria-modal="true"
         aria-labelledby="issue-detail-modal-title"

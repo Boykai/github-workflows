@@ -5,9 +5,11 @@
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
+import { useToolsList } from '@/hooks/useTools';
 import { ToolsPanel } from '@/components/tools/ToolsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Button } from '@/components/ui/button';
 
@@ -22,6 +24,7 @@ export function ToolsPage() {
   const projectId = selectedProject?.project_id ?? null;
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
+  const { isLoading: toolsLoading } = useToolsList(projectId);
   const repo = boardData?.columns.flatMap((c) => c.items).find((i) => i.repository)?.repository;
 
   return (
@@ -78,7 +81,21 @@ export function ToolsPage() {
       {projectId && (
         <ErrorBoundary>
           <div id="tools-catalog" className="min-w-0 scroll-mt-6">
-            <ToolsPanel projectId={projectId} />
+            {toolsLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="celestial-panel flex items-start gap-3 rounded-[1.25rem] border border-border/75 p-4">
+                    <Skeleton variant="shimmer" className="h-10 w-10 rounded-lg" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton variant="shimmer" className="h-4 w-40" />
+                      <Skeleton variant="shimmer" className="h-3 w-64" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <ToolsPanel projectId={projectId} />
+            )}
           </div>
         </ErrorBoundary>
       )}

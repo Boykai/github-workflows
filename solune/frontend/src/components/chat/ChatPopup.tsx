@@ -13,6 +13,7 @@ import type {
   StatusChangeProposal,
 } from '@/types';
 import { ChatInterface } from './ChatInterface';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { cn } from '@/lib/utils';
 
 const DEFAULT_WIDTH = 400;
@@ -82,6 +83,7 @@ export function ChatPopup({
 }: ChatPopupProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [size, setSize] = useState(loadSize);
+  const isMobile = useMediaQuery('(max-width: 767px)');
   const isResizing = useRef(false);
   const startPos = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const cleanupResize = useRef<(() => void) | null>(null);
@@ -176,29 +178,35 @@ export function ChatPopup({
       </button>
 
       <div
-        style={{ width: size.width, height: size.height }}
+        style={isMobile ? undefined : { width: size.width, height: size.height }}
         className={cn(
-          'fixed bottom-24 right-6 bg-background border border-border rounded-xl shadow-2xl z-[1000] flex flex-col overflow-hidden transition-[transform,opacity] duration-200 max-md:!w-[calc(100vw-48px)] max-sm:!w-screen max-sm:!h-[70vh] max-sm:right-0 max-sm:bottom-20 max-sm:rounded-t-xl max-sm:rounded-b-none',
+          isMobile
+            ? 'fixed inset-0 z-[1000] flex flex-col bg-background'
+            : 'fixed bottom-24 right-6 bg-background border border-border rounded-xl shadow-2xl z-[1000] flex flex-col overflow-hidden transition-[transform,opacity] duration-200',
           isOpen
             ? 'scale-100 translate-y-0 opacity-100 pointer-events-auto'
-            : 'scale-95 translate-y-2 opacity-0 pointer-events-none'
+            : isMobile
+              ? 'translate-y-full opacity-0 pointer-events-none'
+              : 'scale-95 translate-y-2 opacity-0 pointer-events-none'
         )}
       >
-        {/* Resize handle — top-left corner (mouse-only drag interaction) */}
-        <div
-          onMouseDown={onResizeStart}
-          className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-10 max-sm:hidden"
-          aria-hidden="true"
-        >
-          <svg
-            viewBox="0 0 16 16"
-            className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+        {/* Resize handle — top-left corner (desktop only, mouse-only drag interaction) */}
+        {!isMobile && (
+          <div
+            onMouseDown={onResizeStart}
+            className="absolute top-0 left-0 w-4 h-4 cursor-nw-resize z-10"
+            aria-hidden="true"
           >
-            <path d="M14 2L2 14" stroke="currentColor" strokeWidth="1.5" fill="none" />
-            <path d="M14 6L6 14" stroke="currentColor" strokeWidth="1.5" fill="none" />
-            <path d="M14 10L10 14" stroke="currentColor" strokeWidth="1.5" fill="none" />
-          </svg>
-        </div>
+            <svg
+              viewBox="0 0 16 16"
+              className="w-4 h-4 text-muted-foreground/50 hover:text-muted-foreground transition-colors"
+            >
+              <path d="M14 2L2 14" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              <path d="M14 6L6 14" stroke="currentColor" strokeWidth="1.5" fill="none" />
+              <path d="M14 10L10 14" stroke="currentColor" strokeWidth="1.5" fill="none" />
+            </svg>
+          </div>
+        )}
 
         <ChatInterface
           messages={messages}

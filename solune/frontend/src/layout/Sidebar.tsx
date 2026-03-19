@@ -18,6 +18,7 @@ interface SidebarProps {
   onToggle: () => void;
   isDarkMode: boolean;
   onToggleTheme: () => void;
+  isMobile?: boolean;
   selectedProject?: { project_id: string; name: string; owner_login: string };
   recentInteractions: RecentInteraction[];
   projects: Project[];
@@ -30,6 +31,7 @@ export function Sidebar({
   onToggle,
   isDarkMode,
   onToggleTheme,
+  isMobile = false,
   selectedProject,
   recentInteractions,
   projects,
@@ -38,10 +40,37 @@ export function Sidebar({
 }: SidebarProps) {
   const [selectorOpen, setSelectorOpen] = useState(false);
   const navigate = useNavigate();
+
+  // On mobile when expanded, render as overlay with backdrop
+  if (isMobile && !isCollapsed) {
+    return (
+      <>
+        {/* Backdrop */}
+        <div
+          className="fixed inset-0 z-40 bg-black/50"
+          onClick={onToggle}
+          role="presentation"
+        />
+        <aside
+          className="fixed inset-y-0 left-0 z-50 flex w-60 flex-col border-r border-border/70 bg-background shadow-xl"
+        >
+          {renderSidebarContent()}
+        </aside>
+      </>
+    );
+  }
+
   return (
     <aside
       className={cn('celestial-panel relative flex h-full shrink-0 flex-col border-r border-border/70 transition-all duration-300', isCollapsed ? 'w-16' : 'w-60')}
     >
+      {renderSidebarContent()}
+    </aside>
+  );
+
+  function renderSidebarContent() {
+    return (
+      <>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(circle_at_top,hsl(var(--glow)/0.22),transparent_70%)]" />
       <div className="pointer-events-none absolute left-4 top-6 h-10 w-10 rounded-full bg-primary/10 blur-xl celestial-pulse-glow" />
       <div className="pointer-events-none absolute right-4 top-24 h-24 w-24 rounded-full border border-border/20 celestial-orbit-spin" />
@@ -92,10 +121,15 @@ export function Sidebar({
             key={route.path}
             to={route.path}
             end={route.path === '/'}
+            onClick={isMobile ? onToggle : undefined}
             data-tour-step={{
               '/projects': 'projects-link',
               '/pipeline': 'pipeline-link',
               '/agents': 'agents-link',
+              '/tools': 'tools-link',
+              '/chores': 'chores-link',
+              '/settings': 'settings-link',
+              '/apps': 'apps-link',
               '/help': 'help-link',
             }[route.path] ?? undefined}
             className={({ isActive }) =>
@@ -182,6 +216,7 @@ export function Sidebar({
           />
         )}
       </div>
-    </aside>
-  );
+      </>
+    );
+  }
 }

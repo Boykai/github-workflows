@@ -3,7 +3,7 @@
  * ChatPopup is rendered globally here so it persists across route navigation.
  */
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { TriangleAlert, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +16,7 @@ import { useSidebarState } from '@/hooks/useSidebarState';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRecentParentIssues } from '@/hooks/useRecentParentIssues';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ChatPopup } from '@/components/chat/ChatPopup';
@@ -58,6 +59,17 @@ export function AppLayout() {
   const { user } = useAuth();
   const { isDarkMode, toggleTheme } = useAppTheme();
   const { isCollapsed, toggle: toggleSidebar } = useSidebarState();
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const wasMobileRef = useRef(isMobile);
+
+  // Auto-collapse sidebar when entering mobile breakpoint
+  useEffect(() => {
+    const wasMobile = wasMobileRef.current;
+    wasMobileRef.current = isMobile;
+    if (isMobile && !wasMobile && !isCollapsed) {
+      toggleSidebar();
+    }
+  }, [isMobile, isCollapsed, toggleSidebar]);
   const {
     selectedProject,
     projects,
@@ -111,6 +123,7 @@ export function AppLayout() {
           onToggle={toggleSidebar}
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
+          isMobile={isMobile}
           selectedProject={
             selectedProject
               ? {

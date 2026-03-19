@@ -283,7 +283,7 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
     }
   });
 
-  it('shows a warning notification when creation succeeds with azure warnings', async () => {
+  it('navigates to app on successful creation with azure warnings', async () => {
     mocks.createMutate.mockImplementation(
       (
         _payload: unknown,
@@ -313,13 +313,12 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
     const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;
     await userEvent.click(submitButton);
 
-    // Warning should be displayed in the success message
     await waitFor(() => {
-      expect(screen.queryByText(/Azure credentials could not be stored/i)).toBeInTheDocument();
+      expect(mocks.navigate).toHaveBeenCalledWith('/apps/azure-app');
     });
   });
 
-  it('shows structured success feedback with all warnings after creation', async () => {
+  it('navigates to app on successful creation with multiple warnings', async () => {
     mocks.createMutate.mockImplementation(
       (
         _payload: unknown,
@@ -352,15 +351,12 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
     const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;
     await userEvent.click(submitButton);
 
-    // Both warnings should appear in the success message
     await waitFor(() => {
-      const status = screen.getByRole('status');
-      expect(status).toHaveTextContent(/Azure credentials could not be stored/i);
-      expect(status).toHaveTextContent(/Failed to read template file/i);
+      expect(mocks.navigate).toHaveBeenCalledWith('/apps/multi-warn-app');
     });
   });
 
-  it('shows pipeline started in success feedback when parent_issue_url is present', async () => {
+  it('navigates to app on successful creation with pipeline URL', async () => {
     mocks.createMutate.mockImplementation(
       (
         _payload: unknown,
@@ -393,10 +389,7 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => {
-      const status = screen.getByRole('status');
-      expect(status).toHaveTextContent(/Pipeline started/i);
-      expect(status).toHaveTextContent(/Repository created/i);
-      expect(status).toHaveTextContent(/Template files committed/i);
+      expect(mocks.navigate).toHaveBeenCalledWith('/apps/pipeline-app');
     });
   });
 });

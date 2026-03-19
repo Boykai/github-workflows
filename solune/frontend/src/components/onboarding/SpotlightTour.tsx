@@ -94,6 +94,38 @@ const TOUR_STEPS: TourStep[] = [
     icon: BookStarsIcon,
     placement: 'right',
   },
+  {
+    id: 10,
+    targetSelector: 'tools-link',
+    title: 'Tools',
+    description: 'Upload and manage MCP tool configurations that extend your agents with external capabilities.',
+    icon: CelestialHandIcon,
+    placement: 'right',
+  },
+  {
+    id: 11,
+    targetSelector: 'chores-link',
+    title: 'Chores',
+    description: 'Schedule recurring repository maintenance tasks and automate routine upkeep.',
+    icon: OrbitalRingsIcon,
+    placement: 'right',
+  },
+  {
+    id: 12,
+    targetSelector: 'settings-link',
+    title: 'Settings',
+    description: 'Configure project settings, workflow preferences, and integration options.',
+    icon: StarChartIcon,
+    placement: 'right',
+  },
+  {
+    id: 13,
+    targetSelector: 'apps-link',
+    title: 'Apps',
+    description: 'Create and manage applications — spin up new repos, link external ones, and monitor app status.',
+    icon: ConstellationGridIcon,
+    placement: 'right',
+  },
 ];
 
 interface SpotlightTourProps {

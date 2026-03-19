@@ -4,7 +4,7 @@
  */
 
 import { TriangleAlert } from 'lucide-react';
-import { CelestialLoader } from '@/components/common/CelestialLoader';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -156,8 +156,16 @@ export function AgentsPage() {
               </div>
             )}
             {boardLoading ? (
-              <div className="celestial-panel flex items-center justify-center rounded-[1.3rem] border border-border/70 p-6 sm:rounded-[1.4rem] sm:p-8">
-                <CelestialLoader size="sm" label="Loading agents…" />
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="celestial-panel flex items-start gap-3 rounded-[1.25rem] border border-border/75 p-3.5 sm:rounded-[1.35rem] sm:p-4">
+                    <Skeleton variant="shimmer" className="mt-1 h-2.5 w-2.5 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton variant="shimmer" className="h-4 w-32" />
+                      <Skeleton variant="shimmer" className="h-3 w-20" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : columns.length === 0 ? (
               <p className="celestial-panel rounded-[1.3rem] border border-dashed border-border/80 p-4 text-center text-sm text-muted-foreground sm:rounded-[1.4rem] sm:p-5">

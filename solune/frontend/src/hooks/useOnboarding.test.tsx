@@ -16,7 +16,7 @@ describe('useOnboarding', () => {
     expect(result.current.isActive).toBe(true);
     expect(result.current.hasCompleted).toBe(false);
     expect(result.current.currentStep).toBe(0);
-    expect(result.current.totalSteps).toBe(9);
+    expect(result.current.totalSteps).toBe(13);
   });
 
   it('does not activate when completion flag exists', () => {
@@ -50,10 +50,10 @@ describe('useOnboarding', () => {
 
   it('completes tour when next() at last step', () => {
     const { result } = renderHook(() => useOnboarding(), { wrapper });
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < 12; i++) {
       act(() => result.current.next());
     }
-    expect(result.current.currentStep).toBe(8);
+    expect(result.current.currentStep).toBe(12);
     act(() => result.current.next());
     expect(result.current.isActive).toBe(false);
     expect(result.current.hasCompleted).toBe(true);

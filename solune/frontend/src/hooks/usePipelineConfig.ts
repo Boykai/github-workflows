@@ -1,6 +1,6 @@
 /** Core pipeline state management hook — composes sub-hooks + useReducer for CRUD. */
 
-import { useReducer, useCallback, useMemo } from 'react';
+import { useReducer, useCallback, useMemo, useEffect, useRef, useState, type SetStateAction } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { pipelinesApi } from '@/services/api';
@@ -11,6 +11,8 @@ import { usePipelineValidation } from './usePipelineValidation';
 import { usePipelineModelOverride } from './usePipelineModelOverride';
 import { pipelineReducer, initialState, computeSnapshot } from './usePipelineReducer';
 import type { PipelineConfig, PipelineConfigListResponse } from '@/types';
+
+const MAX_UNDO_STACK = 50;
 
 const errMsg = (e: unknown, fallback: string) =>
   e instanceof Error ? e.message : fallback;
@@ -48,11 +50,85 @@ export function usePipelineConfig(projectId: string | null) {
   const queryClient = useQueryClient();
   const [state, dispatch] = useReducer(pipelineReducer, initialState);
 
+  // ── Undo / Redo ──
+  const undoStackRef = useRef<PipelineConfig[]>([]);
+  const redoStackRef = useRef<PipelineConfig[]>([]);
+  const lastSnapshotRef = useRef<string | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  const pushUndoSnapshot = useCallback((pipeline: PipelineConfig) => {
+    const snap = computeSnapshot(pipeline);
+    if (snap === lastSnapshotRef.current) return;
+    undoStackRef.current = [...undoStackRef.current.slice(-(MAX_UNDO_STACK - 1)), pipeline];
+    redoStackRef.current = [];
+    lastSnapshotRef.current = snap;
+    setCanUndo(true);
+    setCanRedo(false);
+  }, []);
+
+  const clearUndoRedo = useCallback(() => {
+    undoStackRef.current = [];
+    redoStackRef.current = [];
+    lastSnapshotRef.current = null;
+    setCanUndo(false);
+    setCanRedo(false);
+  }, []);
+
   const setPipeline = useCallback(
-    (updater: React.SetStateAction<PipelineConfig | null>) =>
+    (updater: SetStateAction<PipelineConfig | null>) =>
       dispatch({ type: 'SET_PIPELINE', updater }),
     [],
   );
+
+  const setPipelineWithUndo = useCallback(
+    (updater: SetStateAction<PipelineConfig | null>) => {
+      if (state.pipeline) pushUndoSnapshot(state.pipeline);
+      dispatch({ type: 'SET_PIPELINE', updater });
+    },
+    [state.pipeline, pushUndoSnapshot],
+  );
+
+  const undo = useCallback(() => {
+    if (undoStackRef.current.length === 0 || !state.pipeline) return;
+    const previous = undoStackRef.current[undoStackRef.current.length - 1];
+    undoStackRef.current = undoStackRef.current.slice(0, -1);
+    redoStackRef.current = [...redoStackRef.current, state.pipeline];
+    lastSnapshotRef.current = computeSnapshot(previous);
+    setCanUndo(undoStackRef.current.length > 0);
+    setCanRedo(true);
+    dispatch({ type: 'SET_PIPELINE', updater: previous });
+  }, [state.pipeline]);
+
+  const redo = useCallback(() => {
+    if (redoStackRef.current.length === 0 || !state.pipeline) return;
+    const next = redoStackRef.current[redoStackRef.current.length - 1];
+    redoStackRef.current = redoStackRef.current.slice(0, -1);
+    undoStackRef.current = [...undoStackRef.current, state.pipeline];
+    lastSnapshotRef.current = computeSnapshot(next);
+    setCanUndo(true);
+    setCanRedo(redoStackRef.current.length > 0);
+    dispatch({ type: 'SET_PIPELINE', updater: next });
+  }, [state.pipeline]);
+
+  // Keyboard shortcuts: Ctrl+Z / Cmd+Z = undo, Ctrl+Shift+Z / Cmd+Shift+Z = redo
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod || e.key.toLowerCase() !== 'z') return;
+      // Don't intercept when focused on text inputs
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+      e.preventDefault();
+      if (e.shiftKey) {
+        redo();
+      } else {
+        undo();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [undo, redo]);
 
   const { validationErrors, validatePipeline, clearValidationError } =
     usePipelineValidation(state.pipeline);
@@ -61,7 +137,7 @@ export function usePipelineConfig(projectId: string | null) {
     setPipeline,
   );
   const boardMutations = usePipelineBoardMutations(
-    setPipeline, modelOverride, clearValidationError,
+    setPipelineWithUndo, modelOverride, clearValidationError,
   );
 
   const { data: pipelines, isLoading: pipelinesLoading } = useQuery<PipelineConfigListResponse>({
@@ -109,19 +185,21 @@ export function usePipelineConfig(projectId: string | null) {
       is_preset: false, preset_id: '', created_at: now, updated_at: now,
     };
     dispatch({ type: 'NEW_PIPELINE', config });
+    clearUndoRedo();
     resetPending();
-  }, [projectId, resetPending]);
+  }, [projectId, clearUndoRedo, resetPending]);
 
   const loadPipeline = useCallback(async (pipelineId: string) => {
     if (!projectId) return;
     try {
       const config = await pipelinesApi.get(projectId, pipelineId);
       dispatch({ type: 'LOAD_SUCCESS', config, id: pipelineId });
+      clearUndoRedo();
       resetPending();
     } catch (err) {
       dispatch({ type: 'SET_ERROR', error: errMsg(err, 'Failed to load pipeline') });
     }
-  }, [projectId, resetPending]);
+  }, [projectId, clearUndoRedo, resetPending]);
 
   const savePipeline = useCallback(async () => {
     if (!state.pipeline || !projectId) return false;
@@ -195,6 +273,7 @@ export function usePipelineConfig(projectId: string | null) {
     try {
       await pipelinesApi.delete(projectId, state.editingPipelineId);
       dispatch({ type: 'DELETE_SUCCESS' });
+      clearUndoRedo();
       resetPending();
       queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
       toast.success('Pipeline deleted');
@@ -202,7 +281,7 @@ export function usePipelineConfig(projectId: string | null) {
       dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to delete pipeline') });
       toast.error(errMsg(err, 'Failed to delete pipeline'), { duration: Infinity });
     }
-  }, [state.editingPipelineId, projectId, queryClient, resetPending]);
+  }, [state.editingPipelineId, projectId, queryClient, clearUndoRedo, resetPending]);
 
   const discardChanges = useCallback(() => {
     if (state.editingPipelineId && state.savedSnapshot) {
@@ -211,11 +290,12 @@ export function usePipelineConfig(projectId: string | null) {
       dispatch({ type: 'DISCARD_NEW' });
       resetPending();
     }
-  }, [state.editingPipelineId, state.savedSnapshot, resetPending]);
+    clearUndoRedo();
+  }, [state.editingPipelineId, state.savedSnapshot, clearUndoRedo, resetPending]);
 
   const setStageExecutionMode = useCallback(
     (stageId: string, mode: 'sequential' | 'parallel') => {
-      setPipeline((prev) => {
+      setPipelineWithUndo((prev) => {
         if (!prev) return null;
         return {
           ...prev,
@@ -228,7 +308,7 @@ export function usePipelineConfig(projectId: string | null) {
         };
       });
     },
-    [setPipeline]
+    [setPipelineWithUndo]
   );
 
   return {
@@ -243,6 +323,7 @@ export function usePipelineConfig(projectId: string | null) {
     assignPipeline, newPipeline, loadPipeline,
     savePipeline, saveAsCopy, duplicatePipeline, deletePipeline, discardChanges,
     setStageExecutionMode,
+    canUndo, canRedo, undo, redo,
     ...boardMutations,
   };
 }
