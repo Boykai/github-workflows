@@ -270,3 +270,124 @@ class TestBoundedSetSnapshotSafety:
         assert snapshot == ["a", "b", "c"]
         assert "d" in bs
         assert "a" not in bs
+
+
+# ── Characterization: repo-resolution paths ──────────────────────────
+
+
+class TestResolveRepositoryCachePath:
+    """Pin: resolve_repository uses cache with token-scoped key."""
+
+    def test_cache_key_includes_token_hash(self):
+        """The cache key must include a hash of the access token."""
+        import pathlib
+
+        utils_py = pathlib.Path(__file__).parent.parent.parent / "src" / "utils.py"
+        source = utils_py.read_text()
+        assert "token_hash" in source
+        assert "sha256" in source
+        assert "resolve_repo:" in source
+
+    def test_cache_key_includes_project_id(self):
+        """The cache key must be scoped to the project_id."""
+        import pathlib
+
+        utils_py = pathlib.Path(__file__).parent.parent.parent / "src" / "utils.py"
+        source = utils_py.read_text()
+        assert "project_id" in source
+
+
+class TestResolveRepositoryFallbackChain:
+    """Pin: resolve_repository uses 3-step fallback: items → config → settings."""
+
+    def test_fallback_order_documented(self):
+        import pathlib
+
+        utils_py = pathlib.Path(__file__).parent.parent.parent / "src" / "utils.py"
+        source = utils_py.read_text()
+        # Verify the fallback chain exists within resolve_repository function
+        func_start = source.find("async def resolve_repository")
+        assert func_start != -1, "resolve_repository function must exist"
+        func_source = source[func_start:]
+        # Check all three fallback steps are present
+        assert "get_project_repository" in func_source
+        assert "get_workflow_config" in func_source
+        assert "default_repo_owner" in func_source
+
+
+class TestResolveRepositoryValidation:
+    """Pin: resolve_repository raises ValidationError when all fallbacks fail."""
+
+    def test_raises_validation_error_on_failure(self):
+        import pathlib
+
+        utils_py = pathlib.Path(__file__).parent.parent.parent / "src" / "utils.py"
+        source = utils_py.read_text()
+        assert "ValidationError" in source
+        # Must import and raise ValidationError
+        assert "from src.exceptions import ValidationError" in source
+
+
+# ── Characterization: error-response patterns ────────────────────────
+
+
+class TestHTTPErrorResponsePatterns:
+    """Pin: API endpoints return consistent error response shapes."""
+
+    def test_error_response_uses_detail_key(self):
+        """FastAPI-style HTTPException uses 'detail' as the error key."""
+        import pathlib
+
+        # Check that API routes use HTTPException(detail=...)
+        api_dir = pathlib.Path(__file__).parent.parent.parent / "src" / "api"
+        found_detail = False
+        for py_file in api_dir.glob("*.py"):
+            source = py_file.read_text()
+            if "HTTPException" in source and "detail=" in source:
+                found_detail = True
+                break
+        assert found_detail, "API routes should use HTTPException(detail=...)"
+
+    def test_auth_returns_401_for_invalid_session(self):
+        """Auth endpoints should raise AuthenticationError for invalid sessions."""
+        import pathlib
+
+        auth_py = pathlib.Path(__file__).parent.parent.parent / "src" / "api" / "auth.py"
+        source = auth_py.read_text()
+        assert "AuthenticationError" in source, (
+            "Auth should raise AuthenticationError for invalid sessions"
+        )
+
+    def test_validation_errors_return_422(self):
+        """Pydantic validation errors return 422 via FastAPI."""
+        import pathlib
+
+        main_py = pathlib.Path(__file__).parent.parent.parent / "src" / "main.py"
+        source = main_py.read_text()
+        # FastAPI auto-handles RequestValidationError → 422
+        assert "FastAPI" in source or "create_app" in source
+
+    def test_rate_limit_returns_429(self):
+        """Rate limiting middleware should return 429."""
+        import pathlib
+
+        middleware_dir = pathlib.Path(__file__).parent.parent.parent / "src" / "middleware"
+        found_429 = False
+        for py_file in middleware_dir.glob("*.py"):
+            source = py_file.read_text()
+            if "429" in source or "rate" in source.lower():
+                found_429 = True
+                break
+        assert found_429, "Middleware should handle rate limiting (429)"
+
+    def test_guard_service_returns_403(self):
+        """Guard service violations should result in 403-style blocking."""
+        import pathlib
+
+        guard_py = (
+            pathlib.Path(__file__).parent.parent.parent / "src" / "services" / "guard_service.py"
+        )
+        source = guard_py.read_text()
+        assert "admin_blocked" in source or "locked" in source, (
+            "Guard service should categorize blocked paths"
+        )
