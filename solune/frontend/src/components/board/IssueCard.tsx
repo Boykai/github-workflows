@@ -4,6 +4,7 @@
  */
 
 import { memo, useState } from 'react';
+import { useDraggable } from '@dnd-kit/core';
 import { ChevronDown, ChevronRight, Circle, CircleCheckBig } from 'lucide-react';
 import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
@@ -112,6 +113,10 @@ export const IssueCard = memo(function IssueCard({
   availableAgents,
 }: IssueCardProps) {
   const [isSubIssuesExpanded, setIsSubIssuesExpanded] = useState(false);
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: item.item_id,
+    data: { item },
+  });
   const subIssues = item.sub_issues ?? [];
   const labels = item.labels ?? [];
   const priorityName = item.priority?.name ?? '';
@@ -134,9 +139,13 @@ export const IssueCard = memo(function IssueCard({
 
   return (
     <div
+      ref={setNodeRef}
+      {...attributes}
+      {...listeners}
       className={cn(
         'project-board-card celestial-panel group flex min-w-[15rem] shrink-0 cursor-pointer flex-col gap-2 rounded-[1.15rem] border border-border/75 bg-card/90 p-3 shadow-sm backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:ring-1 hover:ring-border hover:bg-card/96 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
-        isParentIssue && 'min-h-[14rem]'
+        isParentIssue && 'min-h-[14rem]',
+        isDragging && 'opacity-30'
       )}
       onClick={() => onClick(item)}
       role="button"

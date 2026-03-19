@@ -4,8 +4,10 @@
  */
 
 import { memo } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import type { BoardColumn as BoardColumnType, BoardItem, AvailableAgent } from '@/types';
 import type { BoardGroup } from '@/hooks/useBoardControls';
+import { cn } from '@/lib/utils';
 import { statusColorToCSS } from './colorUtils';
 import { IssueCard } from './IssueCard';
 
@@ -22,11 +24,18 @@ export const BoardColumn = memo(function BoardColumn({
   availableAgents,
   getGroups,
 }: BoardColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `column-${column.status.name}`,
+    data: { status: column.status.name },
+  });
   const dotColor = statusColorToCSS(column.status.color);
   const groups = getGroups?.(column.items);
 
   return (
-    <div className="project-board-column pipeline-column-surface flex h-[72rem] max-h-[72rem] min-h-[44rem] min-w-0 shrink-0 flex-col overflow-x-hidden rounded-[1.4rem] border border-border/70 shadow-sm xl:h-[95rem] xl:max-h-[95rem]">
+    <div ref={setNodeRef} className={cn(
+      "project-board-column pipeline-column-surface flex h-[72rem] max-h-[72rem] min-h-[44rem] min-w-0 shrink-0 flex-col overflow-x-hidden rounded-[1.4rem] border border-border/70 shadow-sm xl:h-[95rem] xl:max-h-[95rem]",
+      isOver && 'ring-2 ring-primary/50 bg-primary/5'
+    )}>
       {/* Column Header */}
       <div className="project-board-column-header flex items-center justify-between border-b border-border/70 p-4 backdrop-blur-sm">
         <div className="flex items-center gap-2">
