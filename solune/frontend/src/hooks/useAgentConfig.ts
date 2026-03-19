@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import type { AgentAssignment, WorkflowConfiguration, AvailableAgent } from '@/types';
 import { useWorkflow } from './useWorkflow';
 import { generateId } from '@/utils/generateId';
@@ -284,9 +285,11 @@ export function useAgentConfig(projectId?: string | null): UseAgentConfigReturn 
       serverMappingsRef.current = mappings;
       setLocalMappings(structuredClone(mappings));
       setServerConfig(updatedConfig);
+      toast.success('Agent configuration saved');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to save';
       setSaveError(message);
+      toast.error(message, { duration: Infinity });
     } finally {
       setIsSaving(false);
     }

@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import {
   agentsApi,
   type AgentConfig,
@@ -44,6 +45,10 @@ export function useCreateAgent(projectId: string | null | undefined) {
     mutationFn: (data) => agentsApi.create(projectId!, data),
     onSuccess: () => {
       if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
+      toast.success('Agent created');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to create agent', { duration: Infinity });
     },
   });
 }
@@ -57,6 +62,10 @@ export function useUpdateAgent(projectId: string | null | undefined) {
         queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
         queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
       }
+      toast.success('Agent updated');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update agent', { duration: Infinity });
     },
   });
 }
@@ -67,6 +76,10 @@ export function useDeleteAgent(projectId: string | null | undefined) {
     mutationFn: (agentId) => agentsApi.delete(projectId!, agentId),
     onSuccess: () => {
       if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
+      toast.success('Agent deleted');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to delete agent', { duration: Infinity });
     },
   });
 }
@@ -79,6 +92,10 @@ export function useClearPendingAgents(projectId: string | null | undefined) {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
       }
+      toast.success('Pending agents cleared');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to clear pending agents', { duration: Infinity });
     },
   });
 }
@@ -103,6 +120,10 @@ export function useBulkUpdateModels(projectId: string | null | undefined) {
         queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
         queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
       }
+      toast.success('Models updated');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update models', { duration: Infinity });
     },
   });
 }
