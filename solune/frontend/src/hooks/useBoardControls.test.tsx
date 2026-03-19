@@ -85,6 +85,7 @@ describe('useBoardControls', () => {
       assignees: [],
       milestones: [],
       pipelineConfig: null,
+      priority: [],
     });
     expect(result.current.controls.sort).toEqual({ field: 'title', direction: 'asc' });
     expect(result.current.controls.group).toEqual({ field: null });

@@ -297,7 +297,7 @@ export function useBoardControls(
           (item) => item.milestone != null && filters.milestones.includes(item.milestone)
         );
       }
-      if (filters.priority.length > 0) {
+      if (filters.priority?.length > 0) {
         items = items.filter(
           (item) => item.priority?.name != null && filters.priority.includes(item.priority.name)
         );

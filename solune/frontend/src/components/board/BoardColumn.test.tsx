@@ -43,7 +43,7 @@ describe('BoardColumn', () => {
 
   it('renders empty state when no items', () => {
     render(<BoardColumn column={createColumn()} onCardClick={vi.fn()} />);
-    expect(screen.getByText('No items')).toBeInTheDocument();
+    expect(screen.getByText('No items yet')).toBeInTheDocument();
   });
 
   it('renders items when present', () => {
