@@ -46,6 +46,7 @@ from src.services.copilot_polling import (
     recover_stalled_issues,
     stop_polling,
 )
+from src.services.copilot_polling.agent_output import _detect_completion_signals
 from src.services.copilot_polling.state import (
     COPILOT_REVIEW_CONFIRMATION_DELAY_SECONDS,
     COPILOT_REVIEW_REQUEST_BUFFER_SECONDS,
@@ -2043,6 +2044,106 @@ class TestMergeChildPrIfApplicable:
         assert result["pr_number"] == 20
         assert result["agent"] == "speckit.plan"
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.completion.asyncio.sleep", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_waits_for_draft_pr_to_be_ready_before_merge(self, mock_service, mock_sleep):
+        """Draft child PRs should be marked ready and given time to propagate before merge."""
+        mock_service.get_linked_pull_requests = AsyncMock(
+            return_value=[
+                {"number": 20, "state": "OPEN", "author": "copilot[bot]"},
+            ]
+        )
+        mock_service.get_pull_request = AsyncMock(
+            side_effect=[
+                {
+                    "base_ref": "copilot/feature-123",
+                    "head_ref": "copilot/feature-123-plan",
+                    "id": "PR_node_123",
+                    "is_draft": True,
+                },
+                {"state": "MERGED"},
+            ]
+        )
+        mock_service.mark_pr_ready_for_review = AsyncMock(return_value=True)
+        mock_service.merge_pull_request = AsyncMock(return_value={"merge_commit": "abc123def"})
+        mock_service.delete_branch = AsyncMock(return_value=True)
+
+        result = await _merge_child_pr_if_applicable(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            main_branch="copilot/feature-123",
+            main_pr_number=10,
+            completed_agent="speckit.plan",
+        )
+
+        assert result is not None
+        assert result["status"] == "merged"
+        mock_service.mark_pr_ready_for_review.assert_awaited_once()
+        assert any(call.args == (2.0,) for call in mock_sleep.await_args_list)
+
+
+class TestDetectCompletionSignals:
+    """Tests for completion detection fallthrough handling."""
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch(
+        "src.services.copilot_polling._get_linked_prs_including_sub_issues", new_callable=AsyncMock
+    )
+    @patch("src.services.copilot_polling._check_main_pr_completion", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling._find_completed_child_pr", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    async def test_prefers_open_child_pr_when_main_pr_completion_detected(
+        self,
+        mock_get_branch,
+        mock_find_child,
+        mock_check_main,
+        mock_linked_prs,
+        mock_service,
+    ):
+        """Main PR completion must not bypass an open child PR that still needs merging."""
+        pipeline = MagicMock()
+        pipeline.started_at = utcnow()
+        pipeline.agent_assigned_sha = "sha-old"
+        pipeline.agent_sub_issues = {}
+
+        mock_get_branch.return_value = {
+            "branch": "copilot/feature-42",
+            "pr_number": 100,
+            "head_sha": "sha-main",
+        }
+        mock_find_child.return_value = None
+        mock_check_main.return_value = True
+        mock_linked_prs.return_value = [
+            {"number": 101, "state": "OPEN", "author": "copilot[bot]"},
+        ]
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_node_101",
+                "head_ref": "copilot/feature-42-plan",
+                "base_ref": "copilot/feature-42",
+                "last_commit": {"sha": "sha-child"},
+                "is_draft": True,
+            }
+        )
+
+        result = await _detect_completion_signals(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            current_agent="speckit.plan",
+            pipeline=pipeline,
+        )
+
+        assert result is not None
+        assert result["number"] == 101
+        assert result["is_child_pr"] is True
+        assert result["copilot_finished"] is True
+
 
 class TestReconstructPipelineState:
     """Tests for _reconstruct_pipeline_state function."""
@@ -2822,6 +2923,76 @@ class TestAdvancePipeline:
         # External side effects (tracking update, sub-issue close) must
         # NOT have been applied — they are deferred until after a
         # successful merge to keep rollback consistent.
+        mock_update_tracking.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch(
+        "src.services.copilot_polling._get_linked_prs_including_sub_issues", new_callable=AsyncMock
+    )
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_issue_main_branch")
+    @patch("src.services.copilot_polling._merge_child_pr_if_applicable")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    async def test_blocks_pipeline_when_open_child_pr_exists_but_merge_returns_none(
+        self,
+        mock_set_state,
+        mock_merge,
+        mock_get_branch,
+        mock_ws,
+        mock_linked_prs,
+        mock_service,
+        mock_update_tracking,
+    ):
+        """A silent None merge result must still block advancement if the child PR is open."""
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="Ready",
+            agents=["speckit.plan", "speckit.tasks"],
+            current_agent_index=0,
+            completed_agents=[],
+        )
+
+        mock_get_branch.return_value = {
+            "branch": "copilot/feature-42",
+            "pr_number": 100,
+            "head_sha": "sha123",
+        }
+        mock_merge.return_value = None
+        mock_linked_prs.return_value = [
+            {"number": 101, "state": "OPEN", "author": "copilot[bot]"},
+        ]
+        mock_service.get_pull_request = AsyncMock(
+            return_value={
+                "id": "PR_node_101",
+                "head_ref": "copilot/feature-42-plan",
+                "base_ref": "copilot/feature-42",
+                "last_commit": {"sha": "sha-child"},
+                "is_draft": False,
+            }
+        )
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_update_tracking.return_value = True
+
+        result = await _advance_pipeline(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            pipeline=pipeline,
+            from_status="Ready",
+            to_status="In Progress",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "merge_blocked"
+        assert result["blocked_pr"] == 101
+        assert "speckit.plan" not in pipeline.completed_agents
         mock_update_tracking.assert_not_called()
 
     @pytest.mark.asyncio
@@ -8384,10 +8555,10 @@ class TestCopilotReviewAutoTriggerProtection:
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
     @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
-    async def test_done_marker_accepted_when_no_other_done_comments(
+    async def test_done_marker_ignored_when_no_request_timestamp(
         self, mock_main_branch, mock_service
     ):
-        """A Done! marker is accepted when no other agent Done! comments exist (e.g. restart)."""
+        """A Done! marker alone is not enough without a recorded review request."""
         mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
         mock_service.get_issue_with_comments = AsyncMock(
             return_value={
@@ -8405,15 +8576,68 @@ class TestCopilotReviewAutoTriggerProtection:
                 ],
             }
         )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_500", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.dismiss_copilot_reviews = AsyncMock(return_value=1)
 
         # No request timestamp (simulates server restart)
         result = await _check_copilot_review_done(
             access_token="token", owner="owner", repo="repo", parent_issue_number=50
         )
 
-        assert result is True
-        # Should not even try to discover the PR
-        mock_service.get_pull_request.assert_not_called()
+        assert result is False
+        mock_service.dismiss_copilot_reviews.assert_awaited_once()
+        mock_service.request_copilot_review.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
+    @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
+    async def test_done_marker_rejected_when_older_than_request_timestamp(
+        self, mock_main_branch, mock_service
+    ):
+        """A marker that predates Solune's explicit request is stale even without other Done! comments."""
+        mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "title": "",
+                "body": "",
+                "user": {"login": ""},
+                "comments": [
+                    {
+                        "body": "copilot-review: Done!",
+                        "created_at": "2026-03-18T20:00:00Z",
+                        "database_id": 123,
+                        "node_id": "IC_1",
+                        "author": "solune-bot",
+                    },
+                ],
+            }
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_500", "is_draft": False}
+        )
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.delete_issue_comment = AsyncMock(return_value=True)
+
+        _copilot_review_requested_at[50] = utcnow()
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=50
+        )
+
+        assert result is False
+        mock_service.delete_issue_comment.assert_awaited_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            comment_database_id=123,
+            issue_number=50,
+        )
+        mock_service.has_copilot_reviewed_pr.assert_awaited_once()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
@@ -8502,6 +8726,9 @@ class TestCopilotReviewAutoTriggerProtection:
             }
         )
 
+        _copilot_review_requested_at[50] = datetime(2026, 3, 18, 18, 0, tzinfo=UTC)
+        mock_service.delete_issue_comment = AsyncMock(return_value=True)
+
         result = await _check_copilot_review_done(
             access_token="token", owner="owner", repo="repo", parent_issue_number=50
         )
@@ -8509,6 +8736,43 @@ class TestCopilotReviewAutoTriggerProtection:
         assert result is True
         # Should not attempt to delete or discover PR
         mock_service.delete_issue_comment.assert_not_called()
+        mock_service.get_pull_request.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
+    @patch("src.services.copilot_polling.helpers._cp.get_issue_main_branch")
+    async def test_done_marker_metadata_restores_request_timestamp_after_restart(
+        self, mock_main_branch, mock_service
+    ):
+        """Embedded marker metadata should restore the request timestamp after restart."""
+        mock_main_branch.return_value = {"branch": "copilot/issue-50", "pr_number": 500}
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "title": "",
+                "body": "",
+                "user": {"login": ""},
+                "comments": [
+                    {
+                        "body": (
+                            "copilot-review: Done!\n"
+                            "<!-- solune:copilot-review-requested-at=2026-03-18T19:05:00Z "
+                            "detected-at=2026-03-18T20:00:00Z -->"
+                        ),
+                        "created_at": "2026-03-18T20:00:00Z",
+                        "database_id": 300,
+                        "node_id": "IC_valid",
+                        "author": "solune-bot",
+                    },
+                ],
+            }
+        )
+
+        result = await _check_copilot_review_done(
+            access_token="token", owner="owner", repo="repo", parent_issue_number=50
+        )
+
+        assert result is True
+        assert _copilot_review_requested_at[50] == datetime(2026, 3, 18, 19, 5, tzinfo=UTC)
         mock_service.get_pull_request.assert_not_called()
 
 
@@ -8719,6 +8983,160 @@ class TestCheckInReviewPipelineStatusMismatch:
         assert call_kwargs["to_status"] == "In Review", (
             f"Expected to_status='In Review' but got '{call_kwargs['to_status']}'"
         )
+
+
+class TestCopilotReviewGroupedPipelineRace:
+    """Regression coverage for stale auto-triggered review completion in grouped pipelines."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        _pipeline_states.clear()
+        _copilot_review_first_detected.clear()
+        _copilot_review_requested_at.clear()
+        yield
+        _pipeline_states.clear()
+        _copilot_review_first_detected.clear()
+        _copilot_review_requested_at.clear()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.pipeline._cp.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.pipeline._cp.github_projects_service")
+    async def test_stale_auto_triggered_review_does_not_advance_grouped_pipeline(
+        self,
+        mock_service,
+        mock_config,
+        mock_discover,
+    ):
+        """A stale auto-triggered review must not complete a later copilot-review group."""
+        from src.models.agent import AgentAssignment
+        from src.services.copilot_polling import set_pipeline_state
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo
+
+        pipeline = PipelineState(
+            issue_number=4642,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.implement", "copilot-review", "judge"],
+            current_agent_index=1,
+            completed_agents=["speckit.implement"],
+            groups=[
+                PipelineGroupInfo(
+                    group_id="g1",
+                    execution_mode="sequential",
+                    agents=["speckit.implement"],
+                ),
+                PipelineGroupInfo(
+                    group_id="g2",
+                    execution_mode="sequential",
+                    agents=["copilot-review"],
+                ),
+                PipelineGroupInfo(
+                    group_id="g3",
+                    execution_mode="sequential",
+                    agents=["judge"],
+                ),
+            ],
+            current_group_index=1,
+            current_agent_index_in_group=0,
+        )
+        set_pipeline_state(4642, pipeline)
+
+        config = MagicMock(
+            status_backlog="Backlog",
+            status_ready="Ready",
+            status_in_progress="In Progress",
+            status_in_review="In Review",
+        )
+        config.agent_mappings = {
+            "In Review": [AgentAssignment(slug="human")],
+            "In Progress": [
+                AgentAssignment(slug="speckit.implement"),
+                AgentAssignment(slug="copilot-review"),
+                AgentAssignment(slug="judge"),
+            ],
+        }
+        mock_config.return_value = config
+
+        task = MagicMock()
+        task.github_item_id = "PVTI_4642"
+        task.github_content_id = "I_4642"
+        task.issue_number = 4642
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Regression issue"
+        task.status = "In Review"
+        task.labels = []
+
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={
+                "title": "Regression issue",
+                "body": (
+                    "Body\n\n<!-- solune:copilot-review-requested-at=2026-03-18T19:05:00Z -->"
+                ),
+                "user": {"login": "owner"},
+                "comments": [
+                    {
+                        "body": "speckit.implement: Done!",
+                        "created_at": "2026-03-18T19:00:00Z",
+                        "database_id": 200,
+                        "node_id": "IC_impl",
+                        "author": "copilot-bot",
+                    },
+                    {
+                        "body": (
+                            "copilot-review: Done!\n"
+                            "<!-- solune:copilot-review-requested-at=2026-03-18T18:00:00Z "
+                            "detected-at=2026-03-18T18:30:00Z -->"
+                        ),
+                        "created_at": "2026-03-18T18:30:00Z",
+                        "database_id": 100,
+                        "node_id": "IC_stale",
+                        "author": "solune-bot",
+                    },
+                ],
+            }
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"id": "PR_node_500", "is_draft": False}
+        )
+        mock_service.delete_issue_comment = AsyncMock(return_value=True)
+        mock_service.has_copilot_reviewed_pr = AsyncMock(return_value=False)
+        mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_discover.return_value = {
+            "pr_number": 500,
+            "pr_id": "PR_node_500",
+            "is_draft": False,
+            "head_ref": "copilot/issue-4642",
+        }
+
+        results = await check_in_review_issues(
+            access_token="token",
+            project_id="PVT_123",
+            owner="owner",
+            repo="repo",
+            tasks=[task],
+        )
+
+        assert len(results) == 1
+        assert results[0]["action"] == "agent_assigned_after_reconstruction"
+        assert results[0]["agent_name"] == "copilot-review"
+        assert pipeline.current_agent_index == 1
+        assert pipeline.current_group_index == 1
+        assert pipeline.completed_agents == ["speckit.implement"]
+        mock_service.delete_issue_comment.assert_awaited_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            comment_database_id=100,
+            issue_number=4642,
+        )
+        mock_service.has_copilot_reviewed_pr.assert_awaited_once()
 
 
 # ── Fix: _get_or_reconstruct_pipeline uses tracking table agents ─────────
@@ -10745,6 +11163,10 @@ class TestCopilotReviewRequestTimestamp:
         }
         mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "Issue body", "comments": [], "user": {"login": ""}}
+        )
+        mock_service.update_issue_body = AsyncMock(return_value=True)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
         assert result is not None
@@ -10753,6 +11175,9 @@ class TestCopilotReviewRequestTimestamp:
         # Timestamp must be recorded
         assert 42 in _copilot_review_requested_at
         assert _copilot_review_requested_at[42] is not None
+        mock_service.update_issue_body.assert_awaited_once()
+        persisted_body = mock_service.update_issue_body.await_args.kwargs["body"]
+        assert "<!-- solune:copilot-review-requested-at=" in persisted_body
 
     @pytest.mark.asyncio
     @patch(
@@ -10772,10 +11197,15 @@ class TestCopilotReviewRequestTimestamp:
         }
         mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=False)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "Issue body", "comments": [], "user": {"login": ""}}
+        )
+        mock_service.update_issue_body = AsyncMock(return_value=True)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
         assert result["status"] == "error"
         assert 42 not in _copilot_review_requested_at
+        mock_service.update_issue_body.assert_not_called()
 
 
 # ── T043: Cache semantics supporting polling cycle cost (SC-005) ───────────
