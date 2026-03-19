@@ -221,21 +221,27 @@ def mock_websocket_manager() -> AsyncMock:
 
 @pytest.fixture(autouse=True)
 def _clear_test_caches():
-    """Clear the global in-memory cache between tests.
+    """Clear **all** global caches between tests.
 
     Unit and integration suites both exercise endpoints that reuse shared cache
     entries such as ``projects:*`` and ``board_projects:*``. Clearing the cache
     before and after each test prevents cross-suite contamination while still
     allowing individual tests to verify cache reuse within a single request flow.
+
+    Also clears the ``get_settings()`` ``@lru_cache`` to avoid leaking
+    ``MagicMock``-patched values across test boundaries (BUG-002).
     """
+    from src.config import clear_settings_cache
     from src.services.cache import cache as _cache
     from src.services.copilot_polling.state import _system_marked_ready_prs
 
     _cache.clear()
     _system_marked_ready_prs.clear()
+    clear_settings_cache()
     yield
     _cache.clear()
     _system_marked_ready_prs.clear()
+    clear_settings_cache()
 
 
 # =============================================================================

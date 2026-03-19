@@ -340,20 +340,42 @@ async def _detect_completion_signals(
             sub_issue_number=agent_sub_number,
         )
         if main_pr_completed:
-            pr_details = await _cp.github_projects_service.get_pull_request(
+            from .completion import _find_open_child_pr
+
+            open_child_pr = await _find_open_child_pr(
                 access_token=access_token,
                 owner=owner,
                 repo=repo,
-                pr_number=main_pr_number,
+                issue_number=issue_number,
+                main_branch=main_branch or "main",
+                main_pr_number=main_pr_number,
+                agent_name=current_agent,
+                pipeline=pipeline,
             )
-            if pr_details:
-                finished_pr = {
-                    "number": main_pr_number,
-                    "id": pr_details.get("id"),
-                    "head_ref": pr_details.get("head_ref", ""),
-                    "last_commit": pr_details.get("last_commit"),
-                    "copilot_finished": True,
-                }
+            if open_child_pr:
+                finished_pr = open_child_pr
+                finished_pr["copilot_finished"] = True
+                logger.info(
+                    "Main PR completion confirmed for agent '%s' on issue #%d, but child PR #%d is still open — merging child PR before Done!",
+                    current_agent,
+                    issue_number,
+                    open_child_pr.get("number"),
+                )
+            else:
+                pr_details = await _cp.github_projects_service.get_pull_request(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    pr_number=main_pr_number,
+                )
+                if pr_details:
+                    finished_pr = {
+                        "number": main_pr_number,
+                        "id": pr_details.get("id"),
+                        "head_ref": pr_details.get("head_ref", ""),
+                        "last_commit": pr_details.get("last_commit"),
+                        "copilot_finished": True,
+                    }
 
     if not finished_pr:
         return None

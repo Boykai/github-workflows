@@ -1411,9 +1411,16 @@ class WorkflowOrchestrator:
                 repo=ctx.repository_name,
             )
             if review_requested:
-                from ..copilot_polling.state import _copilot_review_requested_at
+                from ..copilot_polling.helpers import (
+                    _record_copilot_review_request_timestamp,
+                )
 
-                _copilot_review_requested_at[ctx.issue_number] = utcnow()
+                await _record_copilot_review_request_timestamp(
+                    access_token=ctx.access_token,
+                    owner=ctx.repository_owner,
+                    repo=ctx.repository_name,
+                    issue_number=ctx.issue_number,
+                )
                 logger.info(
                     "Copilot code review requested on PR #%d for issue #%d",
                     review_pr_number,

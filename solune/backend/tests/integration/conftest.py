@@ -121,7 +121,9 @@ def thin_mock_connection_manager() -> ConnectionManager:
 def _reset_integration_state() -> Iterator[None]:
     from src.api.chat import _locks, _messages, _proposals, _recommendations
     from src.services import pipeline_state_store, websocket
+    from src.services.cache import cache as _cache
 
+    _cache.clear()
     _messages.clear()
     _proposals.clear()
     _recommendations.clear()
@@ -137,6 +139,7 @@ def _reset_integration_state() -> Iterator[None]:
 
     yield
 
+    _cache.clear()
     _messages.clear()
     _proposals.clear()
     _recommendations.clear()
