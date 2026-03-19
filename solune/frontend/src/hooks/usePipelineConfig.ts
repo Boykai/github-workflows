@@ -1,6 +1,6 @@
 /** Core pipeline state management hook — composes sub-hooks + useReducer for CRUD. */
 
-import { useReducer, useCallback, useMemo, useEffect, useRef } from 'react';
+import { useReducer, useCallback, useMemo, useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { pipelinesApi } from '@/services/api';
@@ -54,9 +54,8 @@ export function usePipelineConfig(projectId: string | null) {
   const undoStackRef = useRef<PipelineConfig[]>([]);
   const redoStackRef = useRef<PipelineConfig[]>([]);
   const lastSnapshotRef = useRef<string | null>(null);
-
-  const canUndo = undoStackRef.current.length > 0;
-  const canRedo = redoStackRef.current.length > 0;
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   const pushUndoSnapshot = useCallback((pipeline: PipelineConfig) => {
     const snap = computeSnapshot(pipeline);
@@ -64,12 +63,16 @@ export function usePipelineConfig(projectId: string | null) {
     undoStackRef.current = [...undoStackRef.current.slice(-(MAX_UNDO_STACK - 1)), pipeline];
     redoStackRef.current = [];
     lastSnapshotRef.current = snap;
+    setCanUndo(true);
+    setCanRedo(false);
   }, []);
 
   const clearUndoRedo = useCallback(() => {
     undoStackRef.current = [];
     redoStackRef.current = [];
     lastSnapshotRef.current = null;
+    setCanUndo(false);
+    setCanRedo(false);
   }, []);
 
   const setPipeline = useCallback(
@@ -92,6 +95,8 @@ export function usePipelineConfig(projectId: string | null) {
     undoStackRef.current = undoStackRef.current.slice(0, -1);
     redoStackRef.current = [...redoStackRef.current, state.pipeline];
     lastSnapshotRef.current = computeSnapshot(previous);
+    setCanUndo(undoStackRef.current.length > 0);
+    setCanRedo(true);
     dispatch({ type: 'SET_PIPELINE', updater: previous });
   }, [state.pipeline]);
 
@@ -101,6 +106,8 @@ export function usePipelineConfig(projectId: string | null) {
     redoStackRef.current = redoStackRef.current.slice(0, -1);
     undoStackRef.current = [...undoStackRef.current, state.pipeline];
     lastSnapshotRef.current = computeSnapshot(next);
+    setCanUndo(true);
+    setCanRedo(redoStackRef.current.length > 0);
     dispatch({ type: 'SET_PIPELINE', updater: next });
   }, [state.pipeline]);
 

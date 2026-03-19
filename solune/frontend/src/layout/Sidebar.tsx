@@ -121,7 +121,7 @@ export function Sidebar({
             key={route.path}
             to={route.path}
             end={route.path === '/'}
-            onClick={isMobile && !isCollapsed ? onToggle : undefined}
+            onClick={isMobile ? onToggle : undefined}
             data-tour-step={{
               '/projects': 'projects-link',
               '/pipeline': 'pipeline-link',

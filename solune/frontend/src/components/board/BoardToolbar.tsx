@@ -198,6 +198,7 @@ export function BoardToolbar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder="Search issues…"
+            aria-label="Search issues"
             className="h-8 rounded-full border border-border/70 bg-background/50 pl-8 pr-3 text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/40 w-40 sm:w-52"
           />
           {searchQuery && (

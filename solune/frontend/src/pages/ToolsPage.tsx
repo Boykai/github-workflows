@@ -95,7 +95,7 @@ export function ToolsPage() {
                   </div>
                 ))}
               </div>
-            ) : tools.length === 0 ? (
+            ) : (tools ?? []).length === 0 ? (
               <EmptyState
                 icon={Wrench}
                 title="No tools configured"
