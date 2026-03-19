@@ -274,6 +274,7 @@ export function CreateAppDialog({
       azureClientId,
       azureClientSecret,
       selectedPipelineId,
+      projectId,
       onSubmit,
       getErrorMessage,
     ],
