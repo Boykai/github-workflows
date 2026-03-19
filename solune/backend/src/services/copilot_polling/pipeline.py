@@ -1361,6 +1361,17 @@ async def _advance_pipeline(
     if completed_agent is None:
         logger.error("No current agent in pipeline — cannot advance")
         return None
+
+    # Snapshot group state before mutation so rollback can restore it
+    # if the child-PR merge fails or is blocked.
+    _pre_group_idx = pipeline.current_group_index
+    _pre_agent_in_group = pipeline.current_agent_index_in_group
+    _pre_group_agent_status: str | None = None
+    if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
+        _pre_group_agent_status = pipeline.groups[pipeline.current_group_index].agent_statuses.get(
+            completed_agent
+        )
+
     pipeline.completed_agents.append(completed_agent)
     pipeline.current_agent_index += 1
 
@@ -1505,6 +1516,16 @@ async def _advance_pipeline(
             pipeline.current_agent_index -= 1
             if completed_agent in pipeline.completed_agents:
                 pipeline.completed_agents.remove(completed_agent)
+            # Restore group indices/statuses to pre-advance values so
+            # current_agent (derived from group state) stays consistent.
+            pipeline.current_group_index = _pre_group_idx
+            pipeline.current_agent_index_in_group = _pre_agent_in_group
+            if pipeline.groups and _pre_group_idx < len(pipeline.groups):
+                _g = pipeline.groups[_pre_group_idx]
+                if _pre_group_agent_status is None:
+                    _g.agent_statuses.pop(completed_agent, None)
+                else:
+                    _g.agent_statuses[completed_agent] = _pre_group_agent_status
             _cp.set_pipeline_state(issue_number, pipeline)
             return {
                 "status": "merge_blocked",
@@ -1514,6 +1535,47 @@ async def _advance_pipeline(
                 "agent_name": completed_agent,
                 "blocked_pr": merge_result.get("pr_number"),
             }
+        elif merge_result is None:
+            from .completion import _find_open_child_pr
+
+            open_child_pr = await _find_open_child_pr(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+                main_branch=main_branch_info["branch"],
+                main_pr_number=main_branch_info["pr_number"],
+                agent_name=completed_agent,
+                pipeline=pipeline,
+            )
+            if open_child_pr:
+                logger.warning(
+                    "Safety-net merge found open child PR #%d for agent '%s' on issue #%d but merge did not complete — blocking pipeline advance",
+                    open_child_pr.get("number"),
+                    completed_agent,
+                    issue_number,
+                )
+                pipeline.current_agent_index -= 1
+                if completed_agent in pipeline.completed_agents:
+                    pipeline.completed_agents.remove(completed_agent)
+                # Restore group indices/statuses to pre-advance values.
+                pipeline.current_group_index = _pre_group_idx
+                pipeline.current_agent_index_in_group = _pre_agent_in_group
+                if pipeline.groups and _pre_group_idx < len(pipeline.groups):
+                    _g = pipeline.groups[_pre_group_idx]
+                    if _pre_group_agent_status is None:
+                        _g.agent_statuses.pop(completed_agent, None)
+                    else:
+                        _g.agent_statuses[completed_agent] = _pre_group_agent_status
+                _cp.set_pipeline_state(issue_number, pipeline)
+                return {
+                    "status": "merge_blocked",
+                    "issue_number": issue_number,
+                    "task_title": task_title,
+                    "action": "merge_blocked",
+                    "agent_name": completed_agent,
+                    "blocked_pr": open_child_pr.get("number"),
+                }
 
         # Refresh HEAD SHA so the next agent / next status branches
         # from the absolute latest (post-merge) state.
@@ -1933,9 +1995,14 @@ async def _transition_after_pipeline_complete(
                     # Record the request timestamp so _check_copilot_review_done
                     # can filter out any random/auto-triggered reviews that were
                     # submitted BEFORE our explicit request.
-                    from .state import _copilot_review_requested_at
+                    from .helpers import _record_copilot_review_request_timestamp
 
-                    _copilot_review_requested_at[issue_number] = utcnow()
+                    await _record_copilot_review_request_timestamp(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=issue_number,
+                    )
                     logger.info(
                         "Copilot code review requested for main PR #%d",
                         main_pr_number,
