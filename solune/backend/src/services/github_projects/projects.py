@@ -128,7 +128,6 @@ class ProjectsMixin:
             UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION,
             {
                 "fieldId": field_id,
-                "projectId": project_id,
                 "options": _SOLUNE_STATUS_OPTIONS,
             },
         )

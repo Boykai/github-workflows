@@ -981,18 +981,19 @@ mutation($projectId: ID!, $repositoryId: ID!) {
 """
 
 UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION = """
-mutation($fieldId: ID!, $projectId: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
-  updateProjectV2SingleSelectField(input: {
+mutation($fieldId: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
+  updateProjectV2Field(input: {
     fieldId: $fieldId,
-    projectId: $projectId,
     singleSelectOptions: $options
   }) {
-    projectV2SingleSelectField {
-      id
-      options {
+    projectV2Field {
+      ... on ProjectV2SingleSelectField {
         id
-        name
-        color
+        options {
+          id
+          name
+          color
+        }
       }
     }
   }
