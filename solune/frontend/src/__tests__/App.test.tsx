@@ -64,13 +64,11 @@ vi.mock('@/layout/AppLayout', () => ({
 
 // Mock lazyWithRetry to return components directly
 vi.mock('@/lib/lazyWithRetry', () => ({
-  lazyWithRetry: (fn: () => Promise<{ default: React.ComponentType }>) => {
-    // For test, we return a sync component since pages are already mocked
-    const Component = (props: Record<string, unknown>) => {
-      const [Comp, setComp] = vi.importActual('react').then ? null : [null];
-      // Since pages are mocked, lazy won't be called - return a placeholder
-      return <div>Loading...</div>;
-    };
+  lazyWithRetry: (_fn: () => Promise<{ default: React.ComponentType }>) => {
+    // Pages are already mocked above, so lazyWithRetry is a pass-through.
+    // Return a simple placeholder component since the real lazy imports
+    // are intercepted by vi.mock at the module level.
+    const Component = () => <div>Loading...</div>;
     return Component;
   },
 }));
@@ -99,15 +97,15 @@ function renderWithRouter(initialEntries: string[] = ['/']) {
       element: <div data-testid="app-layout"><AppLayoutOutlet /></div>,
       children: [
         { index: true, element: <div data-testid="app-page">App Page</div> },
-        { path: 'projects', element: <div data-testid="projects-page">Projects</div> },
-        { path: 'pipeline', element: <div data-testid="pipeline-page">Pipeline</div> },
-        { path: 'agents', element: <div data-testid="agents-page">Agents</div> },
-        { path: 'tools', element: <div data-testid="tools-page">Tools</div> },
-        { path: 'chores', element: <div data-testid="chores-page">Chores</div> },
-        { path: 'settings', element: <div data-testid="settings-page">Settings</div> },
-        { path: 'apps', element: <div data-testid="apps-page">Apps</div> },
-        { path: 'apps/:appName', element: <div data-testid="apps-page">Apps</div> },
-        { path: 'help', element: <div data-testid="help-page">Help</div> },
+        { path: 'projects', element: <div data-testid="projects-page">Projects Page</div> },
+        { path: 'pipeline', element: <div data-testid="pipeline-page">Pipeline Page</div> },
+        { path: 'agents', element: <div data-testid="agents-page">Agents Page</div> },
+        { path: 'tools', element: <div data-testid="tools-page">Tools Page</div> },
+        { path: 'chores', element: <div data-testid="chores-page">Chores Page</div> },
+        { path: 'settings', element: <div data-testid="settings-page">Settings Page</div> },
+        { path: 'apps', element: <div data-testid="apps-page">Apps Page</div> },
+        { path: 'apps/:appName', element: <div data-testid="apps-page">Apps Page</div> },
+        { path: 'help', element: <div data-testid="help-page">Help Page</div> },
         { path: '*', element: <div data-testid="not-found-page">Not Found</div> },
       ],
     },
