@@ -21,6 +21,7 @@ import { ChatPopup } from '@/components/chat/ChatPopup';
 import { SpotlightTour } from '@/components/onboarding/SpotlightTour';
 import { OnboardingProvider } from '@/hooks/useOnboarding';
 import { RateLimitProvider } from '@/context/RateLimitContext';
+import { Toaster } from 'sonner';
 
 /** Dismissible Signal conflict banner bar. */
 function SignalBannerBar() {
@@ -164,6 +165,18 @@ export function AppLayout() {
         <SpotlightTour
           isSidebarCollapsed={isCollapsed}
           onToggleSidebar={toggleSidebar}
+        />
+        <Toaster
+          position="bottom-right"
+          visibleToasts={3}
+          duration={5000}
+          toastOptions={{
+            classNames: {
+              toast: 'celestial-panel border border-border shadow-lg',
+              title: 'text-foreground font-sans',
+              description: 'text-muted-foreground',
+            },
+          }}
         />
       </div>
     </RateLimitProvider>
