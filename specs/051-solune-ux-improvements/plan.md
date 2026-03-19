@@ -1,104 +1,150 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Solune UX Improvements
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `051-solune-ux-improvements` | **Date**: 2026-03-19 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/051-solune-ux-improvements/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Ten concrete UX improvements across the Solune frontend (React 19 / TypeScript 5.9 / Tailwind v4)
+spanning five categories: mobile responsiveness, perceived performance, interaction consistency,
+discoverability, and power-user features. All changes are frontend-only — no backend API changes
+or new endpoints required.
+
+The approach follows phased execution ordered by user impact: mobile responsiveness first (P1–P2:
+ChatPopup bottom-sheet, sidebar auto-collapse, responsive modals and toolbar), then perceived
+performance (P2–P3: skeleton loaders for 4 catalog pages, optimistic updates for drag-drop and
+app start/stop), then interaction consistency (P3: standardize all mutation feedback to Sonner
+toasts, add empty states for catalog pages), and finally discoverability/power-user features
+(P4: board and catalog text search, extended onboarding tour, pipeline undo/redo).
+
+Key technical decisions: use a single 768px breakpoint via `matchMedia` for all responsive
+behaviors; reuse the existing `Skeleton` component (pulse/shimmer variants) without modification;
+implement optimistic updates via TanStack Query `onMutate`/`onError` rollback pattern; implement
+undo/redo as a state snapshot stack in `usePipelineConfig`; client-side search only (no new API).
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: TypeScript ~5.9.0 (frontend only — no backend changes)
+**Primary Dependencies**: React ^19.2.0, TanStack React Query ^5.91.0, Tailwind CSS ^4.2.0, @dnd-kit/core ^6.3.1, Sonner ^2.0.7, Vite ^8.0.0, Radix UI (popover, tooltip), Lucide React ^0.577.0, Zod ^4.3.6, react-hook-form ^7.71.2
+**Storage**: N/A (frontend-only changes; existing API endpoints remain unchanged)
+**Testing**: Vitest ^4.0.18 (unit, happy-dom), Playwright ^1.58.2 (E2E), Stryker ^9.6.0 (mutation), @testing-library/react ^16.3.2
+**Target Platform**: Modern browsers (Chrome, Firefox, Safari, Edge); mobile viewports 320px–1024px+
+**Project Type**: Web application (frontend monorepo under `solune/frontend/`)
+**Performance Goals**: Drag-drop optimistic update visual feedback <100ms; search filtering <300ms for ≤500 items; undo/redo operations <200ms; skeleton-to-content transition with zero layout shift
+**Constraints**: Single 768px breakpoint for all responsive behaviors; undo stack capped at 50 entries; client-side search only (no new API endpoints); no new dependencies — use existing libraries only
+**Scale/Scope**: ~130 frontend test files, 10 E2E specs, 11 pages, 15+ hooks, 20+ components modified across 4 phases
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Principle I: Specification-First Development ✅ PASS
+
+- ✅ Feature work began with explicit specification (`spec.md`)
+- ✅ 11 prioritized user stories (P1–P4) with independent testing criteria
+- ✅ Given-When-Then acceptance scenarios for each story (4+ scenarios per story)
+- ✅ Clear scope boundaries (optimistic updates scoped to drag-drop/app actions only; undo/redo scoped to pipeline builder only; client-side search only)
+
+### Principle II: Template-Driven Workflow ✅ PASS
+
+- ✅ All artifacts follow canonical templates from `.specify/templates/`
+- ✅ Plan, research, data-model, contracts, quickstart generated per template structure
+- ✅ No custom sections added without justification
+
+### Principle III: Agent-Orchestrated Execution ✅ PASS
+
+- ✅ Plan phase produces well-defined outputs (plan.md, research.md, data-model.md, contracts/, quickstart.md)
+- ✅ Explicit handoff to subsequent phases (tasks generation via `/speckit.tasks`, implementation)
+- ✅ Single-responsibility: this plan phase does not implement code changes
+
+### Principle IV: Test Optionality with Clarity ✅ PASS
+
+- ✅ Tests are expected per spec success criteria (SC-009: "Existing automated test suites pass after all improvements")
+- ✅ Specific verification methods defined in spec (vitest, playwright, axe-core, manual viewport testing)
+- ✅ Test types are appropriate to each target (unit for hooks/logic, component for UI, E2E for integration flows)
+
+### Principle V: Simplicity and DRY ✅ PASS
+
+- ✅ No new dependencies — uses existing libraries (Sonner, @dnd-kit, TanStack Query, Tailwind)
+- ✅ Reuses existing `Skeleton` component without modification
+- ✅ Single breakpoint (768px) for all responsive behaviors avoids complexity
+- ✅ Follows YAGNI — optimistic updates scoped only to high-frequency mutations; undo/redo only for pipeline builder
+- ✅ No premature abstraction — each improvement is self-contained
+
+### Constitution Check: Post-Design Re-evaluation ✅ PASS
+
+All five principles remain satisfied after Phase 1 design completion. No violations detected.
+
+- ✅ **Principle I**: Specification-first workflow followed; all design artifacts trace back to spec user stories
+- ✅ **Principle II**: All artifacts (plan, research, data-model, contracts, quickstart) follow canonical templates
+- ✅ **Principle III**: Plan phase produces well-defined outputs; explicit handoff to `/speckit.tasks` for Phase 2
+- ✅ **Principle IV**: Tests expected per spec (SC-009); verification commands documented in contracts
+- ✅ **Principle V**: No new dependencies added; two new files (`useMediaQuery.ts`, `EmptyState.tsx`) are justified reusable utilities that avoid duplication across 4+ components; no premature abstractions
+
+The feature operates entirely within the existing frontend project structure and tooling.
+No complexity justifications needed.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
+specs/051-solune-ux-improvements/
 ├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+├── research.md          # Phase 0 output — research decisions
+├── data-model.md        # Phase 1 output — entity definitions
+├── quickstart.md        # Phase 1 output — implementation guide
+├── contracts/           # Phase 1 output — quality contracts
+│   ├── responsive-behavior.md       # Mobile breakpoint contracts
+│   └── verification-commands.md     # Test and verification reference
+└── tasks.md             # Phase 2 output (/speckit.tasks command — NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
+solune/frontend/
 ├── src/
 │   ├── components/
+│   │   ├── chat/
+│   │   │   └── ChatPopup.tsx              # US-1: Bottom-sheet mobile layout
+│   │   ├── board/
+│   │   │   ├── IssueDetailModal.tsx       # US-3: Full-screen modal on mobile
+│   │   │   └── BoardToolbar.tsx           # US-4: Compact mobile toolbar; US-9: Text search
+│   │   ├── onboarding/
+│   │   │   └── SpotlightTour.tsx          # US-10: Extended tour steps
+│   │   ├── common/
+│   │   │   └── EmptyState.tsx             # US-8: Reusable empty state component (new)
+│   │   └── ui/
+│   │       └── skeleton.tsx               # Existing — reused for US-5
 │   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   ├── AgentsPage.tsx                 # US-5: Skeleton loaders; US-8: Empty states; US-9: Search
+│   │   ├── ToolsPage.tsx                  # US-5: Skeleton loaders; US-8: Empty states; US-9: Search
+│   │   ├── ChoresPage.tsx                 # US-5: Skeleton loaders; US-8: Empty states; US-9: Search
+│   │   └── AppsPage.tsx                   # US-5: Skeleton loaders; US-7: Toast standardization
+│   ├── hooks/
+│   │   ├── useBoardDragDrop.ts            # US-6: Optimistic updates
+│   │   ├── useApps.ts                     # US-6: Optimistic app start/stop; US-7: Toast standardization
+│   │   ├── usePipelineBoardMutations.ts   # US-6: Optimistic pipeline saves
+│   │   ├── usePipelineConfig.ts           # US-11: Undo/redo state stack
+│   │   ├── useMediaQuery.ts              # New: Shared matchMedia hook for responsive behaviors
+│   │   └── useOnboarding.tsx              # US-10: Updated total steps count
+│   └── layout/
+│       └── Sidebar.tsx                    # US-2: Auto-collapse on mobile
+└── src/test/
+    └── [test files for each modified component/hook]
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (frontend monorepo under `solune/frontend/`).
+All changes are in the existing `src/` directory tree. Two new files: `useMediaQuery.ts` (shared
+responsive hook) and `EmptyState.tsx` (reusable empty state component). All other changes modify
+existing files.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No Constitution Check violations detected. No complexity justifications needed.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+All improvements use existing libraries and patterns. The feature operates entirely within the
+existing frontend project structure with no new abstractions beyond a shared `useMediaQuery` hook
+(replacing duplicated `matchMedia` logic) and a reusable `EmptyState` component (replacing
+per-page empty state markup).
