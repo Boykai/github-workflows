@@ -1361,6 +1361,17 @@ async def _advance_pipeline(
     if completed_agent is None:
         logger.error("No current agent in pipeline — cannot advance")
         return None
+
+    # Snapshot group state before mutation so rollback can restore it
+    # if the child-PR merge fails or is blocked.
+    _pre_group_idx = pipeline.current_group_index
+    _pre_agent_in_group = pipeline.current_agent_index_in_group
+    _pre_group_agent_status: str | None = None
+    if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
+        _pre_group_agent_status = pipeline.groups[pipeline.current_group_index].agent_statuses.get(
+            completed_agent
+        )
+
     pipeline.completed_agents.append(completed_agent)
     pipeline.current_agent_index += 1
 
@@ -1505,6 +1516,16 @@ async def _advance_pipeline(
             pipeline.current_agent_index -= 1
             if completed_agent in pipeline.completed_agents:
                 pipeline.completed_agents.remove(completed_agent)
+            # Restore group indices/statuses to pre-advance values so
+            # current_agent (derived from group state) stays consistent.
+            pipeline.current_group_index = _pre_group_idx
+            pipeline.current_agent_index_in_group = _pre_agent_in_group
+            if pipeline.groups and _pre_group_idx < len(pipeline.groups):
+                _g = pipeline.groups[_pre_group_idx]
+                if _pre_group_agent_status is None:
+                    _g.agent_statuses.pop(completed_agent, None)
+                else:
+                    _g.agent_statuses[completed_agent] = _pre_group_agent_status
             _cp.set_pipeline_state(issue_number, pipeline)
             return {
                 "status": "merge_blocked",
@@ -1537,6 +1558,15 @@ async def _advance_pipeline(
                 pipeline.current_agent_index -= 1
                 if completed_agent in pipeline.completed_agents:
                     pipeline.completed_agents.remove(completed_agent)
+                # Restore group indices/statuses to pre-advance values.
+                pipeline.current_group_index = _pre_group_idx
+                pipeline.current_agent_index_in_group = _pre_agent_in_group
+                if pipeline.groups and _pre_group_idx < len(pipeline.groups):
+                    _g = pipeline.groups[_pre_group_idx]
+                    if _pre_group_agent_status is None:
+                        _g.agent_statuses.pop(completed_agent, None)
+                    else:
+                        _g.agent_statuses[completed_agent] = _pre_group_agent_status
                 _cp.set_pipeline_state(issue_number, pipeline)
                 return {
                     "status": "merge_blocked",
