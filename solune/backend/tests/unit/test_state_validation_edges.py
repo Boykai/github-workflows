@@ -23,12 +23,12 @@ def _step(agent_name: str, state: str) -> SimpleNamespace:
     return SimpleNamespace(agent_name=agent_name, state=state)
 
 
-_BASE_KWARGS = dict(
-    access_token="tok",
-    owner="owner",
-    repo="repo",
-    issue_number=42,
-)
+_BASE_KWARGS = {
+    "access_token": "tok",
+    "owner": "owner",
+    "repo": "repo",
+    "issue_number": 42,
+}
 
 _GPS = "src.services.copilot_polling.github_projects_service"
 
