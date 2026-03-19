@@ -32,7 +32,7 @@
 ## Notes
 
 - All items pass validation. Spec is ready for `/speckit.clarify` or `/speckit.plan`.
-- 23 functional requirements covering 4 improvement areas (Mobile Responsiveness, Perceived Performance, Interaction Consistency, Discoverability & Power Users).
+- 23 functional requirements across 4 requirement sections (Mobile Responsiveness, Perceived Performance, Interaction Consistency, Discoverability & Power Users).
 - 11 user stories with acceptance scenarios prioritized P1–P4.
 - 9 measurable success criteria, all technology-agnostic.
 - Assumptions section documents scope decisions (optimistic updates scoped to drag-drop/app actions, undo/redo scoped to pipeline builder, client-side search only).

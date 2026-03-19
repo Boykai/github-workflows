@@ -3,7 +3,7 @@
  * ChatPopup is rendered globally here so it persists across route navigation.
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
 import { TriangleAlert, X } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -60,14 +60,16 @@ export function AppLayout() {
   const { isDarkMode, toggleTheme } = useAppTheme();
   const { isCollapsed, toggle: toggleSidebar } = useSidebarState();
   const isMobile = useMediaQuery('(max-width: 767px)');
+  const wasMobileRef = useRef(isMobile);
 
   // Auto-collapse sidebar when entering mobile breakpoint
   useEffect(() => {
-    if (isMobile && !isCollapsed) {
+    const wasMobile = wasMobileRef.current;
+    wasMobileRef.current = isMobile;
+    if (isMobile && !wasMobile && !isCollapsed) {
       toggleSidebar();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- only react to isMobile changes
-  }, [isMobile]);
+  }, [isMobile, isCollapsed, toggleSidebar]);
   const {
     selectedProject,
     projects,
