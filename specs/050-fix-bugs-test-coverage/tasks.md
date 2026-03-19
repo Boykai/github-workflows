@@ -24,9 +24,9 @@
 
 **Purpose**: Verify existing tooling works, establish baseline measurements, and prepare the environment for bug fixes and coverage expansion.
 
-- [ ] T001 Verify backend virtual environment and dev dependencies are installed in solune/backend/.venv/
+- [X] T001 Verify backend virtual environment and dev dependencies are installed in solune/backend/.venv/
 - [ ] T002 [P] Verify frontend dependencies are installed in solune/frontend/ via `npm install`
-- [ ] T003 [P] Run baseline backend test suite and record current coverage percentage via `cd solune/backend && .venv/bin/python -m pytest tests/ --cov=src --cov-report=term-missing`
+- [X] T003 [P] Run baseline backend test suite and record current coverage percentage via `cd solune/backend && .venv/bin/python -m pytest tests/ --cov=src --cov-report=term-missing`
 - [ ] T004 [P] Run baseline frontend test suite and record current coverage percentage via `cd solune/frontend && npm run test:coverage`
 - [ ] T005 [P] Run baseline E2E test suite and record current spec count via `cd solune/frontend && npm run test:e2e`
 
@@ -38,11 +38,11 @@
 
 **⚠️ CRITICAL**: No bug-fix or coverage-expansion work should begin until this phase is complete. These tasks produce the defect backlog that drives all subsequent phases.
 
-- [ ] T006 [P] Run backend lint sweep via `cd solune/backend && .venv/bin/ruff check src/` and capture violation report
-- [ ] T007 [P] Run backend type-check sweep via `cd solune/backend && .venv/bin/pyright src/` and capture error report
+- [X] T006 [P] Run backend lint sweep via `cd solune/backend && .venv/bin/ruff check src/` and capture violation report
+- [X] T007 [P] Run backend type-check sweep via `cd solune/backend && .venv/bin/pyright src/` and capture error report
 - [ ] T008 [P] Run frontend lint sweep via `cd solune/frontend && npx eslint . --max-warnings=0` and capture violation report
 - [ ] T009 [P] Run frontend type-check sweep via `cd solune/frontend && npx tsc --noEmit` and capture error report
-- [ ] T010 [P] Run backend test suite with JUnit output via `cd solune/backend && .venv/bin/python -m pytest tests/ -q --tb=short --junitxml=results.xml`
+- [X] T010 [P] Run backend test suite with JUnit output via `cd solune/backend && .venv/bin/python -m pytest tests/ -q --tb=short --junitxml=results.xml`
 - [ ] T011 [P] Run frontend test suite with verbose reporter via `cd solune/frontend && npm run test -- --reporter=verbose`
 - [ ] T012 Run flaky test detection across 5+ runs via `cd solune/backend && python scripts/detect_flaky.py --runs=5` (depends on T010)
 - [ ] T013 Triage all findings from T006–T012: categorize each as fix-now, fix-later, or false-positive and document in a triage report
@@ -59,35 +59,35 @@
 
 ### BUG-001: Fix Mutmut Trampoline Name-Resolution (Critical)
 
-- [ ] T014 [US1] Investigate current `get_mutant_name()` behavior and `orig.__module__` prefix mismatch in solune/backend/scripts/run_mutmut_shard.py
-- [ ] T015 [US1] Patch trampoline template or normalize PYTHONPATH in solune/backend/scripts/run_mutmut_shard.py so `src.` prefix is consistently handled
-- [ ] T016 [P] [US1] Verify mutmut version pinning (≥3.2.0) in solune/backend/mutants/pyproject.toml aligns with trampoline fix
-- [ ] T017 [US1] Verify fix by running `cd solune/backend && python scripts/run_mutmut_shard.py --shard=auth-and-projects` and confirming kill rate >0%
+- [X] T014 [US1] Investigate current `get_mutant_name()` behavior and `orig.__module__` prefix mismatch in solune/backend/scripts/run_mutmut_shard.py
+- [X] T015 [US1] Patch trampoline template or normalize PYTHONPATH in solune/backend/scripts/run_mutmut_shard.py so `src.` prefix is consistently handled
+- [X] T016 [P] [US1] Verify mutmut version pinning (≥3.2.0) in solune/backend/mutants/pyproject.toml aligns with trampoline fix
+- [X] T017 [US1] Verify fix by running `cd solune/backend && python scripts/run_mutmut_shard.py --shard=auth-and-projects` and confirming kill rate >0%
 
 ### BUG-002: Fix Cache Leakage Between Tests
 
-- [ ] T018 [US1] Audit all cache entry points (LRU caches, module-level dicts, class singletons) in solune/backend/src/services/cache.py
-- [ ] T019 [US1] Verify `_clear_test_caches` autouse fixture covers all cache entry points in solune/backend/tests/conftest.py
-- [ ] T020 [US1] Add any missing cache-clearing calls to the autouse fixture in solune/backend/tests/conftest.py
-- [ ] T021 [US1] Verify fix by running `cd solune/backend && .venv/bin/python -m pytest tests/unit/ tests/integration/ -q --tb=short` with no stale state
+- [X] T018 [US1] Audit all cache entry points (LRU caches, module-level dicts, class singletons) in solune/backend/src/services/cache.py
+- [X] T019 [US1] Verify `_clear_test_caches` autouse fixture covers all cache entry points in solune/backend/tests/conftest.py
+- [X] T020 [US1] Add any missing cache-clearing calls to the autouse fixture in solune/backend/tests/conftest.py
+- [X] T021 [US1] Verify fix by running `cd solune/backend && .venv/bin/python -m pytest tests/unit/ tests/integration/ -q --tb=short` with no stale state
 
 ### BUG-003: Fix AsyncMock Warnings in Integration Tests
 
-- [ ] T022 [US1] Identify all `AsyncMock(spec=...)` patterns in solune/backend/tests/integration/conftest.py
-- [ ] T023 [US1] Replace each `AsyncMock(spec=SomeService)` with a plain async stub class implementing the same interface in solune/backend/tests/integration/conftest.py
-- [ ] T024 [US1] Verify fix by running `cd solune/backend && .venv/bin/python -m pytest tests/ -q 2>&1 | grep -i "asyncmock"` and confirming zero matches
+- [X] T022 [US1] Identify all `AsyncMock(spec=...)` patterns in solune/backend/tests/integration/conftest.py
+- [X] T023 [US1] Replace each `AsyncMock(spec=SomeService)` with a plain async stub class implementing the same interface in solune/backend/tests/integration/conftest.py
+- [X] T024 [US1] Verify fix by running `cd solune/backend && .venv/bin/python -m pytest tests/ -q 2>&1 | grep -i "asyncmock"` and confirming zero matches
 
 ### BUG-004: Fix Pipeline "Stuck in In Progress"
 
-- [ ] T025 [US1] Review state transition logic in solune/backend/src/services/copilot_polling/state_validation.py for overly strict backward-transition rejection
-- [ ] T026 [US1] Fix state validation to accept valid forward transitions (Queued → In Progress → Completed) in solune/backend/src/services/copilot_polling/state_validation.py
-- [ ] T027 [P] [US1] Review pipeline service for transition ordering issues in solune/backend/src/services/copilot_polling/pipeline.py
-- [ ] T028 [US1] Add explicit test cases for all valid and invalid transition sequences in solune/backend/tests/unit/test_copilot_polling/
-- [ ] T029 [US1] Verify fix by running `cd solune/backend && .venv/bin/python -m pytest tests/unit/test_copilot_polling/ -q --tb=short`
+- [X] T025 [US1] Review state transition logic in solune/backend/src/services/copilot_polling/state_validation.py for overly strict backward-transition rejection
+- [X] T026 [US1] Fix state validation to accept valid forward transitions (Queued → In Progress → Completed) in solune/backend/src/services/copilot_polling/state_validation.py
+- [X] T027 [P] [US1] Review pipeline service for transition ordering issues in solune/backend/src/services/copilot_polling/pipeline.py
+- [X] T028 [US1] Add explicit test cases for all valid and invalid transition sequences in solune/backend/tests/unit/test_copilot_polling/
+- [X] T029 [US1] Verify fix by running `cd solune/backend && .venv/bin/python -m pytest tests/unit/test_copilot_polling/ -q --tb=short`
 
 ### US1 Integration Verification
 
-- [ ] T030 [US1] Run full backend test suite and confirm zero warnings, zero flaky failures: `cd solune/backend && .venv/bin/python -m pytest tests/ -q --tb=short`
+- [X] T030 [US1] Run full backend test suite and confirm zero warnings, zero flaky failures: `cd solune/backend && .venv/bin/python -m pytest tests/ -q --tb=short`
 
 **Checkpoint**: All 4 known bugs fixed. Test infrastructure is trustworthy. Coverage expansion (Phases 4–5) can now begin.
 
@@ -128,8 +128,8 @@
 ### High-Risk Service Module Tests (Step 9)
 
 - [ ] T041 [P] [US3] Add unit tests for recovery logic in solune/backend/tests/unit/test_copilot_polling_recovery.py covering solune/backend/src/services/copilot_polling/recovery.py
-- [ ] T042 [P] [US3] Add unit tests for state validation edge cases in solune/backend/tests/unit/test_state_validation_edges.py covering solune/backend/src/services/copilot_polling/state_validation.py
-- [ ] T043 [P] [US3] Add unit tests for workflow transitions logic in solune/backend/tests/unit/test_workflow_transitions.py covering solune/backend/src/services/workflow_orchestrator/transitions.py
+- [X] T042 [P] [US3] Add unit tests for state validation edge cases in solune/backend/tests/unit/test_state_validation_edges.py covering solune/backend/src/services/copilot_polling/state_validation.py
+- [X] T043 [P] [US3] Add unit tests for workflow transitions logic in solune/backend/tests/unit/test_workflow_transitions.py covering solune/backend/src/services/workflow_orchestrator/transitions.py
 - [ ] T044 [P] [US3] Add unit tests for signal bridge in solune/backend/tests/unit/test_signal_bridge.py covering solune/backend/src/services/signal_bridge.py
 - [ ] T045 [P] [US3] Add unit tests for signal delivery in solune/backend/tests/unit/test_signal_delivery.py covering solune/backend/src/services/signal_delivery.py
 - [ ] T046 [P] [US3] Add unit tests for guard enforcement in solune/backend/tests/unit/test_guard_service.py covering solune/backend/src/services/guard_service.py
@@ -138,14 +138,14 @@
 
 ### Mutation Testing Expansion (Step 10)
 
-- [ ] T049 [US3] Expand mutation testing targets by adding `src/api/`, `src/middleware/`, `src/utils.py` to SHARDS dict in solune/backend/scripts/run_mutmut_shard.py
+- [X] T049 [US3] Expand mutation testing targets by adding `src/api/`, `src/middleware/`, `src/utils.py` to SHARDS dict in solune/backend/scripts/run_mutmut_shard.py
 - [ ] T050 [US3] Run expanded mutation testing via `cd solune/backend && python scripts/run_mutmut_shard.py` across all shards and identify surviving mutants
 - [ ] T051 [US3] Kill surviving mutants with targeted assertions in corresponding test files under solune/backend/tests/
 
 ### Characterization Tests for DRY Candidates (Step 11)
 
-- [ ] T052 [P] [US3] Add characterization tests for 8 repo-resolution paths in solune/backend/tests/unit/test_regression_bugfixes.py to pin current behavior
-- [ ] T053 [P] [US3] Add characterization tests for 5 error-response patterns in solune/backend/tests/unit/test_regression_bugfixes.py to pin current behavior
+- [X] T052 [P] [US3] Add characterization tests for 8 repo-resolution paths in solune/backend/tests/unit/test_regression_bugfixes.py to pin current behavior
+- [X] T053 [P] [US3] Add characterization tests for 5 error-response patterns in solune/backend/tests/unit/test_regression_bugfixes.py to pin current behavior
 
 ### US3 Coverage Verification
 
@@ -163,7 +163,7 @@
 
 ### Cover App.tsx (Step 12)
 
-- [ ] T055 [US4] Create comprehensive tests for App.tsx including route rendering, auth guards, and error boundaries using `MemoryRouter` in solune/frontend/src/__tests__/App.test.tsx
+- [X] T055 [US4] Create comprehensive tests for App.tsx including route rendering, auth guards, and error boundaries using `MemoryRouter` in solune/frontend/src/__tests__/App.test.tsx
 
 ### Cover Board Components (Step 13)
 
@@ -180,10 +180,10 @@
 
 ### Expand E2E Suite (Step 15)
 
-- [ ] T063 [P] [US4] Create E2E spec for agent creation flow in solune/frontend/e2e/agent-creation.spec.ts
-- [ ] T064 [P] [US4] Create E2E spec for pipeline monitoring flow in solune/frontend/e2e/pipeline-monitoring.spec.ts
-- [ ] T065 [P] [US4] Create E2E spec for MCP tool configuration flow in solune/frontend/e2e/mcp-tool-config.spec.ts
-- [ ] T066 [P] [US4] Create E2E spec for error recovery flow in solune/frontend/e2e/error-recovery.spec.ts
+- [X] T063 [P] [US4] Create E2E spec for agent creation flow in solune/frontend/e2e/agent-creation.spec.ts
+- [X] T064 [P] [US4] Create E2E spec for pipeline monitoring flow in solune/frontend/e2e/pipeline-monitoring.spec.ts
+- [X] T065 [P] [US4] Create E2E spec for MCP tool configuration flow in solune/frontend/e2e/mcp-tool-config.spec.ts
+- [X] T066 [P] [US4] Create E2E spec for error recovery flow in solune/frontend/e2e/error-recovery.spec.ts
 
 ### Run Stryker and Kill Survivors (Step 16)
 
@@ -207,20 +207,20 @@
 
 ### Ratchet Coverage Thresholds (Step 17)
 
-- [ ] T071 [P] [US5] Ratchet backend coverage threshold from `fail_under = 75` to `fail_under = 80` in solune/backend/pyproject.toml `[tool.coverage.report]` section
-- [ ] T072 [P] [US5] Ratchet frontend coverage thresholds from 50/44/41/50 to 55/50/45/55 (statements/branches/functions/lines) in solune/frontend/vitest.config.ts
+- [X] T071 [P] [US5] Ratchet backend coverage threshold from `fail_under = 75` to `fail_under = 80` in solune/backend/pyproject.toml `[tool.coverage.report]` section
+- [X] T072 [P] [US5] Ratchet frontend coverage thresholds from 50/44/41/50 to 55/50/45/55 (statements/branches/functions/lines) in solune/frontend/vitest.config.ts
 
 ### Verify Pre-commit Hooks (Step 18)
 
-- [ ] T073 [US5] Verify pre-commit hook runs `ruff format` + `ruff check` + `pyright` on changed backend files in solune/scripts/pre-commit
-- [ ] T074 [P] [US5] Verify pre-commit hook runs `eslint` + `tsc --noEmit` on changed frontend files in solune/scripts/pre-commit
+- [X] T073 [US5] Verify pre-commit hook runs `ruff format` + `ruff check` + `pyright` on changed backend files in solune/scripts/pre-commit
+- [X] T074 [P] [US5] Verify pre-commit hook runs `eslint` + `tsc --noEmit` on changed frontend files in solune/scripts/pre-commit
 - [ ] T075 [US5] Test pre-commit hooks by introducing a deliberate lint violation, attempting to commit, and confirming the hook blocks it
 
 ### Expand Chaos/Concurrency Tests (Step 19)
 
-- [ ] T076 [P] [US5] Add chaos test for concurrent pipeline state updates in solune/backend/tests/chaos/test_concurrent_state_updates.py
-- [ ] T077 [P] [US5] Add chaos test for DB connection pool exhaustion in solune/backend/tests/chaos/test_connection_pool_exhaustion.py
-- [ ] T078 [P] [US5] Add concurrency test for WebSocket reconnection under load in solune/backend/tests/concurrency/test_websocket_reconnection.py
+- [X] T076 [P] [US5] Add chaos test for concurrent pipeline state updates in solune/backend/tests/chaos/test_concurrent_state_updates.py
+- [X] T077 [P] [US5] Add chaos test for DB connection pool exhaustion in solune/backend/tests/chaos/test_connection_pool_exhaustion.py
+- [X] T078 [P] [US5] Add concurrency test for WebSocket reconnection under load in solune/backend/tests/concurrency/test_websocket_reconnection.py
 
 ### US5 Hardening Verification
 

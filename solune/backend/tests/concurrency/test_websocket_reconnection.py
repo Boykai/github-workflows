@@ -7,10 +7,20 @@ and disconnection without data races or state corruption.
 from __future__ import annotations
 
 import asyncio
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from src.services.websocket import ConnectionManager
+
+
+def _make_mock_ws():
+    """Create a mock WebSocket that supports accept/send_json/close."""
+    ws = MagicMock()
+    ws.accept = AsyncMock()
+    ws.send_json = AsyncMock()
+    ws.close = AsyncMock()
+    return ws
 
 
 class TestWebSocketReconnectionUnderLoad:
@@ -22,16 +32,14 @@ class TestWebSocketReconnectionUnderLoad:
         manager = ConnectionManager()
         num_sessions = 20
 
-        async def _connect_and_disconnect(session_id: str):
-            mock_ws = AsyncMock()
-            mock_ws.send_json = AsyncMock()
-            mock_ws.close = AsyncMock()
-
-            await manager.connect(mock_ws, session_id)
+        async def _connect_and_disconnect(idx: int):
+            mock_ws = _make_mock_ws()
+            project_id = f"PVT_project_{idx}"
+            await manager.connect(mock_ws, project_id)
             await asyncio.sleep(0.01)
-            await manager.disconnect(mock_ws, session_id)
+            manager.disconnect(mock_ws)
 
-        tasks = [_connect_and_disconnect(f"session_{i}") for i in range(num_sessions)]
+        tasks = [_connect_and_disconnect(i) for i in range(num_sessions)]
         await asyncio.gather(*tasks)
 
         # After all connections are closed, count should be 0
@@ -41,23 +49,25 @@ class TestWebSocketReconnectionUnderLoad:
     async def test_broadcast_during_connections(self):
         """Broadcasting while connections are being added/removed should not raise."""
         manager = ConnectionManager()
+        project_id = "PVT_broadcast_test"
 
-        async def _connect_session(session_id: str):
-            mock_ws = AsyncMock()
-            mock_ws.send_json = AsyncMock()
-            await manager.connect(mock_ws, session_id)
+        async def _connect_session(idx: int):
+            mock_ws = _make_mock_ws()
+            await manager.connect(mock_ws, project_id)
             await asyncio.sleep(0.02)
-            await manager.disconnect(mock_ws, session_id)
+            manager.disconnect(mock_ws)
 
         async def _broadcaster():
             for _ in range(5):
                 try:
-                    await manager.broadcast({"type": "test", "data": "hello"})
+                    await manager.broadcast_to_project(
+                        project_id, {"type": "test", "data": "hello"}
+                    )
                 except Exception:
                     pass  # Expected during concurrent disconnect
                 await asyncio.sleep(0.01)
 
-        tasks = [_connect_session(f"s_{i}") for i in range(10)]
+        tasks = [_connect_session(i) for i in range(10)]
         tasks.append(_broadcaster())
 
         # Should complete without deadlocking
@@ -67,16 +77,10 @@ class TestWebSocketReconnectionUnderLoad:
     async def test_shutdown_clears_all_connections(self):
         """shutdown() should clean up all connections."""
         manager = ConnectionManager()
-        mock_ws = AsyncMock()
-        mock_ws.send_json = AsyncMock()
-        mock_ws.close = AsyncMock()
+        mock_ws = _make_mock_ws()
 
-        await manager.connect(mock_ws, "session_1")
+        await manager.connect(mock_ws, "PVT_shutdown_test")
         assert manager.get_total_connections() >= 1
 
         await manager.shutdown()
         assert manager.get_total_connections() == 0
-
-
-# Required import for AsyncMock used in test stubs
-from unittest.mock import AsyncMock  # noqa: E402

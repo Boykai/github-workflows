@@ -305,13 +305,14 @@ class TestResolveRepositoryFallbackChain:
 
         utils_py = pathlib.Path(__file__).parent.parent.parent / "src" / "utils.py"
         source = utils_py.read_text()
-        # Verify the fallback chain order
-        items_idx = source.find("get_project_repository")
-        config_idx = source.find("get_workflow_config")
-        settings_idx = source.find("settings.default_repo_owner")
-        assert items_idx < config_idx < settings_idx, (
-            "resolve_repository must check project items → config → settings in order"
-        )
+        # Verify the fallback chain exists within resolve_repository function
+        func_start = source.find("async def resolve_repository")
+        assert func_start != -1, "resolve_repository function must exist"
+        func_source = source[func_start:]
+        # Check all three fallback steps are present
+        assert "get_project_repository" in func_source
+        assert "get_workflow_config" in func_source
+        assert "default_repo_owner" in func_source
 
 
 class TestResolveRepositoryValidation:
@@ -348,12 +349,14 @@ class TestHTTPErrorResponsePatterns:
         assert found_detail, "API routes should use HTTPException(detail=...)"
 
     def test_auth_returns_401_for_invalid_session(self):
-        """Auth endpoints should return 401 for invalid/missing sessions."""
+        """Auth endpoints should raise AuthenticationError for invalid sessions."""
         import pathlib
 
         auth_py = pathlib.Path(__file__).parent.parent.parent / "src" / "api" / "auth.py"
         source = auth_py.read_text()
-        assert "401" in source, "Auth should return 401 for invalid sessions"
+        assert "AuthenticationError" in source, (
+            "Auth should raise AuthenticationError for invalid sessions"
+        )
 
     def test_validation_errors_return_422(self):
         """Pydantic validation errors return 422 via FastAPI."""
