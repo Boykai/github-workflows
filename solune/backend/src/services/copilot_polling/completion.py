@@ -1,5 +1,6 @@
 """PR completion detection — merge, child PR, main PR, and review logic."""
 
+import asyncio
 from datetime import datetime
 from typing import Any
 
@@ -14,6 +15,94 @@ from .state import (
 )
 
 logger = get_logger(__name__)
+
+
+async def _find_open_child_pr(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    main_branch: str,
+    main_pr_number: int,
+    agent_name: str,
+    pipeline: "object | None" = None,
+) -> dict[str, Any] | None:
+    """Find an open child PR for the current agent even if completion signals are weak.
+
+    This is used as a safety-net when completion is inferred from main-PR signals,
+    but the actual child PR is still open and must be merged before the pipeline can
+    advance.
+    """
+    if agent_name == "copilot-review":
+        return None
+
+    try:
+        linked_prs = await _cp._get_linked_prs_including_sub_issues(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            parent_issue_number=issue_number,
+            pipeline=pipeline,
+            current_agent=agent_name,
+        )
+        if not linked_prs:
+            return None
+
+        for pr in linked_prs:
+            pr_number = pr.get("number")
+            if pr_number is None:
+                continue
+            pr_number = int(pr_number)
+            if pr_number == main_pr_number:
+                continue
+
+            pr_state = pr.get("state", "").upper()
+            pr_author = pr.get("author", "").lower()
+            if pr_state != "OPEN" or not is_copilot_author(pr_author):
+                continue
+
+            claimed_by_other = False
+            for key in list(_claimed_child_prs):
+                if key.startswith(f"{issue_number}:{pr_number}:"):
+                    claimed_agent = key.split(":")[-1]
+                    if claimed_agent != agent_name:
+                        claimed_by_other = True
+                        break
+            if claimed_by_other:
+                continue
+
+            pr_details = await _cp.github_projects_service.get_pull_request(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                pr_number=pr_number,
+            )
+            if not pr_details:
+                continue
+
+            pr_base = pr_details.get("base_ref", "")
+            if pr_base not in (main_branch, "main"):
+                continue
+
+            return {
+                "number": pr_number,
+                "id": pr_details.get("id"),
+                "head_ref": pr_details.get("head_ref", ""),
+                "base_ref": pr_base,
+                "last_commit": pr_details.get("last_commit"),
+                "copilot_finished": False,
+                "is_child_pr": True,
+                "is_draft": pr_details.get("is_draft", False),
+            }
+    except Exception as e:
+        logger.debug(
+            "Could not find open child PR for agent '%s' on issue #%d: %s",
+            agent_name,
+            issue_number,
+            e,
+        )
+
+    return None
 
 
 async def _merge_child_pr_if_applicable(
@@ -171,6 +260,8 @@ async def _merge_child_pr_if_applicable(
                     pr_node_id=pr_node_id,
                 )
                 _system_marked_ready_prs.add(pr_number)
+                # GitHub may take a moment to propagate draft -> ready state.
+                await asyncio.sleep(2.0)
 
             # Merge the child PR into the main branch
             logger.info(
@@ -190,6 +281,36 @@ async def _merge_child_pr_if_applicable(
             )
 
             if merge_result:
+                # Verify GitHub actually reflects the merged state before we allow
+                # the pipeline to continue. This avoids Done! markers being posted
+                # while the child PR is still open.
+                post_merge_state = ""
+                for attempt in range(2):
+                    post_merge_details = await _cp.github_projects_service.get_pull_request(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        pr_number=pr_number,
+                    )
+                    post_merge_state = (post_merge_details or {}).get("state", "").upper()
+                    if not post_merge_state or post_merge_state == "MERGED":
+                        break
+                    if attempt == 0:
+                        await asyncio.sleep(1.0)
+
+                if post_merge_state and post_merge_state != "MERGED":
+                    logger.warning(
+                        "Merge API returned success for child PR #%d but PR state is still %s",
+                        pr_number,
+                        post_merge_state,
+                    )
+                    return {
+                        "status": "merge_failed",
+                        "pr_number": pr_number,
+                        "main_branch": main_branch,
+                        "agent": completed_agent,
+                    }
+
                 # Get the child branch name to delete after merge
                 child_branch = pr_details.get("head_ref", "")
 
@@ -1320,10 +1441,16 @@ async def ensure_copilot_review_requested(
             # Record the request timestamp so _check_copilot_review_done
             # can filter out random/auto-triggered reviews submitted before
             # this explicit request (+ buffer window).
-            from src.services.copilot_polling.state import _copilot_review_requested_at
-            from src.utils import utcnow
+            from src.services.copilot_polling.helpers import (
+                _record_copilot_review_request_timestamp,
+            )
 
-            _copilot_review_requested_at[issue_number] = utcnow()
+            await _record_copilot_review_request_timestamp(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
             _processed_issue_prs.add(cache_key)
             return {
                 "status": "success",

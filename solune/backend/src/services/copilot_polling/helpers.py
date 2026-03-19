@@ -1,6 +1,7 @@
 """Issue body tracking helpers — shared across multiple polling sub-modules."""
 
 import re
+from datetime import UTC, datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
@@ -10,6 +11,112 @@ logger = get_logger(__name__)
 
 # Matches sub-issue titles created by the orchestrator: "[agent-name] Parent Title"
 _SUB_ISSUE_TITLE_RE = re.compile(r"^\[\S+\]\s")
+_COPILOT_REVIEW_REQUEST_META_RE = re.compile(
+    r"<!--\s*solune:copilot-review-requested-at=(?P<requested_at>[^\s>]+)\s*-->"
+)
+_COPILOT_REVIEW_DONE_META_RE = re.compile(
+    r"<!--\s*solune:copilot-review-requested-at=(?P<requested_at>[^\s>]+)"
+    r"\s+detected-at=(?P<detected_at>[^\s>]+)\s*-->"
+)
+
+
+def _parse_github_timestamp(value: str | None) -> datetime | None:
+    """Parse GitHub ISO timestamps, accepting the trailing ``Z`` form."""
+    if not value:
+        return None
+    normalized = value.replace("Z", "+00:00") if value.endswith("Z") else value
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError:
+        return None
+
+
+def _format_github_timestamp(value: datetime) -> str:
+    """Render UTC datetimes in GitHub's trailing-``Z`` ISO form."""
+    return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _extract_copilot_review_requested_at(text: str | None) -> datetime | None:
+    """Extract durable copilot-review request metadata from body/comment text."""
+    if not text:
+        return None
+    done_match = _COPILOT_REVIEW_DONE_META_RE.search(text)
+    if done_match:
+        return _parse_github_timestamp(done_match.group("requested_at"))
+    request_match = _COPILOT_REVIEW_REQUEST_META_RE.search(text)
+    if request_match:
+        return _parse_github_timestamp(request_match.group("requested_at"))
+    return None
+
+
+def _build_copilot_review_request_metadata(requested_at: datetime) -> str:
+    """Render the durable issue-body marker for explicit review requests."""
+    return f"<!-- solune:copilot-review-requested-at={_format_github_timestamp(requested_at)} -->"
+
+
+def _build_copilot_review_done_marker(
+    requested_at: datetime,
+    detected_at: datetime,
+) -> str:
+    """Render the durable Done marker with embedded request/detection metadata."""
+    return (
+        "copilot-review: Done!\n"
+        f"<!-- solune:copilot-review-requested-at={_format_github_timestamp(requested_at)} "
+        f"detected-at={_format_github_timestamp(detected_at)} -->"
+    )
+
+
+def _upsert_copilot_review_request_metadata(body: str, requested_at: datetime) -> str:
+    """Store the latest explicit Copilot review request timestamp in the issue body."""
+    marker = _build_copilot_review_request_metadata(requested_at)
+    if _COPILOT_REVIEW_REQUEST_META_RE.search(body):
+        return _COPILOT_REVIEW_REQUEST_META_RE.sub(marker, body, count=1)
+    trimmed = body.rstrip()
+    if not trimmed:
+        return marker
+    return f"{trimmed}\n\n{marker}"
+
+
+async def _record_copilot_review_request_timestamp(
+    access_token: str,
+    owner: str,
+    repo: str,
+    issue_number: int,
+    requested_at: datetime | None = None,
+) -> datetime:
+    """Persist the explicit Copilot review request timestamp durably and in memory."""
+    from src.utils import utcnow
+
+    from .state import _copilot_review_requested_at
+
+    effective_requested_at = requested_at or utcnow()
+    _copilot_review_requested_at[issue_number] = effective_requested_at
+
+    try:
+        issue_data = await _cp.github_projects_service.get_issue_with_comments(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+        )
+        body = issue_data.get("body", "")
+        updated_body = _upsert_copilot_review_request_metadata(body, effective_requested_at)
+        if updated_body != body:
+            await _cp.github_projects_service.update_issue_body(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+                body=updated_body,
+            )
+    except Exception as e:
+        logger.warning(
+            "Failed to persist copilot-review request timestamp for issue #%d: %s",
+            issue_number,
+            e,
+        )
+
+    return effective_requested_at
 
 
 def is_sub_issue(task: Any) -> bool:
@@ -171,8 +278,10 @@ async def _check_copilot_review_done(
         issue_number=parent_issue_number,
     )
     comments = issue_data.get("comments", [])
+    issue_body = issue_data.get("body", "")
 
     copilot_review_marker = None
+    marker_request_ts = None
     latest_other_done_at = None
     marker_text = "copilot-review: Done!"
     # Pattern: exact line matching for "<agent>: Done!" markers,
@@ -185,22 +294,45 @@ async def _check_copilot_review_done(
         lines = [line.strip() for line in body.split("\n")]
         if any(line == marker_text for line in lines):
             copilot_review_marker = comment
+            marker_request_ts = _extract_copilot_review_requested_at(body)
         elif any(_done_marker_re.match(line) for line in lines) and created_at:
             # Track the latest non-copilot-review Done! comment
             if latest_other_done_at is None or created_at > latest_other_done_at:
                 latest_other_done_at = created_at
 
+    request_ts = _copilot_review_requested_at.get(parent_issue_number)
+    if request_ts is None:
+        request_ts = _extract_copilot_review_requested_at(issue_body)
+        if request_ts is None:
+            request_ts = marker_request_ts
+        if request_ts is not None:
+            _copilot_review_requested_at[parent_issue_number] = request_ts
+            logger.info(
+                "Restored copilot-review request timestamp for issue #%d from durable metadata",
+                parent_issue_number,
+            )
+
     if copilot_review_marker:
         marker_created = copilot_review_marker.get("created_at", "")
-        if latest_other_done_at and marker_created < latest_other_done_at:
-            # Stale marker — predates the latest coding agent's completion.
-            # Delete it so it cannot short-circuit future checks.
+        marker_created_at = _parse_github_timestamp(marker_created)
+        latest_other_done_dt = _parse_github_timestamp(latest_other_done_at)
+        effective_request_ts = marker_request_ts or request_ts
+        stale_reason = None
+
+        if effective_request_ts and marker_created_at and marker_created_at <= effective_request_ts:
+            stale_reason = "marker predates or matches the explicit copilot-review request"
+        elif (
+            latest_other_done_dt and marker_created_at and marker_created_at < latest_other_done_dt
+        ):
+            stale_reason = "marker predates the latest non-copilot-review Done! marker"
+
+        if stale_reason:
+            # Stale marker — delete it so it cannot short-circuit future checks.
             logger.warning(
-                "Stale 'copilot-review: Done!' marker on issue #%d "
-                "(marker at %s, latest agent Done! at %s) — deleting",
+                "Stale 'copilot-review: Done!' marker on issue #%d (%s; marker at %s) — deleting",
                 parent_issue_number,
+                stale_reason,
                 marker_created,
-                latest_other_done_at,
             )
             db_id = copilot_review_marker.get("database_id")
             if db_id:
@@ -218,10 +350,17 @@ async def _check_copilot_review_done(
                         parent_issue_number,
                         e,
                     )
-        else:
-            # Marker is valid (newer than all other agent Done! comments,
-            # or no other Done! comments exist for comparison).
+        elif effective_request_ts is not None:
+            # Marker is only durable evidence when it is newer than Solune's
+            # explicit request. Without that ordering, an auto-triggered review
+            # can falsely short-circuit the pipeline.
             return True
+        else:
+            logger.info(
+                "Ignoring 'copilot-review: Done!' marker on issue #%d until Solune has "
+                "a recorded review request timestamp",
+                parent_issue_number,
+            )
 
     # Locate the main PR for this issue using comprehensive discovery
     discovered = await _discover_main_pr_for_review(
@@ -283,7 +422,6 @@ async def _check_copilot_review_done(
     # record the timestamp.  Any existing review (from a GitHub
     # auto-trigger) is intentionally ignored until we have our own request
     # on record.
-    request_ts = _copilot_review_requested_at.get(parent_issue_number)
     if request_ts is None:
         if pr_details:
             pr_node_id = pr_details.get("id")
@@ -312,7 +450,12 @@ async def _check_copilot_review_done(
                     repo=repo,
                 )
                 if req_ok:
-                    _copilot_review_requested_at[parent_issue_number] = utcnow()
+                    await _record_copilot_review_request_timestamp(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=parent_issue_number,
+                    )
                     logger.info(
                         "Self-healing: recorded copilot-review request timestamp for "
                         "issue #%d — will check for completion on next cycle",
@@ -405,12 +548,13 @@ async def _check_copilot_review_done(
     # Post a durable Done! marker so pipeline reconstruction works
     # even after a server restart (without the in-memory state).
     try:
+        marker_requested_at = request_ts or now
         await _cp.github_projects_service.create_issue_comment(
             access_token=access_token,
             owner=owner,
             repo=repo,
             issue_number=parent_issue_number,
-            body="copilot-review: Done!",
+            body=_build_copilot_review_done_marker(marker_requested_at, now),
         )
         logger.info(
             "Posted 'copilot-review: Done!' marker on issue #%d",

@@ -5,6 +5,8 @@
 import type { ChatMessage } from '@/types';
 import { AlertCircle, RotateCcw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { MarkdownRenderer } from '@/components/chat/MarkdownRenderer';
+import { CopyButton } from '@/components/ui/copy-button';
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -18,7 +20,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
 
   return (
     <div
-      className={cn('flex gap-3 max-w-[80%]', isUser ? 'self-end flex-row-reverse' : 'self-start')}
+      className={cn('group flex gap-3 max-w-[80%]', isUser ? 'self-end flex-row-reverse' : 'self-start')}
     >
       {!isUser && !isSystem && (
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border/60 bg-background/72 text-muted-foreground shadow-sm">
@@ -41,7 +43,16 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
                 'border border-border bg-background/62 text-foreground shadow-sm'
             )}
           >
-            {message.content}
+            {!isUser && !isSystem ? (
+              <MarkdownRenderer content={message.content} />
+            ) : (
+              message.content
+            )}
+          </div>
+        )}
+        {!isUser && !isSystem && !isFailed && (
+          <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+            <CopyButton value={message.content} label="Copy message" />
           </div>
         )}
         {isFailed && (

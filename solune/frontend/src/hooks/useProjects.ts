@@ -4,6 +4,7 @@
 
 import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { projectsApi, tasksApi } from '@/services/api';
 import type { ApiError } from '@/services/api';
 import { STALE_TIME_MEDIUM, STALE_TIME_PROJECTS } from '@/constants';
@@ -58,6 +59,10 @@ export function useProjects(selectedProjectId?: string | null): UseProjectsRetur
       queryClient.setQueryData(['auth', 'me'], user);
       // Also invalidate projects to refresh task data
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('Project selected');
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to select project', { duration: Infinity });
     },
   });
 
@@ -92,6 +97,10 @@ export function useCreateProject() {
     mutationFn: (data) => projectsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      toast.success('Project created');
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to create project', { duration: Infinity });
     },
   });
 }
