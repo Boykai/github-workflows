@@ -20,6 +20,7 @@ from src.services.github_projects.graphql import (
     LINK_PROJECT_V2_TO_REPO_MUTATION,
     LIST_ORG_PROJECTS_QUERY,
     LIST_USER_PROJECTS_QUERY,
+    SET_PROJECT_DEFAULT_REPOSITORY_MUTATION,
     UPDATE_DATE_FIELD_MUTATION,
     UPDATE_ITEM_STATUS_MUTATION,
     UPDATE_NUMBER_FIELD_MUTATION,
@@ -36,7 +37,9 @@ logger = get_logger(__name__)
 
 # Default Solune project status columns.
 _SOLUNE_STATUS_OPTIONS = [
+    {"name": "Todo", "color": "BLUE"},
     {"name": "Backlog", "color": "GRAY"},
+    {"name": "Ready", "color": "PURPLE"},
     {"name": "In Progress", "color": "YELLOW"},
     {"name": "In Review", "color": "ORANGE"},
     {"name": "Done", "color": "GREEN"},
@@ -126,7 +129,6 @@ class ProjectsMixin:
             UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION,
             {
                 "fieldId": field_id,
-                "projectId": project_id,
                 "options": _SOLUNE_STATUS_OPTIONS,
             },
         )
@@ -151,6 +153,78 @@ class ProjectsMixin:
             {"projectId": project_id, "repositoryId": repository_id},
         )
         logger.info("Linked project %s to repository %s", project_id, repository_id)
+
+    async def set_project_default_repository(
+        self,
+        access_token: str,
+        project_id: str,
+        repository_id: str,
+    ) -> None:
+        """Set the default repository on a GitHub Project V2.
+
+        The default repository is used when creating new issues from the
+        project board.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            project_id: Project GraphQL node ID.
+            repository_id: Repository GraphQL node ID.
+        """
+        await self._graphql(
+            access_token,
+            SET_PROJECT_DEFAULT_REPOSITORY_MUTATION,
+            {"projectId": project_id, "repositoryId": repository_id},
+        )
+        logger.info("Set default repository %s on project %s", repository_id, project_id)
+
+    async def delete_project_v2(
+        self,
+        access_token: str,
+        project_id: str,
+    ) -> bool:
+        """Delete a GitHub Project V2 by its GraphQL node ID.
+
+        Falls back to closing (archiving) the project when the deletion
+        mutation is unavailable or fails due to permissions.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            project_id: Project GraphQL node ID (PVT_xxx).
+
+        Returns:
+            ``True`` if the project was deleted or closed.
+        """
+        delete_mutation = """
+        mutation($projectId: ID!) {
+          deleteProjectV2(input: {projectId: $projectId}) {
+            projectV2 { id }
+          }
+        }
+        """
+        try:
+            await self._graphql(access_token, delete_mutation, {"projectId": project_id})
+            logger.info("Deleted project %s", project_id)
+            return True
+        except Exception as exc:
+            logger.warning(
+                "deleteProjectV2 failed for %s, falling back to close: %s", project_id, exc
+            )
+
+        # Fallback: archive/close the project instead of deleting
+        close_mutation = """
+        mutation($projectId: ID!) {
+          updateProjectV2(input: {projectId: $projectId, closed: true}) {
+            projectV2 { id closed }
+          }
+        }
+        """
+        try:
+            await self._graphql(access_token, close_mutation, {"projectId": project_id})
+            logger.info("Closed (archived) project %s", project_id)
+            return True
+        except Exception as exc:
+            logger.warning("Could not close project %s: %s", project_id, exc)
+            return False
 
     async def list_user_projects(
         self, access_token: str, username: str, limit: int = 20

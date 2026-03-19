@@ -7,7 +7,18 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GitBranch, Plus, RefreshCw } from 'lucide-react';
-import { useApps, useCreateApp, useOwners, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
+import {
+  useApps,
+  useCreateApp,
+  useOwners,
+  useStartApp,
+  useStopApp,
+  useDeleteApp,
+  getErrorMessage,
+} from '@/hooks/useApps';
+import { useAuth } from '@/hooks/useAuth';
+import { useProjects } from '@/hooks/useProjects';
+import { useSelectedPipeline } from '@/hooks/useSelectedPipeline';
 import { AppCard } from '@/components/apps/AppCard';
 import { AppDetailView } from '@/components/apps/AppDetailView';
 import { CreateAppDialog } from '@/components/apps/CreateAppDialog';
@@ -15,6 +26,8 @@ import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { isRateLimitApiError } from '@/utils/rateLimit';
+import { appsApi, pipelinesApi } from '@/services/api';
+import { useQuery } from '@tanstack/react-query';
 import type { AppCreate, RepoType } from '@/types/apps';
 
 export function AppsPage() {
@@ -27,6 +40,17 @@ export function AppsPage() {
   const deleteMutation = useDeleteApp();
   const { confirm } = useConfirmation();
   const { data: owners } = useOwners();
+  const { user } = useAuth();
+  const { selectedProject } = useProjects(user?.selected_project_id);
+  const projectId = selectedProject?.project_id ?? null;
+  const { pipelineId: defaultPipelineId } = useSelectedPipeline(projectId);
+  const { data: pipelineList, isLoading: pipelinesLoading } = useQuery({
+    queryKey: ['pipelines', projectId],
+    queryFn: () => pipelinesApi.list(projectId!),
+    staleTime: 60_000,
+    enabled: !!projectId,
+  });
+  const pipelines = pipelineList?.pipelines ?? [];
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createRepoType, setCreateRepoType] = useState<RepoType | undefined>();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -70,9 +94,14 @@ export function AppsPage() {
     (
       payload: AppCreate,
       callbacks: {
-        onSuccess: (app: { name: string; repo_type?: string; parent_issue_url?: string | null; warnings?: string[] | null }) => void;
+        onSuccess: (app: {
+          name: string;
+          repo_type?: string;
+          parent_issue_url?: string | null;
+          warnings?: string[] | null;
+        }) => void;
         onError: (err: unknown) => void;
-      },
+      }
     ) => {
       createMutation.mutate(payload, {
         onSuccess: (createdApp) => {
@@ -102,45 +131,90 @@ export function AppsPage() {
         },
       });
     },
-    [createMutation, closeCreateDialog, showSuccess, navigate],
+    [createMutation, closeCreateDialog, showSuccess, navigate]
   );
 
-  const handleStart = useCallback(async (name: string) => {
-    startMutation.mutate(name, {
-      onSuccess: () => showSuccess(`App "${name}" started successfully.`),
-      onError: (err) => showError(getErrorMessage(err, `Could not start app "${name}".`)),
-    });
-  }, [startMutation, showSuccess, showError]);
-
-  const handleStop = useCallback(async (name: string) => {
-    const confirmed = await confirm({
-      title: 'Stop App',
-      description: `Stop app "${name}"? The app will no longer be accessible until restarted.`,
-      variant: 'warning',
-      confirmLabel: 'Stop App',
-    });
-    if (confirmed) {
-      stopMutation.mutate(name, {
-        onSuccess: () => showSuccess(`App "${name}" stopped successfully.`),
-        onError: (err) => showError(getErrorMessage(err, `Could not stop app "${name}".`)),
+  const handleStart = useCallback(
+    async (name: string) => {
+      startMutation.mutate(name, {
+        onSuccess: () => showSuccess(`App "${name}" started successfully.`),
+        onError: (err) => showError(getErrorMessage(err, `Could not start app "${name}".`)),
       });
-    }
-  }, [confirm, stopMutation, showSuccess, showError]);
+    },
+    [startMutation, showSuccess, showError]
+  );
 
-  const handleDelete = useCallback(async (name: string) => {
-    const confirmed = await confirm({
-      title: 'Delete App',
-      description: `Delete app "${name}"? This action cannot be undone.`,
-      variant: 'danger',
-      confirmLabel: 'Delete App',
-    });
-    if (confirmed) {
-      deleteMutation.mutate(name, {
-        onSuccess: () => showSuccess(`App "${name}" deleted successfully.`),
-        onError: (err) => showError(getErrorMessage(err, `Could not delete app "${name}".`)),
+  const handleStop = useCallback(
+    async (name: string) => {
+      const confirmed = await confirm({
+        title: 'Stop App',
+        description: `Stop app "${name}"? The app will no longer be accessible until restarted.`,
+        variant: 'warning',
+        confirmLabel: 'Stop App',
       });
-    }
-  }, [confirm, deleteMutation, showSuccess, showError]);
+      if (confirmed) {
+        stopMutation.mutate(name, {
+          onSuccess: () => showSuccess(`App "${name}" stopped successfully.`),
+          onError: (err) => showError(getErrorMessage(err, `Could not stop app "${name}".`)),
+        });
+      }
+    },
+    [confirm, stopMutation, showSuccess, showError]
+  );
+
+  const handleDelete = useCallback(
+    async (name: string) => {
+      // Step 1: Fetch asset inventory
+      let assetSummary = 'This action cannot be undone.';
+      try {
+        const assets = await appsApi.assets(name);
+        const parts: string[] = [];
+        if (assets.github_repo) parts.push(`Repository: ${assets.github_repo}`);
+        if (assets.github_project_id) parts.push('GitHub Project');
+        if (assets.parent_issue_number) parts.push(`Parent issue #${assets.parent_issue_number}`);
+        if (assets.sub_issues.length > 0) parts.push(`${assets.sub_issues.length} sub-issue(s)`);
+        if (assets.branches.length > 0) parts.push(`${assets.branches.length} branch(es)`);
+        if (parts.length > 0) {
+          assetSummary = `The following assets will be permanently deleted:\n• ${parts.join('\n• ')}\n\nThis action cannot be undone.`;
+        }
+      } catch {
+        // If asset fetch fails, proceed with generic confirmation
+      }
+
+      // Step 1: Show asset inventory confirmation
+      const firstConfirm = await confirm({
+        title: 'Delete App & All Assets',
+        description: assetSummary,
+        variant: 'danger',
+        confirmLabel: 'Continue to Final Confirmation',
+      });
+      if (!firstConfirm) return;
+
+      // Step 2: Type-to-confirm
+      const secondConfirm = await confirm({
+        title: 'Confirm Permanent Deletion',
+        description: `You are about to permanently delete "${name}" and all associated GitHub assets. This cannot be reversed.`,
+        variant: 'danger',
+        confirmLabel: `Delete "${name}" Forever`,
+      });
+      if (!secondConfirm) return;
+
+      deleteMutation.mutate(
+        { appName: name, force: true },
+        {
+          onSuccess: (result) => {
+            if (result && 'errors' in result && result.errors.length > 0) {
+              showSuccess(`App "${name}" deleted with ${result.errors.length} warning(s).`);
+            } else {
+              showSuccess(`App "${name}" and all assets deleted successfully.`);
+            }
+          },
+          onError: (err) => showError(getErrorMessage(err, `Could not delete app "${name}".`)),
+        }
+      );
+    },
+    [confirm, deleteMutation, showSuccess, showError]
+  );
 
   // Detail view for a specific app
   if (appName) {
@@ -207,14 +281,21 @@ export function AppsPage() {
 
         {/* Loading state */}
         {isLoading && (
-          <div className="flex min-h-[30vh] items-center justify-center" aria-busy="true" aria-live="polite">
+          <div
+            className="flex min-h-[30vh] items-center justify-center"
+            aria-busy="true"
+            aria-live="polite"
+          >
             <CelestialLoader size="md" label="Loading apps…" />
           </div>
         )}
 
         {/* Error state */}
         {!isLoading && error && (
-          <div className="flex min-h-[30vh] flex-col items-center justify-center" aria-live="polite">
+          <div
+            className="flex min-h-[30vh] flex-col items-center justify-center"
+            aria-live="polite"
+          >
             <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
               {isRateLimited
                 ? 'You have exceeded the API rate limit. Please wait a moment before trying again.'
@@ -272,6 +353,10 @@ export function AppsPage() {
             owners={owners}
             getErrorMessage={getErrorMessage}
             initialRepoType={createRepoType}
+            pipelines={pipelines}
+            isLoadingPipelines={pipelinesLoading}
+            defaultPipelineId={defaultPipelineId}
+            projectId={projectId}
           />
         )}
       </div>

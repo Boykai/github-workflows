@@ -31,6 +31,7 @@ export interface AppCreate {
   description?: string;
   branch?: string;
   pipeline_id?: string;
+  project_id?: string;
   repo_type?: RepoType;
   external_repo_url?: string;
   repo_owner?: string;
@@ -71,4 +72,24 @@ export interface CreateProjectResponse {
   project_id: string;
   project_number: number;
   project_url: string;
+}
+
+export interface AppAssetInventory {
+  app_name: string;
+  github_repo: string | null;
+  github_project_id: string | null;
+  parent_issue_number: number | null;
+  sub_issues: number[];
+  branches: string[];
+  has_azure_secrets: boolean;
+}
+
+export interface DeleteAppResult {
+  app_name: string;
+  issues_closed: number;
+  branches_deleted: number;
+  project_deleted: boolean;
+  repo_deleted: boolean;
+  db_deleted: boolean;
+  errors: string[];
 }

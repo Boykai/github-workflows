@@ -5,7 +5,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.utils import BoundedDict, BoundedSet, resolve_repository, utcnow
+from src.exceptions import ValidationError
+from src.utils import BoundedDict, BoundedSet, parse_github_url, resolve_repository, utcnow
 
 # =============================================================================
 # BoundedSet
@@ -417,8 +418,6 @@ class TestResolveRepository:
     @pytest.mark.asyncio
     async def test_raises_validation_error_when_all_steps_fail(self):
         """Should raise ValidationError when no repository is resolved."""
-        from src.exceptions import ValidationError
-
         mock_service = AsyncMock()
         mock_service.get_project_repository.return_value = None
 
@@ -442,3 +441,56 @@ class TestResolveRepository:
         ):
             with pytest.raises(ValidationError, match="No repository found"):
                 await resolve_repository("token", "proj-id")
+
+
+# =============================================================================
+# parse_github_url
+# =============================================================================
+
+
+class TestParseGithubUrl:
+    """Unit tests for parse_github_url()."""
+
+    def test_standard_url(self) -> None:
+        assert parse_github_url("https://github.com/org/repo") == ("org", "repo")
+
+    def test_url_with_git_suffix(self) -> None:
+        assert parse_github_url("https://github.com/org/repo.git") == ("org", "repo")
+
+    def test_url_with_trailing_slash(self) -> None:
+        assert parse_github_url("https://github.com/org/repo/") == ("org", "repo")
+
+    def test_url_with_git_suffix_and_trailing_slash(self) -> None:
+        assert parse_github_url("https://github.com/org/repo.git/") == ("org", "repo")
+
+    def test_http_url(self) -> None:
+        assert parse_github_url("http://github.com/org/repo") == ("org", "repo")
+
+    def test_url_with_extra_path(self) -> None:
+        owner, repo = parse_github_url("https://github.com/org/repo/tree/main")
+        assert owner == "org"
+        assert repo == "repo"
+
+    def test_non_github_host_raises(self) -> None:
+        with pytest.raises(ValidationError, match=r"only github\.com"):
+            parse_github_url("https://gitlab.com/org/repo")
+
+    def test_github_enterprise_raises(self) -> None:
+        with pytest.raises(ValidationError, match=r"only github\.com"):
+            parse_github_url("https://github.example.com/org/repo")
+
+    def test_missing_repo_segment_raises(self) -> None:
+        with pytest.raises(ValidationError, match="expected format"):
+            parse_github_url("https://github.com/org")
+
+    def test_empty_string_raises(self) -> None:
+        with pytest.raises(ValidationError, match="required"):
+            parse_github_url("")
+
+    def test_whitespace_only_raises(self) -> None:
+        with pytest.raises(ValidationError, match="required"):
+            parse_github_url("   ")
+
+    def test_not_a_url_raises(self) -> None:
+        with pytest.raises(ValidationError, match=r"only github\.com"):
+            parse_github_url("not-a-url")

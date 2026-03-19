@@ -30,6 +30,11 @@ _polling_state = PollingState()
 # before starting a new one (prevents concurrent loops).
 _polling_task: asyncio.Task | None = None
 
+# Secondary polling tasks for new-repo / external-repo app pipelines.
+# Keyed by project_id so at most one loop runs per project.
+# Each task auto-stops when the pipeline completes.
+_app_polling_tasks: dict[str, asyncio.Task] = {}
+
 # Track issues we've already processed to avoid duplicate updates
 _processed_issue_prs: BoundedSet[str] = BoundedSet(maxlen=1000)  # "issue_number:pr_number"
 

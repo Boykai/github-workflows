@@ -15,7 +15,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from src.models.app import App, AppStatus, AppStatusResponse
+from src.models.app import App, AppStatus, AppStatusResponse, RepoType
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -109,6 +109,253 @@ class TestCreateApp:
             json={"name": "X", "display_name": "App", "branch": "main"},
         )
         assert resp.status_code == 422
+
+
+# ── POST /apps — Pipeline Routing ──────────────────────────────────────────
+
+
+class TestSameRepoPipelineRouting:
+    """T004: Verify same-repo apps use payload.project_id for pipeline launch."""
+
+    @pytest.fixture(autouse=True)
+    def _patch_service(self):
+        with (
+            patch("src.api.apps.create_app", new_callable=AsyncMock) as mock_create,
+            patch(
+                "src.api.pipelines.execute_pipeline_launch", new_callable=AsyncMock
+            ) as mock_launch,
+        ):
+            self.mock_create = mock_create
+            self.mock_launch = mock_launch
+            yield
+
+    async def test_same_repo_uses_payload_project_id(self, client):
+        """same-repo with pipeline_id and project_id → launches with payload.project_id."""
+        from src.models.workflow import WorkflowResult
+
+        self.mock_create.return_value = _sample_app(
+            repo_type=RepoType.SAME_REPO,
+            github_project_id=None,
+        )
+        self.mock_launch.return_value = WorkflowResult(
+            success=True,
+            issue_number=42,
+            issue_url="https://github.com/o/r/issues/42",
+            message="ok",
+        )
+        resp = await client.post(
+            "/api/v1/apps",
+            json={
+                "name": "sr-app",
+                "display_name": "SR App",
+                "branch": "main",
+                "pipeline_id": "pipe-1",
+                "project_id": "PVT_proj123",
+            },
+        )
+        assert resp.status_code == 201
+        self.mock_launch.assert_awaited_once()
+        call_kwargs = self.mock_launch.call_args[1]
+        assert call_kwargs["project_id"] == "PVT_proj123"
+
+    async def test_same_repo_without_pipeline_no_launch(self, client):
+        """same-repo without pipeline_id → no pipeline launch."""
+        self.mock_create.return_value = _sample_app(repo_type=RepoType.SAME_REPO)
+        resp = await client.post(
+            "/api/v1/apps",
+            json={"name": "sr-app", "display_name": "SR App", "branch": "main"},
+        )
+        assert resp.status_code == 201
+        self.mock_launch.assert_not_awaited()
+
+    async def test_same_repo_pipeline_but_no_project_id_skips(self, client):
+        """same-repo with pipeline_id but no project_id → skips launch."""
+        self.mock_create.return_value = _sample_app(
+            repo_type=RepoType.SAME_REPO,
+            github_project_id=None,
+        )
+        resp = await client.post(
+            "/api/v1/apps",
+            json={
+                "name": "sr-app",
+                "display_name": "SR App",
+                "branch": "main",
+                "pipeline_id": "pipe-1",
+            },
+        )
+        assert resp.status_code == 201
+        self.mock_launch.assert_not_awaited()
+
+
+class TestNewRepoPipelineRouting:
+    """T005: Verify new-repo apps use app.github_project_id for pipeline launch."""
+
+    @pytest.fixture(autouse=True)
+    def _patch_service(self):
+        with (
+            patch("src.api.apps.create_app", new_callable=AsyncMock) as mock_create,
+            patch(
+                "src.api.pipelines.execute_pipeline_launch", new_callable=AsyncMock
+            ) as mock_launch,
+        ):
+            self.mock_create = mock_create
+            self.mock_launch = mock_launch
+            yield
+
+    async def test_new_repo_uses_app_github_project_id(self, client):
+        """new-repo with pipeline_id → launches with app.github_project_id."""
+        from src.models.workflow import WorkflowResult
+
+        self.mock_create.return_value = _sample_app(
+            repo_type=RepoType.NEW_REPO,
+            github_project_id="PVT_new_proj",
+        )
+        self.mock_launch.return_value = WorkflowResult(
+            success=True,
+            issue_number=99,
+            issue_url="https://github.com/o/r/issues/99",
+            message="ok",
+        )
+        resp = await client.post(
+            "/api/v1/apps",
+            json={
+                "name": "nr-app",
+                "display_name": "NR App",
+                "branch": "main",
+                "pipeline_id": "pipe-2",
+                "project_id": "PVT_should_not_use",
+            },
+        )
+        assert resp.status_code == 201
+        self.mock_launch.assert_awaited_once()
+        call_kwargs = self.mock_launch.call_args[1]
+        assert call_kwargs["project_id"] == "PVT_new_proj"
+
+    async def test_new_repo_passes_pipeline_source_project(self, client, mock_db):
+        """new-repo looks up pipeline's source project and passes it to launch."""
+        from src.models.workflow import WorkflowResult
+
+        # Insert a pipeline_configs row so the DB lookup finds the source project
+        await mock_db.execute(
+            "INSERT INTO pipeline_configs (id, project_id, name, stages, created_at, updated_at)"
+            " VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))",
+            ("pipe-2", "PVT_source_proj", "Test Pipeline", "[]"),
+        )
+        await mock_db.commit()
+
+        self.mock_create.return_value = _sample_app(
+            repo_type=RepoType.NEW_REPO,
+            github_project_id="PVT_new_proj",
+            github_repo_url="https://github.com/org/new-repo",
+        )
+        self.mock_launch.return_value = WorkflowResult(
+            success=True,
+            issue_number=99,
+            issue_url="https://github.com/org/new-repo/issues/99",
+            message="ok",
+        )
+
+        resp = await client.post(
+            "/api/v1/apps",
+            json={
+                "name": "nr-app",
+                "display_name": "NR App",
+                "branch": "main",
+                "pipeline_id": "pipe-2",
+                "project_id": "PVT_should_not_use",
+            },
+        )
+        assert resp.status_code == 201
+        call_kwargs = self.mock_launch.call_args[1]
+        assert call_kwargs["project_id"] == "PVT_new_proj"
+        assert call_kwargs["pipeline_project_id"] == "PVT_source_proj"
+        assert call_kwargs["target_repo"] == ("org", "new-repo")
+
+    async def test_new_repo_null_project_id_skips_with_warning(self, client):
+        """new-repo with pipeline_id but null github_project_id → skips launch."""
+        self.mock_create.return_value = _sample_app(
+            repo_type=RepoType.NEW_REPO,
+            github_project_id=None,
+        )
+        resp = await client.post(
+            "/api/v1/apps",
+            json={
+                "name": "nr-app",
+                "display_name": "NR App",
+                "branch": "main",
+                "pipeline_id": "pipe-2",
+            },
+        )
+        assert resp.status_code == 201
+        self.mock_launch.assert_not_awaited()
+
+
+class TestExternalRepoPipelineRouting:
+    """T013: Verify external-repo apps use app.github_project_id for pipeline launch."""
+
+    @pytest.fixture(autouse=True)
+    def _patch_service(self):
+        with (
+            patch("src.api.apps.create_app", new_callable=AsyncMock) as mock_create,
+            patch(
+                "src.api.pipelines.execute_pipeline_launch", new_callable=AsyncMock
+            ) as mock_launch,
+        ):
+            self.mock_create = mock_create
+            self.mock_launch = mock_launch
+            yield
+
+    async def test_external_repo_uses_app_github_project_id(self, client):
+        """external-repo with pipeline → launches using app.github_project_id."""
+        from src.models.workflow import WorkflowResult
+
+        self.mock_create.return_value = _sample_app(
+            repo_type=RepoType.EXTERNAL_REPO,
+            github_project_id="PVT_ext_proj",
+            external_repo_url="https://github.com/ext/repo",
+        )
+        self.mock_launch.return_value = WorkflowResult(
+            success=True,
+            issue_number=77,
+            issue_url="https://github.com/ext/repo/issues/77",
+            message="ok",
+        )
+        resp = await client.post(
+            "/api/v1/apps",
+            json={
+                "name": "ext-app",
+                "display_name": "Ext App",
+                "branch": "main",
+                "pipeline_id": "pipe-ext",
+                "repo_type": "external-repo",
+                "external_repo_url": "https://github.com/ext/repo",
+            },
+        )
+        assert resp.status_code == 201
+        self.mock_launch.assert_awaited_once()
+        call_kwargs = self.mock_launch.call_args[1]
+        assert call_kwargs["project_id"] == "PVT_ext_proj"
+
+    async def test_external_repo_null_project_skips_gracefully(self, client):
+        """external-repo with pipeline but null github_project_id → skips launch."""
+        self.mock_create.return_value = _sample_app(
+            repo_type=RepoType.EXTERNAL_REPO,
+            github_project_id=None,
+            external_repo_url="https://github.com/ext/repo",
+        )
+        resp = await client.post(
+            "/api/v1/apps",
+            json={
+                "name": "ext-app",
+                "display_name": "Ext App",
+                "branch": "main",
+                "pipeline_id": "pipe-ext",
+                "repo_type": "external-repo",
+                "external_repo_url": "https://github.com/ext/repo",
+            },
+        )
+        assert resp.status_code == 201
+        self.mock_launch.assert_not_awaited()
 
 
 # ── GET /apps/{app_name} ───────────────────────────────────────────────────

@@ -7,6 +7,7 @@ from collections import OrderedDict
 from collections.abc import Awaitable, Callable, ItemsView, Iterator, KeysView, ValuesView
 from datetime import UTC, datetime
 from typing import TypeVar, overload
+from urllib.parse import urlparse
 
 from src.logging_utils import get_logger
 
@@ -153,6 +154,42 @@ class BoundedDict[K, V]:
 
     def __repr__(self) -> str:
         return f"BoundedDict(maxlen={self._maxlen}, size={len(self._data)})"
+
+
+def parse_github_url(url: str) -> tuple[str, str]:
+    """Parse a GitHub repository URL and return ``(owner, repo)``.
+
+    Accepts URLs like ``https://github.com/owner/repo``, with optional
+    trailing slash or ``.git`` suffix.  Only ``github.com`` is supported;
+    GitHub Enterprise URLs are rejected.
+
+    Raises:
+        src.exceptions.ValidationError: If *url* is not a valid github.com
+            repository URL.
+    """
+    from src.exceptions import ValidationError
+
+    if not url or not url.strip():
+        raise ValidationError("External repository URL is required.")
+
+    parsed = urlparse(url.strip())
+
+    if parsed.scheme not in ("https", "http") or parsed.hostname != "github.com":
+        raise ValidationError(
+            f"Invalid external repository URL: only github.com URLs are supported, got '{url}'."
+        )
+
+    path = parsed.path.strip("/")
+    path = path.removesuffix(".git")
+
+    parts = path.split("/")
+    if len(parts) < 2 or not parts[0] or not parts[1]:
+        raise ValidationError(
+            f"Invalid external repository URL '{url}': expected format "
+            "https://github.com/{{owner}}/{{repo}}."
+        )
+
+    return parts[0], parts[1]
 
 
 def utcnow() -> datetime:

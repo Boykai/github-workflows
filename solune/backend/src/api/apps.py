@@ -4,17 +4,27 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from src.api.auth import get_session_dep
 from src.dependencies import get_github_service
 from src.logging_utils import get_logger
-from src.models.app import App, AppCreate, AppStatus, AppStatusResponse, AppUpdate
+from src.models.app import (
+    App,
+    AppAssetInventory,
+    AppCreate,
+    AppStatus,
+    AppStatusResponse,
+    AppUpdate,
+    DeleteAppResult,
+    RepoType,
+)
 from src.models.user import UserSession
 from src.services.app_service import (
     create_app,
     delete_app,
     get_app,
+    get_app_assets,
     get_app_status,
     list_apps,
     start_app,
@@ -59,12 +69,80 @@ async def create_app_endpoint(
     """Create a new application with directory scaffolding on the target branch."""
     db = get_db()
     github_service = get_github_service(request)
-    return await create_app(
+    app = await create_app(
         db,
         payload,
         access_token=session.access_token,
         github_service=github_service,
     )
+
+    # If a pipeline was selected and a project context exists, launch the pipeline.
+    # Route based on repo_type: same-repo uses the user-supplied project_id;
+    # new-repo and external-repo use the app's own github_project_id.
+    if app.repo_type == RepoType.SAME_REPO:
+        launch_project_id = payload.project_id
+    else:
+        launch_project_id = app.github_project_id
+    if payload.pipeline_id and launch_project_id:
+        try:
+            from src.api.pipelines import execute_pipeline_launch
+
+            # For non-same-repo apps the pipeline config lives under its
+            # original project, not the new repo's project.  Look it up so
+            # execute_pipeline_launch can find the config while still routing
+            # issues to the target project.
+            pipeline_project_id: str | None = None
+            if app.repo_type != RepoType.SAME_REPO:
+                cursor = await db.execute(
+                    "SELECT project_id FROM pipeline_configs WHERE id = ?",
+                    (payload.pipeline_id,),
+                )
+                row = await cursor.fetchone()
+                if row:
+                    pipeline_project_id = row["project_id"]
+
+            # For new-repo / external-repo apps the target project is
+            # empty so resolve_repository would fall back to the default
+            # repo.  Pass the known target repo directly.
+            target_repo: tuple[str, str] | None = None
+            if app.repo_type != RepoType.SAME_REPO and app.github_repo_url:
+                from src.utils import parse_github_url
+
+                target_repo = parse_github_url(app.github_repo_url)
+
+            result = await execute_pipeline_launch(
+                project_id=launch_project_id,
+                issue_description=payload.description or app.description or app.display_name,
+                pipeline_id=payload.pipeline_id,
+                session=session,
+                pipeline_project_id=pipeline_project_id,
+                target_repo=target_repo,
+            )
+            if result.success and result.issue_number and result.issue_url:
+                await db.execute(
+                    "UPDATE apps SET parent_issue_number = ?, parent_issue_url = ? WHERE name = ?",
+                    (result.issue_number, result.issue_url, app.name),
+                )
+                await db.commit()
+                app = app.model_copy(
+                    update={
+                        "parent_issue_number": result.issue_number,
+                        "parent_issue_url": result.issue_url,
+                    }
+                )
+        except Exception as exc:
+            logger.warning("Pipeline launch failed for app '%s': %s", app.name, exc)
+            warnings = list(app.warnings or [])
+            warnings.append(f"Pipeline launch failed: {exc}")
+            app = app.model_copy(update={"warnings": warnings})
+    elif payload.pipeline_id and not launch_project_id:
+        logger.warning(
+            "Pipeline launch skipped for app '%s' (repo_type=%s): no project_id available",
+            app.name,
+            app.repo_type,
+        )
+
+    return app
 
 
 @router.get("/{app_name}", response_model=App)
@@ -88,21 +166,49 @@ async def update_app_endpoint(
     return await update_app(db, app_name, payload)
 
 
-@router.delete("/{app_name}", status_code=204)
-async def delete_app_endpoint(
+@router.get("/{app_name}/assets", response_model=AppAssetInventory)
+async def get_app_assets_endpoint(
     request: Request,
     app_name: str,
     session: _SessionDep,
-) -> None:
-    """Delete an application (must be stopped first)."""
+) -> AppAssetInventory:
+    """Get an inventory of all GitHub assets associated with an app."""
     db = get_db()
     github_service = get_github_service(request)
-    await delete_app(
+    return await get_app_assets(
         db,
         app_name,
         access_token=session.access_token,
         github_service=github_service,
     )
+
+
+@router.delete("/{app_name}")
+async def delete_app_endpoint(
+    request: Request,
+    app_name: str,
+    session: _SessionDep,
+    response: Response,
+    force: Annotated[bool, Query(description="Perform full asset cleanup when True")] = False,
+) -> DeleteAppResult | None:
+    """Delete an application (must be stopped first).
+
+    When ``force=true``, all related GitHub assets (issues, branches,
+    project, and repository) are deleted before removing the DB record.
+    Returns 204 for non-force delete, 200 with ``DeleteAppResult`` for force.
+    """
+    db = get_db()
+    github_service = get_github_service(request)
+    result = await delete_app(
+        db,
+        app_name,
+        access_token=session.access_token,
+        github_service=github_service,
+        force=force,
+    )
+    if not force:
+        response.status_code = 204
+    return result
 
 
 @router.post("/{app_name}/start", response_model=AppStatusResponse)

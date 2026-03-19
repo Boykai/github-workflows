@@ -1151,7 +1151,18 @@ export const agentToolsApi = {
 
 // ============ Apps API (041-solune-rebrand-app-builder) ============
 
-import type { App, AppCreate, AppUpdate, AppStatusResponse, AppStatus, Owner, CreateProjectRequest, CreateProjectResponse } from '@/types/apps';
+import type {
+  App,
+  AppAssetInventory,
+  AppCreate,
+  AppUpdate,
+  AppStatusResponse,
+  AppStatus,
+  DeleteAppResult,
+  Owner,
+  CreateProjectRequest,
+  CreateProjectResponse,
+} from '@/types/apps';
 
 export const appsApi = {
   list(status?: AppStatus): Promise<App[]> {
@@ -1177,8 +1188,13 @@ export const appsApi = {
     });
   },
 
-  delete(appName: string): Promise<void> {
-    return request<void>(`/apps/${appName}`, { method: 'DELETE' });
+  delete(appName: string, force?: boolean): Promise<DeleteAppResult | void> {
+    const qs = force ? '?force=true' : '';
+    return request<DeleteAppResult | void>(`/apps/${appName}${qs}`, { method: 'DELETE' });
+  },
+
+  assets(appName: string): Promise<AppAssetInventory> {
+    return request<AppAssetInventory>(`/apps/${appName}/assets`);
   },
 
   start(appName: string): Promise<AppStatusResponse> {

@@ -71,6 +71,7 @@ class AppCreate(BaseModel):
         description="Target branch for app scaffold commit (required for same-repo/external-repo)",
     )
     pipeline_id: str | None = None
+    project_id: str | None = None
     repo_type: RepoType = RepoType.SAME_REPO
     external_repo_url: str | None = None
     repo_owner: str | None = None
@@ -94,6 +95,20 @@ class AppCreate(BaseModel):
             raise ValueError(msg)
         return self
 
+    @model_validator(mode="after")
+    def validate_external_repo_url(self) -> Self:
+        if self.repo_type == RepoType.EXTERNAL_REPO:
+            if not self.external_repo_url:
+                msg = "external_repo_url is required when repo_type is 'external-repo'."
+                raise ValueError(msg)
+            from src.utils import parse_github_url
+
+            try:
+                parse_github_url(self.external_repo_url)
+            except Exception as exc:
+                raise ValueError(str(exc)) from exc
+        return self
+
 
 class AppUpdate(BaseModel):
     display_name: str | None = Field(None, min_length=1, max_length=128)
@@ -106,3 +121,27 @@ class AppStatusResponse(BaseModel):
     status: AppStatus
     port: int | None = None
     error_message: str | None = None
+
+
+class AppAssetInventory(BaseModel):
+    """Inventory of all GitHub assets associated with an app."""
+
+    app_name: str
+    github_repo: str | None = None
+    github_project_id: str | None = None
+    parent_issue_number: int | None = None
+    sub_issues: list[int] = Field(default_factory=list)
+    branches: list[str] = Field(default_factory=list)
+    has_azure_secrets: bool = False
+
+
+class DeleteAppResult(BaseModel):
+    """Result of a force-delete operation with asset cleanup details."""
+
+    app_name: str
+    issues_closed: int = 0
+    branches_deleted: int = 0
+    project_deleted: bool = False
+    repo_deleted: bool = False
+    db_deleted: bool = False
+    errors: list[str] = Field(default_factory=list)

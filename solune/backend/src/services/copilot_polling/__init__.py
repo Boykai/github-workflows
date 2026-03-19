@@ -107,6 +107,7 @@ from .polling_loop import (  # noqa: F401
     _pause_if_rate_limited,
     _poll_loop,
     get_polling_status,
+    poll_app_pipeline,
     poll_for_copilot_completion,
     stop_polling,
 )
@@ -128,6 +129,7 @@ from .state import (  # noqa: F401
     RATE_LIMIT_SLOW_THRESHOLD,
     RECOVERY_COOLDOWN_SECONDS,
     PollingState,
+    _app_polling_tasks,
     _claimed_child_prs,
     _pending_agent_assignments,
     _polling_state,
@@ -156,6 +158,7 @@ __all__ = [
     "WorkflowContext",
     "WorkflowState",
     "_advance_pipeline",
+    "_app_polling_tasks",
     "_check_agent_done_on_parent",
     "_check_agent_done_on_sub_or_parent",
     "_check_child_pr_completion",
@@ -198,6 +201,7 @@ __all__ = [
     "check_issue_for_copilot_completion",
     "check_ready_issues",
     "connection_manager",
+    "ensure_app_pipeline_polling",
     "ensure_copilot_review_requested",
     "ensure_polling_started",
     "find_next_actionable_status",
@@ -217,6 +221,7 @@ __all__ = [
     "mark_agent_active",
     "mark_agent_done",
     "parse_tracking_from_body",
+    "poll_app_pipeline",
     "poll_for_copilot_completion",
     "post_agent_outputs_from_pr",
     "process_in_progress_issue",
@@ -302,4 +307,62 @@ async def ensure_polling_started(
         return True
     except Exception as err:
         _logger.warning("Failed to start polling: %s", err)
+        return False
+
+
+async def ensure_app_pipeline_polling(
+    *,
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    parent_issue_number: int,
+    interval_seconds: int = 15,
+) -> bool:
+    """Start a scoped polling loop for a new-repo / external-repo app pipeline.
+
+    Unlike :func:`ensure_polling_started`, this creates a **secondary** polling
+    task that monitors only the given parent issue and its sub-issues on the
+    app's own project board.  It auto-stops when the pipeline is complete.
+
+    Multiple app pipelines can run concurrently (one per ``project_id``).
+
+    Returns ``True`` if a new loop was started, ``False`` if one is already
+    running for this project.
+    """
+    from .state import _app_polling_tasks
+
+    if project_id in _app_polling_tasks:
+        task = _app_polling_tasks[project_id]
+        if not task.done():
+            _logger.debug("App-pipeline polling already running for project %s", project_id)
+            return False
+        # Clean up completed task
+        del _app_polling_tasks[project_id]
+
+    try:
+        from src.services.task_registry import task_registry
+
+        task = task_registry.create_task(
+            poll_app_pipeline(
+                access_token=access_token,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                parent_issue_number=parent_issue_number,
+                interval_seconds=interval_seconds,
+            ),
+            name=f"app-pipeline-polling-{project_id[:12]}",
+        )
+        _app_polling_tasks[project_id] = task
+        _logger.info(
+            "Started scoped app-pipeline polling for issue #%d on %s/%s (project %s)",
+            parent_issue_number,
+            owner,
+            repo,
+            project_id,
+        )
+        return True
+    except Exception as err:
+        _logger.warning("Failed to start app-pipeline polling: %s", err)
         return False
