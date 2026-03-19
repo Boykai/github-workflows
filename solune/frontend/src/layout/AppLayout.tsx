@@ -16,6 +16,7 @@ import { useSidebarState } from '@/hooks/useSidebarState';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useRecentParentIssues } from '@/hooks/useRecentParentIssues';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ChatPopup } from '@/components/chat/ChatPopup';
@@ -58,6 +59,8 @@ export function AppLayout() {
   const { user } = useAuth();
   const { isDarkMode, toggleTheme } = useAppTheme();
   const { isCollapsed, toggle: toggleSidebar } = useSidebarState();
+  const isMobile = useMediaQuery('(max-width: 767px)');
+  const effectiveCollapsed = isMobile ? true : isCollapsed;
   const {
     selectedProject,
     projects,
@@ -107,10 +110,11 @@ export function AppLayout() {
         </div>
 
         <Sidebar
-          isCollapsed={isCollapsed}
+          isCollapsed={effectiveCollapsed}
           onToggle={toggleSidebar}
           isDarkMode={isDarkMode}
           onToggleTheme={toggleTheme}
+          isMobile={isMobile}
           selectedProject={
             selectedProject
               ? {
@@ -171,7 +175,7 @@ export function AppLayout() {
           onNewChat={clearChat}
         />
         <SpotlightTour
-          isSidebarCollapsed={isCollapsed}
+          isSidebarCollapsed={effectiveCollapsed}
           onToggleSidebar={toggleSidebar}
         />
         <KeyboardShortcutModal

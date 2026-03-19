@@ -4,7 +4,7 @@
  * and navigation to the detail view.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GitBranch, Plus, RefreshCw } from 'lucide-react';
 import {
@@ -22,7 +22,7 @@ import { useSelectedPipeline } from '@/hooks/useSelectedPipeline';
 import { AppCard } from '@/components/apps/AppCard';
 import { AppDetailView } from '@/components/apps/AppDetailView';
 import { CreateAppDialog } from '@/components/apps/CreateAppDialog';
-import { CelestialLoader } from '@/components/common/CelestialLoader';
+import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { isRateLimitApiError } from '@/utils/rateLimit';
@@ -53,30 +53,7 @@ export function AppsPage() {
   const pipelines = pipelineList?.pipelines ?? [];
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [createRepoType, setCreateRepoType] = useState<RepoType | undefined>();
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [actionError, setActionError] = useState<string | null>(null);
   const createButtonRef = useRef<HTMLButtonElement>(null);
-  const successTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const errorTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-
-  useEffect(() => {
-    return () => {
-      clearTimeout(successTimerRef.current);
-      clearTimeout(errorTimerRef.current);
-    };
-  }, []);
-
-  const showSuccess = useCallback((message: string) => {
-    setSuccessMessage(message);
-    clearTimeout(successTimerRef.current);
-    successTimerRef.current = setTimeout(() => setSuccessMessage(null), 3000);
-  }, []);
-
-  const showError = useCallback((message: string) => {
-    setActionError(message);
-    clearTimeout(errorTimerRef.current);
-    errorTimerRef.current = setTimeout(() => setActionError(null), 5000);
-  }, []);
 
   const openCreateDialog = (initialRepoType?: RepoType) => {
     createMutation.reset();
@@ -106,23 +83,6 @@ export function AppsPage() {
       createMutation.mutate(payload, {
         onSuccess: (createdApp) => {
           closeCreateDialog();
-          const lines: string[] = [];
-          if (createdApp.repo_type === 'new-repo') {
-            lines.push('✓ Repository created', '✓ Template files committed');
-          } else if (createdApp.repo_type === 'external-repo') {
-            lines.push('✓ External repository linked');
-          } else {
-            lines.push('✓ App created');
-          }
-          if (createdApp.parent_issue_url) {
-            lines.push('✓ Pipeline started');
-          }
-          if (createdApp.warnings?.length) {
-            for (const w of createdApp.warnings) {
-              lines.push(`⚠ ${w}`);
-            }
-          }
-          showSuccess(lines.join(' | '));
           navigate(`/apps/${createdApp.name}`);
           callbacks.onSuccess(createdApp);
         },
@@ -131,17 +91,14 @@ export function AppsPage() {
         },
       });
     },
-    [createMutation, closeCreateDialog, showSuccess, navigate]
+    [createMutation, closeCreateDialog, navigate]
   );
 
   const handleStart = useCallback(
     async (name: string) => {
-      startMutation.mutate(name, {
-        onSuccess: () => showSuccess(`App "${name}" started successfully.`),
-        onError: (err) => showError(getErrorMessage(err, `Could not start app "${name}".`)),
-      });
+      startMutation.mutate(name);
     },
-    [startMutation, showSuccess, showError]
+    [startMutation]
   );
 
   const handleStop = useCallback(
@@ -153,13 +110,10 @@ export function AppsPage() {
         confirmLabel: 'Stop App',
       });
       if (confirmed) {
-        stopMutation.mutate(name, {
-          onSuccess: () => showSuccess(`App "${name}" stopped successfully.`),
-          onError: (err) => showError(getErrorMessage(err, `Could not stop app "${name}".`)),
-        });
+        stopMutation.mutate(name);
       }
     },
-    [confirm, stopMutation, showSuccess, showError]
+    [confirm, stopMutation]
   );
 
   const handleDelete = useCallback(
@@ -201,19 +155,9 @@ export function AppsPage() {
 
       deleteMutation.mutate(
         { appName: name, force: true },
-        {
-          onSuccess: (result) => {
-            if (result && 'errors' in result && result.errors.length > 0) {
-              showSuccess(`App "${name}" deleted with ${result.errors.length} warning(s).`);
-            } else {
-              showSuccess(`App "${name}" and all assets deleted successfully.`);
-            }
-          },
-          onError: (err) => showError(getErrorMessage(err, `Could not delete app "${name}".`)),
-        }
       );
     },
-    [confirm, deleteMutation, showSuccess, showError]
+    [confirm, deleteMutation]
   );
 
   // Detail view for a specific app
@@ -259,34 +203,16 @@ export function AppsPage() {
           </div>
         </div>
 
-        {/* Success feedback */}
-        {successMessage && (
-          <div
-            className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-300"
-            role="status"
-          >
-            {successMessage}
-          </div>
-        )}
-
-        {/* Action error feedback */}
-        {actionError && (
-          <div
-            className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
-            role="alert"
-          >
-            {actionError}
-          </div>
-        )}
-
         {/* Loading state */}
         {isLoading && (
-          <div
-            className="flex min-h-[30vh] items-center justify-center"
-            aria-busy="true"
-            aria-live="polite"
-          >
-            <CelestialLoader size="md" label="Loading apps…" />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-live="polite">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
+                <Skeleton variant="shimmer" className="mb-3 h-5 w-32" />
+                <Skeleton variant="shimmer" className="mb-2 h-4 w-48" />
+                <Skeleton variant="shimmer" className="h-4 w-24" />
+              </div>
+            ))}
           </div>
         )}
 

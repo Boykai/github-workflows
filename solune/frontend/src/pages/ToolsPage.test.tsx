@@ -20,6 +20,10 @@ vi.mock('@/hooks/useProjectBoard', () => ({
   useProjectBoard: () => ({ boardData: null, boardLoading: false }),
 }));
 
+vi.mock('@/hooks/useTools', () => ({
+  useToolsList: () => ({ tools: [], isLoading: false, error: null }),
+}));
+
 describe('ToolsPage', () => {
   it('renders without crashing', () => {
     render(<ToolsPage />);

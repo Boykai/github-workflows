@@ -24,8 +24,8 @@
 
 **Purpose**: Create the shared `useMediaQuery` hook that all responsive user stories depend on. No new dependencies — uses existing `matchMedia` browser API.
 
-- [ ] T001 Create `useMediaQuery` hook with `matchMedia` wrapper, SSR safety, and `change` event listener in `solune/frontend/src/hooks/useMediaQuery.ts`
-- [ ] T002 Add unit tests for `useMediaQuery` hook covering mount, resize, cleanup, and SSR fallback in `solune/frontend/src/hooks/useMediaQuery.test.ts`
+- [X] T001 Create `useMediaQuery` hook with `matchMedia` wrapper, SSR safety, and `change` event listener in `solune/frontend/src/hooks/useMediaQuery.ts`
+- [X] T002 Add unit tests for `useMediaQuery` hook covering mount, resize, cleanup, and SSR fallback in `solune/frontend/src/hooks/useMediaQuery.test.ts`
 
 **Checkpoint**: `useMediaQuery` hook is available and tested. All responsive user stories can now proceed.
 
@@ -47,10 +47,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Import `useMediaQuery` and add mobile detection to `ChatPopup` component in `solune/frontend/src/components/chat/ChatPopup.tsx`
-- [ ] T004 [US1] Conditionally render full-screen layout (`fixed inset-0 z-50`) when `isMobile` is true, disabling drag-to-resize in `solune/frontend/src/components/chat/ChatPopup.tsx`
-- [ ] T005 [US1] Ensure smooth transition between floating popup and bottom-sheet when viewport crosses 768px while chat is open in `solune/frontend/src/components/chat/ChatPopup.tsx`
-- [ ] T006 [US1] Update existing ChatPopup tests to cover mobile bottom-sheet rendering and viewport transition in `solune/frontend/src/components/chat/ChatPopup.test.tsx`
+- [X] T003 [US1] Import `useMediaQuery` and add mobile detection to `ChatPopup` component in `solune/frontend/src/components/chat/ChatPopup.tsx`
+- [X] T004 [US1] Conditionally render full-screen layout (`fixed inset-0 z-50`) when `isMobile` is true, disabling drag-to-resize in `solune/frontend/src/components/chat/ChatPopup.tsx`
+- [X] T005 [US1] Ensure smooth transition between floating popup and bottom-sheet when viewport crosses 768px while chat is open in `solune/frontend/src/components/chat/ChatPopup.tsx`
+- [X] T006 [US1] Update existing ChatPopup tests to cover mobile bottom-sheet rendering and viewport transition in `solune/frontend/src/components/chat/ChatPopup.test.tsx`
 
 **Checkpoint**: Chat opens as full-screen bottom-sheet on mobile, floating popup on desktop. Transition is smooth across breakpoint. All existing tests pass.
 
@@ -64,9 +64,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Add `useMediaQuery` to `AppLayout` and implement mobile auto-collapse logic with desktop preference memory in `solune/frontend/src/layout/AppLayout.tsx`
-- [ ] T008 [US2] Add mobile overlay rendering with backdrop (`fixed inset-y-0 left-0 z-40`) and outside-click/nav-item dismiss behavior in `solune/frontend/src/layout/Sidebar.tsx`
-- [ ] T009 [US2] Update existing Sidebar/AppLayout tests to cover mobile auto-collapse, overlay behavior, and viewport transition in `solune/frontend/src/layout/Sidebar.test.tsx`
+- [X] T007 [US2] Add `useMediaQuery` to `AppLayout` and implement mobile auto-collapse logic with desktop preference memory in `solune/frontend/src/layout/AppLayout.tsx`
+- [X] T008 [US2] Add mobile overlay rendering with backdrop (`fixed inset-y-0 left-0 z-40`) and outside-click/nav-item dismiss behavior in `solune/frontend/src/layout/Sidebar.tsx`
+- [X] T009 [US2] Update existing Sidebar/AppLayout tests to cover mobile auto-collapse, overlay behavior, and viewport transition in `solune/frontend/src/layout/Sidebar.test.tsx`
 
 **Checkpoint**: Sidebar auto-collapses on mobile, expands as overlay with backdrop, and collapses on outside click or nav selection. Desktop preference is preserved across breakpoint transitions.
 
@@ -80,8 +80,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Import `useMediaQuery` and conditionally apply full-screen layout (`fixed inset-0`) with fixed header and scrollable body on mobile in `solune/frontend/src/components/board/IssueDetailModal.tsx`
-- [ ] T011 [US3] Update existing IssueDetailModal tests to cover full-screen mobile rendering, fixed header, and close behavior in `solune/frontend/src/components/board/IssueDetailModal.test.tsx`
+- [X] T010 [US3] Import `useMediaQuery` and conditionally apply full-screen layout (`fixed inset-0`) with fixed header and scrollable body on mobile in `solune/frontend/src/components/board/IssueDetailModal.tsx`
+- [X] T011 [US3] Update existing IssueDetailModal tests to cover full-screen mobile rendering, fixed header, and close behavior in `solune/frontend/src/components/board/IssueDetailModal.test.tsx`
 
 **Checkpoint**: Issue modal is full-screen with sticky header on mobile, centered dialog on desktop. No layout regressions.
 
@@ -95,9 +95,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T012 [US4] Import `useMediaQuery` and switch to icon-only buttons or collapsible overflow menu on mobile in `solune/frontend/src/components/board/BoardToolbar.tsx`
-- [ ] T013 [US4] Add active filter indicator (badge count or highlighted icon) visible in mobile compact layout in `solune/frontend/src/components/board/BoardToolbar.tsx`
-- [ ] T014 [US4] Update existing BoardToolbar tests to cover compact mobile layout and active filter indicator in `solune/frontend/src/components/board/BoardToolbar.test.tsx`
+- [X] T012 [US4] Import `useMediaQuery` and switch to icon-only buttons or collapsible overflow menu on mobile in `solune/frontend/src/components/board/BoardToolbar.tsx`
+- [X] T013 [US4] Add active filter indicator (badge count or highlighted icon) visible in mobile compact layout in `solune/frontend/src/components/board/BoardToolbar.tsx`
+- [X] T014 [US4] Update existing BoardToolbar tests to cover compact mobile layout and active filter indicator in `solune/frontend/src/components/board/BoardToolbar.test.tsx`
 
 **Checkpoint**: Board toolbar fits within narrow viewports, all controls are accessible, and active filters are indicated. No horizontal overflow at 375px.
 
@@ -111,11 +111,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T015 [P] [US5] Add skeleton loader layout (6 list-row placeholders, shimmer variant) to `AgentsPage` loading state in `solune/frontend/src/pages/AgentsPage.tsx`
-- [ ] T016 [P] [US5] Add skeleton loader layout (6 list-row placeholders, shimmer variant) to `ToolsPage` loading state in `solune/frontend/src/pages/ToolsPage.tsx`
-- [ ] T017 [P] [US5] Add skeleton loader layout (4 list-row placeholders, shimmer variant) to `ChoresPage` loading state in `solune/frontend/src/pages/ChoresPage.tsx`
-- [ ] T018 [P] [US5] Add skeleton loader layout (4 card-grid placeholders, shimmer variant) to `AppsPage` loading state in `solune/frontend/src/pages/AppsPage.tsx`
-- [ ] T019 [P] [US5] Update existing page tests to verify skeleton placeholders render during loading state in `solune/frontend/src/pages/AgentsPage.test.tsx`, `ToolsPage.test.tsx`, `ChoresPage.test.tsx`, `AppsPage.test.tsx`
+- [X] T015 [P] [US5] Add skeleton loader layout (6 list-row placeholders, shimmer variant) to `AgentsPage` loading state in `solune/frontend/src/pages/AgentsPage.tsx`
+- [X] T016 [P] [US5] Add skeleton loader layout (6 list-row placeholders, shimmer variant) to `ToolsPage` loading state in `solune/frontend/src/pages/ToolsPage.tsx`
+- [X] T017 [P] [US5] Add skeleton loader layout (4 list-row placeholders, shimmer variant) to `ChoresPage` loading state in `solune/frontend/src/pages/ChoresPage.tsx`
+- [X] T018 [P] [US5] Add skeleton loader layout (4 card-grid placeholders, shimmer variant) to `AppsPage` loading state in `solune/frontend/src/pages/AppsPage.tsx`
+- [X] T019 [P] [US5] Update existing page tests to verify skeleton placeholders render during loading state in `solune/frontend/src/pages/AgentsPage.test.tsx`, `ToolsPage.test.tsx`, `ChoresPage.test.tsx`, `AppsPage.test.tsx`
 
 **Checkpoint**: All four catalog pages show skeleton placeholders during loading. Transition to content is smooth with zero layout shift. Existing tests pass.
 
@@ -129,9 +129,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T020 [P] [US6] Implement optimistic update in board drag-drop mutation: snapshot board columns in `onMutate`, move card in cache, restore on `onError` with `toast.error`, invalidate on `onSettled` in `solune/frontend/src/hooks/useBoardDragDrop.ts`
-- [ ] T021 [P] [US6] Implement optimistic update in app start/stop mutations: snapshot app status in `onMutate`, set to 'starting'/'stopping' in cache, restore on `onError` with `toast.error`, invalidate on `onSettled` in `solune/frontend/src/hooks/useApps.ts`
-- [ ] T022 [US6] Update existing `useBoardDragDrop` and `useApps` tests to cover optimistic update, rollback on error, and cache invalidation in `solune/frontend/src/hooks/useBoardDragDrop.test.ts` and `solune/frontend/src/hooks/useApps.test.ts`
+- [X] T020 [P] [US6] Implement optimistic update in board drag-drop mutation: snapshot board columns in `onMutate`, move card in cache, restore on `onError` with `toast.error`, invalidate on `onSettled` in `solune/frontend/src/hooks/useBoardDragDrop.ts`
+- [X] T021 [P] [US6] Implement optimistic update in app start/stop mutations: snapshot app status in `onMutate`, set to 'starting'/'stopping' in cache, restore on `onError` with `toast.error`, invalidate on `onSettled` in `solune/frontend/src/hooks/useApps.ts`
+- [X] T022 [US6] Update existing `useBoardDragDrop` and `useApps` tests to cover optimistic update, rollback on error, and cache invalidation in `solune/frontend/src/hooks/useBoardDragDrop.test.ts` and `solune/frontend/src/hooks/useApps.test.ts`
 
 **Checkpoint**: Board drag-drop and app start/stop have instant visual feedback. Server errors trigger automatic rollback and error toasts. Existing mutation behavior is preserved on success.
 
@@ -145,12 +145,12 @@
 
 ### Implementation for User Story 7
 
-- [ ] T023 [US7] Remove `successMessage`/`actionError` state and ref-based timer from `AppsPage`, replace with toast calls from mutation hooks in `solune/frontend/src/pages/AppsPage.tsx`
-- [ ] T024 [P] [US7] Ensure all mutation callbacks in `useApps` hook use `toast.success()`/`toast.error()` from Sonner for create/update/delete/start/stop feedback in `solune/frontend/src/hooks/useApps.ts`
-- [ ] T025 [P] [US7] Verify and standardize toast notification pattern in `useAgents` hook (`onSuccess → toast.success`, `onError → toast.error`) in `solune/frontend/src/hooks/useAgents.ts`
-- [ ] T026 [P] [US7] Verify and standardize toast notification pattern in `useTools` hook in `solune/frontend/src/hooks/useTools.ts`
-- [ ] T027 [P] [US7] Verify and standardize toast notification pattern in `useChores` hook in `solune/frontend/src/hooks/useChores.ts`
-- [ ] T028 [US7] Update existing tests to verify toast notification consistency across all mutation hooks in relevant test files
+- [X] T023 [US7] Remove `successMessage`/`actionError` state and ref-based timer from `AppsPage`, replace with toast calls from mutation hooks in `solune/frontend/src/pages/AppsPage.tsx`
+- [X] T024 [P] [US7] Ensure all mutation callbacks in `useApps` hook use `toast.success()`/`toast.error()` from Sonner for create/update/delete/start/stop feedback in `solune/frontend/src/hooks/useApps.ts`
+- [X] T025 [P] [US7] Verify and standardize toast notification pattern in `useAgents` hook (`onSuccess → toast.success`, `onError → toast.error`) in `solune/frontend/src/hooks/useAgents.ts`
+- [X] T026 [P] [US7] Verify and standardize toast notification pattern in `useTools` hook in `solune/frontend/src/hooks/useTools.ts`
+- [X] T027 [P] [US7] Verify and standardize toast notification pattern in `useChores` hook in `solune/frontend/src/hooks/useChores.ts`
+- [X] T028 [US7] Update existing tests to verify toast notification consistency across all mutation hooks in relevant test files
 
 **Checkpoint**: All create/update/delete mutations across agents, tools, chores, and apps produce consistent Sonner toast notifications. No inline state-based feedback remains in `AppsPage`.
 
@@ -164,11 +164,11 @@
 
 ### Implementation for User Story 8
 
-- [ ] T029 [US8] Create reusable `EmptyState` component accepting `icon`, `title`, `description`, `actionLabel`, `onAction` props with celestial design tokens in `solune/frontend/src/components/common/EmptyState.tsx`
-- [ ] T030 [P] [US8] Render `EmptyState` in `AgentsPage` when project is selected but agents list is empty, with agent-specific copy and create CTA in `solune/frontend/src/pages/AgentsPage.tsx`
-- [ ] T031 [P] [US8] Render `EmptyState` in `ToolsPage` when project is selected but tools list is empty, with tool-specific copy and create CTA in `solune/frontend/src/pages/ToolsPage.tsx`
-- [ ] T032 [P] [US8] Render `EmptyState` in `ChoresPage` when project is selected but chores list is empty, with chore-specific copy and create CTA in `solune/frontend/src/pages/ChoresPage.tsx`
-- [ ] T033 [US8] Add unit tests for `EmptyState` component and update page tests to verify empty state rendering in `solune/frontend/src/components/common/EmptyState.test.tsx`
+- [X] T029 [US8] Create reusable `EmptyState` component accepting `icon`, `title`, `description`, `actionLabel`, `onAction` props with celestial design tokens in `solune/frontend/src/components/common/EmptyState.tsx`
+- [X] T030 [P] [US8] Render `EmptyState` in `AgentsPage` when project is selected but agents list is empty, with agent-specific copy and create CTA in `solune/frontend/src/pages/AgentsPage.tsx`
+- [X] T031 [P] [US8] Render `EmptyState` in `ToolsPage` when project is selected but tools list is empty, with tool-specific copy and create CTA in `solune/frontend/src/pages/ToolsPage.tsx`
+- [X] T032 [P] [US8] Render `EmptyState` in `ChoresPage` when project is selected but chores list is empty, with chore-specific copy and create CTA in `solune/frontend/src/pages/ChoresPage.tsx`
+- [X] T033 [US8] Add unit tests for `EmptyState` component and update page tests to verify empty state rendering in `solune/frontend/src/components/common/EmptyState.test.tsx`
 
 **Checkpoint**: All three catalog pages (Agents, Tools, Chores) show actionable empty states when list is empty. CTA buttons open the create dialog. EmptyState component is tested.
 
@@ -182,12 +182,12 @@
 
 ### Implementation for User Story 9
 
-- [ ] T034 [US9] Add search input field to `BoardToolbar` with local state and 150ms debounce, filtering issues by title/description in `solune/frontend/src/components/board/BoardToolbar.tsx`
-- [ ] T035 [P] [US9] Add search input to `AgentsPage` with 150ms debounce, filtering agents by name/description in `solune/frontend/src/pages/AgentsPage.tsx`
-- [ ] T036 [P] [US9] Add search input to `ToolsPage` with 150ms debounce, filtering tools by name/description in `solune/frontend/src/pages/ToolsPage.tsx`
-- [ ] T037 [P] [US9] Add search input to `ChoresPage` with 150ms debounce, filtering chores by name/description in `solune/frontend/src/pages/ChoresPage.tsx`
-- [ ] T038 [US9] Add "No results found" message display when search term matches zero items across board and catalog pages
-- [ ] T039 [US9] Update existing BoardToolbar and catalog page tests to cover search filtering, clear behavior, and no-results state in relevant test files
+- [X] T034 [US9] Add search input field to `BoardToolbar` with local state and 150ms debounce, filtering issues by title/description in `solune/frontend/src/components/board/BoardToolbar.tsx`
+- [X] T035 [P] [US9] Add search input to `AgentsPage` with 150ms debounce, filtering agents by name/description in `solune/frontend/src/pages/AgentsPage.tsx`
+- [X] T036 [P] [US9] Add search input to `ToolsPage` with 150ms debounce, filtering tools by name/description in `solune/frontend/src/pages/ToolsPage.tsx`
+- [X] T037 [P] [US9] Add search input to `ChoresPage` with 150ms debounce, filtering chores by name/description in `solune/frontend/src/pages/ChoresPage.tsx`
+- [X] T038 [US9] Add "No results found" message display when search term matches zero items across board and catalog pages
+- [X] T039 [US9] Update existing BoardToolbar and catalog page tests to cover search filtering, clear behavior, and no-results state in relevant test files
 
 **Checkpoint**: Board and catalog pages support text search. Search filters items instantly (within 300ms). Clearing search restores all items. Empty results show helpful message.
 
@@ -201,9 +201,9 @@
 
 ### Implementation for User Story 10
 
-- [ ] T040 [P] [US10] Add 4 new `TOUR_STEPS` entries (Steps 10–13: Tools, Chores, Settings, Apps) with `targetSelector`, `title`, `description`, `icon`, and `placement` in `solune/frontend/src/components/onboarding/SpotlightTour.tsx`
-- [ ] T041 [P] [US10] Update `TOTAL_STEPS` constant from `9` to `13` in `solune/frontend/src/hooks/useOnboarding.tsx`
-- [ ] T042 [US10] Update existing onboarding tests to verify all 13 steps render correctly and tour completion works with updated total in `solune/frontend/src/hooks/useOnboarding.test.tsx` and `solune/frontend/src/components/onboarding/SpotlightTour.test.tsx`
+- [X] T040 [P] [US10] Add 4 new `TOUR_STEPS` entries (Steps 10–13: Tools, Chores, Settings, Apps) with `targetSelector`, `title`, `description`, `icon`, and `placement` in `solune/frontend/src/components/onboarding/SpotlightTour.tsx`
+- [X] T041 [P] [US10] Update `TOTAL_STEPS` constant from `9` to `13` in `solune/frontend/src/hooks/useOnboarding.tsx`
+- [X] T042 [US10] Update existing onboarding tests to verify all 13 steps render correctly and tour completion works with updated total in `solune/frontend/src/hooks/useOnboarding.test.tsx` and `solune/frontend/src/components/onboarding/SpotlightTour.test.tsx`
 
 **Checkpoint**: Onboarding tour walks through all 13 steps including new pages. Tour completion and skip behaviors work correctly with the extended step count.
 
@@ -217,11 +217,11 @@
 
 ### Implementation for User Story 11
 
-- [ ] T043 [US11] Implement undo/redo wrapper around existing `pipelineReducer` with `undoStack` (max 50), `redoStack`, and fork behavior in `solune/frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T044 [US11] Register Ctrl+Z (Cmd+Z) and Ctrl+Shift+Z (Cmd+Shift+Z) keyboard event listeners for undo/redo actions in `solune/frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T045 [US11] Clear both undo/redo stacks on pipeline load, discard, and create operations in `solune/frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T046 [US11] Export `canUndo` and `canRedo` boolean flags for UI controls (disabled state) in `solune/frontend/src/hooks/usePipelineConfig.ts`
-- [ ] T047 [US11] Update existing pipeline config tests to cover undo, redo, stack overflow (50+ entries), fork behavior, and stack clearing in `solune/frontend/src/hooks/usePipelineConfig.test.ts`
+- [X] T043 [US11] Implement undo/redo wrapper around existing `pipelineReducer` with `undoStack` (max 50), `redoStack`, and fork behavior in `solune/frontend/src/hooks/usePipelineConfig.ts`
+- [X] T044 [US11] Register Ctrl+Z (Cmd+Z) and Ctrl+Shift+Z (Cmd+Shift+Z) keyboard event listeners for undo/redo actions in `solune/frontend/src/hooks/usePipelineConfig.ts`
+- [X] T045 [US11] Clear both undo/redo stacks on pipeline load, discard, and create operations in `solune/frontend/src/hooks/usePipelineConfig.ts`
+- [X] T046 [US11] Export `canUndo` and `canRedo` boolean flags for UI controls (disabled state) in `solune/frontend/src/hooks/usePipelineConfig.ts`
+- [X] T047 [US11] Update existing pipeline config tests to cover undo, redo, stack overflow (50+ entries), fork behavior, and stack clearing in `solune/frontend/src/hooks/usePipelineConfig.test.ts`
 
 **Checkpoint**: Pipeline builder supports undo/redo with Ctrl+Z/Ctrl+Shift+Z. Stack depth is capped at 50. Stacks clear on load/discard/create. All existing pipeline tests pass.
 
@@ -231,10 +231,10 @@
 
 **Purpose**: Final verification and cross-cutting improvements that affect multiple user stories.
 
-- [ ] T048 [P] Run full unit test suite (`npx vitest run`) and fix any regressions across all modified files
-- [ ] T049 [P] Run TypeScript type check (`npx tsc --noEmit`) and fix any type errors
-- [ ] T050 [P] Run ESLint (`npx eslint .`) and fix any lint violations in modified files
-- [ ] T051 Run production build (`npm run build`) and verify successful completion
+- [X] T048 [P] Run full unit test suite (`npx vitest run`) and fix any regressions across all modified files
+- [X] T049 [P] Run TypeScript type check (`npx tsc --noEmit`) and fix any type errors
+- [X] T050 [P] Run ESLint (`npx eslint .`) and fix any lint violations in modified files
+- [X] T051 Run production build (`npm run build`) and verify successful completion
 - [ ] T052 Manual responsive testing at 320px, 375px, 768px, 1024px viewports for all modified components
 - [ ] T053 Verify all mobile transitions are smooth when resizing across the 768px breakpoint
 - [ ] T054 Run quickstart.md verification checklist to confirm all implementation steps are complete

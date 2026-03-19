@@ -4,8 +4,9 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Filter, ArrowUpDown, Columns3, X } from 'lucide-react';
+import { Filter, ArrowUpDown, Columns3, Search, X } from 'lucide-react';
 import { Tooltip } from '@/components/ui/tooltip';
+import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { BoardFilterState, BoardSortState, BoardGroupState } from '@/hooks/useBoardControls';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +28,8 @@ interface BoardToolbarProps {
   hasActiveSort: boolean;
   hasActiveGroup: boolean;
   hasActiveControls: boolean;
+  searchQuery?: string;
+  onSearchChange?: (query: string) => void;
 }
 
 function ToolbarButton({
@@ -35,23 +38,28 @@ function ToolbarButton({
   isActive,
   hasIndicator,
   onClick,
+  iconOnly = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
   isActive: boolean;
   hasIndicator: boolean;
   onClick: () => void;
+  iconOnly?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
       className={cn('relative flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors', isActive
           ? 'border-primary/50 bg-primary/10 text-primary'
-          : 'border-border/70 bg-background/50 hover:bg-accent/45')}
+          : 'border-border/70 bg-background/50 hover:bg-accent/45',
+        iconOnly && 'px-2.5')}
       type="button"
+      title={iconOnly ? label : undefined}
+      aria-label={iconOnly ? label : undefined}
     >
       <Icon className="w-3.5 h-3.5" />
-      {label}
+      {!iconOnly && label}
       {hasIndicator && (
         <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-primary" />
       )}
@@ -147,9 +155,12 @@ export function BoardToolbar({
   hasActiveSort,
   hasActiveGroup,
   hasActiveControls,
+  searchQuery = '',
+  onSearchChange,
 }: BoardToolbarProps) {
   const [activePanel, setActivePanel] = useState<ActivePanel>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const isMobile = useMediaQuery('(max-width: 767px)');
 
   const togglePanel = useCallback((panel: ActivePanel) => {
     setActivePanel((prev) => (prev === panel ? null : panel));
@@ -178,13 +189,37 @@ export function BoardToolbar({
   }, [activePanel]);
 
   return (
-    <div className="relative flex items-center gap-2 shrink-0" ref={panelRef}>
+    <div className="relative flex items-center gap-2 shrink-0 flex-wrap" ref={panelRef}>
+      {onSearchChange && (
+        <div className="relative flex items-center">
+          <Search className="absolute left-2.5 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
+            placeholder="Search issues…"
+            aria-label="Search issues"
+            className="h-8 rounded-full border border-border/70 bg-background/50 pl-8 pr-3 text-xs placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-primary/40 w-40 sm:w-52"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => onSearchChange('')}
+              className="absolute right-2 text-muted-foreground hover:text-foreground"
+              aria-label="Clear search"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          )}
+        </div>
+      )}
       <ToolbarButton
         icon={Filter}
         label="Filter"
         isActive={activePanel === 'filter'}
         hasIndicator={hasActiveFilters}
         onClick={() => togglePanel('filter')}
+        iconOnly={isMobile}
       />
       <ToolbarButton
         icon={ArrowUpDown}
@@ -192,6 +227,7 @@ export function BoardToolbar({
         isActive={activePanel === 'sort'}
         hasIndicator={hasActiveSort}
         onClick={() => togglePanel('sort')}
+        iconOnly={isMobile}
       />
       <ToolbarButton
         icon={Columns3}
@@ -199,6 +235,7 @@ export function BoardToolbar({
         isActive={activePanel === 'group'}
         hasIndicator={hasActiveGroup}
         onClick={() => togglePanel('group')}
+        iconOnly={isMobile}
       />
 
       {hasActiveControls && (
