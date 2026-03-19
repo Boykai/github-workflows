@@ -221,7 +221,7 @@ export function BoardToolbar({
             <span className="text-sm font-semibold">Filters</span>
             {hasActiveFilters && (
               <button
-                onClick={() => onFiltersChange({ labels: [], assignees: [], milestones: [], pipelineConfig: null })}
+                onClick={() => onFiltersChange({ labels: [], assignees: [], milestones: [], priority: [], pipelineConfig: null })}
                 className="text-xs text-muted-foreground hover:text-foreground transition-colors"
                 type="button"
               >
@@ -246,6 +246,12 @@ export function BoardToolbar({
             options={availableMilestones}
             selected={filters.milestones}
             onChange={(milestones) => onFiltersChange({ ...filters, milestones })}
+          />
+          <CheckboxList
+            title="Priority"
+            options={['P0', 'P1', 'P2', 'P3']}
+            selected={filters.priority}
+            onChange={(priority) => onFiltersChange({ ...filters, priority })}
           />
           {availablePipelineConfigs.length > 0 && (
             <div className="flex flex-col gap-1.5">
