@@ -20,6 +20,7 @@ from src.services.github_projects.graphql import (
     LINK_PROJECT_V2_TO_REPO_MUTATION,
     LIST_ORG_PROJECTS_QUERY,
     LIST_USER_PROJECTS_QUERY,
+    SET_PROJECT_DEFAULT_REPOSITORY_MUTATION,
     UPDATE_DATE_FIELD_MUTATION,
     UPDATE_ITEM_STATUS_MUTATION,
     UPDATE_NUMBER_FIELD_MUTATION,
@@ -152,6 +153,29 @@ class ProjectsMixin:
             {"projectId": project_id, "repositoryId": repository_id},
         )
         logger.info("Linked project %s to repository %s", project_id, repository_id)
+
+    async def set_project_default_repository(
+        self,
+        access_token: str,
+        project_id: str,
+        repository_id: str,
+    ) -> None:
+        """Set the default repository on a GitHub Project V2.
+
+        The default repository is used when creating new issues from the
+        project board.
+
+        Args:
+            access_token: GitHub OAuth access token.
+            project_id: Project GraphQL node ID.
+            repository_id: Repository GraphQL node ID.
+        """
+        await self._graphql(
+            access_token,
+            SET_PROJECT_DEFAULT_REPOSITORY_MUTATION,
+            {"projectId": project_id, "repositoryId": repository_id},
+        )
+        logger.info("Set default repository %s on project %s", repository_id, project_id)
 
     async def delete_project_v2(
         self,

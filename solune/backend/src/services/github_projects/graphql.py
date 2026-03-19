@@ -980,6 +980,16 @@ mutation($projectId: ID!, $repositoryId: ID!) {
 }
 """
 
+SET_PROJECT_DEFAULT_REPOSITORY_MUTATION = """
+mutation($projectId: ID!, $repositoryId: ID!) {
+  updateProjectV2(input: {projectId: $projectId, repositoryId: $repositoryId}) {
+    projectV2 {
+      id
+    }
+  }
+}
+"""
+
 UPDATE_PROJECT_V2_SINGLE_SELECT_FIELD_MUTATION = """
 mutation($fieldId: ID!, $options: [ProjectV2SingleSelectFieldOptionInput!]!) {
   updateProjectV2Field(input: {

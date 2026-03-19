@@ -300,6 +300,11 @@ async def create_app(
                             project_id=github_project_id,
                             repository_id=repository_id,
                         )
+                        await github_service.set_project_default_repository(
+                            access_token,
+                            project_id=github_project_id,
+                            repository_id=repository_id,
+                        )
                 except Exception as exc:
                     logger.warning("Non-blocking: could not link project to repo: %s", exc)
         except Exception as exc:
@@ -516,10 +521,15 @@ async def create_app_with_new_repo(
             github_project_id = project.get("id")
             github_project_url = project.get("url")
 
-            # Link project to repository
+            # Link project to repository and set as default
             if github_project_id and repo_data.get("node_id"):
                 try:
                     await github_service.link_project_to_repository(
+                        access_token,
+                        project_id=github_project_id,
+                        repository_id=repo_data["node_id"],
+                    )
+                    await github_service.set_project_default_repository(
                         access_token,
                         project_id=github_project_id,
                         repository_id=repo_data["node_id"],
