@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Check, Copy } from 'lucide-react';
+import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
 interface CopyButtonProps {
@@ -17,7 +18,21 @@ export function CopyButton({ value, className, label = 'Copy' }: CopyButtonProps
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
-      // Clipboard API may fail in some browsers
+      // Fallback for older browsers / insecure contexts
+      try {
+        const textarea = document.createElement('textarea');
+        textarea.value = value;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      } catch {
+        toast.error('Failed to copy to clipboard');
+      }
     }
   }, [value]);
 

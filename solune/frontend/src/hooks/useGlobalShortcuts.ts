@@ -16,6 +16,10 @@ function isTextInput(target: EventTarget | null): boolean {
   return tagName === 'input' || tagName === 'textarea' || target.isContentEditable;
 }
 
+function isModalOpen(): boolean {
+  return document.querySelector('[role="dialog"][aria-modal="true"]') !== null;
+}
+
 export function useGlobalShortcuts({ onOpenShortcutModal }: UseGlobalShortcutsOptions): void {
   const navigate = useNavigate();
 
@@ -33,6 +37,9 @@ export function useGlobalShortcuts({ onOpenShortcutModal }: UseGlobalShortcutsOp
 
       // Skip remaining shortcuts when in text input (except Escape)
       if (inInput && event.key !== 'Escape') return;
+
+      // Suppress non-Escape shortcuts when a modal dialog is open
+      if (isModalOpen()) return;
 
       // ? — open shortcut help modal (only when not in input)
       if (event.key === '?' && !event.ctrlKey && !event.metaKey && !event.altKey) {
