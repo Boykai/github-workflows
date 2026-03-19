@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query, Request, Response
 
 from src.api.auth import get_session_dep
 from src.dependencies import get_github_service
@@ -17,6 +17,7 @@ from src.models.app import (
     AppStatusResponse,
     AppUpdate,
     DeleteAppResult,
+    RepoType,
 )
 from src.models.user import UserSession
 from src.services.app_service import (
@@ -76,9 +77,12 @@ async def create_app_endpoint(
     )
 
     # If a pipeline was selected and a project context exists, launch the pipeline.
-    # project_id comes from the user's selected project (where the pipeline lives);
-    # for new-repo apps the app's own github_project_id can also serve.
-    launch_project_id = payload.project_id or app.github_project_id
+    # Route based on repo_type: same-repo uses the user-supplied project_id;
+    # new-repo and external-repo use the app's own github_project_id.
+    if app.repo_type == RepoType.SAME_REPO:
+        launch_project_id = payload.project_id
+    else:
+        launch_project_id = app.github_project_id
     if payload.pipeline_id and launch_project_id:
         try:
             from src.api.pipelines import execute_pipeline_launch
@@ -106,6 +110,12 @@ async def create_app_endpoint(
             warnings = list(app.warnings or [])
             warnings.append(f"Pipeline launch failed: {exc}")
             app = app.model_copy(update={"warnings": warnings})
+    elif payload.pipeline_id and not launch_project_id:
+        logger.warning(
+            "Pipeline launch skipped for app '%s' (repo_type=%s): no project_id available",
+            app.name,
+            app.repo_type,
+        )
 
     return app
 
@@ -153,12 +163,14 @@ async def delete_app_endpoint(
     request: Request,
     app_name: str,
     session: _SessionDep,
+    response: Response,
     force: Annotated[bool, Query(description="Perform full asset cleanup when True")] = False,
 ) -> DeleteAppResult | None:
     """Delete an application (must be stopped first).
 
     When ``force=true``, all related GitHub assets (issues, branches,
     project, and repository) are deleted before removing the DB record.
+    Returns 204 for non-force delete, 200 with ``DeleteAppResult`` for force.
     """
     db = get_db()
     github_service = get_github_service(request)
@@ -169,6 +181,8 @@ async def delete_app_endpoint(
         github_service=github_service,
         force=force,
     )
+    if not force:
+        response.status_code = 204
     return result
 
 

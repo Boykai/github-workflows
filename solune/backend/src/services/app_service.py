@@ -222,11 +222,16 @@ async def create_app(
     if await cursor.fetchone():
         raise ConflictError(f"App '{payload.name}' already exists.")
 
-    settings = get_settings()
-    owner = settings.default_repo_owner
-    repo = settings.default_repo_name
-    if not owner or not repo:
-        raise ValidationError("Default repository not configured (DEFAULT_REPOSITORY).")
+    if payload.repo_type == RepoType.EXTERNAL_REPO:
+        from src.utils import parse_github_url
+
+        owner, repo = parse_github_url(payload.external_repo_url or "")
+    else:
+        settings = get_settings()
+        owner = settings.default_repo_owner
+        repo = settings.default_repo_name
+        if not owner or not repo:
+            raise ValidationError("Default repository not configured (DEFAULT_REPOSITORY).")
 
     branch_name = payload.branch
     if not branch_name:
@@ -270,6 +275,40 @@ async def create_app(
             f"Failed to commit scaffold files for app '{payload.name}' to branch '{branch_name}'."
         )
 
+    # For external-repo apps, auto-create a Project V2 and link it to the repo.
+    github_repo_url: str | None = payload.external_repo_url
+    github_project_url: str | None = None
+    github_project_id: str | None = None
+
+    if payload.repo_type == RepoType.EXTERNAL_REPO and payload.pipeline_id:
+        try:
+            project = await github_service.create_project_v2(
+                access_token,
+                owner=owner,
+                title=payload.display_name,
+            )
+            github_project_id = project.get("id")
+            github_project_url = project.get("url")
+
+            if github_project_id:
+                try:
+                    repo_info = await github_service.get_repository_info(access_token, owner, repo)
+                    repository_id = repo_info.get("node_id")
+                    if repository_id:
+                        await github_service.link_project_to_repository(
+                            access_token,
+                            project_id=github_project_id,
+                            repository_id=repository_id,
+                        )
+                except Exception as exc:
+                    logger.warning("Non-blocking: could not link project to repo: %s", exc)
+        except Exception as exc:
+            logger.warning(
+                "Non-blocking: project creation failed for app '%s': %s",
+                payload.name,
+                exc,
+            )
+
     directory_path = f"apps/{payload.name}"
 
     # Insert into database
@@ -279,8 +318,9 @@ async def create_app(
         INSERT INTO apps (
             name, display_name, description, directory_path,
             associated_pipeline_id, status, repo_type, external_repo_url,
+            github_repo_url, github_project_url, github_project_id,
             created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             payload.name,
@@ -291,6 +331,9 @@ async def create_app(
             AppStatus.ACTIVE.value,
             payload.repo_type.value,
             payload.external_repo_url,
+            github_repo_url,
+            github_project_url,
+            github_project_id,
             now,
             now,
         ),

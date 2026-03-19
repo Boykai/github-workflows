@@ -236,3 +236,228 @@ class TestResolveWorkingDirectory:
 
     def test_defaults_to_platform_directory(self):
         assert resolve_working_directory(None) == "solune"
+
+
+class TestExternalRepoScaffoldRouting:
+    """T008: Verify external-repo scaffold uses parsed owner/repo from URL."""
+
+    @pytest.mark.asyncio
+    async def test_external_repo_scaffold_uses_parsed_url(self, mock_db):
+        github_service = AsyncMock()
+        github_service.get_branch_head_oid.return_value = "ext-head-sha"
+        github_service.commit_files.return_value = "ext-commit-sha"
+        payload = AppCreate(
+            name="ext-app",
+            display_name="Ext App",
+            description="External app",
+            branch="main",
+            repo_type=RepoType.EXTERNAL_REPO,
+            external_repo_url="https://github.com/ext-owner/ext-repo",
+            ai_enhance=False,
+        )
+
+        app = await create_app(
+            mock_db,
+            payload,
+            access_token="token",
+            github_service=github_service,
+        )
+
+        assert app.name == "ext-app"
+        assert app.status == AppStatus.ACTIVE
+        github_service.get_branch_head_oid.assert_awaited_once_with(
+            "token", "ext-owner", "ext-repo", "main"
+        )
+        commit_call = github_service.commit_files.call_args
+        assert commit_call[1]["owner"] == "ext-owner"
+        assert commit_call[1]["repo"] == "ext-repo"
+
+    @pytest.mark.asyncio
+    async def test_external_repo_permission_error_surfaces(self, mock_db):
+        github_service = AsyncMock()
+        github_service.get_branch_head_oid.side_effect = Exception("403 Forbidden")
+        payload = AppCreate(
+            name="ext-app",
+            display_name="Ext App",
+            branch="main",
+            repo_type=RepoType.EXTERNAL_REPO,
+            external_repo_url="https://github.com/other/private-repo",
+            ai_enhance=False,
+        )
+
+        with pytest.raises(Exception, match="403 Forbidden"):
+            await create_app(
+                mock_db,
+                payload,
+                access_token="token",
+                github_service=github_service,
+            )
+
+
+class TestExternalRepoUrlModelValidation:
+    """T009: Verify AppCreate model validation for external_repo_url."""
+
+    def test_valid_external_url_passes(self):
+        payload = AppCreate(
+            name="ext-app",
+            display_name="Ext",
+            branch="main",
+            repo_type=RepoType.EXTERNAL_REPO,
+            external_repo_url="https://github.com/owner/repo",
+        )
+        assert payload.external_repo_url == "https://github.com/owner/repo"
+
+    def test_external_url_with_git_suffix_passes(self):
+        payload = AppCreate(
+            name="ext-app",
+            display_name="Ext",
+            branch="main",
+            repo_type=RepoType.EXTERNAL_REPO,
+            external_repo_url="https://github.com/owner/repo.git",
+        )
+        assert payload.external_repo_url == "https://github.com/owner/repo.git"
+
+    def test_missing_url_for_external_repo_raises(self):
+        from pydantic import ValidationError as PydanticValidationError
+
+        with pytest.raises(PydanticValidationError, match="external_repo_url is required"):
+            AppCreate(
+                name="ext-app",
+                display_name="Ext",
+                branch="main",
+                repo_type=RepoType.EXTERNAL_REPO,
+            )
+
+    def test_invalid_url_for_external_repo_raises(self):
+        from pydantic import ValidationError as PydanticValidationError
+
+        with pytest.raises(PydanticValidationError):
+            AppCreate(
+                name="ext-app",
+                display_name="Ext",
+                branch="main",
+                repo_type=RepoType.EXTERNAL_REPO,
+                external_repo_url="https://notgithub.com/owner/repo",
+            )
+
+    def test_same_repo_does_not_require_url(self):
+        payload = AppCreate(
+            name="sr-app",
+            display_name="SR",
+            branch="main",
+            repo_type=RepoType.SAME_REPO,
+        )
+        assert payload.external_repo_url is None
+
+    def test_new_repo_does_not_require_url(self):
+        payload = AppCreate(
+            name="nr-app",
+            display_name="NR",
+            branch="main",
+            repo_type=RepoType.NEW_REPO,
+        )
+        assert payload.external_repo_url is None
+
+
+class TestExternalRepoProjectAutoCreation:
+    """T012: Verify external-repo with pipeline triggers project auto-creation."""
+
+    @staticmethod
+    async def _insert_pipeline(db, pipeline_id: str = "pipe-ext") -> None:
+        await db.execute(
+            "INSERT INTO pipeline_configs (id, project_id, name, created_at, updated_at) "
+            "VALUES (?, ?, ?, datetime('now'), datetime('now'))",
+            (pipeline_id, "PVT_test", "Test Pipeline"),
+        )
+        await db.commit()
+
+    @pytest.mark.asyncio
+    async def test_project_created_and_stored(self, mock_db):
+        await self._insert_pipeline(mock_db, "pipe-ext")
+        github_service = AsyncMock()
+        github_service.get_branch_head_oid.return_value = "head-sha"
+        github_service.commit_files.return_value = "commit-sha"
+        github_service.create_project_v2.return_value = {
+            "id": "PVT_ext_proj",
+            "url": "https://github.com/users/ext-owner/projects/1",
+        }
+        github_service.get_repository_info.return_value = {"node_id": "R_ext123"}
+        github_service.link_project_to_repository.return_value = None
+
+        payload = AppCreate(
+            name="ext-proj-app",
+            display_name="Ext Proj App",
+            branch="main",
+            repo_type=RepoType.EXTERNAL_REPO,
+            external_repo_url="https://github.com/ext-owner/ext-repo",
+            pipeline_id="pipe-ext",
+            ai_enhance=False,
+        )
+
+        app = await create_app(
+            mock_db,
+            payload,
+            access_token="token",
+            github_service=github_service,
+        )
+
+        assert app.github_project_id == "PVT_ext_proj"
+        assert app.github_project_url == "https://github.com/users/ext-owner/projects/1"
+        github_service.create_project_v2.assert_awaited_once_with(
+            "token", owner="ext-owner", title="Ext Proj App"
+        )
+        github_service.link_project_to_repository.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_project_creation_failure_is_non_fatal(self, mock_db):
+        await self._insert_pipeline(mock_db, "pipe-ext")
+        github_service = AsyncMock()
+        github_service.get_branch_head_oid.return_value = "head-sha"
+        github_service.commit_files.return_value = "commit-sha"
+        github_service.create_project_v2.side_effect = Exception("Project creation failed")
+
+        payload = AppCreate(
+            name="ext-fail-app",
+            display_name="Ext Fail App",
+            branch="main",
+            repo_type=RepoType.EXTERNAL_REPO,
+            external_repo_url="https://github.com/ext-owner/ext-repo",
+            pipeline_id="pipe-ext",
+            ai_enhance=False,
+        )
+
+        app = await create_app(
+            mock_db,
+            payload,
+            access_token="token",
+            github_service=github_service,
+        )
+
+        assert app.name == "ext-fail-app"
+        assert app.github_project_id is None
+        assert app.github_project_url is None
+
+    @pytest.mark.asyncio
+    async def test_no_project_created_without_pipeline(self, mock_db):
+        github_service = AsyncMock()
+        github_service.get_branch_head_oid.return_value = "head-sha"
+        github_service.commit_files.return_value = "commit-sha"
+
+        payload = AppCreate(
+            name="ext-no-pipe",
+            display_name="Ext No Pipe",
+            branch="main",
+            repo_type=RepoType.EXTERNAL_REPO,
+            external_repo_url="https://github.com/ext-owner/ext-repo",
+            ai_enhance=False,
+        )
+
+        app = await create_app(
+            mock_db,
+            payload,
+            access_token="token",
+            github_service=github_service,
+        )
+
+        assert app.github_project_id is None
+        github_service.create_project_v2.assert_not_awaited()

@@ -207,7 +207,7 @@ export function CreateAppDialog({
 
       if (selectedPipelineId) {
         payload.pipeline_id = selectedPipelineId;
-        if (projectId) {
+        if (repoType === 'same-repo' && projectId) {
           payload.project_id = projectId;
         }
       }
@@ -583,34 +583,36 @@ export function CreateAppDialog({
             </div>
 
             {/* Pipeline Selection */}
-            {pipelines.length > 0 && (
-              <div>
-                <label htmlFor="pipeline-select" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                  Agent Pipeline
-                </label>
-                <select
-                  id="pipeline-select"
-                  value={selectedPipelineId}
-                  onChange={(e) => setSelectedPipelineId(e.target.value)}
-                  disabled={isLoadingPipelines || isPending}
-                  className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-                >
-                  <option value="">
-                    {isLoadingPipelines ? 'Loading pipelines…' : 'No pipeline (skip issue creation)'}
+            <div>
+              <label htmlFor="pipeline-select" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                Agent Pipeline
+              </label>
+              <select
+                id="pipeline-select"
+                value={selectedPipelineId}
+                onChange={(e) => setSelectedPipelineId(e.target.value)}
+                disabled={isLoadingPipelines || isPending || (!isLoadingPipelines && pipelines.length === 0)}
+                className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
+              >
+                <option value="">
+                  {isLoadingPipelines
+                    ? 'Loading pipelines…'
+                    : pipelines.length === 0
+                      ? 'No pipelines available'
+                      : 'No pipeline (skip issue creation)'}
+                </option>
+                {pipelines.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name} ({p.stage_count} stages · {p.agent_count} agents)
                   </option>
-                  {pipelines.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name} ({p.stage_count} stages · {p.agent_count} agents)
-                    </option>
-                  ))}
-                </select>
-                {selectedPipelineId && (
-                  <p className="mt-1 text-xs text-zinc-400">
-                    A parent issue and sub-issues will be created for each pipeline agent.
-                  </p>
-                )}
-              </div>
-            )}
+                ))}
+              </select>
+              {selectedPipelineId && (
+                <p className="mt-1 text-xs text-zinc-400">
+                  A parent issue and sub-issues will be created for each pipeline agent.
+                </p>
+              )}
+            </div>
 
             {/* Advanced (collapsible) — for name override */}
             <div>

@@ -95,6 +95,20 @@ class AppCreate(BaseModel):
             raise ValueError(msg)
         return self
 
+    @model_validator(mode="after")
+    def validate_external_repo_url(self) -> Self:
+        if self.repo_type == RepoType.EXTERNAL_REPO:
+            if not self.external_repo_url:
+                msg = "external_repo_url is required when repo_type is 'external-repo'."
+                raise ValueError(msg)
+            from src.utils import parse_github_url
+
+            try:
+                parse_github_url(self.external_repo_url)
+            except Exception as exc:
+                raise ValueError(str(exc)) from exc
+        return self
+
 
 class AppUpdate(BaseModel):
     display_name: str | None = Field(None, min_length=1, max_length=128)
