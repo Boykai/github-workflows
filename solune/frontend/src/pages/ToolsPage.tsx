@@ -9,11 +9,9 @@ import { useToolsList } from '@/hooks/useTools';
 import { ToolsPanel } from '@/components/tools/ToolsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
-import { EmptyState } from '@/components/common/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
 import { Button } from '@/components/ui/button';
-import { Wrench } from 'lucide-react';
 
 export function ToolsPage() {
   const { user } = useAuth();
@@ -26,7 +24,7 @@ export function ToolsPage() {
   const projectId = selectedProject?.project_id ?? null;
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
-  const { tools, isLoading: toolsLoading } = useToolsList(projectId);
+  const { isLoading: toolsLoading } = useToolsList(projectId);
   const repo = boardData?.columns.flatMap((c) => c.items).find((i) => i.repository)?.repository;
 
   return (
@@ -95,13 +93,6 @@ export function ToolsPage() {
                   </div>
                 ))}
               </div>
-            ) : (tools ?? []).length === 0 ? (
-              <EmptyState
-                icon={Wrench}
-                title="No tools configured"
-                description="Upload an MCP tool configuration to equip your agents with external capabilities."
-                actionLabel="Upload a tool"
-              />
             ) : (
               <ToolsPanel projectId={projectId} />
             )}

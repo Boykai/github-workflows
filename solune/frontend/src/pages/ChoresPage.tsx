@@ -4,7 +4,6 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarClock } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -14,7 +13,6 @@ import { ChoresPanel } from '@/components/chores/ChoresPanel';
 import { FeaturedRitualsPanel } from '@/components/chores/FeaturedRitualsPanel';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
-import { EmptyState } from '@/components/common/EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -146,13 +144,6 @@ export function ChoresPage() {
                 </div>
               ))}
             </div>
-          ) : (chores ?? []).length === 0 ? (
-            <EmptyState
-              icon={CalendarClock}
-              title="No chores yet"
-              description="Create your first recurring chore to automate routine repository maintenance."
-              actionLabel="Create a chore"
-            />
           ) : (
             <ChoresPanel
               projectId={projectId}

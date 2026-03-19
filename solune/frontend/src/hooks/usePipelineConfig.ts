@@ -1,6 +1,6 @@
 /** Core pipeline state management hook — composes sub-hooks + useReducer for CRUD. */
 
-import { useReducer, useCallback, useMemo, useEffect, useRef, useState } from 'react';
+import { useReducer, useCallback, useMemo, useEffect, useRef, useState, type SetStateAction } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { pipelinesApi } from '@/services/api';
@@ -76,13 +76,13 @@ export function usePipelineConfig(projectId: string | null) {
   }, []);
 
   const setPipeline = useCallback(
-    (updater: React.SetStateAction<PipelineConfig | null>) =>
+    (updater: SetStateAction<PipelineConfig | null>) =>
       dispatch({ type: 'SET_PIPELINE', updater }),
     [],
   );
 
   const setPipelineWithUndo = useCallback(
-    (updater: React.SetStateAction<PipelineConfig | null>) => {
+    (updater: SetStateAction<PipelineConfig | null>) => {
       if (state.pipeline) pushUndoSnapshot(state.pipeline);
       dispatch({ type: 'SET_PIPELINE', updater });
     },
