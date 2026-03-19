@@ -21,7 +21,7 @@ function renderDialog(overrides: Partial<typeof defaultProps> = {}) {
 
 async function fillAndSubmit(
   user: ReturnType<typeof userEvent.setup>,
-  { displayName = 'Test App' }: { displayName?: string } = {},
+  { displayName = 'Test App' }: { displayName?: string } = {}
 ) {
   const input = screen.getByLabelText('Display Name');
   await user.clear(input);

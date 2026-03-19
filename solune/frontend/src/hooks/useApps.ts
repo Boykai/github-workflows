@@ -4,7 +4,15 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError, appsApi } from '@/services/api';
-import type { App, AppAssetInventory, AppCreate, AppStatusResponse, AppUpdate, DeleteAppResult, Owner } from '@/types/apps';
+import type {
+  App,
+  AppAssetInventory,
+  AppCreate,
+  AppStatusResponse,
+  AppUpdate,
+  DeleteAppResult,
+  Owner,
+} from '@/types/apps';
 
 /** Query key factory for apps data. */
 export const appKeys = {

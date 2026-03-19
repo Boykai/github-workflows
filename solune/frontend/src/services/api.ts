@@ -1151,7 +1151,18 @@ export const agentToolsApi = {
 
 // ============ Apps API (041-solune-rebrand-app-builder) ============
 
-import type { App, AppAssetInventory, AppCreate, AppUpdate, AppStatusResponse, AppStatus, DeleteAppResult, Owner, CreateProjectRequest, CreateProjectResponse } from '@/types/apps';
+import type {
+  App,
+  AppAssetInventory,
+  AppCreate,
+  AppUpdate,
+  AppStatusResponse,
+  AppStatus,
+  DeleteAppResult,
+  Owner,
+  CreateProjectRequest,
+  CreateProjectResponse,
+} from '@/types/apps';
 
 export const appsApi = {
   list(status?: AppStatus): Promise<App[]> {

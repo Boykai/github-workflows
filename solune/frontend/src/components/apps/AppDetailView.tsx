@@ -66,7 +66,11 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[40vh] items-center justify-center" aria-busy="true" aria-live="polite">
+      <div
+        className="flex min-h-[40vh] items-center justify-center"
+        aria-busy="true"
+        aria-live="polite"
+      >
         <CelestialLoader size="md" label="Loading app details…" />
       </div>
     );
@@ -75,7 +79,10 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
   if (error || !app) {
     const isRateLimited = error ? isRateLimitApiError(error) : false;
     return (
-      <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-center" aria-live="polite">
+      <div
+        className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-center"
+        aria-live="polite"
+      >
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           {isRateLimited
             ? 'Rate limit exceeded. Please wait a moment before trying again.'
@@ -104,7 +111,8 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
   const handleStart = () => {
     startMutation.mutate(appName, {
       onSuccess: () => showSuccess(`App "${app.display_name}" started successfully.`),
-      onError: (err) => showError(getErrorMessage(err, `Could not start app "${app.display_name}".`)),
+      onError: (err) =>
+        showError(getErrorMessage(err, `Could not start app "${app.display_name}".`)),
     });
   };
 
@@ -118,7 +126,8 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
     if (confirmed) {
       stopMutation.mutate(appName, {
         onSuccess: () => showSuccess(`App "${app.display_name}" stopped successfully.`),
-        onError: (err) => showError(getErrorMessage(err, `Could not stop app "${app.display_name}".`)),
+        onError: (err) =>
+          showError(getErrorMessage(err, `Could not stop app "${app.display_name}".`)),
       });
     }
   };
@@ -131,10 +140,14 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
       confirmLabel: 'Delete App',
     });
     if (confirmed) {
-      deleteMutation.mutate({ appName }, {
-        onSuccess: () => onBack(),
-        onError: (err) => showError(getErrorMessage(err, `Could not delete app "${app.display_name}".`)),
-      });
+      deleteMutation.mutate(
+        { appName },
+        {
+          onSuccess: () => onBack(),
+          onError: (err) =>
+            showError(getErrorMessage(err, `Could not delete app "${app.display_name}".`)),
+        }
+      );
     }
   };
 
@@ -194,9 +207,7 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
         </div>
         <div>
           <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Port</dt>
-          <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-100">
-            {app.port ?? '—'}
-          </dd>
+          <dd className="mt-1 text-sm text-zinc-900 dark:text-zinc-100">{app.port ?? '—'}</dd>
         </div>
         <div>
           <dt className="text-xs font-medium text-zinc-500 dark:text-zinc-400">Repo Type</dt>
@@ -249,7 +260,10 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
       {/* Pipeline Info */}
       {app.associated_pipeline_id && (
         <div className="text-sm text-zinc-500 dark:text-zinc-400">
-          Pipeline: <span className="font-medium text-zinc-700 dark:text-zinc-300">{app.associated_pipeline_id}</span>
+          Pipeline:{' '}
+          <span className="font-medium text-zinc-700 dark:text-zinc-300">
+            {app.associated_pipeline_id}
+          </span>
         </div>
       )}
 
@@ -302,9 +316,7 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
 
       {/* Live Preview */}
       <div>
-        <h3 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">
-          Live Preview
-        </h3>
+        <h3 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Live Preview</h3>
         <AppPreview port={app.port} appName={app.name} isActive={app.status === 'active'} />
       </div>
     </div>

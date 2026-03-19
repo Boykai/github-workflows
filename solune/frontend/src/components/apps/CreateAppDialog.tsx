@@ -47,9 +47,14 @@ interface CreateAppDialogProps {
   onSubmit: (
     payload: AppCreate,
     callbacks: {
-      onSuccess: (app: { name: string; repo_type?: string; parent_issue_url?: string | null; warnings?: string[] | null }) => void;
+      onSuccess: (app: {
+        name: string;
+        repo_type?: string;
+        parent_issue_url?: string | null;
+        warnings?: string[] | null;
+      }) => void;
       onError: (err: unknown) => void;
-    },
+    }
   ) => void;
   isPending: boolean;
   owners: Owner[] | undefined;
@@ -139,15 +144,9 @@ export function CreateAppDialog({
       .replace(/^-|-$/g, '');
 
   const derivedName = useMemo(() => slugify(displayName.trim()), [displayName]);
-  const derivedBranch = useMemo(
-    () => (derivedName ? `app/${derivedName}` : ''),
-    [derivedName],
-  );
+  const derivedBranch = useMemo(() => (derivedName ? `app/${derivedName}` : ''), [derivedName]);
 
-  const issueTitlePreview = useMemo(
-    () => deriveIssueTitlePreview(description),
-    [description],
-  );
+  const issueTitlePreview = useMemo(() => deriveIssueTitlePreview(description), [description]);
 
   const handleFileUpload = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -193,7 +192,9 @@ export function CreateAppDialog({
       }
 
       if (trimmedDescription.length > MAX_DESCRIPTION_LENGTH) {
-        setCreateError(`Description exceeds ${MAX_DESCRIPTION_LENGTH.toLocaleString()} character limit.`);
+        setCreateError(
+          `Description exceeds ${MAX_DESCRIPTION_LENGTH.toLocaleString()} character limit.`
+        );
         return;
       }
 
@@ -223,7 +224,9 @@ export function CreateAppDialog({
         const trimmedAzureId = azureClientId.trim();
         const azureSecretPresent = azureClientSecret.trim().length > 0;
         if ((trimmedAzureId && !azureSecretPresent) || (!trimmedAzureId && azureSecretPresent)) {
-          setCreateError('Azure Client ID and Client Secret must both be provided or both omitted.');
+          setCreateError(
+            'Azure Client ID and Client Secret must both be provided or both omitted.'
+          );
           return;
         }
         if (trimmedAzureId && azureSecretPresent) {
@@ -277,7 +280,7 @@ export function CreateAppDialog({
       projectId,
       onSubmit,
       getErrorMessage,
-    ],
+    ]
   );
 
   return (
@@ -339,7 +342,10 @@ export function CreateAppDialog({
 
             {/* Display Name */}
             <div>
-              <label htmlFor="app-display-name" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label
+                htmlFor="app-display-name"
+                className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
                 Display Name
               </label>
               <input
@@ -356,7 +362,8 @@ export function CreateAppDialog({
               />
               {derivedName && repoType !== 'new-repo' && (
                 <p className="mt-1 text-xs text-zinc-400">
-                  Name: <span className="font-mono">{derivedName}</span> · Branch: <span className="font-mono">{derivedBranch}</span>
+                  Name: <span className="font-mono">{derivedName}</span> · Branch:{' '}
+                  <span className="font-mono">{derivedBranch}</span>
                 </p>
               )}
               {derivedName && repoType === 'new-repo' && (
@@ -369,7 +376,10 @@ export function CreateAppDialog({
             {/* Description */}
             <div>
               <div className="mb-1 flex items-center justify-between">
-                <label htmlFor="app-description" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label
+                  htmlFor="app-description"
+                  className="block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
                   Description
                 </label>
                 <div className="flex items-center gap-2">
@@ -378,7 +388,9 @@ export function CreateAppDialog({
                     type="file"
                     accept=".md,.txt,.vtt,.srt,text/plain,text/markdown"
                     className="sr-only"
-                    onChange={(event) => { void handleFileUpload(event); }}
+                    onChange={(event) => {
+                      void handleFileUpload(event);
+                    }}
                   />
                   <button
                     type="button"
@@ -405,9 +417,11 @@ export function CreateAppDialog({
                   setDescription(e.target.value);
                   setUploadedFileName('');
                 }}
-                placeholder={aiEnhance
-                  ? 'Describe your app — AI will generate a short repo description and a rich project overview.\n\nSupports Markdown, transcripts (.vtt, .srt), or upload a file.'
-                  : 'A brief description of your app… Supports Markdown or file upload (.md, .txt, .vtt, .srt).'}
+                placeholder={
+                  aiEnhance
+                    ? 'Describe your app — AI will generate a short repo description and a rich project overview.\n\nSupports Markdown, transcripts (.vtt, .srt), or upload a file.'
+                    : 'A brief description of your app… Supports Markdown or file upload (.md, .txt, .vtt, .srt).'
+                }
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               />
               <div className="mt-1 flex items-center justify-between text-xs text-zinc-400">
@@ -416,11 +430,16 @@ export function CreateAppDialog({
                     ? 'AI will produce a short repo description (≤350 chars) and a detailed project description.'
                     : 'Supports Markdown and file upload.'}
                 </span>
-                <span>{description.length.toLocaleString()} / {MAX_DESCRIPTION_LENGTH.toLocaleString()}</span>
+                <span>
+                  {description.length.toLocaleString()} / {MAX_DESCRIPTION_LENGTH.toLocaleString()}
+                </span>
               </div>
               {issueTitlePreview && (
                 <p className="mt-1 text-xs text-zinc-400">
-                  Derived issue title: <span className="font-medium text-zinc-600 dark:text-zinc-300">{issueTitlePreview}</span>
+                  Derived issue title:{' '}
+                  <span className="font-medium text-zinc-600 dark:text-zinc-300">
+                    {issueTitlePreview}
+                  </span>
                 </p>
               )}
             </div>
@@ -433,7 +452,10 @@ export function CreateAppDialog({
                 </p>
                 {/* Owner selector */}
                 <div>
-                  <label htmlFor="repo-owner" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  <label
+                    htmlFor="repo-owner"
+                    className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                  >
                     Owner
                   </label>
                   <select
@@ -493,7 +515,10 @@ export function CreateAppDialog({
                 </label>
                 {/* Azure credentials (optional) */}
                 <div>
-                  <label htmlFor="azure-client-id" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  <label
+                    htmlFor="azure-client-id"
+                    className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                  >
                     Azure Client ID (optional)
                   </label>
                   <input
@@ -506,7 +531,10 @@ export function CreateAppDialog({
                   />
                 </div>
                 <div>
-                  <label htmlFor="azure-client-secret" className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  <label
+                    htmlFor="azure-client-secret"
+                    className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400"
+                  >
                     Azure Client Secret (optional)
                   </label>
                   <input
@@ -524,7 +552,10 @@ export function CreateAppDialog({
             {/* External Repo URL field */}
             {repoType === 'external-repo' && (
               <div>
-                <label htmlFor="external-repo-url" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label
+                  htmlFor="external-repo-url"
+                  className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
                   Repository URL
                 </label>
                 <input
@@ -541,7 +572,10 @@ export function CreateAppDialog({
             {/* Branch field for same-repo and external-repo */}
             {(repoType === 'same-repo' || repoType === 'external-repo') && (
               <div>
-                <label htmlFor="app-branch" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                <label
+                  htmlFor="app-branch"
+                  className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+                >
                   Target Branch
                 </label>
                 <input
@@ -578,20 +612,27 @@ export function CreateAppDialog({
                 role="switch"
                 aria-checked={aiEnhance}
               >
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiEnhance ? 'translate-x-6' : 'translate-x-1'}`} />
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${aiEnhance ? 'translate-x-6' : 'translate-x-1'}`}
+                />
               </button>
             </div>
 
             {/* Pipeline Selection */}
             <div>
-              <label htmlFor="pipeline-select" className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300">
+              <label
+                htmlFor="pipeline-select"
+                className="mb-1 block text-sm font-medium text-zinc-700 dark:text-zinc-300"
+              >
                 Agent Pipeline
               </label>
               <select
                 id="pipeline-select"
                 value={selectedPipelineId}
                 onChange={(e) => setSelectedPipelineId(e.target.value)}
-                disabled={isLoadingPipelines || isPending || (!isLoadingPipelines && pipelines.length === 0)}
+                disabled={
+                  isLoadingPipelines || isPending || (!isLoadingPipelines && pipelines.length === 0)
+                }
                 className="w-full rounded-lg border border-zinc-300 px-3 py-2 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
               >
                 <option value="">
@@ -630,7 +671,10 @@ export function CreateAppDialog({
               {showAdvanced && (
                 <div className="mt-3 space-y-3">
                   <div>
-                    <label htmlFor="app-name" className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                    <label
+                      htmlFor="app-name"
+                      className="mb-1 block text-xs font-medium text-zinc-500 dark:text-zinc-400"
+                    >
                       Name override
                     </label>
                     <input
@@ -665,8 +709,14 @@ export function CreateAppDialog({
               className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 disabled:opacity-50"
             >
               {isPending
-                ? (repoType === 'new-repo' ? 'Creating Repository…' : aiEnhance ? 'AI Enhancing…' : 'Creating…')
-                : repoType === 'new-repo' ? 'Create Repository & App' : 'Create App'}
+                ? repoType === 'new-repo'
+                  ? 'Creating Repository…'
+                  : aiEnhance
+                    ? 'AI Enhancing…'
+                    : 'Creating…'
+                : repoType === 'new-repo'
+                  ? 'Create Repository & App'
+                  : 'Create App'}
             </button>
           </div>
         </form>

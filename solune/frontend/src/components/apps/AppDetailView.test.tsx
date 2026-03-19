@@ -37,9 +37,15 @@ vi.mock('@/utils/rateLimit', () => ({
 }));
 
 vi.mock('./AppPreview', () => ({
-  AppPreview: ({ port, appName, isActive }: { port: number | null; appName: string; isActive: boolean }) => (
-    <div data-testid="app-preview">{`${appName}:${String(port)}:${String(isActive)}`}</div>
-  ),
+  AppPreview: ({
+    port,
+    appName,
+    isActive,
+  }: {
+    port: number | null;
+    appName: string;
+    isActive: boolean;
+  }) => <div data-testid="app-preview">{`${appName}:${String(port)}:${String(isActive)}`}</div>,
 }));
 
 const baseApp: App = {
@@ -133,8 +139,8 @@ describe('AppDetailView', () => {
   });
 
   it('starts a stopped app and shows success feedback', async () => {
-    mocks.startMutate.mockImplementation(
-      (_appName: string, options?: { onSuccess?: () => void }) => options?.onSuccess?.()
+    mocks.startMutate.mockImplementation((_appName: string, options?: { onSuccess?: () => void }) =>
+      options?.onSuccess?.()
     );
 
     render(<AppDetailView appName="demo-app" onBack={mocks.onBack} />);
@@ -176,7 +182,8 @@ describe('AppDetailView', () => {
 
   it('deletes the app after confirmation and navigates back on success', async () => {
     mocks.deleteMutate.mockImplementation(
-      (_vars: { appName: string; force?: boolean }, options?: { onSuccess?: () => void }) => options?.onSuccess?.()
+      (_vars: { appName: string; force?: boolean }, options?: { onSuccess?: () => void }) =>
+        options?.onSuccess?.()
     );
 
     render(<AppDetailView appName="demo-app" onBack={mocks.onBack} />);

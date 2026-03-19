@@ -45,7 +45,8 @@ vi.mock('@/hooks/useApps', () => ({
 }));
 
 vi.mock('@/hooks/useConfirmation', async () => {
-  const actual = await vi.importActual<typeof import('@/hooks/useConfirmation')>('@/hooks/useConfirmation');
+  const actual =
+    await vi.importActual<typeof import('@/hooks/useConfirmation')>('@/hooks/useConfirmation');
   return {
     ...actual,
     useConfirmation: () => ({ confirm: mocks.confirm }),
@@ -65,12 +66,23 @@ vi.mock('@/hooks/useSelectedPipeline', () => ({
 }));
 
 vi.mock('@/services/api', () => ({
-  appsApi: { assets: vi.fn().mockResolvedValue({ app_name: '', github_repo: null, github_project_id: null, parent_issue_number: null, sub_issues: [], branches: [], has_azure_secrets: false }) },
+  appsApi: {
+    assets: vi.fn().mockResolvedValue({
+      app_name: '',
+      github_repo: null,
+      github_project_id: null,
+      parent_issue_number: null,
+      sub_issues: [],
+      branches: [],
+      has_azure_secrets: false,
+    }),
+  },
   pipelinesApi: { list: vi.fn().mockResolvedValue({ pipelines: [] }) },
 }));
 
 vi.mock('@tanstack/react-query', async () => {
-  const actual = await vi.importActual<typeof import('@tanstack/react-query')>('@tanstack/react-query');
+  const actual =
+    await vi.importActual<typeof import('@tanstack/react-query')>('@tanstack/react-query');
   return {
     ...actual,
     useQuery: () => ({ data: { pipelines: [] }, isLoading: false, error: null }),
@@ -97,7 +109,10 @@ describe('AppsPage', () => {
 
   it('submits a trimmed payload and navigates to the created app on success', async () => {
     mocks.createMutate.mockImplementation(
-      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string }) => void }) => {
+      (
+        _payload: unknown,
+        options?: { onSuccess?: (app: { name: string; display_name: string }) => void }
+      ) => {
         options?.onSuccess?.({ name: 'my-awesome-app', display_name: 'My Awesome App' });
       }
     );
@@ -207,14 +222,31 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
       const dialog = screen.getByRole('dialog');
       const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;
       await userEvent.click(submitButton);
-      expect(await screen.findByRole('alert')).toHaveTextContent(/both be provided or both omitted/i);
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        /both be provided or both omitted/i
+      );
     }
   });
 
   it('includes both azure fields in the payload when both are provided', async () => {
     mocks.createMutate.mockImplementation(
-      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
-        options?.onSuccess?.({ name: 'azure-app', display_name: 'Azure App', warnings: null, parent_issue_url: null });
+      (
+        _payload: unknown,
+        options?: {
+          onSuccess?: (app: {
+            name: string;
+            display_name: string;
+            warnings: string[] | null;
+            parent_issue_url: string | null;
+          }) => void;
+        }
+      ) => {
+        options?.onSuccess?.({
+          name: 'azure-app',
+          display_name: 'Azure App',
+          warnings: null,
+          parent_issue_url: null,
+        });
       }
     );
 
@@ -240,7 +272,9 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
       const submitButton = dialog.querySelector('button[type="submit"]') as HTMLElement;
       await userEvent.click(submitButton);
 
-      const callPayload = mocks.createMutate.mock.calls[0]?.[0] as Record<string, unknown> | undefined;
+      const callPayload = mocks.createMutate.mock.calls[0]?.[0] as
+        | Record<string, unknown>
+        | undefined;
       if (callPayload) {
         expect(callPayload.azure_client_id).toBe('my-client-id');
         // Secret must be sent as entered (not trimmed)
@@ -251,7 +285,17 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
 
   it('shows a warning notification when creation succeeds with azure warnings', async () => {
     mocks.createMutate.mockImplementation(
-      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
+      (
+        _payload: unknown,
+        options?: {
+          onSuccess?: (app: {
+            name: string;
+            display_name: string;
+            warnings: string[] | null;
+            parent_issue_url: string | null;
+          }) => void;
+        }
+      ) => {
         options?.onSuccess?.({
           name: 'azure-app',
           display_name: 'Azure App',
@@ -277,7 +321,17 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
 
   it('shows structured success feedback with all warnings after creation', async () => {
     mocks.createMutate.mockImplementation(
-      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
+      (
+        _payload: unknown,
+        options?: {
+          onSuccess?: (app: {
+            name: string;
+            display_name: string;
+            warnings: string[] | null;
+            parent_issue_url: string | null;
+          }) => void;
+        }
+      ) => {
         options?.onSuccess?.({
           name: 'multi-warn-app',
           display_name: 'Multi Warn App',
@@ -308,7 +362,18 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
 
   it('shows pipeline started in success feedback when parent_issue_url is present', async () => {
     mocks.createMutate.mockImplementation(
-      (_payload: unknown, options?: { onSuccess?: (app: { name: string; display_name: string; repo_type: string; warnings: string[] | null; parent_issue_url: string | null }) => void }) => {
+      (
+        _payload: unknown,
+        options?: {
+          onSuccess?: (app: {
+            name: string;
+            display_name: string;
+            repo_type: string;
+            warnings: string[] | null;
+            parent_issue_url: string | null;
+          }) => void;
+        }
+      ) => {
         options?.onSuccess?.({
           name: 'pipeline-app',
           display_name: 'Pipeline App',
