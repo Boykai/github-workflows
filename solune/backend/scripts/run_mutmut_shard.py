@@ -50,6 +50,11 @@ SHARDS: dict[str, list[str]] = {
         "src/services/agents/",
         "src/services/chores/",
     ],
+    "api-and-middleware": [
+        "src/api/",
+        "src/middleware/",
+        "src/utils.py",
+    ],
 }
 
 

@@ -110,7 +110,7 @@ branch = true
 omit = ["tests/*", "**/__pycache__/*"]
 
 [tool.coverage.report]
-fail_under = 75
+fail_under = 80
 show_missing = true
 exclude_lines = [
     "pragma: no cover",
