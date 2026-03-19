@@ -34,6 +34,21 @@ import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete';
 import type { CommandDefinition } from '@/lib/commands/types';
 import { History, Mic } from 'lucide-react';
 
+function formatDateSeparator(date: Date): string {
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const isSameDay = (a: Date, b: Date) =>
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate();
+
+  if (isSameDay(date, today)) return 'Today';
+  if (isSameDay(date, yesterday)) return 'Yesterday';
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 interface ChatInterfaceProps {
   messages: ChatMessage[];
   pendingProposals: Map<string, AITaskProposal>;
@@ -275,6 +290,13 @@ export function ChatInterface({
       if (e.defaultPrevented) return;
     }
 
+    // Ctrl+Enter or Cmd+Enter to send
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+      e.preventDefault();
+      doSubmit();
+      return;
+    }
+
     // Determine whether slash-command autocomplete is contextually active
     const trimmed = input.trimStart();
     const autocompleteActive =
@@ -367,6 +389,15 @@ export function ChatInterface({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mention.mentionTokens]);
 
+  // Listen for global Ctrl+K focus-chat event
+  useEffect(() => {
+    const handleFocusChat = () => {
+      mentionInputRef.current?.focus();
+    };
+    window.addEventListener('solune:focus-chat', handleFocusChat);
+    return () => window.removeEventListener('solune:focus-chat', handleFocusChat);
+  }, []);
+
   return (
     <div className="flex h-full flex-col bg-background">
       {messages.length > 0 && (
@@ -416,11 +447,28 @@ export function ChatInterface({
             </div>
           </div>
         ) : (
-          messages.map((message) => {
+          messages.map((message, index) => {
+            const prevMessage = messages[index - 1];
+            const currentDate = new Date(message.timestamp);
+            const prevDate = prevMessage ? new Date(prevMessage.timestamp) : null;
+            const showDateSeparator = !prevDate ||
+              currentDate.getFullYear() !== prevDate.getFullYear() ||
+              currentDate.getMonth() !== prevDate.getMonth() ||
+              currentDate.getDate() !== prevDate.getDate();
+
             // Render system messages with distinct styling
             if (message.sender_type === 'system') {
               return (
                 <div key={message.message_id} className="flex flex-col gap-2">
+                  {showDateSeparator && (
+                    <div className="flex items-center gap-3 py-2 self-center">
+                      <div className="flex-1 h-px bg-border" />
+                      <span className="text-xs text-muted-foreground font-medium">
+                        {formatDateSeparator(currentDate)}
+                      </span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                  )}
                   <SystemMessage message={message} />
                 </div>
               );
@@ -436,6 +484,15 @@ export function ChatInterface({
 
             return (
               <div key={message.message_id} className="flex flex-col gap-2">
+                {showDateSeparator && (
+                  <div className="flex items-center gap-3 py-2 self-center">
+                    <div className="flex-1 h-px bg-border" />
+                    <span className="text-xs text-muted-foreground font-medium">
+                      {formatDateSeparator(currentDate)}
+                    </span>
+                    <div className="flex-1 h-px bg-border" />
+                  </div>
+                )}
                 <MessageBubble
                   message={message}
                   onRetry={

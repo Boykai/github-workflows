@@ -9,6 +9,7 @@
 
 import { useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { workflowApi } from '@/services/api';
 import type { WorkflowResult, WorkflowConfiguration } from '@/types';
 
@@ -29,10 +30,22 @@ export function useWorkflow(): UseWorkflowReturn {
 
   const confirmMutation = useMutation({
     mutationFn: (recommendationId: string) => workflowApi.confirmRecommendation(recommendationId),
+    onSuccess: () => {
+      toast.success('Recommendation confirmed');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to confirm recommendation', { duration: Infinity });
+    },
   });
 
   const rejectMutation = useMutation({
     mutationFn: (recommendationId: string) => workflowApi.rejectRecommendation(recommendationId),
+    onSuccess: () => {
+      toast.success('Recommendation rejected');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to reject recommendation', { duration: Infinity });
+    },
   });
 
   const configQuery = useQuery({
@@ -47,6 +60,10 @@ export function useWorkflow(): UseWorkflowReturn {
       workflowApi.updateConfig(config as WorkflowConfiguration),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['workflow', 'config'] });
+      toast.success('Workflow configuration updated');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update workflow configuration', { duration: Infinity });
     },
   });
 

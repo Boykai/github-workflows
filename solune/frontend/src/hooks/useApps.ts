@@ -3,6 +3,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { ApiError, appsApi } from '@/services/api';
 import type {
   App,
@@ -65,6 +66,10 @@ export function useCreateApp() {
     mutationFn: (data) => appsApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: appKeys.list() });
+      toast.success('App created');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to create app'), { duration: Infinity });
     },
   });
 }
@@ -77,6 +82,10 @@ export function useUpdateApp(name: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: appKeys.list() });
       queryClient.invalidateQueries({ queryKey: appKeys.detail(name) });
+      toast.success('App updated');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to update app'), { duration: Infinity });
     },
   });
 }
@@ -88,6 +97,10 @@ export function useDeleteApp() {
     mutationFn: ({ appName, force }) => appsApi.delete(appName, force),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: appKeys.list() });
+      toast.success('App deleted');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to delete app'), { duration: Infinity });
     },
   });
 }
@@ -110,6 +123,10 @@ export function useStartApp() {
     onSuccess: (_data, appName) => {
       queryClient.invalidateQueries({ queryKey: appKeys.list() });
       queryClient.invalidateQueries({ queryKey: appKeys.detail(appName) });
+      toast.success('App started');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to start app'), { duration: Infinity });
     },
   });
 }
@@ -122,6 +139,10 @@ export function useStopApp() {
     onSuccess: (_data, appName) => {
       queryClient.invalidateQueries({ queryKey: appKeys.list() });
       queryClient.invalidateQueries({ queryKey: appKeys.detail(appName) });
+      toast.success('App stopped');
+    },
+    onError: (error) => {
+      toast.error(getErrorMessage(error, 'Failed to stop app'), { duration: Infinity });
     },
   });
 }

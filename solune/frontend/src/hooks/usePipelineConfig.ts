@@ -2,6 +2,7 @@
 
 import { useReducer, useCallback, useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { pipelinesApi } from '@/services/api';
 import { STALE_TIME_SHORT } from '@/constants';
 import { generateId } from '@/utils/generateId';
@@ -87,8 +88,10 @@ export function usePipelineConfig(projectId: string | null) {
       const result = await pipelinesApi.setAssignment(projectId, pipelineId);
       queryClient.setQueryData(pipelineKeys.assignment(projectId), result);
       await queryClient.invalidateQueries({ queryKey: pipelineKeys.assignment(projectId) });
+      toast.success('Pipeline assigned');
     } catch (err) {
       console.warn('Pipeline assignment failed:', err);
+      toast.error(errMsg(err, 'Failed to assign pipeline'), { duration: Infinity });
     }
   }, [projectId, queryClient]);
 
@@ -134,9 +137,11 @@ export function usePipelineConfig(projectId: string | null) {
         : await pipelinesApi.create(projectId, buildPayload(state.pipeline));
       dispatch({ type: 'SAVE_SUCCESS', config: saved });
       await queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+      toast.success('Pipeline saved');
       return true;
     } catch (err) {
       dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to save pipeline') });
+      toast.error(errMsg(err, 'Failed to save pipeline'), { duration: Infinity });
       return false;
     }
   }, [state.pipeline, state.editingPipelineId, projectId, validatePipeline, queryClient]);
@@ -148,8 +153,10 @@ export function usePipelineConfig(projectId: string | null) {
       const saved = await pipelinesApi.create(projectId, { ...buildPayload(state.pipeline), name: newName });
       dispatch({ type: 'SAVE_SUCCESS', config: saved });
       queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+      toast.success('Pipeline saved as copy');
     } catch (err) {
       dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to save copy') });
+      toast.error(errMsg(err, 'Failed to save copy'), { duration: Infinity });
     }
   }, [state.pipeline, projectId, queryClient]);
 
@@ -173,9 +180,11 @@ export function usePipelineConfig(projectId: string | null) {
       });
       dispatch({ type: 'SAVE_SUCCESS', config: saved });
       await queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+      toast.success('Pipeline duplicated');
       return saved;
     } catch (err) {
       dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to copy pipeline') });
+      toast.error(errMsg(err, 'Failed to copy pipeline'), { duration: Infinity });
       return null;
     }
   }, [existingPipelineNames, projectId, queryClient]);
@@ -188,8 +197,10 @@ export function usePipelineConfig(projectId: string | null) {
       dispatch({ type: 'DELETE_SUCCESS' });
       resetPending();
       queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+      toast.success('Pipeline deleted');
     } catch (err) {
       dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to delete pipeline') });
+      toast.error(errMsg(err, 'Failed to delete pipeline'), { duration: Infinity });
     }
   }, [state.editingPipelineId, projectId, queryClient, resetPending]);
 

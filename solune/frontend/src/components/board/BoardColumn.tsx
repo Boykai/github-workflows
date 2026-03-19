@@ -4,8 +4,10 @@
  */
 
 import { memo } from 'react';
+import { useDroppable } from '@dnd-kit/core';
 import type { BoardColumn as BoardColumnType, BoardItem, AvailableAgent } from '@/types';
 import type { BoardGroup } from '@/hooks/useBoardControls';
+import { cn } from '@/lib/utils';
 import { statusColorToCSS } from './colorUtils';
 import { IssueCard } from './IssueCard';
 
@@ -22,11 +24,18 @@ export const BoardColumn = memo(function BoardColumn({
   availableAgents,
   getGroups,
 }: BoardColumnProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `column-${column.status.name}`,
+    data: { status: column.status.name },
+  });
   const dotColor = statusColorToCSS(column.status.color);
   const groups = getGroups?.(column.items);
 
   return (
-    <div className="project-board-column pipeline-column-surface flex h-[72rem] max-h-[72rem] min-h-[44rem] min-w-0 shrink-0 flex-col overflow-x-hidden rounded-[1.4rem] border border-border/70 shadow-sm xl:h-[95rem] xl:max-h-[95rem]">
+    <div ref={setNodeRef} className={cn(
+      "project-board-column pipeline-column-surface flex h-[72rem] max-h-[72rem] min-h-[44rem] min-w-0 shrink-0 flex-col overflow-x-hidden rounded-[1.4rem] border border-border/70 shadow-sm xl:h-[95rem] xl:max-h-[95rem]",
+      isOver && 'ring-2 ring-primary/50 bg-primary/5'
+    )}>
       {/* Column Header */}
       <div className="project-board-column-header flex items-center justify-between border-b border-border/70 p-4 backdrop-blur-sm">
         <div className="flex items-center gap-2">
@@ -75,8 +84,12 @@ export const BoardColumn = memo(function BoardColumn({
       {/* Card list */}
       <div className="project-board-column-list constellation-grid flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3 pb-4">
         {column.items.length === 0 ? (
-          <div className="flex flex-1 items-center justify-center rounded-[1.1rem] border border-dashed border-border/70 bg-background/34 text-center text-sm italic text-muted-foreground">
-            No items
+          <div className="flex flex-1 flex-col items-center justify-center gap-2 rounded-[1.1rem] border border-dashed border-border/70 bg-background/34 p-6 text-center">
+            <svg className="h-10 w-10 text-muted-foreground/30" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+              <path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 16.8l-6.2 4.5 2.4-7.4L2 9.4h7.6z" />
+            </svg>
+            <p className="text-sm text-muted-foreground">No items yet</p>
+            <p className="text-xs text-muted-foreground/70">Create your first issue to get started</p>
           </div>
         ) : groups ? (
           groups.map((group, idx) => (
