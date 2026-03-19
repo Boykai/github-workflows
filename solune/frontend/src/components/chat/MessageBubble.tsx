@@ -51,7 +51,7 @@ export function MessageBubble({ message, onRetry }: MessageBubbleProps) {
           </div>
         )}
         {!isUser && !isSystem && !isFailed && (
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
             <CopyButton value={message.content} label="Copy message" />
           </div>
         )}

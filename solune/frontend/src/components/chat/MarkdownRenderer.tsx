@@ -19,7 +19,7 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
-        code: ({ children, className: codeClassName, ...rest }) => {
+        code: ({ children, className: codeClassName, node: _node, ...rest }) => {
           const match = /language-(\w+)/.exec(codeClassName || '');
           // Block code has a language class or contains newlines; inline code has neither.
           const isInline = !match && !String(children).includes('\n');

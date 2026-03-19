@@ -25,7 +25,7 @@ interface ProjectBoardProps {
   onCardClick: (item: BoardItem) => void;
   availableAgents?: AvailableAgent[];
   getGroups?: (items: BoardItem[]) => BoardGroup[] | null;
-  onStatusUpdate?: (itemId: string, newStatus: string) => void;
+  onStatusUpdate?: (itemId: string, newStatus: string) => void | Promise<void>;
 }
 
 export function ProjectBoard({

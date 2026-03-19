@@ -22,7 +22,7 @@ export interface UseBoardDndReturn {
 
 export function useBoardDragDrop(
   boardData: BoardDataResponse,
-  onStatusUpdate?: (itemId: string, newStatus: string) => void,
+  onStatusUpdate?: (itemId: string, newStatus: string) => void | Promise<void>,
 ): UseBoardDndReturn {
   const [activeCard, setActiveCard] = useState<BoardItem | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);

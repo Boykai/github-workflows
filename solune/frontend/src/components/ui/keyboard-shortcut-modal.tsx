@@ -72,6 +72,11 @@ export function KeyboardShortcutModal({ isOpen, onClose }: KeyboardShortcutModal
         e.stopPropagation();
         onClose();
       }
+      // Trap focus inside the modal — only interactive element is the close button
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        closeButtonRef.current?.focus();
+      }
     };
     document.addEventListener('keydown', handleKeyDown, true);
     return () => document.removeEventListener('keydown', handleKeyDown, true);
