@@ -267,6 +267,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - N/A (frontend-only; backend uses SQLite via aiosqlite — not modified by this feature) (052-ui-audit)
 - Python 3.12, TypeScript (ES2022) + FastAPI 0.135+, Pydantic 2.12+, aiosqlite, githubkit, React 18, TanStack Query, Vite (049-fix-repo-type-routing)
 - SQLite (WAL mode, aiosqlite) — `apps` table with `repo_type`, `external_repo_url`, `github_project_id`, `github_project_url` columns (049-fix-repo-type-routing)
+- Python 3.12+ (backend), TypeScript 5.x (frontend) + FastAPI 0.135+, React 18+, Pydantic 2.12+, Vitest, Playwright (050-fix-bugs-test-coverage)
+- SQLite via aiosqlite (existing — no changes in this feature) (050-fix-bugs-test-coverage)
 - TypeScript 5.x / React 19 / Vite, TanStack Query v5, @dnd-kit/core ^6.3.1, @dnd-kit/sortable ^10.0.0, react-markdown ^10.1.0, remark-gfm ^4.0.1, sonner (NEW — toast library), Radix UI primitives, lucide-react, class-variance-authority, zod (050-frontend-ux-improvements)
 - N/A (all state via TanStack Query against Python/FastAPI backend) (050-frontend-ux-improvements)
 
