@@ -2,7 +2,7 @@
 
 **Input**: Design documents from `/specs/051-frontend-ux-improvements/`
 **Prerequisites**: spec.md (user stories with priorities P1–P6), plan from parent issue context
-**Tests**: No test tasks included — tests were not explicitly requested in the feature specification.
+**Tests**: No automated test tasks included — tests were not explicitly requested in the feature specification. Each user story includes independent manual test criteria and acceptance scenarios in the spec.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -248,8 +248,8 @@ Task T040: "Ctrl+Enter to send"
 
 ### MVP First (User Story 1 Only)
 
-1. Complete Phase 1: Setup (install `sonner`)
-2. Complete Phase 2: Foundational (`<Toaster />` provider, `CopyButton`, `Skeleton` primitive)
+1. Complete Phase 1: Setup (install `sonner`, create `Skeleton` primitive)
+2. Complete Phase 2: Foundational (`<Toaster />` provider, `CopyButton`)
 3. Complete Phase 3: User Story 1 — Toast Notifications
 4. **STOP and VALIDATE**: Trigger every mutation type and confirm toasts appear correctly
 5. Deploy/demo if ready — every mutation now provides visual feedback
