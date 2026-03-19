@@ -30,7 +30,7 @@ test.describe('MCP Tool Configuration', () => {
     await page.waitForLoadState('networkidle');
 
     const url = page.url();
-    expect(url).toBeTruthy();
+    expect(url).toMatch(/\/(tools|login)/);
   });
 
   test('should handle unauthenticated access to tools page', async ({ page }) => {
@@ -38,7 +38,7 @@ test.describe('MCP Tool Configuration', () => {
     await page.waitForLoadState('networkidle');
 
     // Should either show login or redirect
-    const content = await page.content();
-    expect(content).toBeTruthy();
+    const url = page.url();
+    expect(url).toMatch(/\/(tools|login)/);
   });
 });

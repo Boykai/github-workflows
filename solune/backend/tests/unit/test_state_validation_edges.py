@@ -52,7 +52,9 @@ class TestLabelAndTableConsistent:
         """Label and active step agree → no corrections."""
         labels = [{"name": "agent:builder"}]
         steps = [_step("builder", _STATE_ACTIVE)]
-        with patch("src.constants.find_agent_label", return_value="builder"):
+        with patch(
+            "src.services.copilot_polling.state_validation.find_agent_label", return_value="builder"
+        ):
             changed, corrections = await validate_pipeline_labels(
                 **_BASE_KWARGS, labels=labels, tracking_steps=steps
             )
@@ -70,7 +72,9 @@ class TestLabelMissing:
 
         mock_gps = AsyncMock()
         with (
-            patch("src.constants.find_agent_label", return_value=None),
+            patch(
+                "src.services.copilot_polling.state_validation.find_agent_label", return_value=None
+            ),
             patch(_GPS, mock_gps),
         ):
             changed, corrections = await validate_pipeline_labels(
@@ -90,7 +94,9 @@ class TestLabelMissing:
 
         mock_gps = AsyncMock()
         with (
-            patch("src.constants.find_agent_label", return_value=None),
+            patch(
+                "src.services.copilot_polling.state_validation.find_agent_label", return_value=None
+            ),
             patch(_GPS, mock_gps),
         ):
             changed, corrections = await validate_pipeline_labels(
@@ -111,7 +117,10 @@ class TestStaleLabel:
 
         mock_gps = AsyncMock()
         with (
-            patch("src.constants.find_agent_label", return_value="old-agent"),
+            patch(
+                "src.services.copilot_polling.state_validation.find_agent_label",
+                return_value="old-agent",
+            ),
             patch(_GPS, mock_gps),
         ):
             changed, corrections = await validate_pipeline_labels(
@@ -133,7 +142,10 @@ class TestLabelTableDisagree:
 
         mock_gps = AsyncMock()
         with (
-            patch("src.constants.find_agent_label", return_value="wrong-agent"),
+            patch(
+                "src.services.copilot_polling.state_validation.find_agent_label",
+                return_value="wrong-agent",
+            ),
             patch(_GPS, mock_gps),
         ):
             changed, corrections = await validate_pipeline_labels(
@@ -159,7 +171,9 @@ class TestApiFailures:
         mock_gps = AsyncMock()
         mock_gps.update_issue_state.side_effect = Exception("API error")
         with (
-            patch("src.constants.find_agent_label", return_value=None),
+            patch(
+                "src.services.copilot_polling.state_validation.find_agent_label", return_value=None
+            ),
             patch(_GPS, mock_gps),
         ):
             changed, corrections = await validate_pipeline_labels(

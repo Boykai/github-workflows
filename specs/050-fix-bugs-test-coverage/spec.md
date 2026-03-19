@@ -69,7 +69,7 @@ As a developer, I want frontend test coverage to increase from 51% statements to
 **Acceptance Scenarios**:
 
 1. **Given** App.tsx has 0% coverage, **When** tests are added for route rendering, auth guards, and error boundaries, **Then** App.tsx coverage rises above 70%.
-2. **Given** board components have partial coverage, **When** interaction tests are added for column drag-drop, card rendering, and project switching, **Then** board component coverage increases measurably.
+2. **Given** board components have partial coverage, **When** interaction tests are added for column drag-drop, card rendering, and project switching, **Then** board component coverage increases by at least 10 percentage points.
 3. **Given** hooks have 44% branch coverage, **When** tests are added for error states, loading states, empty data, and API failures, **Then** branch coverage rises above 50%.
 4. **Given** the E2E suite has 10 specs, **When** 4 new specs are added (agent creation, pipeline monitoring, MCP tool configuration, error recovery), **Then** the E2E suite has at least 14 passing specs.
 

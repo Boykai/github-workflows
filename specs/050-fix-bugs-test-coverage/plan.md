@@ -26,7 +26,7 @@ risk-first targeting of high-complexity modules, followed by threshold ratchetin
 **Project Type**: Web application (backend + frontend monorepo under `solune/`)
 **Performance Goals**: Pre-commit hooks complete in <30 seconds on changed files; mutation testing shards complete within CI timeout
 **Constraints**: No DRY refactoring in this plan — characterization tests only; thresholds only ratchet upward
-**Scale/Scope**: ~151 backend test files, ~130 frontend test files, 10 E2E specs, 27+ service modules, 4 mutation shards
+**Scale/Scope**: ~151 backend test files, ~130 frontend test files, 10 E2E specs, 27+ service modules, 5 mutation shards
 
 ## Constitution Check
 
@@ -106,7 +106,7 @@ solune/
 │   │   │   ├── guard_service.py   # High-risk: coverage target
 │   │   │   ├── signal_bridge.py   # High-risk: coverage target
 │   │   │   └── signal_delivery.py # High-risk: coverage target
-│   │   └── utils/
+│   │   └── utils.py
 │   ├── tests/
 │   │   ├── conftest.py            # BUG-002 fix target (cache clearing fixture)
 │   │   ├── unit/                  # ~151 test files — expand here

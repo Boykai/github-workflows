@@ -21,8 +21,6 @@ class TestConnectionPoolExhaustion:
         mock_db = AsyncMock()
         mock_db.execute = AsyncMock(side_effect=Exception("database is locked"))
 
-        from src.services.database import get_db
-
         with patch("src.services.database.get_db", return_value=mock_db):
             # Simulating a query under pool exhaustion
             with pytest.raises(Exception, match="database is locked"):
@@ -44,9 +42,7 @@ class TestConnectionPoolExhaustion:
                     mock_db.execute.side_effect = Exception("pool exhausted")
                 else:
                     mock_db.execute.side_effect = None
-                    mock_db.execute.return_value = AsyncMock(
-                        fetchone=AsyncMock(return_value=(1,))
-                    )
+                    mock_db.execute.return_value = AsyncMock(fetchone=AsyncMock(return_value=(1,)))
                 await mock_db.execute(f"SELECT {query_id}")
                 success_count += 1
             except Exception:

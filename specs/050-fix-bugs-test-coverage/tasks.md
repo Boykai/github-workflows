@@ -61,7 +61,7 @@
 
 - [X] T014 [US1] Investigate current `get_mutant_name()` behavior and `orig.__module__` prefix mismatch in solune/backend/scripts/run_mutmut_shard.py
 - [X] T015 [US1] Patch trampoline template or normalize PYTHONPATH in solune/backend/scripts/run_mutmut_shard.py so `src.` prefix is consistently handled
-- [X] T016 [P] [US1] Verify mutmut version pinning (≥3.2.0) in solune/backend/mutants/pyproject.toml aligns with trampoline fix
+- [X] T016 [P] [US1] Verify mutmut version pinning (≥3.2.0) in solune/backend/pyproject.toml aligns with trampoline fix
 - [X] T017 [US1] Verify fix by running `cd solune/backend && python scripts/run_mutmut_shard.py --shard=auth-and-projects` and confirming kill rate >0%
 
 ### BUG-002: Fix Cache Leakage Between Tests
@@ -106,6 +106,7 @@
 - [ ] T033 [P] [US2] Fix all "fix-now" lint violations identified in T008 triage across solune/frontend/src/
 - [ ] T034 [P] [US2] Fix all "fix-now" type errors identified in T009 triage across solune/frontend/src/
 - [ ] T035 [US2] Quarantine genuinely flaky tests with `@pytest.mark.skip(reason="flaky: <root_cause>")` and document root causes (async timing, shared state) in solune/backend/tests/
+- [ ] T035b [US2] Define quarantine-removal process: document criteria for re-enabling quarantined tests (root cause fixed, 10 consecutive green runs) and add a CI reminder/periodic check so quarantines do not become permanent
 - [ ] T036 [US2] Run extended flaky test detection via `cd solune/backend && python scripts/detect_flaky.py --runs=10` and confirm zero flaky tests remain
 
 **Checkpoint**: All critical static analysis findings resolved. Flaky tests quarantined with documented root causes. Codebase is clean for coverage expansion.
@@ -215,6 +216,11 @@
 - [X] T073 [US5] Verify pre-commit hook runs `ruff format` + `ruff check` + `pyright` on changed backend files in solune/scripts/pre-commit
 - [X] T074 [P] [US5] Verify pre-commit hook runs `eslint` + `tsc --noEmit` on changed frontend files in solune/scripts/pre-commit
 - [ ] T075 [US5] Test pre-commit hooks by introducing a deliberate lint violation, attempting to commit, and confirming the hook blocks it
+- [ ] T075b [US5] Measure pre-commit hook execution time on a typical changeset (≤5 files) and verify it completes in under 30 seconds per SC-009; if exceeded, profile and optimize the slowest hook stage
+
+### Document Emergency Hotfix Override (Step 18b)
+
+- [ ] T075c [US5] Document emergency hotfix override process for temporarily bypassing coverage gates (e.g., `--no-verify` with required post-merge coverage restoration) in solune/docs/ or the project README
 
 ### Expand Chaos/Concurrency Tests (Step 19)
 

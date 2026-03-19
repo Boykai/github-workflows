@@ -7,7 +7,7 @@
 
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createMemoryRouter, RouterProvider } from 'react-router-dom';
+import { createMemoryRouter, RouterProvider, Outlet } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock all lazy-loaded pages to avoid dynamic import issues in tests
@@ -53,10 +53,9 @@ vi.mock('@/layout/AuthGate', () => ({
 // Mock AppLayout to render Outlet
 vi.mock('@/layout/AppLayout', () => ({
   AppLayout: () => {
-    const { Outlet } = require('react-router-dom');
     return (
       <div data-testid="app-layout">
-        <Outlet />
+        <AppLayoutOutlet />
       </div>
     );
   },
@@ -121,7 +120,6 @@ function renderWithRouter(initialEntries: string[] = ['/']) {
 }
 
 function AppLayoutOutlet() {
-  const { Outlet } = require('react-router-dom');
   return <Outlet />;
 }
 

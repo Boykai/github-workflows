@@ -19,7 +19,7 @@ the interface between the development process and CI enforcement.
 **Section**: `[tool.coverage.report]`
 
 ```toml
-# Current
+# Baseline (pre-change)
 fail_under = 75
 
 # Target (after Phase 3 completion)
@@ -42,7 +42,7 @@ cd solune/backend && .venv/bin/python -m pytest tests/ \
 **Section**: `test.coverage.thresholds`
 
 ```typescript
-// Current
+// Baseline (pre-change)
 thresholds: {
   statements: 50,
   branches: 44,

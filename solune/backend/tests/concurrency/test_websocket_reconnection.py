@@ -58,14 +58,18 @@ class TestWebSocketReconnectionUnderLoad:
             manager.disconnect(mock_ws)
 
         async def _broadcaster():
+            errors: list[Exception] = []
             for _ in range(5):
                 try:
                     await manager.broadcast_to_project(
                         project_id, {"type": "test", "data": "hello"}
                     )
-                except Exception:
+                except (KeyError, RuntimeError):
                     pass  # Expected during concurrent disconnect
+                except Exception as exc:
+                    errors.append(exc)
                 await asyncio.sleep(0.01)
+            assert not errors, f"Unexpected broadcast errors: {errors}"
 
         tasks = [_connect_session(i) for i in range(10)]
         tasks.append(_broadcaster())

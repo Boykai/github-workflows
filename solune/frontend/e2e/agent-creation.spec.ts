@@ -31,9 +31,9 @@ test.describe('Agent Creation', () => {
     // Should navigate to agents page or redirect to login
     await page.waitForLoadState('networkidle');
 
-    // Either we see the agents page or a redirect
+    // Either we see the agents page or a redirect to login
     const url = page.url();
-    expect(url).toBeTruthy();
+    expect(url).toMatch(/\/(agents|login)/);
   });
 
   test('should handle unauthenticated access to agents page', async ({ page }) => {
@@ -41,7 +41,7 @@ test.describe('Agent Creation', () => {
     await page.waitForLoadState('networkidle');
 
     // Should either show login page or redirect
-    const content = await page.content();
-    expect(content).toBeTruthy();
+    const url = page.url();
+    expect(url).toMatch(/\/(agents|login)/);
   });
 });

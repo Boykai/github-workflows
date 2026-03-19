@@ -7,7 +7,7 @@
 
 This document provides the complete set of commands to verify each phase of the
 Find/Fix Bugs & Increase Test Coverage feature. All commands are run from the
-monorepo root (`solune/`).
+repository root (the directory containing `solune/`).
 
 ### Phase 1: Static Analysis & Error Discovery
 
@@ -52,8 +52,11 @@ cd solune/backend && \
 
 # BUG-003: AsyncMock warnings — verify zero warnings
 cd solune/backend && \
-  .venv/bin/python -m pytest tests/ -q 2>&1 | grep -i "asyncmock" && \
-  echo "FAIL: AsyncMock warnings found" || echo "PASS: No AsyncMock warnings"
+  set -o pipefail && \
+  .venv/bin/python -m pytest tests/ -q 2>&1 | tee /dev/stderr | \
+  { ! grep -qi "asyncmock"; } && \
+  echo "PASS: No AsyncMock warnings" || \
+  { echo "FAIL: AsyncMock warnings found"; exit 1; }
 
 # BUG-004: Pipeline transitions — verify state machine
 cd solune/backend && \
@@ -70,7 +73,7 @@ cd solune/backend && \
 
 # Mutation testing (all shards)
 cd solune/backend && \
-  for shard in auth-and-projects orchestration app-and-data agents-and-integrations; do \
+  for shard in auth-and-projects orchestration app-and-data agents-and-integrations api-and-middleware; do \
     echo "=== Shard: $shard ===" && \
     python scripts/run_mutmut_shard.py --shard=$shard; \
   done

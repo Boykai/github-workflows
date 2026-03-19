@@ -37,8 +37,10 @@ test.describe('Error Recovery', () => {
     await page.waitForLoadState('networkidle');
 
     // App should render login or error state, not crash
-    const content = await page.content();
-    expect(content).toBeTruthy();
+    const url = page.url();
+    expect(url).toBeTruthy();
+    const bodyText = await page.textContent('body');
+    expect(bodyText).not.toContain('Internal server error');
   });
 
   test('should handle 403 forbidden gracefully', async ({ page }) => {

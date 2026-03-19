@@ -31,7 +31,7 @@ test.describe('Pipeline Monitoring', () => {
     await page.waitForLoadState('networkidle');
 
     const url = page.url();
-    expect(url).toBeTruthy();
+    expect(url).toMatch(/\/(pipeline|login)/);
   });
 
   test('should handle pipeline page without active project', async ({ page }) => {

@@ -48,27 +48,27 @@ npx tsc --noEmit
 *(Sequential — each fix should be verified before moving on)*
 
 4. Fix mutmut trampoline name-resolution bug
-   - **Files**: `backend/scripts/run_mutmut_shard.py`, `backend/pyproject.toml`
+   - **Files**: `solune/backend/scripts/run_mutmut_shard.py`, `solune/backend/pyproject.toml`
    - **Verify**: `python scripts/run_mutmut_shard.py --shard=auth-and-projects` → kill rate >0%
 
 5. Fix cache leakage between test suites
-   - **Files**: `backend/tests/conftest.py`, `backend/src/services/cache.py`
+   - **Files**: `solune/backend/tests/conftest.py`, `solune/backend/src/services/cache.py`
    - **Verify**: Run unit + integration tests together without stale state
 
 6. Fix AsyncMock warnings
-   - **Files**: `backend/tests/integration/conftest.py`
+   - **Files**: `solune/backend/tests/integration/conftest.py`
    - **Verify**: `pytest tests/ -q 2>&1 | grep AsyncMock` → no matches
 
 7. Fix pipeline "stuck in In Progress"
-   - **Files**: `backend/src/services/copilot_polling/state_validation.py`,
-     `backend/src/services/copilot_polling/pipeline.py`
+   - **Files**: `solune/backend/src/services/copilot_polling/state_validation.py`,
+     `solune/backend/src/services/copilot_polling/pipeline.py`
    - **Verify**: State transition tests pass
 
 ### Phase 3: Backend Coverage Expansion
 *(Can be parallelized across developers)*
 
 8. Add API route integration tests
-   - **Target**: `backend/tests/integration/`
+   - **Target**: `solune/backend/tests/integration/`
    - **Pattern**: `httpx.AsyncClient` + `ASGITransport`
 
 9. Cover high-risk service modules
@@ -77,18 +77,18 @@ npx tsc --noEmit
    - **Pattern**: Hypothesis property-based tests for state machines
 
 10. Expand mutation testing targets
-    - **File**: `backend/scripts/run_mutmut_shard.py` (add new shards)
+    - **File**: `solune/backend/scripts/run_mutmut_shard.py` (add new shards)
 
 11. Add characterization tests for DRY candidates
-    - **File**: `backend/tests/unit/test_regression_bugfixes.py`
+    - **File**: `solune/backend/tests/unit/test_regression_bugfixes.py`
 
 ### Phase 4: Frontend Coverage Expansion
 *(Can be parallelized across developers)*
 
-12. Cover App.tsx → `frontend/src/__tests__/App.test.tsx`
-13. Cover board components → `frontend/src/components/board/` tests
-14. Increase branch coverage → `frontend/src/hooks/` tests
-15. Expand E2E suite → `frontend/e2e/` new specs
+12. Cover App.tsx → `solune/frontend/src/__tests__/App.test.tsx`
+13. Cover board components → `solune/frontend/src/components/board/` tests
+14. Increase branch coverage → `solune/frontend/src/hooks/` tests
+15. Expand E2E suite → `solune/frontend/e2e/` new specs
 16. Run Stryker and kill survivors → targeted assertions
 
 ### Phase 5: Hardening & CI Gates
