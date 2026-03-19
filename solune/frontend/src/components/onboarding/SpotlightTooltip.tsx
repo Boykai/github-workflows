@@ -185,7 +185,7 @@ export function SpotlightTooltip({
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-xs text-muted-foreground">
-              {currentStep + 1} of {totalSteps}
+              Step {currentStep + 1} of {totalSteps}
             </p>
             <h3 className="text-base font-semibold text-foreground">{step.title}</h3>
             <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
@@ -234,7 +234,7 @@ export function SpotlightTooltip({
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">
-            {currentStep + 1} of {totalSteps}
+            Step {currentStep + 1} of {totalSteps}
           </p>
           <h3 className="text-base font-semibold text-foreground">{step.title}</h3>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{step.description}</p>

@@ -6,6 +6,7 @@
 
 import { useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { choresApi, ApiError } from '@/services/api';
 import { STALE_TIME_LONG } from '@/constants';
 import type {
@@ -63,6 +64,10 @@ export function useCreateChore(projectId: string | null | undefined) {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
+      toast.success('Chore created');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to create chore', { duration: Infinity });
     },
   });
 }
@@ -78,6 +83,10 @@ export function useUpdateChore(projectId: string | null | undefined) {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
+      toast.success('Chore updated');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update chore', { duration: Infinity });
     },
   });
 }
@@ -93,6 +102,10 @@ export function useDeleteChore(projectId: string | null | undefined) {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
+      toast.success('Chore deleted');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to delete chore', { duration: Infinity });
     },
   });
 }
@@ -109,6 +122,10 @@ export function useTriggerChore(projectId: string | null | undefined) {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
+      toast.success('Chore triggered');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to trigger chore', { duration: Infinity });
     },
   });
 }
@@ -172,6 +189,10 @@ export function useInlineUpdateChore(projectId: string | null | undefined) {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
+      toast.success('Chore updated');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to update chore', { duration: Infinity });
     },
   });
 }
@@ -187,6 +208,10 @@ export function useCreateChoreWithAutoMerge(projectId: string | null | undefined
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
+      toast.success('Chore created');
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to create chore', { duration: Infinity });
     },
   });
 }

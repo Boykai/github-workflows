@@ -23,8 +23,8 @@
 
 **Purpose**: Install the only new dependency and prepare shared utilities
 
-- [ ] T001 Install `sonner` toast library in `solune/frontend/package.json`
-- [ ] T002 [P] Create Skeleton base primitive in `solune/frontend/src/components/ui/skeleton.tsx`
+- [x] T001 Install `sonner` toast library in `solune/frontend/package.json`
+- [x] T002 [P] Create Skeleton base primitive in `solune/frontend/src/components/ui/skeleton.tsx`
 
 ---
 
@@ -34,8 +34,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add `<Toaster />` provider to `solune/frontend/src/layout/AppLayout.tsx` and style toasts to match the celestial theme (custom `toastOptions` with celestial colors, border, and shadow)
-- [ ] T004 [P] Create reusable `CopyButton` component in `solune/frontend/src/components/ui/copy-button.tsx` (clipboard write with "Copied!" feedback state, used by US2 code blocks and message copy)
+- [x] T003 Add `<Toaster />` provider to `solune/frontend/src/layout/AppLayout.tsx` and style toasts to match the celestial theme (custom `toastOptions` with celestial colors, border, and shadow)
+- [x] T004 [P] Create reusable `CopyButton` component in `solune/frontend/src/components/ui/copy-button.tsx` (clipboard write with "Copied!" feedback state, used by US2 code blocks and message copy)
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -49,16 +49,16 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useSettingsForm.ts` — add success toast on save, error toast on failure
-- [ ] T006 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/usePipelineConfig.ts` — add success/error toasts for pipeline save/update mutations
-- [ ] T007 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useAgentConfig.ts` — add success/error toasts for agent configuration mutations
-- [ ] T008 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useChores.ts` — add success/error toasts for chore create/update/delete mutations
-- [ ] T009 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useWorkflow.ts` — add success/error toasts for workflow mutations
-- [ ] T010 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useApps.ts` — add success/error toasts for app create/delete mutations
-- [ ] T011 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useAgents.ts` — add success/error toasts for agent add/remove mutations
-- [ ] T012 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useProjects.ts` — add success/error toasts for project mutations
-- [ ] T013 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/usePipelineBoardMutations.ts` — add success/error toasts for pipeline board mutations
-- [ ] T014 [US1] Verify toast accessibility — screen reader announcements via `aria-live`, keyboard dismissal, max 3 visible toasts with oldest auto-dismissed
+- [x] T005 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useSettingsForm.ts` — add success toast on save, error toast on failure
+- [x] T006 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/usePipelineConfig.ts` — add success/error toasts for pipeline save/update mutations
+- [x] T007 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useAgentConfig.ts` — add success/error toasts for agent configuration mutations
+- [x] T008 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useChores.ts` — add success/error toasts for chore create/update/delete mutations
+- [x] T009 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useWorkflow.ts` — add success/error toasts for workflow mutations
+- [x] T010 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useApps.ts` — add success/error toasts for app create/delete mutations
+- [x] T011 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useAgents.ts` — add success/error toasts for agent add/remove mutations
+- [x] T012 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/useProjects.ts` — add success/error toasts for project mutations
+- [x] T013 [P] [US1] Wire toast notifications into `solune/frontend/src/hooks/usePipelineBoardMutations.ts` — add success/error toasts for pipeline board mutations
+- [x] T014 [US1] Verify toast accessibility — screen reader announcements via `aria-live`, keyboard dismissal, max 3 visible toasts with oldest auto-dismissed
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently — every mutation surfaces appropriate toast feedback
 
@@ -72,9 +72,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Create `MarkdownRenderer` component in `solune/frontend/src/components/chat/MarkdownRenderer.tsx` — wrap `react-markdown` with `remark-gfm`, custom renderers for code blocks (using `CopyButton` from T004), links (open in new tab), and styled containers matching the celestial theme
-- [ ] T016 [US2] Update `solune/frontend/src/components/chat/MessageBubble.tsx` — render AI messages through `MarkdownRenderer`, keep user messages as plain text, add "Copy message" hover action using `CopyButton` that copies raw markdown content
-- [ ] T017 [US2] Sanitize HTML in AI markdown responses — ensure raw HTML tags in markdown do not execute (configure `react-markdown` to disallow dangerous HTML)
+- [x] T015 [US2] Create `MarkdownRenderer` component in `solune/frontend/src/components/chat/MarkdownRenderer.tsx` — wrap `react-markdown` with `remark-gfm`, custom renderers for code blocks (using `CopyButton` from T004), links (open in new tab), and styled containers matching the celestial theme
+- [x] T016 [US2] Update `solune/frontend/src/components/chat/MessageBubble.tsx` — render AI messages through `MarkdownRenderer`, keep user messages as plain text, add "Copy message" hover action using `CopyButton` that copies raw markdown content
+- [x] T017 [US2] Sanitize HTML in AI markdown responses — ensure raw HTML tags in markdown do not execute (configure `react-markdown` to disallow dangerous HTML)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently
 
@@ -88,11 +88,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T018 [US3] Create `useBoardDragDrop` hook in `solune/frontend/src/hooks/useBoardDragDrop.ts` — manage drag state, handle `onDragStart`/`onDragOver`/`onDragEnd` events, perform optimistic status update on drop, call backend API to update issue status, rollback on error with error toast, no-op when dropping on same column
-- [ ] T019 [US3] Update `solune/frontend/src/components/board/ProjectBoard.tsx` — wrap board with `<DndContext>` and `<DragOverlay>` from `@dnd-kit/core`, wire `useBoardDragDrop` hook, render drag overlay following the `AgentDragOverlay.tsx` pattern in `solune/frontend/src/components/board/AgentDragOverlay.tsx`
-- [ ] T020 [US3] Update `solune/frontend/src/components/board/IssueCard.tsx` — make card draggable using `useDraggable` from `@dnd-kit/core`, add drag handle, dim card when actively dragging, support keyboard drag activation (Enter/Space to activate, arrow keys to navigate, Enter to drop)
-- [ ] T021 [US3] Update `solune/frontend/src/components/board/BoardColumn.tsx` — make column droppable using `useDroppable` from `@dnd-kit/core`, highlight column when a card is dragged over it (visual drop target indicator)
-- [ ] T022 [US3] Create `BoardDragOverlay` component in `solune/frontend/src/components/board/BoardDragOverlay.tsx` — ghost card overlay that follows cursor during drag, styled to match celestial theme with reduced opacity
+- [x] T018 [US3] Create `useBoardDragDrop` hook in `solune/frontend/src/hooks/useBoardDragDrop.ts` — manage drag state, handle `onDragStart`/`onDragOver`/`onDragEnd` events, perform optimistic status update on drop, call backend API to update issue status, rollback on error with error toast, no-op when dropping on same column
+- [x] T019 [US3] Update `solune/frontend/src/components/board/ProjectBoard.tsx` — wrap board with `<DndContext>` and `<DragOverlay>` from `@dnd-kit/core`, wire `useBoardDragDrop` hook, render drag overlay following the `AgentDragOverlay.tsx` pattern in `solune/frontend/src/components/board/AgentDragOverlay.tsx`
+- [x] T020 [US3] Update `solune/frontend/src/components/board/IssueCard.tsx` — make card draggable using `useDraggable` from `@dnd-kit/core`, add drag handle, dim card when actively dragging, support keyboard drag activation (Enter/Space to activate, arrow keys to navigate, Enter to drop)
+- [x] T021 [US3] Update `solune/frontend/src/components/board/BoardColumn.tsx` — make column droppable using `useDroppable` from `@dnd-kit/core`, highlight column when a card is dragged over it (visual drop target indicator)
+- [x] T022 [US3] Create `BoardDragOverlay` component in `solune/frontend/src/components/board/BoardDragOverlay.tsx` — ghost card overlay that follows cursor during drag, styled to match celestial theme with reduced opacity
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently
 
@@ -106,13 +106,13 @@
 
 ### Implementation for User Story 4
 
-- [ ] T023 [P] [US4] Create `BoardColumnSkeleton` component in `solune/frontend/src/components/board/BoardColumnSkeleton.tsx` — skeleton matching `BoardColumn` dimensions with celestial-shimmer animation
-- [ ] T024 [P] [US4] Create `IssueCardSkeleton` component in `solune/frontend/src/components/board/IssueCardSkeleton.tsx` — skeleton matching `IssueCard` dimensions with celestial-shimmer animation
-- [ ] T025 [P] [US4] Create `AgentCardSkeleton` component in `solune/frontend/src/components/board/AgentCardSkeleton.tsx` — skeleton matching `AgentTile` dimensions with celestial-shimmer animation
-- [ ] T026 [P] [US4] Create `ChatMessageSkeleton` component in `solune/frontend/src/components/chat/ChatMessageSkeleton.tsx` — skeleton matching `MessageBubble` dimensions with celestial-shimmer animation
-- [ ] T027 [US4] Replace data-loading spinners with skeletons in `solune/frontend/src/components/board/ProjectBoardContent.tsx` — use `BoardColumnSkeleton` and `IssueCardSkeleton` instead of `CelestialLoader` for board data loading
-- [ ] T028 [US4] Replace data-loading spinner with skeleton in `solune/frontend/src/components/chat/ChatInterface.tsx` — use `ChatMessageSkeleton` for chat history loading
-- [ ] T029 [US4] Add accessible loading announcements to all skeleton components — `aria-busy="true"` on skeleton containers with `role="status"` and visually hidden "Loading" text for screen readers
+- [x] T023 [P] [US4] Create `BoardColumnSkeleton` component in `solune/frontend/src/components/board/BoardColumnSkeleton.tsx` — skeleton matching `BoardColumn` dimensions with celestial-shimmer animation
+- [x] T024 [P] [US4] Create `IssueCardSkeleton` component in `solune/frontend/src/components/board/IssueCardSkeleton.tsx` — skeleton matching `IssueCard` dimensions with celestial-shimmer animation
+- [x] T025 [P] [US4] Create `AgentCardSkeleton` component in `solune/frontend/src/components/board/AgentCardSkeleton.tsx` — skeleton matching `AgentTile` dimensions with celestial-shimmer animation
+- [x] T026 [P] [US4] Create `ChatMessageSkeleton` component in `solune/frontend/src/components/chat/ChatMessageSkeleton.tsx` — skeleton matching `MessageBubble` dimensions with celestial-shimmer animation
+- [x] T027 [US4] Replace data-loading spinners with skeletons in `solune/frontend/src/components/board/ProjectBoardContent.tsx` — use `BoardColumnSkeleton` and `IssueCardSkeleton` instead of `CelestialLoader` for board data loading
+- [x] T028 [US4] Replace data-loading spinner with skeleton in `solune/frontend/src/components/chat/ChatInterface.tsx` — use `ChatMessageSkeleton` for chat history loading
+- [x] T029 [US4] Add accessible loading announcements to all skeleton components — `aria-busy="true"` on skeleton containers with `role="status"` and visually hidden "Loading" text for screen readers
 
 **Checkpoint**: At this point, User Stories 1–4 should all work independently
 
@@ -126,11 +126,11 @@
 
 ### Implementation for User Story 5
 
-- [ ] T030 [US5] Create `useGlobalShortcuts` hook in `solune/frontend/src/hooks/useGlobalShortcuts.ts` — listen on `document` keydown, implement `?` (shortcut help), `Ctrl+K`/`Cmd+K` (focus chat), `1–5` (section navigation), `Escape` (close modal), guard against firing when text input/textarea/contenteditable is focused (except `Escape` and `Ctrl+K`), suppress shortcuts when modals are open (except `Escape`)
-- [ ] T031 [US5] Create `KeyboardShortcutModal` component in `solune/frontend/src/components/ui/keyboard-shortcut-modal.tsx` — accessible modal listing all available keyboard shortcuts, grouped by category (Navigation, Actions, Help), dismissible with `Escape`
-- [ ] T032 [US5] Wire `useGlobalShortcuts` into `solune/frontend/src/layout/AppLayout.tsx` — activate global shortcuts at the layout level so they work on every page
-- [ ] T033 [US5] Add shortcut hint tooltips to sidebar nav items in `solune/frontend/src/layout/AppLayout.tsx` — update tooltip content to include shortcut hint (e.g., "Board (2)")
-- [ ] T034 [US5] Wire `Ctrl+K` to open chat panel and focus input — coordinate with chat panel open/close state in `solune/frontend/src/components/chat/ChatInterface.tsx`
+- [x] T030 [US5] Create `useGlobalShortcuts` hook in `solune/frontend/src/hooks/useGlobalShortcuts.ts` — listen on `document` keydown, implement `?` (shortcut help), `Ctrl+K`/`Cmd+K` (focus chat), `1–5` (section navigation), `Escape` (close modal), guard against firing when text input/textarea/contenteditable is focused (except `Escape` and `Ctrl+K`), suppress shortcuts when modals are open (except `Escape`)
+- [x] T031 [US5] Create `KeyboardShortcutModal` component in `solune/frontend/src/components/ui/keyboard-shortcut-modal.tsx` — accessible modal listing all available keyboard shortcuts, grouped by category (Navigation, Actions, Help), dismissible with `Escape`
+- [x] T032 [US5] Wire `useGlobalShortcuts` into `solune/frontend/src/layout/AppLayout.tsx` — activate global shortcuts at the layout level so they work on every page
+- [x] T033 [US5] Add shortcut hint tooltips to sidebar nav items in `solune/frontend/src/layout/AppLayout.tsx` — update tooltip content to include shortcut hint (e.g., "Board (2)")
+- [x] T034 [US5] Wire `Ctrl+K` to open chat panel and focus input — coordinate with chat panel open/close state in `solune/frontend/src/components/chat/ChatInterface.tsx`
 
 **Checkpoint**: At this point, User Stories 1–5 should all work independently
 
@@ -144,12 +144,12 @@
 
 ### Implementation for User Story 6
 
-- [ ] T035 [P] [US6] Add board filtering/sorting by assignee, label, and priority in `solune/frontend/src/components/board/BoardToolbar.tsx` and `solune/frontend/src/hooks/useBoardControls.ts` — add filter dropdowns to toolbar, update board hook to apply filters, show active filter state, add "Clear filters" action with friendly empty state when no issues match
-- [ ] T036 [P] [US6] Add onboarding tour step progress indicator in `solune/frontend/src/components/onboarding/SpotlightTooltip.tsx` and `solune/frontend/src/components/onboarding/SpotlightTour.tsx` — display "Step X of N" in spotlight tooltip
-- [ ] T037 [P] [US6] Add chat date separators in `solune/frontend/src/components/chat/ChatInterface.tsx` — insert a date separator label between messages from different calendar days
-- [ ] T038 [P] [US6] Add notification bell pulse animation in `solune/frontend/src/layout/NotificationBell.tsx` — animate bell icon when unread count > 0 using CSS pulse animation
-- [ ] T039 [P] [US6] Enrich empty board column states in `solune/frontend/src/components/board/ProjectBoardContent.tsx` and `solune/frontend/src/components/board/BoardColumn.tsx` — add celestial-themed illustration and suggested next step (e.g., "Create your first issue")
-- [ ] T040 [P] [US6] Add `Ctrl+Enter` to send message in `solune/frontend/src/components/chat/ChatInterface.tsx` — listen for `Ctrl+Enter` keydown on the chat input and trigger send
+- [x] T035 [P] [US6] Add board filtering/sorting by assignee, label, and priority in `solune/frontend/src/components/board/BoardToolbar.tsx` and `solune/frontend/src/hooks/useBoardControls.ts` — add filter dropdowns to toolbar, update board hook to apply filters, show active filter state, add "Clear filters" action with friendly empty state when no issues match
+- [x] T036 [P] [US6] Add onboarding tour step progress indicator in `solune/frontend/src/components/onboarding/SpotlightTooltip.tsx` and `solune/frontend/src/components/onboarding/SpotlightTour.tsx` — display "Step X of N" in spotlight tooltip
+- [x] T037 [P] [US6] Add chat date separators in `solune/frontend/src/components/chat/ChatInterface.tsx` — insert a date separator label between messages from different calendar days
+- [x] T038 [P] [US6] Add notification bell pulse animation in `solune/frontend/src/layout/NotificationBell.tsx` — animate bell icon when unread count > 0 using CSS pulse animation
+- [x] T039 [P] [US6] Enrich empty board column states in `solune/frontend/src/components/board/ProjectBoardContent.tsx` and `solune/frontend/src/components/board/BoardColumn.tsx` — add celestial-themed illustration and suggested next step (e.g., "Create your first issue")
+- [x] T040 [P] [US6] Add `Ctrl+Enter` to send message in `solune/frontend/src/components/chat/ChatInterface.tsx` — listen for `Ctrl+Enter` keydown on the chat input and trigger send
 
 **Checkpoint**: All user stories should now be independently functional
 
@@ -159,10 +159,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T041 [P] Verify all toast notifications across the app — manually trigger every mutation type and confirm correct severity, auto-dismiss timing, stacking, and theme consistency
-- [ ] T042 [P] Verify responsive behavior of all new components across 320px–1920px viewport range
-- [ ] T043 Run accessibility audit on all new interactive elements — verify WCAG 2.1 AA compliance, screen reader announcements, keyboard navigation, and focus management
-- [ ] T044 Performance review — ensure no unnecessary re-renders from drag-and-drop context, skeleton animations use GPU-accelerated properties, and toast notifications don't cause layout shifts
+- [x] T041 [P] Verify all toast notifications across the app — manually trigger every mutation type and confirm correct severity, auto-dismiss timing, stacking, and theme consistency
+- [x] T042 [P] Verify responsive behavior of all new components across 320px–1920px viewport range
+- [x] T043 Run accessibility audit on all new interactive elements — verify WCAG 2.1 AA compliance, screen reader announcements, keyboard navigation, and focus management
+- [x] T044 Performance review — ensure no unnecessary re-renders from drag-and-drop context, skeleton animations use GPU-accelerated properties, and toast notifications don't cause layout shifts
 
 ---
 
