@@ -11,7 +11,6 @@ import {
   DragOverlay,
   closestCorners,
   PointerSensor,
-  KeyboardSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -44,7 +43,6 @@ export function ProjectBoard({
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor)
   );
 
   const { activeCard, handlers } = useBoardDragDrop(boardData, onStatusUpdate);

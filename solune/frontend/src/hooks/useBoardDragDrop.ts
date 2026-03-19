@@ -73,7 +73,7 @@ export function useBoardDragDrop(
   }, []);
 
   const onDragEnd = useCallback(
-    (event: DragEndEvent) => {
+    async (event: DragEndEvent) => {
       const { active, over } = event;
       setActiveCard(null);
       setOverColumnId(null);
@@ -92,7 +92,7 @@ export function useBoardDragDrop(
       if (sourceColumnStatus === targetStatus) return;
 
       try {
-        onStatusUpdate(itemId, targetStatus);
+        await Promise.resolve(onStatusUpdate(itemId, targetStatus));
         toast.success('Issue moved');
       } catch {
         toast.error('Failed to move issue', { duration: Infinity });
