@@ -36,7 +36,9 @@ logger = get_logger(__name__)
 
 # Default Solune project status columns.
 _SOLUNE_STATUS_OPTIONS = [
+    {"name": "Todo", "color": "BLUE"},
     {"name": "Backlog", "color": "GRAY"},
+    {"name": "Ready", "color": "PURPLE"},
     {"name": "In Progress", "color": "YELLOW"},
     {"name": "In Review", "color": "ORANGE"},
     {"name": "Done", "color": "GREEN"},

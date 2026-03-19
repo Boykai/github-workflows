@@ -489,6 +489,89 @@ async def _poll_loop(
     _polling_state.is_running = False
 
 
+# ── Scoped App Pipeline Polling ─────────────────────────────────────────────
+
+
+async def poll_app_pipeline(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    parent_issue_number: int,
+    interval_seconds: int = 15,
+) -> None:
+    """Scoped polling loop for a new-repo / external-repo app pipeline.
+
+    Monitors only the parent issue and its sub-issues on the app's project
+    board.  Automatically stops when the pipeline is complete (all agents
+    done) or the parent issue is closed.
+    """
+    from .helpers import is_sub_issue
+    from .state import _app_polling_tasks
+
+    logger.info(
+        "Starting scoped app-pipeline polling for issue #%d on %s/%s (project %s)",
+        parent_issue_number,
+        owner,
+        repo,
+        project_id,
+    )
+
+    try:
+        while True:
+            try:
+                _cp.github_projects_service.clear_cycle_cache()
+
+                # Check whether the pipeline is still active.
+                pipeline_state = _cp.get_pipeline_state(parent_issue_number)
+                if pipeline_state is not None and pipeline_state.is_complete:
+                    logger.info(
+                        "App pipeline for issue #%d is complete — stopping scoped polling",
+                        parent_issue_number,
+                    )
+                    break
+
+                # Fetch all board items and run the standard polling steps.
+                all_tasks = await _cp.github_projects_service.get_project_items(
+                    access_token, project_id
+                )
+                parent_tasks = [t for t in all_tasks if not is_sub_issue(t)]
+
+                for step in POLL_STEPS:
+                    if step.is_expensive:
+                        continue  # skip expensive steps for scoped polling
+                    await step.execute(access_token, project_id, owner, repo, parent_tasks)
+
+                # Re-check after processing — pipeline may have just completed.
+                pipeline_state = _cp.get_pipeline_state(parent_issue_number)
+                if pipeline_state is None or pipeline_state.is_complete:
+                    logger.info(
+                        "App pipeline for issue #%d finished — stopping scoped polling",
+                        parent_issue_number,
+                    )
+                    break
+
+            except Exception as exc:
+                logger.warning(
+                    "Error in scoped app-pipeline polling for issue #%d: %s",
+                    parent_issue_number,
+                    exc,
+                )
+
+            await asyncio.sleep(interval_seconds)
+
+    except asyncio.CancelledError:
+        logger.info("Scoped app-pipeline polling cancelled for issue #%d", parent_issue_number)
+    finally:
+        _app_polling_tasks.pop(project_id, None)
+        logger.info(
+            "Scoped app-pipeline polling ended for issue #%d on %s/%s",
+            parent_issue_number,
+            owner,
+            repo,
+        )
+
+
 def stop_polling() -> None:
     """Stop the background polling loop.
 

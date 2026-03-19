@@ -231,6 +231,46 @@ class TestNewRepoPipelineRouting:
         call_kwargs = self.mock_launch.call_args[1]
         assert call_kwargs["project_id"] == "PVT_new_proj"
 
+    async def test_new_repo_passes_pipeline_source_project(self, client, mock_db):
+        """new-repo looks up pipeline's source project and passes it to launch."""
+        from src.models.workflow import WorkflowResult
+
+        # Insert a pipeline_configs row so the DB lookup finds the source project
+        await mock_db.execute(
+            "INSERT INTO pipeline_configs (id, project_id, name, stages, created_at, updated_at)"
+            " VALUES (?, ?, ?, ?, datetime('now'), datetime('now'))",
+            ("pipe-2", "PVT_source_proj", "Test Pipeline", "[]"),
+        )
+        await mock_db.commit()
+
+        self.mock_create.return_value = _sample_app(
+            repo_type=RepoType.NEW_REPO,
+            github_project_id="PVT_new_proj",
+            github_repo_url="https://github.com/org/new-repo",
+        )
+        self.mock_launch.return_value = WorkflowResult(
+            success=True,
+            issue_number=99,
+            issue_url="https://github.com/org/new-repo/issues/99",
+            message="ok",
+        )
+
+        resp = await client.post(
+            "/api/v1/apps",
+            json={
+                "name": "nr-app",
+                "display_name": "NR App",
+                "branch": "main",
+                "pipeline_id": "pipe-2",
+                "project_id": "PVT_should_not_use",
+            },
+        )
+        assert resp.status_code == 201
+        call_kwargs = self.mock_launch.call_args[1]
+        assert call_kwargs["project_id"] == "PVT_new_proj"
+        assert call_kwargs["pipeline_project_id"] == "PVT_source_proj"
+        assert call_kwargs["target_repo"] == ("org", "new-repo")
+
     async def test_new_repo_null_project_id_skips_with_warning(self, client):
         """new-repo with pipeline_id but null github_project_id → skips launch."""
         self.mock_create.return_value = _sample_app(
