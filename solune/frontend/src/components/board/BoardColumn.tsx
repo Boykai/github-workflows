@@ -10,12 +10,16 @@ import type { BoardGroup } from '@/hooks/useBoardControls';
 import { cn } from '@/lib/utils';
 import { statusColorToCSS } from './colorUtils';
 import { IssueCard } from './IssueCard';
+import { InfiniteScrollContainer } from '@/components/common/InfiniteScrollContainer';
 
 interface BoardColumnProps {
   column: BoardColumnType;
   onCardClick: (item: BoardItem) => void;
   availableAgents?: AvailableAgent[];
   getGroups?: (items: BoardItem[]) => BoardGroup[] | null;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  fetchNextPage?: () => void;
 }
 
 export const BoardColumn = memo(function BoardColumn({
@@ -23,6 +27,9 @@ export const BoardColumn = memo(function BoardColumn({
   onCardClick,
   availableAgents,
   getGroups,
+  hasNextPage = false,
+  isFetchingNextPage = false,
+  fetchNextPage,
 }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${column.status.name}`,
@@ -119,6 +126,16 @@ export const BoardColumn = memo(function BoardColumn({
               availableAgents={availableAgents}
             />
           ))
+        )}
+        {/* Per-column infinite scroll sentinel */}
+        {(hasNextPage || isFetchingNextPage) && (
+          <InfiniteScrollContainer
+            hasNextPage={hasNextPage}
+            isFetchingNextPage={isFetchingNextPage}
+            fetchNextPage={fetchNextPage ?? (() => {})}
+          >
+            <span />
+          </InfiniteScrollContainer>
         )}
       </div>
     </div>

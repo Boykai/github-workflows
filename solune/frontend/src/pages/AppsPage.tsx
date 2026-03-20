@@ -9,6 +9,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { GitBranch, Plus, RefreshCw } from 'lucide-react';
 import {
   useApps,
+  useAppsPaginated,
   useCreateApp,
   useOwners,
   useStartApp,
@@ -24,6 +25,7 @@ import { AppDetailView } from '@/components/apps/AppDetailView';
 import { CreateAppDialog } from '@/components/apps/CreateAppDialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
+import { InfiniteScrollContainer } from '@/components/common/InfiniteScrollContainer';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { isRateLimitApiError } from '@/utils/rateLimit';
 import { appsApi, pipelinesApi } from '@/services/api';
@@ -34,6 +36,12 @@ export function AppsPage() {
   const { appName } = useParams<{ appName?: string }>();
   const navigate = useNavigate();
   const { data: apps, isLoading, error, refetch } = useApps();
+  const {
+    hasNextPage: appsHasNextPage,
+    isFetchingNextPage: appsIsFetchingNextPage,
+    fetchNextPage: appsFetchNextPage,
+    isError: appsPaginatedError,
+  } = useAppsPaginated();
   const createMutation = useCreateApp();
   const startMutation = useStartApp();
   const stopMutation = useStopApp();
@@ -253,21 +261,29 @@ export function AppsPage() {
 
         {/* App grid */}
         {!isLoading && !error && apps && apps.length > 0 && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {apps.map((app) => (
-              <AppCard
-                key={app.name}
-                app={app}
-                onSelect={(name) => navigate(`/apps/${name}`)}
-                onStart={handleStart}
-                onStop={handleStop}
-                onDelete={handleDelete}
-                isStartPending={startMutation.isPending}
-                isStopPending={stopMutation.isPending}
-                isDeletePending={deleteMutation.isPending}
-              />
-            ))}
-          </div>
+          <InfiniteScrollContainer
+            hasNextPage={appsHasNextPage ?? false}
+            isFetchingNextPage={appsIsFetchingNextPage}
+            fetchNextPage={appsFetchNextPage}
+            isError={appsPaginatedError}
+            onRetry={appsFetchNextPage}
+          >
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {apps.map((app) => (
+                <AppCard
+                  key={app.name}
+                  app={app}
+                  onSelect={(name) => navigate(`/apps/${name}`)}
+                  onStart={handleStart}
+                  onStop={handleStop}
+                  onDelete={handleDelete}
+                  isStartPending={startMutation.isPending}
+                  isStopPending={stopMutation.isPending}
+                  isDeletePending={deleteMutation.isPending}
+                />
+              ))}
+            </div>
+          </InfiniteScrollContainer>
         )}
 
         {/* Create dialog */}

@@ -24,10 +24,10 @@
 
 **Purpose**: Create the shared backend pagination model and utility that all endpoints depend on
 
-- [ ] T001 Create `PaginatedResponse[T]` generic Pydantic model with `items`, `next_cursor`, `has_more`, `total_count` fields in solune/backend/src/models/pagination.py
-- [ ] T002 Create `PaginationParams` Pydantic model with `limit` (1–100, default 25) and `cursor` (optional base64 string) validation in solune/backend/src/models/pagination.py
-- [ ] T003 Implement `apply_pagination()` helper that accepts a list, `limit`, and `cursor`, decodes base64 cursor to find start position, slices the list, and returns a `PaginatedResponse` in solune/backend/src/services/pagination.py
-- [ ] T004 Add unit tests for pagination utility covering empty list, list smaller than limit, list equal to limit, list larger than limit, cursor navigation, and invalid cursor handling in solune/backend/tests/unit/test_pagination.py
+- [x] T001 Create `PaginatedResponse[T]` generic Pydantic model with `items`, `next_cursor`, `has_more`, `total_count` fields in solune/backend/src/models/pagination.py
+- [x] T002 Create `PaginationParams` Pydantic model with `limit` (1–100, default 25) and `cursor` (optional base64 string) validation in solune/backend/src/models/pagination.py
+- [x] T003 Implement `apply_pagination()` helper that accepts a list, `limit`, and `cursor`, decodes base64 cursor to find start position, slices the list, and returns a `PaginatedResponse` in solune/backend/src/services/pagination.py
+- [x] T004 Add unit tests for pagination utility covering empty list, list smaller than limit, list equal to limit, list larger than limit, cursor navigation, and invalid cursor handling in solune/backend/tests/unit/test_pagination.py
 
 **⚠️ GATE**: All pagination utility tests pass (`pytest tests/unit/test_pagination.py`) before proceeding to Phase 2.
 
@@ -39,10 +39,10 @@
 
 **⚠️ CRITICAL**: No user story frontend work can begin until this phase is complete
 
-- [ ] T005 Add `PaginatedResponse<T>` TypeScript interface with `items`, `next_cursor`, `has_more`, `total_count` fields to solune/frontend/src/types/index.ts
-- [ ] T006 [P] Create `useInfiniteList<T>` hook wrapping `useInfiniteQuery` with shared defaults (`getNextPageParam` extracting `next_cursor`, `initialPageParam`, configurable `limit`/`staleTime`/`enabled`) in solune/frontend/src/hooks/useInfiniteList.ts
-- [ ] T007 [P] Create `InfiniteScrollContainer` component using `IntersectionObserver` to detect sentinel element visibility, trigger `fetchNextPage`, show loading spinner during fetch, show error with retry button on failure, and render nothing when all pages loaded in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
-- [ ] T008 [P] Add paginated fetch helpers to API service (each list API module gets a paginated variant accepting `limit` and `cursor` params, returning `PaginatedResponse<T>`) in solune/frontend/src/services/api.ts
+- [x] T005 Add `PaginatedResponse<T>` TypeScript interface with `items`, `next_cursor`, `has_more`, `total_count` fields to solune/frontend/src/types/index.ts
+- [x] T006 [P] Create `useInfiniteList<T>` hook wrapping `useInfiniteQuery` with shared defaults (`getNextPageParam` extracting `next_cursor`, `initialPageParam`, configurable `limit`/`staleTime`/`enabled`) in solune/frontend/src/hooks/useInfiniteList.ts
+- [x] T007 [P] Create `InfiniteScrollContainer` component using `IntersectionObserver` to detect sentinel element visibility, trigger `fetchNextPage`, show loading spinner during fetch, show error with retry button on failure, and render nothing when all pages loaded in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
+- [x] T008 [P] Add paginated fetch helpers to API service (each list API module gets a paginated variant accepting `limit` and `cursor` params, returning `PaginatedResponse<T>`) in solune/frontend/src/services/api.ts
 
 **Checkpoint**: Foundation ready — `npx tsc --noEmit` passes, `npx eslint` clean. User story implementation can now begin.
 
@@ -56,10 +56,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T009 [US1] Add `column_limit` (int, default 25) and `column_cursors` (JSON-encoded map of `{ status_option_id: cursor }`) query params to board data endpoint, apply `apply_pagination()` per column independently, and add `next_cursor`/`has_more` fields to each `BoardColumn` in response in solune/backend/src/api/board.py
-- [ ] T010 [US1] Update `useProjectBoard` hook to accept and pass `column_limit` and `column_cursors` params to the board data endpoint, and expose per-column `fetchNextPage` capability in solune/frontend/src/hooks/useProjectBoard.ts
-- [ ] T011 [US1] Add `InfiniteScrollContainer` sentinel inside each `BoardColumn` to trigger per-column next-page fetches, ensuring items append below existing content without disrupting scroll position in solune/frontend/src/components/board/BoardColumn.tsx
-- [ ] T012 [US1] Verify `@dnd-kit` drag-and-drop interactions work correctly with paginated board columns — dragged items move between columns regardless of which page batch they belong to, and column counts update accurately in solune/frontend/src/components/board/BoardColumn.tsx
+- [x] T009 [US1] Add `column_limit` (int, default 25) and `column_cursors` (JSON-encoded map of `{ status_option_id: cursor }`) query params to board data endpoint, apply `apply_pagination()` per column independently, and add `next_cursor`/`has_more` fields to each `BoardColumn` in response in solune/backend/src/api/board.py
+- [x] T010 [US1] Update `useProjectBoard` hook to accept and pass `column_limit` and `column_cursors` params to the board data endpoint, and expose per-column `fetchNextPage` capability in solune/frontend/src/hooks/useProjectBoard.ts
+- [x] T011 [US1] Add `InfiniteScrollContainer` sentinel inside each `BoardColumn` to trigger per-column next-page fetches, ensuring items append below existing content without disrupting scroll position in solune/frontend/src/components/board/BoardColumn.tsx
+- [x] T012 [US1] Verify `@dnd-kit` drag-and-drop interactions work correctly with paginated board columns — dragged items move between columns regardless of which page batch they belong to, and column counts update accurately in solune/frontend/src/components/board/BoardColumn.tsx
 
 **Checkpoint**: Board columns display at most 25 items, scroll to load more per column, drag-and-drop functions correctly. User Story 1 is independently testable.
 
@@ -73,9 +73,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [P] [US2] Add optional `limit` (int, default 25) and `cursor` (str) query params to agents list endpoint, fetch full agent list, pass to `apply_pagination()`, and return `PaginatedResponse[Agent]` (backward-compatible when params omitted) in solune/backend/src/api/agents.py
-- [ ] T014 [US2] Migrate `useAgentsList` from `useQuery` to `useInfiniteList`, update fetch function to pass `limit` and `cursor` params, and flatten pages into a single items array for consumers in solune/frontend/src/hooks/useAgents.ts
-- [ ] T015 [US2] Integrate `InfiniteScrollContainer` into `AgentsPage` to wrap the agent card grid, connecting `hasNextPage`, `isFetchingNextPage`, `fetchNextPage`, and `isError` props from the migrated hook in solune/frontend/src/pages/AgentsPage.tsx
+- [x] T013 [P] [US2] Add optional `limit` (int, default 25) and `cursor` (str) query params to agents list endpoint, fetch full agent list, pass to `apply_pagination()`, and return `PaginatedResponse[Agent]` (backward-compatible when params omitted) in solune/backend/src/api/agents.py
+- [x] T014 [US2] Migrate `useAgentsList` from `useQuery` to `useInfiniteList`, update fetch function to pass `limit` and `cursor` params, and flatten pages into a single items array for consumers in solune/frontend/src/hooks/useAgents.ts
+- [x] T015 [US2] Integrate `InfiniteScrollContainer` into `AgentsPage` to wrap the agent card grid, connecting `hasNextPage`, `isFetchingNextPage`, `fetchNextPage`, and `isError` props from the migrated hook in solune/frontend/src/pages/AgentsPage.tsx
 
 **Checkpoint**: Agents page displays at most 24 agent cards, scrolling loads more agents seamlessly. User Story 2 is independently testable.
 
@@ -89,9 +89,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T016 [P] [US3] Add optional `limit` (int, default 25) and `cursor` (str) query params to tools list endpoint, paginate the `tools` array within `McpToolConfigListResponse` (keeping `presets` unpaginated in every response), and return `PaginatedResponse[McpToolConfig]` in solune/backend/src/api/tools.py
-- [ ] T017 [US3] Migrate `useToolsList` from `useQuery` to `useInfiniteList`, update fetch function to pass `limit` and `cursor` params in solune/frontend/src/hooks/useTools.ts
-- [ ] T018 [US3] Integrate `InfiniteScrollContainer` into `ToolsPage` to wrap the tools list, showing loading indicator during fetch and handling the filtered results pagination in solune/frontend/src/pages/ToolsPage.tsx
+- [x] T016 [P] [US3] Add optional `limit` (int, default 25) and `cursor` (str) query params to tools list endpoint, paginate the `tools` array within `McpToolConfigListResponse` (keeping `presets` unpaginated in every response), and return `PaginatedResponse[McpToolConfig]` in solune/backend/src/api/tools.py
+- [x] T017 [US3] Migrate `useToolsList` from `useQuery` to `useInfiniteList`, update fetch function to pass `limit` and `cursor` params in solune/frontend/src/hooks/useTools.ts
+- [x] T018 [US3] Integrate `InfiniteScrollContainer` into `ToolsPage` to wrap the tools list, showing loading indicator during fetch and handling the filtered results pagination in solune/frontend/src/pages/ToolsPage.tsx
 
 **Checkpoint**: Tools page displays at most 24 tools, scrolling loads more. Filtered results also paginate correctly. User Story 3 is independently testable.
 
@@ -105,9 +105,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T019 [P] [US4] Add optional `limit` (int, default 25) and `cursor` (str) query params to chores list endpoint, pass to `apply_pagination()`, and return `PaginatedResponse[Chore]` in solune/backend/src/api/chores.py
-- [ ] T020 [US4] Migrate `useChoresList` from `useQuery` to `useInfiniteList`, update fetch function to pass `limit` and `cursor` params in solune/frontend/src/hooks/useChores.ts
-- [ ] T021 [US4] Integrate `InfiniteScrollContainer` into `ChoresPage` to wrap the chores grid in solune/frontend/src/pages/ChoresPage.tsx
+- [x] T019 [P] [US4] Add optional `limit` (int, default 25) and `cursor` (str) query params to chores list endpoint, pass to `apply_pagination()`, and return `PaginatedResponse[Chore]` in solune/backend/src/api/chores.py
+- [x] T020 [US4] Migrate `useChoresList` from `useQuery` to `useInfiniteList`, update fetch function to pass `limit` and `cursor` params in solune/frontend/src/hooks/useChores.ts
+- [x] T021 [US4] Integrate `InfiniteScrollContainer` into `ChoresPage` to wrap the chores grid in solune/frontend/src/pages/ChoresPage.tsx
 
 **Checkpoint**: Chores page displays at most 24 chores, scrolling loads more. User Story 4 is independently testable.
 
@@ -121,9 +121,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T022 [P] [US5] Add optional `limit` (int, default 25) and `cursor` (str) query params to apps list endpoint, pass to `apply_pagination()`, and return `PaginatedResponse[App]` in solune/backend/src/api/apps.py
-- [ ] T023 [US5] Migrate `useApps` from `useQuery` to `useInfiniteList`, update fetch function to pass `limit` and `cursor` params in solune/frontend/src/hooks/useApps.ts
-- [ ] T024 [US5] Integrate `InfiniteScrollContainer` into `AppsPage` to wrap the apps card grid, handling filtered-by-status pagination in solune/frontend/src/pages/AppsPage.tsx
+- [x] T022 [P] [US5] Add optional `limit` (int, default 25) and `cursor` (str) query params to apps list endpoint, pass to `apply_pagination()`, and return `PaginatedResponse[App]` in solune/backend/src/api/apps.py
+- [x] T023 [US5] Migrate `useApps` from `useQuery` to `useInfiniteList`, update fetch function to pass `limit` and `cursor` params in solune/frontend/src/hooks/useApps.ts
+- [x] T024 [US5] Integrate `InfiniteScrollContainer` into `AppsPage` to wrap the apps card grid, handling filtered-by-status pagination in solune/frontend/src/pages/AppsPage.tsx
 
 **Checkpoint**: Apps page displays at most 24 app cards, scrolling loads more. Filtered results also paginate. User Story 5 is independently testable.
 
@@ -137,9 +137,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T025 [P] [US6] Add optional `limit` (int, default 20) and `cursor` (str) query params to pipelines list endpoint, pass to `apply_pagination()`, and return `PaginatedResponse[PipelineConfig]` in solune/backend/src/api/pipelines.py
-- [ ] T026 [US6] Migrate pipeline listing to `useInfiniteList` in solune/frontend/src/hooks/usePipelineConfig.ts
-- [ ] T027 [US6] Integrate `InfiniteScrollContainer` into saved pipelines list section in solune/frontend/src/pages/ProjectsPage.tsx
+- [x] T025 [P] [US6] Add optional `limit` (int, default 20) and `cursor` (str) query params to pipelines list endpoint, pass to `apply_pagination()`, and return `PaginatedResponse[PipelineConfig]` in solune/backend/src/api/pipelines.py
+- [x] T026 [US6] Migrate pipeline listing to `useInfiniteList` in solune/frontend/src/hooks/usePipelineConfig.ts
+- [x] T027 [US6] Integrate `InfiniteScrollContainer` into saved pipelines list section in solune/frontend/src/pages/ProjectsPage.tsx
 
 **Checkpoint**: Saved pipelines list displays at most 20 items, scrolling loads more. Deletion while paginated updates correctly. User Story 6 is independently testable.
 
@@ -149,13 +149,13 @@
 
 **Purpose**: Edge case handling, resilience, and quality improvements that affect multiple user stories
 
-- [ ] T028 [P] Add debounce/dedup protection to `InfiniteScrollContainer` to prevent duplicate page requests on rapid scroll (leveraging IntersectionObserver's built-in debounce and adding guard for `isFetchingNextPage`) in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
-- [ ] T029 [P] Add retry UI for failed page loads — error state with retry button, preserving already-loaded data — in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
-- [ ] T030 Add filter/sort reset helper to `useInfiniteList` that calls `queryClient.resetQueries()` when filter or sort params change, resetting pagination to the first page in solune/frontend/src/hooks/useInfiniteList.ts
-- [ ] T031 [P] Integrate filter/sort reset into paginated page components — call reset on filter/sort change in solune/frontend/src/pages/AgentsPage.tsx, solune/frontend/src/pages/ToolsPage.tsx, solune/frontend/src/pages/ChoresPage.tsx, and solune/frontend/src/pages/AppsPage.tsx
-- [ ] T032 [P] Add query invalidation on create/delete mutations to re-fetch paginated data correctly in solune/frontend/src/hooks/useAgents.ts, solune/frontend/src/hooks/useTools.ts, solune/frontend/src/hooks/useChores.ts, solune/frontend/src/hooks/useApps.ts, and solune/frontend/src/hooks/usePipelineConfig.ts
-- [ ] T033 Add scroll position preservation using `useRef`/`scrollTo` pattern in `InfiniteScrollContainer` to restore scroll offset when returning from detail views in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
-- [ ] T034 Run quickstart.md final verification suite — full backend tests, frontend tests, type-check, lint, and manual performance verification per specs/053-pagination-infinite-scroll/quickstart.md
+- [x] T028 [P] Add debounce/dedup protection to `InfiniteScrollContainer` to prevent duplicate page requests on rapid scroll (leveraging IntersectionObserver's built-in debounce and adding guard for `isFetchingNextPage`) in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
+- [x] T029 [P] Add retry UI for failed page loads — error state with retry button, preserving already-loaded data — in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
+- [x] T030 Add filter/sort reset helper to `useInfiniteList` that calls `queryClient.resetQueries()` when filter or sort params change, resetting pagination to the first page in solune/frontend/src/hooks/useInfiniteList.ts
+- [x] T031 [P] Integrate filter/sort reset into paginated page components — call reset on filter/sort change in solune/frontend/src/pages/AgentsPage.tsx, solune/frontend/src/pages/ToolsPage.tsx, solune/frontend/src/pages/ChoresPage.tsx, and solune/frontend/src/pages/AppsPage.tsx
+- [x] T032 [P] Add query invalidation on create/delete mutations to re-fetch paginated data correctly in solune/frontend/src/hooks/useAgents.ts, solune/frontend/src/hooks/useTools.ts, solune/frontend/src/hooks/useChores.ts, solune/frontend/src/hooks/useApps.ts, and solune/frontend/src/hooks/usePipelineConfig.ts
+- [x] T033 Add scroll position preservation using `useRef`/`scrollTo` pattern in `InfiniteScrollContainer` to restore scroll offset when returning from detail views in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
+- [x] T034 Run quickstart.md final verification suite — full backend tests, frontend tests, type-check, lint, and manual performance verification per specs/053-pagination-infinite-scroll/quickstart.md
 
 ---
 
