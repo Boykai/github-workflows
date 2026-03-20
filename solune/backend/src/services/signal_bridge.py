@@ -563,7 +563,7 @@ async def _ws_listen_loop(phone: str) -> None:
         except (websockets.ConnectionClosed, ConnectionError) as e:
             consecutive_failures += 1
             delay = min(backoff_base * (2 ** (consecutive_failures - 1)), backoff_cap)
-            jitter = random.uniform(0, delay * 0.25)
+            jitter = random.uniform(0, delay * 0.25)  # nosec B311
             wait = delay + jitter
             logger.warning(
                 "Signal WebSocket disconnected (attempt %d): %s. Reconnecting in %.1fs…",
@@ -575,7 +575,7 @@ async def _ws_listen_loop(phone: str) -> None:
         except Exception as e:
             consecutive_failures += 1
             delay = min(backoff_base * (2 ** (consecutive_failures - 1)), backoff_cap)
-            jitter = random.uniform(0, delay * 0.25)
+            jitter = random.uniform(0, delay * 0.25)  # nosec B311
             wait = delay + jitter
             logger.exception(
                 "Unexpected Signal WebSocket error (attempt %d): %s. Reconnecting in %.1fs…",

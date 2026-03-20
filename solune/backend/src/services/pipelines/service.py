@@ -501,7 +501,8 @@ class PipelineService:
             ) from exc
 
         pipeline = await self.get_pipeline(project_id, pipeline_id)
-        assert pipeline is not None
+        if pipeline is None:
+            raise RuntimeError(f"Pipeline {pipeline_id} was not found after creation")
         return pipeline
 
     # ── Update ────────────────────────────────────────────────────────

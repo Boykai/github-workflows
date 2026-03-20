@@ -550,8 +550,11 @@ class AgentsService:
                 )
         except ValueError:
             raise  # Re-raise our own validation error
-        except Exception:
-            pass  # File not found or API error — safe to proceed
+        except Exception as exc:
+            logger.debug(
+                "Skipping existing agent file lookup due to repository read failure",
+                exc_info=exc,
+            )
 
         description = body.description
         requested_tools = list(body.tools)
@@ -1352,8 +1355,10 @@ class AgentsService:
                     content = file_data["content"]
                     # Trim to first 1500 chars to avoid token overload
                     examples.append(f"### {name}\n```\n{content[:1500]}\n```")
-            except Exception:
-                continue
+            except Exception as exc:
+                logger.debug(
+                    "Skipping example agent file %s after read failure", name, exc_info=exc
+                )
         return examples
 
     async def _auto_generate_metadata(

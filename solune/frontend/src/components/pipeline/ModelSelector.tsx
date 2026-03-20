@@ -110,7 +110,7 @@ export function ModelSelector({
       setIsOpen(false);
       setSearch('');
     },
-    [onSelect]
+    [addRecentModel, onSelect]
   );
 
   const handleOpenChange = useCallback((open: boolean) => {

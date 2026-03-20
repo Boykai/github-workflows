@@ -2568,7 +2568,7 @@ async def process_in_progress_issue(
         check_status = finished_pr.get("check_status", "unknown")
 
         # Check if we've already processed this issue+PR combination
-        cache_key = _cp.cache_key_issue_pr(issue_number, pr_number)
+        cache_key = _cp.cache_key_issue_pr(issue_number, pr_number, project_id)
         if cache_key in _processed_issue_prs:
             logger.debug(
                 "Issue #%d PR #%d: Already processed, skipping",

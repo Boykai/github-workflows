@@ -67,7 +67,8 @@ class PipelineRunService:
                     (pipeline_config_id, project_id, now, trigger),
                 )
                 run_id = cursor.lastrowid
-                assert run_id is not None
+                if run_id is None:
+                    raise RuntimeError("Failed to persist pipeline run ID")
 
                 # Create stage states if stages are provided
                 stage_states: list[PipelineRunStageState] = []
@@ -82,7 +83,8 @@ class PipelineRunService:
                             (run_id, stage["stage_id"], stage.get("group_id")),
                         )
                         stage_state_id = stage_cursor.lastrowid
-                        assert stage_state_id is not None
+                        if stage_state_id is None:
+                            raise RuntimeError("Failed to persist pipeline stage state ID")
                         stage_states.append(
                             PipelineRunStageState(
                                 id=stage_state_id,
@@ -388,7 +390,8 @@ class PipelineRunService:
                         ),
                     )
                     group_id = cursor.lastrowid
-                    assert group_id is not None
+                    if group_id is None:
+                        raise RuntimeError("Failed to persist pipeline stage group ID")
                     now = _now_iso()
                     created_groups.append(
                         StageGroup(

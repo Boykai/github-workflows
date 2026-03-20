@@ -1072,8 +1072,8 @@ class WorkflowOrchestrator:
         Returns:
             (sub_issue_node_id, sub_issue_number, sub_issue_info)
         """
-        assert ctx.issue_id is not None  # guaranteed by assign_agent_for_status guard
-        assert ctx.issue_number is not None
+        if ctx.issue_id is None or ctx.issue_number is None:
+            raise ValidationError("Workflow context is missing issue identifiers")
 
         sub_issue_node_id: str = ctx.issue_id
         sub_issue_number: int = ctx.issue_number
@@ -1203,7 +1203,8 @@ class WorkflowOrchestrator:
         config: WorkflowConfiguration,
     ) -> bool:
         """Handle human agent: mark active, update sub-issue, create pipeline."""
-        assert ctx.issue_number is not None  # guaranteed by assign_agent_for_status guard
+        if ctx.issue_number is None:
+            raise ValidationError("Workflow context is missing issue number for human assignment")
         logger.info(
             "Human agent on issue #%d — skipping Copilot assignment, marking as active",
             ctx.issue_number,
@@ -1304,7 +1305,8 @@ class WorkflowOrchestrator:
         config: WorkflowConfiguration,
     ) -> bool:
         """Handle copilot-review agent: request Copilot code review on main PR."""
-        assert ctx.issue_number is not None  # guaranteed by assign_agent_for_status guard
+        if ctx.issue_number is None:
+            raise ValidationError("Workflow context is missing issue number for copilot-review")
         logger.info(
             "copilot-review step for issue #%d — requesting Copilot code review on main PR",
             ctx.issue_number,
@@ -1547,7 +1549,8 @@ class WorkflowOrchestrator:
         """
         import asyncio
 
-        assert ctx.issue_number is not None  # guaranteed by assign_agent_for_status guard
+        if ctx.issue_number is None:
+            raise ValidationError("Workflow context is missing issue number for assignment")
 
         # Fetch issue context for the agent's custom instructions
         custom_instructions = ""
