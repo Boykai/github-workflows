@@ -308,9 +308,9 @@ class WorkflowOrchestrator:
         )
 
         # Persist transition as activity event (fire-and-forget)
-        from src.services.database import get_db
-
         try:
+            from src.services.database import get_db
+
             db = get_db()
             await log_event(
                 db,

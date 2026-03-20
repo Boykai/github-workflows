@@ -274,23 +274,26 @@ async def github_webhook(
     # Handle pull_request events
     if x_github_event == "pull_request":
         result = await handle_pull_request_event(cast(PullRequestEvent | dict[str, Any], payload))
-        # Log webhook activity
-        pr_payload = raw_payload.get("pull_request", {}) if isinstance(raw_payload, dict) else {}
-        repo_payload = raw_payload.get("repository", {}) if isinstance(raw_payload, dict) else {}
+        # Log webhook activity (fire-and-forget)
+        pr_info = raw_payload.get("pull_request", {}) if isinstance(raw_payload, dict) else {}
+        repo_info = raw_payload.get("repository", {}) if isinstance(raw_payload, dict) else {}
+        webhook_action = raw_payload.get("action", "") if isinstance(raw_payload, dict) else ""
+        repo_full = repo_info.get("full_name", "") if isinstance(repo_info, dict) else ""
+        sender = pr_info.get("user", {}).get("login", "system") if isinstance(pr_info, dict) else "system"
         await log_event(
             get_db(),
             event_type="webhook",
             entity_type="issue",
-            entity_id=str(pr_payload.get("number", "")),
+            entity_id=str(pr_info.get("number", "")) if isinstance(pr_info, dict) else "",
             project_id="",
-            actor=pr_payload.get("user", {}).get("login", "system"),
-            action=raw_payload.get("action", "received") if isinstance(raw_payload, dict) else "received",
-            summary=f"Webhook: pull_request {raw_payload.get('action', '')} on {repo_payload.get('full_name', '')}" if isinstance(raw_payload, dict) else "Webhook: pull_request received",
+            actor=sender,
+            action=webhook_action or "received",
+            summary=f"Webhook: pull_request {webhook_action} on {repo_full}",
             detail={
                 "webhook_type": "pull_request",
-                "action": raw_payload.get("action", "") if isinstance(raw_payload, dict) else "",
-                "sender": pr_payload.get("user", {}).get("login", ""),
-                "repository": repo_payload.get("full_name", ""),
+                "action": webhook_action,
+                "sender": sender,
+                "repository": repo_full,
             },
         )
         return result

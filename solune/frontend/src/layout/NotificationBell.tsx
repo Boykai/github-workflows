@@ -142,13 +142,16 @@ export function NotificationBell({
               )}
             </div>
             <div className="border-t border-border/70 px-4 py-2 text-center">
-              <a
-                href="/activity"
+              <button
+                type="button"
                 className="text-xs font-medium text-primary hover:text-foreground transition-colors"
-                onClick={() => setIsOpen(false)}
+                onClick={() => {
+                  setIsOpen(false);
+                  window.location.href = '/activity';
+                }}
               >
                 View all activity
-              </a>
+              </button>
             </div>
           </div>,
           document.body
