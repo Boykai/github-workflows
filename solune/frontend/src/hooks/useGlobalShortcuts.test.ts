@@ -63,21 +63,21 @@ describe('useGlobalShortcuts', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/settings');
   });
 
-  it('dispatches solune:focus-chat on Ctrl+K', () => {
+  it('dispatches solune:open-command-palette on Ctrl+K', () => {
     setup();
     fireKey('k', { ctrlKey: true });
     expect(dispatchSpy).toHaveBeenCalledWith(expect.any(CustomEvent));
     const call = dispatchSpy.mock.calls.find(
-      (c) => c[0] instanceof CustomEvent && c[0].type === 'solune:focus-chat',
+      (c) => c[0] instanceof CustomEvent && c[0].type === 'solune:open-command-palette',
     );
     expect(call).toBeTruthy();
   });
 
-  it('dispatches solune:focus-chat on Meta+K (Mac)', () => {
+  it('dispatches solune:open-command-palette on Meta+K (Mac)', () => {
     setup();
     fireKey('k', { metaKey: true });
     const call = dispatchSpy.mock.calls.find(
-      (c) => c[0] instanceof CustomEvent && c[0].type === 'solune:focus-chat',
+      (c) => c[0] instanceof CustomEvent && c[0].type === 'solune:open-command-palette',
     );
     expect(call).toBeTruthy();
   });
@@ -126,7 +126,7 @@ describe('useGlobalShortcuts', () => {
     document.body.removeChild(dialog);
   });
 
-  it('allows Ctrl+K even when a modal dialog is open', () => {
+  it('does not dispatch command palette event when a modal dialog is open', () => {
     setup();
     const dialog = document.createElement('div');
     dialog.setAttribute('role', 'dialog');
@@ -135,9 +135,9 @@ describe('useGlobalShortcuts', () => {
 
     fireKey('k', { ctrlKey: true });
     const call = dispatchSpy.mock.calls.find(
-      (c) => c[0] instanceof CustomEvent && c[0].type === 'solune:focus-chat',
+      (c) => c[0] instanceof CustomEvent && c[0].type === 'solune:open-command-palette',
     );
-    expect(call).toBeTruthy();
+    expect(call).toBeFalsy();
 
     document.body.removeChild(dialog);
   });

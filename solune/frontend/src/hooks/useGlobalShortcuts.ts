@@ -27,11 +27,12 @@ export function useGlobalShortcuts({ onOpenShortcutModal }: UseGlobalShortcutsOp
     (event: KeyboardEvent) => {
       const inInput = isTextInput(event.target);
 
-      // Ctrl+K / Cmd+K — always active
+      // Ctrl+K / Cmd+K — open command palette (unless a modal is already open)
       if ((event.ctrlKey || event.metaKey) && event.key === 'k') {
         event.preventDefault();
-        // Focus the chat input by dispatching a custom event
-        window.dispatchEvent(new CustomEvent('solune:focus-chat'));
+        if (!isModalOpen()) {
+          window.dispatchEvent(new CustomEvent('solune:open-command-palette'));
+        }
         return;
       }
 
