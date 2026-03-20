@@ -26,7 +26,7 @@
 
 **Purpose**: Add backend request/response models needed by the new board status endpoint
 
-- [ ] T001 Add `StatusUpdateRequest` and `StatusUpdateResponse` Pydantic models in `solune/backend/src/models/board.py`
+- [x] T001 Add `StatusUpdateRequest` and `StatusUpdateResponse` Pydantic models in `solune/backend/src/models/board.py`
 
 ---
 
@@ -36,8 +36,8 @@
 
 **⚠️ CRITICAL**: Phase 3 (US1 Board Drag-and-Drop) cannot begin until this phase is complete. Phases 4–6 (Chore/App/Tool/Pipeline mutations) have no dependency on this phase and can start immediately after Phase 1.
 
-- [ ] T002 [P] Add `PATCH /projects/{project_id}/items/{item_id}/status` endpoint in `solune/backend/src/api/board.py` — accepts `StatusUpdateRequest`, calls `update_item_status_by_name()` from `services/github_projects/projects.py`, returns `StatusUpdateResponse`
-- [ ] T003 [P] Add `boardApi.updateItemStatus(projectId, itemId, status)` method to the `boardApi` object in `solune/frontend/src/services/api.ts` — PATCH call to the new endpoint per `contracts/board-status-update.yaml`
+- [x] T002 [P] Add `PATCH /projects/{project_id}/items/{item_id}/status` endpoint in `solune/backend/src/api/board.py` — accepts `StatusUpdateRequest`, calls `update_item_status_by_name()` from `services/github_projects/projects.py`, returns `StatusUpdateResponse`
+- [x] T003 [P] Add `boardApi.updateItemStatus(projectId, itemId, status)` method to the `boardApi` object in `solune/frontend/src/services/api.ts` — PATCH call to the new endpoint per `contracts/board-status-update.yaml`
 
 **Checkpoint**: Backend endpoint deployed and frontend API method available — board optimistic wiring can now proceed
 
@@ -53,7 +53,7 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Wire `useMutation` with full optimistic pattern in `solune/frontend/src/pages/ProjectsPage.tsx` — `onMutate`: cancel outgoing refetches for `['board', 'data', projectId]`, snapshot `BoardDataResponse`, move `BoardItem` from source `BoardColumn.items[]` to target `BoardColumn.items[]` via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: `invalidateQueries` to reconcile with server. Pass mutation callback as `onStatusUpdate` prop to `ProjectBoard`
+- [x] T004 [US1] Wire `useMutation` with full optimistic pattern in `solune/frontend/src/pages/ProjectsPage.tsx` — `onMutate`: cancel outgoing refetches for `['board', 'data', projectId]`, snapshot `BoardDataResponse`, move `BoardItem` from source `BoardColumn.items[]` to target `BoardColumn.items[]` via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: `invalidateQueries` to reconcile with server. Pass mutation callback as `onStatusUpdate` prop to `ProjectBoard`
 
 **Checkpoint**: Board drag-and-drop is fully optimistic and independently testable — US1 complete
 
@@ -71,10 +71,10 @@
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Add optimistic create callbacks to `useCreateChore` in `solune/frontend/src/hooks/useChores.ts` — `onMutate`: cancel queries for `choreKeys.list(projectId)`, snapshot list, generate temp ID, insert placeholder `Chore` with `_optimistic: true` flag at start of list via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `choreKeys.list(projectId)` to replace placeholder with server data
-- [ ] T006 [US2] Add optimistic update callbacks to `useUpdateChore` in `solune/frontend/src/hooks/useChores.ts` — `onMutate`: cancel queries, snapshot list, apply field updates in-place to matching chore via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate list
-- [ ] T007 [US2] Add optimistic delete callbacks to `useDeleteChore` in `solune/frontend/src/hooks/useChores.ts` — `onMutate`: cancel queries, snapshot list, filter out deleted chore by ID via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate list
-- [ ] T008 [US2] Add optimistic inline update callbacks to `useInlineUpdateChore` in `solune/frontend/src/hooks/useChores.ts` — `onMutate`: cancel queries, snapshot list, apply field update in-place (same pattern as T006); `onError`: restore snapshot, show error toast; `onSettled`: invalidate list
+- [x] T005 [US2] Add optimistic create callbacks to `useCreateChore` in `solune/frontend/src/hooks/useChores.ts` — `onMutate`: cancel queries for `choreKeys.list(projectId)`, snapshot list, generate temp ID, insert placeholder `Chore` with `_optimistic: true` flag at start of list via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `choreKeys.list(projectId)` to replace placeholder with server data
+- [x] T006 [US2] Add optimistic update callbacks to `useUpdateChore` in `solune/frontend/src/hooks/useChores.ts` — `onMutate`: cancel queries, snapshot list, apply field updates in-place to matching chore via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate list
+- [x] T007 [US2] Add optimistic delete callbacks to `useDeleteChore` in `solune/frontend/src/hooks/useChores.ts` — `onMutate`: cancel queries, snapshot list, filter out deleted chore by ID via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate list
+- [x] T008 [US2] Add optimistic inline update callbacks to `useInlineUpdateChore` in `solune/frontend/src/hooks/useChores.ts` — `onMutate`: cancel queries, snapshot list, apply field update in-place (same pattern as T006); `onError`: restore snapshot, show error toast; `onSettled`: invalidate list
 
 **Checkpoint**: All 4 chore mutations are optimistic — US2 complete and independently testable
 
@@ -92,11 +92,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T009 [US3] Add optimistic create callbacks to `useCreateApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries for `appKeys.list()`, snapshot list, generate temp name, insert placeholder `App` with `_optimistic: true` flag via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `appKeys.list()`
-- [ ] T010 [US3] Add optimistic update callbacks to `useUpdateApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries for `appKeys.list()` and `appKeys.detail(name)`, snapshot both, apply field patches in-place via `setQueryData` on both cache entries; `onError`: restore both snapshots, show error toast; `onSettled`: invalidate `appKeys.list()` and `appKeys.detail(name)`
-- [ ] T011 [US3] Add optimistic delete callbacks to `useDeleteApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries for `appKeys.list()`, snapshot list, filter out deleted app by name via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `appKeys.list()`
-- [ ] T012 [US3] Add optimistic start callbacks to `useStartApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries, snapshot list + detail, flip `status` to `"active"` for matching app via `setQueryData`; `onError`: restore snapshots, show error toast; `onSettled`: invalidate `appKeys.list()` and `appKeys.detail(name)`
-- [ ] T013 [US3] Add optimistic stop callbacks to `useStopApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries, snapshot list + detail, flip `status` to `"stopped"` for matching app via `setQueryData`; `onError`: restore snapshots, show error toast; `onSettled`: invalidate `appKeys.list()` and `appKeys.detail(name)`
+- [x] T009 [US3] Add optimistic create callbacks to `useCreateApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries for `appKeys.list()`, snapshot list, generate temp name, insert placeholder `App` with `_optimistic: true` flag via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `appKeys.list()`
+- [x] T010 [US3] Add optimistic update callbacks to `useUpdateApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries for `appKeys.list()` and `appKeys.detail(name)`, snapshot both, apply field patches in-place via `setQueryData` on both cache entries; `onError`: restore both snapshots, show error toast; `onSettled`: invalidate `appKeys.list()` and `appKeys.detail(name)`
+- [x] T011 [US3] Add optimistic delete callbacks to `useDeleteApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries for `appKeys.list()`, snapshot list, filter out deleted app by name via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `appKeys.list()`
+- [x] T012 [US3] Add optimistic start callbacks to `useStartApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries, snapshot list + detail, flip `status` to `"active"` for matching app via `setQueryData`; `onError`: restore snapshots, show error toast; `onSettled`: invalidate `appKeys.list()` and `appKeys.detail(name)`
+- [x] T013 [US3] Add optimistic stop callbacks to `useStopApp` in `solune/frontend/src/hooks/useApps.ts` — `onMutate`: cancel queries, snapshot list + detail, flip `status` to `"stopped"` for matching app via `setQueryData`; `onError`: restore snapshots, show error toast; `onSettled`: invalidate `appKeys.list()` and `appKeys.detail(name)`
 
 **Checkpoint**: All 5 app mutations are optimistic — US3 complete and independently testable
 
@@ -112,8 +112,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T014 [P] [US4] Add optimistic delete callbacks to tool delete mutation in `solune/frontend/src/hooks/useTools.ts` — `onMutate`: cancel queries for `toolKeys.list(projectId)`, snapshot list, filter out deleted tool by ID via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `toolKeys.list(projectId)`
-- [ ] T015 [P] [US4] Add optimistic delete callbacks to pipeline delete mutation in `solune/frontend/src/hooks/usePipelineConfig.ts` — `onMutate`: cancel queries for `pipelineKeys.list(projectId)`, snapshot list, filter out deleted pipeline by ID via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `pipelineKeys.list(projectId)`
+- [x] T014 [P] [US4] Add optimistic delete callbacks to tool delete mutation in `solune/frontend/src/hooks/useTools.ts` — `onMutate`: cancel queries for `toolKeys.list(projectId)`, snapshot list, filter out deleted tool by ID via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `toolKeys.list(projectId)`
+- [x] T015 [P] [US4] Add optimistic delete callbacks to pipeline delete mutation in `solune/frontend/src/hooks/usePipelineConfig.ts` — `onMutate`: cancel queries for `pipelineKeys.list(projectId)`, snapshot list, filter out deleted pipeline by ID via `setQueryData`; `onError`: restore snapshot, show error toast; `onSettled`: invalidate `pipelineKeys.list(projectId)`
 
 **Checkpoint**: Tool and pipeline deletes are optimistic — US4 complete and independently testable
 
@@ -123,9 +123,9 @@
 
 **Purpose**: Validation, lint, and verification across all stories
 
-- [ ] T016 [P] Run backend lint (`ruff check src/ tests/`) and type-check (`pyright src/`) on `solune/backend/`
-- [ ] T017 [P] Run frontend lint (`npm run lint`), type-check (`npm run type-check`), and test suite (`npm run test -- --run`) on `solune/frontend/`
-- [ ] T018 Run `specs/054-optimistic-ui-updates/quickstart.md` validation scenarios — verify board drag-and-drop, chore CRUD, app start/stop, and tool/pipeline delete all demonstrate optimistic behavior with proper error rollback
+- [x] T016 [P] Run backend lint (`ruff check src/ tests/`) and type-check (`pyright src/`) on `solune/backend/`
+- [x] T017 [P] Run frontend lint (`npm run lint`), type-check (`npm run type-check`), and test suite (`npm run test -- --run`) on `solune/frontend/`
+- [x] T018 Run `specs/054-optimistic-ui-updates/quickstart.md` validation scenarios — verify board drag-and-drop, chore CRUD, app start/stop, and tool/pipeline delete all demonstrate optimistic behavior with proper error rollback
 
 ---
 
