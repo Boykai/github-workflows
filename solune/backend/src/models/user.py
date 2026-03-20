@@ -42,9 +42,9 @@ class UserSession(BaseModel):
                 "github_user_id": "12345678",
                 "github_username": "octocat",
                 "github_avatar_url": "https://avatars.githubusercontent.com/u/12345678",
-                "access_token": "gho_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                "refresh_token": "ghr_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-                "token_expires_at": "2026-01-31T12:00:00Z",
+                "access_token": "example-access-token",  # nosec B105
+                "refresh_token": "example-refresh-token",  # nosec B105
+                "token_expires_at": "2026-01-31T12:00:00Z",  # nosec B105
                 "selected_project_id": "PVT_kwDOABCD1234",
                 "created_at": "2026-01-30T10:00:00Z",
                 "updated_at": "2026-01-30T11:00:00Z",

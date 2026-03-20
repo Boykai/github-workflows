@@ -331,6 +331,72 @@ class TestListPipelines:
         assert len(data["pipelines"]) == 2
 
 
+class TestSeedPresets:
+    """Tests for POST /pipelines/{project_id}/seed-presets."""
+
+    @pytest.mark.anyio
+    async def test_seed_presets_creates_defaults(self, client):
+        """Seeds preset pipelines for a project."""
+        resp = await client.post("/api/v1/pipelines/PVT_PRESETS/seed-presets")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["total"] > 0
+        assert len(data["seeded"]) == data["total"]
+        assert data["skipped"] == []
+
+    @pytest.mark.anyio
+    async def test_seed_presets_is_idempotent(self, client):
+        """A second seed call skips presets that already exist."""
+        await client.post("/api/v1/pipelines/PVT_PRESETS_REPEAT/seed-presets")
+
+        resp = await client.post("/api/v1/pipelines/PVT_PRESETS_REPEAT/seed-presets")
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["seeded"] == []
+        assert len(data["skipped"]) == data["total"]
+
+
+class TestPipelineAssignment:
+    """Tests for project pipeline assignment endpoints."""
+
+    @pytest.mark.anyio
+    async def test_get_assignment_defaults_to_empty_pipeline(self, client):
+        """Projects without an assignment return an empty pipeline id."""
+        resp = await client.get("/api/v1/pipelines/PVT_ASSIGNMENT/assignment")
+
+        assert resp.status_code == 200
+        assert resp.json() == {"project_id": "PVT_ASSIGNMENT", "pipeline_id": ""}
+
+    @pytest.mark.anyio
+    async def test_set_assignment_persists_selected_pipeline(self, client, mock_db):
+        """Setting an assignment stores the selected pipeline for the project."""
+        pipeline_id = await _create_pipeline(mock_db, project_id="PVT_ASSIGNMENT")
+
+        resp = await client.put(
+            "/api/v1/pipelines/PVT_ASSIGNMENT/assignment",
+            json={"pipeline_id": pipeline_id},
+        )
+
+        assert resp.status_code == 200
+        assert resp.json() == {"project_id": "PVT_ASSIGNMENT", "pipeline_id": pipeline_id}
+
+        assignment = await PipelineService(mock_db).get_assignment("PVT_ASSIGNMENT")
+        assert assignment.pipeline_id == pipeline_id
+
+    @pytest.mark.anyio
+    async def test_set_assignment_rejects_missing_pipeline(self, client):
+        """Unknown pipeline ids return a not-found response."""
+        resp = await client.put(
+            "/api/v1/pipelines/PVT_ASSIGNMENT/assignment",
+            json={"pipeline_id": "missing-pipeline"},
+        )
+
+        assert resp.status_code == 404
+        assert "missing-pipeline" in resp.json()["error"]
+
+
 class TestCreatePipeline:
     """Tests for POST /pipelines/{project_id}."""
 
@@ -365,3 +431,43 @@ class TestCreatePipeline:
             json={"description": "No name", "stages": []},
         )
         assert resp.status_code == 422
+
+    @pytest.mark.anyio
+    async def test_create_pipeline_rejects_duplicate_name(self, client, mock_db):
+        """Creating a second pipeline with the same name returns a conflict."""
+        await _create_pipeline(mock_db, project_id="PVT_DUPLICATE")
+
+        resp = await client.post(
+            "/api/v1/pipelines/PVT_DUPLICATE",
+            json={
+                "name": "Imported Issue Pipeline",
+                "description": "Duplicate pipeline name",
+                "stages": [
+                    {
+                        "id": "stage-duplicate",
+                        "name": "Backlog",
+                        "order": 0,
+                        "agents": [],
+                    }
+                ],
+            },
+        )
+
+        assert resp.status_code == 409
+        assert "already exists" in resp.json()["error"]
+
+    @pytest.mark.anyio
+    async def test_update_pipeline_rejects_preset_changes(self, client, mock_db):
+        """Preset pipelines cannot be modified through the API."""
+        service = PipelineService(mock_db)
+        await service.seed_presets("PVT_PRESET_LOCKED")
+        seeded = await service.list_pipelines("PVT_PRESET_LOCKED")
+        preset_id = next(pipeline.id for pipeline in seeded.pipelines if pipeline.is_preset)
+
+        resp = await client.put(
+            f"/api/v1/pipelines/PVT_PRESET_LOCKED/{preset_id}",
+            json={"name": "Editable Preset"},
+        )
+
+        assert resp.status_code == 403
+        assert "Cannot modify preset pipelines" in resp.json()["error"]

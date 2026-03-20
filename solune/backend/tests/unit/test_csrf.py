@@ -56,11 +56,8 @@ class TestCSRFProtection:
         assert token, "csrf_token cookie should be set"
 
         # POST with matching header.
-        post_resp = client.post(
-            "/test",
-            headers={"X-CSRF-Token": token},
-            cookies={"csrf_token": token},
-        )
+        client.cookies.set("csrf_token", token)
+        post_resp = client.post("/test", headers={"X-CSRF-Token": token})
         assert post_resp.status_code == 200
 
     def test_post_with_wrong_token_returns_403(self, csrf_app) -> None:
@@ -69,11 +66,8 @@ class TestCSRFProtection:
         token = get_resp.cookies.get("csrf_token")
         assert token
 
-        post_resp = client.post(
-            "/test",
-            headers={"X-CSRF-Token": "wrong-token"},
-            cookies={"csrf_token": token},
-        )
+        client.cookies.set("csrf_token", token)
+        post_resp = client.post("/test", headers={"X-CSRF-Token": "wrong-token"})
         assert post_resp.status_code == 403
 
     def test_webhook_exempt_from_csrf(self, csrf_app) -> None:

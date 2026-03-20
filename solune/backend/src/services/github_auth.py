@@ -37,7 +37,7 @@ _oauth_states: BoundedDict[str, datetime] = BoundedDict(maxlen=1000)
 _OAUTH_STATE_TTL = timedelta(minutes=10)
 
 GITHUB_AUTHORIZE_URL = "https://github.com/login/oauth/authorize"
-GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
+GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"  # nosec B105
 GITHUB_USER_API_URL = "https://api.github.com/user"
 
 

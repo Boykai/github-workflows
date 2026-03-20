@@ -137,6 +137,7 @@ from .state import (  # noqa: F401
     _posted_agent_outputs,
     _processed_issue_prs,
     _recovery_last_attempt,
+    _review_requested_cache,
     _system_marked_ready_prs,
 )
 
@@ -186,6 +187,7 @@ __all__ = [
     "_reconstruct_pipeline_state",
     "_reconstruct_sub_issue_mappings",
     "_recovery_last_attempt",
+    "_review_requested_cache",
     "_self_heal_tracking_table",
     "_system_marked_ready_prs",
     "_transition_after_pipeline_complete",

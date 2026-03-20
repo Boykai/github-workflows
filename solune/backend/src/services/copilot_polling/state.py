@@ -38,6 +38,13 @@ _app_polling_tasks: dict[str, asyncio.Task] = {}
 # Track issues we've already processed to avoid duplicate updates
 _processed_issue_prs: BoundedSet[str] = BoundedSet(maxlen=1000)  # "issue_number:pr_number"
 
+# Deduplication cache for ensure_copilot_review_requested calls.
+# Keys have the format produced by cache_key_review_requested():
+# "{project_id}:copilot_review_requested:{issue_number}"
+# Kept separate from _processed_issue_prs to avoid mixing key namespaces
+# and to allow independent size tuning.
+_review_requested_cache: BoundedSet[str] = BoundedSet(maxlen=500)
+
 # Track issues where we've already posted agent outputs to avoid duplicates
 _posted_agent_outputs: BoundedSet[str] = BoundedSet(
     maxlen=500

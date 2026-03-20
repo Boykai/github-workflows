@@ -273,6 +273,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - N/A (all state via TanStack Query against Python/FastAPI backend) (050-frontend-ux-improvements)
 - TypeScript ~5.9.0 (frontend only — no backend changes) + React ^19.2.0, TanStack React Query ^5.91.0, Tailwind CSS ^4.2.0, @dnd-kit/core ^6.3.1, Sonner ^2.0.7, Vite ^8.0.0, Radix UI (popover, tooltip), Lucide React ^0.577.0, Zod ^4.3.6, react-hook-form ^7.71.2 (051-solune-ux-improvements)
 - N/A (frontend-only changes; existing API endpoints remain unchanged) (051-solune-ux-improvements)
+- Python ≥3.12 (backend, pyright targets 3.13), TypeScript ~5.9.0 (frontend) + FastAPI ≥0.135 (backend), React 19.2 (frontend), Pydantic ≥2.12 (backend), Vite 8 (frontend), TanStack Query v5.91 (frontend), Tailwind CSS 4.2 (frontend), @dnd-kit (frontend drag-drop) (052-fix-bugs-test-coverage)
+- SQLite via aiosqlite ≥0.22 (existing — no changes in this feature) (052-fix-bugs-test-coverage)
 
 ## Recent Changes
 - Dependabot upgrades: ESLint 9→10, Vite 7→8, react-hooks 5→7, security 3→4, @vitejs/plugin-react 5→6, Docker images (python 3.14, node 25, nginx 1.29), GitHub Actions (checkout v6, setup-python v6, upload-artifact v7, setup-node v6)

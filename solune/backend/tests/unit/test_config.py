@@ -266,10 +266,10 @@ class TestConstants:
 
 class TestCacheKeyHelpers:
     def test_cache_key_issue_pr(self):
-        assert cache_key_issue_pr(42, 100) == "42:100"
+        assert cache_key_issue_pr(42, 100, "PVT_1") == "PVT_1:42:100"
 
     def test_cache_key_agent_output(self):
-        assert cache_key_agent_output(42, "my.agent", 100) == "42:my.agent:100"
+        assert cache_key_agent_output(42, "my.agent", 100, "PVT_1") == "PVT_1:42:my.agent:100"
 
     def test_cache_key_review_requested(self):
-        assert cache_key_review_requested(42) == "copilot_review_requested:42"
+        assert cache_key_review_requested(42, "PVT_1") == "PVT_1:copilot_review_requested:42"

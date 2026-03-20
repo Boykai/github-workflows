@@ -134,6 +134,9 @@ def _reset_integration_state() -> Iterator[None]:
     _workflow_configs.clear()
     _transitions.clear()
     _agent_trigger_inflight.clear()
+    import src.services.workflow_orchestrator.orchestrator as orch_mod
+
+    orch_mod._orchestrator_instance = None
     pipeline_state_store._store_lock = None
     websocket._ws_lock = None
 
@@ -150,6 +153,9 @@ def _reset_integration_state() -> Iterator[None]:
     _workflow_configs.clear()
     _transitions.clear()
     _agent_trigger_inflight.clear()
+    import src.services.workflow_orchestrator.orchestrator as orch_mod
+
+    orch_mod._orchestrator_instance = None
     pipeline_state_store._store_lock = None
     websocket._ws_lock = None
 
@@ -245,6 +251,18 @@ async def thin_mock_client(
 
         async def create_issue_comment(self, *_args, **_kwargs) -> bool:
             return True
+
+        async def request_copilot_review(self, *_args, **_kwargs) -> bool:
+            return True
+
+        async def has_copilot_reviewed_pr(self, *_args, **_kwargs) -> bool:
+            return False
+
+        async def delete_issue_comment(self, *_args, **_kwargs) -> bool:
+            return True
+
+        async def find_existing_pr_for_issue(self, *_args, **_kwargs):
+            return None
 
         async def update_issue_state(self, *_args, **_kwargs) -> bool:
             return True

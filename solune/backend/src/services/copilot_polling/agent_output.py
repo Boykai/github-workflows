@@ -778,7 +778,12 @@ async def _process_task_agent_completion(
     if not pr_number:
         return None
 
-    cache_key = _cp.cache_key_agent_output(task.issue_number, current_agent, pr_number)
+    cache_key = _cp.cache_key_agent_output(
+        task.issue_number,
+        current_agent,
+        pr_number,
+        project_id,
+    )
     if cache_key in _posted_agent_outputs:
         return None
 

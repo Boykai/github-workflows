@@ -76,6 +76,7 @@ solune/frontend/test-results/
 solune/frontend/e2e-report/
 solune/frontend/coverage/
 solune/frontend/reports/
+solune/frontend/run-*.json
 
 # Mutation testing artifacts
 .mutmut-cache

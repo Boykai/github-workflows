@@ -45,10 +45,15 @@ class TestCreateTask:
         }
         mock_github_service.add_issue_to_project.return_value = "PVTI_new"
 
-        resp = await client.post(
-            "/api/v1/tasks",
-            json={"project_id": "PVT_abc", "title": "New task", "description": "desc"},
-        )
+        with patch(
+            "src.api.tasks._create_parent_issue_sub_issues",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            resp = await client.post(
+                "/api/v1/tasks",
+                json={"project_id": "PVT_abc", "title": "New task", "description": "desc"},
+            )
         assert resp.status_code == 200
         data = resp.json()
         assert data["title"] == "New task"
@@ -151,10 +156,15 @@ class TestCreateTask:
         }
         mock_github_service.add_issue_to_project.return_value = "PVTI_1"
 
-        resp = await client.post(
-            "/api/v1/tasks",
-            json={"project_id": "", "title": "Fallback"},
-        )
+        with patch(
+            "src.api.tasks._create_parent_issue_sub_issues",
+            new_callable=AsyncMock,
+            return_value=None,
+        ):
+            resp = await client.post(
+                "/api/v1/tasks",
+                json={"project_id": "", "title": "Fallback"},
+            )
         assert resp.status_code == 200
 
     async def test_create_task_add_to_project_fails(

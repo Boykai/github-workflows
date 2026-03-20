@@ -455,6 +455,12 @@ class TestAssignAgentForStatus:
         self, orchestrator, workflow_context, mock_github_service
     ):
         """Should return True when agent index is beyond the list."""
+        mock_github_service.get_issue_with_comments.return_value = {
+            "title": "Test",
+            "body": "Body",
+            "comments": [],
+        }
+
         result = await orchestrator.assign_agent_for_status(workflow_context, "Backlog", 5)
 
         assert result is True
@@ -2062,6 +2068,14 @@ def _make_orch() -> WorkflowOrchestrator:
         setattr(gh, m, AsyncMock())
     gh.tailor_body_for_agent = Mock(return_value="tailored body")
     gh.format_issue_context_as_prompt = Mock(return_value="prompt")
+    gh.get_issue_with_comments.return_value = {"body": "parent body", "title": "Parent Title"}
+    gh.find_existing_pr_for_issue.return_value = None
+    gh.create_sub_issue.return_value = {
+        "number": 11,
+        "node_id": "N11",
+        "html_url": "http://11",
+    }
+    gh.add_issue_to_project.return_value = "PVTI_11"
     return WorkflowOrchestrator(Mock(), gh)
 
 

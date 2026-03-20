@@ -87,7 +87,7 @@ _PRESETS: tuple[McpPresetResponse, ...] = (
                         "tools": ["get_issue_details", "get_issue_summary"],
                         "env": {
                             "SENTRY_HOST": "COPILOT_MCP_SENTRY_HOST",
-                            "SENTRY_ACCESS_TOKEN": "COPILOT_MCP_SENTRY_ACCESS_TOKEN",
+                            "SENTRY_ACCESS_TOKEN": "COPILOT_MCP_SENTRY_ACCESS_TOKEN",  # nosec B105
                         },
                     }
                 }

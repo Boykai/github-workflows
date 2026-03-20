@@ -10,7 +10,7 @@ from src.services.github_projects.identities import is_copilot_author
 
 from .state import (
     _claimed_child_prs,
-    _processed_issue_prs,
+    _review_requested_cache,
     _system_marked_ready_prs,
 )
 
@@ -1276,6 +1276,7 @@ async def check_in_review_issues_for_copilot_review(
                 access_token=access_token,
                 owner=task_owner,
                 repo=task_repo,
+                project_id=project_id,
                 issue_number=task.issue_number,
                 task_title=task.title,
             )
@@ -1293,6 +1294,7 @@ async def ensure_copilot_review_requested(
     access_token: str,
     owner: str,
     repo: str,
+    project_id: str,
     issue_number: int,
     task_title: str,
 ) -> dict[str, Any] | None:
@@ -1314,8 +1316,8 @@ async def ensure_copilot_review_requested(
         Result dict if review was requested, None otherwise
     """
     # Check for cache to avoid repeated API calls
-    cache_key = _cp.cache_key_review_requested(issue_number)
-    if cache_key in _processed_issue_prs:
+    cache_key = _cp.cache_key_review_requested(issue_number, project_id)
+    if cache_key in _review_requested_cache:
         return None
 
     try:
@@ -1451,7 +1453,7 @@ async def ensure_copilot_review_requested(
                 repo=repo,
                 issue_number=issue_number,
             )
-            _processed_issue_prs.add(cache_key)
+            _review_requested_cache.add(cache_key)
             return {
                 "status": "success",
                 "issue_number": issue_number,
