@@ -785,10 +785,21 @@ async def _handle_task_generation(
 
     except Exception as e:
         logger.error("Failed to generate task: %s", e, exc_info=True)
+        # Surface the root cause so the user knows whether it's an auth,
+        # network, or model configuration issue rather than a vague error.
+        cause = str(e)
+        if "401" in cause or "Access denied" in cause:
+            detail = "Your GitHub session may have expired — try logging out and back in."
+        elif "404" in cause or "Resource not found" in cause:
+            detail = "The configured AI model was not found. Check your model settings."
+        elif "timeout" in cause.lower():
+            detail = "The AI provider timed out. Please try again in a moment."
+        else:
+            detail = "Please try again with more detail, or check your AI provider settings."
         error_message = ChatMessage(
             session_id=session.session_id,
             sender_type=SenderType.ASSISTANT,
-            content="I couldn't generate a task from your description. Please try again with more detail.",
+            content=f"I couldn't generate a task from your description. {detail}",
         )
         await add_message(session.session_id, error_message)
         return error_message

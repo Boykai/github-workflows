@@ -36,6 +36,7 @@ export function PrimarySettings({ settings, onSave }: PrimarySettingsProps) {
   const {
     data: modelsResponse,
     isLoading: modelsLoading,
+    error: modelsError,
     refetch: refetchModels,
   } = useModelOptions(localState.provider);
 
@@ -95,6 +96,7 @@ export function PrimarySettings({ settings, onSave }: PrimarySettingsProps) {
           supportsDynamic={providerInfo.supportsDynamic}
           modelsResponse={modelsResponse}
           isLoading={modelsLoading}
+          queryError={modelsError}
           onRetry={() => refetchModels()}
         />
 
@@ -109,6 +111,7 @@ export function PrimarySettings({ settings, onSave }: PrimarySettingsProps) {
             supportsDynamic={providerInfo.supportsDynamic}
             modelsResponse={modelsResponse}
             isLoading={modelsLoading}
+            queryError={modelsError}
             onRetry={() => refetchModels()}
           />
           <p className="text-xs text-muted-foreground">

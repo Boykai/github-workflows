@@ -24,6 +24,8 @@ interface DynamicDropdownProps {
   modelsResponse: ModelsResponse | undefined;
   /** Whether the query is loading */
   isLoading: boolean;
+  /** Query-level error (e.g. network failure, 401) distinct from modelsResponse.status */
+  queryError?: Error | null;
   /** Retry handler */
   onRetry: () => void;
   /** Label for the dropdown */
@@ -45,6 +47,7 @@ export function DynamicDropdown({
   supportsDynamic,
   modelsResponse,
   isLoading,
+  queryError,
   onRetry,
   label,
   id,
@@ -204,6 +207,31 @@ export function DynamicDropdown({
             <TriangleAlert className="h-3.5 w-3.5" />
             {message || 'Rate limit reached. Using cached values.'}
           </span>
+        </div>
+      </div>
+    );
+  }
+
+  // Query-level error: modelsResponse is undefined because the HTTP request itself
+  // failed (network error, 401, 500, etc.) — render the error state with retry.
+  if (!modelsResponse && !isLoading && queryError) {
+    return (
+      <div className="flex flex-col gap-2">
+        <label htmlFor={id} className="text-sm font-medium text-foreground">
+          {label}
+        </label>
+        <div
+          className="flex items-center justify-between gap-2 p-3 rounded-md border border-destructive/50 bg-destructive/10 text-sm text-destructive"
+          role="alert"
+        >
+          <span>Failed to fetch models from {provider ?? 'provider'}. Please try again.</span>
+          <button
+            type="button"
+            className="celestial-focus shrink-0 px-3 py-1 text-xs font-medium bg-destructive text-destructive-foreground rounded-md hover:bg-destructive/90 transition-colors focus-visible:outline-none"
+            onClick={onRetry}
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
