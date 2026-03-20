@@ -63,10 +63,12 @@ export function useNotifications(): UseNotificationsReturn {
     staleTime: 30_000,
   });
 
+  const items = data?.items;
+
   const notifications: Notification[] = useMemo(() => {
-    if (!data?.items) return [];
-    return data.items.map((event) => mapEventToNotification(event, readIds));
-  }, [data?.items, readIds]);
+    if (!items) return [];
+    return items.map((event) => mapEventToNotification(event, readIds));
+  }, [items, readIds]);
 
   const unreadCount = useMemo(
     () => notifications.filter((n) => !n.read).length,

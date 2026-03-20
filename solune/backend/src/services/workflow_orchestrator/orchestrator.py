@@ -264,7 +264,7 @@ class WorkflowOrchestrator:
     # ──────────────────────────────────────────────────────────────────
     # HELPER: Log Transition
     # ──────────────────────────────────────────────────────────────────
-    def log_transition(
+    async def log_transition(
         self,
         ctx: WorkflowContext,
         from_status: str | None,
@@ -324,7 +324,9 @@ class WorkflowOrchestrator:
                 detail={
                     "from_status": from_status or "",
                     "to_status": to_status,
-                    "triggered_by": triggered_by.value if hasattr(triggered_by, "value") else str(triggered_by),
+                    "triggered_by": triggered_by.value
+                    if hasattr(triggered_by, "value")
+                    else str(triggered_by),
                     "success": success,
                     "error_message": error_message,
                     "issue_number": ctx.issue_id or "",
@@ -729,7 +731,7 @@ class WorkflowOrchestrator:
             await self._set_issue_metadata(ctx, recommendation.metadata)
 
         # Log the transition
-        self.log_transition(
+        await self.log_transition(
             ctx=ctx,
             from_status=None,
             to_status="Backlog",
@@ -809,7 +811,7 @@ class WorkflowOrchestrator:
 
         if success:
             ctx.current_state = WorkflowState.READY
-            self.log_transition(
+            await self.log_transition(
                 ctx=ctx,
                 from_status=config.status_backlog,
                 to_status=config.status_ready,
@@ -817,7 +819,7 @@ class WorkflowOrchestrator:
                 success=True,
             )
         else:
-            self.log_transition(
+            await self.log_transition(
                 ctx=ctx,
                 from_status=config.status_backlog,
                 to_status=config.status_ready,
@@ -1308,7 +1310,7 @@ class WorkflowOrchestrator:
         human_assignee = sub_issue_info.get("assignee", "") if sub_issue_info else ""
         assigned_label = f"human:{human_assignee}" if human_assignee else "human"
 
-        self.log_transition(
+        await self.log_transition(
             ctx=ctx,
             from_status=status,
             to_status=status,
@@ -1542,7 +1544,7 @@ class WorkflowOrchestrator:
             ),
         )
 
-        self.log_transition(
+        await self.log_transition(
             ctx=ctx,
             from_status=status,
             to_status=status,
@@ -1849,7 +1851,7 @@ class WorkflowOrchestrator:
                 ),
             )
 
-            self.log_transition(
+            await self.log_transition(
                 ctx=ctx,
                 from_status=status,
                 to_status=status,
@@ -2144,7 +2146,7 @@ class WorkflowOrchestrator:
         )
 
         if not status_success:
-            self.log_transition(
+            await self.log_transition(
                 ctx=ctx,
                 from_status=config.status_ready,
                 to_status=config.status_in_progress,
@@ -2158,7 +2160,7 @@ class WorkflowOrchestrator:
 
         # Log which agent was used
         agent_name = in_progress_slugs[0] if in_progress_slugs else ""
-        self.log_transition(
+        await self.log_transition(
             ctx=ctx,
             from_status=config.status_ready,
             to_status=config.status_in_progress,
@@ -2286,7 +2288,7 @@ class WorkflowOrchestrator:
         )
 
         if not status_success:
-            self.log_transition(
+            await self.log_transition(
                 ctx=ctx,
                 from_status=config.status_in_progress,
                 to_status=config.status_in_review,
@@ -2319,7 +2321,7 @@ class WorkflowOrchestrator:
         )
 
         ctx.current_state = WorkflowState.IN_REVIEW
-        self.log_transition(
+        await self.log_transition(
             ctx=ctx,
             from_status=config.status_in_progress,
             to_status=config.status_in_review,
@@ -2587,7 +2589,7 @@ class WorkflowOrchestrator:
             logger.error("Workflow failed: %s", e)
             ctx.current_state = WorkflowState.ERROR
 
-            self.log_transition(
+            await self.log_transition(
                 ctx=ctx,
                 from_status=ctx.current_state.value if ctx.current_state else None,
                 to_status="error",

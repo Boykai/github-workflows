@@ -279,7 +279,11 @@ async def github_webhook(
         repo_info = raw_payload.get("repository", {}) if isinstance(raw_payload, dict) else {}
         webhook_action = raw_payload.get("action", "") if isinstance(raw_payload, dict) else ""
         repo_full = repo_info.get("full_name", "") if isinstance(repo_info, dict) else ""
-        sender = pr_info.get("user", {}).get("login", "system") if isinstance(pr_info, dict) else "system"
+        sender = (
+            pr_info.get("user", {}).get("login", "system")
+            if isinstance(pr_info, dict)
+            else "system"
+        )
         await log_event(
             get_db(),
             event_type="webhook",
