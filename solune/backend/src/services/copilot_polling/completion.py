@@ -1246,10 +1246,33 @@ async def check_in_review_issues_for_copilot_review(
     """
     results = []
 
+    def _pipeline_allows_copilot_review_request(pipeline: Any) -> bool:
+        """Return True only when the active pipeline step includes copilot-review."""
+        if pipeline is None or pipeline.is_complete:
+            return False
+
+        if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
+            group = pipeline.groups[pipeline.current_group_index]
+            if "copilot-review" in group.agents:
+                if group.execution_mode != "parallel":
+                    return pipeline.current_agent == "copilot-review"
+                group_status = group.agent_statuses.get("copilot-review", "pending")
+                return group_status not in ("completed", "failed")
+
+        return pipeline.current_agent == "copilot-review"
+
     try:
         # Use pre-fetched tasks when available to avoid redundant API calls
         if tasks is None:
             tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
+
+        config = await _cp.get_workflow_config(project_id)
+        if not config:
+            logger.debug(
+                "No workflow config for project %s, skipping in-review Copilot requests",
+                project_id,
+            )
+            return results
 
         # Filter to "In Review" items with issue numbers
         in_review_tasks = [
@@ -1272,6 +1295,29 @@ async def check_in_review_issues_for_copilot_review(
 
             if task.issue_number is None:  # filtered above; guard for safety
                 continue
+
+            review_agents = _cp.get_agent_slugs(config, config.status_in_review)
+            pipeline = await _cp._get_or_reconstruct_pipeline(
+                access_token=access_token,
+                owner=task_owner,
+                repo=task_repo,
+                issue_number=task.issue_number,
+                project_id=project_id,
+                status=config.status_in_review,
+                agents=review_agents,
+                expected_status=config.status_in_review,
+                labels=getattr(task, "labels", None),
+            )
+
+            if not _pipeline_allows_copilot_review_request(pipeline):
+                logger.info(
+                    "Skipping Copilot review request for issue #%d — active pipeline step is '%s' in status '%s'",
+                    task.issue_number,
+                    pipeline.current_agent if pipeline else "none",
+                    pipeline.status if pipeline else config.status_in_review,
+                )
+                continue
+
             result = await ensure_copilot_review_requested(
                 access_token=access_token,
                 owner=task_owner,
