@@ -6,9 +6,13 @@
 import { useState, useCallback } from 'react';
 import type { ConfirmationOptions } from '@/hooks/useConfirmation';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
+import { useUndoableDelete } from '@/hooks/useUndoableDelete';
+import { pipelineKeys } from '@/hooks/usePipelineConfig';
 
 interface PipelineConfigActions {
   isDirty: boolean;
+  editingPipelineId: string | null;
+  pipeline: { name: string } | null;
   loadPipeline: (pipelineId: string) => Promise<unknown>;
   duplicatePipeline: (pipelineId: string) => Promise<unknown>;
   newPipeline: (stageNames: string[]) => void;
@@ -19,6 +23,7 @@ interface PipelineConfigActions {
 
 interface UseUnsavedPipelineGuardOptions {
   pipelineConfig: PipelineConfigActions;
+  projectId: string | null;
   confirm: (opts: ConfirmationOptions) => Promise<boolean>;
   focusPipelineEditor: () => void;
   columns: { status: { name: string } }[];
@@ -26,6 +31,7 @@ interface UseUnsavedPipelineGuardOptions {
 
 export function useUnsavedPipelineGuard({
   pipelineConfig,
+  projectId,
   confirm,
   focusPipelineEditor,
   columns,
@@ -38,6 +44,10 @@ export function useUnsavedPipelineGuard({
 
   // Reuse the generic unsaved-changes guard for beforeunload + SPA navigation blocking
   const { blocker, isBlocked } = useUnsavedChanges({ isDirty: pipelineConfig.isDirty });
+
+  const { undoableDelete } = useUndoableDelete({
+    queryKey: pipelineKeys.list(projectId ?? ''),
+  });
 
   const handleWorkflowSelect = useCallback(
     (pipelineId: string) => {
@@ -96,16 +106,26 @@ export function useUnsavedPipelineGuard({
   }, [columns, pipelineConfig]);
 
   const handleDelete = useCallback(async () => {
+    const pipelineId = pipelineConfig.editingPipelineId;
+    const pipelineName = pipelineConfig.pipeline?.name ?? 'Pipeline';
+    if (!pipelineId) return;
+
     const confirmed = await confirm({
       title: 'Delete Pipeline',
-      description: 'Are you sure you want to delete this pipeline? This action cannot be undone.',
+      description: 'Are you sure you want to delete this pipeline?',
       variant: 'danger',
       confirmLabel: 'Delete Pipeline',
     });
     if (confirmed) {
-      pipelineConfig.deletePipeline();
+      undoableDelete({
+        id: pipelineId,
+        entityLabel: `Pipeline: ${pipelineName}`,
+        onDelete: async () => {
+          pipelineConfig.deletePipeline();
+        },
+      });
     }
-  }, [pipelineConfig, confirm]);
+  }, [pipelineConfig, confirm, undoableDelete]);
 
   const handleUnsavedSave = useCallback(async () => {
     const saved = await pipelineConfig.savePipeline();

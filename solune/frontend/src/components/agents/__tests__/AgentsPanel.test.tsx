@@ -13,6 +13,7 @@ const mockUseAgentsListPaginated = vi.fn();
 const mockUsePendingAgentsList = vi.fn();
 const mockUseClearPendingAgents = vi.fn();
 const mockUseDeleteAgent = vi.fn();
+const mockUseUndoableDeleteAgent = vi.fn();
 const mockUseCreateAgent = vi.fn();
 const mockUseUpdateAgent = vi.fn();
 const mockUseBulkUpdateModels = vi.fn();
@@ -37,6 +38,7 @@ vi.mock('@/hooks/useAgents', () => ({
   usePendingAgentsList: (...args: unknown[]) => mockUsePendingAgentsList(...args),
   useClearPendingAgents: (...args: unknown[]) => mockUseClearPendingAgents(...args),
   useDeleteAgent: (...args: unknown[]) => mockUseDeleteAgent(...args),
+  useUndoableDeleteAgent: (...args: unknown[]) => mockUseUndoableDeleteAgent(...args),
   useCreateAgent: (...args: unknown[]) => mockUseCreateAgent(...args),
   useUpdateAgent: (...args: unknown[]) => mockUseUpdateAgent(...args),
   useBulkUpdateModels: (...args: unknown[]) => mockUseBulkUpdateModels(...args),
@@ -115,6 +117,10 @@ describe('AgentsPanel', () => {
       isError: false,
       data: undefined,
       error: null,
+    });
+    mockUseUndoableDeleteAgent.mockReturnValue({
+      deleteAgent: vi.fn(),
+      pendingIds: new Set<string>(),
     });
     mockUseCreateAgent.mockReturnValue({
       mutateAsync: vi.fn(),
