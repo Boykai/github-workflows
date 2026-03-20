@@ -253,7 +253,7 @@ async def create_tool(
         get_db(),
         event_type="tool_crud",
         entity_type="tool",
-        entity_id=result.tool.id if result.tool else project_id,
+        entity_id=result.id,
         project_id=project_id,
         actor=session.github_username,
         action="created",

@@ -27,7 +27,6 @@ from src.services.copilot_polling import (
     _process_pipeline_completion,
     _processed_issue_prs,
     _reconstruct_pipeline_state,
-    _review_requested_cache,
     _reconstruct_sub_issue_mappings,
     _recovery_last_attempt,
     _self_heal_tracking_table,

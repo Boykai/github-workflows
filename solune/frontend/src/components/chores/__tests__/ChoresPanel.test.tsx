@@ -31,6 +31,12 @@ vi.mock('@/services/api', () => ({
   pipelinesApi: {
     list: (...args: unknown[]) => mockPipelinesList(...args),
   },
+  authApi: {
+    getCurrentUser: vi.fn().mockResolvedValue({ login: 'test-user', name: 'Test User' }),
+    logout: vi.fn().mockResolvedValue(undefined),
+    login: vi.fn(),
+  },
+  onAuthExpired: vi.fn().mockReturnValue(() => {}),
   ApiError: class ApiError extends Error {
     constructor(
       public status: number,

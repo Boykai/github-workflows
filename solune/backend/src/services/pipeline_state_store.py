@@ -370,6 +370,40 @@ async def set_pipeline_state(issue_number: int, state: Any) -> None:
         _pipeline_states[issue_number] = state
 
 
+async def persist_pipeline_state_to_db(issue_number: int, state: Any) -> None:
+    """Persist pipeline state to SQLite only (no L1 cache update).
+
+    Used by background write-behind tasks where L1 is already updated
+    synchronously by the caller to avoid stale-overwrite race conditions.
+    """
+    async with _get_store_lock():
+        if _db is not None:
+            try:
+                row = _pipeline_state_to_row(issue_number, state)
+                await _db.execute(
+                    """INSERT INTO pipeline_states
+                       (issue_number, project_id, status, agent_name, agent_instance_id,
+                        pr_number, pr_url, sub_issues, metadata, created_at, updated_at)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                       ON CONFLICT(issue_number) DO UPDATE SET
+                         project_id = excluded.project_id,
+                         status = excluded.status,
+                         agent_name = excluded.agent_name,
+                         agent_instance_id = excluded.agent_instance_id,
+                         pr_number = excluded.pr_number,
+                         pr_url = excluded.pr_url,
+                         sub_issues = excluded.sub_issues,
+                         metadata = excluded.metadata,
+                         updated_at = excluded.updated_at""",
+                    row,
+                )
+                await _db.commit()
+            except aiosqlite.Error:
+                logger.error(
+                    "Failed to persist pipeline state for issue %d", issue_number, exc_info=True
+                )
+
+
 async def delete_pipeline_state(issue_number: int) -> None:
     """Remove from both L1 cache and SQLite."""
     async with _get_store_lock():

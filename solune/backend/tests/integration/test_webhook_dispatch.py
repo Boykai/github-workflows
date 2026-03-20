@@ -78,6 +78,8 @@ async def test_webhook_ready_for_review_reports_action_needed_without_webhook_to
         patch("src.config.get_settings", return_value=settings),
         patch("src.api.webhooks.get_settings", return_value=settings),
         patch("src.api.webhooks.github_projects_service", AsyncMock()),
+        patch("src.api.webhooks.get_db", return_value=AsyncMock()),
+        patch("src.api.webhooks.log_event", new_callable=AsyncMock),
     ):
         async with AsyncClient(transport=transport, base_url="http://testserver") as client:
             response = await client.post(

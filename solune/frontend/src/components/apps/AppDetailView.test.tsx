@@ -32,6 +32,10 @@ vi.mock('@/hooks/useConfirmation', () => ({
   useConfirmation: () => ({ confirm: mocks.confirm }),
 }));
 
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { login: 'test-user' }, isLoading: false, isAuthenticated: true }),
+}));
+
 vi.mock('@/utils/rateLimit', () => ({
   isRateLimitApiError: mocks.isRateLimitApiError,
 }));

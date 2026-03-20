@@ -33,10 +33,10 @@ from src.services.pipeline_state_store import (
     get_queued_pipelines_for_project as get_queued_pipelines_for_project,
 )
 from src.services.pipeline_state_store import (
-    set_main_branch as _set_main_branch_async,
+    persist_pipeline_state_to_db as _persist_pipeline_state_to_db,
 )
 from src.services.pipeline_state_store import (
-    set_pipeline_state as _set_pipeline_state_async,
+    set_main_branch as _set_main_branch_async,
 )
 from src.services.pipeline_state_store import (
     set_sub_issue_map as _set_sub_issue_map_async,
@@ -137,7 +137,7 @@ def get_all_pipeline_states() -> dict[int, PipelineState]:
 def set_pipeline_state(issue_number: int, state: PipelineState) -> None:
     """Set or update pipeline state for an issue (L1 + SQLite write-behind)."""
     _pipeline_states[issue_number] = state
-    _schedule_persist(_set_pipeline_state_async(issue_number, state))
+    _schedule_persist(_persist_pipeline_state_to_db(issue_number, state))
 
 
 def remove_pipeline_state(issue_number: int) -> None:

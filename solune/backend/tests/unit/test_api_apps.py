@@ -408,8 +408,13 @@ class TestUpdateApp:
 class TestDeleteApp:
     @pytest.fixture(autouse=True)
     def _patch_service(self):
-        with patch("src.api.apps.delete_app", new_callable=AsyncMock) as mock:
-            self.mock_delete = mock
+        with (
+            patch("src.api.apps.delete_app", new_callable=AsyncMock) as mock_del,
+            patch("src.api.apps.get_app", new_callable=AsyncMock) as mock_get,
+            patch("src.api.apps.log_event", new_callable=AsyncMock),
+        ):
+            mock_get.return_value = _sample_app()
+            self.mock_delete = mock_del
             yield
 
     async def test_delete_app_success(self, client):
