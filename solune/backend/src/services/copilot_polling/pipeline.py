@@ -23,6 +23,80 @@ from .state import (
 logger = get_logger(__name__)
 
 
+async def _dequeue_next_pipeline(
+    access_token: str,
+    project_id: str,
+    trigger: str,
+) -> None:
+    """Dequeue the next waiting pipeline for a project when queue mode is active.
+
+    Finds the oldest queued pipeline by started_at (FIFO) and starts it by
+    assigning the first agent for its status.
+
+    Args:
+        access_token: GitHub access token for API calls
+        project_id: Project ID to check for queued pipelines
+        trigger: Description of what triggered the dequeue (for logging)
+    """
+    from src.services.database import get_db
+    from src.services.settings_store import is_queue_mode_enabled
+
+    try:
+        db = get_db()
+        if not await is_queue_mode_enabled(db, project_id):
+            return
+
+        queued = _cp.get_queued_pipelines_for_project(project_id)
+        if not queued:
+            return
+
+        next_pipeline = queued[0]
+        logger.info(
+            "Dequeuing pipeline for issue #%d (trigger: %s, project: %s, queue depth: %d)",
+            next_pipeline.issue_number,
+            trigger,
+            project_id,
+            len(queued),
+        )
+
+        # Mark as no longer queued
+        next_pipeline.queued = False
+        _cp.set_pipeline_state(next_pipeline.issue_number, next_pipeline)
+
+        # Get workflow config and assign the first agent
+        config = await _cp.get_workflow_config(project_id)
+        if not config:
+            logger.warning(
+                "No workflow config for project %s during dequeue — cannot start pipeline #%d",
+                project_id,
+                next_pipeline.issue_number,
+            )
+            return
+
+        orchestrator = _cp.get_workflow_orchestrator()
+        ctx = _cp.WorkflowContext(
+            session_id="dequeue",
+            project_id=project_id,
+            access_token=access_token,
+        )
+        ctx.issue_number = next_pipeline.issue_number
+
+        await orchestrator.assign_agent_for_status(
+            ctx, next_pipeline.status, agent_index=0
+        )
+        logger.info(
+            "Dequeued pipeline for issue #%d — agent assignment started",
+            next_pipeline.issue_number,
+        )
+    except Exception:
+        logger.error(
+            "Failed to dequeue next pipeline for project %s (trigger: %s)",
+            project_id,
+            trigger,
+            exc_info=True,
+        )
+
+
 def _get_rate_limit_remaining() -> tuple[int | None, int | None]:
     """Return (remaining, reset_at) from the cached rate limit info.
 
@@ -1926,6 +2000,13 @@ async def _transition_after_pipeline_complete(
 
     # Remove any old pipeline state for this issue
     _cp.remove_pipeline_state(issue_number)
+
+    # Dequeue the next waiting pipeline if queue mode is active
+    await _dequeue_next_pipeline(
+        access_token=access_token,
+        project_id=project_id,
+        trigger=f"pipeline_complete(issue=#{issue_number}, to={to_status})",
+    )
 
     # When transitioning to "In Review", convert main PR from draft→ready
     # and request Copilot code review on the main PR.

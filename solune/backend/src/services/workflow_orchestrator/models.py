@@ -164,6 +164,8 @@ class PipelineState:
     groups: list[PipelineGroupInfo] = field(default_factory=list)
     current_group_index: int = 0
     current_agent_index_in_group: int = 0
+    # Queue mode: True when pipeline is waiting for another to complete
+    queued: bool = False
 
     @property
     def current_agent(self) -> str | None:

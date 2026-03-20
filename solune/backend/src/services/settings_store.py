@@ -48,6 +48,7 @@ GLOBAL_SETTINGS_COLUMNS = (*USER_PREFERENCE_COLUMNS, "allowed_models")
 PROJECT_SETTINGS_COLUMNS = (
     "board_display_config",
     "agent_pipeline_mappings",
+    "queue_mode",
 )
 
 
@@ -267,8 +268,9 @@ async def upsert_project_settings(
             project_id,
             board_display_config,
             agent_pipeline_mappings,
+            queue_mode,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(github_user_id, project_id) DO UPDATE SET
             board_display_config = CASE
                 WHEN ? THEN excluded.board_display_config
@@ -277,6 +279,10 @@ async def upsert_project_settings(
             agent_pipeline_mappings = CASE
                 WHEN ? THEN excluded.agent_pipeline_mappings
                 ELSE project_settings.agent_pipeline_mappings
+            END,
+            queue_mode = CASE
+                WHEN ? THEN excluded.queue_mode
+                ELSE project_settings.queue_mode
             END,
             updated_at = excluded.updated_at
         """,
@@ -431,6 +437,14 @@ def _build_project_section(
         raw = json.loads(project_row["board_display_config"])
         board_config = ProjectBoardConfig(**raw)
 
+    # Merge the queue_mode column into the board config
+    queue_mode_val = bool(project_row["queue_mode"]) if "queue_mode" in project_row.keys() else False
+    if board_config is None:
+        if queue_mode_val:
+            board_config = ProjectBoardConfig(queue_mode=queue_mode_val)
+    else:
+        board_config.queue_mode = queue_mode_val
+
     agent_mappings = None
     if project_row["agent_pipeline_mappings"]:
         raw = json.loads(project_row["agent_pipeline_mappings"])
@@ -444,6 +458,41 @@ def _build_project_section(
         board_display_config=board_config,
         agent_pipeline_mappings=agent_mappings,
     )
+
+
+# ── Queue Mode Helpers ──
+
+
+# Short-TTL in-memory cache for queue mode lookups to avoid repeated DB reads
+# during a single polling cycle.
+_queue_mode_cache: dict[str, tuple[bool, float]] = {}
+_QUEUE_MODE_CACHE_TTL_SECONDS = 10.0
+
+
+async def is_queue_mode_enabled(db: aiosqlite.Connection, project_id: str) -> bool:
+    """Check if queue mode is enabled for a project.
+
+    Uses a short-TTL in-memory cache to avoid repeated DB reads during
+    polling cycles.  Falls back to DB query on cache miss or expiry.
+    """
+    import time
+
+    now = time.monotonic()
+    cached = _queue_mode_cache.get(project_id)
+    if cached is not None:
+        value, cached_at = cached
+        if now - cached_at < _QUEUE_MODE_CACHE_TTL_SECONDS:
+            return value
+
+    # Query all rows for this project (any user) — queue mode is project-wide
+    cursor = await db.execute(
+        "SELECT queue_mode FROM project_settings WHERE project_id = ? AND queue_mode = 1 LIMIT 1",
+        (project_id,),
+    )
+    row = await cursor.fetchone()
+    enabled = row is not None
+    _queue_mode_cache[project_id] = (enabled, now)
+    return enabled
 
 
 def flatten_user_preferences_update(update: dict) -> dict:

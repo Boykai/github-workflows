@@ -46,10 +46,12 @@ from .transitions import (
     clear_all_agent_trigger_buffers,
     clear_issue_main_branch,
     clear_issue_sub_issues,
+    count_active_pipelines_for_project,
     get_all_pipeline_states,
     get_issue_main_branch,
     get_issue_sub_issues,
     get_pipeline_state,
+    get_queued_pipelines_for_project,
     remove_pipeline_state,
     set_issue_main_branch,
     set_issue_sub_issues,
@@ -79,6 +81,7 @@ __all__ = [
     "clear_all_agent_trigger_buffers",
     "clear_issue_main_branch",
     "clear_issue_sub_issues",
+    "count_active_pipelines_for_project",
     "deduplicate_agent_mappings",
     "find_next_actionable_status",
     "get_agent_slugs",
@@ -88,6 +91,7 @@ __all__ = [
     "get_next_status",
     # transitions
     "get_pipeline_state",
+    "get_queued_pipelines_for_project",
     "get_status_order",
     "get_transitions",
     # config

@@ -128,6 +128,7 @@ class ProjectBoardConfig(BaseModel):
     column_order: list[str] = Field(default_factory=list)
     collapsed_columns: list[str] = Field(default_factory=list)
     show_estimates: bool = False
+    queue_mode: bool = False
 
 
 class ProjectAgentMapping(BaseModel):
@@ -216,6 +217,7 @@ class ProjectSettingsUpdate(BaseModel):
 
     board_display_config: ProjectBoardConfig | None = None
     agent_pipeline_mappings: dict[str, list[ProjectAgentMapping]] | None = None
+    queue_mode: bool | None = None
 
 
 # ── Database Row Models (for model_dump/model_validate with SQLite) ──
@@ -271,6 +273,7 @@ class ProjectSettingsRow(BaseModel):
     project_id: str
     board_display_config: str | None = None  # JSON string
     agent_pipeline_mappings: str | None = None  # JSON string
+    queue_mode: int = 0
     updated_at: str = ""
 
     def get_board_config(self) -> dict[str, Any] | None:
