@@ -26,8 +26,8 @@ import { useBoardControls } from '@/hooks/useBoardControls';
 import { formatTimeAgo } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import { cn } from '@/lib/utils';
-import type { BoardItem } from '@/types';
-import { pipelinesApi } from '@/services/api';
+import type { BoardItem, BoardDataResponse } from '@/types';
+import { boardApi, pipelinesApi } from '@/services/api';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
 import { ListOrdered } from 'lucide-react';
@@ -124,6 +124,72 @@ export function ProjectsPage() {
 
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
+
+  // ── Board status update mutation with optimistic UI ──
+  const boardStatusMutation = useMutation({
+    mutationFn: ({ itemId, newStatus }: { itemId: string; newStatus: string }) =>
+      boardApi.updateItemStatus(selectedProjectId!, itemId, newStatus),
+    onMutate: async ({ itemId, newStatus }) => {
+      if (!selectedProjectId) return;
+      const queryKey = ['board', 'data', selectedProjectId];
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<BoardDataResponse>(queryKey);
+      if (!snapshot) return;
+
+      queryClient.setQueryData<BoardDataResponse>(queryKey, (old) => {
+        if (!old) return old;
+        let movedItem: BoardItem | undefined;
+        const columns = old.columns.map((col) => {
+          const found = col.items.find((item) => item.item_id === itemId);
+          if (found) {
+            movedItem = { ...found, status: newStatus };
+            return {
+              ...col,
+              items: col.items.filter((item) => item.item_id !== itemId),
+              item_count: col.item_count - 1,
+            };
+          }
+          return col;
+        });
+
+        if (!movedItem) return old;
+
+        return {
+          ...old,
+          columns: columns.map((col) => {
+            if (col.status.name === newStatus) {
+              const updatedItem = { ...movedItem!, status_option_id: col.status.option_id };
+              return {
+                ...col,
+                items: [...col.items, updatedItem],
+                item_count: col.item_count + 1,
+              };
+            }
+            return col;
+          }),
+        };
+      });
+
+      return { snapshot, queryKey };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+    },
+    onSettled: (_data, _error, _variables, context) => {
+      if (context?.queryKey) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
+      }
+    },
+  });
+
+  const handleStatusUpdate = useCallback(
+    async (itemId: string, newStatus: string) => {
+      await boardStatusMutation.mutateAsync({ itemId, newStatus });
+    },
+    [boardStatusMutation],
+  );
 
   const assignedPipelineName = useMemo(
     () =>
@@ -352,6 +418,7 @@ export function ProjectsPage() {
             boardControls={boardControls}
             onCardClick={handleCardClick}
             availableAgents={availableAgents}
+            onStatusUpdate={handleStatusUpdate}
           />
         </div>
       )}

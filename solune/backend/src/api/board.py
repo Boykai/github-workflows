@@ -25,6 +25,8 @@ from src.models.board import (
     StatusColor,
     StatusField,
     StatusOption,
+    StatusUpdateRequest,
+    StatusUpdateResponse,
 )
 from src.models.project import GitHubProject
 from src.models.user import UserSession
@@ -489,3 +491,55 @@ async def get_board_data(
             col.has_more = paginated.has_more
 
     return board_data
+
+
+@router.patch(
+    "/projects/{project_id}/items/{item_id}/status",
+    response_model=StatusUpdateResponse,
+)
+async def update_board_item_status(
+    project_id: str,
+    item_id: str,
+    body: StatusUpdateRequest,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> StatusUpdateResponse:
+    """Update a board item's status by resolving the given status name."""
+    logger.info(
+        "Updating status for item %s in project %s to '%s'",
+        item_id,
+        project_id,
+        body.status,
+    )
+
+    try:
+        success = await github_projects_service.update_item_status_by_name(
+            access_token=session.access_token,
+            project_id=project_id,
+            item_id=item_id,
+            status_name=body.status,
+        )
+    except Exception as e:
+        if _is_github_rate_limit_error(e):
+            raise RateLimitError(
+                message="GitHub API rate limit exceeded",
+                retry_after=_retry_after_seconds(e),
+                details=_rate_limit_details(),
+            ) from e
+        if _is_github_auth_error(e):
+            raise AuthenticationError(
+                "Your GitHub session has expired. Please log in again."
+            ) from e
+        logger.error("Failed to update item status: %s", e, exc_info=True)
+        raise GitHubAPIError(
+            message="Failed to update item status",
+            details={"reason": _classify_github_error(e)},
+        ) from e
+
+    if not success:
+        raise NotFoundError("Status not found or update failed")
+
+    # Invalidate board data cache so subsequent fetches reflect the change
+    board_cache_key = get_cache_key(CACHE_PREFIX_BOARD_DATA, project_id)
+    cache.delete(board_cache_key)
+
+    return StatusUpdateResponse(success=True)
