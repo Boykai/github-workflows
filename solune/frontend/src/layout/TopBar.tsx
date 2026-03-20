@@ -2,7 +2,7 @@
  * TopBar — horizontal bar with breadcrumb, notification bell, and user avatar.
  */
 
-import { HelpCircle } from 'lucide-react';
+import { HelpCircle, Search } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { Breadcrumb } from './Breadcrumb';
 import { NotificationBell } from './NotificationBell';
@@ -18,6 +18,26 @@ interface TopBarProps {
   notifications: Notification[];
   unreadCount: number;
   onMarkAllRead: () => void;
+}
+
+const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+
+function SearchTrigger() {
+  return (
+    <button
+      type="button"
+      aria-label="Open command palette"
+      title={`Search (${isMac ? '⌘' : 'Ctrl+'}K)`}
+      className="celestial-focus flex h-9 items-center gap-2 rounded-full border border-transparent px-3 text-muted-foreground transition-colors hover:border-border hover:bg-primary/10 hover:text-foreground"
+      onClick={() => window.dispatchEvent(new CustomEvent('solune:open-command-palette'))}
+    >
+      <Search className="h-4 w-4" />
+      <span className="hidden text-xs md:inline">Search</span>
+      <kbd className="hidden sm:inline-flex min-w-[1.25rem] items-center justify-center rounded border border-border bg-muted px-1 py-0.5 text-[10px] font-medium text-muted-foreground">
+        {isMac ? '⌘' : '⌃'}K
+      </kbd>
+    </button>
+  );
 }
 
 function HelpButton() {
@@ -56,6 +76,9 @@ export function TopBar({
 
       <div className="flex items-center gap-3">
         <RateLimitBar />
+
+        {/* Search / Command Palette trigger */}
+        <SearchTrigger />
 
         {/* Help */}
         <HelpButton />

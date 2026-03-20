@@ -33,7 +33,7 @@ const SHORTCUT_GROUPS: ShortcutGroup[] = [
   {
     title: 'Actions',
     shortcuts: [
-      { keys: [MOD, 'K'], description: 'Focus chat input' },
+      { keys: [MOD, 'K'], description: 'Command Palette' },
       { keys: [MOD, 'Enter'], description: 'Send chat message' },
       { keys: ['Esc'], description: 'Close modal' },
     ],

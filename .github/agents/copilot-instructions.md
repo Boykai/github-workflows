@@ -275,6 +275,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - N/A (frontend-only changes; existing API endpoints remain unchanged) (051-solune-ux-improvements)
 - Python ≥3.12 (backend, pyright targets 3.13), TypeScript ~5.9.0 (frontend) + FastAPI ≥0.135 (backend), React 19.2 (frontend), Pydantic ≥2.12 (backend), Vite 8 (frontend), TanStack Query v5.91 (frontend), Tailwind CSS 4.2 (frontend), @dnd-kit (frontend drag-drop) (052-fix-bugs-test-coverage)
 - SQLite via aiosqlite ≥0.22 (existing — no changes in this feature) (052-fix-bugs-test-coverage)
+- TypeScript 5.9 (frontend only) + React 19, React Router v7, TanStack Query v5, Tailwind CSS 4, Lucide React, Radix UI (053-global-command-palette)
+- N/A (client-side search against already-loaded or cached entity data) (053-global-command-palette)
 - Python 3.12+/3.13 (backend), TypeScript 5.9 (frontend) + FastAPI 0.135+, React 19, Pydantic 2.12+, Vite 8, TanStack Query v5, Tailwind CSS 4, @dnd-kit/core (board drag-and-drop) (053-pagination-infinite-scroll)
 - SQLite via aiosqlite (existing — no schema changes required) (053-pagination-infinite-scroll)
 
