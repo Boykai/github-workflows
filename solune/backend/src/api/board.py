@@ -424,7 +424,7 @@ async def get_board_data(
     board_data.rate_limit = _get_rate_limit_info()
 
     # Enrich board items with pipeline queue state from in-memory cache
-    from src.services.pipeline_state_store import get_pipeline_state
+    from src.services.workflow_orchestrator import get_pipeline_state
 
     for col in board_data.columns:
         for item in col.items:

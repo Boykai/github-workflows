@@ -312,9 +312,7 @@ def count_active_pipelines_for_project(project_id: str) -> int:
     """
     count = 0
     for state in _pipeline_states.values():
-        if getattr(state, "project_id", None) == project_id and not getattr(
-            state, "queued", False
-        ):
+        if getattr(state, "project_id", None) == project_id and not getattr(state, "queued", False):
             count += 1
     return count
 
@@ -324,12 +322,11 @@ def get_queued_pipelines_for_project(project_id: str) -> list[Any]:
 
     Used by the dequeue logic to find the next pipeline to start.
     """
-    queued = []
-    for state in _pipeline_states.values():
-        if getattr(state, "project_id", None) == project_id and getattr(
-            state, "queued", False
-        ):
-            queued.append(state)
+    queued = [
+        state
+        for state in _pipeline_states.values()
+        if getattr(state, "project_id", None) == project_id and getattr(state, "queued", False)
+    ]
     # Sort by started_at (oldest first) for FIFO ordering
     _epoch = datetime.min.replace(tzinfo=UTC)
     queued.sort(key=lambda s: s.started_at or _epoch)

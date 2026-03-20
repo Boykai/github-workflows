@@ -13,7 +13,7 @@ Covers:
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -23,7 +23,6 @@ from src.services.pipeline_state_store import (
     get_queued_pipelines_for_project,
 )
 from src.services.workflow_orchestrator.models import PipelineState
-
 
 # ── Helpers ──────────────────────────────────────────────────────
 
@@ -163,9 +162,7 @@ class TestGetQueuedPipelinesForProject:
 
 class TestPipelineStateQueuedField:
     def test_defaults_to_false(self):
-        ps = PipelineState(
-            issue_number=1, project_id="PVT_1", status="Backlog", agents=["a"]
-        )
+        ps = PipelineState(issue_number=1, project_id="PVT_1", status="Backlog", agents=["a"])
         assert ps.queued is False
 
     def test_can_be_set_true(self):
