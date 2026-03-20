@@ -65,6 +65,8 @@ export function useUndoableDelete({ queryKey, undoTimeoutMs = 5000 }: UseUndoabl
       const snapshot = queryClient.getQueryData(queryKey);
 
       // Optimistically remove item from cache
+      // Checks both item.id and item.name because agents/chores/tools use
+      // 'id' as identifier while apps use 'name' as identifier.
       queryClient.setQueryData(queryKey, (old: unknown) => {
         if (Array.isArray(old)) {
           return old.filter(
