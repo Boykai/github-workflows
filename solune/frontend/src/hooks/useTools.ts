@@ -97,13 +97,39 @@ export function useToolsList(projectId: string | null | undefined) {
       setDeletingId(toolId);
       return toolsApi.delete(projectId!, toolId, confirm);
     },
+    onMutate: async ({ toolId }) => {
+      if (!projectId) return;
+      const queryKey = toolKeys.list(projectId);
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<McpToolConfigListResponse>(queryKey);
+      if (!snapshot) return;
+
+      queryClient.setQueryData<McpToolConfigListResponse>(queryKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          tools: old.tools.filter((tool) => tool.id !== toolId),
+        };
+      });
+      return { snapshot, queryKey };
+    },
     onSuccess: (result) => {
       if (result.success && projectId) {
         queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
         queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
       }
     },
-    onSettled: () => setDeletingId(null),
+    onError: (_error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+    },
+    onSettled: () => {
+      setDeletingId(null);
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+      }
+    },
   });
 
   const authError = query.error instanceof ApiError && query.error.status === 401;

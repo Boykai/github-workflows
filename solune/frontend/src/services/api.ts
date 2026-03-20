@@ -418,6 +418,23 @@ export const boardApi = {
     const data = await request<BoardDataResponse>(`/board/projects/${projectId}?${qs}`);
     return validateResponse(BoardDataResponseSchema, data, 'boardApi.getBoardDataPaginated');
   },
+
+  /**
+   * Update a board item's status by name.
+   */
+  updateItemStatus(
+    projectId: string,
+    itemId: string,
+    status: string,
+  ): Promise<{ success: boolean }> {
+    return request<{ success: boolean }>(
+      `/board/projects/${projectId}/items/${itemId}/status`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ status }),
+      },
+    );
+  },
 };
 
 // ============ Settings API ============

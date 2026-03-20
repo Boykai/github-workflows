@@ -84,12 +84,49 @@ export function useCreateApp() {
   const queryClient = useQueryClient();
   return useMutation<App, ApiError, AppCreate>({
     mutationFn: (data) => appsApi.create(data),
+    onMutate: async (data) => {
+      const queryKey = appKeys.list();
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<App[]>(queryKey);
+      if (!snapshot) return;
+
+      const now = new Date().toISOString();
+      const placeholder = {
+        name: data.name || `temp-${Date.now()}`,
+        display_name: data.display_name || data.name || '',
+        description: data.description || '',
+        directory_path: '',
+        associated_pipeline_id: null,
+        status: 'creating' as const,
+        repo_type: data.repo_type || ('new' as App['repo_type']),
+        external_repo_url: null,
+        github_repo_url: null,
+        github_project_url: null,
+        github_project_id: null,
+        parent_issue_number: null,
+        parent_issue_url: null,
+        port: null,
+        error_message: null,
+        created_at: now,
+        updated_at: now,
+        warnings: null,
+        _optimistic: true,
+      } as App & { _optimistic: boolean };
+
+      queryClient.setQueryData<App[]>(queryKey, [placeholder, ...snapshot]);
+      return { snapshot, queryKey };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: appKeys.list() });
       toast.success('App created');
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
       toast.error(getErrorMessage(error, 'Failed to create app'), { duration: Infinity });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: appKeys.list() });
     },
   });
 }
@@ -99,13 +136,44 @@ export function useUpdateApp(name: string) {
   const queryClient = useQueryClient();
   return useMutation<App, ApiError, AppUpdate>({
     mutationFn: (data) => appsApi.update(name, data),
+    onMutate: async (data) => {
+      const listKey = appKeys.list();
+      const detailKey = appKeys.detail(name);
+      await queryClient.cancelQueries({ queryKey: listKey });
+      await queryClient.cancelQueries({ queryKey: detailKey });
+      const listSnapshot = queryClient.getQueryData<App[]>(listKey);
+      const detailSnapshot = queryClient.getQueryData<App>(detailKey);
+
+      if (listSnapshot) {
+        queryClient.setQueryData<App[]>(listKey, (old) =>
+          old?.map((app) =>
+            app.name === name ? { ...app, ...data, updated_at: new Date().toISOString() } : app,
+          ),
+        );
+      }
+      if (detailSnapshot) {
+        queryClient.setQueryData<App>(detailKey, (old) =>
+          old ? { ...old, ...data, updated_at: new Date().toISOString() } : old,
+        );
+      }
+
+      return { listSnapshot, detailSnapshot, listKey, detailKey };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: appKeys.list() });
-      queryClient.invalidateQueries({ queryKey: appKeys.detail(name) });
       toast.success('App updated');
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      if (context?.listSnapshot) {
+        queryClient.setQueryData(context.listKey, context.listSnapshot);
+      }
+      if (context?.detailSnapshot) {
+        queryClient.setQueryData(context.detailKey, context.detailSnapshot);
+      }
       toast.error(getErrorMessage(error, 'Failed to update app'), { duration: Infinity });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: appKeys.list() });
+      queryClient.invalidateQueries({ queryKey: appKeys.detail(name) });
     },
   });
 }
@@ -115,12 +183,28 @@ export function useDeleteApp() {
   const queryClient = useQueryClient();
   return useMutation<DeleteAppResult | void, ApiError, { appName: string; force?: boolean }>({
     mutationFn: ({ appName, force }) => appsApi.delete(appName, force),
+    onMutate: async ({ appName }) => {
+      const queryKey = appKeys.list();
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<App[]>(queryKey);
+      if (!snapshot) return;
+
+      queryClient.setQueryData<App[]>(queryKey, (old) =>
+        old?.filter((app) => app.name !== appName),
+      );
+      return { snapshot, queryKey };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: appKeys.list() });
       toast.success('App deleted');
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
       toast.error(getErrorMessage(error, 'Failed to delete app'), { duration: Infinity });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: appKeys.list() });
     },
   });
 }
@@ -140,13 +224,44 @@ export function useStartApp() {
   const queryClient = useQueryClient();
   return useMutation<AppStatusResponse, ApiError, string>({
     mutationFn: (appName) => appsApi.start(appName),
-    onSuccess: (_data, appName) => {
-      queryClient.invalidateQueries({ queryKey: appKeys.list() });
-      queryClient.invalidateQueries({ queryKey: appKeys.detail(appName) });
-      toast.success('App started');
+    onMutate: async (appName) => {
+      const listKey = appKeys.list();
+      const detailKey = appKeys.detail(appName);
+      await queryClient.cancelQueries({ queryKey: listKey });
+      await queryClient.cancelQueries({ queryKey: detailKey });
+      const listSnapshot = queryClient.getQueryData<App[]>(listKey);
+      const detailSnapshot = queryClient.getQueryData<App>(detailKey);
+
+      if (listSnapshot) {
+        queryClient.setQueryData<App[]>(listKey, (old) =>
+          old?.map((app) =>
+            app.name === appName ? { ...app, status: 'active' as const } : app,
+          ),
+        );
+      }
+      if (detailSnapshot) {
+        queryClient.setQueryData<App>(detailKey, (old) =>
+          old ? { ...old, status: 'active' as const } : old,
+        );
+      }
+
+      return { listSnapshot, detailSnapshot, listKey, detailKey };
     },
-    onError: (error) => {
+    onSuccess: (_data, appName) => {
+      toast.success('App started');
+      queryClient.invalidateQueries({ queryKey: appKeys.detail(appName) });
+    },
+    onError: (error, _appName, context) => {
+      if (context?.listSnapshot) {
+        queryClient.setQueryData(context.listKey, context.listSnapshot);
+      }
+      if (context?.detailSnapshot) {
+        queryClient.setQueryData(context.detailKey, context.detailSnapshot);
+      }
       toast.error(getErrorMessage(error, 'Failed to start app'), { duration: Infinity });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: appKeys.list() });
     },
   });
 }
@@ -156,13 +271,44 @@ export function useStopApp() {
   const queryClient = useQueryClient();
   return useMutation<AppStatusResponse, ApiError, string>({
     mutationFn: (appName) => appsApi.stop(appName),
-    onSuccess: (_data, appName) => {
-      queryClient.invalidateQueries({ queryKey: appKeys.list() });
-      queryClient.invalidateQueries({ queryKey: appKeys.detail(appName) });
-      toast.success('App stopped');
+    onMutate: async (appName) => {
+      const listKey = appKeys.list();
+      const detailKey = appKeys.detail(appName);
+      await queryClient.cancelQueries({ queryKey: listKey });
+      await queryClient.cancelQueries({ queryKey: detailKey });
+      const listSnapshot = queryClient.getQueryData<App[]>(listKey);
+      const detailSnapshot = queryClient.getQueryData<App>(detailKey);
+
+      if (listSnapshot) {
+        queryClient.setQueryData<App[]>(listKey, (old) =>
+          old?.map((app) =>
+            app.name === appName ? { ...app, status: 'stopped' as const } : app,
+          ),
+        );
+      }
+      if (detailSnapshot) {
+        queryClient.setQueryData<App>(detailKey, (old) =>
+          old ? { ...old, status: 'stopped' as const } : old,
+        );
+      }
+
+      return { listSnapshot, detailSnapshot, listKey, detailKey };
     },
-    onError: (error) => {
+    onSuccess: (_data, appName) => {
+      toast.success('App stopped');
+      queryClient.invalidateQueries({ queryKey: appKeys.detail(appName) });
+    },
+    onError: (error, _appName, context) => {
+      if (context?.listSnapshot) {
+        queryClient.setQueryData(context.listKey, context.listSnapshot);
+      }
+      if (context?.detailSnapshot) {
+        queryClient.setQueryData(context.detailKey, context.detailSnapshot);
+      }
       toast.error(getErrorMessage(error, 'Failed to stop app'), { duration: Infinity });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: appKeys.list() });
     },
   });
 }
