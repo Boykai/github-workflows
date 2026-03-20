@@ -27,6 +27,7 @@ from src.services.copilot_polling import (
     _process_pipeline_completion,
     _processed_issue_prs,
     _reconstruct_pipeline_state,
+    _review_requested_cache,
     _reconstruct_sub_issue_mappings,
     _recovery_last_attempt,
     _self_heal_tracking_table,
@@ -4767,6 +4768,10 @@ class TestEnsureCopilotReviewRequested:
         }
         mock_service.dismiss_copilot_reviews = AsyncMock(return_value=1)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
+        mock_service.update_issue_body = AsyncMock(return_value=True)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "title")
         assert result is not None
@@ -4789,6 +4794,10 @@ class TestEnsureCopilotReviewRequested:
         }
         mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
+        mock_service.update_issue_body = AsyncMock(return_value=True)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "my task")
         assert result is not None
@@ -4840,6 +4849,10 @@ class TestEnsureCopilotReviewRequested:
         mock_service.mark_pr_ready_for_review = AsyncMock(return_value=True)
         mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
+        mock_service.get_issue_with_comments = AsyncMock(
+            return_value={"title": "", "body": "", "comments": [], "user": {"login": ""}}
+        )
+        mock_service.update_issue_body = AsyncMock(return_value=True)
 
         result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "task")
         assert result is not None

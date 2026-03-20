@@ -48,6 +48,10 @@ vi.mock('./AppPreview', () => ({
   }) => <div data-testid="app-preview">{`${appName}:${String(port)}:${String(isActive)}`}</div>,
 }));
 
+vi.mock('@/components/activity/EntityHistoryPanel', () => ({
+  EntityHistoryPanel: () => null,
+}));
+
 const baseApp: App = {
   name: 'demo-app',
   display_name: 'Demo App',

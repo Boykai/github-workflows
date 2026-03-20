@@ -20,6 +20,7 @@ from src.models.app import (
     RepoType,
 )
 from src.models.user import UserSession
+from src.services.activity_logger import log_event
 from src.services.app_service import (
     create_app,
     delete_app,
@@ -159,6 +160,18 @@ async def create_app_endpoint(
             app.repo_type,
         )
 
+    await log_event(
+        db,
+        event_type="app_crud",
+        entity_type="app",
+        entity_id=app.name,
+        project_id=payload.project_id or "",
+        actor=session.github_username,
+        action="created",
+        summary=f"App '{app.display_name}' created",
+        detail={"entity_name": app.display_name},
+    )
+
     return app
 
 
@@ -180,7 +193,19 @@ async def update_app_endpoint(
 ) -> App:
     """Update application metadata."""
     db = get_db()
-    return await update_app(db, app_name, payload)
+    result = await update_app(db, app_name, payload)
+    await log_event(
+        db,
+        event_type="app_crud",
+        entity_type="app",
+        entity_id=app_name,
+        project_id=result.github_project_id or "",
+        actor=_session.github_username,
+        action="updated",
+        summary=f"App '{app_name}' updated",
+        detail={"entity_name": app_name},
+    )
+    return result
 
 
 @router.get("/{app_name}/assets", response_model=AppAssetInventory)
@@ -216,12 +241,24 @@ async def delete_app_endpoint(
     """
     db = get_db()
     github_service = get_github_service(request)
+    existing = await get_app(db, app_name)
     result = await delete_app(
         db,
         app_name,
         access_token=session.access_token,
         github_service=github_service,
         force=force,
+    )
+    await log_event(
+        db,
+        event_type="app_crud",
+        entity_type="app",
+        entity_id=app_name,
+        project_id=existing.github_project_id or "",
+        actor=session.github_username,
+        action="deleted",
+        summary=f"App '{app_name}' deleted",
+        detail={"entity_name": app_name, "force": force},
     )
     if not force:
         response.status_code = 204

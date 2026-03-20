@@ -21,6 +21,7 @@ import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
 import { SavedWorkflowsList } from '@/components/pipeline/SavedWorkflowsList';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 import { PipelineAnalytics } from '@/components/pipeline/PipelineAnalytics';
+import { PipelineRunHistory } from '@/components/pipeline/PipelineRunHistory';
 import { PipelineStagesOverview } from '@/components/pipeline/PipelineStagesOverview';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
@@ -270,6 +271,11 @@ export function AgentsPipelinePage() {
 
           {/* Pipeline Analytics Dashboard */}
           <PipelineAnalytics pipelines={pipelineConfig.pipelines?.pipelines ?? []} />
+
+          {/* Pipeline Run History */}
+          {pipelineConfig.editingPipelineId && (
+            <PipelineRunHistory pipelineId={pipelineConfig.editingPipelineId} />
+          )}
         </>
       )}
 

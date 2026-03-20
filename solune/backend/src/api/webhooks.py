@@ -12,7 +12,9 @@ from src.api.webhook_models import IssuesEvent, PingEvent, PullRequestData, Pull
 from src.config import get_settings
 from src.exceptions import AppException, AuthenticationError
 from src.logging_utils import get_logger
+from src.services.activity_logger import log_event
 from src.services.cache import cache, get_repo_agents_cache_key
+from src.services.database import get_db
 from src.services.github_projects import github_projects_service
 from src.utils import BoundedSet
 
@@ -271,7 +273,37 @@ async def github_webhook(
 
     # Handle pull_request events
     if x_github_event == "pull_request":
-        return await handle_pull_request_event(cast(PullRequestEvent | dict[str, Any], payload))
+        result = await handle_pull_request_event(cast(PullRequestEvent | dict[str, Any], payload))
+        pr_info = raw_payload.get("pull_request", {}) if isinstance(raw_payload, dict) else {}
+        repo_info = raw_payload.get("repository", {}) if isinstance(raw_payload, dict) else {}
+        webhook_action = raw_payload.get("action", "") if isinstance(raw_payload, dict) else ""
+        repo_full = repo_info.get("full_name", "") if isinstance(repo_info, dict) else ""
+        sender = (
+            pr_info.get("user", {}).get("login", "system")
+            if isinstance(pr_info, dict)
+            else "system"
+        )
+        await log_event(
+            get_db(),
+            event_type="webhook",
+            entity_type="issue",
+            entity_id=str(pr_info.get("number", "")) if isinstance(pr_info, dict) else "",
+            project_id=(
+                result.get("project_id", "")
+                if isinstance(result, dict) and isinstance(result.get("project_id"), str)
+                else ""
+            ),
+            actor=sender,
+            action=webhook_action or "received",
+            summary=f"Webhook: pull_request {webhook_action} on {repo_full}",
+            detail={
+                "webhook_type": "pull_request",
+                "action": webhook_action,
+                "sender": sender,
+                "repository": repo_full,
+            },
+        )
+        return result
 
     # Acknowledge other events — do not echo user-controlled header values
     return {
