@@ -68,6 +68,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
       .map((s) => s.trim())
       .filter(Boolean),
     show_estimates: showEstimates,
+    queue_mode: settings?.project?.queue_mode ?? false,
   });
 
   const parseAgentMappings = (): Record<string, ProjectAgentMapping[]> | null => {

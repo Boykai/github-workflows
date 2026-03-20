@@ -5,7 +5,7 @@
 
 import { memo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { ChevronDown, ChevronRight, Circle, CircleCheckBig } from 'lucide-react';
+import { ChevronDown, ChevronRight, Circle, CircleCheckBig, Clock } from 'lucide-react';
 import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
@@ -38,6 +38,7 @@ interface IssueCardProps {
   item: BoardItem;
   onClick: (item: BoardItem) => void;
   availableAgents?: AvailableAgent[];
+  isQueued?: boolean;
 }
 
 function SubIssueStateIcon({ state }: { state: string }) {
@@ -111,6 +112,7 @@ export const IssueCard = memo(function IssueCard({
   item,
   onClick,
   availableAgents,
+  isQueued = false,
 }: IssueCardProps) {
   const [isSubIssuesExpanded, setIsSubIssuesExpanded] = useState(false);
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
@@ -250,6 +252,15 @@ export const IssueCard = memo(function IssueCard({
               title="Pipeline is stalled"
             >
               ⚠ Stalled
+            </span>
+          )}
+          {isQueued && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+              title="Pipeline is queued — waiting for an active slot"
+            >
+              <Clock className="h-3 w-3" />
+              Queued
             </span>
           )}
         </div>

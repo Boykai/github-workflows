@@ -128,6 +128,9 @@ async def update_project_settings_endpoint(
         val = update_data["agent_pipeline_mappings"]
         updates["agent_pipeline_mappings"] = json.dumps(val) if val is not None else None
 
+    if "queue_mode" in update_data:
+        updates["queue_mode"] = int(update_data["queue_mode"]) if update_data["queue_mode"] is not None else 0
+
     if updates:
         await upsert_project_settings(db, session.github_user_id, project_id, updates)
         logger.info(

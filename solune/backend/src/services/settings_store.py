@@ -48,6 +48,7 @@ GLOBAL_SETTINGS_COLUMNS = (*USER_PREFERENCE_COLUMNS, "allowed_models")
 PROJECT_SETTINGS_COLUMNS = (
     "board_display_config",
     "agent_pipeline_mappings",
+    "queue_mode",
 )
 
 
@@ -267,8 +268,9 @@ async def upsert_project_settings(
             project_id,
             board_display_config,
             agent_pipeline_mappings,
+            queue_mode,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(github_user_id, project_id) DO UPDATE SET
             board_display_config = CASE
                 WHEN ? THEN excluded.board_display_config
@@ -278,11 +280,41 @@ async def upsert_project_settings(
                 WHEN ? THEN excluded.agent_pipeline_mappings
                 ELSE project_settings.agent_pipeline_mappings
             END,
+            queue_mode = CASE
+                WHEN ? THEN excluded.queue_mode
+                ELSE project_settings.queue_mode
+            END,
             updated_at = excluded.updated_at
         """,
         [github_user_id, project_id, *values, now, *flags],
     )
     await db.commit()
+
+
+async def is_queue_mode_enabled(db: aiosqlite.Connection, project_id: str) -> bool:
+    """Check if queue mode is enabled for any user on this project.
+
+    Looks for a ``queue_mode = 1`` row in ``project_settings`` for the
+    given project.  The check scans any user's settings for the project
+    (the setting is per-project, but stored per-user — any user enabling
+    it activates the gate).
+
+    Returns ``True`` when at least one row has ``queue_mode = 1``.
+    """
+    try:
+        cursor = await db.execute(
+            "SELECT 1 FROM project_settings WHERE project_id = ? AND queue_mode = 1 LIMIT 1",
+            (project_id,),
+        )
+        row = await cursor.fetchone()
+        return row is not None
+    except aiosqlite.Error:
+        logger.warning(
+            "Failed to check queue_mode for project %s; defaulting to OFF",
+            project_id,
+            exc_info=True,
+        )
+        return False
 
 
 # ── Merge Logic ──
@@ -443,6 +475,7 @@ def _build_project_section(
         project_id=project_id,
         board_display_config=board_config,
         agent_pipeline_mappings=agent_mappings,
+        queue_mode=bool(project_row["queue_mode"]) if project_row["queue_mode"] else False,
     )
 
 

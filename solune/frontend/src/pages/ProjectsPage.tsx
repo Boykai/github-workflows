@@ -12,6 +12,7 @@ import { useRealTimeSync } from '@/hooks/useRealTimeSync';
 import { useBoardRefresh } from '@/hooks/useBoardRefresh';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
+import { useProjectSettings } from '@/hooks/useSettings';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { ProjectIssueLaunchPanel } from '@/components/board/ProjectIssueLaunchPanel';
@@ -25,6 +26,8 @@ import { useBoardControls } from '@/hooks/useBoardControls';
 import { formatTimeAgo } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import { cn } from '@/lib/utils';
+import { Tooltip } from '@/components/ui/tooltip';
+import { ListOrdered } from 'lucide-react';
 import type { BoardItem } from '@/types';
 import { pipelinesApi } from '@/services/api';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
@@ -77,6 +80,15 @@ export function ProjectsPage() {
   // Board controls: filter, sort, group-by with localStorage persistence
   const boardControls = useBoardControls(selectedProjectId, boardData ?? undefined);
   const transformedBoardData = boardControls.transformedData;
+
+  // Queue mode toggle
+  const { settings: projectSettings, updateSettings: updateProjectSettings } =
+    useProjectSettings(selectedProjectId || undefined);
+  const isQueueMode = projectSettings?.project?.queue_mode ?? false;
+  const handleToggleQueueMode = useCallback(async () => {
+    if (!selectedProjectId) return;
+    await updateProjectSettings({ queue_mode: !isQueueMode });
+  }, [selectedProjectId, isQueueMode, updateProjectSettings]);
 
   const {
     data: savedPipelines,
@@ -225,6 +237,25 @@ export function ProjectsPage() {
             <span className="rounded-full border border-border/70 bg-background/45 px-3 py-2 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
               Updated {formatTimeAgo(syncLastUpdate ?? lastUpdated!)}
             </span>
+          )}
+
+          {selectedProjectId && (
+            <Tooltip content="Only one pipeline runs at a time — next starts when active reaches In Review or Done">
+              <button
+                type="button"
+                onClick={handleToggleQueueMode}
+                className={cn(
+                  'inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] transition-colors',
+                  isQueueMode
+                    ? 'bg-primary/15 text-primary border border-primary/30'
+                    : 'border border-border/70 bg-background/45 text-muted-foreground hover:text-foreground hover:border-border'
+                )}
+                aria-pressed={isQueueMode}
+              >
+                <ListOrdered className="h-3.5 w-3.5" />
+                Queue Mode
+              </button>
+            </Tooltip>
           )}
 
         {selectedProjectId && boardData && (

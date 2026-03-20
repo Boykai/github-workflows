@@ -506,10 +506,19 @@ export function ProjectIssueLaunchPanel({
               ) : null}
 
               {submissionResult?.success ? (
-                <div className="flex flex-wrap items-start gap-3 rounded-[1.15rem] border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
+                <div className={cn(
+                  'flex flex-wrap items-start gap-3 rounded-[1.15rem] border p-4 text-sm',
+                  submissionResult.message?.startsWith('Pipeline queued')
+                    ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
+                    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
+                )}>
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                   <div className="min-w-0 flex-1 space-y-1">
-                    <p className="font-medium">Pipeline launched successfully</p>
+                    <p className="font-medium">
+                      {submissionResult.message?.startsWith('Pipeline queued')
+                        ? 'Pipeline queued'
+                        : 'Pipeline launched successfully'}
+                    </p>
                     <p>{submissionResult.message}</p>
                   </div>
                   {submissionResult.issue_url ? (

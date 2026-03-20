@@ -197,6 +197,7 @@ def _row_to_pipeline_state(row) -> Any:
         execution_mode=metadata.get("execution_mode", "sequential"),
         parallel_agent_statuses=metadata.get("parallel_agent_statuses", {}),
         failed_agents=metadata.get("failed_agents", []),
+        queued=metadata.get("queued", False),
     )
 
 
@@ -214,6 +215,7 @@ def _pipeline_state_to_row(issue_number: int, state: Any) -> tuple:
         "execution_mode": state.execution_mode,
         "parallel_agent_statuses": state.parallel_agent_statuses,
         "failed_agents": state.failed_agents,
+        "queued": state.queued,
     }
     now = utcnow().isoformat()
     return (
@@ -300,6 +302,18 @@ async def get_pipeline_state_async(issue_number: int) -> Any:
 def get_all_pipeline_states() -> dict[int, Any]:
     """Get all pipeline states from L1 cache."""
     return dict(_pipeline_states)
+
+
+def count_active_pipelines_for_project(project_id: str) -> int:
+    """Count non-queued (actively running) pipelines for a project.
+
+    Scans the L1 cache — O(n) but fast for realistic cardinality.
+    """
+    return sum(
+        1
+        for state in _pipeline_states.values()
+        if state.project_id == project_id and not getattr(state, "queued", False)
+    )
 
 
 async def set_pipeline_state(issue_number: int, state: Any) -> None:

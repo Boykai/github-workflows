@@ -1927,6 +1927,27 @@ async def _transition_after_pipeline_complete(
     # Remove any old pipeline state for this issue
     _cp.remove_pipeline_state(issue_number)
 
+    # ── Queue mode: dequeue the next waiting pipeline ──
+    try:
+        dequeue_result = await _dequeue_next_pipeline(
+            access_token=access_token,
+            project_id=project_id,
+            owner=owner,
+            repo=repo,
+        )
+        if dequeue_result:
+            logger.info(
+                "Dequeued pipeline for issue #%d after issue #%d completed",
+                dequeue_result["issue_number"],
+                issue_number,
+            )
+    except Exception:
+        logger.warning(
+            "Non-blocking: failed to dequeue next pipeline after issue #%d completed",
+            issue_number,
+            exc_info=True,
+        )
+
     # When transitioning to "In Review", convert main PR from draft→ready
     # and request Copilot code review on the main PR.
     # Uses comprehensive multi-strategy discovery (in-memory cache,
@@ -2169,6 +2190,98 @@ async def _transition_after_pipeline_complete(
     }
 
 
+async def _dequeue_next_pipeline(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+) -> dict[str, Any] | None:
+    """Dequeue the oldest queued pipeline for a project and start it.
+
+    Called after a pipeline completes or transitions to "In Review" /
+    "Done" when queue mode is enabled.  Finds the oldest queued pipeline
+    by ``started_at`` (FIFO) and assigns the first agent.
+
+    Returns a result dict if a pipeline was dequeued, or None.
+    """
+    from src.services.pipeline_state_store import count_active_pipelines_for_project
+    from src.services.settings_store import is_queue_mode_enabled
+    from src.services.database import get_db
+
+    db = get_db()
+    queue_enabled = await is_queue_mode_enabled(db, project_id)
+    if not queue_enabled:
+        return None
+
+    # Only dequeue if there are no other active pipelines
+    active_count = count_active_pipelines_for_project(project_id)
+    if active_count > 0:
+        return None
+
+    # Find oldest queued pipeline for this project
+    all_states = _cp.get_all_pipeline_states()
+    queued = sorted(
+        (
+            (issue_num, state)
+            for issue_num, state in all_states.items()
+            if state.project_id == project_id and getattr(state, "queued", False)
+        ),
+        key=lambda pair: pair[1].started_at or utcnow(),
+    )
+
+    if not queued:
+        return None
+
+    issue_number, pipeline = queued[0]
+    pipeline.queued = False
+    _cp.set_pipeline_state(issue_number, pipeline)
+
+    logger.info(
+        "Dequeuing pipeline for issue #%d in project %s (was position #1 of %d queued)",
+        issue_number,
+        project_id,
+        len(queued),
+    )
+
+    config = await _cp.get_workflow_config(project_id)
+    if not config:
+        logger.warning("No workflow config for project %s during dequeue", project_id)
+        return None
+
+    status_name = pipeline.status
+    orchestrator = _cp.get_workflow_orchestrator()
+    ctx = _cp.WorkflowContext(
+        session_id="dequeue",
+        project_id=project_id,
+        access_token=access_token,
+        repository_owner=owner,
+        repository_name=repo,
+        issue_number=issue_number,
+        project_item_id=None,
+    )
+    ctx.config = config
+
+    await orchestrator.assign_agent_for_status(ctx, status_name, agent_index=0)
+
+    # Broadcast dequeue notification
+    await _cp.connection_manager.broadcast_to_project(
+        project_id,
+        {
+            "type": "pipeline_dequeued",
+            "issue_number": issue_number,
+            "status": status_name,
+            "timestamp": utcnow().isoformat(),
+        },
+    )
+
+    return {
+        "status": "success",
+        "issue_number": issue_number,
+        "action": "pipeline_dequeued",
+        "status_name": status_name,
+    }
+
+
 async def check_in_review_issues(
     access_token: str,
     project_id: str,
@@ -2298,6 +2411,23 @@ async def check_in_review_issues(
         logger.error("Error checking in-review issues: %s", e)
         _polling_state.errors_count += 1
         _polling_state.last_error = str(e)
+
+    # ── Queue mode: if any issue reached "In Review", try to dequeue ──
+    if results:
+        try:
+            dequeue_result = await _dequeue_next_pipeline(
+                access_token=access_token,
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+            )
+            if dequeue_result:
+                results.append(dequeue_result)
+        except Exception:
+            logger.warning(
+                "Non-blocking: failed to dequeue next pipeline after in-review check",
+                exc_info=True,
+            )
 
     return results
 

@@ -28,7 +28,7 @@ from src.services.agent_tracking import append_tracking_to_body
 from src.services.database import get_db
 from src.services.github_projects import github_projects_service
 from src.services.pipelines.service import PipelineService
-from src.services.settings_store import get_effective_user_settings
+from src.services.settings_store import get_effective_user_settings, is_queue_mode_enabled
 from src.services.workflow_orchestrator import (
     WorkflowContext,
     get_agent_slugs,
@@ -359,6 +359,53 @@ async def execute_pipeline_launch(
                     status_name=next_status,
                 )
                 status_name = next_status
+
+        # ── Queue mode gate ──
+        # If queue mode is ON and another pipeline is already active for
+        # this project, hold the new pipeline in the queue (no agent
+        # assignment, no polling start).
+        from src.services.pipeline_state_store import count_active_pipelines_for_project
+
+        db = get_db()
+        queue_enabled = await is_queue_mode_enabled(db, project_id)
+        active_count = count_active_pipelines_for_project(project_id)
+
+        if queue_enabled and active_count > 0 and ctx.issue_number is not None:
+            # Mark the pipeline as queued
+            ps = get_pipeline_state(ctx.issue_number)
+            if ps is not None:
+                ps.queued = True
+                set_pipeline_state(ctx.issue_number, ps)
+
+            logger.info(
+                "Queue mode ON for project %s — pipeline for issue #%d queued (active=%d)",
+                project_id,
+                ctx.issue_number,
+                active_count,
+            )
+
+            # Count queue position (queued pipelines sorted by started_at)
+            from src.services.pipeline_state_store import get_all_pipeline_states
+
+            all_states = get_all_pipeline_states()
+            queued_states = sorted(
+                (s for s in all_states.values() if s.project_id == project_id and getattr(s, "queued", False)),
+                key=lambda s: s.started_at or utcnow(),
+            )
+            queue_position = next(
+                (i + 1 for i, s in enumerate(queued_states) if s.issue_number == ctx.issue_number),
+                len(queued_states),
+            )
+
+            return WorkflowResult(
+                success=True,
+                issue_id=ctx.issue_id,
+                issue_number=ctx.issue_number,
+                issue_url=ctx.issue_url,
+                project_item_id=ctx.project_item_id,
+                current_status=status_name,
+                message=f"Pipeline queued — position #{queue_position}",
+            )
 
         await orchestrator.assign_agent_for_status(ctx, status_name, agent_index=0)
 

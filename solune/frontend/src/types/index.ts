@@ -417,6 +417,7 @@ export interface PipelineStateInfo {
   is_complete: boolean;
   started_at: string | null;
   error: string | null;
+  queued: boolean;
 }
 
 // ============ Board Types ============
@@ -487,6 +488,7 @@ export interface ProjectBoardConfig {
   column_order: string[];
   collapsed_columns: string[];
   show_estimates: boolean;
+  queue_mode: boolean;
 }
 
 export interface ProjectAgentMapping {
@@ -498,6 +500,7 @@ export interface ProjectSpecificSettings {
   project_id: string;
   board_display_config?: ProjectBoardConfig | null;
   agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
+  queue_mode?: boolean;
 }
 
 export interface EffectiveProjectSettings {
@@ -554,6 +557,7 @@ export interface GlobalSettingsUpdate {
 export interface ProjectSettingsUpdate {
   board_display_config?: ProjectBoardConfig | null;
   agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
+  queue_mode?: boolean | null;
 }
 
 // ============ Dynamic Model Fetching Types (012-settings-dynamic-ux) ============
