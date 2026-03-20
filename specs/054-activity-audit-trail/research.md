@@ -142,7 +142,7 @@
 
 **Decision**: Use two orthogonal enums — `event_type` categorizes what happened, `action` categorizes the verb.
 
-**Event types** (12 values):
+**Event types** (11 values):
 - `pipeline_run` — Pipeline execution lifecycle
 - `pipeline_stage` — Individual stage completion/failure
 - `chore_trigger` — Chore trigger evaluation/execution
