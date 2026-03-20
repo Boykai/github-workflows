@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
@@ -142,16 +142,37 @@ async def _load_user_agent_model(session: UserSession) -> str:
 # ── List Pipelines ──
 
 
-@router.get("/{project_id}", response_model=PipelineConfigListResponse)
+@router.get("/{project_id}")
 async def list_pipelines(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
     sort: str = "updated_at",
     order: str = "desc",
-) -> PipelineConfigListResponse:
+    limit: Annotated[int | None, Query(ge=1, le=100, description="Items per page")] = None,
+    cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
+) -> PipelineConfigListResponse | dict:
     """List all pipeline configurations for a project."""
     service = _get_service()
-    return await service.list_pipelines(project_id, sort=sort, order=order)
+    result = await service.list_pipelines(project_id, sort=sort, order=order)
+
+    if limit is not None or cursor is not None:
+        from src.services.pagination import apply_pagination
+
+        try:
+            paginated = apply_pagination(
+                result.pipelines, limit=limit or 20, cursor=cursor, key_fn=lambda p: p.id
+            )
+        except ValueError as exc:
+            raise ValidationError(str(exc)) from exc
+        return {
+            "pipelines": [p.model_dump() for p in paginated.items],
+            "total": result.total,
+            "next_cursor": paginated.next_cursor,
+            "has_more": paginated.has_more,
+            "total_count": paginated.total_count,
+        }
+
+    return result
 
 
 # ── Seed Presets ──

@@ -7,7 +7,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Search, Wrench } from 'lucide-react';
-import { useToolsList } from '@/hooks/useTools';
+import { useToolsList, useToolsListPaginated } from '@/hooks/useTools';
 import { useRepoMcpConfig } from '@/hooks/useRepoMcpConfig';
 import { useMcpPresets } from '@/hooks/useMcpPresets';
 import { useConfirmation } from '@/hooks/useConfirmation';
@@ -20,6 +20,7 @@ import { GitHubMcpConfigGenerator } from './GitHubMcpConfigGenerator';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
+import { InfiniteScrollContainer } from '@/components/common/InfiniteScrollContainer';
 import { isRateLimitApiError } from '@/utils/rateLimit';
 import type { McpPreset, McpToolConfig, McpToolConfigCreate, RepoMcpServerConfig } from '@/types';
 
@@ -50,6 +51,17 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     deletingId,
     deleteError,
   } = useToolsList(projectId);
+
+  const {
+    allItems: paginatedTools,
+    hasNextPage: toolsHasNextPage,
+    isFetchingNextPage: toolsIsFetchingNextPage,
+    fetchNextPage: toolsFetchNextPage,
+    isError: toolsPaginatedError,
+  } = useToolsListPaginated(projectId);
+
+  // Use paginated items when available; fall back to non-paginated for initial load
+  const displayTools = paginatedTools.length > 0 ? paginatedTools : tools;
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingTool, setEditingTool] = useState<McpToolConfig | null>(null);
@@ -148,7 +160,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     };
   }, []);
 
-  const filteredTools = tools.filter((tool) => {
+  const filteredTools = displayTools.filter((tool) => {
     const query = deferredSearch.trim().toLowerCase();
     if (query.length === 0) return true;
     return (
@@ -361,26 +373,34 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
               </Button>
             </div>
           ) : (
-            <div className="constellation-grid mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-              {filteredTools.map((tool) => (
-                <ToolCard
-                  key={tool.id}
-                  tool={tool}
-                  onEdit={handleOpenEdit}
-                  onSync={async (id) => {
-                    try {
-                      await syncTool(id);
-                      showSuccess('Tool synced successfully.');
-                    } catch {
-                      // syncError state surfaces the message below.
-                    }
-                  }}
-                  onDelete={handleDelete}
-                  isSyncing={syncingId === tool.id}
-                  isDeleting={deletingId === tool.id}
-                />
-              ))}
-            </div>
+            <InfiniteScrollContainer
+              hasNextPage={toolsHasNextPage ?? false}
+              isFetchingNextPage={toolsIsFetchingNextPage}
+              fetchNextPage={toolsFetchNextPage}
+              isError={toolsPaginatedError}
+              onRetry={toolsFetchNextPage}
+            >
+              <div className="constellation-grid mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                {filteredTools.map((tool) => (
+                  <ToolCard
+                    key={tool.id}
+                    tool={tool}
+                    onEdit={handleOpenEdit}
+                    onSync={async (id) => {
+                      try {
+                        await syncTool(id);
+                        showSuccess('Tool synced successfully.');
+                      } catch {
+                        // syncError state surfaces the message below.
+                      }
+                    }}
+                    onDelete={handleDelete}
+                    isSyncing={syncingId === tool.id}
+                    isDeleting={deletingId === tool.id}
+                  />
+                ))}
+              </div>
+            </InfiniteScrollContainer>
           )}
         </section>
       )}

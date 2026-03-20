@@ -9,6 +9,7 @@ import { AgentsPanel } from '../AgentsPanel';
 import type { AgentConfig } from '@/services/api';
 
 const mockUseAgentsList = vi.fn();
+const mockUseAgentsListPaginated = vi.fn();
 const mockUsePendingAgentsList = vi.fn();
 const mockUseClearPendingAgents = vi.fn();
 const mockUseDeleteAgent = vi.fn();
@@ -32,6 +33,7 @@ vi.mock('@/components/pipeline/ModelSelector', () => ({
 
 vi.mock('@/hooks/useAgents', () => ({
   useAgentsList: (...args: unknown[]) => mockUseAgentsList(...args),
+  useAgentsListPaginated: (...args: unknown[]) => mockUseAgentsListPaginated(...args),
   usePendingAgentsList: (...args: unknown[]) => mockUsePendingAgentsList(...args),
   useClearPendingAgents: (...args: unknown[]) => mockUseClearPendingAgents(...args),
   useDeleteAgent: (...args: unknown[]) => mockUseDeleteAgent(...args),
@@ -84,6 +86,15 @@ describe('AgentsPanel', () => {
       data: [],
       isLoading: false,
       error: null,
+    });
+    mockUseAgentsListPaginated.mockReturnValue({
+      allItems: [],
+      isLoading: false,
+      isError: false,
+      hasNextPage: false,
+      isFetchingNextPage: false,
+      fetchNextPage: vi.fn(),
+      invalidate: vi.fn(),
     });
     mockUsePendingAgentsList.mockReturnValue({
       data: [],
@@ -139,6 +150,7 @@ describe('AgentsPanel', () => {
       createAgent({ id: 'a4', slug: 'delta', name: 'Delta', created_at: '2026-03-01T00:00:00Z' }),
     ];
     mockUseAgentsList.mockReturnValue({ data: agents, isLoading: false, error: null });
+    mockUseAgentsListPaginated.mockReturnValue({ allItems: agents, isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), invalidate: vi.fn() });
 
     render(
       <AgentsPanel
@@ -170,6 +182,7 @@ describe('AgentsPanel', () => {
       createAgent({ id: 'a4', slug: 'delta', name: 'Delta', created_at: '2026-02-01T00:00:00Z' }),
     ];
     mockUseAgentsList.mockReturnValue({ data: agents, isLoading: false, error: null });
+    mockUseAgentsListPaginated.mockReturnValue({ allItems: agents, isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), invalidate: vi.fn() });
 
     render(
       <AgentsPanel
@@ -195,6 +208,7 @@ describe('AgentsPanel', () => {
       isLoading: false,
       error: null,
     });
+    mockUseAgentsListPaginated.mockReturnValue({ allItems: [createAgent({ id: 'a1', slug: 'alpha', name: 'Alpha' })], isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), invalidate: vi.fn() });
     mockUsePendingAgentsList.mockReturnValue({
       data: [createAgent({ id: 'p1', slug: 'beta', name: 'Beta', status: 'pending_pr' })],
       isLoading: false,
@@ -242,6 +256,7 @@ describe('AgentsPanel', () => {
       isLoading: false,
       error: null,
     });
+    mockUseAgentsListPaginated.mockReturnValue({ allItems: [createAgent({ id: 'repo:reviewer', source: 'repo', status: 'active' })], isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), invalidate: vi.fn() });
 
     render(<AgentsPanel projectId="PVT_1" />, { wrapper: createWrapper() });
     const user = userEvent.setup();
@@ -270,6 +285,7 @@ describe('AgentsPanel', () => {
       isLoading: false,
       error: null,
     });
+    mockUseAgentsListPaginated.mockReturnValue({ allItems: [ createAgent({ id: 'repo:speckit-clarify', name: 'Speckit.Clarify', slug: 'speckit.clarify', source: 'repo', status: 'active', }), ], isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), invalidate: vi.fn() });
 
     render(<AgentsPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -295,6 +311,7 @@ describe('AgentsPanel', () => {
       isLoading: false,
       error: null,
     });
+    mockUseAgentsListPaginated.mockReturnValue({ allItems: [ createAgent({ id: 'repo:alpha', slug: 'alpha', name: 'Alpha', source: 'repo', status: 'active', created_at: '2026-03-07T08:00:00Z', }), ], isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), invalidate: vi.fn() });
 
     render(<AgentsPanel projectId="PVT_1" pendingSubIssueCounts={{ alpha: 3 }} />, {
       wrapper: createWrapper(),
@@ -321,6 +338,7 @@ describe('AgentsPanel', () => {
       isLoading: false,
       error: null,
     });
+    mockUseAgentsListPaginated.mockReturnValue({ allItems: [ createAgent({ id: 'repo:alpha', slug: 'alpha', name: 'Alpha', source: 'repo', status: 'active', }), ], isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), invalidate: vi.fn() });
 
     render(
       <AgentsPanel
@@ -359,6 +377,7 @@ describe('AgentsPanel', () => {
       isLoading: false,
       error: null,
     });
+    mockUseAgentsListPaginated.mockReturnValue({ allItems: [ createAgent({ id: 'repo:alpha', slug: 'alpha', name: 'Alpha', source: 'repo', status: 'active', created_at: createdAt, }), ], isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), invalidate: vi.fn() });
 
     render(<AgentsPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -374,6 +393,7 @@ describe('AgentsPanel', () => {
       isLoading: false,
       error: null,
     });
+    mockUseAgentsListPaginated.mockReturnValue({ allItems: [createAgent({ status: 'active', source: 'both' })], isLoading: false, isError: false, hasNextPage: false, isFetchingNextPage: false, fetchNextPage: vi.fn(), invalidate: vi.fn() });
     mockUseUpdateAgent.mockReturnValue({
       mutateAsync,
       isPending: false,

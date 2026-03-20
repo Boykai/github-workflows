@@ -28,6 +28,14 @@ vi.mock('@/hooks/useApps', () => ({
     error: null,
     refetch: vi.fn(),
   }),
+  useAppsPaginated: () => ({
+    allItems: [],
+    hasNextPage: false,
+    isFetchingNextPage: false,
+    fetchNextPage: vi.fn(),
+    isError: false,
+    isLoading: false,
+  }),
   useCreateApp: () => ({
     mutate: mocks.createMutate,
     reset: mocks.createReset,

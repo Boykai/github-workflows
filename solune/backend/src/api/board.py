@@ -9,7 +9,13 @@ from fastapi import APIRouter, Depends, Query
 from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_session_dep
-from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
+from src.exceptions import (
+    AuthenticationError,
+    GitHubAPIError,
+    NotFoundError,
+    RateLimitError,
+    ValidationError,
+)
 from src.logging_utils import get_logger
 from src.models.board import (
     BoardDataResponse,
@@ -357,6 +363,12 @@ async def get_board_data(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
     refresh: Annotated[bool, Query(description="Force refresh from GitHub API")] = False,
+    column_limit: Annotated[
+        int | None, Query(ge=1, le=100, description="Items per column page")
+    ] = None,
+    column_cursors: Annotated[
+        str | None, Query(description="JSON map of {status_option_id: cursor}")
+    ] = None,
 ) -> BoardDataResponse:
     """Get board data for a specific project with columns and items."""
     cache_key = get_cache_key(CACHE_PREFIX_BOARD_DATA, project_id)
@@ -430,4 +442,40 @@ async def get_board_data(
     # cache entries can compare hashes to suppress unchanged refreshes.
     board_hash = compute_data_hash(board_data.model_dump(mode="json", exclude={"rate_limit"}))
     cache.set(cache_key, board_data, ttl_seconds=300, data_hash=board_hash)
+
+    # Apply per-column pagination when requested
+    if column_limit is not None or column_cursors is not None:
+        import copy
+        import json as _json
+
+        from src.services.pagination import apply_pagination
+
+        # Deep copy to avoid mutating cached board_data
+        board_data = copy.deepcopy(board_data)
+
+        cursors_map: dict[str, str] = {}
+        if column_cursors:
+            try:
+                parsed = _json.loads(column_cursors)
+                if not isinstance(parsed, dict):
+                    raise ValidationError(
+                        "column_cursors must be a JSON object mapping column IDs to cursor strings"
+                    )
+                cursors_map = parsed
+            except (ValueError, TypeError) as exc:
+                raise ValidationError(f"column_cursors is not valid JSON: {exc}") from exc
+
+        effective_limit = column_limit or 25
+        for col in board_data.columns:
+            col_cursor = cursors_map.get(col.status.option_id)
+            paginated = apply_pagination(
+                col.items,
+                limit=effective_limit,
+                cursor=col_cursor,
+                key_fn=lambda item: item.item_id,
+            )
+            col.items = paginated.items
+            col.next_cursor = paginated.next_cursor
+            col.has_more = paginated.has_more
+
     return board_data

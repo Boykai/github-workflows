@@ -50,14 +50,31 @@ async def list_owners_endpoint(
     return await github_service.list_available_owners(session.access_token)
 
 
-@router.get("", response_model=list[App])
+@router.get("")
 async def list_apps_endpoint(
     _session: _SessionDep,
     status: Annotated[AppStatus | None, Query(description="Filter by app status")] = None,
-) -> list[App]:
+    limit: Annotated[int | None, Query(ge=1, le=100, description="Items per page")] = None,
+    cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
+) -> list[App] | dict:
     """List all managed applications."""
     db = get_db()
-    return await list_apps(db, status_filter=status)
+    apps = await list_apps(db, status_filter=status)
+
+    if limit is not None or cursor is not None:
+        from src.services.pagination import apply_pagination
+
+        try:
+            result = apply_pagination(
+                apps, limit=limit or 25, cursor=cursor, key_fn=lambda a: a.name
+            )
+        except ValueError as exc:
+            from src.exceptions import ValidationError
+
+            raise ValidationError(str(exc)) from exc
+        return result.model_dump()
+
+    return apps
 
 
 @router.post("", response_model=App, status_code=201)
