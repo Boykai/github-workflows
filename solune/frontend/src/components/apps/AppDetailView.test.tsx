@@ -180,7 +180,7 @@ describe('AppDetailView', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Could not stop app "Demo App".');
   });
 
-  it('deletes the app after confirmation and navigates back on success', async () => {
+  it('deletes the app after confirmation and navigates back immediately', async () => {
     render(<AppDetailView appName="demo-app" onBack={mocks.onBack} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete app Demo App' }));

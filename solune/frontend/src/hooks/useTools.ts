@@ -162,7 +162,9 @@ export function useToolsList(projectId: string | null | undefined) {
 
 export function useUndoableDeleteTool(projectId: string | null | undefined) {
   const { undoableDelete, pendingIds } = useUndoableDelete({
-    queryKey: toolKeys.list(projectId ?? ''),
+    queryKeys: projectId
+      ? [toolKeys.list(projectId), [...toolKeys.list(projectId), 'paginated']]
+      : [],
   });
 
   return {
@@ -170,7 +172,12 @@ export function useUndoableDeleteTool(projectId: string | null | undefined) {
       undoableDelete({
         id: toolId,
         entityLabel: `Tool: ${toolName}`,
-        onDelete: () => toolsApi.delete(projectId!, toolId, true).then(() => undefined),
+        onDelete: async () => {
+          const result = await toolsApi.delete(projectId!, toolId, true);
+          if (!result.success) {
+            throw new Error(`Failed to delete tool "${toolName}"`);
+          }
+        },
       }),
     pendingIds,
   };

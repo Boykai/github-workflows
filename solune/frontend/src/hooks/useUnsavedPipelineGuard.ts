@@ -16,7 +16,7 @@ interface PipelineConfigActions {
   loadPipeline: (pipelineId: string) => Promise<unknown>;
   duplicatePipeline: (pipelineId: string) => Promise<unknown>;
   newPipeline: (stageNames: string[]) => void;
-  deletePipeline: () => void;
+  deletePipeline: () => Promise<unknown>;
   savePipeline: () => Promise<unknown>;
   discardChanges: () => void;
 }
@@ -46,7 +46,7 @@ export function useUnsavedPipelineGuard({
   const { blocker, isBlocked } = useUnsavedChanges({ isDirty: pipelineConfig.isDirty });
 
   const { undoableDelete } = useUndoableDelete({
-    queryKey: pipelineKeys.list(projectId ?? ''),
+    queryKeys: projectId ? [pipelineKeys.list(projectId)] : [],
   });
 
   const handleWorkflowSelect = useCallback(
@@ -108,7 +108,7 @@ export function useUnsavedPipelineGuard({
   const handleDelete = useCallback(async () => {
     const pipelineId = pipelineConfig.editingPipelineId;
     const pipelineName = pipelineConfig.pipeline?.name ?? 'Pipeline';
-    if (!pipelineId) return;
+    if (!pipelineId || !projectId) return;
 
     const confirmed = await confirm({
       title: 'Delete Pipeline',
@@ -121,11 +121,11 @@ export function useUnsavedPipelineGuard({
         id: pipelineId,
         entityLabel: `Pipeline: ${pipelineName}`,
         onDelete: async () => {
-          pipelineConfig.deletePipeline();
+          await pipelineConfig.deletePipeline();
         },
       });
     }
-  }, [pipelineConfig, confirm, undoableDelete]);
+  }, [pipelineConfig, confirm, projectId, undoableDelete]);
 
   const handleUnsavedSave = useCallback(async () => {
     const saved = await pipelineConfig.savePipeline();

@@ -95,7 +95,13 @@ export function useUpdateAgent(projectId: string | null | undefined) {
 export function useDeleteAgent(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
   return useMutation<AgentDeleteResult, ApiError, string>({
-    mutationFn: (agentId) => agentsApi.delete(projectId!, agentId),
+    mutationFn: async (agentId) => {
+      const result = await agentsApi.delete(projectId!, agentId);
+      if (!result.success) {
+        throw new Error(`Failed to delete agent "${agentId}"`);
+      }
+      return result;
+    },
     onSuccess: () => {
       if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
       toast.success('Agent deleted');
@@ -108,7 +114,9 @@ export function useDeleteAgent(projectId: string | null | undefined) {
 
 export function useUndoableDeleteAgent(projectId: string | null | undefined) {
   const { undoableDelete, pendingIds } = useUndoableDelete({
-    queryKey: agentKeys.list(projectId ?? ''),
+    queryKeys: projectId
+      ? [agentKeys.list(projectId), [...agentKeys.list(projectId), 'paginated']]
+      : [],
   });
 
   return {
@@ -116,7 +124,12 @@ export function useUndoableDeleteAgent(projectId: string | null | undefined) {
       undoableDelete({
         id: agentId,
         entityLabel: `Agent: ${agentName}`,
-        onDelete: () => agentsApi.delete(projectId!, agentId).then(() => undefined),
+        onDelete: async () => {
+          const result = await agentsApi.delete(projectId!, agentId);
+          if (!result.success) {
+            throw new Error(`Failed to delete agent "${agentName}"`);
+          }
+        },
       }),
     pendingIds,
   };

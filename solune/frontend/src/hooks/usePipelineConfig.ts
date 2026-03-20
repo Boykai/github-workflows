@@ -293,12 +293,14 @@ export function usePipelineConfig(projectId: string | null) {
       resetPending();
       queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
     } catch (err) {
+      const message = errMsg(err, 'Failed to delete pipeline');
       // Rollback optimistic update
       if (listSnapshot) {
         queryClient.setQueryData(listQueryKey, listSnapshot);
       }
-      dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to delete pipeline') });
-      toast.error(errMsg(err, 'Failed to delete pipeline'), { duration: Infinity });
+      dispatch({ type: 'SAVE_FAILURE', error: message });
+      toast.error(message, { duration: Infinity });
+      throw err instanceof Error ? err : new Error(message);
     } finally {
       queryClient.invalidateQueries({ queryKey: listQueryKey });
     }

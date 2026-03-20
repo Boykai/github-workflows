@@ -213,7 +213,8 @@ export function useDeleteApp() {
 
 export function useUndoableDeleteApp() {
   const { undoableDelete, pendingIds } = useUndoableDelete({
-    queryKey: appKeys.list(),
+    queryKeys: [appKeys.list(), [...appKeys.list(), 'paginated']],
+    restoreOnUnmount: false,
   });
 
   return {

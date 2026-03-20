@@ -9,13 +9,15 @@
  * 4. On unmount: clears all pending timers, restores all cached items.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQueryClient, type QueryKey } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 interface UseUndoableDeleteOptions {
-  queryKey: QueryKey;
+  queryKey?: QueryKey;
+  queryKeys?: QueryKey[];
   undoTimeoutMs?: number;
+  restoreOnUnmount?: boolean;
 }
 
 interface UndoableDeleteParams {
@@ -27,29 +29,147 @@ interface UndoableDeleteParams {
 interface PendingEntry {
   timeoutId: ReturnType<typeof setTimeout>;
   toastId: string;
-  snapshot: unknown;
-  onDelete: () => Promise<void>;
-  queryKey: QueryKey;
+  snapshots: CacheSnapshot[];
 }
 
-export function useUndoableDelete({ queryKey, undoTimeoutMs = 5000 }: UseUndoableDeleteOptions) {
+interface CacheSnapshot {
+  queryKey: QueryKey;
+  snapshot: unknown;
+  existed: boolean;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function areQueryKeyPartsEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) {
+    return true;
+  }
+
+  if (Array.isArray(left) && Array.isArray(right)) {
+    return left.length === right.length && left.every((part, index) => areQueryKeyPartsEqual(part, right[index]));
+  }
+
+  if (isPlainObject(left) && isPlainObject(right)) {
+    const leftKeys = Object.keys(left);
+    const rightKeys = Object.keys(right);
+    return (
+      leftKeys.length === rightKeys.length &&
+      leftKeys.every((key) => key in right && areQueryKeyPartsEqual(left[key], right[key]))
+    );
+  }
+
+  return false;
+}
+
+function areQueryKeysEqual(left: QueryKey, right: QueryKey) {
+  return left.length === right.length && left.every((part, index) => areQueryKeyPartsEqual(part, right[index]));
+}
+
+function shouldKeepEntity(item: Record<string, unknown>, id: string) {
+  return item.id !== id && item.name !== id;
+}
+
+function removeEntityFromCache(old: unknown, id: string): unknown {
+  if (Array.isArray(old)) {
+    return old.filter((item) => shouldKeepEntity(item as Record<string, unknown>, id));
+  }
+
+  if (!old || typeof old !== 'object') {
+    return old;
+  }
+
+  if ('pages' in old && Array.isArray(old.pages)) {
+    return {
+      ...old,
+      pages: old.pages.map((page) => {
+        if (!page || typeof page !== 'object' || !('items' in page) || !Array.isArray(page.items)) {
+          return page;
+        }
+
+        return {
+          ...page,
+          items: page.items.filter((item: unknown) =>
+            shouldKeepEntity(item as Record<string, unknown>, id),
+          ),
+        };
+      }),
+    };
+  }
+
+  if ('items' in old && Array.isArray(old.items)) {
+    return {
+      ...old,
+      items: old.items.filter((item) => shouldKeepEntity(item as Record<string, unknown>, id)),
+    };
+  }
+
+  if ('tools' in old && Array.isArray(old.tools)) {
+    return {
+      ...old,
+      tools: old.tools.filter((item) => shouldKeepEntity(item as Record<string, unknown>, id)),
+    };
+  }
+
+  if ('pipelines' in old && Array.isArray(old.pipelines)) {
+    return {
+      ...old,
+      pipelines: old.pipelines.filter((item) =>
+        shouldKeepEntity(item as Record<string, unknown>, id),
+      ),
+    };
+  }
+
+  return old;
+}
+
+export function useUndoableDelete({
+  queryKey,
+  queryKeys,
+  undoTimeoutMs = 5000,
+  restoreOnUnmount = true,
+}: UseUndoableDeleteOptions) {
   const queryClient = useQueryClient();
   const pendingRef = useRef<Map<string, PendingEntry>>(new Map());
+  const isMountedRef = useRef(true);
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const normalizedQueryKeys = useMemo(
+    () => queryKeys ?? (queryKey ? [queryKey] : []),
+    [queryKey, queryKeys],
+  );
+
+  const setPendingState = useCallback((updater: (prev: Set<string>) => Set<string>) => {
+    if (!isMountedRef.current) return;
+    setPendingIds(updater);
+  }, []);
+
+  const restoreSnapshots = useCallback(
+    (snapshots: CacheSnapshot[]) => {
+      snapshots.forEach(({ queryKey: snapshotKey, snapshot, existed }) => {
+        if (existed) {
+          queryClient.setQueryData(snapshotKey, snapshot);
+          return;
+        }
+        queryClient.removeQueries({ queryKey: snapshotKey, exact: true });
+      });
+    },
+    [queryClient],
+  );
 
   const restoreItem = useCallback(
     (entityId: string, entry: PendingEntry) => {
       clearTimeout(entry.timeoutId);
       toast.dismiss(entry.toastId);
-      queryClient.setQueryData(entry.queryKey, entry.snapshot);
+      restoreSnapshots(entry.snapshots);
       pendingRef.current.delete(entityId);
-      setPendingIds((prev) => {
+      setPendingState((prev) => {
         const next = new Set(prev);
         next.delete(entityId);
         return next;
       });
     },
-    [queryClient],
+    [restoreSnapshots, setPendingState],
   );
 
   const undoableDelete = useCallback(
@@ -61,19 +181,25 @@ export function useUndoableDelete({ queryKey, undoTimeoutMs = 5000 }: UseUndoabl
         toast.dismiss(existing.toastId);
       }
 
-      // Snapshot current cache
-      const snapshot = queryClient.getQueryData(queryKey);
+      const snapshots = normalizedQueryKeys.map((currentQueryKey) => {
+        const existingSnapshot = existing?.snapshots.find((snapshot) =>
+          areQueryKeysEqual(snapshot.queryKey, currentQueryKey),
+        );
+        const existed = queryClient.getQueryState(currentQueryKey) !== undefined;
+        return (
+          existingSnapshot ?? {
+            queryKey: currentQueryKey,
+            snapshot: queryClient.getQueryData(currentQueryKey),
+            existed,
+          }
+        );
+      });
 
-      // Optimistically remove item from cache
-      // Checks both item.id and item.name because agents/chores/tools use
-      // 'id' as identifier while apps use 'name' as identifier.
-      queryClient.setQueryData(queryKey, (old: unknown) => {
-        if (Array.isArray(old)) {
-          return old.filter(
-            (item: Record<string, unknown>) => item.id !== id && item.name !== id,
-          );
+      normalizedQueryKeys.forEach((currentQueryKey) => {
+        if (queryClient.getQueryState(currentQueryKey) === undefined) {
+          return;
         }
-        return old;
+        queryClient.setQueryData(currentQueryKey, (old: unknown) => removeEntityFromCache(old, id));
       });
 
       const toastId = `undo-delete-${id}`;
@@ -82,7 +208,7 @@ export function useUndoableDelete({ queryKey, undoTimeoutMs = 5000 }: UseUndoabl
       const timeoutId = setTimeout(async () => {
         toast.dismiss(toastId);
         pendingRef.current.delete(id);
-        setPendingIds((prev) => {
+        setPendingState((prev) => {
           const next = new Set(prev);
           next.delete(id);
           return next;
@@ -90,18 +216,26 @@ export function useUndoableDelete({ queryKey, undoTimeoutMs = 5000 }: UseUndoabl
 
         try {
           await onDelete();
-          queryClient.invalidateQueries({ queryKey });
+          await Promise.all(
+            normalizedQueryKeys.map((currentQueryKey) =>
+              queryClient.invalidateQueries({ queryKey: currentQueryKey }),
+            ),
+          );
         } catch {
           // Restore on failure
-          queryClient.setQueryData(queryKey, snapshot);
+          restoreSnapshots(snapshots);
           toast.error(`Failed to delete ${entityLabel}`, { duration: Infinity });
         }
       }, undoTimeoutMs);
 
       // Store pending entry
-      const entry: PendingEntry = { timeoutId, toastId, snapshot, onDelete, queryKey };
+      const entry: PendingEntry = {
+        timeoutId,
+        toastId,
+        snapshots,
+      };
       pendingRef.current.set(id, entry);
-      setPendingIds((prev) => new Set(prev).add(id));
+      setPendingState((prev) => new Set(prev).add(id));
 
       // Show undo toast
       toast(`${entityLabel} deleted`, {
@@ -116,20 +250,25 @@ export function useUndoableDelete({ queryKey, undoTimeoutMs = 5000 }: UseUndoabl
         },
       });
     },
-    [queryClient, queryKey, undoTimeoutMs, restoreItem],
+    [normalizedQueryKeys, queryClient, restoreItem, restoreSnapshots, setPendingState, undoTimeoutMs],
   );
 
   // Cleanup on unmount: restore all pending items silently
   useEffect(() => {
     const ref = pendingRef;
+    isMountedRef.current = true;
     return () => {
+      isMountedRef.current = false;
+      if (!restoreOnUnmount) {
+        return;
+      }
       ref.current.forEach((entry) => {
         clearTimeout(entry.timeoutId);
-        queryClient.setQueryData(entry.queryKey, entry.snapshot);
+        restoreSnapshots(entry.snapshots);
       });
       ref.current.clear();
     };
-  }, [queryClient]);
+  }, [restoreOnUnmount, restoreSnapshots]);
 
   return { undoableDelete, pendingIds };
 }
