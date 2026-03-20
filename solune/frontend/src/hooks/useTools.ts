@@ -8,6 +8,7 @@ import { toolsApi, ApiError } from '@/services/api';
 import { repoMcpKeys } from '@/hooks/useRepoMcpConfig';
 import { agentKeys } from '@/hooks/useAgents';
 import { isRateLimitApiError } from '@/utils/rateLimit';
+import { useInfiniteList } from '@/hooks/useInfiniteList';
 import type {
   McpToolConfig,
   McpToolConfigCreate,
@@ -15,6 +16,7 @@ import type {
   McpToolConfigListResponse,
   McpToolSyncResult,
   ToolDeleteResult,
+  PaginatedResponse,
 } from '@/types';
 
 function formatMutationError(error: unknown, action: string): string {
@@ -133,5 +135,33 @@ export function useToolsList(projectId: string | null | undefined) {
     deleteResult: deleteMutation.data ?? null,
 
     authError,
+  };
+}
+
+export function useToolsListPaginated(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+  const result = useInfiniteList<McpToolConfig>({
+    queryKey: [...toolKeys.list(projectId ?? ''), 'paginated'],
+    queryFn: async (params) => {
+      const resp = await toolsApi.listPaginated(projectId!, params);
+      return {
+        items: resp.tools,
+        next_cursor: resp.next_cursor,
+        has_more: resp.has_more,
+        total_count: resp.total_count,
+      } as PaginatedResponse<McpToolConfig>;
+    },
+    limit: 25,
+    staleTime: STALE_TIME_TOOLS,
+    enabled: !!projectId,
+  });
+
+  return {
+    ...result,
+    invalidate: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+      }
+    },
   };
 }

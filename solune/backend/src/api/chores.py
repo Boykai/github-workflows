@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.exceptions import (
@@ -166,14 +166,29 @@ async def list_templates(
 # ── List ──
 
 
-@router.get("/{project_id}", response_model=list[Chore])
+@router.get("/{project_id}")
 async def list_chores(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
-) -> list[Chore]:
+    limit: Annotated[int | None, Query(ge=1, le=100, description="Items per page")] = None,
+    cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
+) -> list[Chore] | dict:
     """List all chores for a project."""
     service = _get_service()
-    return await service.list_chores(project_id)
+    chores = await service.list_chores(project_id)
+
+    if limit is not None or cursor is not None:
+        from src.services.pagination import apply_pagination
+
+        try:
+            result = apply_pagination(
+                chores, limit=limit or 25, cursor=cursor, key_fn=lambda c: c.id
+            )
+        except ValueError as exc:
+            raise ValidationError(str(exc)) from exc
+        return result.model_dump()
+
+    return chores
 
 
 # ── Create ──

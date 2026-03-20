@@ -22,6 +22,7 @@ vi.mock('@/hooks/useProjectBoard', () => ({
 
 vi.mock('@/hooks/useTools', () => ({
   useToolsList: () => ({ tools: [], isLoading: false, error: null }),
+  useToolsListPaginated: () => ({ allItems: [], hasNextPage: false, isFetchingNextPage: false, fetchNextPage: () => {}, isError: false, isLoading: false }),
 }));
 
 describe('ToolsPage', () => {

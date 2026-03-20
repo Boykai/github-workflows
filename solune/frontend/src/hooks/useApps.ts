@@ -5,6 +5,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ApiError, appsApi } from '@/services/api';
+import { useInfiniteList } from '@/hooks/useInfiniteList';
 import type {
   App,
   AppAssetInventory,
@@ -47,6 +48,24 @@ export function useApps() {
     queryFn: () => appsApi.list(),
     staleTime: 30_000,
   });
+}
+
+/** Fetch applications with cursor-based pagination. */
+export function useAppsPaginated() {
+  const queryClient = useQueryClient();
+  const result = useInfiniteList<App>({
+    queryKey: [...appKeys.list(), 'paginated'],
+    queryFn: (params) => appsApi.listPaginated(params),
+    limit: 25,
+    staleTime: 30_000,
+  });
+
+  return {
+    ...result,
+    invalidate: () => {
+      queryClient.invalidateQueries({ queryKey: appKeys.list() });
+    },
+  };
 }
 
 /** Fetch a single application by name. */

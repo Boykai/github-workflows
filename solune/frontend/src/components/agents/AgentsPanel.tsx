@@ -7,7 +7,7 @@
 
 import { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
 import { Search, Sparkles, RefreshCw } from 'lucide-react';
-import { useAgentsList, usePendingAgentsList, useClearPendingAgents } from '@/hooks/useAgents';
+import { useAgentsListPaginated, usePendingAgentsList, useClearPendingAgents } from '@/hooks/useAgents';
 import { useModels } from '@/hooks/useModels';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { AgentCard } from './AgentCard';
@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
+import { InfiniteScrollContainer } from '@/components/common/InfiniteScrollContainer';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
@@ -47,7 +48,15 @@ export function AgentsPanel({
   pipelineConfigCounts = {},
   pendingSubIssueCounts = {},
 }: AgentsPanelProps) {
-  const { data: agents, isLoading, error } = useAgentsList(projectId);
+  const {
+    allItems: agents,
+    isLoading,
+    isError: hasError,
+    hasNextPage: agentsHasNextPage,
+    isFetchingNextPage: agentsIsFetchingNextPage,
+    fetchNextPage: agentsFetchNextPage,
+  } = useAgentsListPaginated(projectId);
+  const error = hasError ? new Error('Failed to load agents') : null;
   const { data: pendingAgents, isLoading: pendingLoading } = usePendingAgentsList(projectId);
   const { refreshModels, isRefreshing: isRefreshingModels } = useModels();
   const clearPendingMutation = useClearPendingAgents(projectId);
@@ -524,19 +533,27 @@ export function AgentsPanel({
                 </Button>
               </div>
             ) : (
-              <div className="constellation-grid mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-                {filteredAgents.map((agent) => (
-                  <AgentCard
-                    key={agent.id}
-                    agent={agent}
-                    projectId={projectId}
-                    usageCount={agentUsageCounts[agent.slug] ?? 0}
-                    pipelineConfigCount={pipelineConfigCounts[agent.slug] ?? 0}
-                    pendingSubIssueCount={pendingSubIssueCounts[agent.slug.toLowerCase()] ?? 0}
-                    onEdit={handleEditRequest}
-                  />
-                ))}
-              </div>
+              <InfiniteScrollContainer
+                hasNextPage={agentsHasNextPage ?? false}
+                isFetchingNextPage={agentsIsFetchingNextPage}
+                fetchNextPage={agentsFetchNextPage}
+                isError={hasError}
+                onRetry={agentsFetchNextPage}
+              >
+                <div className="constellation-grid mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+                  {filteredAgents.map((agent) => (
+                    <AgentCard
+                      key={agent.id}
+                      agent={agent}
+                      projectId={projectId}
+                      usageCount={agentUsageCounts[agent.slug] ?? 0}
+                      pipelineConfigCount={pipelineConfigCounts[agent.slug] ?? 0}
+                      pendingSubIssueCount={pendingSubIssueCounts[agent.slug.toLowerCase()] ?? 0}
+                      onEdit={handleEditRequest}
+                    />
+                  ))}
+                </div>
+              </InfiniteScrollContainer>
             )}
           </section>
         </>
