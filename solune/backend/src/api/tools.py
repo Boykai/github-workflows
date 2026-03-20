@@ -23,6 +23,7 @@ from src.models.tools import (
     ToolDeleteResult,
 )
 from src.models.user import UserSession
+from src.services.activity_logger import log_event
 from src.services.database import get_db
 from src.services.tools.presets import list_mcp_presets
 from src.services.tools.service import (
@@ -235,7 +236,7 @@ async def create_tool(
         raise ValidationError("Cannot resolve repository for project") from exc
 
     try:
-        return await service.create_tool(
+        result = await service.create_tool(
             project_id=project_id,
             github_user_id=session.github_user_id,
             data=data,
@@ -247,6 +248,20 @@ async def create_tool(
         raise AppException(str(exc), status_code=409) from exc
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
+
+    await log_event(
+        get_db(),
+        event_type="tool_crud",
+        entity_type="tool",
+        entity_id=result.tool.id if result.tool else project_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="created",
+        summary=f"Tool '{data.name}' created",
+        detail={"entity_name": data.name},
+    )
+
+    return result
 
 
 # ── Get Tool ──
@@ -295,7 +310,7 @@ async def update_tool(
         raise ValidationError("Cannot resolve repository for project") from exc
 
     try:
-        return await service.update_tool(
+        result = await service.update_tool(
             project_id=project_id,
             tool_id=tool_id,
             github_user_id=session.github_user_id,
@@ -310,6 +325,20 @@ async def update_tool(
         raise AppException(str(exc), status_code=409) from exc
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
+
+    await log_event(
+        get_db(),
+        event_type="tool_crud",
+        entity_type="tool",
+        entity_id=tool_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="updated",
+        summary=f"Tool '{tool_id}' updated",
+        detail={"entity_name": tool_id},
+    )
+
+    return result
 
 
 # ── Sync Tool ──
@@ -383,7 +412,7 @@ async def delete_tool(
         logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
         raise ValidationError("Cannot resolve repository for project") from exc
 
-    return await service.delete_tool(
+    result = await service.delete_tool(
         project_id=project_id,
         tool_id=tool_id,
         github_user_id=session.github_user_id,
@@ -392,3 +421,17 @@ async def delete_tool(
         repo=repo,
         access_token=session.access_token,
     )
+
+    await log_event(
+        get_db(),
+        event_type="tool_crud",
+        entity_type="tool",
+        entity_id=tool_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="deleted",
+        summary=f"Tool '{tool_id}' deleted",
+        detail={"entity_name": tool_id},
+    )
+
+    return result

@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 
+from src.api.activity import router as activity_router
 from src.api.agents import router as agents_router
 from src.api.apps import router as apps_router
 from src.api.auth import router as auth_router
@@ -43,3 +44,4 @@ router.include_router(metadata_router, prefix="/metadata", tags=["metadata"])
 router.include_router(health_router, tags=["health"])
 router.include_router(onboarding_router, tags=["onboarding"])
 router.include_router(apps_router, prefix="/apps", tags=["apps"])
+router.include_router(activity_router, prefix="/activity", tags=["activity"])
