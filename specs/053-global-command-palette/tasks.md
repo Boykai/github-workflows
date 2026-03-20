@@ -34,7 +34,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement `useCommandPalette` hook skeleton in `solune/frontend/src/hooks/useCommandPalette.ts` with state management: `query`, `selectedIndex`, `filteredResults`, `isLoading`, `isOpen`-aware data fetching toggle, `setQuery()`, `moveUp()`, `moveDown()`, `selectCurrent()`, and focus save/restore via `useRef` for `document.activeElement`
+- [ ] T003 Implement `useCommandPalette` hook skeleton in `solune/frontend/src/hooks/useCommandPalette.ts` with state management: `query`, `selectedIndex`, `filteredResults`, `isLoading`, conditional data fetching (entity hooks enabled only when `isOpen` is true), `setQuery()`, `moveUp()`, `moveDown()`, `selectCurrent()`, and focus save/restore via `useRef` for `document.activeElement`
 - [ ] T004 [P] Modify `useGlobalShortcuts` in `solune/frontend/src/hooks/useGlobalShortcuts.ts` to dispatch `'solune:open-command-palette'` custom event on Ctrl+K / Cmd+K instead of `'solune:focus-chat'`, with `isModalOpen()` guard to prevent opening over existing dialogs (FR-012)
 - [ ] T005 Add `solune:open-command-palette` event listener in `solune/frontend/src/layout/AppLayout.tsx` with `isCommandPaletteOpen` state (`useState(false)`), toggling on event, and pass `isOpen` / `onClose` / `projectId` props to `CommandPalette` component render site (below `KeyboardShortcutModal`)
 
@@ -104,7 +104,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Add quick actions search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): define static `CommandPaletteItem[]` for "Toggle Theme" (`icon: SunMoon`, `category: 'actions'`, `action: toggleTheme` from `useAppTheme`), "Focus Chat" (`icon: MessageSquare`, `category: 'actions'`, `action: () => dispatchEvent(new CustomEvent('solune:focus-chat'))`), and "Help" (`icon: HelpCircle`, `category: 'actions'`, `action: () => navigate('/help')`) per data-model.md Quick Action definitions
+- [ ] T021 [US3] Add quick actions search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): define static `CommandPaletteItem[]` for "Toggle Theme" (`icon: SunMoon`, `category: 'actions'`, `action: toggleTheme` from `useAppTheme`), "Focus Chat" (`icon: MessageSquare`, `category: 'actions'`, `action: () => window.dispatchEvent(new CustomEvent('solune:focus-chat'))`), and "Help" (`icon: HelpCircle`, `category: 'actions'`, `action: () => navigate('/help')`) per data-model.md Quick Action definitions
 - [ ] T022 [US3] Add clickable search trigger button to `TopBar` in `solune/frontend/src/layout/TopBar.tsx`: render a `Search` icon button (from `lucide-react`) with tooltip "Search (Ctrl+K)" or "Search (⌘K)" on macOS, `onClick` dispatches `'solune:open-command-palette'` custom event, `aria-label="Open command palette"`, positioned near existing action buttons (FR-013)
 - [ ] T023 [US3] Update keyboard shortcut modal description in `solune/frontend/src/components/ui/keyboard-shortcut-modal.tsx`: change the Ctrl+K / Cmd+K shortcut description from `'Focus chat input'` to `'Command Palette'` (FR-015)
 
