@@ -15,6 +15,7 @@ import {
 } from '@/services/api';
 import { STALE_TIME_PROJECTS } from '@/constants';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
+import { useUndoableDelete } from '@/hooks/useUndoableDelete';
 
 export const agentKeys = {
   all: ['agents'] as const,
@@ -103,6 +104,22 @@ export function useDeleteAgent(projectId: string | null | undefined) {
       toast.error(error.message || 'Failed to delete agent', { duration: Infinity });
     },
   });
+}
+
+export function useUndoableDeleteAgent(projectId: string | null | undefined) {
+  const { undoableDelete, pendingIds } = useUndoableDelete({
+    queryKey: agentKeys.list(projectId ?? ''),
+  });
+
+  return {
+    deleteAgent: (agentId: string, agentName: string) =>
+      undoableDelete({
+        id: agentId,
+        entityLabel: `Agent: ${agentName}`,
+        onDelete: () => agentsApi.delete(projectId!, agentId).then(() => undefined),
+      }),
+    pendingIds,
+  };
 }
 
 export function useClearPendingAgents(projectId: string | null | undefined) {

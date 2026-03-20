@@ -94,6 +94,7 @@ export function AgentsPipelinePage() {
     handleUnsavedCancel,
   } = useUnsavedPipelineGuard({
     pipelineConfig,
+    projectId,
     confirm,
     focusPipelineEditor,
     columns,

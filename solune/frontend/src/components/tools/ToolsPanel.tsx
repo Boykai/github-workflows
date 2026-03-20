@@ -7,7 +7,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertCircle, Search, Wrench } from 'lucide-react';
-import { useToolsList, useToolsListPaginated } from '@/hooks/useTools';
+import { useToolsList, useToolsListPaginated, useUndoableDeleteTool } from '@/hooks/useTools';
 import { useRepoMcpConfig } from '@/hooks/useRepoMcpConfig';
 import { useMcpPresets } from '@/hooks/useMcpPresets';
 import { useConfirmation } from '@/hooks/useConfirmation';
@@ -59,6 +59,8 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     fetchNextPage: toolsFetchNextPage,
     isError: toolsPaginatedError,
   } = useToolsListPaginated(projectId);
+
+  const { deleteTool: undoableDeleteTool } = useUndoableDeleteTool(projectId);
 
   // Use paginated items when available; fall back to non-paginated for initial load
   const displayTools = paginatedTools.length > 0 ? paginatedTools : tools;
@@ -183,12 +185,9 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
         description: `This tool is assigned to the following agents: ${agentList}. Deleting it will remove it from these agents. Are you sure?`,
         variant: 'danger',
         confirmLabel: 'Delete anyway',
-        onConfirm: async () => {
-          await deleteTool({ toolId, confirm: true });
-        },
       });
       if (confirmed) {
-        showSuccess(`Tool "${tool?.name ?? toolId}" deleted successfully.`);
+        undoableDeleteTool(toolId, tool?.name ?? toolId);
       }
     }
   };

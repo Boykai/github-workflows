@@ -277,7 +277,6 @@ export function usePipelineConfig(projectId: string | null) {
       clearUndoRedo();
       resetPending();
       queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
-      toast.success('Pipeline deleted');
     } catch (err) {
       dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to delete pipeline') });
       toast.error(errMsg(err, 'Failed to delete pipeline'), { duration: Infinity });
