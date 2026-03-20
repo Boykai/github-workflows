@@ -26,7 +26,7 @@ import { formatTimeAgo } from '@/utils/formatTime';
 import { extractRateLimitInfo, isRateLimitApiError } from '@/utils/rateLimit';
 import { cn } from '@/lib/utils';
 import type { BoardItem } from '@/types';
-import { pipelinesApi } from '@/services/api';
+import { boardApi, pipelinesApi } from '@/services/api';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
 
@@ -107,6 +107,23 @@ export function ProjectsPage() {
 
   const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
+
+  const statusUpdateMutation = useMutation({
+    mutationFn: ({ itemId, status }: { itemId: string; status: string }) =>
+      boardApi.updateItemStatus(selectedProjectId!, itemId, status),
+    onSuccess: () => {
+      if (selectedProjectId) {
+        void queryClient.invalidateQueries({ queryKey: ['boardData', selectedProjectId] });
+      }
+    },
+  });
+
+  const handleStatusUpdate = useCallback(
+    async (itemId: string, newStatus: string) => {
+      await statusUpdateMutation.mutateAsync({ itemId, status: newStatus });
+    },
+    [statusUpdateMutation],
+  );
 
   const assignedPipelineName = useMemo(
     () =>
@@ -315,6 +332,7 @@ export function ProjectsPage() {
             boardControls={boardControls}
             onCardClick={handleCardClick}
             availableAgents={availableAgents}
+            onStatusUpdate={handleStatusUpdate}
           />
         </div>
       )}

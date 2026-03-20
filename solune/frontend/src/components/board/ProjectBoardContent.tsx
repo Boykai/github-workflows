@@ -20,6 +20,7 @@ interface ProjectBoardContentProps {
   boardControls: BoardControls;
   onCardClick: (item: BoardItem) => void;
   availableAgents: AvailableAgent[];
+  onStatusUpdate?: (itemId: string, newStatus: string) => Promise<void>;
 }
 
 export function ProjectBoardContent({
@@ -27,6 +28,7 @@ export function ProjectBoardContent({
   boardControls,
   onCardClick,
   availableAgents,
+  onStatusUpdate,
 }: ProjectBoardContentProps) {
   const allEmpty = boardData.columns.every((col) => col.items.length === 0);
 
@@ -72,6 +74,7 @@ export function ProjectBoardContent({
         onCardClick={onCardClick}
         availableAgents={availableAgents}
         getGroups={boardControls.getGroups}
+        onStatusUpdate={onStatusUpdate}
       />
     </div>
   );

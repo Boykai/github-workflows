@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
 from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_session_dep
@@ -431,3 +431,47 @@ async def get_board_data(
     board_hash = compute_data_hash(board_data.model_dump(mode="json", exclude={"rate_limit"}))
     cache.set(cache_key, board_data, ttl_seconds=300, data_hash=board_hash)
     return board_data
+
+
+@router.patch("/projects/{project_id}/items/{item_id}/status")
+async def update_item_status(
+    project_id: str,
+    item_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+    status: Annotated[str, Body(embed=True, description="Target status name")],
+) -> dict[str, bool]:
+    """Move a board item to a different status column."""
+    try:
+        success = await github_projects_service.update_item_status_by_name(
+            access_token=session.access_token,
+            project_id=project_id,
+            item_id=item_id,
+            status_name=status,
+        )
+    except Exception as e:
+        if _is_github_auth_error(e):
+            raise AuthenticationError(
+                "Your GitHub session has expired. Please log in again."
+            ) from e
+        if _is_github_rate_limit_error(e):
+            raise RateLimitError(
+                message="GitHub API rate limit exceeded",
+                retry_after=_retry_after_seconds(e),
+                details=_rate_limit_details(),
+            ) from e
+        logger.error("Failed to update item status: %s", e, exc_info=True)
+        raise GitHubAPIError(
+            message="Failed to update item status",
+            details={"reason": _classify_github_error(e)},
+        ) from e
+
+    if not success:
+        raise GitHubAPIError(
+            message="Could not update item status — the status option may not exist."
+        )
+
+    # Invalidate cached board data so the next fetch reflects the change.
+    cache_key = get_cache_key(CACHE_PREFIX_BOARD_DATA, project_id)
+    cache.delete(cache_key)
+
+    return {"success": True}
