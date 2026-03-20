@@ -24,6 +24,7 @@ from src.models.pipeline import (
 from src.models.pipeline_run import PipelineRunCreate
 from src.models.user import UserSession
 from src.models.workflow import WorkflowConfiguration, WorkflowResult
+from src.services.activity_logger import log_event
 from src.services.agent_tracking import append_tracking_to_body
 from src.services.database import get_db
 from src.services.github_projects import github_projects_service
@@ -504,9 +505,21 @@ async def create_pipeline(
     """Create a new pipeline configuration."""
     service = _get_service()
     try:
-        return await service.create_pipeline(project_id, body)
+        result = await service.create_pipeline(project_id, body)
     except ValueError as exc:
         raise AppException(str(exc), status_code=409) from exc
+    await log_event(
+        get_db(),
+        event_type="pipeline_run",
+        entity_type="pipeline",
+        entity_id=result.id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="created",
+        summary=f"Pipeline '{result.name}' created",
+        detail={"entity_name": result.name},
+    )
+    return result
 
 
 # ── Get Pipeline ──
@@ -547,6 +560,17 @@ async def update_pipeline(
 
     if updated is None:
         raise NotFoundError("Pipeline not found")
+    await log_event(
+        get_db(),
+        event_type="pipeline_run",
+        entity_type="pipeline",
+        entity_id=pipeline_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="updated",
+        summary=f"Pipeline '{updated.name}' updated",
+        detail={"entity_name": updated.name},
+    )
     return updated
 
 
@@ -564,6 +588,16 @@ async def delete_pipeline(
     deleted = await service.delete_pipeline(project_id, pipeline_id)
     if not deleted:
         raise NotFoundError("Pipeline not found")
+    await log_event(
+        get_db(),
+        event_type="pipeline_run",
+        entity_type="pipeline",
+        entity_id=pipeline_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="deleted",
+        summary=f"Pipeline '{pipeline_id}' deleted",
+    )
     return {"success": True, "deleted_id": pipeline_id}
 
 
@@ -607,6 +641,17 @@ async def create_pipeline_run(
         project_id=session.selected_project_id or "",
         trigger=body.trigger if isinstance(body, PipelineRunCreate) else "manual",
         stages=stages,
+    )
+    await log_event(
+        get_db(),
+        event_type="pipeline_run",
+        entity_type="pipeline",
+        entity_id=pipeline_id,
+        project_id=session.selected_project_id or "",
+        actor=session.github_username,
+        action="started",
+        summary=f"Pipeline '{pipeline.name}' run started",
+        detail={"pipeline_name": pipeline.name, "run_id": str(run.id)},
     )
     return run.model_dump()
 
@@ -685,6 +730,18 @@ async def cancel_pipeline_run(
     event = await run_service.cancel_run(run_id)
     if event is None:
         raise NotFoundError("Pipeline run not found")
+
+    await log_event(
+        get_db(),
+        event_type="pipeline_run",
+        entity_type="pipeline",
+        entity_id=pipeline_id,
+        project_id=session.selected_project_id or "",
+        actor=session.github_username,
+        action="cancelled",
+        summary=f"Pipeline run {run_id} cancelled",
+        detail={"run_id": str(run_id)},
+    )
 
     return {"success": True, "run_id": run_id, "status": "cancelled"}
 

@@ -19,6 +19,7 @@ from src.models.workflow import (
     WorkflowResult,
     WorkflowTransition,
 )
+from src.services.activity_logger import log_event
 from src.services.agent_tracking import append_tracking_to_body, parse_tracking_from_body
 from src.utils import BoundedDict, utcnow
 
@@ -305,6 +306,33 @@ class WorkflowOrchestrator:
             to_status,
             success,
         )
+
+        # Persist transition as activity event (fire-and-forget)
+        try:
+            from src.services.database import get_db
+
+            db = get_db()
+            await log_event(
+                db,
+                event_type="status_change",
+                entity_type="issue",
+                entity_id=ctx.issue_id or "",
+                project_id=ctx.project_id,
+                actor="system",
+                action="moved",
+                summary=f"Issue moved from '{from_status or 'None'}' to '{to_status}'",
+                detail={
+                    "from_status": from_status or "",
+                    "to_status": to_status,
+                    "triggered_by": triggered_by.value if hasattr(triggered_by, "value") else str(triggered_by),
+                    "success": success,
+                    "error_message": error_message,
+                    "issue_number": ctx.issue_id or "",
+                },
+            )
+        except Exception:
+            logger.debug("Activity logging skipped in orchestrator (non-fatal)")
+
         return transition
 
     # ──────────────────────────────────────────────────────────────────

@@ -10,6 +10,7 @@ import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { isRateLimitApiError } from '@/utils/rateLimit';
 import { Tooltip } from '@/components/ui/tooltip';
+import { EntityHistoryPanel } from '@/components/activity/EntityHistoryPanel';
 import { AppPreview } from './AppPreview';
 
 /** Format a date string as relative time ("2 hours ago") or absolute. */
@@ -319,6 +320,8 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
         <h3 className="mb-3 text-sm font-medium text-zinc-700 dark:text-zinc-300">Live Preview</h3>
         <AppPreview port={app.port} appName={app.name} isActive={app.status === 'active'} />
       </div>
+
+      <EntityHistoryPanel entityType="app" entityId={app.name} />
     </div>
   );
 }

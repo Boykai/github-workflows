@@ -17,6 +17,7 @@ from src.models.cleanup import (
 )
 from src.models.user import UserSession
 from src.services import cleanup_service
+from src.services.activity_logger import log_event
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -83,7 +84,7 @@ async def cleanup_execute(
         len(request.issues_to_delete),
     )
     try:
-        return await cleanup_service.execute_cleanup(
+        result = await cleanup_service.execute_cleanup(
             github_service,
             session.access_token,
             request.owner,
@@ -96,6 +97,23 @@ async def cleanup_execute(
         raise
     except Exception as e:
         handle_service_error(e, "execute cleanup operation", GitHubAPIError)
+
+    await log_event(
+        db,
+        event_type="cleanup",
+        entity_type="pipeline",
+        entity_id=f"{request.owner}/{request.repo}",
+        project_id="",
+        actor=session.github_username,
+        action="completed",
+        summary=f"Cleanup completed for {request.owner}/{request.repo}",
+        detail={
+            "branches_deleted": len(request.branches_to_delete),
+            "prs_closed": len(request.prs_to_close),
+        },
+    )
+
+    return result
 
 
 @router.get("/history", response_model=CleanupHistoryResponse)

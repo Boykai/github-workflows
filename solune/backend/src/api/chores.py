@@ -31,6 +31,7 @@ from src.models.chores import (
     TriggerChoreRequest,
 )
 from src.models.user import UserSession
+from src.services.activity_logger import log_event
 from src.services.chores.service import ChoreConflictError, ChoresService
 from src.services.chores.template_builder import (
     build_template,
@@ -254,6 +255,17 @@ async def create_chore(
     updated = await service.get_chore(chore.id)
     if updated is None:
         raise AppException("Failed to retrieve created chore", status_code=500)
+    await log_event(
+        get_db(),
+        event_type="chore_crud",
+        entity_type="chore",
+        entity_id=updated.id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="created",
+        summary=f"Chore '{updated.name}' created",
+        detail={"entity_name": updated.name},
+    )
     return updated
 
 
@@ -283,6 +295,17 @@ async def update_chore(
 
     if updated is None:
         raise NotFoundError("Chore not found after update")
+    await log_event(
+        get_db(),
+        event_type="chore_crud",
+        entity_type="chore",
+        entity_id=chore_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="updated",
+        summary=f"Chore '{updated.name}' updated",
+        detail={"entity_name": updated.name},
+    )
     return updated
 
 
@@ -327,6 +350,18 @@ async def delete_chore(
 
     await service.delete_chore(chore_id)
 
+    await log_event(
+        get_db(),
+        event_type="chore_crud",
+        entity_type="chore",
+        entity_id=chore_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="deleted",
+        summary=f"Chore '{existing.name}' deleted",
+        detail={"entity_name": existing.name},
+    )
+
     return {"deleted": True, "closed_issue_number": closed_issue_number}
 
 
@@ -365,6 +400,18 @@ async def trigger_chore(
             result.skip_reason or "Chore trigger skipped",
             status_code=409,
         )
+
+    await log_event(
+        get_db(),
+        event_type="chore_trigger",
+        entity_type="chore",
+        entity_id=chore_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="triggered",
+        summary=f"Chore '{chore.name}' triggered manually",
+        detail={"chore_name": chore.name, "trigger_type": "manual"},
+    )
 
     return result
 

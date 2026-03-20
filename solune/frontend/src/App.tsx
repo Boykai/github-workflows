@@ -51,6 +51,9 @@ const NotFoundPage = lazyWithRetry(() =>
 const AppsPage = lazyWithRetry(() =>
   import('@/pages/AppsPage').then((module) => ({ default: module.AppsPage }))
 );
+const ActivityPage = lazyWithRetry(() =>
+  import('@/pages/ActivityPage').then((module) => ({ default: module.ActivityPage }))
+);
 const HelpPage = lazyWithRetry(() =>
   import('@/pages/HelpPage').then((module) => ({ default: module.HelpPage }))
 );
@@ -141,6 +144,7 @@ const router = createBrowserRouter(
         <Route path="settings" element={withSuspense(<SettingsPage />)} />
         <Route path="apps" element={withSuspense(<AppsPage />)} />
         <Route path="apps/:appName" element={withSuspense(<AppsPage />)} />
+        <Route path="activity" element={withSuspense(<ActivityPage />)} />
         <Route path="help" element={withSuspense(<HelpPage />)} />
         <Route path="*" element={withSuspense(<NotFoundPage />)} />
       </Route>

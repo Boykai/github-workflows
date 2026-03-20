@@ -4,6 +4,7 @@ import type { AgentConfig } from '@/services/api';
 import { useUpdateAgent } from '@/hooks/useAgents';
 import { AgentIconCatalog } from '@/components/agents/AgentIconCatalog';
 import { isCelestialIconName, type CelestialIconName } from '@/components/common/agentIcons';
+import { EntityHistoryPanel } from '@/components/activity/EntityHistoryPanel';
 import { ToolsEditor } from './ToolsEditor';
 import { Button } from '@/components/ui/button';
 
@@ -150,6 +151,7 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
     );
 
     return (
+      <>
       <section className="ritual-stage rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
@@ -272,6 +274,9 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
           </div>
         </div>
       </section>
+
+      <EntityHistoryPanel entityType="agent" entityId={agent.slug} />
+    </>
     );
   }
 );

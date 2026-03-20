@@ -1,12 +1,17 @@
 /**
- * useNotifications — aggregates agent workflow events and chore completion with read tracking.
+ * useNotifications — surfaces high-signal activity events as notifications.
  * Uses localStorage for read/unread state persistence.
+ * Queries the activity feed for pipeline completions/failures, chore triggers, and agent executions.
  */
 
 import { useState, useCallback, useMemo } from 'react';
-import type { Notification } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { activityApi } from '@/services/api';
+import { useAuth } from '@/hooks/useAuth';
+import type { Notification, ActivityEvent } from '@/types';
 
 const STORAGE_KEY = 'solune-read-notifications';
+const HIGH_SIGNAL_TYPES = 'pipeline_run,chore_trigger,agent_execution';
 
 function getReadIds(): Set<string> {
   try {
@@ -21,6 +26,21 @@ function saveReadIds(ids: Set<string>) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify([...ids]));
 }
 
+function mapEventToNotification(event: ActivityEvent, readIds: Set<string>): Notification {
+  let type: 'agent' | 'chore' = 'agent';
+  if (event.event_type.startsWith('chore')) {
+    type = 'chore';
+  }
+  return {
+    id: event.id,
+    type,
+    title: event.summary,
+    timestamp: event.created_at,
+    read: readIds.has(event.id),
+    source: event.entity_type,
+  };
+}
+
 interface UseNotificationsReturn {
   notifications: Notification[];
   unreadCount: number;
@@ -29,14 +49,28 @@ interface UseNotificationsReturn {
 
 export function useNotifications(): UseNotificationsReturn {
   const [readIds, setReadIds] = useState<Set<string>>(() => getReadIds());
+  const { user } = useAuth();
+  const projectId = user?.selected_project_id;
 
-  // Placeholder notifications — in full implementation these would come from
-  // useWorkflow events and useChoresList completion events
-  const notifications: Notification[] = useMemo(() => [], []);
+  const { data } = useQuery({
+    queryKey: ['notifications', projectId],
+    queryFn: () =>
+      activityApi.feed(projectId!, {
+        limit: 20,
+        event_type: HIGH_SIGNAL_TYPES,
+      }),
+    enabled: !!projectId,
+    staleTime: 30_000,
+  });
+
+  const notifications: Notification[] = useMemo(() => {
+    if (!data?.items) return [];
+    return data.items.map((event) => mapEventToNotification(event, readIds));
+  }, [data?.items, readIds]);
 
   const unreadCount = useMemo(
-    () => notifications.filter((n) => !readIds.has(n.id)).length,
-    [notifications, readIds]
+    () => notifications.filter((n) => !n.read).length,
+    [notifications],
   );
 
   const markAllRead = useCallback(() => {

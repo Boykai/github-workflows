@@ -6,6 +6,7 @@
  */
 
 import type { ChoreInlineUpdate } from '@/types';
+import { EntityHistoryPanel } from '@/components/activity/EntityHistoryPanel';
 
 interface ChoreInlineEditorProps {
   choreId: string;
@@ -110,6 +111,7 @@ export function ChoreInlineEditor({
           />
         </div>
       </div>
+      <EntityHistoryPanel entityType="chore" entityId={choreId} />
     </div>
   );
 }

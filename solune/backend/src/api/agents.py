@@ -25,6 +25,7 @@ from src.models.agents import (
 )
 from src.models.tools import AgentToolsResponse, AgentToolsUpdate
 from src.models.user import UserSession
+from src.services.activity_logger import log_event
 from src.services.agents.service import AgentsService
 from src.services.database import get_db
 from src.utils import resolve_repository
@@ -184,7 +185,7 @@ async def create_agent(
         handle_service_error(exc, "resolve repository", ValidationError)
 
     try:
-        return await service.create_agent(
+        result = await service.create_agent(
             project_id=project_id,
             owner=owner,
             repo=repo,
@@ -196,6 +197,20 @@ async def create_agent(
         raise ValidationError(str(exc)) from exc
     except RuntimeError as exc:
         handle_service_error(exc, "create agent", GitHubAPIError)
+
+    await log_event(
+        get_db(),
+        event_type="agent_crud",
+        entity_type="agent",
+        entity_id=result.agent.id if result.agent else project_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="created",
+        summary=f"Agent '{body.name}' created",
+        detail={"entity_name": body.name},
+    )
+
+    return result
 
 
 # ── Update (P3) ──
@@ -223,7 +238,7 @@ async def update_agent(
         handle_service_error(exc, "resolve repository", ValidationError)
 
     try:
-        return await service.update_agent(
+        result = await service.update_agent(
             project_id=project_id,
             owner=owner,
             repo=repo,
@@ -236,6 +251,20 @@ async def update_agent(
         raise ValidationError(str(exc)) from exc
     except LookupError as exc:
         raise NotFoundError(str(exc)) from exc
+
+    await log_event(
+        get_db(),
+        event_type="agent_crud",
+        entity_type="agent",
+        entity_id=agent_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="updated",
+        summary=f"Agent '{agent_id}' updated",
+        detail={"entity_name": agent_id},
+    )
+
+    return result
 
 
 # ── Delete ──
@@ -262,7 +291,7 @@ async def delete_agent(
         handle_service_error(exc, "resolve repository", ValidationError)
 
     try:
-        return await service.delete_agent(
+        result = await service.delete_agent(
             project_id=project_id,
             owner=owner,
             repo=repo,
@@ -276,6 +305,20 @@ async def delete_agent(
         raise NotFoundError(str(exc)) from exc
     except RuntimeError as exc:
         handle_service_error(exc, "delete agent", GitHubAPIError)
+
+    await log_event(
+        get_db(),
+        event_type="agent_crud",
+        entity_type="agent",
+        entity_id=agent_id,
+        project_id=project_id,
+        actor=session.github_username,
+        action="deleted",
+        summary=f"Agent '{agent_id}' deleted",
+        detail={"entity_name": agent_id},
+    )
+
+    return result
 
 
 # ── Chat ──
