@@ -82,7 +82,7 @@ export function ProjectsPage() {
   const transformedBoardData = boardControls.transformedData;
 
   // Project settings for queue mode toggle
-  const { settings: projectSettings, updateSettings, isUpdating: isSettingsUpdating } = useProjectSettings(selectedProjectId);
+  const { settings: projectSettings, updateSettings, isUpdating: isSettingsUpdating } = useProjectSettings(selectedProjectId ?? undefined);
   const isQueueMode = projectSettings?.project?.board_display_config?.queue_mode ?? false;
 
   const handleToggleQueueMode = useCallback(async () => {

@@ -261,6 +261,15 @@ async def upsert_project_settings(
     values, flags = _presence_flag_values(updates, PROJECT_SETTINGS_COLUMNS)
 
     logger.debug("Upserting project settings for user=%s project=%s", github_user_id, project_id)
+
+    # Replace None with default for NOT NULL columns
+    insert_values = list(values)
+    # queue_mode is the 3rd element in PROJECT_SETTINGS_COLUMNS (index 2)
+    # and must be non-NULL (DEFAULT 0)
+    queue_mode_idx = list(PROJECT_SETTINGS_COLUMNS).index("queue_mode")
+    if insert_values[queue_mode_idx] is None:
+        insert_values[queue_mode_idx] = 0
+
     await db.execute(
         """
         INSERT INTO project_settings (
@@ -286,7 +295,7 @@ async def upsert_project_settings(
             END,
             updated_at = excluded.updated_at
         """,
-        [github_user_id, project_id, *values, now, *flags],
+        [github_user_id, project_id, *insert_values, now, *flags],
     )
     await db.commit()
 
@@ -437,11 +446,13 @@ def _build_project_section(
         raw = json.loads(project_row["board_display_config"])
         board_config = ProjectBoardConfig(**raw)
 
-    # Merge the queue_mode column into the board config
+    # Merge the queue_mode column into the board config.
+    # Create a board config when either the JSON config exists or queue_mode
+    # has been explicitly enabled, so the toggle state is visible to the frontend.
     queue_mode_val = bool(project_row["queue_mode"]) if "queue_mode" in project_row.keys() else False
     if board_config is None:
         if queue_mode_val:
-            board_config = ProjectBoardConfig(queue_mode=queue_mode_val)
+            board_config = ProjectBoardConfig(queue_mode=True)
     else:
         board_config.queue_mode = queue_mode_val
 
