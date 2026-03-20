@@ -184,8 +184,9 @@ export function ProjectsPage() {
   });
 
   const handleStatusUpdate = useCallback(
-    (itemId: string, newStatus: string) =>
-      boardStatusMutation.mutateAsync({ itemId, newStatus }),
+    async (itemId: string, newStatus: string) => {
+      await boardStatusMutation.mutateAsync({ itemId, newStatus });
+    },
     [boardStatusMutation],
   );
 

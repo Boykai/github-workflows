@@ -15,7 +15,6 @@ import type {
   McpToolConfigUpdate,
   McpToolConfigListResponse,
   McpToolSyncResult,
-  ToolDeleteResult,
   PaginatedResponse,
 } from '@/types';
 
@@ -88,16 +87,12 @@ export function useToolsList(projectId: string | null | undefined) {
     },
   });
 
-  const deleteMutation = useMutation<
-    ToolDeleteResult,
-    ApiError,
-    { toolId: string; confirm?: boolean }
-  >({
-    mutationFn: ({ toolId, confirm }) => {
+  const deleteMutation = useMutation({
+    mutationFn: ({ toolId, confirm }: { toolId: string; confirm?: boolean }) => {
       setDeletingId(toolId);
       return toolsApi.delete(projectId!, toolId, confirm);
     },
-    onMutate: async ({ toolId }) => {
+    onMutate: async ({ toolId }: { toolId: string; confirm?: boolean }) => {
       if (!projectId) return;
       const queryKey = toolKeys.list(projectId);
       await queryClient.cancelQueries({ queryKey });

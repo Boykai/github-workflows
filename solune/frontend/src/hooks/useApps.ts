@@ -10,9 +10,7 @@ import type {
   App,
   AppAssetInventory,
   AppCreate,
-  AppStatusResponse,
   AppUpdate,
-  DeleteAppResult,
   Owner,
 } from '@/types/apps';
 
@@ -82,9 +80,11 @@ export function useApp(name: string | undefined) {
 /** Create a new application. */
 export function useCreateApp() {
   const queryClient = useQueryClient();
-  return useMutation<App, ApiError, AppCreate>({
-    mutationFn: (data) => appsApi.create(data),
-    onMutate: async (data) => {
+
+
+  return useMutation({
+    mutationFn: (data: AppCreate) => appsApi.create(data),
+    onMutate: async (data: AppCreate) => {
       const queryKey = appKeys.list();
       await queryClient.cancelQueries({ queryKey });
       const snapshot = queryClient.getQueryData<App[]>(queryKey);
@@ -98,7 +98,7 @@ export function useCreateApp() {
         directory_path: '',
         associated_pipeline_id: null,
         status: 'creating' as const,
-        repo_type: data.repo_type || ('new' as App['repo_type']),
+        repo_type: (data.repo_type || 'new') as App['repo_type'],
         external_repo_url: null,
         github_repo_url: null,
         github_project_url: null,
@@ -111,7 +111,7 @@ export function useCreateApp() {
         updated_at: now,
         warnings: null,
         _optimistic: true,
-      } as App & { _optimistic: boolean };
+      } satisfies App & { _optimistic: boolean };
 
       queryClient.setQueryData<App[]>(queryKey, [placeholder, ...snapshot]);
       return { snapshot, queryKey };
@@ -134,9 +134,11 @@ export function useCreateApp() {
 /** Update an existing application. */
 export function useUpdateApp(name: string) {
   const queryClient = useQueryClient();
-  return useMutation<App, ApiError, AppUpdate>({
-    mutationFn: (data) => appsApi.update(name, data),
-    onMutate: async (data) => {
+
+
+  return useMutation({
+    mutationFn: (data: AppUpdate) => appsApi.update(name, data),
+    onMutate: async (data: AppUpdate) => {
       const listKey = appKeys.list();
       const detailKey = appKeys.detail(name);
       await queryClient.cancelQueries({ queryKey: listKey });
@@ -181,9 +183,11 @@ export function useUpdateApp(name: string) {
 /** Delete an application. Pass `true` for full asset cleanup. */
 export function useDeleteApp() {
   const queryClient = useQueryClient();
-  return useMutation<DeleteAppResult | void, ApiError, { appName: string; force?: boolean }>({
-    mutationFn: ({ appName, force }) => appsApi.delete(appName, force),
-    onMutate: async ({ appName }) => {
+
+
+  return useMutation({
+    mutationFn: ({ appName, force }: { appName: string; force?: boolean }) => appsApi.delete(appName, force),
+    onMutate: async ({ appName }: { appName: string; force?: boolean }) => {
       const queryKey = appKeys.list();
       await queryClient.cancelQueries({ queryKey });
       const snapshot = queryClient.getQueryData<App[]>(queryKey);
@@ -222,9 +226,11 @@ export function useAppAssets(appName: string | null) {
 /** Start an application. */
 export function useStartApp() {
   const queryClient = useQueryClient();
-  return useMutation<AppStatusResponse, ApiError, string>({
-    mutationFn: (appName) => appsApi.start(appName),
-    onMutate: async (appName) => {
+
+
+  return useMutation({
+    mutationFn: (appName: string) => appsApi.start(appName),
+    onMutate: async (appName: string) => {
       const listKey = appKeys.list();
       const detailKey = appKeys.detail(appName);
       await queryClient.cancelQueries({ queryKey: listKey });
@@ -251,7 +257,7 @@ export function useStartApp() {
       toast.success('App started');
       queryClient.invalidateQueries({ queryKey: appKeys.detail(appName) });
     },
-    onError: (error, _appName, context) => {
+    onError: (error, _variables, context) => {
       if (context?.listSnapshot) {
         queryClient.setQueryData(context.listKey, context.listSnapshot);
       }
@@ -269,9 +275,11 @@ export function useStartApp() {
 /** Stop an application. */
 export function useStopApp() {
   const queryClient = useQueryClient();
-  return useMutation<AppStatusResponse, ApiError, string>({
-    mutationFn: (appName) => appsApi.stop(appName),
-    onMutate: async (appName) => {
+
+
+  return useMutation({
+    mutationFn: (appName: string) => appsApi.stop(appName),
+    onMutate: async (appName: string) => {
       const listKey = appKeys.list();
       const detailKey = appKeys.detail(appName);
       await queryClient.cancelQueries({ queryKey: listKey });
@@ -298,7 +306,7 @@ export function useStopApp() {
       toast.success('App stopped');
       queryClient.invalidateQueries({ queryKey: appKeys.detail(appName) });
     },
-    onError: (error, _appName, context) => {
+    onError: (error, _variables, context) => {
       if (context?.listSnapshot) {
         queryClient.setQueryData(context.listKey, context.listSnapshot);
       }
