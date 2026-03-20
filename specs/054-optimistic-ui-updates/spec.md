@@ -44,7 +44,7 @@ A user creates, updates, or deletes chores on their project. When they add a new
 
 ### User Story 3 - App Status Changes Feel Immediate (Priority: P3)
 
-A user starts or stops an app from the apps list. The status badge toggles instantly (e.g., from "stopped" to "running") without waiting for the server. If the server fails to process the request, the badge reverts and the user is notified. Similarly, app create, update, and delete operations show instant UI feedback.
+A user starts or stops an app from the apps list. The status badge toggles instantly (e.g., from "stopped" to "active") without waiting for the server. If the server fails to process the request, the badge reverts and the user is notified. Similarly, app create, update, and delete operations show instant UI feedback.
 
 **Why this priority**: App status toggling is a common action where the delay between clicking start/stop and seeing the status change creates uncertainty about whether the action registered.
 
@@ -52,7 +52,7 @@ A user starts or stops an app from the apps list. The status badge toggles insta
 
 **Acceptance Scenarios**:
 
-1. **Given** an app is displayed with status "stopped", **When** the user clicks start, **Then** the status badge immediately shows "running".
+1. **Given** an app is displayed with status "stopped", **When** the user clicks start, **Then** the status badge immediately shows "active".
 2. **Given** an app's status was optimistically changed, **When** the server confirms the change, **Then** the status remains as shown and data is refreshed.
 3. **Given** an app's status was optimistically changed, **When** the server rejects the change, **Then** the badge reverts to its previous state and an error toast is displayed.
 4. **Given** a list of apps is displayed, **When** the user creates/updates/deletes an app, **Then** the change appears immediately in the list.
@@ -125,7 +125,7 @@ Across all optimistic mutations, when the server returns an error or the network
 - **BoardColumn**: Represents a column on the project board, grouping items by status. Contains a status label and an ordered list of board items.
 - **BoardDataResponse**: The complete board view including project metadata, all columns with their items, and rate-limit information. This is the primary data shape cached and optimistically updated for board operations.
 - **Chore**: A task item with title, description, status, and timestamps. Subject to create, update, inline-update, and delete mutations.
-- **App**: An application entry with name, description, status (running/stopped), and configuration. Subject to create, update, delete, start, and stop mutations.
+- **App**: An application entry with name, description, status (active/stopped), and configuration. Subject to create, update, delete, start, and stop mutations.
 - **Tool**: A tool entry with name, description, and configuration. Subject to delete mutations.
 - **Pipeline**: A pipeline configuration entry. Subject to delete mutations.
 - **Mutation Snapshot**: A transient in-memory copy of the cached data taken immediately before an optimistic update. Used exclusively for rollback if the mutation fails. Not persisted.

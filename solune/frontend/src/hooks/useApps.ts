@@ -97,7 +97,7 @@ export function useCreateApp() {
         directory_path: '',
         associated_pipeline_id: null,
         status: 'creating' as const,
-        repo_type: (data.repo_type || 'new') as App['repo_type'],
+        repo_type: (data.repo_type ?? 'new-repo') as App['repo_type'],
         external_repo_url: null,
         github_repo_url: null,
         github_project_url: null,

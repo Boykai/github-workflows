@@ -92,8 +92,8 @@ export function useToolsList(projectId: string | null | undefined) {
       setDeletingId(toolId);
       return toolsApi.delete(projectId!, toolId, confirm);
     },
-    onMutate: async ({ toolId }: { toolId: string; confirm?: boolean }) => {
-      if (!projectId) return;
+    onMutate: async ({ toolId, confirm }: { toolId: string; confirm?: boolean }) => {
+      if (!projectId || confirm === false) return;
       const queryKey = toolKeys.list(projectId);
       await queryClient.cancelQueries({ queryKey });
       const snapshot = queryClient.getQueryData<McpToolConfigListResponse>(queryKey);

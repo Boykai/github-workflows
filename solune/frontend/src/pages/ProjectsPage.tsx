@@ -158,9 +158,10 @@ export function ProjectsPage() {
           ...old,
           columns: columns.map((col) => {
             if (col.status.name === newStatus) {
+              const updatedItem = { ...movedItem!, status_option_id: col.status.option_id };
               return {
                 ...col,
-                items: [...col.items, movedItem!],
+                items: [...col.items, updatedItem],
                 item_count: col.item_count + 1,
               };
             }
@@ -176,9 +177,9 @@ export function ProjectsPage() {
         queryClient.setQueryData(context.queryKey, context.snapshot);
       }
     },
-    onSettled: () => {
-      if (selectedProjectId) {
-        queryClient.invalidateQueries({ queryKey: ['board', 'data', selectedProjectId] });
+    onSettled: (_data, _error, _variables, context) => {
+      if (context?.queryKey) {
+        queryClient.invalidateQueries({ queryKey: context.queryKey });
       }
     },
   });
