@@ -1116,6 +1116,79 @@ class TestPostAgentOutputsFromPr:
     @patch("src.services.copilot_polling.github_projects_service")
     @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
     @patch("src.services.copilot_polling.get_pipeline_state")
+    async def test_posts_summary_on_sub_issue_for_linter(
+        self, mock_pipeline, mock_config, mock_service, mock_task_backlog
+    ):
+        """Agents without declared output files should post one concise summary."""
+        mock_config.return_value = MagicMock()
+        pipeline = PipelineState(
+            issue_number=10,
+            project_id="PVT_1",
+            status="In Progress",
+            agents=["linter"],
+            current_agent_index=0,
+        )
+        pipeline.agent_sub_issues = {
+            "linter": {"number": 99, "node_id": "I_99"},
+        }
+        mock_pipeline.return_value = pipeline
+
+        mock_service.check_agent_completion_comment = AsyncMock(return_value=False)
+        mock_service.check_copilot_pr_completion = AsyncMock(
+            return_value={"number": 5, "state": "open"}
+        )
+        mock_service.get_pull_request = AsyncMock(
+            return_value={"head_ref": "feature-branch", "number": 5}
+        )
+        mock_service.get_pr_changed_files = AsyncMock(
+            return_value=[
+                {"filename": "specs/053-pipeline-queue-mode/tasks.md", "status": "modified"},
+                {"filename": "solune/backend/src/api/settings.py", "status": "modified"},
+            ]
+        )
+        mock_service.get_file_content_from_ref = AsyncMock()
+        mock_service.create_issue_comment = AsyncMock(return_value={"id": 1, "body": "ok"})
+        mock_service.update_issue_state = AsyncMock(return_value=True)
+
+        results = await post_agent_outputs_from_pr(
+            access_token="token",
+            project_id="PVT_1",
+            owner="owner",
+            repo="repo",
+            tasks=[mock_task_backlog],
+        )
+
+        assert len(results) == 1
+        assert results[0]["status"] == "success"
+        assert results[0]["files_posted"] == 0
+        assert results[0]["agent_name"] == "linter"
+
+        assert mock_service.create_issue_comment.call_count == 2
+
+        summary_call = mock_service.create_issue_comment.call_args_list[0]
+        summary_issue = summary_call.kwargs.get("issue_number") or summary_call[1].get(
+            "issue_number"
+        )
+        summary_body = summary_call.kwargs.get("body") or summary_call[1].get("body", "")
+        assert summary_issue == 99
+        assert "`linter` completed PR #5." in summary_body
+        assert "Markdown touched: 1" in summary_body
+        assert "Non-markdown touched: 1" in summary_body
+        assert "Full file contents were intentionally not reposted here" in summary_body
+
+        done_call = mock_service.create_issue_comment.call_args_list[1]
+        done_issue = done_call.kwargs.get("issue_number") or done_call[1].get("issue_number")
+        done_body = done_call.kwargs.get("body") or done_call[1].get("body", "")
+        assert done_issue == 10
+        assert "linter: Done!" in done_body
+
+        mock_service.get_file_content_from_ref.assert_not_called()
+        mock_service.update_issue_state.assert_called_once()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.get_pipeline_state")
     async def test_skips_when_done_marker_already_exists(
         self, mock_pipeline, mock_config, mock_service, mock_task_backlog
     ):
@@ -4779,67 +4852,263 @@ class TestCheckInReviewIssues:
     """Tests for check_in_review_issues_for_copilot_review."""
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.completion._cp.get_workflow_config", new_callable=AsyncMock
+    )
+    @patch(
+        "src.services.copilot_polling.completion._cp._get_or_reconstruct_pipeline",
+        new_callable=AsyncMock,
+    )
     @patch("src.services.copilot_polling.completion.ensure_copilot_review_requested")
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_no_in_review_tasks(self, mock_service, mock_ensure):
+    async def test_no_in_review_tasks(
+        self,
+        mock_service,
+        mock_ensure,
+        mock_get_pipeline,
+        mock_get_config,
+    ):
         task = MagicMock(status="In Progress", issue_number=1)
         mock_service.get_project_items = AsyncMock(return_value=[task])
+        mock_get_config.return_value = MagicMock(status_in_review="In Review")
 
         results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
         assert results == []
         mock_ensure.assert_not_awaited()
+        mock_get_pipeline.assert_not_awaited()
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.completion._cp.get_workflow_config", new_callable=AsyncMock
+    )
+    @patch(
+        "src.services.copilot_polling.completion._cp._get_or_reconstruct_pipeline",
+        new_callable=AsyncMock,
+    )
     @patch("src.services.copilot_polling.completion.ensure_copilot_review_requested")
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_processes_in_review_tasks(self, mock_service, mock_ensure):
+    async def test_processes_in_review_tasks(
+        self,
+        mock_service,
+        mock_ensure,
+        mock_get_pipeline,
+        mock_get_config,
+    ):
         task = MagicMock(
             status="In Review",
             issue_number=42,
             repository_owner="o",
             repository_name="r",
             title="My Task",
+            labels=[],
         )
         mock_service.get_project_items = AsyncMock(return_value=[task])
         mock_ensure.return_value = {"action": "copilot_review_requested"}
+        mock_get_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Review": [MagicMock(slug="human")]},
+        )
+        mock_get_pipeline.return_value = PipelineState(
+            issue_number=42,
+            project_id="P1",
+            status="In Progress",
+            agents=["speckit.implement", "copilot-review", "linter", "judge"],
+            current_agent_index=1,
+            completed_agents=["speckit.implement"],
+        )
 
         results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
         assert len(results) == 1
         mock_ensure.assert_awaited_once()
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.completion._cp.get_workflow_config", new_callable=AsyncMock
+    )
+    @patch(
+        "src.services.copilot_polling.completion._cp._get_or_reconstruct_pipeline",
+        new_callable=AsyncMock,
+    )
     @patch("src.services.copilot_polling.completion.ensure_copilot_review_requested")
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_none_results_filtered_out(self, mock_service, mock_ensure):
+    async def test_none_results_filtered_out(
+        self,
+        mock_service,
+        mock_ensure,
+        mock_get_pipeline,
+        mock_get_config,
+    ):
         task = MagicMock(
             status="In Review",
             issue_number=42,
             repository_owner="o",
             repository_name="r",
             title="T",
+            labels=[],
         )
         mock_service.get_project_items = AsyncMock(return_value=[task])
         mock_ensure.return_value = None  # already processed
+        mock_get_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Review": [MagicMock(slug="human")]},
+        )
+        mock_get_pipeline.return_value = PipelineState(
+            issue_number=42,
+            project_id="P1",
+            status="In Progress",
+            agents=["copilot-review", "judge"],
+            current_agent_index=0,
+        )
 
         results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
         assert results == []
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.completion._cp.get_workflow_config", new_callable=AsyncMock
+    )
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_exception_returns_empty(self, mock_service):
+    async def test_exception_returns_empty(self, mock_service, mock_get_config):
         mock_service.get_project_items = AsyncMock(side_effect=Exception("err"))
+        mock_get_config.return_value = MagicMock(status_in_review="In Review")
         results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
         assert results == []
 
     @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.completion._cp.get_workflow_config", new_callable=AsyncMock
+    )
+    @patch(
+        "src.services.copilot_polling.completion._cp._get_or_reconstruct_pipeline",
+        new_callable=AsyncMock,
+    )
     @patch("src.services.copilot_polling.completion.ensure_copilot_review_requested")
     @patch("src.services.copilot_polling.github_projects_service")
-    async def test_skips_tasks_without_issue_number(self, mock_service, mock_ensure):
+    async def test_skips_tasks_without_issue_number(
+        self,
+        mock_service,
+        mock_ensure,
+        mock_get_pipeline,
+        mock_get_config,
+    ):
         task = MagicMock(status="In Review", issue_number=None)
         mock_service.get_project_items = AsyncMock(return_value=[task])
+        mock_get_config.return_value = MagicMock(status_in_review="In Review")
         results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
         assert results == []
         mock_ensure.assert_not_awaited()
+        mock_get_pipeline.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.completion._cp.get_workflow_config", new_callable=AsyncMock
+    )
+    @patch(
+        "src.services.copilot_polling.completion._cp._get_or_reconstruct_pipeline",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.completion.ensure_copilot_review_requested")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_skips_when_board_is_in_review_but_pipeline_has_not_reached_copilot_review(
+        self,
+        mock_service,
+        mock_ensure,
+        mock_get_pipeline,
+        mock_get_config,
+    ):
+        task = MagicMock(
+            status="In Review",
+            issue_number=4728,
+            repository_owner="o",
+            repository_name="r",
+            title="My Task",
+            labels=[],
+        )
+        mock_service.get_project_items = AsyncMock(return_value=[task])
+        mock_get_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Review": [MagicMock(slug="human")]},
+        )
+        mock_get_pipeline.return_value = PipelineState(
+            issue_number=4728,
+            project_id="P1",
+            status="In Progress",
+            agents=["speckit.implement", "copilot-review", "linter", "judge"],
+            current_agent_index=3,
+            completed_agents=["speckit.implement", "copilot-review", "linter"],
+        )
+
+        results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
+
+        assert results == []
+        mock_ensure.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.completion._cp.get_workflow_config", new_callable=AsyncMock
+    )
+    @patch(
+        "src.services.copilot_polling.completion._cp._get_or_reconstruct_pipeline",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.completion.ensure_copilot_review_requested")
+    @patch("src.services.copilot_polling.github_projects_service")
+    async def test_requests_when_copilot_review_is_in_active_parallel_group(
+        self,
+        mock_service,
+        mock_ensure,
+        mock_get_pipeline,
+        mock_get_config,
+    ):
+        from src.services.workflow_orchestrator.models import PipelineGroupInfo
+
+        task = MagicMock(
+            status="In Review",
+            issue_number=4728,
+            repository_owner="o",
+            repository_name="r",
+            title="My Task",
+            labels=[],
+        )
+        mock_service.get_project_items = AsyncMock(return_value=[task])
+        mock_get_config.return_value = MagicMock(
+            status_in_review="In Review",
+            agent_mappings={"In Review": [MagicMock(slug="human")]},
+        )
+        mock_ensure.return_value = {"action": "copilot_review_requested"}
+        mock_get_pipeline.return_value = PipelineState(
+            issue_number=4728,
+            project_id="P1",
+            status="In Progress",
+            agents=["speckit.implement", "copilot-review", "linter", "judge"],
+            current_agent_index=1,
+            completed_agents=["speckit.implement"],
+            groups=[
+                PipelineGroupInfo(
+                    group_id="g1",
+                    execution_mode="sequential",
+                    agents=["speckit.implement"],
+                ),
+                PipelineGroupInfo(
+                    group_id="g2",
+                    execution_mode="parallel",
+                    agents=["copilot-review", "linter"],
+                    agent_statuses={"copilot-review": "active", "linter": "active"},
+                ),
+                PipelineGroupInfo(
+                    group_id="g3",
+                    execution_mode="sequential",
+                    agents=["judge"],
+                ),
+            ],
+            current_group_index=1,
+            current_agent_index_in_group=0,
+        )
+
+        results = await check_in_review_issues_for_copilot_review("tok", "P1", "o", "r")
+
+        assert len(results) == 1
+        mock_ensure.assert_awaited_once()
 
 
 # ────────────────────────────────────────────────────────────────────
