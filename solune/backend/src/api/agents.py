@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
@@ -42,12 +42,14 @@ def _get_service() -> AgentsService:
 
 
 @router.get(
-    "/{project_id}", response_model=list[Agent], dependencies=[Depends(verify_project_access)]
+    "/{project_id}", dependencies=[Depends(verify_project_access)]
 )
 async def list_agents(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
-) -> list[Agent]:
+    limit: Annotated[int | None, Query(ge=1, le=100, description="Items per page")] = None,
+    cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
+) -> list[Agent] | dict:
     """List agents visible on the repository default branch under .github/agents/."""
     service = _get_service()
 
@@ -58,12 +60,25 @@ async def list_agents(
     except Exception as exc:
         handle_service_error(exc, "resolve repository", ValidationError)
 
-    return await service.list_agents(
+    agents = await service.list_agents(
         project_id=project_id,
         owner=owner,
         repo=repo,
         access_token=session.access_token,
     )
+
+    if limit is not None or cursor is not None:
+        from src.services.pagination import apply_pagination
+
+        try:
+            result = apply_pagination(
+                agents, limit=limit or 25, cursor=cursor, key_fn=lambda a: a.id
+            )
+        except ValueError as exc:
+            raise ValidationError(str(exc)) from exc
+        return result.model_dump()
+
+    return agents
 
 
 @router.get("/{project_id}/pending", response_model=list[Agent])

@@ -357,6 +357,8 @@ async def get_board_data(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
     refresh: Annotated[bool, Query(description="Force refresh from GitHub API")] = False,
+    column_limit: Annotated[int | None, Query(ge=1, le=100, description="Items per column page")] = None,
+    column_cursors: Annotated[str | None, Query(description="JSON map of {status_option_id: cursor}")] = None,
 ) -> BoardDataResponse:
     """Get board data for a specific project with columns and items."""
     cache_key = get_cache_key(CACHE_PREFIX_BOARD_DATA, project_id)
@@ -430,4 +432,31 @@ async def get_board_data(
     # cache entries can compare hashes to suppress unchanged refreshes.
     board_hash = compute_data_hash(board_data.model_dump(mode="json", exclude={"rate_limit"}))
     cache.set(cache_key, board_data, ttl_seconds=300, data_hash=board_hash)
+
+    # Apply per-column pagination when requested
+    if column_limit is not None or column_cursors is not None:
+        import json as _json
+
+        from src.services.pagination import apply_pagination
+
+        cursors_map: dict[str, str] = {}
+        if column_cursors:
+            try:
+                cursors_map = _json.loads(column_cursors)
+            except (ValueError, TypeError):
+                pass
+
+        effective_limit = column_limit or 25
+        for col in board_data.columns:
+            col_cursor = cursors_map.get(col.status.option_id)
+            paginated = apply_pagination(
+                col.items,
+                limit=effective_limit,
+                cursor=col_cursor,
+                key_fn=lambda item: item.item_id,
+            )
+            col.items = paginated.items
+            col.next_cursor = paginated.next_cursor
+            col.has_more = paginated.has_more
+
     return board_data

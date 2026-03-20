@@ -10,7 +10,8 @@ import { usePipelineBoardMutations } from './usePipelineBoardMutations';
 import { usePipelineValidation } from './usePipelineValidation';
 import { usePipelineModelOverride } from './usePipelineModelOverride';
 import { pipelineReducer, initialState, computeSnapshot } from './usePipelineReducer';
-import type { PipelineConfig, PipelineConfigListResponse } from '@/types';
+import { useInfiniteList } from '@/hooks/useInfiniteList';
+import type { PipelineConfig, PipelineConfigListResponse, PaginatedResponse, PipelineConfigSummary } from '@/types';
 
 const MAX_UNDO_STACK = 50;
 
@@ -325,5 +326,34 @@ export function usePipelineConfig(projectId: string | null) {
     setStageExecutionMode,
     canUndo, canRedo, undo, redo,
     ...boardMutations,
+  };
+}
+
+/** Standalone paginated pipeline list hook for infinite scroll use cases. */
+export function usePipelineListPaginated(projectId: string | null) {
+  const queryClient = useQueryClient();
+  const result = useInfiniteList<PipelineConfigSummary>({
+    queryKey: [...pipelineKeys.list(projectId ?? ''), 'paginated'],
+    queryFn: async (params) => {
+      const resp = await pipelinesApi.listPaginated(projectId!, params);
+      return {
+        items: resp.pipelines,
+        next_cursor: resp.next_cursor,
+        has_more: resp.has_more,
+        total_count: resp.total_count,
+      } as PaginatedResponse<PipelineConfigSummary>;
+    },
+    limit: 20,
+    staleTime: STALE_TIME_SHORT,
+    enabled: !!projectId,
+  });
+
+  return {
+    ...result,
+    invalidate: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
+      }
+    },
   };
 }

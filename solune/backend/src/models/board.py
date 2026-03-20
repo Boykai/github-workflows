@@ -163,6 +163,8 @@ class BoardColumn(BaseModel):
     estimate_total: float = Field(
         default=0.0, description="Sum of estimates for items in this column"
     )
+    next_cursor: str | None = Field(default=None, description="Cursor for next page of items")
+    has_more: bool = Field(default=False, description="Whether more items exist")
 
 
 class RateLimitInfo(BaseModel):

@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { choresApi, ApiError } from '@/services/api';
 import { STALE_TIME_LONG } from '@/constants';
+import { useInfiniteList } from '@/hooks/useInfiniteList';
 import type {
   Chore,
   ChoreCreate,
@@ -40,6 +41,28 @@ export function useChoresList(projectId: string | null | undefined) {
     staleTime: STALE_TIME_LONG,
     enabled: !!projectId,
   });
+}
+
+// ── Paginated List Hook ──
+
+export function useChoresListPaginated(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+  const result = useInfiniteList<Chore>({
+    queryKey: [...choreKeys.list(projectId ?? ''), 'paginated'],
+    queryFn: (params) => choresApi.listPaginated(projectId!, params),
+    limit: 25,
+    staleTime: STALE_TIME_LONG,
+    enabled: !!projectId,
+  });
+
+  return {
+    ...result,
+    invalidate: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
+      }
+    },
+  };
 }
 
 // ── Templates Hook ──
