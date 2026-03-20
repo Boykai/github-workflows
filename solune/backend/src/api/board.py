@@ -423,6 +423,16 @@ async def get_board_data(
 
     board_data.rate_limit = _get_rate_limit_info()
 
+    # Enrich board items with pipeline queue state from in-memory cache
+    from src.services.pipeline_state_store import get_pipeline_state
+
+    for col in board_data.columns:
+        for item in col.items:
+            if item.number is not None:
+                ps = get_pipeline_state(item.number)
+                if ps is not None and getattr(ps, "queued", False):
+                    item.queued = True
+
     # Cache board data — 300 seconds aligns with frontend's 5-minute auto-refresh.
     # Manual refresh (refresh=true) bypasses cache reads but still populates the
     # cache so subsequent non-refresh requests benefit from the fresh data.

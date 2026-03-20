@@ -11,4 +11,5 @@ export const PipelineStateInfoSchema = z.object({
   is_complete: z.boolean(),
   started_at: z.string().nullable(),
   error: z.string().nullable(),
+  queued: z.boolean().optional().default(false),
 });

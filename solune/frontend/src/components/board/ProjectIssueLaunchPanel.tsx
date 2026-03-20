@@ -13,6 +13,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { pipelinesApi } from '@/services/api';
+import { toast } from 'sonner';
 import type { PipelineConfigSummary, PipelineIssueLaunchRequest, WorkflowResult } from '@/types';
 
 const STORAGE_KEY = 'parentIssueIntake_expanded';
@@ -121,6 +122,10 @@ export function ProjectIssueLaunchPanel({
       if (result.success) {
         setSubmissionError(null);
         onLaunched?.(result);
+        // Show toast for queued pipelines
+        if (result.message?.includes('Pipeline queued')) {
+          toast.info(result.message);
+        }
         return;
       }
 

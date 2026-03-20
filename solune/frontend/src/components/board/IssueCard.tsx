@@ -5,7 +5,7 @@
 
 import { memo, useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { ChevronDown, ChevronRight, Circle, CircleCheckBig } from 'lucide-react';
+import { ChevronDown, ChevronRight, Circle, CircleCheckBig, Clock } from 'lucide-react';
 import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';
@@ -216,7 +216,7 @@ export const IssueCard = memo(function IssueCard({
       </HoverCard>
 
       {/* Pipeline Status Badges */}
-      {(agentSlug || pipelineConfig || isStalled) && (
+      {(agentSlug || pipelineConfig || isStalled || item.queued) && (
         <div className="flex flex-wrap items-center gap-1">
           {pipelineConfig && (
             <span
@@ -242,6 +242,15 @@ export const IssueCard = memo(function IssueCard({
               title={`Active agent: ${agentSlug}`}
             >
               🤖 {agentSlug}
+            </span>
+          )}
+          {item.queued && (
+            <span
+              className="inline-flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400"
+              title="Pipeline is queued — waiting for active pipeline to complete"
+            >
+              <Clock className="h-3 w-3" />
+              Queued
             </span>
           )}
           {isStalled && (

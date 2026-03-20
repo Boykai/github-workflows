@@ -95,6 +95,7 @@ const BoardItemSchema = z.object({
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
   milestone: z.string().optional(),
+  queued: z.boolean().optional(),
 });
 
 const BoardColumnSchema = z.object({
