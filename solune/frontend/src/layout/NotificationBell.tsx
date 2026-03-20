@@ -5,6 +5,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -140,6 +141,15 @@ export function NotificationBell({
                   </div>
                 ))
               )}
+            </div>
+            <div className="border-t border-border/70 px-4 py-2 text-center">
+              <Link
+                to="/activity"
+                className="text-xs font-medium text-primary hover:text-foreground transition-colors"
+                onClick={() => setIsOpen(false)}
+              >
+                View all activity
+              </Link>
             </div>
           </div>,
           document.body

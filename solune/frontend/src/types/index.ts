@@ -1071,6 +1071,21 @@ export interface Notification {
   source?: string;
 }
 
+// ============ Activity Event Types (054) ============
+
+export interface ActivityEvent {
+  id: string;
+  event_type: string;
+  entity_type: string;
+  entity_id: string;
+  project_id: string;
+  actor: string;
+  action: string;
+  summary: string;
+  detail?: Record<string, unknown>;
+  created_at: string;
+}
+
 // ============ Pipeline Types ============
 
 export interface PipelineAgentNode {
