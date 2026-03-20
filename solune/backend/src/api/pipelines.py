@@ -31,8 +31,10 @@ from src.services.pipelines.service import PipelineService
 from src.services.settings_store import get_effective_user_settings
 from src.services.workflow_orchestrator import (
     WorkflowContext,
+    count_active_pipelines_for_project,
     get_agent_slugs,
     get_pipeline_state,
+    get_queued_pipelines_for_project,
     get_status_order,
     get_workflow_config,
     get_workflow_orchestrator,
@@ -380,6 +382,45 @@ async def execute_pipeline_launch(
                     status_name=next_status,
                 )
                 status_name = next_status
+
+        # ── Queue mode gate ──
+        # If queue mode is ON and another pipeline is already active for this
+        # project, mark this pipeline as queued and skip agent assignment.
+        from src.services.settings_store import is_queue_mode_enabled
+
+        queue_enabled = await is_queue_mode_enabled(get_db(), project_id)
+        active_count = count_active_pipelines_for_project(project_id)
+        if queue_enabled and active_count > 0 and ctx.issue_number is not None:
+            # Mark pipeline as queued — no agent assigned, no polling started
+            queued_state = PipelineState(
+                issue_number=ctx.issue_number,
+                project_id=project_id,
+                status=status_name,
+                agents=get_agent_slugs(config, status_name),
+                agent_sub_issues=agent_sub_issues or {},
+                started_at=utcnow(),
+                queued=True,
+            )
+            set_pipeline_state(ctx.issue_number, queued_state)
+            queue_position = len(get_queued_pipelines_for_project(project_id))
+            logger.info(
+                "Pipeline for issue #%d queued (position #%d) — queue mode ON for project %s",
+                ctx.issue_number,
+                queue_position,
+                project_id,
+            )
+            return WorkflowResult(
+                success=True,
+                issue_id=ctx.issue_id,
+                issue_number=ctx.issue_number,
+                issue_url=ctx.issue_url,
+                project_item_id=ctx.project_item_id,
+                current_status=status_name,
+                message=(
+                    f"Pipeline queued — position #{queue_position}. "
+                    "It will start automatically when the active pipeline reaches In Review or Done."
+                ),
+            )
 
         await orchestrator.assign_agent_for_status(ctx, status_name, agent_index=0)
 

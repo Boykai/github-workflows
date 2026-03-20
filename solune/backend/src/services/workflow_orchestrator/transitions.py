@@ -15,6 +15,9 @@ from src.services.pipeline_state_store import (
     clear_all_trigger_inflights as _clear_all_trigger_inflights_async,
 )
 from src.services.pipeline_state_store import (
+    count_active_pipelines_for_project as count_active_pipelines_for_project,
+)
+from src.services.pipeline_state_store import (
     delete_main_branch as _delete_main_branch_async,
 )
 from src.services.pipeline_state_store import (
@@ -25,6 +28,9 @@ from src.services.pipeline_state_store import (
 )
 from src.services.pipeline_state_store import (
     delete_trigger_inflight as _delete_trigger_inflight_async,
+)
+from src.services.pipeline_state_store import (
+    get_queued_pipelines_for_project as get_queued_pipelines_for_project,
 )
 from src.services.pipeline_state_store import (
     set_main_branch as _set_main_branch_async,

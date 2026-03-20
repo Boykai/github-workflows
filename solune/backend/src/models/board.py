@@ -152,6 +152,7 @@ class BoardItem(BaseModel):
     created_at: str | None = Field(default=None, description="ISO 8601 creation timestamp")
     updated_at: str | None = Field(default=None, description="ISO 8601 last update timestamp")
     milestone: str | None = Field(default=None, description="Milestone name")
+    queued: bool = Field(default=False, description="Whether this issue's pipeline is queued")
 
 
 class BoardColumn(BaseModel):

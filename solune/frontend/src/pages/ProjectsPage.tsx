@@ -12,6 +12,7 @@ import { useRealTimeSync } from '@/hooks/useRealTimeSync';
 import { useBoardRefresh } from '@/hooks/useBoardRefresh';
 import { useProjects } from '@/hooks/useProjects';
 import { useAuth } from '@/hooks/useAuth';
+import { useProjectSettings } from '@/hooks/useSettings';
 import { IssueDetailModal } from '@/components/board/IssueDetailModal';
 import { BoardToolbar } from '@/components/board/BoardToolbar';
 import { ProjectIssueLaunchPanel } from '@/components/board/ProjectIssueLaunchPanel';
@@ -29,6 +30,8 @@ import type { BoardItem } from '@/types';
 import { pipelinesApi } from '@/services/api';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
+import { ListOrdered } from 'lucide-react';
+import { toast } from 'sonner';
 
 export function ProjectsPage() {
   const { updateRateLimit } = useRateLimitStatus();
@@ -77,6 +80,20 @@ export function ProjectsPage() {
   // Board controls: filter, sort, group-by with localStorage persistence
   const boardControls = useBoardControls(selectedProjectId, boardData ?? undefined);
   const transformedBoardData = boardControls.transformedData;
+
+  // Project settings for queue mode toggle
+  const { settings: projectSettings, updateSettings, isUpdating: isSettingsUpdating } = useProjectSettings(selectedProjectId ?? undefined);
+  const isQueueMode = projectSettings?.project?.board_display_config?.queue_mode ?? false;
+
+  const handleToggleQueueMode = useCallback(async () => {
+    if (!selectedProjectId) return;
+    try {
+      await updateSettings({ queue_mode: !isQueueMode });
+      toast.success(isQueueMode ? 'Queue mode disabled' : 'Queue mode enabled');
+    } catch {
+      toast.error('Failed to update queue mode');
+    }
+  }, [selectedProjectId, isQueueMode, updateSettings]);
 
   const {
     data: savedPipelines,
@@ -245,6 +262,26 @@ export function ProjectsPage() {
               hasActiveGroup={boardControls.hasActiveGroup}
               hasActiveControls={boardControls.hasActiveControls}
             />
+        )}
+
+        {selectedProjectId && boardData && (
+          <button
+            onClick={handleToggleQueueMode}
+            disabled={isSettingsUpdating}
+            className={cn(
+              'relative flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors',
+              isQueueMode
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border/70 bg-background/50 hover:bg-accent/45'
+            )}
+            type="button"
+            title="Only one pipeline runs at a time — next starts when active reaches In Review or Done"
+            aria-label="Toggle queue mode"
+            aria-pressed={isQueueMode}
+          >
+            <ListOrdered className="h-3.5 w-3.5" />
+            Queue Mode
+          </button>
         )}
       </div>
 

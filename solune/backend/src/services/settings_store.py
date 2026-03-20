@@ -48,6 +48,7 @@ GLOBAL_SETTINGS_COLUMNS = (*USER_PREFERENCE_COLUMNS, "allowed_models")
 PROJECT_SETTINGS_COLUMNS = (
     "board_display_config",
     "agent_pipeline_mappings",
+    "queue_mode",
 )
 
 
@@ -260,6 +261,14 @@ async def upsert_project_settings(
     values, flags = _presence_flag_values(updates, PROJECT_SETTINGS_COLUMNS)
 
     logger.debug("Upserting project settings for user=%s project=%s", github_user_id, project_id)
+
+    # Replace None with default for NOT NULL columns
+    insert_values = list(values)
+    # queue_mode must be non-NULL (DEFAULT 0 in schema)
+    queue_mode_idx = list(PROJECT_SETTINGS_COLUMNS).index("queue_mode")
+    if insert_values[queue_mode_idx] is None:
+        insert_values[queue_mode_idx] = 0
+
     await db.execute(
         """
         INSERT INTO project_settings (
@@ -267,8 +276,9 @@ async def upsert_project_settings(
             project_id,
             board_display_config,
             agent_pipeline_mappings,
+            queue_mode,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?)
         ON CONFLICT(github_user_id, project_id) DO UPDATE SET
             board_display_config = CASE
                 WHEN ? THEN excluded.board_display_config
@@ -278,9 +288,13 @@ async def upsert_project_settings(
                 WHEN ? THEN excluded.agent_pipeline_mappings
                 ELSE project_settings.agent_pipeline_mappings
             END,
+            queue_mode = CASE
+                WHEN ? THEN excluded.queue_mode
+                ELSE project_settings.queue_mode
+            END,
             updated_at = excluded.updated_at
         """,
-        [github_user_id, project_id, *values, now, *flags],
+        [github_user_id, project_id, *insert_values, now, *flags],
     )
     await db.commit()
 
@@ -431,6 +445,18 @@ def _build_project_section(
         raw = json.loads(project_row["board_display_config"])
         board_config = ProjectBoardConfig(**raw)
 
+    # Merge the queue_mode column into the board config.
+    # Create a board config when either the JSON config exists or queue_mode
+    # has been explicitly enabled, so the toggle state is visible to the frontend.
+    queue_mode_val = (
+        bool(project_row["queue_mode"]) if "queue_mode" in project_row.keys() else False
+    )
+    if board_config is None:
+        if queue_mode_val:
+            board_config = ProjectBoardConfig(queue_mode=True)
+    else:
+        board_config.queue_mode = queue_mode_val
+
     agent_mappings = None
     if project_row["agent_pipeline_mappings"]:
         raw = json.loads(project_row["agent_pipeline_mappings"])
@@ -444,6 +470,43 @@ def _build_project_section(
         board_display_config=board_config,
         agent_pipeline_mappings=agent_mappings,
     )
+
+
+# ── Queue Mode Helpers ──
+
+
+# Short-TTL in-memory cache for queue mode lookups to avoid repeated DB reads
+# during a single polling cycle.
+_queue_mode_cache: dict[str, tuple[bool, float]] = {}
+_QUEUE_MODE_CACHE_TTL_SECONDS = 10.0
+
+
+async def is_queue_mode_enabled(db: aiosqlite.Connection, project_id: str) -> bool:
+    """Check if queue mode is enabled for a project.
+
+    Uses a short-TTL in-memory cache to avoid repeated DB reads during
+    polling cycles.  Falls back to DB query on cache miss or expiry.
+    """
+    import time
+
+    now = time.monotonic()
+    cached = _queue_mode_cache.get(project_id)
+    if cached is not None:
+        value, cached_at = cached
+        if now - cached_at < _QUEUE_MODE_CACHE_TTL_SECONDS:
+            return value
+
+    # Query only the canonical __workflow__ row — the settings API syncs
+    # queue_mode to this row, so it is the single source of truth.
+    cursor = await db.execute(
+        "SELECT queue_mode FROM project_settings"
+        " WHERE project_id = ? AND github_user_id = '__workflow__' LIMIT 1",
+        (project_id,),
+    )
+    row = await cursor.fetchone()
+    enabled = row is not None and bool(row[0])
+    _queue_mode_cache[project_id] = (enabled, now)
+    return enabled
 
 
 def flatten_user_preferences_update(update: dict) -> dict:
