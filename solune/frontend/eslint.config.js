@@ -25,8 +25,7 @@ export default tseslint.config(
         depth: 3,
       }],
     },
-  }
-  ,
+  },
   {
     files: ['**/*.test.{ts,tsx}'],
     rules: {

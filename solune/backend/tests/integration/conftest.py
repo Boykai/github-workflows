@@ -134,7 +134,6 @@ def _reset_integration_state() -> Iterator[None]:
     _workflow_configs.clear()
     _transitions.clear()
     _agent_trigger_inflight.clear()
-    globals()["_orchestrator_instance"] = None
     import src.services.workflow_orchestrator.orchestrator as orch_mod
 
     orch_mod._orchestrator_instance = None
@@ -154,7 +153,6 @@ def _reset_integration_state() -> Iterator[None]:
     _workflow_configs.clear()
     _transitions.clear()
     _agent_trigger_inflight.clear()
-    globals()["_orchestrator_instance"] = None
     import src.services.workflow_orchestrator.orchestrator as orch_mod
 
     orch_mod._orchestrator_instance = None
