@@ -212,6 +212,10 @@ vi.mock('@/components/pipeline/PipelineFlowGraph', () => ({
   PipelineFlowGraph: () => <div>Pipeline Flow Graph</div>,
 }));
 
+vi.mock('@/components/pipeline/PipelineRunHistory', () => ({
+  PipelineRunHistory: () => null,
+}));
+
 vi.mock('@/components/common/ProjectSelectionEmptyState', () => ({
   ProjectSelectionEmptyState: () => <div>Select a project</div>,
 }));
