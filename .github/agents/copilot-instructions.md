@@ -279,6 +279,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - N/A (client-side search against already-loaded or cached entity data) (053-global-command-palette)
 - Python 3.12+/3.13 (backend), TypeScript 5.9 (frontend) + FastAPI 0.135+, React 19, Pydantic 2.12+, Vite 8, TanStack Query v5, Tailwind CSS 4, @dnd-kit/core (board drag-and-drop) (053-pagination-infinite-scroll)
 - SQLite via aiosqlite (existing — no schema changes required) (053-pagination-infinite-scroll)
+- Python 3.13 (backend), TypeScript 5.x + React 19.2 (frontend) + FastAPI (backend), TanStack Query v5.91 + React 19 (frontend), Sonner v2 (toasts) (054-optimistic-ui-updates)
+- SQLite with aiosqlite (backend local state), GitHub Projects GraphQL API (board data source) (054-optimistic-ui-updates)
 
 ## Recent Changes
 - Dependabot upgrades: ESLint 9→10, Vite 7→8, react-hooks 5→7, security 3→4, @vitejs/plugin-react 5→6, Docker images (python 3.14, node 25, nginx 1.29), GitHub Actions (checkout v6, setup-python v6, upload-artifact v7, setup-node v6)

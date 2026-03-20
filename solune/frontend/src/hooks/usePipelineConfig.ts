@@ -271,16 +271,36 @@ export function usePipelineConfig(projectId: string | null) {
   const deletePipeline = useCallback(async () => {
     if (!state.editingPipelineId || !projectId) return;
     dispatch({ type: 'SAVE_START' });
+
+    // Optimistic: remove the pipeline from the list cache immediately
+    const listQueryKey = pipelineKeys.list(projectId);
+    await queryClient.cancelQueries({ queryKey: listQueryKey });
+    const listSnapshot = queryClient.getQueryData<PipelineConfigListResponse>(listQueryKey);
+    if (listSnapshot) {
+      queryClient.setQueryData<PipelineConfigListResponse>(listQueryKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          pipelines: old.pipelines.filter((p) => p.id !== state.editingPipelineId),
+        };
+      });
+    }
+
     try {
       await pipelinesApi.delete(projectId, state.editingPipelineId);
       dispatch({ type: 'DELETE_SUCCESS' });
       clearUndoRedo();
       resetPending();
-      queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
       toast.success('Pipeline deleted');
     } catch (err) {
+      // Rollback optimistic update
+      if (listSnapshot) {
+        queryClient.setQueryData(listQueryKey, listSnapshot);
+      }
       dispatch({ type: 'SAVE_FAILURE', error: errMsg(err, 'Failed to delete pipeline') });
       toast.error(errMsg(err, 'Failed to delete pipeline'), { duration: Infinity });
+    } finally {
+      queryClient.invalidateQueries({ queryKey: listQueryKey });
     }
   }, [state.editingPipelineId, projectId, queryClient, clearUndoRedo, resetPending]);
 

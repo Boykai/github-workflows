@@ -194,3 +194,15 @@ class BoardProjectListResponse(BaseModel):
     rate_limit: RateLimitInfo | None = Field(
         default=None, description="GitHub API rate limit status"
     )
+
+
+class StatusUpdateRequest(BaseModel):
+    """Request body for updating a board item's status by name."""
+
+    status: str = Field(..., min_length=1, description="Target status name (case-insensitive)")
+
+
+class StatusUpdateResponse(BaseModel):
+    """Response for a board item status update."""
+
+    success: bool = Field(..., description="Whether the status update was applied")
