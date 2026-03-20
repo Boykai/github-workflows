@@ -31,6 +31,20 @@ function formatDuration(ms: number | undefined | null): string {
   return `${minutes}m ${remainingSec}s`;
 }
 
+function getRunDurationMs(run: Record<string, unknown>): number | null {
+  const startedAt = typeof run.started_at === 'string' ? run.started_at : null;
+  if (!startedAt) return null;
+
+  const startedMs = new Date(startedAt).getTime();
+  if (Number.isNaN(startedMs)) return null;
+
+  const completedAt = typeof run.completed_at === 'string' ? run.completed_at : null;
+  const completedMs = completedAt ? new Date(completedAt).getTime() : Date.now();
+  if (Number.isNaN(completedMs)) return null;
+
+  return Math.max(0, completedMs - startedMs);
+}
+
 function formatRelativeTime(isoDate: string): string {
   const now = Date.now();
   const then = new Date(isoDate + (isoDate.endsWith('Z') ? '' : 'Z')).getTime();
@@ -54,7 +68,7 @@ export function PipelineRunHistory({ pipelineId, className }: PipelineRunHistory
     staleTime: 30_000,
   });
 
-  const runs = (data?.items ?? []) as Array<Record<string, unknown>>;
+  const runs = data?.runs ?? [];
 
   return (
     <div className={cn('border-t border-border/50', className)}>
@@ -100,12 +114,10 @@ export function PipelineRunHistory({ pipelineId, className }: PipelineRunHistory
                     <StatusIcon className={cn('h-3.5 w-3.5 shrink-0', config.color)} />
                     <span className="font-medium text-foreground/80">{config.label}</span>
                     <span className="text-muted-foreground/60">
-                      {formatDuration(run.duration_ms as number | undefined)}
+                      {formatDuration(getRunDurationMs(run))}
                     </span>
                     <span className="ml-auto text-muted-foreground/50">
-                      {run.created_at
-                        ? formatRelativeTime(String(run.created_at))
-                        : ''}
+                      {typeof run.started_at === 'string' ? formatRelativeTime(run.started_at) : ''}
                     </span>
                   </div>
                 );

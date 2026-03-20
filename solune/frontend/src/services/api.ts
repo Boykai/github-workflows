@@ -1114,13 +1114,24 @@ export const pipelinesApi = {
 
   listRuns(
     pipelineId: string,
-    params?: { limit?: number; cursor?: string },
-  ): Promise<PaginatedResponse<Record<string, unknown>>> {
+    params?: { limit?: number; offset?: number; status?: string },
+  ): Promise<{
+    runs: Array<Record<string, unknown>>;
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
     const qs = new URLSearchParams();
     if (params?.limit) qs.set('limit', String(params.limit));
-    if (params?.cursor) qs.set('cursor', params.cursor);
+    if (params?.offset) qs.set('offset', String(params.offset));
+    if (params?.status) qs.set('status', params.status);
     const qsStr = qs.toString();
-    return request<PaginatedResponse<Record<string, unknown>>>(
+    return request<{
+      runs: Array<Record<string, unknown>>;
+      total: number;
+      limit: number;
+      offset: number;
+    }>(
       `/pipelines/${pipelineId}/runs${qsStr ? `?${qsStr}` : ''}`,
     );
   },
@@ -1339,11 +1350,12 @@ export const activityApi = {
   },
 
   entityHistory(
+    projectId: string,
     entityType: string,
     entityId: string,
     params?: { limit?: number; cursor?: string },
   ): Promise<PaginatedResponse<ActivityEvent>> {
-    const qs = new URLSearchParams();
+    const qs = new URLSearchParams({ project_id: projectId });
     if (params?.limit) qs.set('limit', String(params.limit));
     if (params?.cursor) qs.set('cursor', params.cursor);
     const qsStr = qs.toString();

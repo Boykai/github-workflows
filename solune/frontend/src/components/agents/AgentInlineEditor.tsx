@@ -275,7 +275,7 @@ export const AgentInlineEditor = forwardRef<AgentInlineEditorHandle, AgentInline
         </div>
       </section>
 
-      <EntityHistoryPanel entityType="agent" entityId={agent.slug} />
+      <EntityHistoryPanel projectId={projectId} entityType="agent" entityId={agent.slug} />
     </>
     );
   }

@@ -103,7 +103,7 @@ async def cleanup_execute(
         event_type="cleanup",
         entity_type="pipeline",
         entity_id=f"{request.owner}/{request.repo}",
-        project_id="",
+        project_id=request.project_id,
         actor=session.github_username,
         action="completed",
         summary=f"Cleanup completed for {request.owner}/{request.repo}",

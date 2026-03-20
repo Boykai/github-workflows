@@ -7,6 +7,7 @@
 
 import type { ChoreInlineUpdate } from '@/types';
 import { EntityHistoryPanel } from '@/components/activity/EntityHistoryPanel';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ChoreInlineEditorProps {
   choreId: string;
@@ -27,6 +28,7 @@ export function ChoreInlineEditor({
   disabled = false,
   onChange,
 }: ChoreInlineEditorProps) {
+  const { user } = useAuth();
   const nameId = `chore-name-${choreId}`;
   const contentId = `chore-content-${choreId}`;
   const scheduleTypeId = `chore-schedule-type-${choreId}`;
@@ -111,7 +113,11 @@ export function ChoreInlineEditor({
           />
         </div>
       </div>
-      <EntityHistoryPanel entityType="chore" entityId={choreId} />
+      <EntityHistoryPanel
+        projectId={user?.selected_project_id ?? ''}
+        entityType="chore"
+        entityId={choreId}
+      />
     </div>
   );
 }

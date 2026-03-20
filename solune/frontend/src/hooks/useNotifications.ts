@@ -27,8 +27,10 @@ function saveReadIds(ids: Set<string>) {
 }
 
 function mapEventToNotification(event: ActivityEvent, readIds: Set<string>): Notification {
-  let type: 'agent' | 'chore' = 'agent';
-  if (event.event_type.startsWith('chore')) {
+  let type: Notification['type'] = 'agent';
+  if (event.event_type.startsWith('pipeline')) {
+    type = 'pipeline';
+  } else if (event.event_type.startsWith('chore')) {
     type = 'chore';
   }
   return {

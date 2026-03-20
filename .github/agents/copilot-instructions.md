@@ -55,7 +55,7 @@ Last updated: 2026-03-18
 
 - **Auth:** GitHub OAuth with secure HTTP-only session cookies. No JWT / `python-jose` layer.
 - **Real-time:** Native WebSocket (`ConnectionManager` in `solune/backend/src/services/websocket.py`) with SSE fallback in the projects API.
-- **Storage:** SQLite via `aiosqlite` in WAL mode. Migrations (`001`–`030`, with the consolidated schema at `023`) run automatically on startup from `solune/backend/src/migrations/`.
+- **Storage:** SQLite via `aiosqlite` in WAL mode. Migrations (`001`–`032`, with the consolidated schema at `023`) run automatically on startup from `solune/backend/src/migrations/`.
 - **Tailwind v4:** CSS-first config lives in `solune/frontend/src/index.css`. Do not add `tailwind.config.js` or `postcss.config.js` unless the build model changes.
 - **Repository resolution:** Use the shared `resolve_repository()` helper in `solune/backend/src/utils.py`. Avoid ad-hoc owner/repo fallback logic.
 - **AI providers:** `completion_providers.py` abstracts GitHub Copilot SDK (default, user OAuth token) and Azure OpenAI (static keys, optional). Selected via `AI_PROVIDER` env var.
@@ -80,7 +80,7 @@ solune/
                        mcp, metadata, onboarding, pipelines, projects, settings,
                        signal, tasks, tools, webhook_models, webhooks, workflow)
     middleware/       Request middleware (request_id context var)
-    migrations/       SQL schema migrations (001–030, run on startup)
+    migrations/       SQL schema migrations (001–032, run on startup)
     models/           Pydantic request/response models
     prompts/          AI prompt templates (issue_generation, task_generation, transcript_analysis)
     services/         Business logic
@@ -260,7 +260,7 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 
 ## Active Technologies
 - Python 3.13 (backend runtime target, 3.12 CI, 3.14 Docker), TypeScript ~5.9 (frontend) + FastAPI >=0.135, React 19.2, Vite 8, TanStack Query 5.91, Tailwind CSS 4.2, @dnd-kit (drag-and-drop), Pydantic 2.12, aiosqlite, cryptography 46, githubkit >=0.14.6, Radix UI
-- SQLite via aiosqlite (persistent module-level connection, `init_database()` / `get_db()`), SQL-based migrations (001–030) in `backend/src/migrations/`
+- SQLite via aiosqlite (persistent module-level connection, `init_database()` / `get_db()`), SQL-based migrations (001–032) in `backend/src/migrations/`
 - ESLint 10, eslint-plugin-react-hooks 7, eslint-plugin-security 4, Vitest 4.0, Playwright 1.58
 - Docker images: python:3.14-slim (backend), node:25-alpine + nginx:1.29-alpine (frontend)
 - TypeScript ~5.9.0, React 19.2.0 + TanStack React Query ^5.91.0, React Router DOM ^7.13.1, React Hook Form ^7.71.2, Radix UI (primitives), Tailwind CSS ^4.2.0, Zod ^4.3.6, Vite ^8.0.0 (052-ui-audit)
@@ -280,7 +280,7 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - Python 3.12+/3.13 (backend), TypeScript 5.9 (frontend) + FastAPI 0.135+, React 19, Pydantic 2.12+, Vite 8, TanStack Query v5, Tailwind CSS 4, @dnd-kit/core (board drag-and-drop) (053-pagination-infinite-scroll)
 - SQLite via aiosqlite (existing — no schema changes required) (053-pagination-infinite-scroll)
 - Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI + Pydantic (backend API/models), aiosqlite (async SQLite), React 18 + TanStack Query v5 (frontend state), React Router v6 (routing), Lucide React (icons), Tailwind CSS (styling) (054-activity-audit-trail)
-- SQLite via aiosqlite — direct SQL queries, no ORM. Pydantic models for serialization. Numbered SQL migration files (current highest: 031). (054-activity-audit-trail)
+- SQLite via aiosqlite — direct SQL queries, no ORM. Pydantic models for serialization. Numbered SQL migration files (current highest: 032). (054-activity-audit-trail)
 - Python 3.13 (backend), TypeScript 5.x + React 19.2 (frontend) + FastAPI (backend), TanStack Query v5.91 + React 19 (frontend), Sonner v2 (toasts) (054-optimistic-ui-updates)
 - SQLite with aiosqlite (backend local state), GitHub Projects GraphQL API (board data source) (054-optimistic-ui-updates)
 

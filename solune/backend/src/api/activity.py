@@ -6,10 +6,10 @@ import base64
 import json
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
-from src.dependencies import get_database
+from src.dependencies import get_database, verify_project_access
 from src.logging_utils import get_logger
 from src.models.activity import ActivityEvent
 from src.models.user import UserSession
@@ -142,6 +142,7 @@ async def _query_events(
 
 @router.get("")
 async def get_activity_feed(
+    request: Request,
     session: Annotated[UserSession, Depends(get_session_dep)],
     project_id: Annotated[str, Query(description="Project ID to scope the feed")],
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
@@ -152,6 +153,7 @@ async def get_activity_feed(
     db=Depends(get_database),  # noqa: B008
 ) -> dict:
     """Paginated activity feed scoped to a project."""
+    await verify_project_access(request, project_id, session)
     return await _query_events(
         db,
         project_id=project_id,
@@ -163,9 +165,11 @@ async def get_activity_feed(
 
 @router.get("/{entity_type}/{entity_id}")
 async def get_entity_history(
+    request: Request,
     entity_type: str,
     entity_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
+    project_id: Annotated[str, Query(description="Project ID to scope entity history")],
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
     db=Depends(get_database),  # noqa: B008
@@ -179,8 +183,10 @@ async def get_entity_history(
             f"Must be one of: {', '.join(sorted(ALLOWED_ENTITY_TYPES))}"
         )
 
+    await verify_project_access(request, project_id, session)
     return await _query_events(
         db,
+        project_id=project_id,
         entity_type=entity_type,
         entity_id=entity_id,
         limit=limit,

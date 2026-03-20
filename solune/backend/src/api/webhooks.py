@@ -274,7 +274,6 @@ async def github_webhook(
     # Handle pull_request events
     if x_github_event == "pull_request":
         result = await handle_pull_request_event(cast(PullRequestEvent | dict[str, Any], payload))
-        # Log webhook activity (fire-and-forget)
         pr_info = raw_payload.get("pull_request", {}) if isinstance(raw_payload, dict) else {}
         repo_info = raw_payload.get("repository", {}) if isinstance(raw_payload, dict) else {}
         webhook_action = raw_payload.get("action", "") if isinstance(raw_payload, dict) else ""
@@ -289,7 +288,11 @@ async def github_webhook(
             event_type="webhook",
             entity_type="issue",
             entity_id=str(pr_info.get("number", "")) if isinstance(pr_info, dict) else "",
-            project_id="",
+            project_id=(
+                result.get("project_id", "")
+                if isinstance(result, dict) and isinstance(result.get("project_id"), str)
+                else ""
+            ),
             actor=sender,
             action=webhook_action or "received",
             summary=f"Webhook: pull_request {webhook_action} on {repo_full}",

@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS activity_events (
     action TEXT NOT NULL,
     summary TEXT NOT NULL,
     detail TEXT,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_activity_project_time

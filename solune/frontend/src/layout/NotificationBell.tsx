@@ -5,6 +5,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Bell } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';
 
@@ -19,6 +20,7 @@ export function NotificationBell({
   unreadCount,
   onMarkAllRead,
 }: NotificationBellProps) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -147,7 +149,7 @@ export function NotificationBell({
                 className="text-xs font-medium text-primary hover:text-foreground transition-colors"
                 onClick={() => {
                   setIsOpen(false);
-                  window.location.href = '/activity';
+                  navigate('/activity');
                 }}
               >
                 View all activity

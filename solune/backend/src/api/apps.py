@@ -199,7 +199,7 @@ async def update_app_endpoint(
         event_type="app_crud",
         entity_type="app",
         entity_id=app_name,
-        project_id="",
+        project_id=result.github_project_id or "",
         actor=_session.github_username,
         action="updated",
         summary=f"App '{app_name}' updated",
@@ -241,6 +241,7 @@ async def delete_app_endpoint(
     """
     db = get_db()
     github_service = get_github_service(request)
+    existing = await get_app(db, app_name)
     result = await delete_app(
         db,
         app_name,
@@ -253,7 +254,7 @@ async def delete_app_endpoint(
         event_type="app_crud",
         entity_type="app",
         entity_id=app_name,
-        project_id="",
+        project_id=existing.github_project_id or "",
         actor=session.github_username,
         action="deleted",
         summary=f"App '{app_name}' deleted",

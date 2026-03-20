@@ -9,6 +9,7 @@ import { useEntityHistory } from '@/hooks/useEntityHistory';
 import { cn } from '@/lib/utils';
 
 interface EntityHistoryPanelProps {
+  projectId: string;
   entityType: string;
   entityId: string;
   className?: string;
@@ -33,9 +34,14 @@ function formatRelativeTime(isoDate: string): string {
   return new Date(then).toLocaleDateString();
 }
 
-export function EntityHistoryPanel({ entityType, entityId, className }: EntityHistoryPanelProps) {
+export function EntityHistoryPanel({
+  projectId,
+  entityType,
+  entityId,
+  className,
+}: EntityHistoryPanelProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { allItems: events, isLoading } = useEntityHistory(entityType, entityId);
+  const { allItems: events, isLoading } = useEntityHistory(projectId, entityType, entityId);
 
   return (
     <div className={cn('border-t border-border/50', className)}>

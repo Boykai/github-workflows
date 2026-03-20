@@ -1064,7 +1064,7 @@ export interface RecentInteraction {
 
 export interface Notification {
   id: string;
-  type: 'agent' | 'chore';
+  type: 'agent' | 'chore' | 'pipeline';
   title: string;
   timestamp: string;
   read: boolean;

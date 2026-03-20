@@ -11,6 +11,7 @@ import { useConfirmation } from '@/hooks/useConfirmation';
 import { isRateLimitApiError } from '@/utils/rateLimit';
 import { Tooltip } from '@/components/ui/tooltip';
 import { EntityHistoryPanel } from '@/components/activity/EntityHistoryPanel';
+import { useAuth } from '@/hooks/useAuth';
 import { AppPreview } from './AppPreview';
 
 /** Format a date string as relative time ("2 hours ago") or absolute. */
@@ -36,6 +37,7 @@ interface AppDetailViewProps {
 }
 
 export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
+  const { user } = useAuth();
   const { data: app, isLoading, error, refetch } = useApp(appName);
   const startMutation = useStartApp();
   const stopMutation = useStopApp();
@@ -321,7 +323,11 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
         <AppPreview port={app.port} appName={app.name} isActive={app.status === 'active'} />
       </div>
 
-      <EntityHistoryPanel entityType="app" entityId={app.name} />
+      <EntityHistoryPanel
+        projectId={user?.selected_project_id ?? ''}
+        entityType="app"
+        entityId={app.name}
+      />
     </div>
   );
 }
