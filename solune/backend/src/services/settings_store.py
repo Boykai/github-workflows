@@ -496,13 +496,15 @@ async def is_queue_mode_enabled(db: aiosqlite.Connection, project_id: str) -> bo
         if now - cached_at < _QUEUE_MODE_CACHE_TTL_SECONDS:
             return value
 
-    # Query all rows for this project (any user) — queue mode is project-wide
+    # Query only the canonical __workflow__ row — the settings API syncs
+    # queue_mode to this row, so it is the single source of truth.
     cursor = await db.execute(
-        "SELECT queue_mode FROM project_settings WHERE project_id = ? AND queue_mode = 1 LIMIT 1",
+        "SELECT queue_mode FROM project_settings"
+        " WHERE project_id = ? AND github_user_id = '__workflow__' LIMIT 1",
         (project_id,),
     )
     row = await cursor.fetchone()
-    enabled = row is not None
+    enabled = row is not None and bool(row[0])
     _queue_mode_cache[project_id] = (enabled, now)
     return enabled
 

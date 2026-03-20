@@ -277,6 +277,7 @@ export function ProjectsPage() {
             type="button"
             title="Only one pipeline runs at a time — next starts when active reaches In Review or Done"
             aria-label="Toggle queue mode"
+            aria-pressed={isQueueMode}
           >
             <ListOrdered className="h-3.5 w-3.5" />
             Queue Mode

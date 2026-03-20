@@ -219,7 +219,7 @@ class TestIsQueueModeEnabled:
             await seed_global_settings(mock_db)
 
         _queue_mode_cache.clear()
-        await upsert_project_settings(mock_db, "user1", "PVT_proj1", {"queue_mode": 1})
+        await upsert_project_settings(mock_db, "__workflow__", "PVT_proj1", {"queue_mode": 1})
         result = await is_queue_mode_enabled(mock_db, "PVT_proj1")
         assert result is True
 
@@ -235,7 +235,26 @@ class TestIsQueueModeEnabled:
             await seed_global_settings(mock_db)
 
         _queue_mode_cache.clear()
-        await upsert_project_settings(mock_db, "user1", "PVT_proj1", {"queue_mode": 0})
+        await upsert_project_settings(mock_db, "__workflow__", "PVT_proj1", {"queue_mode": 0})
+        result = await is_queue_mode_enabled(mock_db, "PVT_proj1")
+        assert result is False
+
+    async def test_ignores_non_canonical_rows(self, mock_db, mock_settings):
+        """Stale per-user rows should not cause queue mode to appear enabled."""
+        from src.services.database import seed_global_settings
+        from src.services.settings_store import (
+            _queue_mode_cache,
+            is_queue_mode_enabled,
+            upsert_project_settings,
+        )
+
+        with patch("src.services.database.get_settings", return_value=mock_settings):
+            await seed_global_settings(mock_db)
+
+        _queue_mode_cache.clear()
+        # A non-canonical per-user row has queue_mode=1 but canonical row has 0
+        await upsert_project_settings(mock_db, "user1", "PVT_proj1", {"queue_mode": 1})
+        await upsert_project_settings(mock_db, "__workflow__", "PVT_proj1", {"queue_mode": 0})
         result = await is_queue_mode_enabled(mock_db, "PVT_proj1")
         assert result is False
 
@@ -251,7 +270,7 @@ class TestIsQueueModeEnabled:
             await seed_global_settings(mock_db)
 
         _queue_mode_cache.clear()
-        await upsert_project_settings(mock_db, "user1", "PVT_proj1", {"queue_mode": 1})
+        await upsert_project_settings(mock_db, "__workflow__", "PVT_proj1", {"queue_mode": 1})
         # First call populates cache
         result1 = await is_queue_mode_enabled(mock_db, "PVT_proj1")
         assert result1 is True
