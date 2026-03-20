@@ -128,6 +128,10 @@ async def update_project_settings_endpoint(
         val = update_data["agent_pipeline_mappings"]
         updates["agent_pipeline_mappings"] = json.dumps(val) if val is not None else None
 
+    if "queue_mode" in update_data:
+        val = update_data["queue_mode"]
+        updates["queue_mode"] = int(val) if val is not None else 0
+
     if updates:
         await upsert_project_settings(db, session.github_user_id, project_id, updates)
         logger.info(
@@ -157,6 +161,15 @@ async def update_project_settings_endpoint(
                 logger.debug(
                     "Cache invalidation skipped for project=%s: %s", project_id, e, exc_info=True
                 )
+
+        # Sync queue_mode to the canonical __workflow__ row and invalidate cache
+        if "queue_mode" in updates:
+            workflow_updates = {"queue_mode": updates["queue_mode"]}
+            await upsert_project_settings(db, "__workflow__", project_id, workflow_updates)
+            # Invalidate the queue mode in-memory cache
+            from src.services.settings_store import _queue_mode_cache
+
+            _queue_mode_cache.pop(project_id, None)
 
     return await get_effective_project_settings(db, session.github_user_id, project_id)
 

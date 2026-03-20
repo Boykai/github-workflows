@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import aiosqlite
@@ -197,6 +197,7 @@ def _row_to_pipeline_state(row) -> Any:
         execution_mode=metadata.get("execution_mode", "sequential"),
         parallel_agent_statuses=metadata.get("parallel_agent_statuses", {}),
         failed_agents=metadata.get("failed_agents", []),
+        queued=metadata.get("queued", False),
     )
 
 
@@ -214,6 +215,7 @@ def _pipeline_state_to_row(issue_number: int, state: Any) -> tuple:
         "execution_mode": state.execution_mode,
         "parallel_agent_statuses": state.parallel_agent_statuses,
         "failed_agents": state.failed_agents,
+        "queued": state.queued,
     }
     now = utcnow().isoformat()
     return (
@@ -300,6 +302,38 @@ async def get_pipeline_state_async(issue_number: int) -> Any:
 def get_all_pipeline_states() -> dict[int, Any]:
     """Get all pipeline states from L1 cache."""
     return dict(_pipeline_states)
+
+
+def count_active_pipelines_for_project(project_id: str) -> int:
+    """Count non-queued pipelines for a project from L1 cache.
+
+    Scans the in-memory cache — O(n) but fast for realistic cardinality.
+    Only counts pipelines that are actively running (not queued).
+    """
+    count = 0
+    for state in _pipeline_states.values():
+        if getattr(state, "project_id", None) == project_id and not getattr(
+            state, "queued", False
+        ):
+            count += 1
+    return count
+
+
+def get_queued_pipelines_for_project(project_id: str) -> list[Any]:
+    """Return all queued pipelines for a project, sorted by started_at (FIFO).
+
+    Used by the dequeue logic to find the next pipeline to start.
+    """
+    queued = []
+    for state in _pipeline_states.values():
+        if getattr(state, "project_id", None) == project_id and getattr(
+            state, "queued", False
+        ):
+            queued.append(state)
+    # Sort by started_at (oldest first) for FIFO ordering
+    _epoch = datetime.min.replace(tzinfo=UTC)
+    queued.sort(key=lambda s: s.started_at or _epoch)
+    return queued
 
 
 async def set_pipeline_state(issue_number: int, state: Any) -> None:

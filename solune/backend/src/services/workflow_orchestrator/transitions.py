@@ -10,6 +10,8 @@ from src.services.pipeline_state_store import (
     _issue_main_branches,
     _issue_sub_issue_map,
     _pipeline_states,
+    count_active_pipelines_for_project,
+    get_queued_pipelines_for_project,
 )
 from src.services.pipeline_state_store import (
     clear_all_trigger_inflights as _clear_all_trigger_inflights_async,
