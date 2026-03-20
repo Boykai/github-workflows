@@ -1264,11 +1264,12 @@ class TestLogTransition:
         defaults.update(overrides)
         return WorkflowContext(**defaults)
 
-    def test_log_transition(self, orchestrator):
+    @pytest.mark.asyncio
+    async def test_log_transition(self, orchestrator):
         from src.services.workflow_orchestrator import _transitions
 
         ctx = self._make_ctx()
-        orchestrator.log_transition(
+        await orchestrator.log_transition(
             ctx=ctx,
             from_status="Backlog",
             to_status="Ready",
@@ -1279,12 +1280,13 @@ class TestLogTransition:
         assert _transitions[0].to_status == "Ready"
         assert _transitions[0].project_id == "p1"
 
-    def test_log_multiple_transitions(self, orchestrator):
+    @pytest.mark.asyncio
+    async def test_log_multiple_transitions(self, orchestrator):
         from src.services.workflow_orchestrator import _transitions
 
         ctx = self._make_ctx()
         for i in range(5):
-            orchestrator.log_transition(
+            await orchestrator.log_transition(
                 ctx=ctx,
                 from_status=f"status-{i}",
                 to_status=f"status-{i + 1}",
@@ -1485,7 +1487,8 @@ class TestGetTransitions:
     def test_returns_empty_list(self):
         assert get_transitions() == []
 
-    def test_returns_filtered_by_issue_id(self):
+    @pytest.mark.asyncio
+    async def test_returns_filtered_by_issue_id(self):
         orch = WorkflowOrchestrator(Mock(), Mock())
         ctx = WorkflowContext(
             session_id="s",
@@ -1496,7 +1499,7 @@ class TestGetTransitions:
             repository_owner="o",
             repository_name="r",
         )
-        orch.log_transition(
+        await orch.log_transition(
             ctx=ctx,
             from_status=None,
             to_status="Ready",
@@ -1512,7 +1515,7 @@ class TestGetTransitions:
             repository_owner="o",
             repository_name="r",
         )
-        orch.log_transition(
+        await orch.log_transition(
             ctx=ctx2,
             from_status=None,
             to_status="Backlog",

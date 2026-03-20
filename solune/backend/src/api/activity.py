@@ -146,7 +146,9 @@ async def get_activity_feed(
     project_id: Annotated[str, Query(description="Project ID to scope the feed")],
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
-    event_type: Annotated[str | None, Query(description="Comma-separated event type filter")] = None,
+    event_type: Annotated[
+        str | None, Query(description="Comma-separated event type filter")
+    ] = None,
     db=Depends(get_database),  # noqa: B008
 ) -> dict:
     """Paginated activity feed scoped to a project."""
