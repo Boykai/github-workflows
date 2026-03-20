@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from src.models.pagination import PaginatedResponse, PaginationParams
-from src.services.pagination import apply_pagination, _encode_cursor, _decode_cursor
-
+from src.services.pagination import _decode_cursor, _encode_cursor, apply_pagination
 
 # ── Helper model ──
 
@@ -36,11 +35,11 @@ class TestPaginationParams:
         assert p.cursor == "abc"
 
     def test_limit_minimum(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             PaginationParams(limit=0)
 
     def test_limit_maximum(self):
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             PaginationParams(limit=101)
 
     def test_limit_edge_values(self):

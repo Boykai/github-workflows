@@ -2,21 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Generic, TypeVar
-
 from pydantic import BaseModel, Field
-
-T = TypeVar("T")
 
 
 class PaginationParams(BaseModel):
     """Query parameters for paginated list endpoints."""
 
-    limit: int = Field(default=25, ge=1, le=100, description="Items per page (1–100)")
+    limit: int = Field(default=25, ge=1, le=100, description="Items per page (1-100)")
     cursor: str | None = Field(default=None, description="Opaque cursor for the next page")
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
+class PaginatedResponse[T](BaseModel):
     """Generic paginated response envelope."""
 
     items: list[T] = Field(default_factory=list)

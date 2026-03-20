@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import base64
-from typing import Any, Callable, TypeVar
+from collections.abc import Callable
+from typing import Any
 
 from src.models.pagination import PaginatedResponse
-
-T = TypeVar("T")
 
 
 def _encode_cursor(value: str) -> str:
@@ -23,7 +22,7 @@ def _decode_cursor(cursor: str) -> str:
         raise ValueError(f"Invalid pagination cursor: {cursor}") from exc
 
 
-def apply_pagination(
+def apply_pagination[T](
     items: list[T],
     limit: int = 25,
     cursor: str | None = None,
