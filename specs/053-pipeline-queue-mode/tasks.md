@@ -25,10 +25,10 @@
 
 **Purpose**: Add the `queue_mode` column to the database and expose it through the settings model, store, and API layers. This phase MUST complete before any queue logic can be implemented.
 
-- [ ] T001 [P] [US1] **New migration** `solune/backend/src/migrations/031_queue_mode.sql` — `ALTER TABLE project_settings ADD COLUMN queue_mode INTEGER NOT NULL DEFAULT 0`
-- [ ] T002 [P] [US1] **Update** `ProjectBoardConfig` in `solune/backend/src/models/settings.py` — add `queue_mode: bool = False`; add `queue_mode: bool | None = None` to `ProjectSettingsUpdate`
-- [ ] T003 [US1] **Update** `PROJECT_SETTINGS_COLUMNS` + `upsert_project_settings()` SQL in `solune/backend/src/services/settings_store.py` to include the new column
-- [ ] T004 [US1] **Update** the PUT handler in `solune/backend/src/api/settings.py` to persist `queue_mode`
+- [x] T001 [P] [US1] **New migration** `solune/backend/src/migrations/031_queue_mode.sql` — `ALTER TABLE project_settings ADD COLUMN queue_mode INTEGER NOT NULL DEFAULT 0`
+- [x] T002 [P] [US1] **Update** `ProjectBoardConfig` in `solune/backend/src/models/settings.py` — add `queue_mode: bool = False`; add `queue_mode: bool | None = None` to `ProjectSettingsUpdate`
+- [x] T003 [US1] **Update** `PROJECT_SETTINGS_COLUMNS` + `upsert_project_settings()` SQL in `solune/backend/src/services/settings_store.py` to include the new column
+- [x] T004 [US1] **Update** the PUT handler in `solune/backend/src/api/settings.py` to persist `queue_mode`
 
 **Checkpoint**: Queue mode setting can be read and written via API. Toggle persistence verified.
 
@@ -38,12 +38,12 @@
 
 **Purpose**: Implement the core queue enforcement — gate agent assignment when queue is active, and dequeue the next pipeline when the active one completes.
 
-- [ ] T005 [US2] **Add** `count_active_pipelines_for_project(project_id)` helper in `solune/backend/src/services/pipeline_state_store.py` — scans L1 cache, O(n) but fast for realistic cardinality
-- [ ] T006 [US1] **Add** `is_queue_mode_enabled(project_id)` helper in `solune/backend/src/services/settings_store.py` — reads from DB with short-TTL BoundedDict cache
-- [ ] T007 [US2] **Gate agent assignment** in `execute_pipeline_launch()` in `solune/backend/src/api/pipelines.py` — between `set_pipeline_state` (L350) and `assign_agent_for_status` (L363): if queue is ON AND another pipeline is active, skip agent assignment & polling start, mark state as `queued=True`, return "Pipeline queued" message
-- [ ] T008 [US3] **Dequeue on completion** in `_transition_after_pipeline_complete()` in `solune/backend/src/services/copilot_polling/pipeline.py` — after `remove_pipeline_state()` (L1928), check queue mode, find oldest queued pipeline by `started_at` (FIFO), call `assign_agent_for_status()` on it
-- [ ] T009 [P] [US2] **Add** `queued: bool = False` to `PipelineState` dataclass in `solune/backend/src/services/workflow_orchestrator/models.py`
-- [ ] T010 [US3] **Add** dequeue trigger in `check_in_review_issues()` and done-detection in the polling loop for the "In Review" / "Done" slot-release paths in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T005 [US2] **Add** `count_active_pipelines_for_project(project_id)` helper in `solune/backend/src/services/pipeline_state_store.py` — scans L1 cache, O(n) but fast for realistic cardinality
+- [x] T006 [US1] **Add** `is_queue_mode_enabled(project_id)` helper in `solune/backend/src/services/settings_store.py` — reads from DB with short-TTL BoundedDict cache
+- [x] T007 [US2] **Gate agent assignment** in `execute_pipeline_launch()` in `solune/backend/src/api/pipelines.py` — between `set_pipeline_state` (L350) and `assign_agent_for_status` (L363): if queue is ON AND another pipeline is active, skip agent assignment & polling start, mark state as `queued=True`, return "Pipeline queued" message
+- [x] T008 [US3] **Dequeue on completion** in `_transition_after_pipeline_complete()` in `solune/backend/src/services/copilot_polling/pipeline.py` — after `remove_pipeline_state()` (L1928), check queue mode, find oldest queued pipeline by `started_at` (FIFO), call `assign_agent_for_status()` on it
+- [x] T009 [P] [US2] **Add** `queued: bool = False` to `PipelineState` dataclass in `solune/backend/src/services/workflow_orchestrator/models.py`
+- [x] T010 [US3] **Add** dequeue trigger in `check_in_review_issues()` and done-detection in the polling loop for the "In Review" / "Done" slot-release paths in `solune/backend/src/services/copilot_polling/pipeline.py`
 
 **Checkpoint**: Queue gate blocks agent assignment when another pipeline is active. Dequeue automatically starts the next pipeline on completion.
 
@@ -53,10 +53,10 @@
 
 **Purpose**: Add the Queue Mode toggle UI, "Queued" badge on issue cards, and queue position toast notification.
 
-- [ ] T011 [P] [US1] **Update types** in `solune/frontend/src/types/index.ts` — add `queue_mode` to `ProjectBoardConfig`, `ProjectSettingsUpdate`, `ProjectSpecificSettings`, and `PipelineStateInfo`
-- [ ] T012 [US1] **Add toggle** in `solune/frontend/src/pages/ProjectsPage.tsx` toolbar row (around L201) — `ToolbarButton`-style pill using existing pattern, `ListOrdered` icon from lucide-react, label "Queue Mode", backed by `useProjectSettings` hook; tooltip: "Only one pipeline runs at a time — next starts when active reaches In Review or Done"
-- [ ] T013 [US5] **Add "Queued" badge** on `solune/frontend/src/components/board/IssueCard.tsx` when pipeline state has `queued: true` — small clock/queue icon badge on the card
-- [ ] T014 [US2] **Show queue position** in launch toast — when response message indicates "queued", display "Pipeline queued — position #N"
+- [x] T011 [P] [US1] **Update types** in `solune/frontend/src/types/index.ts` — add `queue_mode` to `ProjectBoardConfig`, `ProjectSettingsUpdate`, `ProjectSpecificSettings`, and `PipelineStateInfo`
+- [x] T012 [US1] **Add toggle** in `solune/frontend/src/pages/ProjectsPage.tsx` toolbar row (around L201) — `ToolbarButton`-style pill using existing pattern, `ListOrdered` icon from lucide-react, label "Queue Mode", backed by `useProjectSettings` hook; tooltip: "Only one pipeline runs at a time — next starts when active reaches In Review or Done"
+- [x] T013 [US5] **Add "Queued" badge** on `solune/frontend/src/components/board/IssueCard.tsx` when pipeline state has `queued: true` — small clock/queue icon badge on the card
+- [x] T014 [US2] **Show queue position** in launch toast — when response message indicates "queued", display "Pipeline queued — position #N"
 
 **Checkpoint**: Toggle renders and persists setting. "Queued" badge appears on queued pipeline cards. Toast shows queue position.
 
@@ -66,9 +66,9 @@
 
 **Purpose**: Verify queue mode behavior with unit, integration, and frontend tests.
 
-- [ ] T015 [P] [US2, US3, US4] **New** `solune/backend/tests/unit/test_queue_mode.py` — gate logic (queue ON + active → no agent), dequeue FIFO ordering, queue OFF preserves immediate behavior, `count_active_pipelines_for_project()` at 0/1/N
-- [ ] T016 [P] [US2, US3] **New** `solune/backend/tests/integration/test_queue_mode.py` — launch 2 issues with queue ON → first starts, second is queued → complete first → second auto-starts
-- [ ] T017 [P] [US1, US5] **Frontend tests** — test toggle renders, toggles `queue_mode` in settings, "Queued" badge visibility, launch toast message
+- [x] T015 [P] [US2, US3, US4] **New** `solune/backend/tests/unit/test_queue_mode.py` — gate logic (queue ON + active → no agent), dequeue FIFO ordering, queue OFF preserves immediate behavior, `count_active_pipelines_for_project()` at 0/1/N
+- [x] T016 [P] [US2, US3] **New** `solune/backend/tests/integration/test_queue_mode.py` — launch 2 issues with queue ON → first starts, second is queued → complete first → second auto-starts
+- [x] T017 [P] [US1, US5] **Frontend tests** — test toggle renders, toggles `queue_mode` in settings, "Queued" badge visibility, launch toast message
 
 **Checkpoint**: All queue mode tests pass. Coverage does not regress.
 

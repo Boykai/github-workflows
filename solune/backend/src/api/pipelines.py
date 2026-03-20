@@ -385,12 +385,14 @@ async def execute_pipeline_launch(
             )
 
             # Count queue position (queued pipelines sorted by started_at)
+            from datetime import datetime as _dt
             from src.services.pipeline_state_store import get_all_pipeline_states
 
             all_states = get_all_pipeline_states()
+            _max_dt = _dt.max.replace(tzinfo=None)
             queued_states = sorted(
                 (s for s in all_states.values() if s.project_id == project_id and getattr(s, "queued", False)),
-                key=lambda s: s.started_at or utcnow(),
+                key=lambda s: s.started_at or _max_dt,
             )
             queue_position = next(
                 (i + 1 for i, s in enumerate(queued_states) if s.issue_number == ctx.issue_number),

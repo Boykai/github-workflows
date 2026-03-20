@@ -241,4 +241,27 @@ describe('IssueCard', () => {
     const { container } = render(<IssueCard item={createBoardItem()} onClick={vi.fn()} />);
     await expectNoA11yViolations(container);
   });
+
+  describe('Queue Mode Badge', () => {
+    it('does not show Queued badge by default', () => {
+      const item = createBoardItem();
+      render(<IssueCard item={item} onClick={vi.fn()} />);
+      expect(screen.queryByText('Queued')).not.toBeInTheDocument();
+    });
+
+    it('does not show Queued badge when isQueued is false', () => {
+      const item = createBoardItem();
+      render(<IssueCard item={item} onClick={vi.fn()} isQueued={false} />);
+      expect(screen.queryByText('Queued')).not.toBeInTheDocument();
+    });
+
+    it('shows Queued badge when isQueued is true', () => {
+      const item = createBoardItem({
+        labels: [{ id: 'lbl-1', name: 'pipeline:my-pipeline', color: '0052cc' }],
+      });
+      render(<IssueCard item={item} onClick={vi.fn()} isQueued={true} />);
+      expect(screen.getByText('Queued')).toBeInTheDocument();
+      expect(screen.getByTitle('Pipeline is queued — waiting for an active slot')).toBeInTheDocument();
+    });
+  });
 });

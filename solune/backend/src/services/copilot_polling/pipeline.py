@@ -2220,13 +2220,14 @@ async def _dequeue_next_pipeline(
 
     # Find oldest queued pipeline for this project
     all_states = _cp.get_all_pipeline_states()
+    _max_dt = datetime.max.replace(tzinfo=None)
     queued = sorted(
         (
             (issue_num, state)
             for issue_num, state in all_states.items()
             if state.project_id == project_id and getattr(state, "queued", False)
         ),
-        key=lambda pair: pair[1].started_at or utcnow(),
+        key=lambda pair: pair[1].started_at or _max_dt,
     )
 
     if not queued:

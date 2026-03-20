@@ -270,7 +270,7 @@ async def upsert_project_settings(
             agent_pipeline_mappings,
             queue_mode,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, COALESCE(?, 0), ?)
         ON CONFLICT(github_user_id, project_id) DO UPDATE SET
             board_display_config = CASE
                 WHEN ? THEN excluded.board_display_config
