@@ -62,7 +62,7 @@ export function CommandPalette({ isOpen, onClose, projectId }: CommandPalettePro
     }
   }, [selectedIndex]);
 
-  // Keyboard handler
+  // Keyboard handler for the input (arrows + Enter)
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       switch (e.key) {
@@ -77,10 +77,6 @@ export function CommandPalette({ isOpen, onClose, projectId }: CommandPalettePro
         case 'Enter':
           e.preventDefault();
           selectCurrent();
-          onClose();
-          break;
-        case 'Escape':
-          e.preventDefault();
           onClose();
           break;
       }
@@ -100,6 +96,43 @@ export function CommandPalette({ isOpen, onClose, projectId }: CommandPalettePro
     document.addEventListener('keydown', handleGlobalKey);
     return () => document.removeEventListener('keydown', handleGlobalKey);
   }, [isOpen]);
+
+  // Document-level Escape handling and focus trapping
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Escape — close palette regardless of which inner element has focus
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+        return;
+      }
+
+      // Tab — trap focus within the dialog
+      if (e.key === 'Tab' && dialogRef.current) {
+        const focusable = dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [tabindex]:not([tabindex="-1"]), a[href], input, select, textarea',
+        );
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -124,6 +157,7 @@ export function CommandPalette({ isOpen, onClose, projectId }: CommandPalettePro
       />
       {/* Dialog */}
       <div
+        ref={dialogRef}
         className="fixed inset-0 z-[9999] flex items-start justify-center p-4 pt-[15vh]"
         role="dialog"
         aria-modal="true"
@@ -278,9 +312,8 @@ interface ResultItemProps {
 function ResultItem({ item, index, isSelected, onClick }: ResultItemProps) {
   const Icon = item.icon;
   return (
-    <button
+    <div
       id={`palette-item-${index}`}
-      type="button"
       role="option"
       aria-selected={isSelected}
       tabIndex={-1}
@@ -290,7 +323,10 @@ function ResultItem({ item, index, isSelected, onClick }: ResultItemProps) {
           ? 'bg-primary/10 text-foreground ring-1 ring-inset ring-primary/30'
           : 'text-foreground/80 hover:bg-muted/50',
       )}
-      onClick={onClick}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        onClick();
+      }}
     >
       <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
       <div className="flex-1 min-w-0">
@@ -299,7 +335,7 @@ function ResultItem({ item, index, isSelected, onClick }: ResultItemProps) {
           <span className="ml-2 text-xs text-muted-foreground">{item.description}</span>
         )}
       </div>
-    </button>
+    </div>
   );
 }
 

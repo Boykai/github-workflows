@@ -104,19 +104,18 @@ export function useCommandPalette({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // ---- Focus save on open, restore on close ----
+  // ---- Focus save on mount, restore on unmount ----
+  // Component is conditionally mounted only when open, so we save the
+  // previously-focused element once on mount and restore it on unmount.
   useEffect(() => {
-    if (isOpen) {
-      previousFocusRef.current = document.activeElement as HTMLElement | null;
-    }
+    previousFocusRef.current = document.activeElement as HTMLElement | null;
     return () => {
-      // Restore focus when effect cleans up (palette closing or unmounting)
       const el = previousFocusRef.current;
       if (el && document.body.contains(el)) {
         el.focus();
       }
     };
-  }, [isOpen]);
+  }, []);
 
   // ---- Entity data sources (enabled only when open) ----
   const agentsQuery = useAgentsList(isOpen ? projectId : null);

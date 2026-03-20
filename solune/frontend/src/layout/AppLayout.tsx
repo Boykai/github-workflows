@@ -103,18 +103,14 @@ export function AppLayout() {
 
   const [shortcutModalOpen, setShortcutModalOpen] = useState(false);
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
-  const [paletteKey, setPaletteKey] = useState(0);
   useGlobalShortcuts({
     onOpenShortcutModal: () => setShortcutModalOpen(true),
   });
 
-  // Listen for the custom event to open the command palette
+  // Listen for the custom event to toggle the command palette
   useEffect(() => {
     const handleOpenPalette = () => {
-      setIsCommandPaletteOpen((prev) => {
-        if (!prev) setPaletteKey((k) => k + 1);
-        return !prev;
-      });
+      setIsCommandPaletteOpen((prev) => !prev);
     };
     window.addEventListener('solune:open-command-palette', handleOpenPalette);
     return () => window.removeEventListener('solune:open-command-palette', handleOpenPalette);
@@ -206,12 +202,13 @@ export function AppLayout() {
           isOpen={shortcutModalOpen}
           onClose={() => setShortcutModalOpen(false)}
         />
-        <CommandPalette
-          key={paletteKey}
-          isOpen={isCommandPaletteOpen}
-          onClose={() => setIsCommandPaletteOpen(false)}
-          projectId={selectedProject?.project_id ?? null}
-        />
+        {isCommandPaletteOpen && (
+          <CommandPalette
+            isOpen={isCommandPaletteOpen}
+            onClose={() => setIsCommandPaletteOpen(false)}
+            projectId={selectedProject?.project_id ?? null}
+          />
+        )}
         <Toaster
           position="bottom-right"
           visibleToasts={3}
