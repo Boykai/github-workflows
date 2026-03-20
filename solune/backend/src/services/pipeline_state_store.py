@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
 import aiosqlite
@@ -331,7 +331,8 @@ def get_queued_pipelines_for_project(project_id: str) -> list[Any]:
         ):
             queued.append(state)
     # Sort by started_at (oldest first) for FIFO ordering
-    queued.sort(key=lambda s: s.started_at or datetime.min)
+    _epoch = datetime.min.replace(tzinfo=UTC)
+    queued.sort(key=lambda s: s.started_at or _epoch)
     return queued
 
 

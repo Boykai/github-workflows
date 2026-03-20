@@ -264,8 +264,7 @@ async def upsert_project_settings(
 
     # Replace None with default for NOT NULL columns
     insert_values = list(values)
-    # queue_mode is the 3rd element in PROJECT_SETTINGS_COLUMNS (index 2)
-    # and must be non-NULL (DEFAULT 0)
+    # queue_mode must be non-NULL (DEFAULT 0 in schema)
     queue_mode_idx = list(PROJECT_SETTINGS_COLUMNS).index("queue_mode")
     if insert_values[queue_mode_idx] is None:
         insert_values[queue_mode_idx] = 0
