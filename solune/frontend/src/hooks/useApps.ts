@@ -81,7 +81,6 @@ export function useApp(name: string | undefined) {
 export function useCreateApp() {
   const queryClient = useQueryClient();
 
-
   return useMutation({
     mutationFn: (data: AppCreate) => appsApi.create(data),
     onMutate: async (data: AppCreate) => {
@@ -135,7 +134,6 @@ export function useCreateApp() {
 export function useUpdateApp(name: string) {
   const queryClient = useQueryClient();
 
-
   return useMutation({
     mutationFn: (data: AppUpdate) => appsApi.update(name, data),
     onMutate: async (data: AppUpdate) => {
@@ -184,7 +182,6 @@ export function useUpdateApp(name: string) {
 export function useDeleteApp() {
   const queryClient = useQueryClient();
 
-
   return useMutation({
     mutationFn: ({ appName, force }: { appName: string; force?: boolean }) => appsApi.delete(appName, force),
     onMutate: async ({ appName }: { appName: string; force?: boolean }) => {
@@ -226,7 +223,6 @@ export function useAppAssets(appName: string | null) {
 /** Start an application. */
 export function useStartApp() {
   const queryClient = useQueryClient();
-
 
   return useMutation({
     mutationFn: (appName: string) => appsApi.start(appName),
@@ -275,7 +271,6 @@ export function useStartApp() {
 /** Stop an application. */
 export function useStopApp() {
   const queryClient = useQueryClient();
-
 
   return useMutation({
     mutationFn: (appName: string) => appsApi.stop(appName),

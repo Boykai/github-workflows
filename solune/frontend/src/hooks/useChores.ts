@@ -280,7 +280,6 @@ export function useChoreChat(projectId: string | null | undefined) {
 export function useInlineUpdateChore(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
 
-
   return useMutation({
     mutationFn: ({ choreId, data }: { choreId: string; data: ChoreInlineUpdate }) =>
       choresApi.inlineUpdate(projectId!, choreId, data),
