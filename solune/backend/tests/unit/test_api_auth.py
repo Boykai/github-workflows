@@ -41,14 +41,13 @@ class TestGetCurrentUser:
 
     async def test_returns_user_info(self, client, mock_session, mock_github_auth_service):
         mock_github_auth_service.get_session.return_value = mock_session
-        resp = await client.get(
-            "/api/v1/auth/me",
-            cookies={SESSION_COOKIE_NAME: str(mock_session.session_id)},
-        )
+        client.cookies.set(SESSION_COOKIE_NAME, str(mock_session.session_id))
+        resp = await client.get("/api/v1/auth/me")
         assert resp.status_code == 200
         data = resp.json()
         assert data["github_username"] == mock_session.github_username
         assert data["github_user_id"] == mock_session.github_user_id
+        client.cookies.clear()
 
     async def test_unauthenticated_no_cookie(self, client, mock_github_auth_service):
         """Without a session cookie, the endpoint should 401."""

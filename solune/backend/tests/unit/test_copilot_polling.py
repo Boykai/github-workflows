@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
+from src.constants import cache_key_issue_pr
 from src.services.copilot_polling import (
     _advance_pipeline,
     _check_agent_done_on_parent,
@@ -739,7 +740,7 @@ class TestProcessInProgressIssue:
     @patch("src.services.copilot_polling.github_projects_service")
     async def test_skips_already_processed_issues(self, mock_service):
         """Test that already processed issue+PR combinations are skipped."""
-        _processed_issue_prs.add("42:100")
+        _processed_issue_prs.add(cache_key_issue_pr(42, 100, "PVT_123"))
 
         mock_service.check_copilot_pr_completion = AsyncMock(
             return_value={
@@ -875,7 +876,7 @@ class TestProcessInProgressIssue:
             task_title="Test Issue",
         )
 
-        assert "42:100" in _processed_issue_prs
+        assert cache_key_issue_pr(42, 100, "PVT_123") in _processed_issue_prs
 
 
 class TestCheckIssueForCopilotCompletion:
@@ -4649,9 +4650,9 @@ class TestEnsureCopilotReviewRequested:
     async def test_already_cached_returns_none(self, mock_service):
         from src.services.copilot_polling import cache_key_review_requested
 
-        key = cache_key_review_requested(42)
+        key = cache_key_review_requested(42, "PVT_1")
         _processed_issue_prs.add(key)
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "title")
         assert result is None
 
     @pytest.mark.asyncio
@@ -4661,7 +4662,7 @@ class TestEnsureCopilotReviewRequested:
     @patch("src.services.copilot_polling.github_projects_service")
     async def test_no_pr_discovered_returns_none(self, mock_service, mock_discover):
         mock_discover.return_value = None
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "title")
         assert result is None
 
     @pytest.mark.asyncio
@@ -4671,7 +4672,7 @@ class TestEnsureCopilotReviewRequested:
     @patch("src.services.copilot_polling.github_projects_service")
     async def test_missing_pr_number_returns_none(self, mock_service, mock_discover):
         mock_discover.return_value = {"pr_number": None, "pr_id": "PR_N", "is_draft": False}
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "title")
         assert result is None
 
     @pytest.mark.asyncio
@@ -4690,7 +4691,7 @@ class TestEnsureCopilotReviewRequested:
         mock_service.dismiss_copilot_reviews = AsyncMock(return_value=1)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
 
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "title")
         assert result is not None
         assert result["action"] == "copilot_review_requested"
         # Dismiss should be called before the review request
@@ -4712,7 +4713,7 @@ class TestEnsureCopilotReviewRequested:
         mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
 
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "my task")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "my task")
         assert result is not None
         assert result["action"] == "copilot_review_requested"
         assert result["pr_number"] == 10
@@ -4732,7 +4733,7 @@ class TestEnsureCopilotReviewRequested:
         mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=False)
 
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "my task")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "my task")
         assert result is not None
         assert result["status"] == "error"
 
@@ -4743,7 +4744,7 @@ class TestEnsureCopilotReviewRequested:
     @patch("src.services.copilot_polling.github_projects_service")
     async def test_exception_returns_none(self, mock_service, mock_discover):
         mock_discover.side_effect = Exception("boom")
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "title")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "title")
         assert result is None
 
     @pytest.mark.asyncio
@@ -4763,7 +4764,7 @@ class TestEnsureCopilotReviewRequested:
         mock_service.dismiss_copilot_reviews = AsyncMock(return_value=0)
         mock_service.request_copilot_review = AsyncMock(return_value=True)
 
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "task")
         assert result is not None
         assert result["action"] == "copilot_review_requested"
         mock_service.mark_pr_ready_for_review.assert_awaited_once()
@@ -11168,7 +11169,7 @@ class TestCopilotReviewRequestTimestamp:
         )
         mock_service.update_issue_body = AsyncMock(return_value=True)
 
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "task")
         assert result is not None
         assert result["action"] == "copilot_review_requested"
 
@@ -11202,7 +11203,7 @@ class TestCopilotReviewRequestTimestamp:
         )
         mock_service.update_issue_body = AsyncMock(return_value=True)
 
-        result = await ensure_copilot_review_requested("tok", "o", "r", 42, "task")
+        result = await ensure_copilot_review_requested("tok", "o", "r", "PVT_1", 42, "task")
         assert result["status"] == "error"
         assert 42 not in _copilot_review_requested_at
         mock_service.update_issue_body.assert_not_called()

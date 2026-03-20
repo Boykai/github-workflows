@@ -196,7 +196,9 @@ def _configure_sync_github_service_methods(mock: AsyncMock) -> None:
 @pytest.fixture
 def mock_github_auth_service() -> AsyncMock:
     """AsyncMock replacing the global ``github_auth_service`` instance."""
-    return AsyncMock(name="GitHubAuthService", spec=GitHubAuthService)
+    mock = AsyncMock(name="GitHubAuthService", spec=GitHubAuthService)
+    _configure_sync_github_auth_service_methods(mock)
+    return mock
 
 
 @pytest.fixture
@@ -209,9 +211,22 @@ def mock_ai_agent_service() -> AsyncMock:
 def mock_websocket_manager() -> AsyncMock:
     """AsyncMock replacing the global ``connection_manager`` instance."""
     mock = AsyncMock(name="ConnectionManager", spec=ConnectionManager)
-    mock.get_connection_count.return_value = 0
-    mock.get_total_connections.return_value = 0
+    _configure_sync_websocket_manager_methods(mock)
     return mock
+
+
+def _configure_sync_github_auth_service_methods(mock: AsyncMock) -> None:
+    """Replace sync GitHub auth helpers with ``MagicMock`` instances."""
+    mock.generate_oauth_url = MagicMock(
+        return_value=("https://github.com/login/oauth/authorize", "state")
+    )
+    mock.validate_state = MagicMock(return_value=True)
+
+
+def _configure_sync_websocket_manager_methods(mock: AsyncMock) -> None:
+    """Replace sync websocket manager helpers with ``MagicMock`` instances."""
+    mock.get_connection_count = MagicMock(return_value=0)
+    mock.get_total_connections = MagicMock(return_value=0)
 
 
 # =============================================================================
@@ -357,6 +372,7 @@ def make_mock_github_service(**overrides) -> AsyncMock:
 def make_mock_github_auth_service(**overrides) -> AsyncMock:
     """Create a pre-configured GitHubAuthService mock with spec."""
     mock = AsyncMock(name="GitHubAuthService", spec=GitHubAuthService)
+    _configure_sync_github_auth_service_methods(mock)
     for method_name, return_value in overrides.items():
         getattr(mock, method_name).return_value = return_value
     return mock
@@ -373,6 +389,7 @@ def make_mock_ai_agent_service(**overrides) -> AsyncMock:
 def make_mock_websocket_manager(**overrides) -> AsyncMock:
     """Create a pre-configured ConnectionManager mock with spec."""
     mock = AsyncMock(name="ConnectionManager", spec=ConnectionManager)
+    _configure_sync_websocket_manager_methods(mock)
     mock.get_connection_count.return_value = overrides.pop("connection_count", 0)
     mock.get_total_connections.return_value = overrides.pop("total_connections", 0)
     for method_name, return_value in overrides.items():

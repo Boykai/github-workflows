@@ -158,13 +158,13 @@ class TestAuthEndpoints:
             new_callable=AsyncMock,
             return_value=session,
         ):
-            response = await client.get(
-                "/api/v1/auth/me", cookies={"session_id": str(session.session_id)}
-            )
+            client.cookies.set("session_id", str(session.session_id))
+            response = await client.get("/api/v1/auth/me")
 
             assert response.status_code == 200
             data = response.json()
             assert data["github_username"] == "authuser"
+            client.cookies.clear()
 
     @pytest.mark.asyncio
     async def test_logout_with_valid_session(self, client):
@@ -190,11 +190,11 @@ class TestAuthEndpoints:
                 return_value=True,
             ),
         ):
-            response = await client.post(
-                "/api/v1/auth/logout", cookies={"session_id": str(session.session_id)}
-            )
+            client.cookies.set("session_id", str(session.session_id))
+            response = await client.post("/api/v1/auth/logout")
 
             assert response.status_code == 200
+            client.cookies.clear()
 
     @pytest.mark.asyncio
     async def test_logout_without_session(self, client):
@@ -218,11 +218,11 @@ class TestProjectsEndpoints:
     @pytest.mark.asyncio
     async def test_projects_with_invalid_auth(self, client):
         """Projects endpoint should reject invalid auth."""
-        response = await client.get(
-            "/api/v1/projects", cookies={"session": "invalid-session-token"}
-        )
+        client.cookies.set("session", "invalid-session-token")
+        response = await client.get("/api/v1/projects")
 
         assert response.status_code == 401
+        client.cookies.clear()
 
     @pytest.mark.asyncio
     async def test_project_select_requires_auth(self, client):
