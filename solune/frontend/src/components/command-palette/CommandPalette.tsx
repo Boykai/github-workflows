@@ -107,10 +107,9 @@ export function CommandPalette({ isOpen, onClose, projectId }: CommandPalettePro
   const groupedResults = groupByCategory(results);
 
   // Compute max-height for results area
-  const uniqueCategories = new Set(results.map((r) => r.category)).size;
   const maxItems = MAX_VISIBLE_RESULTS;
   const maxResultsHeight =
-    maxItems * RESULT_ITEM_HEIGHT + uniqueCategories * CATEGORY_HEADER_HEIGHT;
+    maxItems * RESULT_ITEM_HEIGHT + groupedResults.length * CATEGORY_HEADER_HEIGHT;
 
   // Build a flat index map for aria-selected
   let flatIndex = 0;

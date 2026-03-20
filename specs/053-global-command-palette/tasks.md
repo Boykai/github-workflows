@@ -23,8 +23,8 @@
 
 **Purpose**: Create new files and directories required by the command palette feature
 
-- [ ] T001 Create command palette component directory at `solune/frontend/src/components/command-palette/`
-- [ ] T002 [P] Define `CommandPaletteItem`, `CommandCategory`, and `CommandPaletteState` TypeScript types in `solune/frontend/src/hooks/useCommandPalette.ts` per data-model.md entities (id, label, category, icon, description, keywords, action)
+- [x] T001 Create command palette component directory at `solune/frontend/src/components/command-palette/`
+- [x] T002 [P] Define `CommandPaletteItem`, `CommandCategory`, and `CommandPaletteState` TypeScript types in `solune/frontend/src/hooks/useCommandPalette.ts` per data-model.md entities (id, label, category, icon, description, keywords, action)
 
 ---
 
@@ -34,9 +34,9 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Implement `useCommandPalette` hook skeleton in `solune/frontend/src/hooks/useCommandPalette.ts` with state management: `query`, `selectedIndex`, `filteredResults`, `isLoading`, conditional data fetching (entity hooks enabled only when `isOpen` is true), `setQuery()`, `moveUp()`, `moveDown()`, `selectCurrent()`, and focus save/restore via `useRef` for `document.activeElement`
-- [ ] T004 [P] Modify `useGlobalShortcuts` in `solune/frontend/src/hooks/useGlobalShortcuts.ts` to dispatch `'solune:open-command-palette'` custom event on Ctrl+K / Cmd+K instead of `'solune:focus-chat'`, with `isModalOpen()` guard to prevent opening over existing dialogs (FR-012)
-- [ ] T005 Add `solune:open-command-palette` event listener in `solune/frontend/src/layout/AppLayout.tsx` with `isCommandPaletteOpen` state (`useState(false)`), toggling on event, and pass `isOpen` / `onClose` / `projectId` props to `CommandPalette` component render site (below `KeyboardShortcutModal`)
+- [x] T003 Implement `useCommandPalette` hook skeleton in `solune/frontend/src/hooks/useCommandPalette.ts` with state management: `query`, `selectedIndex`, `filteredResults`, `isLoading`, conditional data fetching (entity hooks enabled only when `isOpen` is true), `setQuery()`, `moveUp()`, `moveDown()`, `selectCurrent()`, and focus save/restore via `useRef` for `document.activeElement`
+- [x] T004 [P] Modify `useGlobalShortcuts` in `solune/frontend/src/hooks/useGlobalShortcuts.ts` to dispatch `'solune:open-command-palette'` custom event on Ctrl+K / Cmd+K instead of `'solune:focus-chat'`, with `isModalOpen()` guard to prevent opening over existing dialogs (FR-012)
+- [x] T005 Add `solune:open-command-palette` event listener in `solune/frontend/src/layout/AppLayout.tsx` with `isCommandPaletteOpen` state (`useState(false)`), toggling on event, and pass `isOpen` / `onClose` / `projectId` props to `CommandPalette` component render site (below `KeyboardShortcutModal`)
 
 **Checkpoint**: Foundation ready — Ctrl+K dispatches new event, AppLayout listens and manages open state
 
@@ -50,10 +50,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Wire `NAV_ROUTES` (from `solune/frontend/src/constants.ts`) as the Pages search source in `useCommandPalette` hook (`solune/frontend/src/hooks/useCommandPalette.ts`): transform each route to `CommandPaletteItem` with `id: page-{path}`, `label: route.label`, `icon: route.icon`, `category: 'pages'`, `action: () => navigate(route.path)` using `useNavigate` from react-router
-- [ ] T007 [US1] Implement case-insensitive substring search filter in `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): match `query` against `item.label` and `item.keywords`, reset `selectedIndex` to 0 on query change, return empty results when query is empty
-- [ ] T008 [US1] Create `CommandPalette` component in `solune/frontend/src/components/command-palette/CommandPalette.tsx` with: fixed backdrop overlay (`fixed inset-0 z-50`), centered dialog panel (`role="dialog"`, `aria-modal="true"`, `aria-label="Command palette"`), auto-focused search input (`aria-label="Search commands"`), results list (`role="listbox"`), result items (`role="option"`, `aria-selected` for highlighted item), category headers (`role="presentation"`), click-to-select on result items, backdrop click to close
-- [ ] T009 [US1] Wire keyboard event handlers in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): ArrowDown → `moveDown()`, ArrowUp → `moveUp()`, Enter → `selectCurrent()` then `onClose()`, Escape → `onClose()`, with `preventDefault()` on all handled keys
+- [x] T006 [US1] Wire `NAV_ROUTES` (from `solune/frontend/src/constants.ts`) as the Pages search source in `useCommandPalette` hook (`solune/frontend/src/hooks/useCommandPalette.ts`): transform each route to `CommandPaletteItem` with `id: page-{path}`, `label: route.label`, `icon: route.icon`, `category: 'pages'`, `action: () => navigate(route.path)` using `useNavigate` from react-router
+- [x] T007 [US1] Implement case-insensitive substring search filter in `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): match `query` against `item.label` and `item.keywords`, reset `selectedIndex` to 0 on query change, return empty results when query is empty
+- [x] T008 [US1] Create `CommandPalette` component in `solune/frontend/src/components/command-palette/CommandPalette.tsx` with: fixed backdrop overlay (`fixed inset-0 z-50`), centered dialog panel (`role="dialog"`, `aria-modal="true"`, `aria-label="Command palette"`), auto-focused search input (`aria-label="Search commands"`), results list (`role="listbox"`), result items (`role="option"`, `aria-selected` for highlighted item), category headers (`role="presentation"`), click-to-select on result items, backdrop click to close
+- [x] T009 [US1] Wire keyboard event handlers in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): ArrowDown → `moveDown()`, ArrowUp → `moveUp()`, Enter → `selectCurrent()` then `onClose()`, Escape → `onClose()`, with `preventDefault()` on all handled keys
 
 **Checkpoint**: User Story 1 complete — Ctrl+K opens palette, typing filters NAV_ROUTES pages, arrow keys navigate, Enter/click selects and navigates, Escape/backdrop closes
 
@@ -67,9 +67,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T010 [US4] Add visible focus highlight styling to the selected result item in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): apply distinct background/ring style to `results[selectedIndex]` item, ensure `aria-selected="true"` only on highlighted item, auto-scroll highlighted item into view using `scrollIntoView({ block: 'nearest' })`
-- [ ] T011 [US4] Implement wrap-around navigation in `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): `moveUp()` on index 0 wraps to `results.length - 1`, `moveDown()` on last index wraps to 0, both are no-ops when results are empty
-- [ ] T012 [US4] Implement focus restore on palette close in `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): capture `document.activeElement` into `previousFocusRef` when palette opens (via `useEffect` on `isOpen`), call `previousFocusRef.current?.focus()` on close if element still exists in DOM
+- [x] T010 [US4] Add visible focus highlight styling to the selected result item in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): apply distinct background/ring style to `results[selectedIndex]` item, ensure `aria-selected="true"` only on highlighted item, auto-scroll highlighted item into view using `scrollIntoView({ block: 'nearest' })`
+- [x] T011 [US4] Implement wrap-around navigation in `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): `moveUp()` on index 0 wraps to `results.length - 1`, `moveDown()` on last index wraps to 0, both are no-ops when results are empty
+- [x] T012 [US4] Implement focus restore on palette close in `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): capture `document.activeElement` into `previousFocusRef` when palette opens (via `useEffect` on `isOpen`), call `previousFocusRef.current?.focus()` on close if element still exists in DOM
 
 **Checkpoint**: User Stories 1 AND 4 complete — full keyboard-driven workflow with visual highlight, wrap-around, and focus restore
 
@@ -83,14 +83,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [P] [US2] Add agents search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): call `useAgentsList(projectId)` from `solune/frontend/src/hooks/useAgents.ts`, transform `AgentConfig[]` to `CommandPaletteItem[]` with `id: agent-{name}`, `label: agent.name`, `icon: Bot`, `category: 'agents'`, `action: () => navigate('/agents')`
-- [ ] T014 [P] [US2] Add pipelines search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): access `pipelines` array from `usePipelineConfig()` (from `solune/frontend/src/hooks/usePipelineConfig.ts`), transform to `CommandPaletteItem[]` with `id: pipeline-{name}`, `label: pipeline.name`, `icon: GitBranch`, `category: 'pipelines'`, `action: () => navigate('/pipeline')`
-- [ ] T015 [P] [US2] Add tools search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): access `tools` from `useToolsList(projectId)` (from `solune/frontend/src/hooks/useTools.ts`), transform to `CommandPaletteItem[]` with `id: tool-{name}`, `label: tool.name`, `icon: Wrench`, `category: 'tools'`, `action: () => navigate('/tools')`
-- [ ] T016 [P] [US2] Add chores search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): call `useChoresList(projectId)` from `solune/frontend/src/hooks/useChores.ts`, transform `Chore[]` to `CommandPaletteItem[]` with `id: chore-{name}`, `label: chore.name`, `icon: ListChecks`, `category: 'chores'`, `action: () => navigate('/chores')`
-- [ ] T017 [P] [US2] Add apps search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): call `useApps()` from `solune/frontend/src/hooks/useApps.ts`, transform `App[]` to `CommandPaletteItem[]` with `id: app-{name}`, `label: app.name`, `icon: Boxes`, `category: 'apps'`, `action: () => navigate('/apps')`
-- [ ] T018 [US2] Add category headers with icons to the results list in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): group results by `category` field, render category label and icon (from `CommandCategory` mapping) before each group, display order: Pages, Agents, Pipelines, Tools, Chores, Apps, Actions
-- [ ] T019 [P] [US2] Add "No results found" empty state in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): when `query` is non-empty and `results.length === 0` and `isLoading === false`, display friendly message (FR-010)
-- [ ] T020 [P] [US2] Add loading indicator in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): when `isLoading === true`, display a spinner or skeleton in the results area while entity data is being fetched
+- [x] T013 [P] [US2] Add agents search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): call `useAgentsList(projectId)` from `solune/frontend/src/hooks/useAgents.ts`, transform `AgentConfig[]` to `CommandPaletteItem[]` with `id: agent-{name}`, `label: agent.name`, `icon: Bot`, `category: 'agents'`, `action: () => navigate('/agents')`
+- [x] T014 [P] [US2] Add pipelines search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): access `pipelines` array from `usePipelineConfig()` (from `solune/frontend/src/hooks/usePipelineConfig.ts`), transform to `CommandPaletteItem[]` with `id: pipeline-{name}`, `label: pipeline.name`, `icon: GitBranch`, `category: 'pipelines'`, `action: () => navigate('/pipeline')`
+- [x] T015 [P] [US2] Add tools search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): access `tools` from `useToolsList(projectId)` (from `solune/frontend/src/hooks/useTools.ts`), transform to `CommandPaletteItem[]` with `id: tool-{name}`, `label: tool.name`, `icon: Wrench`, `category: 'tools'`, `action: () => navigate('/tools')`
+- [x] T016 [P] [US2] Add chores search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): call `useChoresList(projectId)` from `solune/frontend/src/hooks/useChores.ts`, transform `Chore[]` to `CommandPaletteItem[]` with `id: chore-{name}`, `label: chore.name`, `icon: ListChecks`, `category: 'chores'`, `action: () => navigate('/chores')`
+- [x] T017 [P] [US2] Add apps search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): call `useApps()` from `solune/frontend/src/hooks/useApps.ts`, transform `App[]` to `CommandPaletteItem[]` with `id: app-{name}`, `label: app.name`, `icon: Boxes`, `category: 'apps'`, `action: () => navigate('/apps')`
+- [x] T018 [US2] Add category headers with icons to the results list in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): group results by `category` field, render category label and icon (from `CommandCategory` mapping) before each group, display order: Pages, Agents, Pipelines, Tools, Chores, Apps, Actions
+- [x] T019 [P] [US2] Add "No results found" empty state in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): when `query` is non-empty and `results.length === 0` and `isLoading === false`, display friendly message (FR-010)
+- [x] T020 [P] [US2] Add loading indicator in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): when `isLoading === true`, display a spinner or skeleton in the results area while entity data is being fetched
 
 **Checkpoint**: User Stories 1, 4, AND 2 complete — cross-entity search with categorized results, no-results state, and loading indicator
 
@@ -104,9 +104,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T021 [US3] Add quick actions search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): define static `CommandPaletteItem[]` for "Toggle Theme" (`icon: SunMoon`, `category: 'actions'`, `action: toggleTheme` from `useAppTheme`), "Focus Chat" (`icon: MessageSquare`, `category: 'actions'`, `action: () => window.dispatchEvent(new CustomEvent('solune:focus-chat'))`), and "Help" (`icon: HelpCircle`, `category: 'actions'`, `action: () => navigate('/help')`) per data-model.md Quick Action definitions
-- [ ] T022 [US3] Add clickable search trigger button to `TopBar` in `solune/frontend/src/layout/TopBar.tsx`: render a `Search` icon button (from `lucide-react`) with tooltip "Search (Ctrl+K)" or "Search (⌘K)" on macOS, `onClick` dispatches `'solune:open-command-palette'` custom event, `aria-label="Open command palette"`, positioned near existing action buttons (FR-013)
-- [ ] T023 [US3] Update keyboard shortcut modal description in `solune/frontend/src/components/ui/keyboard-shortcut-modal.tsx`: change the Ctrl+K / Cmd+K shortcut description from `'Focus chat input'` to `'Command Palette'` (FR-015)
+- [x] T021 [US3] Add quick actions search source to `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): define static `CommandPaletteItem[]` for "Toggle Theme" (`icon: SunMoon`, `category: 'actions'`, `action: toggleTheme` from `useAppTheme`), "Focus Chat" (`icon: MessageSquare`, `category: 'actions'`, `action: () => window.dispatchEvent(new CustomEvent('solune:focus-chat'))`), and "Help" (`icon: HelpCircle`, `category: 'actions'`, `action: () => navigate('/help')`) per data-model.md Quick Action definitions
+- [x] T022 [US3] Add clickable search trigger button to `TopBar` in `solune/frontend/src/layout/TopBar.tsx`: render a `Search` icon button (from `lucide-react`) with tooltip "Search (Ctrl+K)" or "Search (⌘K)" on macOS, `onClick` dispatches `'solune:open-command-palette'` custom event, `aria-label="Open command palette"`, positioned near existing action buttons (FR-013)
+- [x] T023 [US3] Update keyboard shortcut modal description in `solune/frontend/src/components/ui/keyboard-shortcut-modal.tsx`: change the Ctrl+K / Cmd+K shortcut description from `'Focus chat input'` to `'Command Palette'` (FR-015)
 
 **Checkpoint**: All user stories (1, 4, 2, 3) complete — quick actions work, UI trigger opens palette, shortcut modal updated
 
@@ -116,11 +116,11 @@
 
 **Purpose**: Edge cases, performance, and accessibility improvements that span multiple user stories
 
-- [ ] T024 [P] Handle Ctrl+K when palette is already open in `solune/frontend/src/hooks/useGlobalShortcuts.ts` or `solune/frontend/src/hooks/useCommandPalette.ts`: if palette is open, select all text in search input (no-op or select-all behavior)
-- [ ] T025 [P] Cap visible results at 15 items with scrollable overflow in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): set `max-height` on results container, ensure `overflow-y: auto` for scrolling (spec: max 15 visible results)
-- [ ] T026 [P] Handle rapid typing smoothly in `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): ensure search filtering runs synchronously with `useMemo` or deferred with `requestAnimationFrame` to prevent UI jank on fast input (<200ms result update target per SC-003)
-- [ ] T027 [P] Prevent default browser Ctrl+K behavior (browser search bar) in `solune/frontend/src/hooks/useGlobalShortcuts.ts`: ensure `e.preventDefault()` is called in the Ctrl+K handler to suppress browser-native search behavior
-- [ ] T028 Run quickstart.md verification: execute `npx tsc --noEmit` type-check and `npx eslint` lint in `solune/frontend/` to confirm all changes compile and lint cleanly
+- [x] T024 [P] Handle Ctrl+K when palette is already open in `solune/frontend/src/hooks/useGlobalShortcuts.ts` or `solune/frontend/src/hooks/useCommandPalette.ts`: if palette is open, select all text in search input (no-op or select-all behavior)
+- [x] T025 [P] Cap visible results at 15 items with scrollable overflow in `CommandPalette` component (`solune/frontend/src/components/command-palette/CommandPalette.tsx`): set `max-height` on results container, ensure `overflow-y: auto` for scrolling (spec: max 15 visible results)
+- [x] T026 [P] Handle rapid typing smoothly in `useCommandPalette` (`solune/frontend/src/hooks/useCommandPalette.ts`): ensure search filtering runs synchronously with `useMemo` or deferred with `requestAnimationFrame` to prevent UI jank on fast input (<200ms result update target per SC-003)
+- [x] T027 [P] Prevent default browser Ctrl+K behavior (browser search bar) in `solune/frontend/src/hooks/useGlobalShortcuts.ts`: ensure `e.preventDefault()` is called in the Ctrl+K handler to suppress browser-native search behavior
+- [x] T028 Run quickstart.md verification: execute `npx tsc --noEmit` type-check and `npx eslint` lint in `solune/frontend/` to confirm all changes compile and lint cleanly
 
 ---
 

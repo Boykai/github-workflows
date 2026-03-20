@@ -104,35 +104,18 @@ export function useCommandPalette({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const previousFocusRef = useRef<HTMLElement | null>(null);
 
-  // ---- Focus save/restore ----
+  // ---- Focus save on open, restore on close ----
   useEffect(() => {
     if (isOpen) {
       previousFocusRef.current = document.activeElement as HTMLElement | null;
     }
-  }, [isOpen]);
-
-  const restoreFocus = useCallback(() => {
-    const el = previousFocusRef.current;
-    if (el && document.body.contains(el)) {
-      el.focus();
-    }
-    previousFocusRef.current = null;
-  }, []);
-
-  // Reset query and index when palette opens; restore focus on close.
-  useEffect(() => {
-    if (isOpen) {
-      setQueryRaw('');
-      setSelectedIndex(0);
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
-    // Restore focus when palette closes
     return () => {
-      restoreFocus();
+      // Restore focus when effect cleans up (palette closing or unmounting)
+      const el = previousFocusRef.current;
+      if (el && document.body.contains(el)) {
+        el.focus();
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only run cleanup
   }, [isOpen]);
 
   // ---- Entity data sources (enabled only when open) ----
@@ -215,7 +198,7 @@ export function useCommandPalette({
     }
 
     // Apps
-    if (isOpen && appsQuery.data) {
+    if (appsQuery.data) {
       for (const app of appsQuery.data) {
         items.push({
           id: `app-${app.name}`,
@@ -266,7 +249,6 @@ export function useCommandPalette({
     toolsData.tools,
     choresQuery.data,
     appsQuery.data,
-    isOpen,
   ]);
 
   // ---- Filter and sort results ----
