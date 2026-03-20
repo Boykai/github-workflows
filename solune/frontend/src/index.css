@@ -1609,6 +1609,7 @@
     .celestial-twinkle-delayed,
     .celestial-twinkle-slow,
     .celestial-pulse-glow,
+    .mic-recording-pulse,
     .celestial-orbit-spin,
     .celestial-orbit-spin-reverse,
     .celestial-orbit-spin-fast,
@@ -1624,6 +1625,13 @@
     .celestial-fade-in {
       animation: none !important;
       opacity: 1;
+    }
+
+    /* Tailwind built-in animation utilities */
+    .animate-spin,
+    .animate-pulse,
+    .animate-bounce {
+      animation: none !important;
     }
 
     .celestial-panel,
