@@ -14,6 +14,7 @@ import {
   type ApiError,
 } from '@/services/api';
 import { STALE_TIME_PROJECTS } from '@/constants';
+import { useInfiniteList } from '@/hooks/useInfiniteList';
 
 export const agentKeys = {
   all: ['agents'] as const,
@@ -28,6 +29,26 @@ export function useAgentsList(projectId: string | null | undefined) {
     staleTime: STALE_TIME_PROJECTS,
     enabled: !!projectId,
   });
+}
+
+export function useAgentsListPaginated(projectId: string | null | undefined) {
+  const queryClient = useQueryClient();
+  const result = useInfiniteList<AgentConfig>({
+    queryKey: [...agentKeys.list(projectId ?? ''), 'paginated'],
+    queryFn: (params) => agentsApi.listPaginated(projectId!, params),
+    limit: 25,
+    staleTime: STALE_TIME_PROJECTS,
+    enabled: !!projectId,
+  });
+
+  return {
+    ...result,
+    invalidate: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
+      }
+    },
+  };
 }
 
 export function usePendingAgentsList(projectId: string | null | undefined) {

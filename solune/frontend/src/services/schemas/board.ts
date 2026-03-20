@@ -102,6 +102,8 @@ const BoardColumnSchema = z.object({
   items: z.array(BoardItemSchema),
   item_count: z.number(),
   estimate_total: z.number(),
+  next_cursor: z.string().nullable().optional(),
+  has_more: z.boolean().optional(),
 });
 
 export const BoardDataResponseSchema = z.object({

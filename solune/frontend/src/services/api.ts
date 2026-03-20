@@ -75,6 +75,7 @@ import type {
   ToolDeleteResult,
   FileUploadResponse,
   PipelineStateInfo,
+  PaginatedResponse,
 } from '@/types';
 import { BoardDataResponseSchema } from '@/services/schemas/board';
 import { ChatMessagesResponseSchema } from '@/services/schemas/chat';
@@ -399,6 +400,24 @@ export const boardApi = {
     const data = await request<BoardDataResponse>(`/board/projects/${projectId}${params}`);
     return validateResponse(BoardDataResponseSchema, data, 'boardApi.getBoardData');
   },
+
+  /**
+   * Get board data with per-column pagination.
+   */
+  async getBoardDataPaginated(
+    projectId: string,
+    columnLimit: number,
+    columnCursors?: Record<string, string>,
+    refresh = false,
+  ): Promise<BoardDataResponse> {
+    const qs = new URLSearchParams({ column_limit: String(columnLimit) });
+    if (refresh) qs.set('refresh', 'true');
+    if (columnCursors && Object.keys(columnCursors).length > 0) {
+      qs.set('column_cursors', JSON.stringify(columnCursors));
+    }
+    const data = await request<BoardDataResponse>(`/board/projects/${projectId}?${qs}`);
+    return validateResponse(BoardDataResponseSchema, data, 'boardApi.getBoardDataPaginated');
+  },
 };
 
 // ============ Settings API ============
@@ -695,6 +714,18 @@ export const choresApi = {
   },
 
   /**
+   * List chores with cursor-based pagination.
+   */
+  listPaginated(
+    projectId: string,
+    params: { limit: number; cursor?: string },
+  ): Promise<PaginatedResponse<Chore>> {
+    const qs = new URLSearchParams({ limit: String(params.limit) });
+    if (params.cursor) qs.set('cursor', params.cursor);
+    return request<PaginatedResponse<Chore>>(`/chores/${projectId}?${qs}`);
+  },
+
+  /**
    * List available chore templates from the repo's .github/ISSUE_TEMPLATE/.
    */
   listTemplates(projectId: string): Promise<ChoreTemplate[]> {
@@ -920,6 +951,15 @@ export const agentsApi = {
     return request<AgentConfig[]>(`/agents/${projectId}`);
   },
 
+  listPaginated(
+    projectId: string,
+    params: { limit: number; cursor?: string },
+  ): Promise<PaginatedResponse<AgentConfig>> {
+    const qs = new URLSearchParams({ limit: String(params.limit) });
+    if (params.cursor) qs.set('cursor', params.cursor);
+    return request<PaginatedResponse<AgentConfig>>(`/agents/${projectId}?${qs}`);
+  },
+
   pending(projectId: string): Promise<AgentConfig[]> {
     return request<AgentConfig[]>(`/agents/${projectId}/pending`);
   },
@@ -984,6 +1024,19 @@ export const pipelinesApi = {
     if (order) params.set('order', order);
     const qs = params.toString();
     return request<PipelineConfigListResponse>(`/pipelines/${projectId}${qs ? `?${qs}` : ''}`);
+  },
+
+  listPaginated(
+    projectId: string,
+    params: { limit: number; cursor?: string },
+    sort?: string,
+    order?: string,
+  ): Promise<PipelineConfigListResponse & { next_cursor: string | null; has_more: boolean; total_count: number | null }> {
+    const qs = new URLSearchParams({ limit: String(params.limit) });
+    if (params.cursor) qs.set('cursor', params.cursor);
+    if (sort) qs.set('sort', sort);
+    if (order) qs.set('order', order);
+    return request<PipelineConfigListResponse & { next_cursor: string | null; has_more: boolean; total_count: number | null }>(`/pipelines/${projectId}?${qs}`);
   },
 
   get(projectId: string, pipelineId: string): Promise<PipelineConfig> {
@@ -1098,6 +1151,15 @@ export const toolsApi = {
     return request<McpToolConfigListResponse>(`/tools/${projectId}`);
   },
 
+  listPaginated(
+    projectId: string,
+    params: { limit: number; cursor?: string },
+  ): Promise<McpToolConfigListResponse & { next_cursor: string | null; has_more: boolean; total_count: number | null }> {
+    const qs = new URLSearchParams({ limit: String(params.limit) });
+    if (params.cursor) qs.set('cursor', params.cursor);
+    return request<McpToolConfigListResponse & { next_cursor: string | null; has_more: boolean; total_count: number | null }>(`/tools/${projectId}?${qs}`);
+  },
+
   get(projectId: string, toolId: string): Promise<McpToolConfig> {
     return request<McpToolConfig>(`/tools/${projectId}/${toolId}`);
   },
@@ -1168,6 +1230,16 @@ export const appsApi = {
   list(status?: AppStatus): Promise<App[]> {
     const qs = status ? `?status=${status}` : '';
     return request<App[]>(`/apps${qs}`);
+  },
+
+  listPaginated(
+    params: { limit: number; cursor?: string },
+    status?: AppStatus,
+  ): Promise<PaginatedResponse<App>> {
+    const qs = new URLSearchParams({ limit: String(params.limit) });
+    if (params.cursor) qs.set('cursor', params.cursor);
+    if (status) qs.set('status', status);
+    return request<PaginatedResponse<App>>(`/apps?${qs}`);
   },
 
   create(data: AppCreate): Promise<App> {

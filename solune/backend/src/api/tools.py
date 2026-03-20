@@ -54,19 +54,41 @@ async def list_presets() -> McpPresetListResponse:
 
 @router.get(
     "/{project_id}",
-    response_model=McpToolConfigListResponse,
     dependencies=[Depends(verify_project_access)],
 )
 async def list_tools(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
-) -> McpToolConfigListResponse:
+    limit: Annotated[int | None, Query(ge=1, le=100, description="Items per page")] = None,
+    cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
+) -> McpToolConfigListResponse | dict:
     """List all MCP tool configurations for a project."""
     service = _get_service()
-    return await service.list_tools(
+    result = await service.list_tools(
         project_id=project_id,
         github_user_id=session.github_user_id,
     )
+
+    if limit is not None or cursor is not None:
+        from src.services.pagination import apply_pagination
+
+        try:
+            paginated = apply_pagination(
+                result.tools, limit=limit or 25, cursor=cursor, key_fn=lambda t: t.id
+            )
+        except ValueError as exc:
+            from src.exceptions import ValidationError
+
+            raise ValidationError(str(exc)) from exc
+        return {
+            "tools": [t.model_dump() for t in paginated.items],
+            "count": result.count,
+            "next_cursor": paginated.next_cursor,
+            "has_more": paginated.has_more,
+            "total_count": paginated.total_count,
+        }
+
+    return result
 
 
 @router.get(

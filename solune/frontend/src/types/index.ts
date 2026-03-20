@@ -746,6 +746,17 @@ export interface BoardColumn {
   items: BoardItem[];
   item_count: number;
   estimate_total: number;
+  next_cursor?: string | null;
+  has_more?: boolean;
+}
+
+// ============ Pagination ============
+
+export interface PaginatedResponse<T> {
+  items: T[];
+  next_cursor: string | null;
+  has_more: boolean;
+  total_count: number | null;
 }
 
 export interface RateLimitInfo {
