@@ -128,11 +128,11 @@ export const BoardColumn = memo(function BoardColumn({
           ))
         )}
         {/* Per-column infinite scroll sentinel */}
-        {(hasNextPage || isFetchingNextPage) && (
+        {(hasNextPage || isFetchingNextPage) && fetchNextPage && (
           <InfiniteScrollContainer
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
-            fetchNextPage={fetchNextPage ?? (() => { /* noop: pagination not wired */ })}
+            fetchNextPage={fetchNextPage}
           >
             <span />
           </InfiniteScrollContainer>

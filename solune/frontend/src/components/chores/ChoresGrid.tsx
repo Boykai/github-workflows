@@ -53,28 +53,36 @@ export function ChoresGrid({
     );
   }
 
+  const gridContent = (
+    <div className="constellation-grid mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+      {chores.map((chore) => (
+        <ChoreCard
+          key={chore.id}
+          chore={chore}
+          projectId={projectId}
+          parentIssueCount={parentIssueCount}
+          editState={editState[chore.id]}
+          onEditStart={() => onEditStart(chore)}
+          onEditChange={(updates) => onEditChange(chore.id, updates)}
+          onEditSave={() => onEditSave(chore.id)}
+          onEditDiscard={() => onEditDiscard(chore.id)}
+          isSaving={isSaving}
+        />
+      ))}
+    </div>
+  );
+
+  if (!fetchNextPage) {
+    return gridContent;
+  }
+
   return (
     <InfiniteScrollContainer
       hasNextPage={hasNextPage}
       isFetchingNextPage={isFetchingNextPage}
-      fetchNextPage={fetchNextPage ?? (() => { /* noop: pagination not wired */ })}
+      fetchNextPage={fetchNextPage}
     >
-      <div className="constellation-grid mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-        {chores.map((chore) => (
-          <ChoreCard
-            key={chore.id}
-            chore={chore}
-            projectId={projectId}
-            parentIssueCount={parentIssueCount}
-            editState={editState[chore.id]}
-            onEditStart={() => onEditStart(chore)}
-            onEditChange={(updates) => onEditChange(chore.id, updates)}
-            onEditSave={() => onEditSave(chore.id)}
-            onEditDiscard={() => onEditDiscard(chore.id)}
-            isSaving={isSaving}
-          />
-        ))}
-      </div>
+      {gridContent}
     </InfiniteScrollContainer>
   );
 }

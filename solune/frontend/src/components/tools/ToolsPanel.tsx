@@ -53,11 +53,15 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
   } = useToolsList(projectId);
 
   const {
+    allItems: paginatedTools,
     hasNextPage: toolsHasNextPage,
     isFetchingNextPage: toolsIsFetchingNextPage,
     fetchNextPage: toolsFetchNextPage,
     isError: toolsPaginatedError,
   } = useToolsListPaginated(projectId);
+
+  // Use paginated items when available; fall back to non-paginated for initial load
+  const displayTools = paginatedTools.length > 0 ? paginatedTools : tools;
 
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingTool, setEditingTool] = useState<McpToolConfig | null>(null);
@@ -156,7 +160,7 @@ export function ToolsPanel({ projectId }: ToolsPanelProps) {
     };
   }, []);
 
-  const filteredTools = tools.filter((tool) => {
+  const filteredTools = displayTools.filter((tool) => {
     const query = deferredSearch.trim().toLowerCase();
     if (query.length === 0) return true;
     return (

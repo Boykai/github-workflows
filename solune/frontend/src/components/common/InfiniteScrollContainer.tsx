@@ -30,12 +30,12 @@ export function InfiniteScrollContainer({
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || !hasNextPage || isFetchingNextPage) return;
+    if (!sentinel || !hasNextPage || isFetchingNextPage || isError) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const entry = entries[0];
-        if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage) {
+        if (entry?.isIntersecting && hasNextPage && !isFetchingNextPage && !isError) {
           fetchNextPage();
         }
       },
@@ -44,7 +44,7 @@ export function InfiniteScrollContainer({
 
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+  }, [hasNextPage, isFetchingNextPage, isError, fetchNextPage]);
 
   return (
     <div className={className}>

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen } from '@/test/test-utils';
 import { InfiniteScrollContainer } from './InfiniteScrollContainer';
 
@@ -19,6 +19,10 @@ describe('InfiniteScrollContainer', () => {
         constructor(_cb: IntersectionObserverCallback, _opts?: IntersectionObserverInit) {}
       },
     );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders children', () => {

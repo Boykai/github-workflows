@@ -37,11 +37,15 @@ export function AppsPage() {
   const navigate = useNavigate();
   const { data: apps, isLoading, error, refetch } = useApps();
   const {
+    allItems: paginatedApps,
     hasNextPage: appsHasNextPage,
     isFetchingNextPage: appsIsFetchingNextPage,
     fetchNextPage: appsFetchNextPage,
     isError: appsPaginatedError,
   } = useAppsPaginated();
+
+  // Use paginated items when available; fall back to non-paginated for initial load
+  const displayApps = paginatedApps.length > 0 ? paginatedApps : (apps ?? []);
   const createMutation = useCreateApp();
   const startMutation = useStartApp();
   const stopMutation = useStopApp();
@@ -246,7 +250,7 @@ export function AppsPage() {
         )}
 
         {/* Empty state */}
-        {!isLoading && !error && (!apps || apps.length === 0) && (
+        {!isLoading && !error && displayApps.length === 0 && (
           <div className="flex min-h-[30vh] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900/50">
             <p className="mb-2 text-sm text-zinc-500 dark:text-zinc-400">No applications yet.</p>
             <button
@@ -260,7 +264,7 @@ export function AppsPage() {
         )}
 
         {/* App grid */}
-        {!isLoading && !error && apps && apps.length > 0 && (
+        {!isLoading && !error && displayApps.length > 0 && (
           <InfiniteScrollContainer
             hasNextPage={appsHasNextPage ?? false}
             isFetchingNextPage={appsIsFetchingNextPage}
@@ -269,7 +273,7 @@ export function AppsPage() {
             onRetry={appsFetchNextPage}
           >
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {apps.map((app) => (
+              {displayApps.map((app) => (
                 <AppCard
                   key={app.name}
                   app={app}

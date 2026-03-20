@@ -142,7 +142,7 @@ async def _load_user_agent_model(session: UserSession) -> str:
 # ── List Pipelines ──
 
 
-@router.get("/{project_id}", response_model=PipelineConfigListResponse)
+@router.get("/{project_id}")
 async def list_pipelines(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],

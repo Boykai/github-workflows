@@ -63,6 +63,7 @@ export function useAppsPaginated() {
   return {
     ...result,
     invalidate: () => {
+      queryClient.invalidateQueries({ queryKey: [...appKeys.list(), 'paginated'] });
       queryClient.invalidateQueries({ queryKey: appKeys.list() });
     },
   };

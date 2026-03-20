@@ -9,7 +9,13 @@ from fastapi import APIRouter, Depends, Query
 from githubkit.exception import PrimaryRateLimitExceeded, RequestFailed
 
 from src.api.auth import get_session_dep
-from src.exceptions import AuthenticationError, GitHubAPIError, NotFoundError, RateLimitError
+from src.exceptions import (
+    AuthenticationError,
+    GitHubAPIError,
+    NotFoundError,
+    RateLimitError,
+    ValidationError,
+)
 from src.logging_utils import get_logger
 from src.models.board import (
     BoardDataResponse,
@@ -435,16 +441,23 @@ async def get_board_data(
 
     # Apply per-column pagination when requested
     if column_limit is not None or column_cursors is not None:
+        import copy
         import json as _json
 
         from src.services.pagination import apply_pagination
 
+        # Deep copy to avoid mutating cached board_data
+        board_data = copy.deepcopy(board_data)
+
         cursors_map: dict[str, str] = {}
         if column_cursors:
             try:
-                cursors_map = _json.loads(column_cursors)
-            except (ValueError, TypeError):
-                pass
+                parsed = _json.loads(column_cursors)
+                if not isinstance(parsed, dict):
+                    raise ValidationError("column_cursors must be a JSON object mapping column IDs to cursor strings")
+                cursors_map = parsed
+            except (ValueError, TypeError) as exc:
+                raise ValidationError(f"column_cursors is not valid JSON: {exc}") from exc
 
         effective_limit = column_limit or 25
         for col in board_data.columns:
