@@ -471,9 +471,14 @@ async def _post_markdown_outputs(
     head_ref: str,
     pr_files: list[dict[str, Any]],
 ) -> int:
-    """Post .md file contents from the PR as comments on the agent's sub-issue.
+    """Post agent output artifacts or a summary comment on the agent's sub-issue.
 
-    Returns the number of files posted.
+    If the agent has declared output files (via ``AGENT_OUTPUT_FILES``), each
+    matching ``.md`` file from the PR is posted as a comment on the sub-issue.
+    If the agent has no declared output artifacts, a single concise summary
+    comment is posted instead.
+
+    Returns the number of files posted (0 for summary-only agents).
     """
     expected_files = _cp.AGENT_OUTPUT_FILES.get(current_agent, [])
     posted_count = 0
@@ -974,14 +979,15 @@ async def post_agent_outputs_from_pr(
 ) -> list[dict[str, Any]]:
     """
     For all issues with active pipelines, check if the current agent's PR work
-        is complete. If so, post explicit agent output artifacts or a concise
-        summary comment on the **sub-issue**, and post the ``<agent-name>: Done!``
-        marker on the **parent issue** only.
+    is complete. If so, post explicit agent output artifacts or a concise
+    summary comment on the **sub-issue**, and post the ``<agent-name>: Done!``
+    marker on the **parent issue** only.
 
     Comment routing policy:
-      - ``<agent>: Done!`` marker → parent (main) issue ONLY
-            - Declared output artifacts  → sub-issue ONLY (skipped if no sub-issue)
-            - Agents without declared outputs post one summary comment on the sub-issue
+
+    - ``<agent>: Done!`` marker → parent (main) issue ONLY
+    - Declared output artifacts → sub-issue ONLY (skipped if no sub-issue)
+    - Agents without declared outputs → one summary comment on the sub-issue
 
     All agents are eligible — output files are optional, not required.
 
