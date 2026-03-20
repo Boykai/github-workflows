@@ -137,8 +137,8 @@ class TestPostMarkdownOutputs:
         assert result == 0
 
     @pytest.mark.asyncio
-    async def test_other_md_file_posted_successfully(self, mock_gps):
-        """Non-expected .md file posted -> count = 1."""
+    async def test_other_md_file_not_posted(self, mock_gps):
+        """Non-expected .md file is NOT posted (only declared outputs are posted)."""
         mock_gps.get_file_content_from_ref.return_value = "readme content"
         mock_gps.create_issue_comment.return_value = {"id": "IC_2"}
 
@@ -159,7 +159,7 @@ class TestPostMarkdownOutputs:
                 pr_files=[{"filename": "README.md", "status": "added"}],
             )
 
-        assert result == 1
+        assert result == 0
 
     @pytest.mark.asyncio
     async def test_other_md_comment_fails_count_zero(self, mock_gps):
@@ -261,7 +261,7 @@ class TestPostMarkdownOutputs:
 
     @pytest.mark.asyncio
     async def test_mixed_expected_and_other_md(self, mock_gps):
-        """Both expected and other .md files posted -> sum of both."""
+        """Only expected .md file is posted; other .md files are skipped."""
         mock_gps.get_file_content_from_ref.return_value = "content"
         mock_gps.create_issue_comment.return_value = {"id": "IC_ok"}
 
@@ -285,4 +285,4 @@ class TestPostMarkdownOutputs:
                 ],
             )
 
-        assert result == 2
+        assert result == 1

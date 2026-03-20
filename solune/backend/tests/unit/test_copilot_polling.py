@@ -4714,9 +4714,13 @@ class TestEnsureCopilotReviewRequested:
 
     @pytest.fixture(autouse=True)
     def _clear(self):
+        from src.services.copilot_polling.state import _review_requested_cache
+
         _processed_issue_prs.clear()
+        _review_requested_cache.clear()
         yield
         _processed_issue_prs.clear()
+        _review_requested_cache.clear()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -11406,13 +11410,18 @@ class TestCopilotReviewRequestTimestamp:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.copilot_polling.state import _copilot_review_requested_at
+        from src.services.copilot_polling.state import (
+            _copilot_review_requested_at,
+            _review_requested_cache,
+        )
 
         _copilot_review_requested_at.clear()
         _processed_issue_prs.clear()
+        _review_requested_cache.clear()
         yield
         _copilot_review_requested_at.clear()
         _processed_issue_prs.clear()
+        _review_requested_cache.clear()
 
     @pytest.mark.asyncio
     @patch(
