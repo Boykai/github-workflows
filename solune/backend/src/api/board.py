@@ -363,8 +363,12 @@ async def get_board_data(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
     refresh: Annotated[bool, Query(description="Force refresh from GitHub API")] = False,
-    column_limit: Annotated[int | None, Query(ge=1, le=100, description="Items per column page")] = None,
-    column_cursors: Annotated[str | None, Query(description="JSON map of {status_option_id: cursor}")] = None,
+    column_limit: Annotated[
+        int | None, Query(ge=1, le=100, description="Items per column page")
+    ] = None,
+    column_cursors: Annotated[
+        str | None, Query(description="JSON map of {status_option_id: cursor}")
+    ] = None,
 ) -> BoardDataResponse:
     """Get board data for a specific project with columns and items."""
     cache_key = get_cache_key(CACHE_PREFIX_BOARD_DATA, project_id)
@@ -454,7 +458,9 @@ async def get_board_data(
             try:
                 parsed = _json.loads(column_cursors)
                 if not isinstance(parsed, dict):
-                    raise ValidationError("column_cursors must be a JSON object mapping column IDs to cursor strings")
+                    raise ValidationError(
+                        "column_cursors must be a JSON object mapping column IDs to cursor strings"
+                    )
                 cursors_map = parsed
             except (ValueError, TypeError) as exc:
                 raise ValidationError(f"column_cursors is not valid JSON: {exc}") from exc

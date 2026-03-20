@@ -41,9 +41,7 @@ def _get_service() -> AgentsService:
 # ── List ──
 
 
-@router.get(
-    "/{project_id}", dependencies=[Depends(verify_project_access)]
-)
+@router.get("/{project_id}", dependencies=[Depends(verify_project_access)])
 async def list_agents(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
