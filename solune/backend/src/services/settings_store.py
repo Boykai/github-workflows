@@ -448,7 +448,9 @@ def _build_project_section(
     # Merge the queue_mode column into the board config.
     # Create a board config when either the JSON config exists or queue_mode
     # has been explicitly enabled, so the toggle state is visible to the frontend.
-    queue_mode_val = bool(project_row["queue_mode"]) if "queue_mode" in project_row.keys() else False
+    queue_mode_val = (
+        bool(project_row["queue_mode"]) if "queue_mode" in project_row.keys() else False
+    )
     if board_config is None:
         if queue_mode_val:
             board_config = ProjectBoardConfig(queue_mode=True)

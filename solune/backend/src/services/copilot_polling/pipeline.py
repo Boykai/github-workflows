@@ -81,9 +81,7 @@ async def _dequeue_next_pipeline(
         )
         ctx.issue_number = next_pipeline.issue_number
 
-        await orchestrator.assign_agent_for_status(
-            ctx, next_pipeline.status, agent_index=0
-        )
+        await orchestrator.assign_agent_for_status(ctx, next_pipeline.status, agent_index=0)
         logger.info(
             "Dequeued pipeline for issue #%d — agent assignment started",
             next_pipeline.issue_number,

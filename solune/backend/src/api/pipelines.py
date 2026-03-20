@@ -376,7 +376,7 @@ async def execute_pipeline_launch(
                 project_id=project_id,
                 status=status_name,
                 agents=get_agent_slugs(config, status_name),
-                agent_sub_issues=agent_sub_issues if agent_sub_issues else {},
+                agent_sub_issues=agent_sub_issues or {},
                 started_at=utcnow(),
                 queued=True,
             )

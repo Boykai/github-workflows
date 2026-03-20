@@ -115,7 +115,14 @@ async def test_queue_mode_persists_alongside_board_config(thin_mock_client: Asyn
     # Set board config first
     response = await thin_mock_client.put(
         f"/api/v1/settings/project/{project_id}",
-        json={"board_display_config": {"column_order": ["Backlog", "In Progress"], "collapsed_columns": [], "show_estimates": True, "queue_mode": False}},
+        json={
+            "board_display_config": {
+                "column_order": ["Backlog", "In Progress"],
+                "collapsed_columns": [],
+                "show_estimates": True,
+                "queue_mode": False,
+            }
+        },
     )
     assert response.status_code == 200
 
