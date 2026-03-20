@@ -26,6 +26,7 @@ import { RateLimitProvider } from '@/context/RateLimitContext';
 import { Toaster } from 'sonner';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { KeyboardShortcutModal } from '@/components/ui/keyboard-shortcut-modal';
+import { CommandPalette } from '@/components/command-palette/CommandPalette';
 
 /** Dismissible Signal conflict banner bar. */
 function SignalBannerBar() {
@@ -101,9 +102,23 @@ export function AppLayout() {
   const { confirmRecommendation, rejectRecommendation } = useWorkflow();
 
   const [shortcutModalOpen, setShortcutModalOpen] = useState(false);
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
+  const [paletteKey, setPaletteKey] = useState(0);
   useGlobalShortcuts({
     onOpenShortcutModal: () => setShortcutModalOpen(true),
   });
+
+  // Listen for the custom event to open the command palette
+  useEffect(() => {
+    const handleOpenPalette = () => {
+      setIsCommandPaletteOpen((prev) => {
+        if (!prev) setPaletteKey((k) => k + 1);
+        return !prev;
+      });
+    };
+    window.addEventListener('solune:open-command-palette', handleOpenPalette);
+    return () => window.removeEventListener('solune:open-command-palette', handleOpenPalette);
+  }, []);
 
   return (
     <OnboardingProvider>
@@ -190,6 +205,12 @@ export function AppLayout() {
         <KeyboardShortcutModal
           isOpen={shortcutModalOpen}
           onClose={() => setShortcutModalOpen(false)}
+        />
+        <CommandPalette
+          key={paletteKey}
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setIsCommandPaletteOpen(false)}
+          projectId={selectedProject?.project_id ?? null}
         />
         <Toaster
           position="bottom-right"
