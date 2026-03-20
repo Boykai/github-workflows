@@ -20,7 +20,6 @@ import type {
   ChoreChatMessage,
   ChoreChatResponse,
   ChoreInlineUpdate,
-  ChoreInlineUpdateResponse,
   ChoreCreateWithConfirmation,
   ChoreCreateResponse,
 } from '@/types';
@@ -82,16 +81,58 @@ export function useChoreTemplates(projectId: string | null | undefined) {
 export function useCreateChore(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
 
-  return useMutation<Chore, ApiError, ChoreCreate>({
-    mutationFn: (data) => choresApi.create(projectId!, data),
+  return useMutation({
+    mutationFn: (data: ChoreCreate) => choresApi.create(projectId!, data),
+    onMutate: async (data: ChoreCreate) => {
+      if (!projectId) return;
+      const queryKey = choreKeys.list(projectId);
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<Chore[]>(queryKey);
+      if (!snapshot) return;
+
+      const now = new Date().toISOString();
+      const placeholder = {
+        id: `temp-${Date.now()}`,
+        project_id: projectId,
+        name: data.name,
+        template_path: '',
+        template_content: data.template_content ?? '',
+        schedule_type: null,
+        schedule_value: null,
+        status: 'active' as const,
+        last_triggered_at: null,
+        last_triggered_count: 0,
+        current_issue_number: null,
+        current_issue_node_id: null,
+        pr_number: null,
+        pr_url: null,
+        tracking_issue_number: null,
+        execution_count: 0,
+        ai_enhance_enabled: false,
+        agent_pipeline_id: '',
+        is_preset: false,
+        preset_id: '',
+        created_at: now,
+        updated_at: now,
+        _optimistic: true,
+      } satisfies Chore & { _optimistic: boolean };
+
+      queryClient.setQueryData<Chore[]>(queryKey, [placeholder, ...snapshot]);
+      return { snapshot, queryKey };
+    },
     onSuccess: () => {
+      toast.success('Chore created');
+    },
+    onError: (error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      toast.error(error.message || 'Failed to create chore', { duration: Infinity });
+    },
+    onSettled: () => {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
-      toast.success('Chore created');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to create chore', { duration: Infinity });
     },
   });
 }
@@ -101,16 +142,36 @@ export function useCreateChore(projectId: string | null | undefined) {
 export function useUpdateChore(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
 
-  return useMutation<Chore, ApiError, { choreId: string; data: ChoreUpdate }>({
-    mutationFn: ({ choreId, data }) => choresApi.update(projectId!, choreId, data),
+  return useMutation({
+    mutationFn: ({ choreId, data }: { choreId: string; data: ChoreUpdate }) =>
+      choresApi.update(projectId!, choreId, data),
+    onMutate: async ({ choreId, data }: { choreId: string; data: ChoreUpdate }) => {
+      if (!projectId) return;
+      const queryKey = choreKeys.list(projectId);
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<Chore[]>(queryKey);
+      if (!snapshot) return;
+
+      queryClient.setQueryData<Chore[]>(queryKey, (old) =>
+        old?.map((chore) =>
+          chore.id === choreId ? { ...chore, ...data, updated_at: new Date().toISOString() } : chore,
+        ),
+      );
+      return { snapshot, queryKey };
+    },
     onSuccess: () => {
+      toast.success('Chore updated');
+    },
+    onError: (error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      toast.error(error.message || 'Failed to update chore', { duration: Infinity });
+    },
+    onSettled: () => {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
-      toast.success('Chore updated');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to update chore', { duration: Infinity });
     },
   });
 }
@@ -120,16 +181,33 @@ export function useUpdateChore(projectId: string | null | undefined) {
 export function useDeleteChore(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
 
-  return useMutation<{ deleted: boolean; closed_issue_number: number | null }, ApiError, string>({
-    mutationFn: (choreId) => choresApi.delete(projectId!, choreId),
+  return useMutation({
+    mutationFn: (choreId: string) => choresApi.delete(projectId!, choreId),
+    onMutate: async (choreId: string) => {
+      if (!projectId) return;
+      const queryKey = choreKeys.list(projectId);
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<Chore[]>(queryKey);
+      if (!snapshot) return;
+
+      queryClient.setQueryData<Chore[]>(queryKey, (old) =>
+        old?.filter((chore) => chore.id !== choreId),
+      );
+      return { snapshot, queryKey };
+    },
     onSuccess: () => {
+      toast.success('Chore deleted');
+    },
+    onError: (error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      toast.error(error.message || 'Failed to delete chore', { duration: Infinity });
+    },
+    onSettled: () => {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
-      toast.success('Chore deleted');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to delete chore', { duration: Infinity });
     },
   });
 }
@@ -221,20 +299,36 @@ export function useChoreChat(projectId: string | null | undefined) {
 export function useInlineUpdateChore(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
 
-  return useMutation<
-    ChoreInlineUpdateResponse,
-    ApiError,
-    { choreId: string; data: ChoreInlineUpdate }
-  >({
-    mutationFn: ({ choreId, data }) => choresApi.inlineUpdate(projectId!, choreId, data),
+  return useMutation({
+    mutationFn: ({ choreId, data }: { choreId: string; data: ChoreInlineUpdate }) =>
+      choresApi.inlineUpdate(projectId!, choreId, data),
+    onMutate: async ({ choreId, data }: { choreId: string; data: ChoreInlineUpdate }) => {
+      if (!projectId) return;
+      const queryKey = choreKeys.list(projectId);
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<Chore[]>(queryKey);
+      if (!snapshot) return;
+
+      queryClient.setQueryData<Chore[]>(queryKey, (old) =>
+        old?.map((chore) =>
+          chore.id === choreId ? { ...chore, ...data, updated_at: new Date().toISOString() } : chore,
+        ),
+      );
+      return { snapshot, queryKey };
+    },
     onSuccess: () => {
+      toast.success('Chore updated');
+    },
+    onError: (error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      toast.error(error.message || 'Failed to update chore', { duration: Infinity });
+    },
+    onSettled: () => {
       if (projectId) {
         queryClient.invalidateQueries({ queryKey: choreKeys.list(projectId) });
       }
-      toast.success('Chore updated');
-    },
-    onError: (error) => {
-      toast.error(error.message || 'Failed to update chore', { duration: Infinity });
     },
   });
 }

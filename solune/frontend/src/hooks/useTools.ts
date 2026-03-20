@@ -16,7 +16,6 @@ import type {
   McpToolConfigUpdate,
   McpToolConfigListResponse,
   McpToolSyncResult,
-  ToolDeleteResult,
   PaginatedResponse,
 } from '@/types';
 
@@ -89,14 +88,26 @@ export function useToolsList(projectId: string | null | undefined) {
     },
   });
 
-  const deleteMutation = useMutation<
-    ToolDeleteResult,
-    ApiError,
-    { toolId: string; confirm?: boolean }
-  >({
-    mutationFn: ({ toolId, confirm }) => {
+  const deleteMutation = useMutation({
+    mutationFn: ({ toolId, confirm }: { toolId: string; confirm?: boolean }) => {
       setDeletingId(toolId);
       return toolsApi.delete(projectId!, toolId, confirm);
+    },
+    onMutate: async ({ toolId, confirm }: { toolId: string; confirm?: boolean }) => {
+      if (!projectId || confirm === false) return;
+      const queryKey = toolKeys.list(projectId);
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<McpToolConfigListResponse>(queryKey);
+      if (!snapshot) return;
+
+      queryClient.setQueryData<McpToolConfigListResponse>(queryKey, (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          tools: old.tools.filter((tool) => tool.id !== toolId),
+        };
+      });
+      return { snapshot, queryKey };
     },
     onSuccess: (result) => {
       if (result.success && projectId) {
@@ -104,7 +115,17 @@ export function useToolsList(projectId: string | null | undefined) {
         queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
       }
     },
-    onSettled: () => setDeletingId(null),
+    onError: (_error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+    },
+    onSettled: () => {
+      setDeletingId(null);
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
+      }
+    },
   });
 
   const authError = query.error instanceof ApiError && query.error.status === 401;
