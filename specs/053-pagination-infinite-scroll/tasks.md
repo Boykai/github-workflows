@@ -151,10 +151,11 @@
 
 - [ ] T028 [P] Add debounce/dedup protection to `InfiniteScrollContainer` to prevent duplicate page requests on rapid scroll (leveraging IntersectionObserver's built-in debounce and adding guard for `isFetchingNextPage`) in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
 - [ ] T029 [P] Add retry UI for failed page loads — error state with retry button, preserving already-loaded data — in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
-- [ ] T030 Add filter/sort reset logic — reset pagination to first page when filter or sort changes by invalidating the query via `queryClient.resetQueries()` — in solune/frontend/src/hooks/useInfiniteList.ts and all migrated page components
-- [ ] T031 Handle concurrent mutations — ensure query invalidation on item create/delete while viewing paginated lists re-fetches correctly without losing scroll position — in all migrated hook files
-- [ ] T032 Verify scroll position preservation on navigation — confirm TanStack Query cache preserves loaded pages across SPA navigation and scroll offset restores correctly via `useRef`/`scrollTo` pattern
-- [ ] T033 Run quickstart.md final verification suite — full backend tests, frontend tests, type-check, lint, and manual performance verification per specs/053-pagination-infinite-scroll/quickstart.md
+- [ ] T030 Add filter/sort reset helper to `useInfiniteList` that calls `queryClient.resetQueries()` when filter or sort params change, resetting pagination to the first page in solune/frontend/src/hooks/useInfiniteList.ts
+- [ ] T031 [P] Integrate filter/sort reset into paginated page components — call reset on filter/sort change in solune/frontend/src/pages/AgentsPage.tsx, solune/frontend/src/pages/ToolsPage.tsx, solune/frontend/src/pages/ChoresPage.tsx, and solune/frontend/src/pages/AppsPage.tsx
+- [ ] T032 [P] Add query invalidation on create/delete mutations to re-fetch paginated data correctly in solune/frontend/src/hooks/useAgents.ts, solune/frontend/src/hooks/useTools.ts, solune/frontend/src/hooks/useChores.ts, solune/frontend/src/hooks/useApps.ts, and solune/frontend/src/hooks/usePipelineConfig.ts
+- [ ] T033 Add scroll position preservation using `useRef`/`scrollTo` pattern in `InfiniteScrollContainer` to restore scroll offset when returning from detail views in solune/frontend/src/components/common/InfiniteScrollContainer.tsx
+- [ ] T034 Run quickstart.md final verification suite — full backend tests, frontend tests, type-check, lint, and manual performance verification per specs/053-pagination-infinite-scroll/quickstart.md
 
 ---
 
