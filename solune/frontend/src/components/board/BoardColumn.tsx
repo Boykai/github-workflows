@@ -132,7 +132,7 @@ export const BoardColumn = memo(function BoardColumn({
           <InfiniteScrollContainer
             hasNextPage={hasNextPage}
             isFetchingNextPage={isFetchingNextPage}
-            fetchNextPage={fetchNextPage ?? (() => {})}
+            fetchNextPage={fetchNextPage ?? (() => { /* noop: pagination not wired */ })}
           >
             <span />
           </InfiniteScrollContainer>

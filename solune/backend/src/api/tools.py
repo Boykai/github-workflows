@@ -81,7 +81,7 @@ async def list_tools(
 
             raise ValidationError(str(exc)) from exc
         return {
-            "tools": [t.model_dump() if hasattr(t, "model_dump") else t for t in paginated.items],
+            "tools": [t.model_dump() for t in paginated.items],
             "count": result.count,
             "next_cursor": paginated.next_cursor,
             "has_more": paginated.has_more,

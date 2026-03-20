@@ -1036,7 +1036,7 @@ export const pipelinesApi = {
     if (params.cursor) qs.set('cursor', params.cursor);
     if (sort) qs.set('sort', sort);
     if (order) qs.set('order', order);
-    return request(`/pipelines/${projectId}?${qs}`);
+    return request<PipelineConfigListResponse & { next_cursor: string | null; has_more: boolean; total_count: number | null }>(`/pipelines/${projectId}?${qs}`);
   },
 
   get(projectId: string, pipelineId: string): Promise<PipelineConfig> {
@@ -1157,7 +1157,7 @@ export const toolsApi = {
   ): Promise<McpToolConfigListResponse & { next_cursor: string | null; has_more: boolean; total_count: number | null }> {
     const qs = new URLSearchParams({ limit: String(params.limit) });
     if (params.cursor) qs.set('cursor', params.cursor);
-    return request(`/tools/${projectId}?${qs}`);
+    return request<McpToolConfigListResponse & { next_cursor: string | null; has_more: boolean; total_count: number | null }>(`/tools/${projectId}?${qs}`);
   },
 
   get(projectId: string, toolId: string): Promise<McpToolConfig> {

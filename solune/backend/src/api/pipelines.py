@@ -165,7 +165,7 @@ async def list_pipelines(
         except ValueError as exc:
             raise ValidationError(str(exc)) from exc
         return {
-            "pipelines": [p.model_dump() if hasattr(p, "model_dump") else p for p in paginated.items],
+            "pipelines": [p.model_dump() for p in paginated.items],
             "total": result.total,
             "next_cursor": paginated.next_cursor,
             "has_more": paginated.has_more,

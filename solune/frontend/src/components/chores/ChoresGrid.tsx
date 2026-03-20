@@ -57,7 +57,7 @@ export function ChoresGrid({
     <InfiniteScrollContainer
       hasNextPage={hasNextPage}
       isFetchingNextPage={isFetchingNextPage}
-      fetchNextPage={fetchNextPage ?? (() => {})}
+      fetchNextPage={fetchNextPage ?? (() => { /* noop: pagination not wired */ })}
     >
       <div className="constellation-grid mt-6 grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {chores.map((chore) => (
