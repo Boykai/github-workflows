@@ -285,6 +285,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite — direct SQL queries, no ORM. Pydantic models for serialization. Numbered SQL migration files (current highest: 032). (054-activity-audit-trail)
 - Python 3.13 (backend), TypeScript 5.x + React 19.2 (frontend) + FastAPI (backend), TanStack Query v5.91 + React 19 (frontend), Sonner v2 (toasts) (054-optimistic-ui-updates)
 - SQLite with aiosqlite (backend local state), GitHub Projects GraphQL API (board data source) (054-optimistic-ui-updates)
+- TypeScript 5.x + React 19.2 + React Router v7 (useLocation, Link), TanStack Query v5.91 (existing), Lucide React (ChevronRight icon) (055-breadcrumb-deep-routes)
+- N/A (no persistence — breadcrumb state is ephemeral React context) (055-breadcrumb-deep-routes)
 - Python 3.13 (backend) + FastAPI (API framework), httpx (HTTP client), githubkit (GitHub API), aiosqlite (async SQLite) (055-fix-copilot-review-completion)
 - SQLite with aiosqlite (durable state), in-memory `BoundedDict` (fast access) (055-fix-copilot-review-completion)
 

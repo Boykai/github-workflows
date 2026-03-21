@@ -10,6 +10,9 @@ const mocks = vi.hoisted(() => ({
   stopMutate: vi.fn(),
   deleteMutate: vi.fn(),
   confirm: vi.fn(),
+  setLabel: vi.fn(),
+  removeLabel: vi.fn(),
+  useParamsValue: {} as Record<string, string>,
 }));
 
 vi.mock('react-router-dom', async () => {
@@ -17,7 +20,7 @@ vi.mock('react-router-dom', async () => {
   return {
     ...actual,
     useNavigate: () => mocks.navigate,
-    useParams: () => ({}),
+    useParams: () => mocks.useParamsValue,
   };
 });
 
@@ -27,6 +30,11 @@ vi.mock('@/hooks/useApps', () => ({
     isLoading: false,
     error: null,
     refetch: vi.fn(),
+  }),
+  useApp: () => ({
+    data: undefined,
+    isLoading: false,
+    error: null,
   }),
   useAppsPaginated: () => ({
     allItems: [],
@@ -101,9 +109,18 @@ vi.mock('@/utils/rateLimit', () => ({
   isRateLimitApiError: () => false,
 }));
 
+vi.mock('@/hooks/useBreadcrumb', () => ({
+  useBreadcrumb: () => ({ setLabel: mocks.setLabel, removeLabel: mocks.removeLabel }),
+}));
+
+vi.mock('@/lib/breadcrumb-utils', () => ({
+  toTitleCase: (slug: string) => slug,
+}));
+
 describe('AppsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.useParamsValue = {};
   });
 
   it('opens the create dialog from the create app button', async () => {
@@ -399,5 +416,12 @@ describe('AppsPage — Azure credentials (new-repo)', () => {
     await waitFor(() => {
       expect(mocks.navigate).toHaveBeenCalledWith('/apps/pipeline-app');
     });
+  });
+
+  it('registers a breadcrumb label when viewing an app detail', () => {
+    mocks.useParamsValue = { appName: 'my-cool-app' };
+    render(<AppsPage />);
+
+    expect(mocks.setLabel).toHaveBeenCalledWith('/apps/my-cool-app', 'my-cool-app');
   });
 });
