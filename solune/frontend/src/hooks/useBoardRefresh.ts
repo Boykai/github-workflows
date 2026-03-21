@@ -129,11 +129,11 @@ export function useBoardRefresh({
 
   const startTimer = useCallback(() => {
     clearTimer();
-    if (!projectId) return;
+    if (!projectId || isWebSocketConnected) return;
     timerRef.current = window.setInterval(() => {
       doRefresh();
     }, AUTO_REFRESH_INTERVAL_MS);
-  }, [projectId, clearTimer, doRefresh]);
+  }, [projectId, isWebSocketConnected, clearTimer, doRefresh]);
 
   const resetTimer = useCallback(() => {
     startTimer();

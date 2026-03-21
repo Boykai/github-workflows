@@ -338,19 +338,12 @@ async def websocket_subscribe(
                 )
                 cache.set(user_projects_key, projects)
             except Exception as fetch_err:
-                # On transient GitHub/rate-limit errors, fall back to the stale
-                # cache so WebSocket subscriptions are not denied unnecessarily.
-                stale = cache.get_stale(user_projects_key)
-                if stale is not None:
-                    logger.warning(
-                        "Using stale cached projects for WebSocket access check "
-                        "(user=%s) due to upstream error: %s",
-                        session.github_username,
-                        fetch_err,
-                    )
-                    projects = stale
-                else:
-                    raise
+                logger.warning(
+                    "WebSocket project access revalidation failed for user=%s: %s",
+                    session.github_username,
+                    fetch_err,
+                )
+                raise
         if not any(p.project_id == project_id for p in projects):
             logger.warning(
                 "WebSocket project access denied: user=%s project=%s",
