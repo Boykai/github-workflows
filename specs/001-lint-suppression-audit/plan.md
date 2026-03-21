@@ -1,104 +1,135 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Lint & Type Suppression Audit
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-lint-suppression-audit` | **Date**: 2026-03-21 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-lint-suppression-audit/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Audit and resolve ~115 lint/type-checker suppression statements (`# noqa`, `# type: ignore`, `# pyright:`, `eslint-disable`, `@ts-expect-error`) across the backend (Python 3.13 / FastAPI) and frontend (React 19 / TypeScript). The work is decomposed into four independent user stories by priority: (1) backend type suppressions, (2) frontend accessibility and React hooks, (3) backend linter suppressions, (4) test file suppressions. Each suppression is either removed by fixing the underlying issue or retained with an inline justification comment. No behavioral changes — strictly internal refactoring of type annotations, element semantics, and linter configuration.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.13 (backend), TypeScript 5.x / React 19 (frontend)
+**Primary Dependencies**: FastAPI, Pydantic, Ruff, Pyright (backend); ESLint, TypeScript, Vite, Vitest, React, TanStack Query v5 (frontend)
+**Storage**: N/A — no schema changes
+**Testing**: `pytest` (3,365+ backend tests), `vitest` (1,219+ frontend tests)
+**Target Platform**: Linux server (backend), Web browser (frontend)
+**Project Type**: Web application (backend + frontend)
+**Performance Goals**: N/A — no runtime changes
+**Constraints**: Zero new linter/type-checker errors; all existing tests must pass
+**Scale/Scope**: 115 suppression statements across ~40 files; target ≤58 remaining (50% reduction)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | `spec.md` created with 4 prioritized user stories, acceptance scenarios, and scope boundaries |
+| **II. Template-Driven** | ✅ PASS | All artifacts follow canonical templates |
+| **III. Agent-Orchestrated** | ✅ PASS | `speckit.plan` → `speckit.tasks` → `speckit.implement` pipeline |
+| **IV. Test Optionality** | ✅ PASS | No new tests required — verification via existing linters and test suites. Tests are not mandated in spec |
+| **V. Simplicity & DRY** | ✅ PASS | Each fix is the simplest correct resolution; no new abstractions introduced |
+
+**Re-check after Phase 1 design**: ✅ PASS — No violations. All changes are local refactoring within existing file boundaries. No new packages, patterns, or abstractions required.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-lint-suppression-audit/
+├── plan.md              # This file
+├── research.md          # Phase 0: suppression audit and resolution strategies
+├── data-model.md        # Phase 1: suppression entity model
+├── quickstart.md        # Phase 1: developer onboarding guide
+├── contracts/           # Phase 1: N/A (internal refactoring, no API contracts)
+│   └── README.md        # Explains why contracts are not applicable
+└── tasks.md             # Phase 2 output (/speckit.tasks command)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+solune/
+├── backend/
+│   ├── pyproject.toml              # Ruff/Pyright config changes (B008 global ignore)
+│   ├── src/
+│   │   ├── api/                    # B008 noqa removal, PTH justification
+│   │   │   ├── chat.py
+│   │   │   ├── cleanup.py
+│   │   │   ├── activity.py
+│   │   │   └── workflow.py
+│   │   ├── config.py               # Settings() type fix
+│   │   ├── dependencies.py         # B008 noqa removal
+│   │   ├── logging_utils.py        # return-value, attr-defined fixes
+│   │   ├── main.py                 # arg-type fix
+│   │   ├── utils.py                # return-value, misc fixes
+│   │   ├── models/
+│   │   │   └── chat.py             # F401 → __all__ conversion
+│   │   └── services/
+│   │       ├── cache.py            # return-value fixes (cast or generics)
+│   │       ├── completion_providers.py  # reportMissingImports, reportCallIssue
+│   │       ├── model_fetcher.py    # Task type-arg fix
+│   │       ├── task_registry.py    # Task type-arg fixes (6 instances)
+│   │       ├── metadata_service.py # index type fixes
+│   │       ├── agents/service.py   # arg-type fix
+│   │       ├── tools/service.py    # arg-type fix
+│   │       ├── workflow_orchestrator/config.py  # assignment fix
+│   │       ├── copilot_polling/__init__.py      # F401 → __all__
+│   │       └── github_projects/
+│   │           ├── __init__.py     # E402 noqa retention
+│   │           ├── service.py      # Task type-arg fix
+│   │           ├── copilot.py      # return-value, reportAttributeAccessIssue
+│   │           ├── agents.py       # reportAttributeAccessIssue
+│   │           ├── pull_requests.py
+│   │           ├── projects.py
+│   │           ├── issues.py
+│   │           ├── branches.py
+│   │           ├── board.py
+│   │           └── repository.py
+│   └── tests/
+│       ├── unit/
+│       │   ├── test_logging_utils.py
+│       │   ├── test_metadata_service.py
+│       │   ├── test_polling_loop.py
+│       │   ├── test_transcript_detector.py
+│       │   ├── test_template_files.py
+│       │   ├── test_pipeline_state_store.py
+│       │   └── test_agent_output.py
+│       ├── concurrency/
+│       │   └── test_transaction_safety.py
+│       └── integration/
+│           └── test_production_mode.py
+└── frontend/
+    └── src/
+        ├── components/
+        │   ├── agents/
+        │   │   ├── AgentIconPickerModal.tsx   # jsx-a11y fix
+        │   │   └── AgentChatFlow.tsx          # exhaustive-deps fix
+        │   ├── board/
+        │   │   ├── AgentPresetSelector.tsx     # jsx-a11y fixes (2)
+        │   │   └── AddAgentPopover.tsx         # no-autofocus justification
+        │   ├── chat/
+        │   │   └── ChatInterface.tsx           # exhaustive-deps fix
+        │   ├── chores/
+        │   │   ├── AddChoreModal.tsx           # exhaustive-deps, no-autofocus
+        │   │   └── ChoreChatFlow.tsx           # exhaustive-deps fix
+        │   ├── pipeline/
+        │   │   └── ModelSelector.tsx            # exhaustive-deps fix
+        │   └── tools/
+        │       └── UploadMcpModal.tsx           # exhaustive-deps fix
+        ├── hooks/
+        │   ├── useVoiceInput.ts                # no-explicit-any fix
+        │   └── useRealTimeSync.ts              # exhaustive-deps justification
+        ├── lib/
+        │   └── lazyWithRetry.ts                # no-explicit-any justification
+        └── test/
+            └── setup.ts                         # @ts-expect-error justification
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure — `solune/backend/` (Python/FastAPI) and `solune/frontend/` (React/TypeScript). All changes are within existing files; no new files are created in the source tree.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No constitution violations detected. No complexity justifications required.
