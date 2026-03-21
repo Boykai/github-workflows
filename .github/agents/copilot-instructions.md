@@ -285,6 +285,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite — direct SQL queries, no ORM. Pydantic models for serialization. Numbered SQL migration files (current highest: 032). (054-activity-audit-trail)
 - Python 3.13 (backend), TypeScript 5.x + React 19.2 (frontend) + FastAPI (backend), TanStack Query v5.91 + React 19 (frontend), Sonner v2 (toasts) (054-optimistic-ui-updates)
 - SQLite with aiosqlite (backend local state), GitHub Projects GraphQL API (board data source) (054-optimistic-ui-updates)
+- TypeScript 5.x + React 19.2 + React Router v7 (useLocation, Link), TanStack Query v5.91 (existing), Lucide React (ChevronRight icon) (055-breadcrumb-deep-routes)
+- N/A (no persistence — breadcrumb state is ephemeral React context) (055-breadcrumb-deep-routes)
 
 ## Recent Changes
 - Dependabot upgrades: ESLint 9→10, Vite 7→8, react-hooks 5→7, security 3→4, @vitejs/plugin-react 5→6, Docker images (python 3.14, node 25, nginx 1.29), GitHub Actions (checkout v6, setup-python v6, upload-artifact v7, setup-node v6)
