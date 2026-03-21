@@ -5,7 +5,7 @@
  */
 
 import { useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { choresApi, ApiError } from '@/services/api';
 import { STALE_TIME_LONG } from '@/constants';
@@ -22,6 +22,7 @@ import type {
   ChoreInlineUpdate,
   ChoreCreateWithConfirmation,
   ChoreCreateResponse,
+  PaginatedResponse,
 } from '@/types';
 
 // ── Query Keys ──
@@ -86,8 +87,11 @@ export function useCreateChore(projectId: string | null | undefined) {
     onMutate: async (data: ChoreCreate) => {
       if (!projectId) return;
       const queryKey = choreKeys.list(projectId);
+      const paginatedQueryKey = [...choreKeys.list(projectId), 'paginated'];
       await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const snapshot = queryClient.getQueryData<Chore[]>(queryKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<Chore>>>(paginatedQueryKey);
       if (!snapshot) return;
 
       const now = new Date().toISOString();
@@ -118,7 +122,19 @@ export function useCreateChore(projectId: string | null | undefined) {
       } satisfies Chore & { _optimistic: boolean };
 
       queryClient.setQueryData<Chore[]>(queryKey, [placeholder, ...snapshot]);
-      return { snapshot, queryKey };
+
+      if (paginatedSnapshot?.pages?.length) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<Chore>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page, index) =>
+            index === 0
+              ? { ...page, items: [placeholder, ...page.items] }
+              : page
+          ),
+        });
+      }
+
+      return { snapshot, queryKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: () => {
       toast.success('Chore created');
@@ -126,6 +142,9 @@ export function useCreateChore(projectId: string | null | undefined) {
     onError: (error, _variables, context) => {
       if (context?.snapshot && context.queryKey) {
         queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
       toast.error(error.message || 'Failed to create chore', { duration: Infinity });
     },
@@ -148,8 +167,11 @@ export function useUpdateChore(projectId: string | null | undefined) {
     onMutate: async ({ choreId, data }: { choreId: string; data: ChoreUpdate }) => {
       if (!projectId) return;
       const queryKey = choreKeys.list(projectId);
+      const paginatedQueryKey = [...choreKeys.list(projectId), 'paginated'];
       await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const snapshot = queryClient.getQueryData<Chore[]>(queryKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<Chore>>>(paginatedQueryKey);
       if (!snapshot) return;
 
       queryClient.setQueryData<Chore[]>(queryKey, (old) =>
@@ -157,7 +179,20 @@ export function useUpdateChore(projectId: string | null | undefined) {
           chore.id === choreId ? { ...chore, ...data, updated_at: new Date().toISOString() } : chore,
         ),
       );
-      return { snapshot, queryKey };
+
+      if (paginatedSnapshot?.pages) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<Chore>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page) => ({
+            ...page,
+            items: page.items.map((item) =>
+              item.id === choreId ? { ...item, ...data, updated_at: new Date().toISOString() } : item,
+            ),
+          })),
+        });
+      }
+
+      return { snapshot, queryKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: () => {
       toast.success('Chore updated');
@@ -165,6 +200,9 @@ export function useUpdateChore(projectId: string | null | undefined) {
     onError: (error, _variables, context) => {
       if (context?.snapshot && context.queryKey) {
         queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
       toast.error(error.message || 'Failed to update chore', { duration: Infinity });
     },
@@ -186,14 +224,28 @@ export function useDeleteChore(projectId: string | null | undefined) {
     onMutate: async (choreId: string) => {
       if (!projectId) return;
       const queryKey = choreKeys.list(projectId);
+      const paginatedQueryKey = [...choreKeys.list(projectId), 'paginated'];
       await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const snapshot = queryClient.getQueryData<Chore[]>(queryKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<Chore>>>(paginatedQueryKey);
       if (!snapshot) return;
 
       queryClient.setQueryData<Chore[]>(queryKey, (old) =>
         old?.filter((chore) => chore.id !== choreId),
       );
-      return { snapshot, queryKey };
+
+      if (paginatedSnapshot?.pages) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<Chore>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((item) => item.id !== choreId),
+          })),
+        });
+      }
+
+      return { snapshot, queryKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: () => {
       toast.success('Chore deleted');
@@ -201,6 +253,9 @@ export function useDeleteChore(projectId: string | null | undefined) {
     onError: (error, _variables, context) => {
       if (context?.snapshot && context.queryKey) {
         queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
       toast.error(error.message || 'Failed to delete chore', { duration: Infinity });
     },
@@ -305,8 +360,11 @@ export function useInlineUpdateChore(projectId: string | null | undefined) {
     onMutate: async ({ choreId, data }: { choreId: string; data: ChoreInlineUpdate }) => {
       if (!projectId) return;
       const queryKey = choreKeys.list(projectId);
+      const paginatedQueryKey = [...choreKeys.list(projectId), 'paginated'];
       await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const snapshot = queryClient.getQueryData<Chore[]>(queryKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<Chore>>>(paginatedQueryKey);
       if (!snapshot) return;
 
       queryClient.setQueryData<Chore[]>(queryKey, (old) =>
@@ -314,7 +372,20 @@ export function useInlineUpdateChore(projectId: string | null | undefined) {
           chore.id === choreId ? { ...chore, ...data, updated_at: new Date().toISOString() } : chore,
         ),
       );
-      return { snapshot, queryKey };
+
+      if (paginatedSnapshot?.pages) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<Chore>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page) => ({
+            ...page,
+            items: page.items.map((item) =>
+              item.id === choreId ? { ...item, ...data, updated_at: new Date().toISOString() } : item,
+            ),
+          })),
+        });
+      }
+
+      return { snapshot, queryKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: () => {
       toast.success('Chore updated');
@@ -322,6 +393,9 @@ export function useInlineUpdateChore(projectId: string | null | undefined) {
     onError: (error, _variables, context) => {
       if (context?.snapshot && context.queryKey) {
         queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
       toast.error(error.message || 'Failed to update chore', { duration: Infinity });
     },
