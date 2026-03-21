@@ -4,7 +4,7 @@
  * and navigation to the detail view.
  */
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GitBranch, Plus, RefreshCw } from 'lucide-react';
 import {
@@ -31,6 +31,9 @@ import { isRateLimitApiError } from '@/utils/rateLimit';
 import { appsApi, pipelinesApi } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import type { AppCreate, RepoType } from '@/types/apps';
+import { useApp } from '@/hooks/useApps';
+import { useBreadcrumb } from '@/hooks/useBreadcrumb';
+import { toTitleCase } from '@/lib/breadcrumb-utils';
 
 export function AppsPage() {
   const { appName } = useParams<{ appName?: string }>();
@@ -43,6 +46,17 @@ export function AppsPage() {
     fetchNextPage: appsFetchNextPage,
     isError: appsPaginatedError,
   } = useAppsPaginated();
+
+  // Dynamic breadcrumb label for app detail view
+  const { data: appData } = useApp(appName);
+  const { setLabel, removeLabel } = useBreadcrumb();
+  useEffect(() => {
+    if (!appName) return;
+    const path = `/apps/${appName}`;
+    const breadcrumbLabel = appData?.display_name ?? toTitleCase(appName);
+    setLabel(path, breadcrumbLabel);
+    return () => removeLabel(path);
+  }, [appName, appData?.display_name, setLabel, removeLabel]);
 
   // Use paginated items when available; fall back to non-paginated for initial load
   const displayApps = paginatedApps.length > 0 ? paginatedApps : (apps ?? []);

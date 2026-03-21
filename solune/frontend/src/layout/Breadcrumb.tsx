@@ -1,25 +1,18 @@
 /**
- * Breadcrumb — derives breadcrumb segments from the current pathname and NAV_ROUTES.
+ * Breadcrumb — derives breadcrumb segments from the current pathname, NAV_ROUTES,
+ * and dynamic label overrides provided via BreadcrumbContext.
  */
 
 import { useLocation, Link } from 'react-router-dom';
 import { NAV_ROUTES } from '@/constants';
 import { ChevronRight } from 'lucide-react';
+import { useBreadcrumbLabels } from '@/hooks/useBreadcrumb';
+import { buildBreadcrumbSegments } from '@/lib/breadcrumb-utils';
 
 export function Breadcrumb() {
   const { pathname } = useLocation();
-
-  // Find matching route for the current path
-  const matchedRoute = NAV_ROUTES.find((r) =>
-    r.path === '/' ? pathname === '/' : pathname.startsWith(r.path)
-  );
-
-  // Build breadcrumb segments
-  const segments: Array<{ label: string; path: string }> = [{ label: 'Home', path: '/' }];
-
-  if (matchedRoute && matchedRoute.path !== '/') {
-    segments.push({ label: matchedRoute.label, path: matchedRoute.path });
-  }
+  const labelOverrides = useBreadcrumbLabels();
+  const segments = buildBreadcrumbSegments(pathname, NAV_ROUTES, labelOverrides);
 
   return (
     <nav aria-label="Breadcrumb" className="flex items-center gap-1 text-sm text-muted-foreground">
