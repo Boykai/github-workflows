@@ -289,7 +289,7 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - N/A (no persistence — breadcrumb state is ephemeral React context) (055-breadcrumb-deep-routes)
 - Python 3.13 (backend) + FastAPI (API framework), httpx (HTTP client), githubkit (GitHub API), aiosqlite (async SQLite) (055-fix-copilot-review-completion)
 - SQLite with aiosqlite (durable state), in-memory `BoundedDict` (fast access) (055-fix-copilot-review-completion)
-- Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI, Starlette WebSockets, httpx (backend); React 18, TanStack Query v5, Radix UI, dnd-kit (frontend) (056-performance-review)
+- Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI, Starlette WebSockets, httpx (backend); React 19.2, TanStack Query v5, Radix UI, dnd-kit (frontend) (056-performance-review)
 - SQLite (backend persistence), In-memory cache with TTL (runtime caching) (056-performance-review)
 
 ## Recent Changes
