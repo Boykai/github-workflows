@@ -37,7 +37,7 @@ export function toTitleCase(slug: string): string {
 export function buildBreadcrumbSegments(
   pathname: string,
   navRoutes: ReadonlyArray<{ path: string; label: string }>,
-  labelOverrides: Map<string, string>,
+  labelOverrides: ReadonlyMap<string, string>,
 ): BreadcrumbSegment[] {
   const segments: BreadcrumbSegment[] = [{ label: 'Home', path: '/' }];
 
@@ -52,7 +52,7 @@ export function buildBreadcrumbSegments(
 
     // 1. Check context overrides
     const override = labelOverrides.get(cumulativePath);
-    if (override) {
+    if (override !== undefined) {
       segments.push({ label: override, path: cumulativePath });
       continue;
     }
@@ -64,8 +64,14 @@ export function buildBreadcrumbSegments(
       continue;
     }
 
-    // 3. Title-case fallback
-    segments.push({ label: toTitleCase(parts[i]), path: cumulativePath });
+    // 3. Title-case fallback (decode URI-encoded segments first)
+    let decodedSegment = parts[i];
+    try {
+      decodedSegment = decodeURIComponent(parts[i]);
+    } catch {
+      // If decoding fails (malformed URI component), fall back to the raw segment.
+    }
+    segments.push({ label: toTitleCase(decodedSegment), path: cumulativePath });
   }
 
   return segments;

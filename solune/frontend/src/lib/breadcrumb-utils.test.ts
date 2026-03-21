@@ -126,4 +126,20 @@ describe('buildBreadcrumbSegments', () => {
       expect(result[1]).toEqual({ label: route.label, path: route.path });
     }
   });
+
+  it('accepts empty-string overrides without falling through', () => {
+    const overrides = new Map([['/apps', '']]);
+    const result = buildBreadcrumbSegments('/apps', navRoutes, overrides);
+    expect(result).toEqual<BreadcrumbSegment[]>([
+      { label: 'Home', path: '/' },
+      { label: '', path: '/apps' },
+    ]);
+  });
+
+  it('decodes URI-encoded segments in the title-case fallback', () => {
+    const result = buildBreadcrumbSegments('/apps/my%20cool%20app', navRoutes, new Map());
+    // decodeURIComponent turns 'my%20cool%20app' into 'my cool app';
+    // toTitleCase splits on hyphens/underscores only, so the label is 'My cool app'
+    expect(result[2]).toEqual({ label: 'My cool app', path: '/apps/my%20cool%20app' });
+  });
 });

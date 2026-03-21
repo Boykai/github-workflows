@@ -8,6 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { GitBranch, Plus, RefreshCw } from 'lucide-react';
 import {
+  useApp,
   useApps,
   useAppsPaginated,
   useCreateApp,
@@ -31,7 +32,6 @@ import { isRateLimitApiError } from '@/utils/rateLimit';
 import { appsApi, pipelinesApi } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import type { AppCreate, RepoType } from '@/types/apps';
-import { useApp } from '@/hooks/useApps';
 import { useBreadcrumb } from '@/hooks/useBreadcrumb';
 import { toTitleCase } from '@/lib/breadcrumb-utils';
 
