@@ -92,6 +92,24 @@ async def _record_copilot_review_request_timestamp(
     effective_requested_at = requested_at or utcnow()
     _copilot_review_requested_at[issue_number] = effective_requested_at
 
+    # Persist to SQLite for restart durability
+    try:
+        from src.services.database import get_db
+
+        db = get_db()
+        await db.execute(
+            "INSERT OR REPLACE INTO copilot_review_requests "
+            "(issue_number, requested_at, project_id) VALUES (?, ?, ?)",
+            (issue_number, effective_requested_at.isoformat(), None),
+        )
+        await db.commit()
+    except Exception as e:
+        logger.warning(
+            "Failed to persist copilot-review request timestamp to SQLite for issue #%d: %s",
+            issue_number,
+            e,
+        )
+
     try:
         issue_data = await _cp.github_projects_service.get_issue_with_comments(
             access_token=access_token,
@@ -197,6 +215,7 @@ async def _check_agent_done_on_sub_or_parent(
             owner=owner,
             repo=repo,
             parent_issue_number=parent_issue_number,
+            pipeline=pipeline,
         )
 
     # Check parent issue first (new canonical location for Done! markers)
@@ -229,6 +248,7 @@ async def _check_copilot_review_done(
     owner: str,
     repo: str,
     parent_issue_number: int,
+    pipeline: "object | None" = None,
 ) -> bool:
     """Check if the copilot-review step is complete.
 
@@ -236,6 +256,11 @@ async def _check_copilot_review_done(
     comment.  Instead, the pipeline requests a Copilot code review on the
     main PR.  Completion is detected by checking whether Copilot has
     actually submitted a review on that PR.
+
+    **Pipeline-position guard**: If the caller provides a ``pipeline``
+    object and the current agent is not ``copilot-review``, the function
+    returns ``False`` immediately — no API calls are made.  This is the
+    innermost defense-in-depth guard against false completion.
 
     **Auto-trigger protection**: GitHub.com may automatically trigger a
     Copilot review when a PR is opened.  Such reviews are ignored — only
@@ -255,6 +280,20 @@ async def _check_copilot_review_done(
     retries the un-draft and review-request operations before checking for
     completion.
     """
+    # ── Pipeline-position guard ──────────────────────────────────
+    # If we know the pipeline state and copilot-review is NOT the
+    # current agent, short-circuit immediately — no API calls needed.
+    if pipeline is not None:
+        current = getattr(pipeline, "current_agent", None)
+        if current and current != "copilot-review":
+            logger.warning(
+                "Pipeline-position guard: copilot-review completion check skipped "
+                "for issue #%d — current agent is '%s', not 'copilot-review'",
+                parent_issue_number,
+                current,
+            )
+            return False
+
     from src.utils import utcnow
 
     from .state import (
@@ -301,6 +340,31 @@ async def _check_copilot_review_done(
                 latest_other_done_at = created_at
 
     request_ts = _copilot_review_requested_at.get(parent_issue_number)
+    if request_ts is None:
+        # Try SQLite recovery before HTML comment fallback
+        try:
+            from src.services.database import get_db
+
+            db = get_db()
+            cursor = await db.execute(
+                "SELECT requested_at FROM copilot_review_requests WHERE issue_number = ?",
+                (parent_issue_number,),
+            )
+            row = await cursor.fetchone()
+            if row:
+                request_ts = datetime.fromisoformat(row[0]).replace(tzinfo=UTC)
+                _copilot_review_requested_at[parent_issue_number] = request_ts
+                logger.info(
+                    "Restored copilot-review request timestamp for issue #%d from SQLite",
+                    parent_issue_number,
+                )
+        except Exception as e:
+            logger.warning(
+                "Failed to recover copilot-review timestamp from SQLite for issue #%d: %s",
+                parent_issue_number,
+                e,
+            )
+
     if request_ts is None:
         request_ts = _extract_copilot_review_requested_at(issue_body)
         if request_ts is None:

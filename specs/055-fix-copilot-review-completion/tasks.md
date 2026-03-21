@@ -29,7 +29,7 @@
 
 **Purpose**: No new project setup needed — all changes modify existing files within `solune/backend/`. This phase covers the one new file that must exist before other phases.
 
-- [ ] T001 Create SQLite migration file `solune/backend/src/migrations/033_copilot_review_requests.sql` with `copilot_review_requests` table (columns: `issue_number INTEGER PRIMARY KEY`, `requested_at TEXT NOT NULL`, `project_id TEXT`)
+- [x] T001 Create SQLite migration file `solune/backend/src/migrations/033_copilot_review_requests.sql` with `copilot_review_requests` table (columns: `issue_number INTEGER PRIMARY KEY`, `requested_at TEXT NOT NULL`, `project_id TEXT`)
 
 ---
 
@@ -39,9 +39,9 @@
 
 **⚠️ CRITICAL**: Phases 3 and 4 depend on this phase being complete. The guard in `_check_copilot_review_done()` is the innermost defense — even if all upstream guards fail, this prevents false completion.
 
-- [ ] T002 Add optional `pipeline` parameter (`pipeline: "object | None" = None`) to `_check_copilot_review_done()` function signature in `solune/backend/src/services/copilot_polling/helpers.py`
-- [ ] T003 Add pipeline-position guard at the top of `_check_copilot_review_done()` body in `solune/backend/src/services/copilot_polling/helpers.py` — if `pipeline` is provided and `pipeline.current_agent != "copilot-review"`, return `False` immediately with a warning log before any API calls
-- [ ] T004 Pass `pipeline=pipeline` kwarg from `_check_agent_done_on_sub_or_parent()` to `_check_copilot_review_done()` at the copilot-review branch (~line 194) in `solune/backend/src/services/copilot_polling/helpers.py`
+- [x] T002 Add optional `pipeline` parameter (`pipeline: "object | None" = None`) to `_check_copilot_review_done()` function signature in `solune/backend/src/services/copilot_polling/helpers.py`
+- [x] T003 Add pipeline-position guard at the top of `_check_copilot_review_done()` body in `solune/backend/src/services/copilot_polling/helpers.py` — if `pipeline` is provided and `pipeline.current_agent != "copilot-review"`, return `False` immediately with a warning log before any API calls
+- [x] T004 Pass `pipeline=pipeline` kwarg from `_check_agent_done_on_sub_or_parent()` to `_check_copilot_review_done()` at the copilot-review branch (~line 194) in `solune/backend/src/services/copilot_polling/helpers.py`
 
 **Checkpoint**: The innermost guard is in place. `_check_copilot_review_done()` now short-circuits when copilot-review is not the current agent. All callers that have pipeline context pass it through.
 
@@ -57,8 +57,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Add pipeline-position guard to `check_in_review_issues()` in `solune/backend/src/services/copilot_polling/pipeline.py` — after pipeline retrieval (~line 2328), if `pipeline.current_agent != "copilot-review"` and the pipeline status is earlier than "In Review", log a warning and let `_process_pipeline_completion()` handle advancing the current (non-copilot-review) agent only
-- [ ] T006 [US1] Add warning log message in `check_in_review_issues()` guard in `solune/backend/src/services/copilot_polling/pipeline.py` — include current agent name and issue number in the log for debugging
+- [x] T005 [US1] Add pipeline-position guard to `check_in_review_issues()` in `solune/backend/src/services/copilot_polling/pipeline.py` — after pipeline retrieval (~line 2328), if `pipeline.current_agent != "copilot-review"` and the pipeline status is earlier than "In Review", log a warning and let `_process_pipeline_completion()` handle advancing the current (non-copilot-review) agent only
+- [x] T006 [US1] Add warning log message in `check_in_review_issues()` guard in `solune/backend/src/services/copilot_polling/pipeline.py` — include current agent name and issue number in the log for debugging
 
 **Checkpoint**: User Story 1 is complete. The completion-detection function (`_check_copilot_review_done`) and the poller (`check_in_review_issues`) both guard against false copilot-review completion when it is not the current agent. Verify by confirming: (1) `_check_copilot_review_done(pipeline=pipeline_with_implement)` returns `False` without API calls, (2) `check_in_review_issues()` skips copilot-review processing when current agent is not copilot-review.
 
@@ -74,9 +74,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T007 [US2] Add pipeline-position guard to `update_issue_status_for_copilot_pr()` in `solune/backend/src/api/webhooks.py` — before the `update_item_status_by_name("In Review")` call (~line 557), retrieve the pipeline state for the issue number
-- [ ] T008 [US2] Implement guard logic in `update_issue_status_for_copilot_pr()` in `solune/backend/src/api/webhooks.py` — if pipeline exists AND `pipeline.current_agent != "copilot-review"`, skip the status move, log a warning with current agent name, and return a "skipped" result dict (with keys: `status`, `event`, `pr_number`, `issue_number`, `reason`, `current_agent`, `message`)
-- [ ] T009 [US2] Ensure backward compatibility in `update_issue_status_for_copilot_pr()` in `solune/backend/src/api/webhooks.py` — if no pipeline is cached for the issue, proceed with the status move as normal (non-pipeline issues continue to work)
+- [x] T007 [US2] Add pipeline-position guard to `update_issue_status_for_copilot_pr()` in `solune/backend/src/api/webhooks.py` — before the `update_item_status_by_name("In Review")` call (~line 557), retrieve the pipeline state for the issue number
+- [x] T008 [US2] Implement guard logic in `update_issue_status_for_copilot_pr()` in `solune/backend/src/api/webhooks.py` — if pipeline exists AND `pipeline.current_agent != "copilot-review"`, skip the status move, log a warning with current agent name, and return a "skipped" result dict (with keys: `status`, `event`, `pr_number`, `issue_number`, `reason`, `current_agent`, `message`)
+- [x] T009 [US2] Ensure backward compatibility in `update_issue_status_for_copilot_pr()` in `solune/backend/src/api/webhooks.py` — if no pipeline is cached for the issue, proceed with the status move as normal (non-pipeline issues continue to work)
 
 **Checkpoint**: User Story 2 is complete. Webhooks no longer prematurely move pipeline-tracked issues to "In Review". Verify: (1) webhook fires with current_agent="speckit.implement" → status NOT moved, (2) webhook fires with current_agent="copilot-review" → status moved normally, (3) webhook fires with no pipeline → status moved normally (backward compat).
 
@@ -92,11 +92,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T010 [US3] Add SQLite write to `_record_copilot_review_request_timestamp()` in `solune/backend/src/services/copilot_polling/helpers.py` — after storing in the in-memory `_copilot_review_requested_at` dict, INSERT OR REPLACE into `copilot_review_requests` table with `issue_number`, `requested_at` (ISO 8601), and `project_id`
-- [ ] T011 [US3] Add error handling around the SQLite write in `_record_copilot_review_request_timestamp()` in `solune/backend/src/services/copilot_polling/helpers.py` — wrap in try/except, log warning on failure, never crash the caller
-- [ ] T012 [US3] Add SQLite recovery to `_check_copilot_review_done()` in `solune/backend/src/services/copilot_polling/helpers.py` — when `_copilot_review_requested_at.get(parent_issue_number)` returns `None`, query `copilot_review_requests` table before falling back to HTML comment parsing
-- [ ] T013 [US3] Cache recovered timestamp in `_check_copilot_review_done()` in `solune/backend/src/services/copilot_polling/helpers.py` — when SQLite recovery succeeds, store the recovered timestamp back into `_copilot_review_requested_at` for subsequent fast access
-- [ ] T014 [US3] Add error handling around the SQLite read in `_check_copilot_review_done()` in `solune/backend/src/services/copilot_polling/helpers.py` — wrap in try/except, log warning on failure, fall through to existing HTML comment fallback
+- [x] T010 [US3] Add SQLite write to `_record_copilot_review_request_timestamp()` in `solune/backend/src/services/copilot_polling/helpers.py` — after storing in the in-memory `_copilot_review_requested_at` dict, INSERT OR REPLACE into `copilot_review_requests` table with `issue_number`, `requested_at` (ISO 8601), and `project_id`
+- [x] T011 [US3] Add error handling around the SQLite write in `_record_copilot_review_request_timestamp()` in `solune/backend/src/services/copilot_polling/helpers.py` — wrap in try/except, log warning on failure, never crash the caller
+- [x] T012 [US3] Add SQLite recovery to `_check_copilot_review_done()` in `solune/backend/src/services/copilot_polling/helpers.py` — when `_copilot_review_requested_at.get(parent_issue_number)` returns `None`, query `copilot_review_requests` table before falling back to HTML comment parsing
+- [x] T013 [US3] Cache recovered timestamp in `_check_copilot_review_done()` in `solune/backend/src/services/copilot_polling/helpers.py` — when SQLite recovery succeeds, store the recovered timestamp back into `_copilot_review_requested_at` for subsequent fast access
+- [x] T014 [US3] Add error handling around the SQLite read in `_check_copilot_review_done()` in `solune/backend/src/services/copilot_polling/helpers.py` — wrap in try/except, log warning on failure, fall through to existing HTML comment fallback
 
 **Checkpoint**: User Story 3 is complete. Timestamps survive server restarts via SQLite persistence. Verify: (1) record a timestamp → check SQLite table has the row, (2) clear in-memory dict → completion check recovers from SQLite, (3) SQLite unavailable → falls back to HTML comment parsing.
 
@@ -112,8 +112,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T015 [US4] Verify the existing tracking-table guard in `_get_or_reconstruct_pipeline()` (~lines 404–451) in `solune/backend/src/services/copilot_polling/pipeline.py` correctly handles the scenario where the board says "In Review" but tracking data shows agents still "In Progress" — confirm the `first_incomplete` check detects pending agents and reconstructs for the earlier status
-- [ ] T016 [US4] Add a clarifying code comment in `_get_or_reconstruct_pipeline()` in `solune/backend/src/services/copilot_polling/pipeline.py` at the tracking-table guard section documenting the specific scenario this guard protects against (board says "In Review" due to webhook bug, but speckit.implement is still pending)
+- [x] T015 [US4] Verify the existing tracking-table guard in `_get_or_reconstruct_pipeline()` (~lines 404–451) in `solune/backend/src/services/copilot_polling/pipeline.py` correctly handles the scenario where the board says "In Review" but tracking data shows agents still "In Progress" — confirm the `first_incomplete` check detects pending agents and reconstructs for the earlier status
+- [x] T016 [US4] Add a clarifying code comment in `_get_or_reconstruct_pipeline()` in `solune/backend/src/services/copilot_polling/pipeline.py` at the tracking-table guard section documenting the specific scenario this guard protects against (board says "In Review" due to webhook bug, but speckit.implement is still pending)
 
 **Checkpoint**: User Story 4 is complete. Pipeline reconstruction correctly handles status disagreements between the board and tracking data. Combined with the Phase 2 guards, even if reconstruction has a failure mode, false completion is prevented.
 
@@ -123,9 +123,9 @@
 
 **Purpose**: Final validation and cleanup across all guard layers
 
-- [ ] T017 Run backend linter (`ruff check src/`) from `solune/backend/` to validate all modified files pass linting
-- [ ] T018 Run quickstart.md validation steps (lint + type check) to confirm no regressions
-- [ ] T019 Review all warning log messages across guards (T003, T006, T008, T015) for consistency in format and detail level
+- [x] T017 Run backend linter (`ruff check src/`) from `solune/backend/` to validate all modified files pass linting
+- [x] T018 Run quickstart.md validation steps (lint + type check) to confirm no regressions
+- [x] T019 Review all warning log messages across guards (T003, T006, T008, T015) for consistency in format and detail level
 
 ---
 

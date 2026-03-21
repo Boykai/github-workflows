@@ -2,6 +2,7 @@
 
 import hashlib
 import hmac
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -449,8 +450,90 @@ class TestUpdateIssueStatusForCopilotPr:
         result = await update_issue_status_for_copilot_pr(pr_data, "o", "r", 1, "copilot")
         assert result["status"] == "success"
 
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.api.webhooks.github_projects_service")
+    @patch("src.api.webhooks.get_settings")
+    async def test_skips_status_move_when_pipeline_agent_not_copilot_review(
+        self, mock_settings, mock_gps, mock_get_pipeline
+    ):
+        """Pipeline exists with current_agent != 'copilot-review' → skip status move."""
+        mock_settings.return_value.github_webhook_token = "tok"
+        mock_resp = MagicMock(status_code=200, json=lambda: {"login": "user"})
+        mock_gps.rest_request = AsyncMock(return_value=mock_resp)
+        mock_project = MagicMock(project_id="proj-1")
+        mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
+        mock_item = MagicMock(
+            github_item_id="5", title="Issue #5", issue_number=5
+        )
+        mock_gps.get_project_items = AsyncMock(return_value=[mock_item])
+        # Pipeline says current agent is speckit.implement — NOT copilot-review
+        mock_get_pipeline.return_value = SimpleNamespace(
+            current_agent="speckit.implement"
+        )
 
-class TestGithubWebhookEndpoint:
+        pr_data = {"number": 1, "body": "Fixes #5", "head": {"ref": "b"}}
+        result = await update_issue_status_for_copilot_pr(pr_data, "o", "r", 1, "copilot")
+
+        assert result["status"] == "skipped"
+        assert result["reason"] == "pipeline_agent_not_copilot_review"
+        assert result["current_agent"] == "speckit.implement"
+        # update_item_status_by_name must NOT have been called
+        mock_gps.update_item_status_by_name.assert_not_called()
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.api.webhooks.github_projects_service")
+    @patch("src.api.webhooks.get_settings")
+    async def test_proceeds_when_pipeline_agent_is_copilot_review(
+        self, mock_settings, mock_gps, mock_get_pipeline
+    ):
+        """Pipeline exists with current_agent == 'copilot-review' → proceed normally."""
+        mock_settings.return_value.github_webhook_token = "tok"
+        mock_resp = MagicMock(status_code=200, json=lambda: {"login": "user"})
+        mock_gps.rest_request = AsyncMock(return_value=mock_resp)
+        mock_project = MagicMock(project_id="proj-1")
+        mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
+        mock_item = MagicMock(
+            github_item_id="5", title="Issue #5", issue_number=5
+        )
+        mock_gps.get_project_items = AsyncMock(return_value=[mock_item])
+        mock_gps.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_get_pipeline.return_value = SimpleNamespace(
+            current_agent="copilot-review"
+        )
+
+        pr_data = {"number": 1, "body": "Fixes #5", "head": {"ref": "b"}}
+        result = await update_issue_status_for_copilot_pr(pr_data, "o", "r", 1, "copilot")
+
+        assert result["status"] == "success"
+        assert result["new_status"] == "In Review"
+
+    @pytest.mark.asyncio
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.api.webhooks.github_projects_service")
+    @patch("src.api.webhooks.get_settings")
+    async def test_proceeds_when_no_pipeline_exists(
+        self, mock_settings, mock_gps, mock_get_pipeline
+    ):
+        """No pipeline for issue → proceed normally (backward compat)."""
+        mock_settings.return_value.github_webhook_token = "tok"
+        mock_resp = MagicMock(status_code=200, json=lambda: {"login": "user"})
+        mock_gps.rest_request = AsyncMock(return_value=mock_resp)
+        mock_project = MagicMock(project_id="proj-1")
+        mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
+        mock_item = MagicMock(
+            github_item_id="5", title="Issue #5", issue_number=5
+        )
+        mock_gps.get_project_items = AsyncMock(return_value=[mock_item])
+        mock_gps.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_get_pipeline.return_value = None
+
+        pr_data = {"number": 1, "body": "Fixes #5", "head": {"ref": "b"}}
+        result = await update_issue_status_for_copilot_pr(pr_data, "o", "r", 1, "copilot")
+
+        assert result["status"] == "success"
+        assert result["new_status"] == "In Review"
     """Integration tests for the webhook endpoint via client."""
 
     @pytest.fixture
