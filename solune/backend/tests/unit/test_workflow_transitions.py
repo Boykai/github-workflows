@@ -29,22 +29,11 @@ from src.services.workflow_orchestrator.transitions import (
 @pytest.fixture(autouse=True)
 def _clean_transition_state():
     """Ensure clean state for each test."""
-    from src.services.pipeline_state_store import (
-        _agent_trigger_inflight,
-        _issue_main_branches,
-        _issue_sub_issue_map,
-        _pipeline_states,
-    )
+    from src.services.pipeline_state_store import clear_all_caches
 
-    _pipeline_states.clear()
-    _issue_main_branches.clear()
-    _issue_sub_issue_map.clear()
-    _agent_trigger_inflight.clear()
+    clear_all_caches()
     yield
-    _pipeline_states.clear()
-    _issue_main_branches.clear()
-    _issue_sub_issue_map.clear()
-    _agent_trigger_inflight.clear()
+    clear_all_caches()
 
 
 # ── Agent Trigger Key ──

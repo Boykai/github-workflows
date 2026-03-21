@@ -24,14 +24,11 @@ from src.models.project import GitHubProject, ProjectType, StatusColumn
 from src.models.user import UserSession
 from src.services.websocket import ConnectionManager
 from src.services.workflow_orchestrator import (
-    _issue_main_branches,
-    _issue_sub_issue_map,
-    _pipeline_states,
     _transitions,
     _workflow_configs,
 )
 from src.services.workflow_orchestrator.orchestrator import WorkflowOrchestrator
-from src.services.workflow_orchestrator.transitions import _agent_trigger_inflight
+from src.services.pipeline_state_store import clear_all_caches as _clear_all_caches
 
 
 def _build_project(project_id: str) -> GitHubProject:
@@ -128,12 +125,9 @@ def _reset_integration_state() -> Iterator[None]:
     _proposals.clear()
     _recommendations.clear()
     _locks.clear()
-    _pipeline_states.clear()
-    _issue_main_branches.clear()
-    _issue_sub_issue_map.clear()
+    _clear_all_caches()
     _workflow_configs.clear()
     _transitions.clear()
-    _agent_trigger_inflight.clear()
     import src.services.workflow_orchestrator.orchestrator as orch_mod
 
     orch_mod._orchestrator_instance = None
@@ -147,12 +141,9 @@ def _reset_integration_state() -> Iterator[None]:
     _proposals.clear()
     _recommendations.clear()
     _locks.clear()
-    _pipeline_states.clear()
-    _issue_main_branches.clear()
-    _issue_sub_issue_map.clear()
+    _clear_all_caches()
     _workflow_configs.clear()
     _transitions.clear()
-    _agent_trigger_inflight.clear()
     import src.services.workflow_orchestrator.orchestrator as orch_mod
 
     orch_mod._orchestrator_instance = None

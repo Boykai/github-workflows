@@ -588,3 +588,94 @@ async def clear_all_trigger_inflights() -> None:
                 await _db.commit()
             except aiosqlite.Error:
                 logger.error("Failed to clear trigger inflights", exc_info=True)
+
+
+# ── Sync L1 cache helpers (used by transitions facade) ──────────
+#
+# These functions encapsulate direct dict operations on the L1 caches
+# so that no external module needs to import the private dicts.
+# Persistence to SQLite is handled separately by the caller via
+# ``_schedule_persist`` + the async store functions above.
+
+
+def set_pipeline_state_l1(issue_number: int, state: Any) -> None:
+    """Write pipeline state to L1 cache only (no SQLite)."""
+    _pipeline_states[issue_number] = state
+
+
+def remove_pipeline_state_l1(issue_number: int) -> None:
+    """Remove pipeline state from L1 cache only (no SQLite)."""
+    _pipeline_states.pop(issue_number, None)
+
+
+def has_main_branch(issue_number: int) -> bool:
+    """Check whether L1 cache contains a main branch for *issue_number*."""
+    return issue_number in _issue_main_branches
+
+
+def set_main_branch_l1(issue_number: int, info: dict) -> None:
+    """Write main branch info to L1 cache only (no SQLite)."""
+    _issue_main_branches[issue_number] = info
+
+
+def get_main_branch_field(issue_number: int, field: str, default: Any = None) -> Any:
+    """Read a single field from a cached main branch entry."""
+    entry = _issue_main_branches.get(issue_number)
+    if entry is None:
+        return default
+    return entry.get(field, default)
+
+
+def update_main_branch_sha_l1(issue_number: int, head_sha: str) -> str:
+    """Update head_sha in L1 cache and return the previous value.
+
+    Raises ``KeyError`` if no main branch entry exists.
+    """
+    old = _issue_main_branches[issue_number].get("head_sha", "")
+    _issue_main_branches[issue_number]["head_sha"] = head_sha
+    return old
+
+
+def remove_main_branch_l1(issue_number: int) -> None:
+    """Remove main branch info from L1 cache only (no SQLite)."""
+    _issue_main_branches.pop(issue_number, None)
+
+
+def merge_sub_issue_map_l1(issue_number: int, mappings: dict[str, dict]) -> None:
+    """Merge *mappings* into the L1 sub-issue cache entry for *issue_number*."""
+    existing = _issue_sub_issue_map.get(issue_number, {})
+    existing.update(mappings)
+    _issue_sub_issue_map[issue_number] = existing
+
+
+def remove_sub_issue_map_l1(issue_number: int) -> None:
+    """Remove sub-issue map from L1 cache only (no SQLite)."""
+    _issue_sub_issue_map.pop(issue_number, None)
+
+
+def set_trigger_inflight_l1(key: str, timestamp: datetime) -> None:
+    """Write trigger inflight marker to L1 cache only (no SQLite)."""
+    _agent_trigger_inflight[key] = timestamp
+
+
+def get_trigger_inflight_l1(key: str) -> datetime | None:
+    """Read trigger inflight marker from L1 cache."""
+    return _agent_trigger_inflight.get(key)
+
+
+def remove_trigger_inflight_l1(key: str) -> None:
+    """Remove trigger inflight marker from L1 cache only (no SQLite)."""
+    _agent_trigger_inflight.pop(key, None)
+
+
+def clear_trigger_inflight_l1() -> None:
+    """Clear all trigger inflight markers from L1 cache only (no SQLite)."""
+    _agent_trigger_inflight.clear()
+
+
+def clear_all_caches() -> None:
+    """Clear all L1 caches.  Intended for test cleanup only."""
+    _pipeline_states.clear()
+    _issue_main_branches.clear()
+    _issue_sub_issue_map.clear()
+    _agent_trigger_inflight.clear()

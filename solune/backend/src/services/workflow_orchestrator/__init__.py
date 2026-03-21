@@ -39,9 +39,6 @@ from .orchestrator import (
     get_workflow_orchestrator,
 )
 from .transitions import (
-    _issue_main_branches,
-    _issue_sub_issue_map,
-    _pipeline_states,
     clear_agent_trigger_buffer,
     clear_all_agent_trigger_buffers,
     clear_issue_main_branch,
@@ -70,11 +67,8 @@ __all__ = [
     # models
     "WorkflowState",
     "_ci_get",
-    "_issue_main_branches",
-    "_issue_sub_issue_map",
     "_load_workflow_config_from_db",
     "_persist_workflow_config_to_db",
-    "_pipeline_states",
     "_transitions",
     "_workflow_configs",
     "clear_agent_trigger_buffer",

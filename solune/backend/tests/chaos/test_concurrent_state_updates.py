@@ -21,11 +21,11 @@ from src.services.workflow_orchestrator.transitions import (
 @pytest.fixture(autouse=True)
 def _clean_state():
     """Reset pipeline state for each test."""
-    from src.services.pipeline_state_store import _pipeline_states
+    from src.services.pipeline_state_store import clear_all_caches
 
-    _pipeline_states.clear()
+    clear_all_caches()
     yield
-    _pipeline_states.clear()
+    clear_all_caches()
 
 
 class TestConcurrentStateUpdates:

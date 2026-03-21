@@ -12,10 +12,7 @@ import aiosqlite
 import pytest
 
 from src.services.pipeline_state_store import (
-    _agent_trigger_inflight,
-    _issue_main_branches,
-    _issue_sub_issue_map,
-    _pipeline_states,
+    clear_all_caches,
     delete_pipeline_state,
     get_all_pipeline_states,
     get_main_branch,
@@ -24,6 +21,7 @@ from src.services.pipeline_state_store import (
     get_sub_issue_map,
     get_trigger_inflight,
     init_pipeline_state_store,
+    remove_pipeline_state_l1,
     set_main_branch,
     set_pipeline_state,
     set_sub_issue_map,
@@ -84,15 +82,9 @@ async def db():
 @pytest.fixture(autouse=True)
 def _clear_caches():
     """Clear L1 caches between tests."""
-    _pipeline_states.clear()
-    _issue_main_branches.clear()
-    _issue_sub_issue_map.clear()
-    _agent_trigger_inflight.clear()
+    clear_all_caches()
     yield
-    _pipeline_states.clear()
-    _issue_main_branches.clear()
-    _issue_sub_issue_map.clear()
-    _agent_trigger_inflight.clear()
+    clear_all_caches()
 
 
 class TestPipelineStateLifecycle:
@@ -113,7 +105,7 @@ class TestPipelineStateLifecycle:
         await set_pipeline_state(42, state)
 
         # Simulate restart: clear L1 caches
-        _pipeline_states.clear()
+        clear_all_caches()
         assert get_pipeline_state(42) is None
 
         # Re-init from SQLite
@@ -142,7 +134,7 @@ class TestPipelineStateLifecycle:
         await delete_pipeline_state(99)
 
         # Simulate restart
-        _pipeline_states.clear()
+        clear_all_caches()
         await init_pipeline_state_store(db)
 
         assert get_pipeline_state(99) is None
@@ -178,7 +170,7 @@ class TestPipelineStateLifecycle:
         await set_pipeline_state(1, state)
 
         # Manually evict from L1 to simulate BoundedDict eviction
-        _pipeline_states.pop(1, None)
+        remove_pipeline_state_l1(1)
         assert get_pipeline_state(1) is None  # L1 miss
 
         # Async fallback should recover from SQLite
@@ -203,7 +195,7 @@ class TestMainBranchLifecycle:
         await set_main_branch(42, info)
 
         # Simulate restart
-        _issue_main_branches.clear()
+        clear_all_caches()
         await init_pipeline_state_store(db)
 
         recovered = get_main_branch(42)
@@ -230,7 +222,7 @@ class TestSubIssueMapLifecycle:
         await set_sub_issue_map(42, mappings)
 
         # Simulate restart
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
         await init_pipeline_state_store(db)
 
         recovered = get_sub_issue_map(42)
@@ -250,7 +242,7 @@ class TestTriggerInflightLifecycle:
         await set_trigger_inflight("42:in progress:agent", now)
 
         # Simulate restart
-        _agent_trigger_inflight.clear()
+        clear_all_caches()
         await init_pipeline_state_store(db)
 
         recovered = get_trigger_inflight("42:in progress:agent")

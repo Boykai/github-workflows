@@ -124,17 +124,11 @@ async def _create_tables(db: aiosqlite.Connection) -> None:
 @pytest.fixture(autouse=True)
 def _clear_caches():
     """Reset module-level L1 caches between tests."""
-    store._pipeline_states.clear()
-    store._issue_main_branches.clear()
-    store._issue_sub_issue_map.clear()
-    store._agent_trigger_inflight.clear()
+    store.clear_all_caches()
     old_db = store._db
     store._db = None
     yield
-    store._pipeline_states.clear()
-    store._issue_main_branches.clear()
-    store._issue_sub_issue_map.clear()
-    store._agent_trigger_inflight.clear()
+    store.clear_all_caches()
     store._db = old_db
 
 
