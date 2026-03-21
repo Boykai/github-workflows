@@ -126,7 +126,6 @@ export function useCreateProject() {
       return { snapshot, queryKey };
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Project created');
     },
     onError: (error, _variables, context) => {

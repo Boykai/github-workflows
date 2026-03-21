@@ -4,15 +4,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useProjects } from './useProjects';
+import { useProjects, useCreateProject } from './useProjects';
 import * as api from '@/services/api';
 import type { ReactNode } from 'react';
+
+vi.mock('sonner', () => ({
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+}));
 
 // Mock the API module
 vi.mock('@/services/api', () => ({
   projectsApi: {
     list: vi.fn(),
     select: vi.fn(),
+    create: vi.fn(),
   },
   tasksApi: {
     listByProject: vi.fn(),
@@ -22,6 +31,7 @@ vi.mock('@/services/api', () => ({
 const mockProjectsApi = api.projectsApi as unknown as {
   list: ReturnType<typeof vi.fn>;
   select: ReturnType<typeof vi.fn>;
+  create: ReturnType<typeof vi.fn>;
 };
 
 const mockTasksApi = api.tasksApi as unknown as {
@@ -219,5 +229,64 @@ describe('useProjects', () => {
 
     expect(result.current.selectedProject?.project_id).toBe('PVT_456');
     expect(result.current.selectedProject?.name).toBe('Project 2');
+  });
+});
+
+describe('useCreateProject', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('optimistically prepends to the projects cache', async () => {
+    mockProjectsApi.create.mockImplementation(() => new Promise(() => {}));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const snapshot = {
+      projects: [{ project_id: 'PVT_1', name: 'Existing', owner_login: 'org' }],
+    };
+    queryClient.setQueryData(['projects'], snapshot);
+
+    const { result } = renderHook(() => useCreateProject(), { wrapper });
+
+    act(() => {
+      result.current.mutate({ title: 'New Project', owner: 'org' } as never);
+    });
+
+    await waitFor(() => {
+      const cache = queryClient.getQueryData<{ projects: unknown[] }>(['projects']);
+      expect(cache!.projects).toHaveLength(2);
+      expect((cache!.projects[0] as Record<string, unknown>).name).toBe('New Project');
+      expect((cache!.projects[0] as Record<string, unknown>)._optimistic).toBe(true);
+    });
+  });
+
+  it('restores projects cache on error', async () => {
+    mockProjectsApi.create.mockRejectedValue(new Error('Failed'));
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+    const wrapper = ({ children }: { children: ReactNode }) => (
+      <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    );
+
+    const snapshot = {
+      projects: [{ project_id: 'PVT_1', name: 'Existing', owner_login: 'org' }],
+    };
+    queryClient.setQueryData(['projects'], snapshot);
+
+    const { result } = renderHook(() => useCreateProject(), { wrapper });
+
+    await act(async () => {
+      try {
+        await result.current.mutateAsync({ title: 'Fail', owner: 'org' } as never);
+      } catch {
+        // expected
+      }
+    });
+
+    expect(queryClient.getQueryData(['projects'])).toEqual(snapshot);
   });
 });

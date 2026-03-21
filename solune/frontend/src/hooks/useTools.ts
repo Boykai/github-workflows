@@ -86,6 +86,7 @@ export function useToolsList(projectId: string | null | undefined) {
         queryClient.setQueryData<McpToolConfigListResponse>(queryKey, {
           ...snapshot,
           tools: [placeholder, ...snapshot.tools],
+          count: (snapshot.count ?? snapshot.tools.length) + 1,
         });
       }
 
@@ -104,7 +105,6 @@ export function useToolsList(projectId: string | null | undefined) {
     },
     onSuccess: () => {
       if (projectId) {
-        queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
         queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
       }
       toast.success('Tool uploaded');
@@ -172,9 +172,11 @@ export function useToolsList(projectId: string | null | undefined) {
       if (snapshot) {
         queryClient.setQueryData<McpToolConfigListResponse>(queryKey, (old) => {
           if (!old) return old;
+          const filteredTools = old.tools.filter((tool) => tool.id !== toolId);
           return {
             ...old,
-            tools: old.tools.filter((tool) => tool.id !== toolId),
+            tools: filteredTools,
+            count: filteredTools.length,
           };
         });
       }
