@@ -27,6 +27,7 @@ import { Toaster } from 'sonner';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { KeyboardShortcutModal } from '@/components/ui/keyboard-shortcut-modal';
 import { CommandPalette } from '@/components/command-palette/CommandPalette';
+import { BreadcrumbProvider } from '@/hooks/useBreadcrumb';
 
 /** Dismissible Signal conflict banner bar. */
 function SignalBannerBar() {
@@ -150,20 +151,22 @@ export function AppLayout() {
           onSelectProject={selectProject}
         />
         <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
-          <TopBar
-            isDarkMode={isDarkMode}
-            onToggleTheme={toggleTheme}
-            user={
-              user ? { login: user.github_username, avatar_url: user.github_avatar_url } : undefined
-            }
-            notifications={notifications}
-            unreadCount={unreadCount}
-            onMarkAllRead={markAllRead}
-          />
-          <SignalBannerBar />
-          <main className="relative flex-1 overflow-auto overscroll-y-contain px-2 pb-2">
-            <Outlet />
-          </main>
+          <BreadcrumbProvider>
+            <TopBar
+              isDarkMode={isDarkMode}
+              onToggleTheme={toggleTheme}
+              user={
+                user ? { login: user.github_username, avatar_url: user.github_avatar_url } : undefined
+              }
+              notifications={notifications}
+              unreadCount={unreadCount}
+              onMarkAllRead={markAllRead}
+            />
+            <SignalBannerBar />
+            <main className="relative flex-1 overflow-auto overscroll-y-contain px-2 pb-2">
+              <Outlet />
+            </main>
+          </BreadcrumbProvider>
         </div>
 
         {/* Global ChatPopup */}

@@ -21,8 +21,8 @@
 
 **Purpose**: Create new files and foundational types required by all subsequent phases
 
-- [ ] T001 Create `solune/frontend/src/lib/breadcrumb-utils.ts` with `BreadcrumbSegment` interface (`label: string`, `path: string`) and `toTitleCase(slug: string): string` utility that splits on hyphens/underscores, capitalizes each word, and joins with spaces
-- [ ] T002 [P] Create `solune/frontend/src/hooks/useBreadcrumb.ts` with `BreadcrumbContext` (React Context holding `Map<string, string>`), `BreadcrumbProvider` component (manages labels state via `useState`), `useBreadcrumb()` hook (returns `{ setLabel, removeLabel }` with stable `useCallback` references), and `useBreadcrumbLabels()` hook (returns the labels `Map` for read-only consumption)
+- [x] T001 Create `solune/frontend/src/lib/breadcrumb-utils.ts` with `BreadcrumbSegment` interface (`label: string`, `path: string`) and `toTitleCase(slug: string): string` utility that splits on hyphens/underscores, capitalizes each word, and joins with spaces
+- [x] T002 [P] Create `solune/frontend/src/hooks/useBreadcrumb.ts` with `BreadcrumbContext` (React Context holding `Map<string, string>`), `BreadcrumbProvider` component (manages labels state via `useState`), `useBreadcrumb()` hook (returns `{ setLabel, removeLabel }` with stable `useCallback` references), and `useBreadcrumbLabels()` hook (returns the labels `Map` for read-only consumption)
 
 ---
 
@@ -32,7 +32,7 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Wrap `<TopBar />` and `<Outlet />` (main content area) with `<BreadcrumbProvider>` in `solune/frontend/src/layout/AppLayout.tsx` — import `BreadcrumbProvider` from `@/hooks/useBreadcrumb` and ensure both the Breadcrumb consumer (inside TopBar) and page producers (inside Outlet) share the same context instance
+- [x] T003 Wrap `<TopBar />` and `<Outlet />` (main content area) with `<BreadcrumbProvider>` in `solune/frontend/src/layout/AppLayout.tsx` — import `BreadcrumbProvider` from `@/hooks/useBreadcrumb` and ensure both the Breadcrumb consumer (inside TopBar) and page producers (inside Outlet) share the same context instance
 
 **Checkpoint**: Foundation ready — BreadcrumbProvider is in the component tree; user story implementation can now begin
 
@@ -46,8 +46,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T004 [US1] Implement `buildBreadcrumbSegments(pathname, navRoutes, labelOverrides)` in `solune/frontend/src/lib/breadcrumb-utils.ts` — always starts with `{ label: 'Home', path: '/' }`, strips trailing slashes, splits pathname on `/`, filters empty segments, builds cumulative paths, resolves labels via three-tier resolution (context overrides → NAV_ROUTES match → toTitleCase fallback), returns `BreadcrumbSegment[]`
-- [ ] T005 [US1] Rewrite `solune/frontend/src/layout/Breadcrumb.tsx` to use `buildBreadcrumbSegments()` and `useBreadcrumbLabels()` — import `buildBreadcrumbSegments` from `@/lib/breadcrumb-utils`, import `useBreadcrumbLabels` from `@/hooks/useBreadcrumb`, call `buildBreadcrumbSegments(pathname, NAV_ROUTES, labelOverrides)`, render all segments with `ChevronRight` separators, non-final segments as `<Link>` components, final segment as plain `<span>` with `font-medium` styling
+- [x] T004 [US1] Implement `buildBreadcrumbSegments(pathname, navRoutes, labelOverrides)` in `solune/frontend/src/lib/breadcrumb-utils.ts` — always starts with `{ label: 'Home', path: '/' }`, strips trailing slashes, splits pathname on `/`, filters empty segments, builds cumulative paths, resolves labels via three-tier resolution (context overrides → NAV_ROUTES match → toTitleCase fallback), returns `BreadcrumbSegment[]`
+- [x] T005 [US1] Rewrite `solune/frontend/src/layout/Breadcrumb.tsx` to use `buildBreadcrumbSegments()` and `useBreadcrumbLabels()` — import `buildBreadcrumbSegments` from `@/lib/breadcrumb-utils`, import `useBreadcrumbLabels` from `@/hooks/useBreadcrumb`, call `buildBreadcrumbSegments(pathname, NAV_ROUTES, labelOverrides)`, render all segments with `ChevronRight` separators, non-final segments as `<Link>` components, final segment as plain `<span>` with `font-medium` styling
 
 **Checkpoint**: At this point, navigating to `/apps` shows "Home > Apps" (preserved behavior), and navigating to `/apps/my-cool-app` shows "Home > Apps > My Cool App" (title-case fallback). User Story 1 is fully functional and independently testable.
 
@@ -61,7 +61,7 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [US2] Add dynamic breadcrumb label registration in `solune/frontend/src/pages/AppsPage.tsx` — import `useBreadcrumb` from `@/hooks/useBreadcrumb`, call `setLabel('/apps/<appName>', displayName)` inside a `useEffect` when the app detail view renders, use `app?.display_name ?? toTitleCase(appName)` as the label, return `() => removeLabel(path)` from the useEffect cleanup to prevent label leakage across routes
+- [x] T006 [US2] Add dynamic breadcrumb label registration in `solune/frontend/src/pages/AppsPage.tsx` — import `useBreadcrumb` from `@/hooks/useBreadcrumb`, call `setLabel('/apps/<appName>', displayName)` inside a `useEffect` when the app detail view renders, use `app?.display_name ?? toTitleCase(appName)` as the label, return `() => removeLabel(path)` from the useEffect cleanup to prevent label leakage across routes
 
 **Checkpoint**: At this point, navigating to `/apps/my-cool-app` shows "Home > Apps > My Cool App" using the app's actual display name from the API response. Navigating away cleans up the label. User Story 2 is fully functional and independently testable.
 
@@ -77,7 +77,7 @@
 
 ### Implementation for User Story 3
 
-- [ ] T007 [US3] Verify that `buildBreadcrumbSegments` in `solune/frontend/src/lib/breadcrumb-utils.ts` correctly handles paths with 3, 4, and 5 segments — confirm the `for` loop iterates over `parts.length` without a hard-coded limit, cumulative paths build correctly at each depth level, and label resolution applies at every segment
+- [x] T007 [US3] Verify that `buildBreadcrumbSegments` in `solune/frontend/src/lib/breadcrumb-utils.ts` correctly handles paths with 3, 4, and 5 segments — confirm the `for` loop iterates over `parts.length` without a hard-coded limit, cumulative paths build correctly at each depth level, and label resolution applies at every segment
 
 **Checkpoint**: Breadcrumb renders correctly for arbitrary-depth routes. All segments except the last are clickable. User Story 3 is satisfied by the Phase 3 implementation.
 
@@ -93,7 +93,7 @@
 
 ### Implementation for User Story 4
 
-- [ ] T008 [US4] Verify that `buildBreadcrumbSegments` in `solune/frontend/src/lib/breadcrumb-utils.ts` resolves all 9 NAV_ROUTES entries (`/`, `/projects`, `/pipeline`, `/agents`, `/tools`, `/chores`, `/apps`, `/activity`, `/settings`) using exact path matching (`r.path === cumulativePath`) and confirm labels match sidebar navigation labels
+- [x] T008 [US4] Verify that `buildBreadcrumbSegments` in `solune/frontend/src/lib/breadcrumb-utils.ts` resolves all 9 NAV_ROUTES entries (`/`, `/projects`, `/pipeline`, `/agents`, `/tools`, `/chores`, `/apps`, `/activity`, `/settings`) using exact path matching (`r.path === cumulativePath`) and confirm labels match sidebar navigation labels
 
 **Checkpoint**: All known static routes display breadcrumb labels consistent with the sidebar navigation. Unknown segments fall back to title-casing. User Story 4 is satisfied by the Phase 3 implementation.
 
@@ -103,10 +103,10 @@
 
 **Purpose**: Edge case handling and validation across all user stories
 
-- [ ] T009 [P] Ensure trailing slash normalization in `buildBreadcrumbSegments` in `solune/frontend/src/lib/breadcrumb-utils.ts` — `/apps/` and `/apps` must produce identical output per FR-011; multiple trailing slashes must also be normalized
-- [ ] T010 [P] Verify query parameter and hash fragment handling — `useLocation().pathname` in `solune/frontend/src/layout/Breadcrumb.tsx` excludes query strings and hash fragments by default per FR-010; confirm no additional stripping is needed
-- [ ] T011 [P] Validate label cleanup lifecycle in `solune/frontend/src/hooks/useBreadcrumb.ts` — ensure `removeLabel` deletes the Map entry, `useEffect` cleanup fires on unmount, and no stale labels leak across route navigations per FR-008
-- [ ] T012 Run quickstart.md validation: `cd solune/frontend && npm run lint && npm run type-check && npx vitest run`
+- [x] T009 [P] Ensure trailing slash normalization in `buildBreadcrumbSegments` in `solune/frontend/src/lib/breadcrumb-utils.ts` — `/apps/` and `/apps` must produce identical output per FR-011; multiple trailing slashes must also be normalized
+- [x] T010 [P] Verify query parameter and hash fragment handling — `useLocation().pathname` in `solune/frontend/src/layout/Breadcrumb.tsx` excludes query strings and hash fragments by default per FR-010; confirm no additional stripping is needed
+- [x] T011 [P] Validate label cleanup lifecycle in `solune/frontend/src/hooks/useBreadcrumb.ts` — ensure `removeLabel` deletes the Map entry, `useEffect` cleanup fires on unmount, and no stale labels leak across route navigations per FR-008
+- [x] T012 Run quickstart.md validation: `cd solune/frontend && npm run lint && npm run type-check && npx vitest run`
 
 ---
 

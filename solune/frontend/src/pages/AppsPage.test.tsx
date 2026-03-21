@@ -28,6 +28,11 @@ vi.mock('@/hooks/useApps', () => ({
     error: null,
     refetch: vi.fn(),
   }),
+  useApp: () => ({
+    data: undefined,
+    isLoading: false,
+    error: null,
+  }),
   useAppsPaginated: () => ({
     allItems: [],
     hasNextPage: false,
@@ -99,6 +104,14 @@ vi.mock('@tanstack/react-query', async () => {
 
 vi.mock('@/utils/rateLimit', () => ({
   isRateLimitApiError: () => false,
+}));
+
+vi.mock('@/hooks/useBreadcrumb', () => ({
+  useBreadcrumb: () => ({ setLabel: vi.fn(), removeLabel: vi.fn() }),
+}));
+
+vi.mock('@/lib/breadcrumb-utils', () => ({
+  toTitleCase: (slug: string) => slug,
 }));
 
 describe('AppsPage', () => {
