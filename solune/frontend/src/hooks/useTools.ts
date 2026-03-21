@@ -65,24 +65,24 @@ export function useToolsList(projectId: string | null | undefined) {
       const snapshot = queryClient.getQueryData<McpToolConfigListResponse>(queryKey);
       const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<McpToolConfig>>>(paginatedQueryKey);
 
-      if (snapshot) {
-        const now = new Date().toISOString();
-        const placeholder = {
-          id: `temp-${Date.now()}`,
-          name: data.name,
-          description: data.description ?? '',
-          endpoint_url: '',
-          config_content: data.config_content ?? '',
-          sync_status: 'pending' as McpToolConfig['sync_status'],
-          sync_error: '',
-          synced_at: null,
-          github_repo_target: data.github_repo_target ?? '',
-          is_active: true,
-          created_at: now,
-          updated_at: now,
-          _optimistic: true,
-        } satisfies McpToolConfig & { _optimistic: boolean };
+      const now = new Date().toISOString();
+      const placeholder = {
+        id: `temp-${Date.now()}`,
+        name: data.name,
+        description: data.description ?? '',
+        endpoint_url: '',
+        config_content: data.config_content ?? '',
+        sync_status: 'pending' as McpToolConfig['sync_status'],
+        sync_error: '',
+        synced_at: null,
+        github_repo_target: data.github_repo_target ?? '',
+        is_active: true,
+        created_at: now,
+        updated_at: now,
+        _optimistic: true,
+      } satisfies McpToolConfig & { _optimistic: boolean };
 
+      if (snapshot) {
         queryClient.setQueryData<McpToolConfigListResponse>(queryKey, {
           ...snapshot,
           tools: [placeholder, ...snapshot.tools],
@@ -90,23 +90,6 @@ export function useToolsList(projectId: string | null | undefined) {
       }
 
       if (paginatedSnapshot?.pages?.length) {
-        const now = new Date().toISOString();
-        const placeholder = {
-          id: `temp-${Date.now()}`,
-          name: data.name,
-          description: data.description ?? '',
-          endpoint_url: '',
-          config_content: data.config_content ?? '',
-          sync_status: 'pending' as McpToolConfig['sync_status'],
-          sync_error: '',
-          synced_at: null,
-          github_repo_target: data.github_repo_target ?? '',
-          is_active: true,
-          created_at: now,
-          updated_at: now,
-          _optimistic: true,
-        } satisfies McpToolConfig & { _optimistic: boolean };
-
         queryClient.setQueryData<InfiniteData<PaginatedResponse<McpToolConfig>>>(paginatedQueryKey, {
           ...paginatedSnapshot,
           pages: paginatedSnapshot.pages.map((page, index) =>

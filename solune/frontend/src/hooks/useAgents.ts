@@ -80,53 +80,32 @@ export function useCreateAgent(projectId: string | null | undefined) {
       const snapshot = queryClient.getQueryData<AgentConfig[]>(queryKey);
       const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<AgentConfig>>>(paginatedQueryKey);
 
-      if (snapshot) {
-        const now = new Date().toISOString();
-        const placeholder = {
-          id: `temp-${Date.now()}`,
-          name: data.name,
-          slug: '',
-          description: data.description ?? '',
-          icon_name: data.icon_name ?? null,
-          system_prompt: data.system_prompt,
-          default_model_id: data.default_model_id ?? '',
-          default_model_name: data.default_model_name ?? '',
-          status: 'pending_pr' as const,
-          tools: data.tools ?? [],
-          status_column: data.status_column ?? null,
-          github_issue_number: null,
-          github_pr_number: null,
-          branch_name: null,
-          source: 'local' as const,
-          created_at: now,
-          _optimistic: true,
-        } satisfies AgentConfig & { _optimistic: boolean };
+      const now = new Date().toISOString();
+      const placeholder = {
+        id: `temp-${Date.now()}`,
+        name: data.name,
+        slug: '',
+        description: data.description ?? '',
+        icon_name: data.icon_name ?? null,
+        system_prompt: data.system_prompt,
+        default_model_id: data.default_model_id ?? '',
+        default_model_name: data.default_model_name ?? '',
+        status: 'pending_pr' as const,
+        tools: data.tools ?? [],
+        status_column: data.status_column ?? null,
+        github_issue_number: null,
+        github_pr_number: null,
+        branch_name: null,
+        source: 'local' as const,
+        created_at: now,
+        _optimistic: true,
+      } satisfies AgentConfig & { _optimistic: boolean };
 
+      if (snapshot) {
         queryClient.setQueryData<AgentConfig[]>(queryKey, [placeholder, ...snapshot]);
       }
 
       if (paginatedSnapshot?.pages?.length) {
-        const now = new Date().toISOString();
-        const placeholder = {
-          id: `temp-${Date.now()}`,
-          name: data.name,
-          slug: '',
-          description: data.description ?? '',
-          icon_name: data.icon_name ?? null,
-          system_prompt: data.system_prompt,
-          default_model_id: data.default_model_id ?? '',
-          default_model_name: data.default_model_name ?? '',
-          status: 'pending_pr' as const,
-          tools: data.tools ?? [],
-          status_column: data.status_column ?? null,
-          github_issue_number: null,
-          github_pr_number: null,
-          branch_name: null,
-          source: 'local' as const,
-          created_at: now,
-          _optimistic: true,
-        } satisfies AgentConfig & { _optimistic: boolean };
-
         queryClient.setQueryData<InfiniteData<PaginatedResponse<AgentConfig>>>(paginatedQueryKey, {
           ...paginatedSnapshot,
           pages: paginatedSnapshot.pages.map((page, index) =>
