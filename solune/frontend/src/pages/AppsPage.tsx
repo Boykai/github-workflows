@@ -48,15 +48,15 @@ export function AppsPage() {
   } = useAppsPaginated();
 
   // Dynamic breadcrumb label for app detail view
-  const { data: appDetail } = useApp(appName);
+  const { data: appData } = useApp(appName);
   const { setLabel, removeLabel } = useBreadcrumb();
   useEffect(() => {
     if (!appName) return;
     const path = `/apps/${appName}`;
-    const label = appDetail?.display_name ?? toTitleCase(appName);
-    setLabel(path, label);
+    const breadcrumbLabel = appData?.display_name ?? toTitleCase(appName);
+    setLabel(path, breadcrumbLabel);
     return () => removeLabel(path);
-  }, [appName, appDetail?.display_name, setLabel, removeLabel]);
+  }, [appName, appData?.display_name, setLabel, removeLabel]);
 
   // Use paginated items when available; fall back to non-paginated for initial load
   const displayApps = paginatedApps.length > 0 ? paginatedApps : (apps ?? []);
