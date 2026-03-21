@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # pyright: reportAttributeAccessIssue=false  # GitHub API responses use dynamic attribute access; typing all response shapes is out of scope
 from datetime import datetime
+from typing import cast
 
 from src.logging_utils import get_logger
 from src.services.github_projects.graphql import (
@@ -230,7 +231,7 @@ class CopilotMixin:
         cached = self._cycle_cache.get(cache_key)
         if cached is not None:
             self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
+            return cast(bool, cached)
 
         try:
             issue_data = await self._rest(
@@ -813,7 +814,7 @@ class CopilotMixin:
         cached = self._cycle_cache.get(cache_key)
         if cached is not None:
             self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
+            return cast(bool, cached)
 
         try:
             requested = await self._rest(

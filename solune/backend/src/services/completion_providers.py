@@ -257,13 +257,16 @@ class AzureOpenAICompletionProvider(CompletionProvider):
                 "Set AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_KEY in .env"
             )
 
+        endpoint: str = settings.azure_openai_endpoint
+        api_key: str = settings.azure_openai_key
+
         # Try Azure OpenAI SDK first (openai package)
         try:
             from openai import AzureOpenAI  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
 
             self._client = AzureOpenAI(
-                azure_endpoint=settings.azure_openai_endpoint,
-                api_key=settings.azure_openai_key,
+                azure_endpoint=endpoint,
+                api_key=api_key,
                 api_version=self.AZURE_API_VERSION,
             )
             self._use_azure_inference = False
@@ -277,8 +280,8 @@ class AzureOpenAICompletionProvider(CompletionProvider):
             from azure.core.credentials import AzureKeyCredential
 
             self._client = ChatCompletionsClient(
-                endpoint=settings.azure_openai_endpoint,  # type: ignore[arg-type]
-                credential=AzureKeyCredential(settings.azure_openai_key),  # type: ignore[arg-type]
+                endpoint=endpoint,
+                credential=AzureKeyCredential(api_key),
             )
             self._use_azure_inference = True
             logger.info(

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # pyright: reportAttributeAccessIssue=false  # GitHub API responses use dynamic attribute access; typing all response shapes is out of scope
 import asyncio
+from typing import cast
 
 from src.constants import DEFAULT_STATUS_BACKLOG, StatusNames
 from src.logging_utils import get_logger
@@ -354,7 +355,7 @@ class ProjectsMixin:
         cached = self._cycle_cache.get(cache_key)
         if cached is not None:
             self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
+            return cast(list[Task], cached)
 
         all_tasks = []
         has_next_page = True

@@ -2,6 +2,7 @@
 
 import json
 from dataclasses import dataclass, field
+from typing import cast
 
 import aiosqlite
 
@@ -280,7 +281,7 @@ async def _persist_workflow_config_to_db(
     deduped = deduplicate_agent_mappings(config.agent_mappings)
 
     # Serialize config — use deduped mappings
-    config.agent_mappings = deduped  # type: ignore[assignment]
+    config.agent_mappings = cast(dict[str, list[AgentAssignment]], deduped)
     config_json = config.model_dump_json()
     agent_mappings_json = json.dumps(
         {

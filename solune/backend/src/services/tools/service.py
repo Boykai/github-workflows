@@ -707,7 +707,10 @@ class ToolsService:
         next_servers = self._extract_single_server_config(
             data.config_content, server_name=next_name
         )
-        next_config: dict[str, object] = dict(next(iter(next_servers.values())))  # type: ignore[arg-type]
+        server_value = next(iter(next_servers.values()))
+        if not isinstance(server_value, dict):
+            raise TypeError("Expected server config to be a dict")
+        next_config: dict[str, object] = dict(server_value)
 
         svc = self._get_github_service()
 

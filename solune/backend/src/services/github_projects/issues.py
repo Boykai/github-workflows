@@ -432,10 +432,9 @@ class IssuesMixin:
         cached = self._cycle_cache.get(cache_key)
         if cached is not None:
             self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
+            return cast(dict, cached)
 
-        try:
-            all_comments: list[dict] = []
+        try:            all_comments: list[dict] = []
             title = ""
             body = ""
             author_login = ""

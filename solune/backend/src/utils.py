@@ -6,7 +6,7 @@ import hashlib
 from collections import OrderedDict
 from collections.abc import Awaitable, Callable, ItemsView, Iterator, KeysView, ValuesView
 from datetime import UTC, datetime
-from typing import TypeVar, overload
+from typing import TypeVar, cast, overload
 from urllib.parse import urlparse
 
 from src.logging_utils import get_logger
@@ -138,7 +138,7 @@ class BoundedDict[K, V]:
     @overload
     def pop(self, key: K, default: None) -> V | None: ...
     def pop(self, key: K, *args: object) -> V | None:  # type: ignore[misc]  # intentional API widening: pop() accepts optional default for dict-compatible interface
-        return self._data.pop(key, *args)  # type: ignore[arg-type]
+        return self._data.pop(key, *args)  # type: ignore[arg-type]  # variadic *args matches overloaded signatures above
 
     def keys(self) -> KeysView[K]:
         return self._data.keys()
@@ -294,7 +294,7 @@ async def cached_fetch[R](
         cached = cache.get(cache_key)
         if cached is not None:
             logger.debug("Cache hit for %s", cache_key)
-            return cached  # type: ignore[return-value]
+            return cast(R, cached)
 
     result = await fetch_fn(*args)
     cache.set(cache_key, result)

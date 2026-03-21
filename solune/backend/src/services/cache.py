@@ -4,7 +4,7 @@ import hashlib
 import json
 from collections.abc import Awaitable, Callable
 from datetime import timedelta
-from typing import Any
+from typing import Any, cast
 
 from src.config import get_settings
 from src.logging_utils import get_logger
@@ -217,7 +217,7 @@ async def cached_fetch[T](
         cached = cache_instance.get(key)
         if cached is not None:
             logger.debug("cached_fetch hit: %s", key)
-            return cached  # type: ignore[return-value]
+            return cast(T, cached)
 
     try:
         result = await fetch_fn()
@@ -226,12 +226,12 @@ async def cached_fetch[T](
             stale = cache_instance.get_stale(key)
             if stale is not None:
                 logger.warning("cached_fetch stale fallback: %s", key)
-                return stale  # type: ignore[return-value]
+                return cast(T, stale)
         raise
 
     cache_instance.set(key, result, ttl_seconds=ttl_seconds)
     logger.debug("cached_fetch set: %s (TTL: %ss)", key, ttl_seconds or "default")
-    return result  # type: ignore[return-value]
+    return cast(T, result)
 
 
 # Convenience functions for project caching

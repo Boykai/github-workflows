@@ -10,6 +10,7 @@ import hashlib
 import time
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
+from typing import Any
 
 from src.config import get_settings
 from src.logging_utils import get_logger
@@ -25,7 +26,7 @@ MAX_BACKOFF = 900  # 15 minutes
 DEFAULT_BACKOFF = 60  # 1 minute
 
 
-def _cancel_evicted_task(_key: str, task: asyncio.Task) -> None:  # type: ignore[type-arg]
+def _cancel_evicted_task(_key: str, task: asyncio.Task[Any]) -> None:
     """Cancel an evicted asyncio.Task that hasn't finished yet."""
     if not task.done():
         task.cancel()

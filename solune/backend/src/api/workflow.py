@@ -3,7 +3,7 @@
 import hashlib
 import json
 from datetime import datetime, timedelta
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, Query, Request
 
@@ -13,7 +13,7 @@ from src.dependencies import require_selected_project, verify_project_access
 from src.exceptions import AppException, NotFoundError, ValidationError
 from src.logging_utils import get_logger, handle_github_errors, handle_service_error
 from src.middleware.rate_limit import limiter
-from src.models.agent import AgentAssignment, AvailableAgentsResponse
+from src.models.agent import AgentAssignment, AgentAssignmentInput, AvailableAgentsResponse
 from src.models.recommendation import RecommendationStatus
 from src.models.user import UserSession
 from src.models.workflow import (
@@ -575,9 +575,9 @@ async def update_config(
     # that arise when board column names differ in casing from backend defaults.
     from src.services.workflow_orchestrator.config import deduplicate_agent_mappings
 
-    config_update.agent_mappings = deduplicate_agent_mappings(  # type: ignore[assignment]
+    config_update.agent_mappings = cast(dict[str, list[AgentAssignmentInput]], deduplicate_agent_mappings(
         config_update.agent_mappings
-    )
+    ))
 
     await set_workflow_config(
         project_id,

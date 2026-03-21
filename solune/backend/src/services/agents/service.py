@@ -1140,7 +1140,7 @@ class AgentsService:
         sid = session_id or str(uuid.uuid4())
         if sid not in _chat_sessions and len(_chat_sessions) >= _MAX_CHAT_SESSIONS:
             # Evict the oldest session
-            oldest = min(_chat_session_timestamps, key=_chat_session_timestamps.get)  # type: ignore[arg-type]
+            oldest = min(_chat_session_timestamps, key=lambda k: _chat_session_timestamps[k])
             _chat_sessions.pop(oldest, None)
             _chat_session_timestamps.pop(oldest, None)
 

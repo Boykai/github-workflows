@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Coroutine
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,7 @@ class TaskRegistry:
     """Singleton-style registry that tracks fire-and-forget tasks."""
 
     def __init__(self) -> None:
-        self._tasks: set[asyncio.Task] = set()  # type: ignore[type-arg]
+        self._tasks: set[asyncio.Task[None]] = set()
 
     # ------------------------------------------------------------------
     # Public API
@@ -38,21 +40,21 @@ class TaskRegistry:
 
     def create_task(
         self,
-        coro: object,
+        coro: Coroutine[Any, Any, None],
         *,
         name: str | None = None,
-    ) -> asyncio.Task:  # type: ignore[type-arg]
+    ) -> asyncio.Task[None]:
         """Create, register, and return an :class:`asyncio.Task`.
 
         A done-callback is automatically attached that removes the task from the
         registry and logs any exception at WARNING level.
         """
-        task = asyncio.create_task(coro, name=name)  # type: ignore[arg-type]
+        task = asyncio.create_task(coro, name=name)
         self._tasks.add(task)
         task.add_done_callback(self._task_done)
         return task
 
-    async def drain(self, drain_timeout: float = 30.0) -> list[asyncio.Task]:  # type: ignore[type-arg]
+    async def drain(self, drain_timeout: float = 30.0) -> list[asyncio.Task[None]]:
         """Await all pending tasks up to *drain_timeout* seconds.
 
         Tasks that do not complete in time are cancelled and returned so the
@@ -98,7 +100,7 @@ class TaskRegistry:
     # Internal
     # ------------------------------------------------------------------
 
-    def _task_done(self, task: asyncio.Task) -> None:  # type: ignore[type-arg]
+    def _task_done(self, task: asyncio.Task[None]) -> None:
         """Done-callback: auto-remove from registry and log failures."""
         self._tasks.discard(task)
         if task.cancelled():

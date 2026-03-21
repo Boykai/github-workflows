@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 # pyright: reportAttributeAccessIssue=false  # GitHub API responses use dynamic attribute access; typing all response shapes is out of scope
+from typing import cast
+
 from src.logging_utils import get_logger
 from src.services.github_projects.graphql import (
     CREATE_PULL_REQUEST_MUTATION,
@@ -286,7 +288,7 @@ class PullRequestsMixin:
         cached = self._cycle_cache.get(cache_key)
         if cached is not None:
             self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
+            return cast(list[dict], cached)
 
         try:
             data = await self._graphql(
@@ -366,7 +368,7 @@ class PullRequestsMixin:
         cached = self._cycle_cache.get(cache_key)
         if cached is not None:
             self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
+            return cast(dict | None, cached)
 
         try:
             data = await self._graphql(
@@ -709,7 +711,7 @@ class PullRequestsMixin:
         cached = self._cycle_cache.get(cache_key)
         if cached is not None:
             self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
+            return cast(list[dict], cached)
 
         try:
             result = await self._rest(
