@@ -39,7 +39,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T001 [P] [US1] Add optimistic update lifecycle (`onMutate`, `onError`, `onSettled`) to `useCreateAgent` in `solune/frontend/src/hooks/useAgents.ts` — In `onMutate`: cancel in-flight queries for both flat key (`agentKeys.list(projectId)`) and paginated key (`[...agentKeys.list(projectId), 'paginated']`), snapshot both caches via `getQueryData`, construct optimistic placeholder `AgentConfig` with `id: \`temp-${Date.now()}\``, user-provided `name`/`description`/`system_prompt`/`tools`, defaults `status: 'pending_pr'`, `source: 'local'`, ISO timestamps (see `data-model.md` for full shape), prepend placeholder to flat array cache via `setQueryData`, prepend to `pages[0].items` of paginated `InfiniteData` cache, return `{ snapshot, queryKey, paginatedSnapshot, paginatedQueryKey }` context. In `onError`: restore flat cache from `context.snapshot`, restore paginated cache from `context.paginatedSnapshot`, show `toast.error(error.message || 'Failed to create agent', { duration: Infinity })`. In `onSettled`: invalidate `agentKeys.list(projectId)` queries. Verify existing `onSuccess` toast is present (add if missing). Reference: `useCreateChore` pattern in `useChores.ts:81–138`, contracts in `contracts/optimistic-cache-contract.md`
+- [ ] T001 [P] [US1] Add optimistic update lifecycle to `useCreateAgent` in `solune/frontend/src/hooks/useAgents.ts`
+  - **`onMutate`**: Cancel in-flight queries for flat key (`agentKeys.list(projectId)`) and paginated key (`[...agentKeys.list(projectId), 'paginated']`). Snapshot both caches via `getQueryData`. Construct optimistic placeholder `AgentConfig` with `id: \`temp-${Date.now()}\``, user-provided `name`/`description`/`system_prompt`/`tools`, defaults `status: 'pending_pr'`, `source: 'local'`, ISO timestamps (see `data-model.md` for full shape). Prepend placeholder to flat array cache. Prepend to `pages[0].items` of paginated `InfiniteData` cache. Return `{ snapshot, queryKey, paginatedSnapshot, paginatedQueryKey }` context.
+  - **`onError`**: Restore flat cache from `context.snapshot`, restore paginated cache from `context.paginatedSnapshot`, show `toast.error(error.message || 'Failed to create agent', { duration: Infinity })`.
+  - **`onSettled`**: Invalidate `agentKeys.list(projectId)` queries to reconcile with server state.
+  - **`onSuccess`**: Verify existing success toast is present (add if missing).
+  - **Reference**: `useCreateChore` pattern in `useChores.ts:81–138`, contracts in `contracts/optimistic-cache-contract.md`.
 
 **Checkpoint**: Agent creation provides instant visual feedback. Story is independently testable.
 
@@ -53,7 +58,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T002 [US2] Add optimistic update lifecycle (`onMutate`, `onError`, `onSettled`) to `useDeleteAgent` in `solune/frontend/src/hooks/useAgents.ts` — In `onMutate`: cancel in-flight queries for both flat and paginated keys, snapshot both caches, filter deleted agent from flat array cache (`old?.filter(a => a.id !== agentId)`), filter from all pages of paginated `InfiniteData` cache (`pages.map(page => ({ ...page, items: page.items.filter(...) }))`), return context with both snapshots. In `onError`: restore both caches from context, show `toast.error(error.message || 'Failed to delete agent', { duration: Infinity })`. In `onSettled`: invalidate `agentKeys.list(projectId)` queries. Reference: `useDeleteChore` pattern in `useChores.ts:181–213`, paginated delete contract in `contracts/optimistic-cache-contract.md`
+- [ ] T002 [US2] Add optimistic update lifecycle to `useDeleteAgent` in `solune/frontend/src/hooks/useAgents.ts`
+  - **`onMutate`**: Cancel in-flight queries for both flat and paginated keys. Snapshot both caches. Filter deleted agent from flat array cache (`old?.filter(a => a.id !== agentId)`). Filter from all pages of paginated `InfiniteData` cache (`pages.map(page => ({ ...page, items: page.items.filter(...) }))`). Return context with both snapshots.
+  - **`onError`**: Restore both caches from context, show `toast.error(error.message || 'Failed to delete agent', { duration: Infinity })`.
+  - **`onSettled`**: Invalidate `agentKeys.list(projectId)` queries to reconcile with server state.
+  - **Reference**: `useDeleteChore` pattern in `useChores.ts:181–213`, paginated delete contract in `contracts/optimistic-cache-contract.md`.
 
 **Checkpoint**: Agent deletion provides instant visual feedback. Story is independently testable.
 
@@ -67,7 +76,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T003 [P] [US3] Add optimistic update lifecycle (`onMutate`, `onError`, `onSettled`) to `uploadMutation` in `solune/frontend/src/hooks/useTools.ts` — In `onMutate`: cancel in-flight queries for wrapper object key (`toolKeys.list(projectId)`) and paginated key (`[...toolKeys.list(projectId), 'paginated']`), snapshot both caches, construct optimistic placeholder `McpToolConfig` with `id: \`temp-${Date.now()}\``, user-provided `name`/`command`/`description`, defaults `enabled: true`, ISO timestamps (see `data-model.md` for full shape), prepend to wrapper cache (`{ ...old, tools: [placeholder, ...old.tools] }`), prepend to `pages[0].items` of paginated `InfiniteData` cache, return context with both snapshots. In `onError`: restore wrapper cache and paginated cache from context, show `toast.error(error.message || 'Failed to upload tool', { duration: Infinity })` — this fixes FR-004 (missing error toast). In `onSettled`: invalidate `toolKeys.list(projectId)` queries. Reference: wrapper object pattern from `research.md` Task 6, contracts in `contracts/optimistic-cache-contract.md`
+- [ ] T003 [P] [US3] Add optimistic update lifecycle to `uploadMutation` in `solune/frontend/src/hooks/useTools.ts`
+  - **`onMutate`**: Cancel in-flight queries for wrapper object key (`toolKeys.list(projectId)`) and paginated key (`[...toolKeys.list(projectId), 'paginated']`). Snapshot both caches. Construct optimistic placeholder `McpToolConfig` with `id: \`temp-${Date.now()}\``, user-provided `name`/`command`/`description`, defaults `enabled: true`, ISO timestamps (see `data-model.md` for full shape). Prepend to wrapper cache (`{ ...old, tools: [placeholder, ...old.tools] }`). Prepend to `pages[0].items` of paginated `InfiniteData` cache. Return context with both snapshots.
+  - **`onError`**: Restore wrapper cache and paginated cache from context, show `toast.error(error.message || 'Failed to upload tool', { duration: Infinity })` — this fixes FR-004 (missing error toast).
+  - **`onSettled`**: Invalidate `toolKeys.list(projectId)` queries to reconcile with server state.
+  - **Reference**: Wrapper object pattern from `research.md` Task 6, contracts in `contracts/optimistic-cache-contract.md`.
 
 **Checkpoint**: Tool upload provides instant visual feedback and error notifications. Story is independently testable.
 
@@ -81,7 +94,12 @@
 
 ### Implementation for User Story 4
 
-- [ ] T004 [P] [US4] Add optimistic update lifecycle (`onMutate`, `onError`, `onSettled`) to `useCreateProject` in `solune/frontend/src/hooks/useProjects.ts` — In `onMutate`: cancel in-flight queries for projects key (`['projects']`), snapshot wrapper cache (`{ projects: Project[] }`), construct optimistic placeholder `Project` with `project_id: \`temp-${Date.now()}\``, `name` from `data.title`, `owner_login` from `data.owner`, defaults `type: 'ProjectV2'`, `status_columns: []`, `item_count: 0`, ISO timestamp for `cached_at` (see `data-model.md` for full shape), prepend to wrapper cache (`{ ...old, projects: [placeholder, ...old.projects] }`), return context with snapshot. Note: projects are NOT paginated per `research.md` Task 3, so no paginated cache handling needed. In `onError`: restore wrapper cache from context, show `toast.error(error.message || 'Failed to create project', { duration: Infinity })`. In `onSettled`: invalidate `['projects']` queries. Reference: wrapper object pattern from `research.md` Task 6
+- [ ] T004 [P] [US4] Add optimistic update lifecycle to `useCreateProject` in `solune/frontend/src/hooks/useProjects.ts`
+  - **`onMutate`**: Cancel in-flight queries for projects key (`['projects']`). Snapshot wrapper cache (`{ projects: Project[] }`). Construct optimistic placeholder `Project` with `project_id: \`temp-${Date.now()}\``, `name` from `data.title`, `owner_login` from `data.owner`, defaults `type: 'ProjectV2'`, `status_columns: []`, `item_count: 0`, ISO timestamp for `cached_at` (see `data-model.md` for full shape). Prepend to wrapper cache (`{ ...old, projects: [placeholder, ...old.projects] }`). Return context with snapshot.
+  - **Note**: Projects are NOT paginated per `research.md` Task 3 — no paginated cache handling needed.
+  - **`onError`**: Restore wrapper cache from context, show `toast.error(error.message || 'Failed to create project', { duration: Infinity })`.
+  - **`onSettled`**: Invalidate `['projects']` queries to reconcile with server state.
+  - **Reference**: Wrapper object pattern from `research.md` Task 6.
 
 **Checkpoint**: Project creation provides instant visual feedback. Story is independently testable.
 
@@ -97,15 +115,42 @@
 
 #### Chore Hooks — `solune/frontend/src/hooks/useChores.ts`
 
-- [ ] T005 [P] [US5] Extend all chore mutation hooks for paginated cache awareness in `solune/frontend/src/hooks/useChores.ts` — For each of `useCreateChore`, `useUpdateChore`, `useDeleteChore`, and `useInlineUpdateChore`: (1) add `cancelQueries` for paginated key `[...choreKeys.list(projectId), 'paginated']` in `onMutate`, (2) snapshot paginated cache via `getQueryData`, (3) apply matching paginated update — `useCreateChore`: prepend to `pages[0].items`; `useUpdateChore`/`useInlineUpdateChore`: map across all `pages[].items` replacing matched chore; `useDeleteChore`: filter from all `pages[].items`, (4) include `paginatedSnapshot` and `paginatedQueryKey` in returned context, (5) add paginated cache restore from `context.paginatedSnapshot` in `onError`. Reference: paginated contracts in `contracts/optimistic-cache-contract.md`, existing `removeEntityFromCache` in `useUndoableDelete.ts:74–125`
+- [ ] T005 [P] [US5] Extend all chore mutation hooks for paginated cache awareness in `solune/frontend/src/hooks/useChores.ts`
+  - For each of `useCreateChore`, `useUpdateChore`, `useDeleteChore`, and `useInlineUpdateChore`:
+    1. Add `cancelQueries` for paginated key `[...choreKeys.list(projectId), 'paginated']` in `onMutate`.
+    2. Snapshot paginated cache via `getQueryData`.
+    3. Apply matching paginated update:
+       - `useCreateChore`: prepend to `pages[0].items`.
+       - `useUpdateChore` / `useInlineUpdateChore`: map across all `pages[].items` replacing matched chore.
+       - `useDeleteChore`: filter from all `pages[].items`.
+    4. Include `paginatedSnapshot` and `paginatedQueryKey` in returned context.
+    5. Add paginated cache restore from `context.paginatedSnapshot` in `onError`.
+  - **Reference**: Paginated contracts in `contracts/optimistic-cache-contract.md`, existing `removeEntityFromCache` in `useUndoableDelete.ts:74–125`.
 
 #### App Hooks — `solune/frontend/src/hooks/useApps.ts`
 
-- [ ] T006 [P] [US5] Extend all app mutation hooks for paginated cache awareness in `solune/frontend/src/hooks/useApps.ts` — For each of `useCreateApp`, `useUpdateApp`, `useDeleteApp`, `useStartApp`, and `useStopApp`: (1) add `cancelQueries` for paginated key `[...appKeys.list(), 'paginated']` in `onMutate`, (2) snapshot paginated cache, (3) apply matching paginated update — `useCreateApp`: prepend to `pages[0].items`; `useUpdateApp`/`useStartApp`/`useStopApp`: map across all `pages[].items` replacing matched app; `useDeleteApp`: filter from all `pages[].items`, (4) include `paginatedSnapshot` and `paginatedQueryKey` in returned context, (5) add paginated cache restore in `onError`. Reference: paginated contracts in `contracts/optimistic-cache-contract.md`
+- [ ] T006 [P] [US5] Extend all app mutation hooks for paginated cache awareness in `solune/frontend/src/hooks/useApps.ts`
+  - For each of `useCreateApp`, `useUpdateApp`, `useDeleteApp`, `useStartApp`, and `useStopApp`:
+    1. Add `cancelQueries` for paginated key `[...appKeys.list(), 'paginated']` in `onMutate`.
+    2. Snapshot paginated cache via `getQueryData`.
+    3. Apply matching paginated update:
+       - `useCreateApp`: prepend to `pages[0].items`.
+       - `useUpdateApp` / `useStartApp` / `useStopApp`: map across all `pages[].items` replacing matched app.
+       - `useDeleteApp`: filter from all `pages[].items`.
+    4. Include `paginatedSnapshot` and `paginatedQueryKey` in returned context.
+    5. Add paginated cache restore from `context.paginatedSnapshot` in `onError`.
+  - **Reference**: Paginated contracts in `contracts/optimistic-cache-contract.md`.
 
 #### Tool Delete Hook — `solune/frontend/src/hooks/useTools.ts`
 
-- [ ] T007 [US5] Extend tool delete mutation hook for paginated cache awareness in `solune/frontend/src/hooks/useTools.ts` — In existing delete `onMutate`: (1) add `cancelQueries` for paginated key `[...toolKeys.list(projectId), 'paginated']`, (2) snapshot paginated cache, (3) filter deleted tool from all `pages[].items` of paginated `InfiniteData` cache, (4) include `paginatedSnapshot` and `paginatedQueryKey` in returned context, (5) add paginated cache restore from `context.paginatedSnapshot` in `onError`. Reference: paginated delete contract in `contracts/optimistic-cache-contract.md`
+- [ ] T007 [US5] Extend tool delete mutation hook for paginated cache awareness in `solune/frontend/src/hooks/useTools.ts`
+  - In existing delete `onMutate`:
+    1. Add `cancelQueries` for paginated key `[...toolKeys.list(projectId), 'paginated']`.
+    2. Snapshot paginated cache via `getQueryData`.
+    3. Filter deleted tool from all `pages[].items` of paginated `InfiniteData` cache.
+    4. Include `paginatedSnapshot` and `paginatedQueryKey` in returned context.
+    5. Add paginated cache restore from `context.paginatedSnapshot` in `onError`.
+  - **Reference**: Paginated delete contract in `contracts/optimistic-cache-contract.md`.
 
 **Checkpoint**: All entity list views using paginated/infinite scroll correctly reflect optimistic updates.
 
