@@ -59,11 +59,11 @@ class CopilotClientPool:
             if key in self._clients:
                 return self._clients[key]
 
-            from copilot import CopilotClient  # type: ignore[reportMissingImports]
-            from copilot.types import SubprocessConfig  # type: ignore[reportMissingImports]
+            from copilot import CopilotClient  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
+            from copilot.types import SubprocessConfig  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
 
             config = SubprocessConfig(github_token=github_token)
-            client = CopilotClient(config=config, auto_start=False)  # pyright: ignore[reportCallIssue]
+            client = CopilotClient(config=config, auto_start=False)  # pyright: ignore[reportCallIssue]  # optional copilot SDK; type stubs may not be available
             await client.start()
             self._clients[key] = client
             logger.info(
@@ -164,8 +164,8 @@ class CopilotCompletionProvider(CompletionProvider):
 
         client = await self._pool.get_or_create(github_token)
 
-        from copilot import PermissionHandler  # type: ignore[reportMissingImports]
-        from copilot.generated.session_events import (  # type: ignore[reportMissingImports]
+        from copilot import PermissionHandler  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
+        from copilot.generated.session_events import (  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
             SessionEventType,
         )
 
@@ -181,7 +181,7 @@ class CopilotCompletionProvider(CompletionProvider):
         # Build create_session kwargs (SessionConfig was removed in SDK 0.1.0)
         session_kwargs: dict[str, Any] = {
             "model": self._model,
-            "on_permission_request": PermissionHandler.approve_all,  # pyright: ignore[reportAttributeAccessIssue]
+            "on_permission_request": PermissionHandler.approve_all,  # pyright: ignore[reportAttributeAccessIssue]  # optional copilot SDK; type stubs may not be available
         }
         if system_content:
             session_kwargs["system_message"] = {"mode": "replace", "content": system_content}
@@ -259,7 +259,7 @@ class AzureOpenAICompletionProvider(CompletionProvider):
 
         # Try Azure OpenAI SDK first (openai package)
         try:
-            from openai import AzureOpenAI  # type: ignore[reportMissingImports]
+            from openai import AzureOpenAI  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
 
             self._client = AzureOpenAI(
                 azure_endpoint=settings.azure_openai_endpoint,

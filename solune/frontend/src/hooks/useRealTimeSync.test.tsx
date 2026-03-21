@@ -70,7 +70,7 @@ describe('useRealTimeSync', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockWebSocketInstances = [];
-    // @ts-expect-error - Override global WebSocket
+    // @ts-expect-error - Override global WebSocket — intentional override of read-only DOM global for test setup; no typed alternative exists
     global.WebSocket = MockWebSocket;
   });
 
@@ -405,7 +405,7 @@ describe('useRealTimeSync', () => {
   describe('polling fallback', () => {
     it('should handle WebSocket not supported gracefully', () => {
       // Override WebSocket to throw
-      // @ts-expect-error - Override global WebSocket
+      // @ts-expect-error - Override global WebSocket — intentional override of read-only DOM global for test setup; no typed alternative exists
       global.WebSocket = class {
         constructor() {
           throw new Error('WebSocket not supported');
@@ -421,7 +421,7 @@ describe('useRealTimeSync', () => {
       expect(['polling', 'connecting']).toContain(result.current.status);
 
       // Restore mock
-      // @ts-expect-error - Override global WebSocket
+      // @ts-expect-error - Override global WebSocket — intentional override of read-only DOM global for test setup; no typed alternative exists
       global.WebSocket = MockWebSocket;
     });
 

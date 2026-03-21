@@ -378,13 +378,13 @@ async def _handle_transcript_upload(
         # Sanitise with os.path.basename (CodeQL-recognised path sanitizer)
         # to strip all directory components and prevent path-traversal.
         raw_name = file_url.rsplit("/", 1)[-1] if "/" in file_url else file_url
-        filename = os.path.basename(raw_name)  # noqa: PTH119 — CodeQL sanitizer
+        filename = os.path.basename(raw_name)  # noqa: PTH119 — CodeQL recognizes os.path.basename as path-traversal sanitizer; do NOT migrate to pathlib
         if not filename:
             continue
 
         # Build the candidate path and normalise it so CodeQL can verify
         # the subsequent prefix check neutralises any traversal attempt.
-        candidate = os.path.normpath(os.path.join(str(upload_dir), filename))  # noqa: PTH118
+        candidate = os.path.normpath(os.path.join(str(upload_dir), filename))  # noqa: PTH118 — CodeQL recognizes os.path.normpath as path-traversal sanitizer; do NOT migrate to pathlib
         safe_prefix = os.path.normpath(str(upload_dir)) + os.sep
         if not candidate.startswith(safe_prefix):
             continue

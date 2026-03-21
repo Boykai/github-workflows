@@ -8,7 +8,7 @@ import { vi, type Mock } from 'vitest';
 // ─── crypto.randomUUID stub ──────────────────────────────────────────────
 // happy-dom may not implement crypto.randomUUID; stub once globally.
 if (typeof globalThis.crypto === 'undefined') {
-  // @ts-expect-error - partial crypto shim
+  // @ts-expect-error - partial crypto shim — intentional override of read-only DOM global for test setup; no typed alternative exists
   globalThis.crypto = {};
 }
 if (typeof globalThis.crypto.randomUUID !== 'function') {
@@ -49,7 +49,7 @@ class MockWebSocket {
   }
 }
 
-// @ts-expect-error - Override global WebSocket
+// @ts-expect-error - Override global WebSocket — intentional override of read-only DOM global for test setup; no typed alternative exists
 global.WebSocket = MockWebSocket;
 
 // ─── Mock window.location / window.history ───────────────────────────────

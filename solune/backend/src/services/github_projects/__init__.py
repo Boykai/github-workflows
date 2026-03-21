@@ -57,7 +57,7 @@ class GitHubClientFactory:
         self._pool.clear()
 
 
-from src.services.github_projects.service import (  # noqa: E402
+from src.services.github_projects.service import (  # noqa: E402  # import depends on prior module-level setup
     GitHubProjectsService,
     github_projects_service,
 )

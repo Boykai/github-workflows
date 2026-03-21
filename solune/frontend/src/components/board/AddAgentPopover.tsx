@@ -111,7 +111,7 @@ export function AddAgentPopover({
             placeholder="Filter agents..."
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            /* eslint-disable-next-line jsx-a11y/no-autofocus */
+            /* eslint-disable-next-line jsx-a11y/no-autofocus -- autoFocus on modal/popover open is intentional UX for keyboard-first interaction */
             autoFocus
           />
         </div>

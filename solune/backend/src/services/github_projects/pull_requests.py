@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# pyright: reportAttributeAccessIssue=false
+# pyright: reportAttributeAccessIssue=false  # GitHub API responses use dynamic attribute access; typing all response shapes is out of scope
 from src.logging_utils import get_logger
 from src.services.github_projects.graphql import (
     CREATE_PULL_REQUEST_MUTATION,

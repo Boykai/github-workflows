@@ -195,9 +195,9 @@ class RequestIDFilter(logging.Filter):
         try:
             from src.middleware.request_id import request_id_var
 
-            record.request_id = request_id_var.get("")  # type: ignore[attr-defined]
+            record.request_id = request_id_var.get("")  # type: ignore[attr-defined]  # dynamic attribute injection on LogRecord is standard Python logging pattern
         except Exception:
-            record.request_id = ""  # type: ignore[attr-defined]
+            record.request_id = ""  # type: ignore[attr-defined]  # dynamic attribute injection on LogRecord is standard Python logging pattern
         return True
 
 

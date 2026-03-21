@@ -137,7 +137,7 @@ class BoundedDict[K, V]:
     def pop(self, key: K, default: V) -> V: ...
     @overload
     def pop(self, key: K, default: None) -> V | None: ...
-    def pop(self, key: K, *args: object) -> V | None:  # type: ignore[misc]
+    def pop(self, key: K, *args: object) -> V | None:  # type: ignore[misc]  # intentional API widening: pop() accepts optional default for dict-compatible interface
         return self._data.pop(key, *args)  # type: ignore[arg-type]
 
     def keys(self) -> KeysView[K]:

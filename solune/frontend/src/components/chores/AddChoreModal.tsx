@@ -273,7 +273,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
               placeholder="e.g., Bug Bash, Dependency Update"
               className="flex h-9 w-full rounded-md border border-input bg-background/72 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
               maxLength={200}
-              // eslint-disable-next-line jsx-a11y/no-autofocus
+              // eslint-disable-next-line jsx-a11y/no-autofocus -- autoFocus on modal/popover open is intentional UX for keyboard-first interaction
               autoFocus
             />
           </div>

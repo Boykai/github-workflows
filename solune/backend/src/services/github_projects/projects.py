@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# pyright: reportAttributeAccessIssue=false
+# pyright: reportAttributeAccessIssue=false  # GitHub API responses use dynamic attribute access; typing all response shapes is out of scope
 import asyncio
 
 from src.constants import DEFAULT_STATUS_BACKLOG, StatusNames
