@@ -289,6 +289,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - N/A (no persistence — breadcrumb state is ephemeral React context) (055-breadcrumb-deep-routes)
 - Python 3.13 (backend) + FastAPI (API framework), httpx (HTTP client), githubkit (GitHub API), aiosqlite (async SQLite) (055-fix-copilot-review-completion)
 - SQLite with aiosqlite (durable state), in-memory `BoundedDict` (fast access) (055-fix-copilot-review-completion)
+- Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI, Starlette WebSockets, httpx (backend); React 19.2, TanStack Query v5, Radix UI, dnd-kit (frontend) (056-performance-review)
+- SQLite (backend persistence), In-memory cache with TTL (runtime caching) (056-performance-review)
 
 ## Recent Changes
 - Dependabot upgrades: ESLint 9→10, Vite 7→8, react-hooks 5→7, security 3→4, @vitejs/plugin-react 5→6, Docker images (python 3.14, node 25, nginx 1.29), GitHub Actions (checkout v6, setup-python v6, upload-artifact v7, setup-node v6)

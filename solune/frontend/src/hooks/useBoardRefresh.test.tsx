@@ -754,4 +754,76 @@ describe('useBoardRefresh', () => {
       expect(firstCount).toBe(1);
     });
   });
+
+  // ---------- WebSocket-aware auto-refresh suppression (T020) ----------
+
+  describe('auto-refresh timer suppression when WebSocket is healthy', () => {
+    it('should not start auto-refresh timer when isWebSocketConnected is true', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_123', isWebSocketConnected: true }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      // Clear any initial calls
+      invalidateSpy.mockClear();
+
+      // Advance past the auto-refresh interval (1000ms in test config)
+      await act(async () => {
+        vi.advanceTimersByTime(3000);
+      });
+
+      // No board data invalidation should have fired — timer is suppressed
+      const boardInvalidations = invalidateSpy.mock.calls.filter((c) => {
+        const qk = c[0]?.queryKey;
+        return Array.isArray(qk) && qk[0] === 'board';
+      });
+      expect(boardInvalidations).toHaveLength(0);
+    });
+
+    it('should resume auto-refresh timer when WebSocket disconnects', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      const { rerender } = renderHook(
+        ({ connected }: { connected: boolean }) =>
+          useBoardRefresh({ projectId: 'PVT_123', isWebSocketConnected: connected }),
+        {
+          wrapper: createWrapper(queryClient),
+          initialProps: { connected: true },
+        },
+      );
+
+      // Timer should be suppressed while connected
+      invalidateSpy.mockClear();
+      await act(async () => {
+        vi.advanceTimersByTime(3000);
+      });
+      const suppressedCalls = invalidateSpy.mock.calls.filter((c) => {
+        const qk = c[0]?.queryKey;
+        return Array.isArray(qk) && qk[0] === 'board';
+      });
+      expect(suppressedCalls).toHaveLength(0);
+
+      // Disconnect WebSocket — timer should resume
+      rerender({ connected: false });
+      invalidateSpy.mockClear();
+
+      await act(async () => {
+        vi.advanceTimersByTime(1500);
+      });
+
+      const resumedCalls = invalidateSpy.mock.calls.filter((c) => {
+        const qk = c[0]?.queryKey;
+        return Array.isArray(qk) && qk[0] === 'board';
+      });
+      expect(resumedCalls.length).toBeGreaterThanOrEqual(1);
+    });
+  });
 });

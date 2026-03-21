@@ -3,7 +3,7 @@
  * Enhanced with filled priority badges, description snippets, assignee names, and label pills.
  */
 
-import { memo, useState } from 'react';
+import { memo, useState, useMemo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import { ChevronDown, ChevronRight, Circle, CircleCheckBig, Clock } from 'lucide-react';
 import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
@@ -118,24 +118,33 @@ export const IssueCard = memo(function IssueCard({
     data: { item },
   });
   const subIssues = item.sub_issues ?? [];
-  const labels = item.labels ?? [];
+  const labels = useMemo(() => item.labels ?? [], [item.labels]);
   const priorityName = item.priority?.name ?? '';
   const priorityConfig = PRIORITY_COLORS[priorityName] ?? PRIORITY_COLORS.P2;
 
-  // Parse pipeline-specific labels
-  const agentLabel = labels.find((l) => l.name.startsWith('agent:'));
-  const pipelineLabel = labels.find((l) => l.name.startsWith('pipeline:'));
-  const isStalled = labels.some((l) => l.name === 'stalled');
-  const agentSlug = agentLabel ? agentLabel.name.slice('agent:'.length) : null;
-  const pipelineConfig = pipelineLabel ? pipelineLabel.name.slice('pipeline:'.length) : null;
+  // Memoize pipeline-specific label parsing to avoid re-scanning on every
+  // render when the labels array reference is unchanged (T023).
+  const { agentSlug, pipelineConfig, isStalled } = useMemo(() => {
+    const agent = labels.find((l) => l.name.startsWith('agent:'));
+    const pipeline = labels.find((l) => l.name.startsWith('pipeline:'));
+    return {
+      agentSlug: agent ? agent.name.slice('agent:'.length) : null,
+      pipelineConfig: pipeline ? pipeline.name.slice('pipeline:'.length) : null,
+      isStalled: labels.some((l) => l.name === 'stalled'),
+    };
+  }, [labels]);
   const isParentIssue = subIssues.length > 0;
 
-  // Truncate body to ~80 chars for description snippet
-  const snippet = item.body
-    ? item.body.length > 80
-      ? item.body.slice(0, 80).trimEnd() + '…'
-      : item.body
-    : null;
+  // Memoize body snippet to avoid substring + trimEnd on every render (T023).
+  const snippet = useMemo(
+    () =>
+      item.body
+        ? item.body.length > 80
+          ? item.body.slice(0, 80).trimEnd() + '…'
+          : item.body
+        : null,
+    [item.body],
+  );
 
   return (
     <div

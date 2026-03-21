@@ -24,6 +24,8 @@ interface UseBoardRefreshOptions {
   projectId: string | null;
   /** Board data response (for extracting rate limit info reactively) */
   boardData?: BoardDataResponse | null;
+  /** Whether a healthy WebSocket connection is actively delivering updates. */
+  isWebSocketConnected?: boolean;
 }
 
 interface UseBoardRefreshReturn {
@@ -48,6 +50,7 @@ interface UseBoardRefreshReturn {
 export function useBoardRefresh({
   projectId,
   boardData,
+  isWebSocketConnected = false,
 }: UseBoardRefreshOptions): UseBoardRefreshReturn {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -126,11 +129,11 @@ export function useBoardRefresh({
 
   const startTimer = useCallback(() => {
     clearTimer();
-    if (!projectId) return;
+    if (!projectId || isWebSocketConnected) return;
     timerRef.current = window.setInterval(() => {
       doRefresh();
     }, AUTO_REFRESH_INTERVAL_MS);
-  }, [projectId, clearTimer, doRefresh]);
+  }, [projectId, isWebSocketConnected, clearTimer, doRefresh]);
 
   const resetTimer = useCallback(() => {
     startTimer();
@@ -199,9 +202,12 @@ export function useBoardRefresh({
     };
   }, [projectId, lastRefreshedAt, clearTimer, startTimer, doRefresh]);
 
-  // Start auto-refresh timer when projectId changes
+  // Start auto-refresh timer when projectId changes.
+  // Suppress the timer while a healthy WebSocket connection is actively
+  // delivering updates — the timer is redundant in that case and only
+  // adds unnecessary backend load (T017 / contracts/refresh-policy.md §3).
   useEffect(() => {
-    if (projectId) {
+    if (projectId && !isWebSocketConnected) {
       startTimer();
     } else {
       clearTimer();
@@ -213,7 +219,7 @@ export function useBoardRefresh({
         debounceTimeoutRef.current = null;
       }
     };
-  }, [projectId, startTimer, clearTimer]);
+  }, [projectId, isWebSocketConnected, startTimer, clearTimer]);
 
   const isRateLimitLow =
     rateLimitInfo !== null && rateLimitInfo.remaining < RATE_LIMIT_LOW_THRESHOLD;
