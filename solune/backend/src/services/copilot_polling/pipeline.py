@@ -2357,10 +2357,7 @@ async def check_in_review_issues(
                         effective_from_status,
                         effective_to_status,
                     )
-                elif (
-                    pipeline.current_agent
-                    and pipeline.current_agent != "copilot-review"
-                ):
+                elif pipeline.current_agent and pipeline.current_agent != "copilot-review":
                     # Pipeline status matches "In Review" but the current
                     # agent is NOT copilot-review.  Log a warning so we
                     # can diagnose false-completion scenarios.  The
