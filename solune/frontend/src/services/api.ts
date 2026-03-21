@@ -732,14 +732,19 @@ export const choresApi = {
   },
 
   /**
-   * List chores with cursor-based pagination.
+   * List chores with cursor-based pagination and optional server-side filters.
    */
   listPaginated(
     projectId: string,
-    params: { limit: number; cursor?: string },
+    params: { limit: number; cursor?: string; status?: string; scheduleType?: string; search?: string; sort?: string; order?: string },
   ): Promise<PaginatedResponse<Chore>> {
     const qs = new URLSearchParams({ limit: String(params.limit) });
     if (params.cursor) qs.set('cursor', params.cursor);
+    if (params.status) qs.set('status', params.status);
+    if (params.scheduleType) qs.set('schedule_type', params.scheduleType);
+    if (params.search) qs.set('search', params.search);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.order) qs.set('order', params.order);
     return request<PaginatedResponse<Chore>>(`/chores/${projectId}?${qs}`);
   },
 
