@@ -13,14 +13,19 @@ from src.models.chat import (
     WorkflowConfiguration,
     WorkflowResult,
 )
+from src.services.pipeline_state_store import (
+    clear_all_caches,
+    get_main_branch,
+    get_main_branch_field,
+    has_main_branch,
+    set_main_branch_l1,
+)
 from src.services.workflow_orchestrator import (
     PipelineState,
     WorkflowContext,
     WorkflowOrchestrator,
     WorkflowState,
     _ci_get,
-    _issue_main_branches,
-    _pipeline_states,
     _workflow_configs,
     find_next_actionable_status,
     get_agent_slugs,
@@ -725,9 +730,9 @@ class TestPipelineStateManagement:
 
     def setup_method(self):
         """Clear pipeline states before each test."""
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
 
     def test_get_pipeline_state_returns_none_for_unknown(self):
         """Should return None for unknown issue number."""
@@ -816,9 +821,9 @@ class TestIssueMainBranchManagement:
 
     def setup_method(self):
         """Clear main branches before each test."""
-        from src.services.workflow_orchestrator import _issue_main_branches
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _issue_main_branches.clear()
+        clear_all_caches()
 
     def test_get_issue_main_branch_returns_none_for_unknown(self):
         """Should return None for unknown issue number."""
@@ -1455,20 +1460,20 @@ class TestUpdateIssueMainBranchSha:
     """Tests for update_issue_main_branch_sha."""
 
     def setup_method(self):
-        _issue_main_branches.clear()
+        clear_all_caches()
 
     def teardown_method(self):
-        _issue_main_branches.clear()
+        clear_all_caches()
 
     def test_updates_sha_when_branch_exists(self):
-        _issue_main_branches[1] = {"branch": "main", "head_sha": "old_sha"}
+        set_main_branch_l1(1, {"branch": "main", "head_sha": "old_sha"})
         update_issue_main_branch_sha(1, "new_sha_1234")
-        assert _issue_main_branches[1]["head_sha"] == "new_sha_1234"
+        assert get_main_branch_field(1, "head_sha") == "new_sha_1234"
 
     def test_noop_when_no_branch(self):
         # Issue not in _issue_main_branches → early return, no crash
         update_issue_main_branch_sha(99, "sha123")
-        assert 99 not in _issue_main_branches
+        assert not has_main_branch(99)
 
 
 class TestGetTransitions:
@@ -1779,11 +1784,11 @@ class TestCopilotReviewDefensiveUnassignment:
 
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
-        _pipeline_states.clear()
+        clear_all_caches()
         clear_issue_sub_issues(42)
 
     @pytest.fixture
@@ -2474,10 +2479,10 @@ class TestExecuteFullWorkflow:
     @pytest.fixture(autouse=True)
     def _clear(self):
         _workflow_configs.clear()
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
         _workflow_configs.clear()
-        _pipeline_states.clear()
+        clear_all_caches()
 
     def _make_rec(self):
         return IssueRecommendation(
@@ -2633,8 +2638,7 @@ class TestAssignAgentInnerPaths:
     @pytest.fixture(autouse=True)
     def _clear(self):
         _workflow_configs.clear()
-        _pipeline_states.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         from src.services.copilot_polling import (
             _pending_agent_assignments,
             _recovery_last_attempt,
@@ -2644,8 +2648,7 @@ class TestAssignAgentInnerPaths:
         _recovery_last_attempt.clear()
         yield
         _workflow_configs.clear()
-        _pipeline_states.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
 
@@ -2667,7 +2670,7 @@ class TestAssignAgentInnerPaths:
         assert result is True
         orch.github.link_pull_request_to_issue.assert_awaited_once()
         # Should have stored main branch
-        assert _issue_main_branches.get(10) is not None
+        assert get_main_branch(10) is not None
 
     @pytest.mark.asyncio
     async def test_first_agent_link_pr_fails_continues(self):
@@ -2961,14 +2964,10 @@ class TestIssueSubIssueStore:
 
     def setup_method(self):
         """Clear global sub-issue store before each test."""
-        from src.services.workflow_orchestrator import _issue_sub_issue_map
-
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
 
     def teardown_method(self):
-        from src.services.workflow_orchestrator import _issue_sub_issue_map
-
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
 
     def test_get_returns_empty_for_unknown_issue(self):
         """Should return empty dict for unknown issue number."""
@@ -3026,14 +3025,13 @@ class TestIssueSubIssueStore:
     def test_survives_pipeline_state_reset(self):
         """Sub-issue mappings should persist after remove_pipeline_state()."""
         from src.services.workflow_orchestrator import (
-            _pipeline_states,
             get_issue_sub_issues,
             remove_pipeline_state,
             set_issue_sub_issues,
             set_pipeline_state,
         )
 
-        _pipeline_states.clear()
+        clear_all_caches()
 
         mappings = {
             "speckit.specify": {"number": 100, "node_id": "I_100", "url": ""},
@@ -3058,7 +3056,7 @@ class TestIssueSubIssueStore:
         assert result["speckit.specify"]["number"] == 100
         assert result["speckit.plan"]["number"] == 101
 
-        _pipeline_states.clear()
+        clear_all_caches()
 
 
 class TestAssignAgentUsesGlobalSubIssueStore:
@@ -3071,18 +3069,12 @@ class TestAssignAgentUsesGlobalSubIssueStore:
             _pending_agent_assignments,
             _recovery_last_attempt,
         )
-        from src.services.workflow_orchestrator import (
-            _issue_sub_issue_map,
-            _pipeline_states,
-        )
 
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
         yield
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
 
@@ -3195,17 +3187,12 @@ class TestOnTheFlySubIssueCreation:
             _pending_agent_assignments,
             _recovery_last_attempt,
         )
-        from src.services.workflow_orchestrator import (
-            _issue_sub_issue_map,
-        )
 
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
         yield
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
         _pending_agent_assignments.clear()
         _recovery_last_attempt.clear()
 
