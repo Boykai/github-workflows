@@ -65,20 +65,15 @@ export function usePendingAgentsList(projectId: string | null | undefined) {
 export function useCreateAgent(projectId: string | null | undefined) {
   const queryClient = useQueryClient();
   return useMutation<AgentCreateResult, ApiError, AgentCreate, {
-    snapshot: AgentConfig[] | undefined;
-    queryKey: readonly string[];
-    paginatedSnapshot: InfiniteData<PaginatedResponse<AgentConfig>> | undefined;
-    paginatedQueryKey: string[];
+    pendingSnapshot: AgentConfig[] | undefined;
+    pendingKey: readonly string[];
   } | undefined>({
     mutationFn: (data) => agentsApi.create(projectId!, data),
     onMutate: async (data: AgentCreate) => {
       if (!projectId) return;
-      const queryKey = agentKeys.list(projectId);
-      const paginatedQueryKey = [...agentKeys.list(projectId), 'paginated'];
-      await queryClient.cancelQueries({ queryKey });
-      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
-      const snapshot = queryClient.getQueryData<AgentConfig[]>(queryKey);
-      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<AgentConfig>>>(paginatedQueryKey);
+      const pendingKey = agentKeys.pending(projectId);
+      await queryClient.cancelQueries({ queryKey: pendingKey });
+      const pendingSnapshot = queryClient.getQueryData<AgentConfig[]>(pendingKey);
 
       const now = new Date().toISOString();
       const placeholder = {
@@ -101,39 +96,26 @@ export function useCreateAgent(projectId: string | null | undefined) {
         _optimistic: true,
       } satisfies AgentConfig & { _optimistic: boolean };
 
-      if (snapshot) {
-        queryClient.setQueryData<AgentConfig[]>(queryKey, [placeholder, ...snapshot]);
-      }
+      queryClient.setQueryData<AgentConfig[]>(pendingKey, [
+        placeholder,
+        ...(pendingSnapshot ?? []),
+      ]);
 
-      if (paginatedSnapshot?.pages?.length) {
-        queryClient.setQueryData<InfiniteData<PaginatedResponse<AgentConfig>>>(paginatedQueryKey, {
-          ...paginatedSnapshot,
-          pages: paginatedSnapshot.pages.map((page, index) =>
-            index === 0
-              ? { ...page, items: [placeholder, ...page.items] }
-              : page
-          ),
-        });
-      }
-
-      return { snapshot, queryKey, paginatedSnapshot, paginatedQueryKey };
+      return { pendingSnapshot, pendingKey };
     },
     onSuccess: () => {
       if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
       toast.success('Agent created');
     },
     onError: (error, _variables, context) => {
-      if (context?.snapshot && context.queryKey) {
-        queryClient.setQueryData(context.queryKey, context.snapshot);
-      }
-      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
-        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
+      if (context?.pendingSnapshot !== undefined && context.pendingKey) {
+        queryClient.setQueryData(context.pendingKey, context.pendingSnapshot);
       }
       toast.error(error.message || 'Failed to create agent', { duration: Infinity });
     },
     onSettled: () => {
       if (projectId) {
-        queryClient.invalidateQueries({ queryKey: agentKeys.list(projectId) });
+        queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
       }
     },
   });

@@ -210,4 +210,82 @@ describe('useToolsList', () => {
     expect(queryClient.getQueryData(listKey)).toEqual(listSnapshot);
     expect(queryClient.getQueryData(paginatedKey)).toEqual(paginatedSnapshot);
   });
+
+  it('optimistically prepends to the flat cache on tool upload', async () => {
+    const existingTools = { tools: [{ id: 'tool-1', name: 'Existing' }], count: 1 };
+    mockToolsApi.list.mockResolvedValue(existingTools);
+    mockToolsApi.create.mockImplementation(() => new Promise(() => {}));
+
+    const { queryClient, wrapper } = createWrapper();
+
+    const { result } = renderHook(() => useToolsList('proj-1'), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const listKey = toolKeys.list('proj-1');
+
+    act(() => {
+      result.current.uploadTool({ name: 'New Tool', description: 'desc' } as never);
+    });
+
+    await waitFor(() => {
+      const cache = queryClient.getQueryData<{ tools: unknown[]; count: number }>(listKey);
+      expect(cache!.tools).toHaveLength(2);
+      expect((cache!.tools[0] as Record<string, unknown>).name).toBe('New Tool');
+      expect((cache!.tools[0] as Record<string, unknown>)._optimistic).toBe(true);
+      expect(cache!.count).toBe(2);
+    });
+  });
+
+  it('restores flat cache on tool upload error', async () => {
+    const existingTools = { tools: [{ id: 'tool-1', name: 'Existing' }], count: 1 };
+    mockToolsApi.list.mockResolvedValue(existingTools);
+    mockToolsApi.create.mockRejectedValue(new Error('Upload failed'));
+
+    const { queryClient, wrapper } = createWrapper();
+
+    const { result } = renderHook(() => useToolsList('proj-1'), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const listKey = toolKeys.list('proj-1');
+
+    await act(async () => {
+      try {
+        await result.current.uploadTool({ name: 'Fail Tool', description: 'fail' } as never);
+      } catch {
+        // expected
+      }
+    });
+
+    expect(queryClient.getQueryData(listKey)).toEqual(existingTools);
+    expect(sonnerMocks.toast.error).toHaveBeenCalled();
+  });
+
+  it('updates count on optimistic tool delete', async () => {
+    const existingTools = {
+      tools: [
+        { id: 'tool-1', name: 'Tool 1' },
+        { id: 'tool-2', name: 'Tool 2' },
+      ],
+      count: 2,
+    };
+    mockToolsApi.list.mockResolvedValue(existingTools);
+    mockToolsApi.delete.mockImplementation(() => new Promise(() => {}));
+
+    const { queryClient, wrapper } = createWrapper();
+
+    const { result } = renderHook(() => useToolsList('proj-1'), { wrapper });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    const listKey = toolKeys.list('proj-1');
+
+    act(() => {
+      result.current.deleteTool({ toolId: 'tool-1', confirm: true } as never);
+    });
+
+    await waitFor(() => {
+      const cache = queryClient.getQueryData<{ tools: unknown[]; count: number }>(listKey);
+      expect(cache!.tools).toHaveLength(1);
+      expect(cache!.count).toBe(1);
+    });
+  });
 });
