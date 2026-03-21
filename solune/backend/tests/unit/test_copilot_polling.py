@@ -54,7 +54,8 @@ from src.services.copilot_polling.state import (
     _copilot_review_first_detected,
     _copilot_review_requested_at,
 )
-from src.services.workflow_orchestrator import PipelineState, _issue_main_branches
+from src.services.pipeline_state_store import clear_all_caches, set_main_branch_l1, get_main_branch, has_main_branch
+from src.services.workflow_orchestrator import PipelineState
 from src.utils import utcnow
 
 
@@ -965,10 +966,10 @@ class TestPostAgentOutputsFromPr:
     def clear_cache(self):
         """Clear the posted agent outputs cache and main branch tracking between tests."""
         _posted_agent_outputs.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         yield
         _posted_agent_outputs.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
 
     @pytest.fixture
     def mock_task_backlog(self):
@@ -1329,7 +1330,7 @@ class TestPostAgentOutputsFromPr:
     ):
         """Subsequent agent should detect completion via fresh signals on the main PR."""
         # Set up: main branch already established (first agent completed)
-        _issue_main_branches[10] = {"branch": "copilot/feature", "pr_number": 5, "head_sha": "abc"}
+        set_main_branch_l1(10, {"branch": "copilot/feature", "pr_number": 5, "head_sha": "abc"})
 
         mock_config.return_value = MagicMock()
         mock_pipeline.return_value = PipelineState(
@@ -1388,7 +1389,7 @@ class TestPostAgentOutputsFromPr:
         mock_task_backlog,
     ):
         """Subsequent agent should NOT detect completion if no fresh signals on main PR."""
-        _issue_main_branches[10] = {"branch": "copilot/feature", "pr_number": 5, "head_sha": "abc"}
+        set_main_branch_l1(10, {"branch": "copilot/feature", "pr_number": 5, "head_sha": "abc"})
 
         mock_config.return_value = MagicMock()
         mock_pipeline.return_value = PipelineState(
@@ -1444,11 +1445,11 @@ class TestPostAgentOutputsFromPr:
           - Fix: check_copilot_pr_completion is now skipped for subsequent agents
         """
         # Main branch from speckit.specify (prior status) exists
-        _issue_main_branches[10] = {
+        set_main_branch_l1(10, {
             "branch": "copilot/feature",
             "pr_number": 5,
             "head_sha": "abc",
-        }
+        })
 
         mock_config.return_value = MagicMock()
         mock_pipeline.return_value = PipelineState(
@@ -2225,11 +2226,11 @@ class TestReconstructPipelineState:
     @pytest.fixture(autouse=True)
     def clear_pipeline_states(self):
         """Clear pipeline states between tests."""
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -2380,13 +2381,11 @@ class TestReconstructPipelineLinksParentIssue:
 
     @pytest.fixture(autouse=True)
     def clear_pipeline_states(self):
-        from src.services.workflow_orchestrator import _issue_main_branches, _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -2631,11 +2630,11 @@ class TestTransitionAfterPipelineComplete:
     @pytest.fixture(autouse=True)
     def clear_states(self):
         """Clear global states between tests."""
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -2791,11 +2790,11 @@ class TestAdvancePipeline:
     @pytest.fixture(autouse=True)
     def clear_states(self):
         """Clear global states between tests."""
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
@@ -6573,12 +6572,10 @@ class TestReconstructSubIssueMappings:
     @patch("src.services.copilot_polling.github_projects_service")
     async def test_persists_to_global_sub_issue_store(self, mock_service):
         """Reconstructed mappings should be persisted to the global sub-issue store."""
-        from src.services.workflow_orchestrator import (
-            _issue_sub_issue_map,
-            get_issue_sub_issues,
-        )
+        from src.services.pipeline_state_store import clear_all_caches
+        from src.services.workflow_orchestrator import get_issue_sub_issues
 
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
 
         mock_service.get_sub_issues = AsyncMock(
             return_value=[
@@ -6603,7 +6600,7 @@ class TestReconstructSubIssueMappings:
         assert global_subs["speckit.plan"]["number"] == 101
         assert global_subs["speckit.tasks"]["number"] == 102
 
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
 
 
 class TestAdvancePipelineClosesSubIssueFromGlobalStore:
@@ -6612,16 +6609,11 @@ class TestAdvancePipelineClosesSubIssueFromGlobalStore:
     @pytest.fixture(autouse=True)
     def clear_states(self):
         """Clear global states between tests."""
-        from src.services.workflow_orchestrator import (
-            _issue_sub_issue_map,
-            _pipeline_states,
-        )
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
@@ -6781,16 +6773,11 @@ class TestCloseCompletedSubIssuesSweep:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import (
-            _issue_sub_issue_map,
-            _pipeline_states,
-        )
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -7022,16 +7009,11 @@ class TestProcessPipelineCompletionClosesSubIssues:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import (
-            _issue_sub_issue_map,
-            _pipeline_states,
-        )
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
-        _issue_sub_issue_map.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch(
@@ -7120,11 +7102,11 @@ class TestProcessPipelineCompletionBatchTracking:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -7298,12 +7280,12 @@ class TestPipelineAdvancesAfterCopilotReview:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         _pending_agent_assignments.clear()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
         _pending_agent_assignments.clear()
 
     @pytest.mark.asyncio
@@ -7392,9 +7374,9 @@ class TestDiscoverMainPrForReview:
 
     @pytest.fixture(autouse=True)
     def _clear(self):
-        _issue_main_branches.clear()
+        clear_all_caches()
         yield
-        _issue_main_branches.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -7678,11 +7660,11 @@ class TestCheckCopilotReviewDone:
         """Ensure the confirmation-delay dict and main-branch cache are clean between tests."""
         _copilot_review_first_detected.clear()
         _copilot_review_requested_at.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         yield
         _copilot_review_first_detected.clear()
         _copilot_review_requested_at.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
@@ -8659,11 +8641,11 @@ class TestCopilotReviewAutoTriggerProtection:
     def _clear_review_detection_state(self):
         _copilot_review_first_detected.clear()
         _copilot_review_requested_at.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         yield
         _copilot_review_first_detected.clear()
         _copilot_review_requested_at.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.helpers._cp.github_projects_service")
@@ -9077,11 +9059,11 @@ class TestAdvancePipelineUsePipelineStatus:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
@@ -9182,12 +9164,12 @@ class TestCheckInReviewPipelineStatusMismatch:
     @pytest.fixture(autouse=True)
     def clear_states(self):
         from src.services.copilot_polling.state import _polling_state
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         old_err = _polling_state.errors_count
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
         _polling_state.errors_count = old_err
 
     @pytest.mark.asyncio
@@ -9276,13 +9258,13 @@ class TestCopilotReviewGroupedPipelineRace:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         _copilot_review_first_detected.clear()
         _copilot_review_requested_at.clear()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
         _copilot_review_first_detected.clear()
         _copilot_review_requested_at.clear()
 
@@ -9441,11 +9423,11 @@ class TestGetOrReconstructPipelineTrackingTable:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch(
@@ -9536,11 +9518,11 @@ class TestCopilotReviewChildPrFalsePositive:
     @pytest.fixture(autouse=True)
     def clear_caches(self):
         _posted_agent_outputs.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         _claimed_child_prs.clear()
         yield
         _posted_agent_outputs.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         _claimed_child_prs.clear()
 
     @pytest.fixture
@@ -9611,10 +9593,10 @@ class TestCopilotReviewChildPrFalsePositive:
         mock_service.check_copilot_finished_events = MagicMock(return_value=True)
 
         # Register main branch so the child-PR path would normally trigger
-        _issue_main_branches[1584] = {
+        set_main_branch_l1(1584, {
             "branch": "copilot/add-bronze-background-theme",
             "pr_number": 1593,
-        }
+        })
 
         await post_agent_outputs_from_pr(
             access_token="token",
@@ -9875,11 +9857,11 @@ class TestGetOrReconstructPipelineCurrentStatusOverride:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch(
@@ -10055,11 +10037,11 @@ class TestAgentOutputSkipsHumanStep0:
     @pytest.fixture(autouse=True)
     def clear_caches(self):
         _posted_agent_outputs.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         _claimed_child_prs.clear()
         yield
         _posted_agent_outputs.clear()
-        _issue_main_branches.clear()
+        clear_all_caches()
         _claimed_child_prs.clear()
 
     @pytest.mark.asyncio
@@ -10093,10 +10075,10 @@ class TestAgentOutputSkipsHumanStep0:
         )
 
         # A merged child PR exists (stale PR from a previous agent)
-        _issue_main_branches[1655] = {
+        set_main_branch_l1(1655, {
             "branch": "copilot/audit-refactor-fastapi-react",
             "pr_number": 1664,
-        }
+        })
         mock_service.get_linked_pull_requests = AsyncMock(
             return_value=[
                 {"number": 1664, "state": "OPEN"},
@@ -10251,11 +10233,11 @@ class TestGetOrReconstructPipelineLaterStatus:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch(
@@ -10399,11 +10381,11 @@ class TestSelfHealTrackingTable:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.pipeline._cp.github_projects_service")
@@ -10611,11 +10593,11 @@ class TestGetOrReconstructPipelineSelfHeal:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch(
@@ -10963,13 +10945,13 @@ class TestProcessPipelineCompletionFirstAgent:
 
     @pytest.fixture(autouse=True)
     def _clear(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
         _pending_agent_assignments.clear()
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
         _pending_agent_assignments.clear()
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.get_workflow_orchestrator")
@@ -11175,11 +11157,11 @@ class TestAdvancePipelineUsesOriginalStatus:
 
     @pytest.fixture(autouse=True)
     def clear_states(self):
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling._update_issue_tracking", new_callable=AsyncMock)
@@ -11327,13 +11309,13 @@ class TestProcessPipelineCompletionUsesOriginalStatus:
             _pending_agent_assignments,
             _polling_state,
         )
-        from src.services.workflow_orchestrator import _pipeline_states
+        from src.services.pipeline_state_store import clear_all_caches
 
-        _pipeline_states.clear()
+        clear_all_caches()
         _pending_agent_assignments.clear()
         old_err = _polling_state.errors_count
         yield
-        _pipeline_states.clear()
+        clear_all_caches()
         _pending_agent_assignments.clear()
         _polling_state.errors_count = old_err
 
