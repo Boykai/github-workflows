@@ -499,3 +499,101 @@ class TestReconstructSubIssueMappings:
 
             result = await _reconstruct_sub_issue_mappings("tok", "o", "r", 10)
         assert result == {}
+
+
+class TestCheckCopilotReviewDonePipelineGuard:
+    """_check_copilot_review_done() — pipeline-position guard."""
+
+    async def test_returns_false_when_pipeline_agent_is_not_copilot_review(self):
+        """When pipeline.current_agent != 'copilot-review', return False without API calls."""
+        mock_gps = MagicMock()
+        pipeline = SimpleNamespace(current_agent="speckit.implement")
+
+        with _base_patches(mock_gps):
+            from src.services.copilot_polling.helpers import _check_copilot_review_done
+
+            result = await _check_copilot_review_done(
+                "tok", "o", "r", 10, pipeline=pipeline
+            )
+
+        assert result is False
+        # No API calls should have been made — the guard short-circuited
+        mock_gps.get_issue_with_comments.assert_not_called()
+
+    async def test_proceeds_when_pipeline_agent_is_copilot_review(self):
+        """When pipeline.current_agent == 'copilot-review', proceed normally."""
+        mock_gps = MagicMock()
+        mock_gps.get_issue_with_comments = AsyncMock(
+            return_value={"body": "", "comments": []}
+        )
+        pipeline = SimpleNamespace(current_agent="copilot-review")
+
+        with _base_patches(mock_gps):
+            with patch(
+                "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                from src.services.copilot_polling.helpers import _check_copilot_review_done
+
+                result = await _check_copilot_review_done(
+                    "tok", "o", "r", 10, pipeline=pipeline
+                )
+
+        assert result is False
+        # API calls SHOULD have been made — the guard did not short-circuit
+        mock_gps.get_issue_with_comments.assert_awaited_once()
+
+    async def test_proceeds_when_no_pipeline_provided(self):
+        """When pipeline is None (backward compat), proceed normally."""
+        mock_gps = MagicMock()
+        mock_gps.get_issue_with_comments = AsyncMock(
+            return_value={"body": "", "comments": []}
+        )
+
+        with _base_patches(mock_gps):
+            with patch(
+                "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+                new_callable=AsyncMock,
+                return_value=None,
+            ):
+                from src.services.copilot_polling.helpers import _check_copilot_review_done
+
+                result = await _check_copilot_review_done("tok", "o", "r", 10)
+
+        assert result is False
+        mock_gps.get_issue_with_comments.assert_awaited_once()
+
+
+class TestCheckAgentDonePassesPipeline:
+    """_check_agent_done_on_sub_or_parent() passes pipeline to _check_copilot_review_done."""
+
+    async def test_passes_pipeline_to_copilot_review_handler(self):
+        mock_gps = MagicMock()
+        pipeline = SimpleNamespace(
+            current_agent="speckit.implement",
+            agent_sub_issues=None,
+        )
+
+        with _base_patches(mock_gps):
+            with patch(
+                "src.services.copilot_polling.helpers._check_copilot_review_done",
+                new_callable=AsyncMock,
+                return_value=False,
+            ) as mock_cr:
+                from src.services.copilot_polling.helpers import (
+                    _check_agent_done_on_sub_or_parent,
+                )
+
+                result = await _check_agent_done_on_sub_or_parent(
+                    "tok", "o", "r", 10, "copilot-review", pipeline=pipeline
+                )
+
+        assert result is False
+        mock_cr.assert_awaited_once_with(
+            access_token="tok",
+            owner="o",
+            repo="r",
+            parent_issue_number=10,
+            pipeline=pipeline,
+        )

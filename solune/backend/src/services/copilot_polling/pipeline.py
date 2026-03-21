@@ -412,6 +412,17 @@ async def _get_or_reconstruct_pipeline(
                     # than the board's current status.  Determine whether
                     # it's EARLIER or LATER by checking whether any step
                     # for the requested status is still incomplete.
+                    #
+                    # Key scenario this guard protects against:
+                    #   The board says "In Review" (due to a webhook firing
+                    #   when a Copilot PR becomes ready) but speckit.implement
+                    #   or another "In Progress" agent is still pending.
+                    #   Without this check, the pipeline would be
+                    #   reconstructed for "In Review" with current_agent
+                    #   set to "copilot-review", falsely marking it as the
+                    #   active step.  Instead, we detect the mismatch and
+                    #   reconstruct for the earlier status so pending
+                    #   agents aren't silently skipped.
                     has_incomplete_for_requested = any(
                         s
                         for s in steps
@@ -2345,6 +2356,19 @@ async def check_in_review_issues(
                         len(pipeline.agents),
                         effective_from_status,
                         effective_to_status,
+                    )
+                elif pipeline.current_agent and pipeline.current_agent != "copilot-review":
+                    # Pipeline status matches "In Review" but the current
+                    # agent is NOT copilot-review.  Log a warning so we
+                    # can diagnose false-completion scenarios.  The
+                    # innermost guard in _check_copilot_review_done() will
+                    # also short-circuit, but this log aids debugging.
+                    logger.warning(
+                        "Pipeline-position guard: issue #%d is 'In Review' but "
+                        "current agent is '%s', not 'copilot-review' — "
+                        "_process_pipeline_completion will handle the correct agent",
+                        task.issue_number,
+                        pipeline.current_agent,
                     )
             else:
                 # No cached pipeline or it's complete — get or reconstruct
