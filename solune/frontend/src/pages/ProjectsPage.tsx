@@ -3,7 +3,7 @@
  * Migrated from ProjectBoardPage with page header, toolbar, and enhanced cards.
  */
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
@@ -60,6 +60,18 @@ export function ProjectsPage() {
     onProjectSelect: selectProject,
   });
 
+  // Stable ref for the board-refresh resetTimer callback so that
+  // useRealTimeSync can be called before useBoardRefresh without a stale
+  // closure.  The ref is updated after useBoardRefresh returns.
+  const resetTimerRef = useRef<() => void>(() => {});
+  const stableResetTimer = useCallback(() => resetTimerRef.current(), []);
+
+  const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId, {
+    onRefreshTriggered: stableResetTimer,
+  });
+
+  const isWebSocketConnected = syncStatus === 'connected';
+
   const {
     refresh,
     isRefreshing,
@@ -67,11 +79,12 @@ export function ProjectsPage() {
     rateLimitInfo,
     isRateLimitLow,
     resetTimer,
-  } = useBoardRefresh({ projectId: selectedProjectId, boardData });
+  } = useBoardRefresh({ projectId: selectedProjectId, boardData, isWebSocketConnected });
 
-  const { status: syncStatus, lastUpdate: syncLastUpdate } = useRealTimeSync(selectedProjectId, {
-    onRefreshTriggered: resetTimer,
-  });
+  // Keep the ref in sync so stableResetTimer always calls the latest resetTimer.
+  useEffect(() => {
+    resetTimerRef.current = resetTimer;
+  }, [resetTimer]);
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
 
@@ -229,31 +242,46 @@ export function ProjectsPage() {
     refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
 
   // Publish rate limit state to global context so TopBar can display it on any page.
+  // Memoize the state object to avoid triggering consumer rerenders when values
+  // have not actually changed (T025).
+  const rateLimitState = useMemo(
+    () => ({ info: effectiveRateLimitInfo ?? null, hasError: hasActiveRateLimitError }),
+    [effectiveRateLimitInfo, hasActiveRateLimitError],
+  );
   useEffect(() => {
-    updateRateLimit({ info: effectiveRateLimitInfo ?? null, hasError: hasActiveRateLimitError });
-  }, [effectiveRateLimitInfo, hasActiveRateLimitError, updateRateLimit]);
+    updateRateLimit(rateLimitState);
+  }, [rateLimitState, updateRateLimit]);
 
   const rateLimitRetryAfter =
     refreshError?.retryAfter ??
     (effectiveRateLimitInfo ? new Date(effectiveRateLimitInfo.reset_at * 1000) : undefined);
   const showRateLimitBanner =
     refreshRateLimitError || boardRateLimitError || projectsRateLimitError;
-  const syncStatusLabel =
-    syncStatus === 'connected'
-      ? 'Live sync'
-      : syncStatus === 'polling'
-        ? 'Polling'
-        : syncStatus === 'connecting'
-          ? 'Connecting'
-          : 'Offline';
-  const syncStatusToneClass =
-    syncStatus === 'connected'
-      ? 'bg-[hsl(var(--sync-connected))]'
-      : syncStatus === 'polling'
-        ? 'bg-[hsl(var(--sync-polling))]'
-        : syncStatus === 'connecting'
-          ? 'bg-[hsl(var(--sync-connecting))]'
-          : 'bg-[hsl(var(--sync-disconnected))]';
+
+  // Memoize sync status labels to prevent re-computation on unrelated
+  // state changes (T025).
+  const syncStatusLabel = useMemo(
+    () =>
+      syncStatus === 'connected'
+        ? 'Live sync'
+        : syncStatus === 'polling'
+          ? 'Polling'
+          : syncStatus === 'connecting'
+            ? 'Connecting'
+            : 'Offline',
+    [syncStatus],
+  );
+  const syncStatusToneClass = useMemo(
+    () =>
+      syncStatus === 'connected'
+        ? 'bg-[hsl(var(--sync-connected))]'
+        : syncStatus === 'polling'
+          ? 'bg-[hsl(var(--sync-polling))]'
+          : syncStatus === 'connecting'
+            ? 'bg-[hsl(var(--sync-connecting))]'
+            : 'bg-[hsl(var(--sync-disconnected))]',
+    [syncStatus],
+  );
 
   return (
     <div className="projects-page-shell celestial-fade-in flex h-full flex-col gap-5 overflow-visible rounded-[1.75rem] border border-border/70 bg-background/35 p-4 backdrop-blur-sm sm:p-6">

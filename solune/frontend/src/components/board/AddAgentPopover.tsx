@@ -9,7 +9,7 @@ import { TriangleAlert } from 'lucide-react';
  * dismissal, and Escape-key handling.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AvailableAgent, AgentAssignment } from '@/types';
@@ -60,18 +60,25 @@ export function AddAgentPopover({
     [status, onAddAgent, handleOpenChange]
   );
 
-  const filteredAgents = availableAgents.filter((a) => {
-    if (!filter) return true;
-    const lower = filter.toLowerCase();
-    return (
-      a.slug.toLowerCase().includes(lower) ||
-      a.display_name.toLowerCase().includes(lower) ||
-      (a.description?.toLowerCase().includes(lower) ?? false)
-    );
-  });
+  const filteredAgents = useMemo(
+    () =>
+      availableAgents.filter((a) => {
+        if (!filter) return true;
+        const lower = filter.toLowerCase();
+        return (
+          a.slug.toLowerCase().includes(lower) ||
+          a.display_name.toLowerCase().includes(lower) ||
+          (a.description?.toLowerCase().includes(lower) ?? false)
+        );
+      }),
+    [availableAgents, filter],
+  );
 
-  // Count how many times each slug is already assigned
-  const assignedSlugs = new Set(assignedAgents.map((a) => a.slug));
+  // Memoize assigned slug set to avoid re-creating on every render (T024).
+  const assignedSlugs = useMemo(
+    () => new Set(assignedAgents.map((a) => a.slug)),
+    [assignedAgents],
+  );
 
   return (
     <Popover open={isOpen} onOpenChange={handleOpenChange}>
