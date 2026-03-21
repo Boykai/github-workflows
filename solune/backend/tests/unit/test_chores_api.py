@@ -226,23 +226,35 @@ class TestListChoresFilteredPagination:
     async def test_combined_filters(self, client, mock_db):
         """GET with status+schedule_type+search returns intersection of all filters."""
         await _insert_chore(
-            mock_db, name="Deploy Active Time", status="active",
-            schedule_type="time", schedule_value=7,
+            mock_db,
+            name="Deploy Active Time",
+            status="active",
+            schedule_type="time",
+            schedule_value=7,
             template_path=".github/deploy.md",
         )
         await _insert_chore(
-            mock_db, name="Deploy Paused Time", status="paused",
-            schedule_type="time", schedule_value=7,
+            mock_db,
+            name="Deploy Paused Time",
+            status="paused",
+            schedule_type="time",
+            schedule_value=7,
             template_path=".github/deploy2.md",
         )
         await _insert_chore(
-            mock_db, name="Deploy Active Count", status="active",
-            schedule_type="count", schedule_value=5,
+            mock_db,
+            name="Deploy Active Count",
+            status="active",
+            schedule_type="count",
+            schedule_value=5,
             template_path=".github/deploy3.md",
         )
         await _insert_chore(
-            mock_db, name="Bug Bash", status="active",
-            schedule_type="time", schedule_value=7,
+            mock_db,
+            name="Bug Bash",
+            status="active",
+            schedule_type="time",
+            schedule_value=7,
         )
 
         resp = await client.get(
@@ -258,7 +270,9 @@ class TestListChoresFilteredPagination:
         """Cursor pagination respects active filters on subsequent pages."""
         for i in range(5):
             await _insert_chore(
-                mock_db, name=f"Active {i:02d}", status="active",
+                mock_db,
+                name=f"Active {i:02d}",
+                status="active",
             )
         for i in range(3):
             await _insert_chore(mock_db, name=f"Paused {i}", status="paused")
@@ -331,8 +345,11 @@ class TestListChoresFilteredPagination:
         await _insert_chore(mock_db, name="Paused", status="paused")
         # Score 2: normal (active + has schedule)
         await _insert_chore(
-            mock_db, name="Normal", status="active",
-            schedule_type="time", schedule_value=7,
+            mock_db,
+            name="Normal",
+            status="active",
+            schedule_type="time",
+            schedule_value=7,
         )
 
         resp = await client.get("/api/v1/chores/PVT_1?limit=25&sort=attention&order=asc")

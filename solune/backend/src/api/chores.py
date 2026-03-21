@@ -185,9 +185,7 @@ async def list_chores(
         Literal["name", "updated_at", "created_at", "attention"] | None,
         Query(description="Sort field"),
     ] = None,
-    order: Annotated[
-        Literal["asc", "desc"] | None, Query(description="Sort order")
-    ] = None,
+    order: Annotated[Literal["asc", "desc"] | None, Query(description="Sort order")] = None,
 ) -> list[Chore] | dict:
     """List all chores for a project."""
     await resolve_repository(session.access_token, project_id)
@@ -202,15 +200,17 @@ async def list_chores(
         if schedule_type == "unscheduled":
             chores = [c for c in chores if c.schedule_type is None]
         else:
-            chores = [c for c in chores if c.schedule_type is not None and c.schedule_type == schedule_type]
+            chores = [
+                c
+                for c in chores
+                if c.schedule_type is not None and c.schedule_type == schedule_type
+            ]
 
     if search is not None:
         query = search.strip().lower()
         if query:
             chores = [
-                c
-                for c in chores
-                if query in c.name.lower() or query in c.template_path.lower()
+                c for c in chores if query in c.name.lower() or query in c.template_path.lower()
             ]
 
     # ── Server-side sorting ──
