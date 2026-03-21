@@ -1,0 +1,112 @@
+# Internal Guards Contract: Fix Premature Copilot Review Completion
+
+**Feature**: `055-fix-copilot-review-completion` | **Date**: 2026-03-21
+
+## Overview
+
+This feature has no external API changes. All changes are internal guard logic added to existing functions. This contract documents the internal function signatures and behavior changes.
+
+## Guard 1: _check_copilot_review_done() Pipeline Guard
+
+### Before (current signature)
+
+```python
+async def _check_copilot_review_done(
+    access_token: str,
+    owner: str,
+    repo: str,
+    parent_issue_number: int,
+) -> bool:
+```
+
+### After (new signature)
+
+```python
+async def _check_copilot_review_done(
+    access_token: str,
+    owner: str,
+    repo: str,
+    parent_issue_number: int,
+    pipeline: "object | None" = None,
+) -> bool:
+```
+
+### Behavior Change
+
+- When `pipeline` is `None`: **No change** — existing behavior preserved
+- When `pipeline` is provided and `pipeline.current_agent == "copilot-review"`: **No change** — existing behavior preserved
+- When `pipeline` is provided and `pipeline.current_agent != "copilot-review"`: **NEW** — returns `False` immediately with warning log, zero API calls
+
+## Guard 2: _check_agent_done_on_sub_or_parent() Pipeline Pass-Through
+
+### Before (current call)
+
+```python
+# Line ~195 in helpers.py
+return await _check_copilot_review_done(
+    access_token=access_token,
+    owner=owner,
+    repo=repo,
+    parent_issue_number=parent_issue_number,
+)
+```
+
+### After (new call)
+
+```python
+return await _check_copilot_review_done(
+    access_token=access_token,
+    owner=owner,
+    repo=repo,
+    parent_issue_number=parent_issue_number,
+    pipeline=pipeline,
+)
+```
+
+## Guard 3: update_issue_status_for_copilot_pr() Webhook Guard
+
+### Before (current behavior)
+
+Always calls `update_item_status_by_name("In Review")` when issue is found in a project.
+
+### After (new behavior)
+
+- If pipeline cached for `issue_number` and `pipeline.current_agent != "copilot-review"`: **Skip** status move, return:
+  ```json
+  {
+    "status": "skipped",
+    "event": "copilot_pr_ready",
+    "pr_number": "<pr_number>",
+    "issue_number": "<issue_number>",
+    "reason": "pipeline_agent_not_copilot_review",
+    "current_agent": "<pipeline.current_agent>",
+    "message": "Skipped moving issue #<N> to 'In Review': pipeline current agent is '<agent>', not 'copilot-review'"
+  }
+  ```
+- If no pipeline cached: **No change** — proceeds with status move (backward compat)
+- If pipeline cached and `pipeline.current_agent == "copilot-review"`: **No change** — proceeds with status move
+
+## Durable Timestamp: SQLite Schema
+
+### Migration: 033_copilot_review_requests.sql
+
+```sql
+CREATE TABLE IF NOT EXISTS copilot_review_requests (
+    issue_number INTEGER PRIMARY KEY,
+    requested_at TEXT NOT NULL,
+    project_id TEXT
+);
+```
+
+### Write Contract
+
+**Function**: `_record_copilot_review_request_timestamp()`
+**Trigger**: When Solune explicitly requests a Copilot code review
+**Behavior**: INSERT OR REPLACE into `copilot_review_requests` with current UTC timestamp
+
+### Read Contract
+
+**Function**: `_check_copilot_review_done()`
+**Trigger**: When in-memory `_copilot_review_requested_at` returns `None` for the issue
+**Behavior**: SELECT `requested_at` FROM `copilot_review_requests` WHERE `issue_number = ?`
+**Recovery**: If found, cache in `_copilot_review_requested_at` for subsequent fast access
