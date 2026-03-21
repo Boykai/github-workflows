@@ -29,6 +29,14 @@ vi.mock('@/constants', () => ({
   STALE_TIME_PROJECTS: 0,
 }));
 
+vi.mock('sonner', () => ({
+  toast: Object.assign(vi.fn(), {
+    success: vi.fn(),
+    error: vi.fn(),
+    dismiss: vi.fn(),
+  }),
+}));
+
 import * as api from '@/services/api';
 import {
   useAgentsList,
@@ -39,6 +47,7 @@ import {
   useClearPendingAgents,
   useAgentChat,
   useBulkUpdateModels,
+  agentKeys,
 } from './useAgents';
 
 const mockAgentsApi = api.agentsApi as unknown as {
@@ -135,6 +144,78 @@ describe('useCreateAgent', () => {
       name: 'New Agent',
       description: 'Desc',
     });
+  });
+
+  it('optimistically prepends to the pending cache on mutate', async () => {
+    mockAgentsApi.create.mockImplementation(() => new Promise(() => {}));
+    const { queryClient, wrapper } = createWrapper();
+    const pendingKey = agentKeys.pending('proj-1');
+    const existingPending = [{ id: 'agent-existing', name: 'Existing' }];
+    queryClient.setQueryData(pendingKey, existingPending);
+
+    const { result } = renderHook(() => useCreateAgent('proj-1'), { wrapper });
+
+    act(() => {
+      result.current.mutate({
+        name: 'New Agent',
+        system_prompt: 'prompt',
+      } as never);
+    });
+
+    await waitFor(() => {
+      const cache = queryClient.getQueryData<unknown[]>(pendingKey);
+      expect(cache).toHaveLength(2);
+      expect((cache![0] as Record<string, unknown>).name).toBe('New Agent');
+      expect((cache![0] as Record<string, unknown>)._optimistic).toBe(true);
+    });
+  });
+
+  it('restores pending cache on error', async () => {
+    mockAgentsApi.create.mockRejectedValue(new Error('Boom'));
+    const { queryClient, wrapper } = createWrapper();
+    const pendingKey = agentKeys.pending('proj-1');
+    const existingPending = [{ id: 'agent-existing', name: 'Existing' }];
+    queryClient.setQueryData(pendingKey, existingPending);
+
+    const { result } = renderHook(() => useCreateAgent('proj-1'), { wrapper });
+
+    await act(async () => {
+      try {
+        await result.current.mutateAsync({
+          name: 'New Agent',
+          system_prompt: 'prompt',
+        } as never);
+      } catch {
+        // expected
+      }
+    });
+
+    const cache = queryClient.getQueryData<unknown[]>(pendingKey);
+    expect(cache).toEqual(existingPending);
+  });
+
+  it('clears optimistic placeholder on error when pending cache was empty', async () => {
+    mockAgentsApi.create.mockRejectedValue(new Error('Boom'));
+    const { queryClient, wrapper } = createWrapper();
+    const pendingKey = agentKeys.pending('proj-1');
+    // Do NOT seed the pending cache — it starts as undefined
+
+    const { result } = renderHook(() => useCreateAgent('proj-1'), { wrapper });
+
+    await act(async () => {
+      try {
+        await result.current.mutateAsync({
+          name: 'Ghost Agent',
+          system_prompt: 'prompt',
+        } as never);
+      } catch {
+        // expected
+      }
+    });
+
+    // Cache should be restored to undefined (no data), not left with the optimistic placeholder
+    const cache = queryClient.getQueryData<unknown[]>(pendingKey);
+    expect(cache).toBeUndefined();
   });
 });
 

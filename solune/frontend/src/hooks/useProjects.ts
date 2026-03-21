@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { projectsApi, tasksApi } from '@/services/api';
 import type { ApiError } from '@/services/api';
 import { STALE_TIME_MEDIUM, STALE_TIME_PROJECTS } from '@/constants';
-import type { Project, Task } from '@/types';
+import type { Project, ProjectListResponse, Task } from '@/types';
 import type { CreateProjectRequest, CreateProjectResponse } from '@/types/apps';
 
 interface UseProjectsReturn {
@@ -93,14 +93,49 @@ export function useProjects(selectedProjectId?: string | null): UseProjectsRetur
 /** Create a standalone GitHub Project V2. */
 export function useCreateProject() {
   const queryClient = useQueryClient();
-  return useMutation<CreateProjectResponse, ApiError, CreateProjectRequest>({
+  return useMutation<CreateProjectResponse, ApiError, CreateProjectRequest, {
+    snapshot: ProjectListResponse;
+    queryKey: readonly string[];
+  } | undefined>({
     mutationFn: (data) => projectsApi.create(data),
+    onMutate: async (data: CreateProjectRequest) => {
+      const queryKey = ['projects'] as const;
+      await queryClient.cancelQueries({ queryKey });
+      const snapshot = queryClient.getQueryData<ProjectListResponse>(queryKey);
+      if (!snapshot) return;
+
+      const now = new Date().toISOString();
+      const placeholder = {
+        project_id: `temp-${Date.now()}`,
+        owner_id: '',
+        owner_login: data.owner,
+        name: data.title,
+        type: 'organization' as const,
+        url: '',
+        description: '',
+        status_columns: [],
+        item_count: 0,
+        cached_at: now,
+        _optimistic: true,
+      } satisfies Project & { _optimistic: boolean };
+
+      queryClient.setQueryData<ProjectListResponse>(queryKey, {
+        ...snapshot,
+        projects: [placeholder, ...snapshot.projects],
+      });
+      return { snapshot, queryKey };
+    },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Project created');
     },
-    onError: (error) => {
+    onError: (error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
       toast.error(error instanceof Error ? error.message : 'Failed to create project', { duration: Infinity });
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
     },
   });
 }

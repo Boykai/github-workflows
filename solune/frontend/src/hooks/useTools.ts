@@ -2,8 +2,9 @@
  * useTools — TanStack Query hooks for MCP tool CRUD operations.
  */
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { toolsApi, ApiError } from '@/services/api';
 import { repoMcpKeys } from '@/hooks/useRepoMcpConfig';
 import { agentKeys } from '@/hooks/useAgents';
@@ -48,12 +49,78 @@ export function useToolsList(projectId: string | null | undefined) {
     enabled: !!projectId,
   });
 
-  const uploadMutation = useMutation<McpToolConfig, ApiError, McpToolConfigCreate>({
+  const uploadMutation = useMutation<McpToolConfig, ApiError, McpToolConfigCreate, {
+    snapshot: McpToolConfigListResponse | undefined;
+    queryKey: readonly string[];
+    paginatedSnapshot: InfiniteData<PaginatedResponse<McpToolConfig>> | undefined;
+    paginatedQueryKey: string[];
+  } | undefined>({
     mutationFn: (data) => toolsApi.create(projectId!, data),
+    onMutate: async (data: McpToolConfigCreate) => {
+      if (!projectId) return;
+      const queryKey = toolKeys.list(projectId);
+      const paginatedQueryKey = [...toolKeys.list(projectId), 'paginated'];
+      await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
+      const snapshot = queryClient.getQueryData<McpToolConfigListResponse>(queryKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<McpToolConfig>>>(paginatedQueryKey);
+
+      const now = new Date().toISOString();
+      const placeholder = {
+        id: `temp-${Date.now()}`,
+        name: data.name,
+        description: data.description ?? '',
+        endpoint_url: '',
+        config_content: data.config_content ?? '',
+        sync_status: 'pending' as McpToolConfig['sync_status'],
+        sync_error: '',
+        synced_at: null,
+        github_repo_target: data.github_repo_target ?? '',
+        is_active: true,
+        created_at: now,
+        updated_at: now,
+        _optimistic: true,
+      } satisfies McpToolConfig & { _optimistic: boolean };
+
+      if (snapshot) {
+        queryClient.setQueryData<McpToolConfigListResponse>(queryKey, {
+          ...snapshot,
+          tools: [placeholder, ...snapshot.tools],
+          count: (snapshot.count ?? snapshot.tools.length) + 1,
+        });
+      }
+
+      if (paginatedSnapshot?.pages?.length) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<McpToolConfig>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page, index) =>
+            index === 0
+              ? { ...page, items: [placeholder, ...page.items] }
+              : page
+          ),
+        });
+      }
+
+      return { snapshot, queryKey, paginatedSnapshot, paginatedQueryKey };
+    },
     onSuccess: () => {
       if (projectId) {
-        queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
         queryClient.invalidateQueries({ queryKey: repoMcpKeys.detail(projectId) });
+      }
+      toast.success('Tool uploaded');
+    },
+    onError: (error, _variables, context) => {
+      if (context?.snapshot && context.queryKey) {
+        queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
+      }
+      toast.error(error.message || 'Failed to upload tool', { duration: Infinity });
+    },
+    onSettled: () => {
+      if (projectId) {
+        queryClient.invalidateQueries({ queryKey: toolKeys.list(projectId) });
       }
     },
   });
@@ -96,18 +163,35 @@ export function useToolsList(projectId: string | null | undefined) {
     onMutate: async ({ toolId, confirm }: { toolId: string; confirm?: boolean }) => {
       if (!projectId || confirm === false) return;
       const queryKey = toolKeys.list(projectId);
+      const paginatedQueryKey = [...toolKeys.list(projectId), 'paginated'];
       await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const snapshot = queryClient.getQueryData<McpToolConfigListResponse>(queryKey);
-      if (!snapshot) return;
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<McpToolConfig>>>(paginatedQueryKey);
 
-      queryClient.setQueryData<McpToolConfigListResponse>(queryKey, (old) => {
-        if (!old) return old;
-        return {
-          ...old,
-          tools: old.tools.filter((tool) => tool.id !== toolId),
-        };
-      });
-      return { snapshot, queryKey };
+      if (snapshot) {
+        queryClient.setQueryData<McpToolConfigListResponse>(queryKey, (old) => {
+          if (!old) return old;
+          const filteredTools = old.tools.filter((tool) => tool.id !== toolId);
+          return {
+            ...old,
+            tools: filteredTools,
+            count: filteredTools.length,
+          };
+        });
+      }
+
+      if (paginatedSnapshot?.pages) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<McpToolConfig>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((item) => item.id !== toolId),
+          })),
+        });
+      }
+
+      return { snapshot, queryKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: (result) => {
       if (result.success && projectId) {
@@ -118,6 +202,9 @@ export function useToolsList(projectId: string | null | undefined) {
     onError: (_error, _variables, context) => {
       if (context?.snapshot && context.queryKey) {
         queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
     },
     onSettled: () => {
