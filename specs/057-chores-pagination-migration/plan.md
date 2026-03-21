@@ -1,104 +1,112 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: ChoresPanel Pagination Migration
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `057-chores-pagination-migration` | **Date**: 2026-03-21 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/057-chores-pagination-migration/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Migrate ChoresPanel from client-side filtering/sorting with full data fetch to server-side filtering/sorting with cursor-based infinite scroll pagination. ChoresPanel is the only remaining unpaginated list — Agents, Tools, Apps, Activity, and Board panels already use `useInfiniteList` + `InfiniteScrollContainer`. The existing pagination infrastructure (`apply_pagination`, `useInfiniteList`, `InfiniteScrollContainer`, `ChoresGrid` pagination props) is fully built; the work is wiring ChoresPanel to use it and adding server-side filter/sort query parameters to the backend endpoint.
+
+The key complication is that ChoresPanel currently does client-side filtering (search, status, schedule type) and sorting. Switching to paginated data requires moving all filters and sorting server-side — client-side filtering on paginated data would only filter loaded pages, missing items on later pages.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.13 (backend), TypeScript 5.x (frontend)
+**Primary Dependencies**: FastAPI + aiosqlite (backend), React 18 + TanStack Query v5 + Vite (frontend)
+**Storage**: SQLite via aiosqlite
+**Testing**: pytest (backend), Vitest (frontend)
+**Target Platform**: Linux server (backend), modern browsers (frontend)
+**Project Type**: web (backend + frontend monorepo under `solune/`)
+**Performance Goals**: Initial chore load <2s, page transitions <1s, no perceptible delay on filter change
+**Constraints**: Maintain behavioral parity with existing paginated panels (Agents, Tools, Apps, Activity, Board); default page size of 25
+**Scale/Scope**: Single panel migration affecting 6 files across backend and frontend
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### I. Specification-First Development — ✅ PASS
+- Feature spec (`spec.md`) includes 5 prioritized user stories (P1–P3) with Given-When-Then acceptance scenarios
+- Each story has independent testing criteria
+- Edge cases identified (rapid scrolling, zero results, fast typing, server errors, concurrent mutations, combined filters)
+
+### II. Template-Driven Workflow — ✅ PASS
+- Spec follows canonical spec-template.md
+- This plan follows plan-template.md
+- All artifacts will be generated in the standard `specs/057-chores-pagination-migration/` directory
+
+### III. Agent-Orchestrated Execution — ✅ PASS
+- `speckit.specify` produced the spec → `speckit.plan` produces this plan → `speckit.tasks` will produce tasks.md
+- Clear single-responsibility handoffs between phases
+
+### IV. Test Optionality with Clarity — ✅ PASS
+- Tests are explicitly requested in the feature spec: pytest tests for backend filter combos + cursor behavior, Vitest tests for frontend hook with filter params in query key
+- Tests will follow Red-Green-Refactor ordering in tasks phase
+
+### V. Simplicity and DRY — ✅ PASS
+- No new abstractions introduced — reuses existing `apply_pagination`, `useInfiniteList`, `InfiniteScrollContainer`
+- Server-side filtering uses standard SQL WHERE clauses added to existing query
+- Frontend changes swap one hook call for another and remove client-side logic (net code reduction)
+- No premature abstraction — filter params are passed directly, not through a generic filter framework
+
+### Post-Design Re-check — ✅ PASS
+- All five principles remain satisfied after Phase 1 design
+- No complexity violations requiring justification
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/057-chores-pagination-migration/
+├── plan.md              # This file
+├── research.md          # Phase 0 output — technical decisions and rationale
+├── data-model.md        # Phase 1 output — entity definitions and relationships
+├── quickstart.md        # Phase 1 output — implementation guide
+├── contracts/           # Phase 1 output — API contracts
+│   └── chores-list-paginated.yaml   # OpenAPI contract for filtered paginated endpoint
+└── tasks.md             # Phase 2 output (/speckit.tasks command — NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+solune/
+├── backend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── chores.py              # Add filter/sort query params to GET /{project_id}
+│   │   ├── models/
+│   │   │   └── chores.py              # Existing Chore model (no changes needed)
+│   │   └── services/
+│   │       ├── chores/
+│   │       │   └── service.py         # Existing list_chores (no changes needed — filtering in API layer)
+│   │       └── pagination.py          # Existing apply_pagination (no changes needed)
+│   └── tests/
+│       └── unit/
+│           └── api/
+│               └── test_chores.py     # Add tests for filter param combos + cursor behavior
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── chores/
+│   │   │       ├── ChoresPanel.tsx    # Swap to useChoresListPaginated, remove client-side filter useMemo
+│   │   │       ├── ChoresGrid.tsx     # No changes (already supports pagination props)
+│   │   │       └── ChoresToolbar.tsx  # No changes (filter UI stays the same)
+│   │   ├── hooks/
+│   │   │   ├── useChores.ts           # Update useChoresListPaginated to accept filter params
+│   │   │   └── useInfiniteList.ts     # No changes (generic hook)
+│   │   └── services/
+│   │       └── api.ts                 # Update choresApi.listPaginated to accept filter params
+│   └── tests/
+│       └── hooks/
+│           └── useChores.test.ts      # Update tests for filter params in query key
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application layout (`solune/backend/` + `solune/frontend/`). All changes are modifications to existing files — no new source files created. The migration touches 4 source files (backend `chores.py` API, frontend `api.ts`, `useChores.ts`, `ChoresPanel.tsx`) and 2 test files.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations — no entries needed.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+_No complexity violations. The implementation reuses 100% of existing infrastructure (`apply_pagination`, `useInfiniteList`, `InfiniteScrollContainer`, `ChoresGrid` pagination props). The only new code is SQL WHERE clauses for filtering and query parameter forwarding through the existing hook/API chain._
