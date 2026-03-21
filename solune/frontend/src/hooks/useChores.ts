@@ -34,6 +34,10 @@ export const choreKeys = {
 
 // ── List Hook ──
 
+/**
+ * @deprecated Use `useChoresListPaginated` instead for paginated, server-side
+ * filtered/sorted results. Retained for legacy callers (e.g. useCommandPalette).
+ */
 export function useChoresList(projectId: string | null | undefined) {
   return useQuery<Chore[]>({
     queryKey: choreKeys.list(projectId ?? ''),
