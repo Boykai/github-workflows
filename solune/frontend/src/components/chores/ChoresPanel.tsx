@@ -62,6 +62,7 @@ export function ChoresPanel({
     allItems: chores,
     isLoading,
     error,
+    refetch,
     hasNextPage,
     isFetchingNextPage,
     fetchNextPage,
@@ -208,7 +209,7 @@ export function ChoresPanel({
               ? 'Too many requests. Please wait a moment and try again.'
               : `${error.message}. Check your connection and retry.`}
           </p>
-          <Button variant="outline" size="sm" onClick={() => fetchNextPage()}>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
             Retry
           </Button>
         </div>
