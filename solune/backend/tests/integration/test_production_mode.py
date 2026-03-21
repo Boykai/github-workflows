@@ -38,7 +38,7 @@ class TestProductionConfig:
             patch.dict("os.environ", env, clear=True),
             pytest.raises(ValueError, match="ENCRYPTION_KEY is required"),
         ):
-            Settings()  # type: ignore[call-arg]
+            Settings(_env_file=None)
 
     def test_production_rejects_short_session_key(self) -> None:
         """Production mode rejects session keys shorter than 64 chars."""
@@ -47,7 +47,7 @@ class TestProductionConfig:
             patch.dict("os.environ", env, clear=True),
             pytest.raises(ValueError, match="SESSION_SECRET_KEY must be at least 64"),
         ):
-            Settings()  # type: ignore[call-arg]
+            Settings(_env_file=None)
 
     def test_production_requires_admin_user_id(self) -> None:
         """Production mode requires ADMIN_GITHUB_USER_ID."""
@@ -56,7 +56,7 @@ class TestProductionConfig:
             patch.dict("os.environ", env, clear=True),
             pytest.raises(ValueError, match="ADMIN_GITHUB_USER_ID is required"),
         ):
-            Settings()  # type: ignore[call-arg]
+            Settings(_env_file=None)
 
     def test_production_requires_cookie_secure(self) -> None:
         """Production mode requires secure cookies."""
@@ -65,12 +65,12 @@ class TestProductionConfig:
             patch.dict("os.environ", env, clear=True),
             pytest.raises(ValueError, match="Secure flag"),
         ):
-            Settings()  # type: ignore[call-arg]
+            Settings(_env_file=None)
 
     def test_valid_production_config_succeeds(self) -> None:
         """A fully-specified production config loads without error."""
         with patch.dict("os.environ", _PRODUCTION_BASE, clear=True):
-            settings = Settings()  # type: ignore[call-arg]
+            settings = Settings(_env_file=None)
             assert settings.debug is False
             assert settings.encryption_key is not None
 
@@ -83,5 +83,5 @@ class TestProductionConfig:
             "DEBUG": "true",
         }
         with patch.dict("os.environ", env, clear=True):
-            settings = Settings()  # type: ignore[call-arg]
+            settings = Settings(_env_file=None)
             assert settings.debug is True

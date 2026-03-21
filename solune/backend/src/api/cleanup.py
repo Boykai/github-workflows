@@ -27,7 +27,7 @@ router = APIRouter()
 async def cleanup_preflight(
     request: CleanupPreflightRequest,
     session: Annotated[UserSession, Depends(get_session_dep)],
-    github_service=Depends(get_github_service),  # noqa: B008
+    github_service=Depends(get_github_service),
 ) -> CleanupPreflightResponse:
     """Perform a preflight check: fetch branches, PRs, and project board issues.
 
@@ -54,8 +54,8 @@ async def cleanup_preflight(
 async def cleanup_execute(
     request: CleanupExecuteRequest,
     session: Annotated[UserSession, Depends(get_session_dep)],
-    github_service=Depends(get_github_service),  # noqa: B008
-    db=Depends(get_database),  # noqa: B008
+    github_service=Depends(get_github_service),
+    db=Depends(get_database),
 ) -> CleanupExecuteResponse:
     """Execute the cleanup operation: delete branches, close PRs, and delete orphaned issues.
 
@@ -122,7 +122,7 @@ async def cleanup_history(
     owner: Annotated[str, Query(description="Repository owner")],
     repo: Annotated[str, Query(description="Repository name")],
     limit: Annotated[int, Query(description="Max results", ge=1, le=50)] = 10,
-    db=Depends(get_database),  # noqa: B008
+    db=Depends(get_database),
 ) -> CleanupHistoryResponse:
     """Retrieve audit trail of past cleanup operations."""
     try:

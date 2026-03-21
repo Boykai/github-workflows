@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Iterator
 from pathlib import Path
 from unittest.mock import patch
 
@@ -16,10 +17,10 @@ from src.services.template_files import (
 
 
 @pytest.fixture(autouse=True)
-def _clear_cache() -> None:
+def _clear_cache() -> Iterator[None]:
     """Ensure template cache is cleared before each test."""
     clear_template_cache()
-    yield  # type: ignore[misc]
+    yield
     clear_template_cache()
 
 

@@ -2,7 +2,7 @@
  * UploadMcpModal — modal dialog for uploading/pasting MCP configuration JSON.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { McpToolConfig, McpToolConfigCreate, McpToolConfigUpdate } from '@/types';
 
 interface UploadMcpModalProps {
@@ -92,6 +92,8 @@ export function UploadMcpModal({
   initialDraft = null,
 }: UploadMcpModalProps) {
   const [name, setName] = useState('');
+  const nameRef = useRef(name);
+  nameRef.current = name;
   const [description, setDescription] = useState('');
   const [configContent, setConfigContent] = useState('');
   const [githubRepoTarget, setGithubRepoTarget] = useState('');
@@ -167,7 +169,7 @@ export function UploadMcpModal({
 
   // Auto-populate name from mcpServers key when name is empty
   useEffect(() => {
-    if (name.trim()) return; // Don't overwrite user-entered names
+    if (nameRef.current.trim()) return; // Don't overwrite user-entered names
     if (!configContent.trim()) {
       setMultiServerWarning(null);
       return;
@@ -198,7 +200,6 @@ export function UploadMcpModal({
     } catch {
       setMultiServerWarning(null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [configContent]);
 
   if (!isOpen) return null;

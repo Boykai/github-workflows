@@ -383,10 +383,7 @@ export function ChatInterface({
 
   // Clear validation error when tokens change
   useEffect(() => {
-    if (mentionValidationError) {
-      setMentionValidationError(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setMentionValidationError(null);
   }, [mention.mentionTokens]);
 
   // Listen for global Ctrl+K focus-chat event

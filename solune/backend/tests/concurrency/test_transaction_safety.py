@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, patch
 
 import aiosqlite
 import pytest
@@ -32,9 +32,8 @@ async def test_set_pipeline_state_skips_l1_update_when_sqlite_execute_fails(mock
             raise aiosqlite.OperationalError("simulated write failure")
         return await original_execute(*args, **kwargs)
 
-    mock_db.execute = failing_execute  # type: ignore[method-assign]
-
-    await pipeline_state_store.set_pipeline_state(issue_number, state)
+    with patch.object(mock_db, "execute", side_effect=failing_execute):
+        await pipeline_state_store.set_pipeline_state(issue_number, state)
 
     assert pipeline_state_store.get_pipeline_state(issue_number) is None
 
@@ -53,9 +52,8 @@ async def test_set_pipeline_state_skips_l1_update_when_commit_is_cancelled(mock_
         started_at=datetime.now(UTC),
     )
 
-    mock_db.commit = AsyncMock(side_effect=asyncio.CancelledError())  # type: ignore[method-assign]
-
-    with pytest.raises(asyncio.CancelledError):
-        await pipeline_state_store.set_pipeline_state(issue_number, state)
+    with patch.object(mock_db, "commit", new=AsyncMock(side_effect=asyncio.CancelledError())):
+        with pytest.raises(asyncio.CancelledError):
+            await pipeline_state_store.set_pipeline_state(issue_number, state)
 
     assert pipeline_state_store.get_pipeline_state(issue_number) is None

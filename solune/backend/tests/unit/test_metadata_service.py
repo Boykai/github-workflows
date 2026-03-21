@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, datetime
+from typing import cast
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -28,6 +29,11 @@ class _SpyCache:
         return self.data.pop(key, None) is not None
 
 
+def _spy(svc: MetadataService) -> _SpyCache:
+    """Return the L1 cache as its concrete _SpyCache type."""
+    return cast(_SpyCache, svc._l1)
+
+
 @pytest.fixture
 def metadata_service():
     cache = _SpyCache()
@@ -48,7 +54,7 @@ class TestGetOrFetch:
             labels=[{"name": "bug"}],
             fetched_at="2026-03-16T12:00:00+00:00",
         )
-        metadata_service._l1.data["metadata:owner/repo"] = ctx.model_dump()  # type: ignore[attr-defined]
+        _spy(metadata_service).data["metadata:owner/repo"] = ctx.model_dump()
 
         with (
             patch.object(metadata_service, "_is_stale", return_value=False),
@@ -86,7 +92,7 @@ class TestGetOrFetch:
         assert result.is_stale is False
         read_sqlite.assert_awaited_once_with("owner/repo")
         fetch.assert_not_awaited()
-        assert metadata_service._l1.set_calls[0][0] == "metadata:owner/repo"  # type: ignore[attr-defined]
+        assert _spy(metadata_service).set_calls[0][0] == "metadata:owner/repo"
 
     @pytest.mark.asyncio
     async def test_falls_back_to_stale_sqlite_when_fetch_fails(
@@ -199,7 +205,7 @@ class TestFetchMetadata:
         ]
         assert fetch_paginated.await_count == 4
         write_sqlite.assert_awaited_once()
-        assert metadata_service._l1.set_calls[-1][0] == "metadata:owner/repo"  # type: ignore[attr-defined]
+        assert _spy(metadata_service).set_calls[-1][0] == "metadata:owner/repo"
 
     @pytest.mark.asyncio
     async def test_skips_sqlite_write_when_one_fetch_is_incomplete(
@@ -240,13 +246,13 @@ class TestFetchMetadata:
             result = await metadata_service.fetch_metadata("token", "owner", "repo")
 
         assert result.source == "fresh"
-        assert metadata_service._l1.set_calls[-1][0] == "metadata:owner/repo"  # type: ignore[attr-defined]
+        assert _spy(metadata_service).set_calls[-1][0] == "metadata:owner/repo"
 
 
 class TestGetMetadata:
     @pytest.mark.asyncio
     async def test_returns_l1_cached_metadata(self, metadata_service: MetadataService):
-        metadata_service._l1.data["metadata:owner/repo"] = {  # type: ignore[attr-defined]
+        _spy(metadata_service).data["metadata:owner/repo"] = {
             "repo_key": "owner/repo",
             "labels": [{"name": "bug"}],
             "branches": [],
@@ -281,7 +287,7 @@ class TestGetMetadata:
         assert result is not None
         assert result.source == "cache"
         assert result.is_stale is True
-        assert metadata_service._l1.set_calls[-1][0] == "metadata:owner/repo"  # type: ignore[attr-defined]
+        assert _spy(metadata_service).set_calls[-1][0] == "metadata:owner/repo"
 
     @pytest.mark.asyncio
     async def test_returns_none_when_sqlite_read_fails(self, metadata_service: MetadataService):
@@ -476,7 +482,7 @@ class TestSqliteHelpers:
             await metadata_service._write_to_sqlite(ctx)
             await metadata_service.invalidate("owner", "repo")
 
-        assert metadata_service._l1.deleted == ["metadata:owner/repo"]  # type: ignore[attr-defined]
+        assert _spy(metadata_service).deleted == ["metadata:owner/repo"]
         rows = await mock_db.execute_fetchall(
             "SELECT repo_key, field_type, value FROM github_metadata_cache WHERE repo_key = ?",
             ("owner/repo",),
@@ -508,7 +514,7 @@ class TestSqliteHelpers:
         with patch("src.services.database.get_db", return_value=failing_db):
             await metadata_service.invalidate("owner", "repo")
 
-        assert metadata_service._l1.deleted == ["metadata:owner/repo"]  # type: ignore[attr-defined]
+        assert _spy(metadata_service).deleted == ["metadata:owner/repo"]
 
 
 class TestMiscHelpers:

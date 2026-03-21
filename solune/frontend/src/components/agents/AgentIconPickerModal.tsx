@@ -56,13 +56,15 @@ export function AgentIconPickerModal({
       onClick={onClose}
     >
       <div className="flex min-h-full items-start justify-center overflow-y-auto p-4 sm:p-6">
-        {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
         <div
           className="celestial-panel celestial-fade-in relative my-4 flex max-h-[min(92vh,56rem)] w-full max-w-4xl flex-col overflow-hidden rounded-[1.5rem] border border-border/80 p-6 shadow-xl"
           role="dialog"
           aria-modal="true"
           aria-label={`Choose an icon for ${agentName}`}
           onClick={(event) => event.stopPropagation()}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') onClose();
+          }}
         >
           <div className="flex items-start justify-between gap-4">
             <div>

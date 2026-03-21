@@ -56,8 +56,7 @@ def _make_main_branch_info(**overrides) -> MainBranchInfo:
         "pr_number": 42,
         "head_sha": "deadbeef",
     }
-    defaults.update(overrides)  # type: ignore[typeddict-item]
-    return defaults
+    return {**defaults, **overrides}
 
 
 # ── Schema helper ────────────────────────────────────────────────

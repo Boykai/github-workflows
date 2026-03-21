@@ -1077,8 +1077,8 @@ async def confirm_proposal(
     proposal_id: str,
     request: ProposalConfirmRequest | None,
     session: Annotated[UserSession, Depends(get_session_dep)],
-    github_projects_service=Depends(get_github_service),  # noqa: B008
-    connection_manager=Depends(get_connection_manager),  # noqa: B008
+    github_projects_service=Depends(get_github_service),
+    connection_manager=Depends(get_connection_manager),
 ) -> AITaskProposal:
     """Confirm an AI task proposal and create the task."""
     proposal = await get_proposal(proposal_id)
@@ -1450,8 +1450,8 @@ async def cancel_proposal(
 
 @router.post("/upload", response_model=FileUploadResponse)
 async def upload_file(
-    file: UploadFile = File(...),  # noqa: B008
-    session: UserSession = Depends(get_session_dep),  # noqa: B008
+    file: UploadFile = File(...),
+    session: UserSession = Depends(get_session_dep),
 ) -> FileUploadResponse | JSONResponse:
     """Upload a file for attachment to a future GitHub Issue.
 

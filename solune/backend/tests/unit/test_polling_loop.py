@@ -35,7 +35,7 @@ class TestPollStep:
 
         step = PollStep(name="test", execute=noop)
         try:
-            step.name = "other"  # type: ignore[misc]
+            step.name = "other"  # type: ignore[misc]  # intentional mutation of frozen dataclass for test verification
             raise AssertionError("Expected FrozenInstanceError")
         except AttributeError:
             pass

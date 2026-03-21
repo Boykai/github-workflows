@@ -33,7 +33,7 @@ class TestCommentScanResult:
     def test_frozen(self):
         result = CommentScanResult(has_done_marker=True)
         try:
-            result.has_done_marker = False  # type: ignore[misc]
+            result.has_done_marker = False  # type: ignore[misc]  # intentional mutation of frozen dataclass for test verification
             raise AssertionError("Expected FrozenInstanceError")
         except AttributeError:
             pass

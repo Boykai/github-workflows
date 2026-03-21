@@ -421,10 +421,12 @@ export function AgentPresetSelector({
           }}
           role="presentation"
         >
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
           <div
             className="celestial-panel flex w-full max-w-md flex-col gap-4 rounded-[1.2rem] border border-border p-6 shadow-lg"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') handleCancel();
+            }}
             role="dialog"
             aria-modal="true"
             aria-label="Confirm preset"
@@ -469,10 +471,12 @@ export function AgentPresetSelector({
           }}
           role="presentation"
         >
-          {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
           <div
             className="celestial-panel flex w-full max-w-md flex-col gap-4 rounded-[1.2rem] border border-border p-6 shadow-lg"
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') handleCancel();
+            }}
             role="dialog"
             aria-modal="true"
             aria-label="Confirm pipeline configuration"

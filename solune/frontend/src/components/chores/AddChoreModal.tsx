@@ -7,7 +7,7 @@ import { ScrollText, X } from 'lucide-react';
  * Pipeline selector, sparse vs. rich input detection, and double-confirmation flow.
  */
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { useCreateChoreWithAutoMerge, useChoreTemplates } from '@/hooks/useChores';
 import { ChoreChatFlow } from './ChoreChatFlow';
@@ -87,8 +87,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
     };
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, onClose]);
+  }, [isOpen, onClose, resetAndClose]);
 
   if (!isOpen) return null;
 
@@ -116,7 +115,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
     }
   };
 
-  const resetAndClose = () => {
+  const resetAndClose = useCallback(() => {
     setName('');
     setTemplateContent('');
     setError(null);
@@ -127,7 +126,7 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
     setShowConfirm(false);
     setPendingContent('');
     onClose();
-  };
+  }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

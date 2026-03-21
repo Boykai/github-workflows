@@ -68,7 +68,7 @@ def _get_session_dep():
 
 async def require_admin(
     request: Request,
-    session=Depends(_get_session_dep()),  # noqa: B008
+    session=Depends(_get_session_dep()),
 ) -> UserSession:
     """Verify the current session belongs to the admin user.
 
@@ -181,7 +181,7 @@ async def require_admin(
 async def verify_project_access(
     request: Request,
     project_id: str,
-    session: UserSession = Depends(_get_session_dep()),  # noqa: B008
+    session: UserSession = Depends(_get_session_dep()),
 ) -> None:
     """Verify the authenticated user has access to *project_id*.
 

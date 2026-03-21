@@ -150,7 +150,7 @@ async def get_activity_feed(
     event_type: Annotated[
         str | None, Query(description="Comma-separated event type filter")
     ] = None,
-    db=Depends(get_database),  # noqa: B008
+    db=Depends(get_database),
 ) -> dict:
     """Paginated activity feed scoped to a project."""
     await verify_project_access(request, project_id, session)
@@ -172,7 +172,7 @@ async def get_entity_history(
     project_id: Annotated[str, Query(description="Project ID to scope entity history")],
     limit: Annotated[int, Query(ge=1, le=100)] = 50,
     cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
-    db=Depends(get_database),  # noqa: B008
+    db=Depends(get_database),
 ) -> dict:
     """Activity history for a specific entity."""
     if entity_type not in ALLOWED_ENTITY_TYPES:

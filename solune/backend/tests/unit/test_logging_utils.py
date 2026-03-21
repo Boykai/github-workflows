@@ -161,7 +161,7 @@ class TestStructuredJsonFormatter:
             args=(),
             exc_info=None,
         )
-        record.request_id = "abc123"  # type: ignore[attr-defined]
+        record.request_id = "abc123"  # type: ignore[attr-defined]  # dynamic attribute injection on LogRecord is standard Python logging pattern
         output = formatter.format(record)
         parsed = json.loads(output)
         assert parsed["level"] == "INFO"
@@ -181,7 +181,7 @@ class TestStructuredJsonFormatter:
             args=(),
             exc_info=None,
         )
-        record.request_id = ""  # type: ignore[attr-defined]
+        record.request_id = ""  # type: ignore[attr-defined]  # dynamic attribute injection on LogRecord is standard Python logging pattern
         output = formatter.format(record)
         parsed = json.loads(output)
         assert "ghp_secret" not in parsed["message"]
@@ -205,7 +205,7 @@ class TestStructuredJsonFormatter:
             args=(),
             exc_info=exc_info,
         )
-        record.request_id = ""  # type: ignore[attr-defined]
+        record.request_id = ""  # type: ignore[attr-defined]  # dynamic attribute injection on LogRecord is standard Python logging pattern
         output = formatter.format(record)
         parsed = json.loads(output)
         assert "exception" in parsed
@@ -236,7 +236,7 @@ class TestRequestIDFilter:
                 exc_info=None,
             )
             f.filter(record)
-            assert record.request_id == "test-request-123"  # type: ignore[attr-defined]
+            assert record.request_id == "test-request-123"  # type: ignore[attr-defined]  # dynamic attribute injection on LogRecord is standard Python logging pattern
         finally:
             request_id_var.reset(token)
 
@@ -252,7 +252,7 @@ class TestRequestIDFilter:
             exc_info=None,
         )
         f.filter(record)
-        assert record.request_id == ""  # type: ignore[attr-defined]
+        assert record.request_id == ""  # type: ignore[attr-defined]  # dynamic attribute injection on LogRecord is standard Python logging pattern
 
 
 # ---------------------------------------------------------------------------

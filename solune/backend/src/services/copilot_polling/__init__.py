@@ -104,7 +104,7 @@ from .pipeline import (
     check_ready_issues,
     process_in_progress_issue,
 )
-from .polling_loop import (  # noqa: F401
+from .polling_loop import (
     _check_rate_limit_budget,
     _pause_if_rate_limited,
     _poll_loop,
@@ -114,7 +114,7 @@ from .polling_loop import (  # noqa: F401
     stop_polling,
 )
 from .recovery import (
-    _validate_and_reconcile_tracking_table,  # noqa: F401
+    _validate_and_reconcile_tracking_table,
     recover_stalled_issues,
 )
 
@@ -123,7 +123,7 @@ from .recovery import (
 # brings every public name into THIS namespace so that existing
 # ``mock.patch("src.services.copilot_polling.<func>")`` targets still work.
 # ──────────────────────────────────────────────────────────────────────────────
-from .state import (  # noqa: F401
+from .state import (
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
     POST_ACTION_DELAY_SECONDS,
     RATE_LIMIT_PAUSE_THRESHOLD,
