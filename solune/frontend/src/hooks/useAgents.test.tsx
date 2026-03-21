@@ -193,6 +193,30 @@ describe('useCreateAgent', () => {
     const cache = queryClient.getQueryData<unknown[]>(pendingKey);
     expect(cache).toEqual(existingPending);
   });
+
+  it('clears optimistic placeholder on error when pending cache was empty', async () => {
+    mockAgentsApi.create.mockRejectedValue(new Error('Boom'));
+    const { queryClient, wrapper } = createWrapper();
+    const pendingKey = agentKeys.pending('proj-1');
+    // Do NOT seed the pending cache — it starts as undefined
+
+    const { result } = renderHook(() => useCreateAgent('proj-1'), { wrapper });
+
+    await act(async () => {
+      try {
+        await result.current.mutateAsync({
+          name: 'Ghost Agent',
+          system_prompt: 'prompt',
+        } as never);
+      } catch {
+        // expected
+      }
+    });
+
+    // Cache should be restored to undefined (no data), not left with the optimistic placeholder
+    const cache = queryClient.getQueryData<unknown[]>(pendingKey);
+    expect(cache).toBeUndefined();
+  });
 });
 
 describe('useUpdateAgent', () => {

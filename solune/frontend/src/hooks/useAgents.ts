@@ -104,12 +104,17 @@ export function useCreateAgent(projectId: string | null | undefined) {
       return { pendingSnapshot, pendingKey };
     },
     onSuccess: () => {
-      if (projectId) queryClient.invalidateQueries({ queryKey: agentKeys.pending(projectId) });
       toast.success('Agent created');
     },
     onError: (error, _variables, context) => {
-      if (context?.pendingSnapshot !== undefined && context.pendingKey) {
-        queryClient.setQueryData(context.pendingKey, context.pendingSnapshot);
+      if (context?.pendingKey) {
+        if (context.pendingSnapshot !== undefined) {
+          queryClient.setQueryData(context.pendingKey, context.pendingSnapshot);
+        } else {
+          // setQueryData(key, undefined) is a no-op in TanStack Query v5;
+          // removeQueries clears the optimistic entry when no cache existed before
+          queryClient.removeQueries({ queryKey: context.pendingKey });
+        }
       }
       toast.error(error.message || 'Failed to create agent', { duration: Infinity });
     },
