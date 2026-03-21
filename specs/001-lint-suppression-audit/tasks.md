@@ -184,7 +184,7 @@
 
 - [ ] T057 Run full backend verification: `cd solune/backend && ruff check src/ && python -m pyright src/ && python -m pytest tests/unit/ -x -q --timeout=30`
 - [ ] T058 Run full frontend verification: `cd solune/frontend && npx eslint . && npx tsc --noEmit && npx vitest run`
-- [ ] T059 Count total remaining suppressions across entire codebase and verify ≤58 (50% reduction from 115 baseline): `grep -rn "# type: ignore\|# noqa\|# pyright:" solune/backend/src/ solune/backend/tests/ | wc -l` and `grep -rn "eslint-disable\|@ts-expect-error" solune/frontend/src/ | wc -l`
+- [ ] T059 Count total remaining suppressions across entire codebase and verify ≤58 (50% reduction from 115 baseline): `grep -rEn "# type: ignore|# noqa|# pyright:" solune/backend/src/ solune/backend/tests/ | wc -l` and `grep -rEn "eslint-disable|@ts-expect-error" solune/frontend/src/ | wc -l`
 - [ ] T060 Verify 100% of retained suppressions have inline justification comments: scan all remaining suppression lines for accompanying comments
 - [ ] T061 Run quickstart.md validation commands to confirm all verification steps pass
 
