@@ -1104,5 +1104,47 @@ describe('useRealTimeSync', () => {
       setIntervalSpy.mockRestore();
       vi.useRealTimers();
     });
+
+    it('T021: polling fallback never invalidates board data query key', async () => {
+      vi.useFakeTimers();
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      renderHook(() => useRealTimeSync('PVT_123'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      // Force fallback to polling by simulating WS error
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateError();
+      });
+
+      invalidateSpy.mockClear();
+
+      // Let several polling ticks fire
+      await act(async () => {
+        vi.advanceTimersByTime(120_000); // 4 polling cycles
+      });
+
+      // Verify board data query is NEVER invalidated during polling
+      const boardDataCalls = invalidateSpy.mock.calls.filter(([opts]) => {
+        const key = (opts as { queryKey: unknown[] }).queryKey;
+        return Array.isArray(key) && key[0] === 'board' && key[1] === 'data';
+      });
+      expect(boardDataCalls).toHaveLength(0);
+
+      // Verify tasks query IS invalidated (polling should update tasks)
+      const tasksCalls = invalidateSpy.mock.calls.filter(([opts]) => {
+        const key = (opts as { queryKey: unknown[] }).queryKey;
+        return Array.isArray(key) && key[0] === 'projects';
+      });
+      expect(tasksCalls.length).toBeGreaterThan(0);
+
+      vi.useRealTimers();
+    });
   });
 });
