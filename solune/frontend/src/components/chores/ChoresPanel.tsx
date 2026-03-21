@@ -159,6 +159,8 @@ export function ChoresPanel({
   const pausedChores = chores.filter((chore) => chore.status === 'paused').length;
   const unscheduledChores = chores.filter((chore) => !chore.schedule_type).length;
   const isRateLimited = isRateLimitApiError(error);
+  const hasActiveFilters =
+    statusFilter !== 'all' || scheduleFilter !== 'all' || deferredSearch.trim() !== '';
 
   return (
     <div className="celestial-fade-in flex min-w-0 flex-col gap-6">
@@ -217,6 +219,7 @@ export function ChoresPanel({
 
       {!isLoading &&
         !error &&
+        !hasActiveFilters &&
         chores.length === 0 &&
         uncreatedTemplates.length === 0 && (
           <div className="celestial-panel flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-background/28 p-8 text-center">
@@ -249,7 +252,7 @@ export function ChoresPanel({
             onTemplateClick={handleTemplateClick}
           />
 
-          {chores.length > 0 && (
+          {(chores.length > 0 || hasActiveFilters) && (
             <section
               id="chores-catalog"
               className="ritual-stage scroll-mt-6 rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6"

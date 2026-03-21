@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, Query
 
@@ -23,11 +23,13 @@ from src.models.chores import (
     ChoreCreateWithConfirmation,
     ChoreInlineUpdate,
     ChoreInlineUpdateResponse,
+    ChoreStatus,
     ChoreTemplate,
     ChoreTriggerResult,
     ChoreUpdate,
     EvaluateChoreTriggersRequest,
     EvaluateChoreTriggersResponse,
+    ScheduleType,
     TriggerChoreRequest,
 )
 from src.models.user import UserSession
@@ -173,15 +175,19 @@ async def list_chores(
     session: Annotated[UserSession, Depends(get_session_dep)],
     limit: Annotated[int | None, Query(ge=1, le=100, description="Items per page")] = None,
     cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
-    status: Annotated[str | None, Query(description="Filter by status (active, paused)")] = None,
+    status: Annotated[ChoreStatus | None, Query(description="Filter by status")] = None,
     schedule_type: Annotated[
-        str | None, Query(description="Filter by schedule type (time, count, unscheduled)")
+        ScheduleType | Literal["unscheduled"] | None,
+        Query(description="Filter by schedule type"),
     ] = None,
     search: Annotated[str | None, Query(description="Search by name or template_path")] = None,
     sort: Annotated[
-        str | None, Query(description="Sort field (name, updated_at, created_at, attention)")
+        Literal["name", "updated_at", "created_at", "attention"] | None,
+        Query(description="Sort field"),
     ] = None,
-    order: Annotated[str | None, Query(description="Sort order (asc, desc)")] = None,
+    order: Annotated[
+        Literal["asc", "desc"] | None, Query(description="Sort order")
+    ] = None,
 ) -> list[Chore] | dict:
     """List all chores for a project."""
     service = _get_service()
