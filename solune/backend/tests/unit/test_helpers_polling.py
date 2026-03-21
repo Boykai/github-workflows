@@ -512,9 +512,7 @@ class TestCheckCopilotReviewDonePipelineGuard:
         with _base_patches(mock_gps):
             from src.services.copilot_polling.helpers import _check_copilot_review_done
 
-            result = await _check_copilot_review_done(
-                "tok", "o", "r", 10, pipeline=pipeline
-            )
+            result = await _check_copilot_review_done("tok", "o", "r", 10, pipeline=pipeline)
 
         assert result is False
         # No API calls should have been made — the guard short-circuited
@@ -523,9 +521,7 @@ class TestCheckCopilotReviewDonePipelineGuard:
     async def test_proceeds_when_pipeline_agent_is_copilot_review(self):
         """When pipeline.current_agent == 'copilot-review', proceed normally."""
         mock_gps = MagicMock()
-        mock_gps.get_issue_with_comments = AsyncMock(
-            return_value={"body": "", "comments": []}
-        )
+        mock_gps.get_issue_with_comments = AsyncMock(return_value={"body": "", "comments": []})
         pipeline = SimpleNamespace(current_agent="copilot-review")
 
         with _base_patches(mock_gps):
@@ -536,9 +532,7 @@ class TestCheckCopilotReviewDonePipelineGuard:
             ):
                 from src.services.copilot_polling.helpers import _check_copilot_review_done
 
-                result = await _check_copilot_review_done(
-                    "tok", "o", "r", 10, pipeline=pipeline
-                )
+                result = await _check_copilot_review_done("tok", "o", "r", 10, pipeline=pipeline)
 
         assert result is False
         # API calls SHOULD have been made — the guard did not short-circuit
@@ -547,9 +541,7 @@ class TestCheckCopilotReviewDonePipelineGuard:
     async def test_proceeds_when_no_pipeline_provided(self):
         """When pipeline is None (backward compat), proceed normally."""
         mock_gps = MagicMock()
-        mock_gps.get_issue_with_comments = AsyncMock(
-            return_value={"body": "", "comments": []}
-        )
+        mock_gps.get_issue_with_comments = AsyncMock(return_value={"body": "", "comments": []})
 
         with _base_patches(mock_gps):
             with patch(

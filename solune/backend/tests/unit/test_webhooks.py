@@ -463,14 +463,10 @@ class TestUpdateIssueStatusForCopilotPr:
         mock_gps.rest_request = AsyncMock(return_value=mock_resp)
         mock_project = MagicMock(project_id="proj-1")
         mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
-        mock_item = MagicMock(
-            github_item_id="5", title="Issue #5", issue_number=5
-        )
+        mock_item = MagicMock(github_item_id="5", title="Issue #5", issue_number=5)
         mock_gps.get_project_items = AsyncMock(return_value=[mock_item])
         # Pipeline says current agent is speckit.implement — NOT copilot-review
-        mock_get_pipeline.return_value = SimpleNamespace(
-            current_agent="speckit.implement"
-        )
+        mock_get_pipeline.return_value = SimpleNamespace(current_agent="speckit.implement")
 
         pr_data = {"number": 1, "body": "Fixes #5", "head": {"ref": "b"}}
         result = await update_issue_status_for_copilot_pr(pr_data, "o", "r", 1, "copilot")
@@ -494,14 +490,10 @@ class TestUpdateIssueStatusForCopilotPr:
         mock_gps.rest_request = AsyncMock(return_value=mock_resp)
         mock_project = MagicMock(project_id="proj-1")
         mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
-        mock_item = MagicMock(
-            github_item_id="5", title="Issue #5", issue_number=5
-        )
+        mock_item = MagicMock(github_item_id="5", title="Issue #5", issue_number=5)
         mock_gps.get_project_items = AsyncMock(return_value=[mock_item])
         mock_gps.update_item_status_by_name = AsyncMock(return_value=True)
-        mock_get_pipeline.return_value = SimpleNamespace(
-            current_agent="copilot-review"
-        )
+        mock_get_pipeline.return_value = SimpleNamespace(current_agent="copilot-review")
 
         pr_data = {"number": 1, "body": "Fixes #5", "head": {"ref": "b"}}
         result = await update_issue_status_for_copilot_pr(pr_data, "o", "r", 1, "copilot")
@@ -522,9 +514,7 @@ class TestUpdateIssueStatusForCopilotPr:
         mock_gps.rest_request = AsyncMock(return_value=mock_resp)
         mock_project = MagicMock(project_id="proj-1")
         mock_gps.list_user_projects = AsyncMock(return_value=[mock_project])
-        mock_item = MagicMock(
-            github_item_id="5", title="Issue #5", issue_number=5
-        )
+        mock_item = MagicMock(github_item_id="5", title="Issue #5", issue_number=5)
         mock_gps.get_project_items = AsyncMock(return_value=[mock_item])
         mock_gps.update_item_status_by_name = AsyncMock(return_value=True)
         mock_get_pipeline.return_value = None
