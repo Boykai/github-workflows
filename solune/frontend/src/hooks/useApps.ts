@@ -2,7 +2,7 @@
  * TanStack Query hooks for Solune application management.
  */
 
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ApiError, appsApi } from '@/services/api';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
@@ -14,6 +14,7 @@ import type {
   AppUpdate,
   Owner,
 } from '@/types/apps';
+import type { PaginatedResponse } from '@/types';
 
 /** Query key factory for apps data. */
 export const appKeys = {
@@ -86,8 +87,11 @@ export function useCreateApp() {
     mutationFn: (data: AppCreate) => appsApi.create(data),
     onMutate: async (data: AppCreate) => {
       const queryKey = appKeys.list();
+      const paginatedQueryKey = [...appKeys.list(), 'paginated'];
       await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const snapshot = queryClient.getQueryData<App[]>(queryKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey);
       if (!snapshot) return;
 
       const now = new Date().toISOString();
@@ -114,7 +118,19 @@ export function useCreateApp() {
       } satisfies App & { _optimistic: boolean };
 
       queryClient.setQueryData<App[]>(queryKey, [placeholder, ...snapshot]);
-      return { snapshot, queryKey };
+
+      if (paginatedSnapshot?.pages?.length) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page, index) =>
+            index === 0
+              ? { ...page, items: [placeholder, ...page.items] }
+              : page
+          ),
+        });
+      }
+
+      return { snapshot, queryKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: () => {
       toast.success('App created');
@@ -122,6 +138,9 @@ export function useCreateApp() {
     onError: (error, _variables, context) => {
       if (context?.snapshot && context.queryKey) {
         queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
       toast.error(getErrorMessage(error, 'Failed to create app'), { duration: Infinity });
     },
@@ -140,10 +159,13 @@ export function useUpdateApp(name: string) {
     onMutate: async (data: AppUpdate) => {
       const listKey = appKeys.list();
       const detailKey = appKeys.detail(name);
+      const paginatedQueryKey = [...appKeys.list(), 'paginated'];
       await queryClient.cancelQueries({ queryKey: listKey });
       await queryClient.cancelQueries({ queryKey: detailKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const listSnapshot = queryClient.getQueryData<App[]>(listKey);
       const detailSnapshot = queryClient.getQueryData<App>(detailKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey);
 
       if (listSnapshot) {
         queryClient.setQueryData<App[]>(listKey, (old) =>
@@ -158,7 +180,19 @@ export function useUpdateApp(name: string) {
         );
       }
 
-      return { listSnapshot, detailSnapshot, listKey, detailKey };
+      if (paginatedSnapshot?.pages) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page) => ({
+            ...page,
+            items: page.items.map((item) =>
+              item.name === name ? { ...item, ...data, updated_at: new Date().toISOString() } : item,
+            ),
+          })),
+        });
+      }
+
+      return { listSnapshot, detailSnapshot, listKey, detailKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: () => {
       toast.success('App updated');
@@ -169,6 +203,9 @@ export function useUpdateApp(name: string) {
       }
       if (context?.detailSnapshot) {
         queryClient.setQueryData(context.detailKey, context.detailSnapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
       toast.error(getErrorMessage(error, 'Failed to update app'), { duration: Infinity });
     },
@@ -187,14 +224,28 @@ export function useDeleteApp() {
     mutationFn: ({ appName, force }: { appName: string; force?: boolean }) => appsApi.delete(appName, force),
     onMutate: async ({ appName }: { appName: string; force?: boolean }) => {
       const queryKey = appKeys.list();
+      const paginatedQueryKey = [...appKeys.list(), 'paginated'];
       await queryClient.cancelQueries({ queryKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const snapshot = queryClient.getQueryData<App[]>(queryKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey);
       if (!snapshot) return;
 
       queryClient.setQueryData<App[]>(queryKey, (old) =>
         old?.filter((app) => app.name !== appName),
       );
-      return { snapshot, queryKey };
+
+      if (paginatedSnapshot?.pages) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page) => ({
+            ...page,
+            items: page.items.filter((item) => item.name !== appName),
+          })),
+        });
+      }
+
+      return { snapshot, queryKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: () => {
       toast.success('App deleted');
@@ -202,6 +253,9 @@ export function useDeleteApp() {
     onError: (error, _variables, context) => {
       if (context?.snapshot && context.queryKey) {
         queryClient.setQueryData(context.queryKey, context.snapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
       toast.error(getErrorMessage(error, 'Failed to delete app'), { duration: Infinity });
     },
@@ -247,10 +301,13 @@ export function useStartApp() {
     onMutate: async (appName: string) => {
       const listKey = appKeys.list();
       const detailKey = appKeys.detail(appName);
+      const paginatedQueryKey = [...appKeys.list(), 'paginated'];
       await queryClient.cancelQueries({ queryKey: listKey });
       await queryClient.cancelQueries({ queryKey: detailKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const listSnapshot = queryClient.getQueryData<App[]>(listKey);
       const detailSnapshot = queryClient.getQueryData<App>(detailKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey);
 
       if (listSnapshot) {
         queryClient.setQueryData<App[]>(listKey, (old) =>
@@ -265,7 +322,19 @@ export function useStartApp() {
         );
       }
 
-      return { listSnapshot, detailSnapshot, listKey, detailKey };
+      if (paginatedSnapshot?.pages) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page) => ({
+            ...page,
+            items: page.items.map((item) =>
+              item.name === appName ? { ...item, status: 'active' as const } : item,
+            ),
+          })),
+        });
+      }
+
+      return { listSnapshot, detailSnapshot, listKey, detailKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: (_data, appName) => {
       toast.success('App started');
@@ -277,6 +346,9 @@ export function useStartApp() {
       }
       if (context?.detailSnapshot) {
         queryClient.setQueryData(context.detailKey, context.detailSnapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
       toast.error(getErrorMessage(error, 'Failed to start app'), { duration: Infinity });
     },
@@ -295,10 +367,13 @@ export function useStopApp() {
     onMutate: async (appName: string) => {
       const listKey = appKeys.list();
       const detailKey = appKeys.detail(appName);
+      const paginatedQueryKey = [...appKeys.list(), 'paginated'];
       await queryClient.cancelQueries({ queryKey: listKey });
       await queryClient.cancelQueries({ queryKey: detailKey });
+      await queryClient.cancelQueries({ queryKey: paginatedQueryKey });
       const listSnapshot = queryClient.getQueryData<App[]>(listKey);
       const detailSnapshot = queryClient.getQueryData<App>(detailKey);
+      const paginatedSnapshot = queryClient.getQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey);
 
       if (listSnapshot) {
         queryClient.setQueryData<App[]>(listKey, (old) =>
@@ -313,7 +388,19 @@ export function useStopApp() {
         );
       }
 
-      return { listSnapshot, detailSnapshot, listKey, detailKey };
+      if (paginatedSnapshot?.pages) {
+        queryClient.setQueryData<InfiniteData<PaginatedResponse<App>>>(paginatedQueryKey, {
+          ...paginatedSnapshot,
+          pages: paginatedSnapshot.pages.map((page) => ({
+            ...page,
+            items: page.items.map((item) =>
+              item.name === appName ? { ...item, status: 'stopped' as const } : item,
+            ),
+          })),
+        });
+      }
+
+      return { listSnapshot, detailSnapshot, listKey, detailKey, paginatedSnapshot, paginatedQueryKey };
     },
     onSuccess: (_data, appName) => {
       toast.success('App stopped');
@@ -325,6 +412,9 @@ export function useStopApp() {
       }
       if (context?.detailSnapshot) {
         queryClient.setQueryData(context.detailKey, context.detailSnapshot);
+      }
+      if (context?.paginatedSnapshot && context.paginatedQueryKey) {
+        queryClient.setQueryData(context.paginatedQueryKey, context.paginatedSnapshot);
       }
       toast.error(getErrorMessage(error, 'Failed to stop app'), { duration: Infinity });
     },
