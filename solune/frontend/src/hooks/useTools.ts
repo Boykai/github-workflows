@@ -9,6 +9,7 @@ import { repoMcpKeys } from '@/hooks/useRepoMcpConfig';
 import { agentKeys } from '@/hooks/useAgents';
 import { isRateLimitApiError } from '@/utils/rateLimit';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
+import { useUndoableDelete } from '@/hooks/useUndoableDelete';
 import type {
   McpToolConfig,
   McpToolConfigCreate,
@@ -156,6 +157,29 @@ export function useToolsList(projectId: string | null | undefined) {
     deleteResult: deleteMutation.data ?? null,
 
     authError,
+  };
+}
+
+export function useUndoableDeleteTool(projectId: string | null | undefined) {
+  const { undoableDelete, pendingIds } = useUndoableDelete({
+    queryKeys: projectId
+      ? [toolKeys.list(projectId), [...toolKeys.list(projectId), 'paginated']]
+      : [],
+  });
+
+  return {
+    deleteTool: (toolId: string, toolName: string) =>
+      undoableDelete({
+        id: toolId,
+        entityLabel: `Tool: ${toolName}`,
+        onDelete: async () => {
+          const result = await toolsApi.delete(projectId!, toolId, true);
+          if (!result.success) {
+            throw new Error(`Failed to delete tool "${toolName}"`);
+          }
+        },
+      }),
+    pendingIds,
   };
 }
 

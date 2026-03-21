@@ -1,7 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
+
+const sonnerMocks = vi.hoisted(() => {
+  const toast = vi.fn();
+  return {
+    toast: Object.assign(toast, {
+      dismiss: vi.fn(),
+      error: vi.fn(),
+      success: vi.fn(),
+    }),
+  };
+});
 
 vi.mock('@/services/api', () => ({
   toolsApi: {
@@ -33,8 +44,12 @@ vi.mock('@/utils/rateLimit', () => ({
   isRateLimitApiError: vi.fn(() => false),
 }));
 
+vi.mock('sonner', () => ({
+  toast: sonnerMocks.toast,
+}));
+
 import * as api from '@/services/api';
-import { useToolsList } from './useTools';
+import { toolKeys, useToolsList, useUndoableDeleteTool } from './useTools';
 
 const mockToolsApi = api.toolsApi as unknown as {
   list: ReturnType<typeof vi.fn>;
@@ -48,9 +63,10 @@ function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return function Wrapper({ children }: { children: ReactNode }) {
+  const wrapper = function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
+  return { queryClient, wrapper };
 }
 
 const mockToolsResponse = {
@@ -60,13 +76,16 @@ const mockToolsResponse = {
 };
 
 describe('useToolsList', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useRealTimers();
+  });
 
   it('returns tools list on success', async () => {
     mockToolsApi.list.mockResolvedValue(mockToolsResponse);
 
     const { result } = renderHook(() => useToolsList('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -75,7 +94,7 @@ describe('useToolsList', () => {
   });
 
   it('does not fetch when projectId is null', () => {
-    renderHook(() => useToolsList(null), { wrapper: createWrapper() });
+    renderHook(() => useToolsList(null), { wrapper: createWrapper().wrapper });
     expect(mockToolsApi.list).not.toHaveBeenCalled();
   });
 
@@ -83,7 +102,7 @@ describe('useToolsList', () => {
     mockToolsApi.list.mockResolvedValue({ tools: [] });
 
     const { result } = renderHook(() => useToolsList('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -94,7 +113,7 @@ describe('useToolsList', () => {
     mockToolsApi.list.mockRejectedValue(new Error('Network error'));
 
     const { result } = renderHook(() => useToolsList('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await waitFor(() => expect(result.current.error).toBe('Network error'));
@@ -105,7 +124,7 @@ describe('useToolsList', () => {
     mockToolsApi.list.mockRejectedValue(err);
 
     const { result } = renderHook(() => useToolsList('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await waitFor(() => expect(result.current.error).toBeTruthy());
@@ -116,7 +135,7 @@ describe('useToolsList', () => {
     mockToolsApi.list.mockResolvedValue(mockToolsResponse);
 
     const { result } = renderHook(() => useToolsList('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
@@ -124,5 +143,71 @@ describe('useToolsList', () => {
     expect(typeof result.current.syncTool).toBe('function');
     expect(typeof result.current.updateTool).toBe('function');
     expect(typeof result.current.deleteTool).toBe('function');
+  });
+
+  it('restores cached tool lists when the confirmed delete result is unsuccessful', async () => {
+    vi.useFakeTimers();
+    mockToolsApi.delete.mockResolvedValue({
+      success: false,
+      deleted_id: null,
+      affected_agents: [],
+    });
+
+    const { queryClient, wrapper } = createWrapper();
+    const listKey = toolKeys.list('proj-1');
+    const paginatedKey = [...listKey, 'paginated'];
+    const listSnapshot = {
+      tools: [
+        { id: 'tool-1', name: 'My Tool', description: 'desc' },
+        { id: 'tool-2', name: 'Other Tool', description: 'desc' },
+      ],
+    };
+    const paginatedSnapshot = {
+      pages: [
+        {
+          items: [
+            { id: 'tool-1', name: 'My Tool', description: 'desc' },
+            { id: 'tool-2', name: 'Other Tool', description: 'desc' },
+          ],
+          next_cursor: null,
+          has_more: false,
+          total_count: 2,
+        },
+      ],
+      pageParams: [undefined],
+    };
+    queryClient.setQueryData(listKey, listSnapshot);
+    queryClient.setQueryData(paginatedKey, paginatedSnapshot);
+
+    const { result } = renderHook(() => useUndoableDeleteTool('proj-1'), { wrapper });
+
+    act(() => {
+      result.current.deleteTool('tool-1', 'My Tool');
+    });
+
+    expect(queryClient.getQueryData(listKey)).toEqual({
+      tools: [{ id: 'tool-2', name: 'Other Tool', description: 'desc' }],
+    });
+    expect(queryClient.getQueryData(paginatedKey)).toEqual({
+      pages: [
+        {
+          items: [{ id: 'tool-2', name: 'Other Tool', description: 'desc' }],
+          next_cursor: null,
+          has_more: false,
+          total_count: 2,
+        },
+      ],
+      pageParams: [undefined],
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(5000);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(mockToolsApi.delete).toHaveBeenCalledWith('proj-1', 'tool-1', true);
+    expect(queryClient.getQueryData(listKey)).toEqual(listSnapshot);
+    expect(queryClient.getQueryData(paginatedKey)).toEqual(paginatedSnapshot);
   });
 });

@@ -63,7 +63,7 @@ class CopilotClientPool:
             from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
 
             options = CopilotClientOptions(github_token=github_token)
-            client = CopilotClient(options=options)
+            client = CopilotClient(options=options)  # pyright: ignore[reportCallIssue]
             await client.start()
             self._clients[key] = client
             logger.info(
@@ -169,8 +169,8 @@ class CopilotCompletionProvider(CompletionProvider):
             SessionEventType,
         )
         from copilot.types import (  # type: ignore[reportMissingImports]
-            MessageOptions,
-            SessionConfig,
+            MessageOptions,  # pyright: ignore[reportAttributeAccessIssue]
+            SessionConfig,  # pyright: ignore[reportAttributeAccessIssue]
         )
 
         # Extract system message for session config, user message for prompt

@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   },
   startMutate: vi.fn(),
   stopMutate: vi.fn(),
-  deleteMutate: vi.fn(),
+  deleteApp: vi.fn(),
   confirm: vi.fn(),
   getErrorMessage: vi.fn((_error: unknown, fallback: string) => fallback),
   isRateLimitApiError: vi.fn(() => false),
@@ -24,12 +24,16 @@ vi.mock('@/hooks/useApps', () => ({
   useApp: () => mocks.useAppReturn,
   useStartApp: () => ({ mutate: mocks.startMutate, isPending: false }),
   useStopApp: () => ({ mutate: mocks.stopMutate, isPending: false }),
-  useDeleteApp: () => ({ mutate: mocks.deleteMutate, isPending: false }),
+  useUndoableDeleteApp: () => ({ deleteApp: mocks.deleteApp, pendingIds: new Set<string>() }),
   getErrorMessage: mocks.getErrorMessage,
 }));
 
 vi.mock('@/hooks/useConfirmation', () => ({
   useConfirmation: () => ({ confirm: mocks.confirm }),
+}));
+
+vi.mock('@/hooks/useAuth', () => ({
+  useAuth: () => ({ user: { login: 'test-user' }, isLoading: false, isAuthenticated: true }),
 }));
 
 vi.mock('@/utils/rateLimit', () => ({
@@ -184,21 +188,13 @@ describe('AppDetailView', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('Could not stop app "Demo App".');
   });
 
-  it('deletes the app after confirmation and navigates back on success', async () => {
-    mocks.deleteMutate.mockImplementation(
-      (_vars: { appName: string; force?: boolean }, options?: { onSuccess?: () => void }) =>
-        options?.onSuccess?.()
-    );
-
+  it('deletes the app after confirmation and navigates back immediately', async () => {
     render(<AppDetailView appName="demo-app" onBack={mocks.onBack} />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Delete app Demo App' }));
 
     await waitFor(() => {
-      expect(mocks.deleteMutate).toHaveBeenCalledWith(
-        { appName: 'demo-app' },
-        expect.objectContaining({ onSuccess: expect.any(Function), onError: expect.any(Function) })
-      );
+      expect(mocks.deleteApp).toHaveBeenCalledWith('demo-app', 'Demo App');
       expect(mocks.onBack).toHaveBeenCalledOnce();
     });
   });

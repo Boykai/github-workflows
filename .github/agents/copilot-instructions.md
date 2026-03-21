@@ -279,6 +279,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - N/A (client-side search against already-loaded or cached entity data) (053-global-command-palette)
 - Python 3.12+/3.13 (backend), TypeScript 5.9 (frontend) + FastAPI 0.135+, React 19, Pydantic 2.12+, Vite 8, TanStack Query v5, Tailwind CSS 4, @dnd-kit/core (board drag-and-drop) (053-pagination-infinite-scroll)
 - SQLite via aiosqlite (existing — no schema changes required) (053-pagination-infinite-scroll)
+- TypeScript ~5.9.0, React ^19.2.0 + @tanstack/react-query ^5.91.0 (mutations, query cache), sonner ^2.0.7 (toast notifications), React hooks (useState, useRef, useCallback, useEffect) (054-undoable-delete)
+- N/A — client-side only; leverages TanStack Query cache for optimistic state (054-undoable-delete)
 - Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI + Pydantic (backend API/models), aiosqlite (async SQLite), React 18 + TanStack Query v5 (frontend state), React Router v6 (routing), Lucide React (icons), Tailwind CSS (styling) (054-activity-audit-trail)
 - SQLite via aiosqlite — direct SQL queries, no ORM. Pydantic models for serialization. Numbered SQL migration files (current highest: 032). (054-activity-audit-trail)
 - Python 3.13 (backend), TypeScript 5.x + React 19.2 (frontend) + FastAPI (backend), TanStack Query v5.91 + React 19 (frontend), Sonner v2 (toasts) (054-optimistic-ui-updates)

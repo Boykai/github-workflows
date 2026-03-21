@@ -56,9 +56,10 @@ function createWrapper() {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
-  return function Wrapper({ children }: { children: ReactNode }) {
+  const wrapper = function Wrapper({ children }: { children: ReactNode }) {
     return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
   };
+  return { queryClient, wrapper };
 }
 
 const mockAgent = {
@@ -74,8 +75,8 @@ describe('useAgentsList', () => {
   it('returns agent list on success', async () => {
     mockAgentsApi.list.mockResolvedValue([mockAgent]);
 
-    const { result } = renderHook(() => useAgentsList('proj-1'), {
-      wrapper: createWrapper(),
+     const { result } = renderHook(() => useAgentsList('proj-1'), {
+      wrapper: createWrapper().wrapper,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -84,7 +85,7 @@ describe('useAgentsList', () => {
   });
 
   it('does not fetch when projectId is null', () => {
-    renderHook(() => useAgentsList(null), { wrapper: createWrapper() });
+    renderHook(() => useAgentsList(null), { wrapper: createWrapper().wrapper });
     expect(mockAgentsApi.list).not.toHaveBeenCalled();
   });
 
@@ -92,7 +93,7 @@ describe('useAgentsList', () => {
     mockAgentsApi.list.mockRejectedValue(new Error('Network error'));
 
     const { result } = renderHook(() => useAgentsList('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await waitFor(() => expect(result.current.isError).toBe(true));
@@ -107,7 +108,7 @@ describe('usePendingAgentsList', () => {
     mockAgentsApi.pending.mockResolvedValue([mockAgent]);
 
     const { result } = renderHook(() => usePendingAgentsList('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
@@ -123,7 +124,7 @@ describe('useCreateAgent', () => {
     mockAgentsApi.create.mockResolvedValue(createResult);
 
     const { result } = renderHook(() => useCreateAgent('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await act(async () => {
@@ -144,7 +145,7 @@ describe('useUpdateAgent', () => {
     mockAgentsApi.update.mockResolvedValue({ agent: mockAgent, message: 'Updated' });
 
     const { result } = renderHook(() => useUpdateAgent('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await act(async () => {
@@ -164,10 +165,15 @@ describe('useDeleteAgent', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('calls delete API', async () => {
-    mockAgentsApi.delete.mockResolvedValue({ deleted: true, message: 'Deleted' });
+    mockAgentsApi.delete.mockResolvedValue({
+      success: true,
+      pr_url: 'https://example.test/pr/1',
+      pr_number: 1,
+      issue_number: null,
+    });
 
     const { result } = renderHook(() => useDeleteAgent('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await act(async () => {
@@ -175,6 +181,23 @@ describe('useDeleteAgent', () => {
     });
 
     expect(mockAgentsApi.delete).toHaveBeenCalledWith('proj-1', 'agent-1');
+  });
+
+  it('rejects when the delete API reports success false', async () => {
+    mockAgentsApi.delete.mockResolvedValue({
+      success: false,
+      pr_url: 'https://example.test/pr/1',
+      pr_number: 1,
+      issue_number: null,
+    });
+
+    const { result } = renderHook(() => useDeleteAgent('proj-1'), {
+      wrapper: createWrapper().wrapper,
+    });
+
+    await expect(result.current.mutateAsync('agent-1')).rejects.toThrow(
+      'Failed to delete agent "agent-1"',
+    );
   });
 });
 
@@ -185,7 +208,7 @@ describe('useClearPendingAgents', () => {
     mockAgentsApi.clearPending.mockResolvedValue({ deleted: 2, message: 'Cleared' });
 
     const { result } = renderHook(() => useClearPendingAgents('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await act(async () => {
@@ -204,7 +227,7 @@ describe('useAgentChat', () => {
     mockAgentsApi.chat.mockResolvedValue(response);
 
     const { result } = renderHook(() => useAgentChat('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await act(async () => {
@@ -221,7 +244,7 @@ describe('useBulkUpdateModels', () => {
     mockAgentsApi.bulkUpdateModels.mockResolvedValue({ updated: 3, message: 'Done' });
 
     const { result } = renderHook(() => useBulkUpdateModels('proj-1'), {
-      wrapper: createWrapper(),
+      wrapper: createWrapper().wrapper,
     });
 
     await act(async () => {

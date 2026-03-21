@@ -6,6 +6,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { ApiError, appsApi } from '@/services/api';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
+import { useUndoableDelete } from '@/hooks/useUndoableDelete';
 import type {
   App,
   AppAssetInventory,
@@ -208,6 +209,23 @@ export function useDeleteApp() {
       queryClient.invalidateQueries({ queryKey: appKeys.list() });
     },
   });
+}
+
+export function useUndoableDeleteApp() {
+  const { undoableDelete, pendingIds } = useUndoableDelete({
+    queryKeys: [appKeys.list(), [...appKeys.list(), 'paginated']],
+    restoreOnUnmount: false,
+  });
+
+  return {
+    deleteApp: (appName: string, displayName: string, force?: boolean) =>
+      undoableDelete({
+        id: appName,
+        entityLabel: `App: ${displayName}`,
+        onDelete: () => appsApi.delete(appName, force).then(() => undefined),
+      }),
+    pendingIds,
+  };
 }
 
 /** Fetch the asset inventory for an app (sub-issues, branches, project, repo). */

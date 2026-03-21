@@ -7,7 +7,12 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { NotificationBell } from './NotificationBell';
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
 describe('NotificationBell — scroll handler throttling', () => {
   let rafSpy: ReturnType<typeof vi.spyOn>;
@@ -39,7 +44,7 @@ describe('NotificationBell — scroll handler throttling', () => {
   }
 
   it('uses requestAnimationFrame to throttle scroll-driven position updates', () => {
-    render(<NotificationBell notifications={[]} unreadCount={0} onMarkAllRead={vi.fn()} />);
+    renderWithRouter(<NotificationBell notifications={[]} unreadCount={0} onMarkAllRead={vi.fn()} />);
 
     // Open the dropdown
     fireEvent.click(screen.getByRole('button', { name: /Notifications/i }));
@@ -70,7 +75,7 @@ describe('NotificationBell — scroll handler throttling', () => {
   });
 
   it('cancels pending RAF on dropdown close', () => {
-    render(<NotificationBell notifications={[]} unreadCount={0} onMarkAllRead={vi.fn()} />);
+    renderWithRouter(<NotificationBell notifications={[]} unreadCount={0} onMarkAllRead={vi.fn()} />);
 
     const button = screen.getByRole('button', { name: /Notifications/i });
 

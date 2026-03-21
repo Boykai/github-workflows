@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ExternalLink, Play, Square, Trash2, RefreshCw } from 'lucide-react';
-import { useApp, useStartApp, useStopApp, useDeleteApp, getErrorMessage } from '@/hooks/useApps';
+import { useApp, useStartApp, useStopApp, useUndoableDeleteApp, getErrorMessage } from '@/hooks/useApps';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { isRateLimitApiError } from '@/utils/rateLimit';
@@ -41,7 +41,7 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
   const { data: app, isLoading, error, refetch } = useApp(appName);
   const startMutation = useStartApp();
   const stopMutation = useStopApp();
-  const deleteMutation = useDeleteApp();
+  const { deleteApp } = useUndoableDeleteApp();
   const { confirm } = useConfirmation();
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -138,19 +138,13 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
   const handleDelete = async () => {
     const confirmed = await confirm({
       title: 'Delete App',
-      description: `Delete app "${app.display_name}"? This action cannot be undone.`,
+      description: `Delete app "${app.display_name}"?`,
       variant: 'danger',
       confirmLabel: 'Delete App',
     });
     if (confirmed) {
-      deleteMutation.mutate(
-        { appName },
-        {
-          onSuccess: () => onBack(),
-          onError: (err) =>
-            showError(getErrorMessage(err, `Could not delete app "${app.display_name}".`)),
-        }
-      );
+      deleteApp(appName, app.display_name);
+      onBack();
     }
   };
 
@@ -302,10 +296,9 @@ export function AppDetailView({ appName, onBack }: AppDetailViewProps) {
             aria-label={`Delete app ${app.display_name}`}
             className="inline-flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 disabled:opacity-50"
             onClick={handleDelete}
-            disabled={deleteMutation.isPending}
           >
             <Trash2 aria-hidden="true" className="h-4 w-4" />
-            {deleteMutation.isPending ? 'Deleting…' : 'Delete App'}
+            Delete App
           </button>
         )}
       </div>

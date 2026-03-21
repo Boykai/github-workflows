@@ -7,7 +7,7 @@ import { useState } from 'react';
 import type { AgentConfig, AgentStatus } from '@/services/api';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { AgentIconPickerModal } from '@/components/agents/AgentIconPickerModal';
-import { useDeleteAgent, useUpdateAgent } from '@/hooks/useAgents';
+import { useUndoableDeleteAgent, useUpdateAgent } from '@/hooks/useAgents';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -52,7 +52,7 @@ export function AgentCard({
   variant = 'default',
 }: AgentCardProps) {
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
-  const deleteMutation = useDeleteAgent(projectId);
+  const { deleteAgent } = useUndoableDeleteAgent(projectId);
   const updateMutation = useUpdateAgent(projectId);
   const { confirm } = useConfirmation();
   const badge = STATUS_BADGE[agent.status] ?? STATUS_BADGE.active;
@@ -71,7 +71,7 @@ export function AgentCard({
       confirmLabel: 'Delete',
     });
     if (confirmed) {
-      deleteMutation.mutate(agent.id);
+      deleteAgent(agent.id, displayName);
     }
   };
 
@@ -235,9 +235,8 @@ export function AgentCard({
                 size="sm"
                 className="solar-action-danger"
                 onClick={handleDelete}
-                disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? 'Deleting…' : 'Delete'}
+                Delete
               </Button>
             </Tooltip>
           )}
@@ -251,19 +250,6 @@ export function AgentCard({
             <span className="text-xs text-muted-foreground">Repository-managed</span>
           )}
         </div>
-
-        {deleteMutation.isSuccess && deleteMutation.data && (
-          <div className="text-xs solar-text-success">
-            Deletion PR #{deleteMutation.data.pr_number} opened. Catalog updates after merge to
-            main.
-          </div>
-        )}
-
-        {deleteMutation.isError && (
-          <div className="text-xs text-destructive">
-            {deleteMutation.error?.message || 'Delete failed'}
-          </div>
-        )}
 
         {updateMutation.isError && (
           <div className="text-xs text-destructive">

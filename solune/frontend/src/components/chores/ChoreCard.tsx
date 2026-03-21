@@ -11,7 +11,7 @@ import { createPortal } from 'react-dom';
 import { Sparkles, Pencil, X, Save, Check, ChevronDown, Workflow } from 'lucide-react';
 import type { Chore, ChoreEditState, ChoreInlineUpdate } from '@/types';
 import { formatMsRemaining, computeCountRemaining, computeTimeProgress } from '@/lib/time-utils';
-import { useUpdateChore, useDeleteChore, useTriggerChore } from '@/hooks/useChores';
+import { useUpdateChore, useUndoableDeleteChore, useTriggerChore } from '@/hooks/useChores';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { ChoreScheduleConfig } from './ChoreScheduleConfig';
 import { ChoreInlineEditor } from './ChoreInlineEditor';
@@ -98,7 +98,7 @@ export function ChoreCard({
   const [showPipelineMenu, setShowPipelineMenu] = useState(false);
   const triggerLabel = getTopRightTriggerLabel(chore, parentIssueCount);
   const updateMutation = useUpdateChore(projectId);
-  const deleteMutation = useDeleteChore(projectId);
+  const { deleteChore } = useUndoableDeleteChore(projectId);
   const triggerMutation = useTriggerChore(projectId);
   const { confirm } = useConfirmation();
   const pipelineTriggerRef = useRef<HTMLButtonElement>(null);
@@ -133,12 +133,12 @@ export function ChoreCard({
   const handleDelete = async () => {
     const confirmed = await confirm({
       title: 'Delete Chore',
-      description: `Remove chore "${chore.name}"? This cannot be undone.`,
+      description: `Remove chore "${chore.name}"?`,
       variant: 'danger',
       confirmLabel: 'Delete',
     });
     if (confirmed) {
-      deleteMutation.mutate(chore.id);
+      deleteChore(chore.id, chore.name);
     }
   };
 
@@ -569,12 +569,11 @@ export function ChoreCard({
             <Button
               type="button"
               onClick={handleDelete}
-              disabled={deleteMutation.isPending}
               variant="ghost"
               size="sm"
               className="solar-action-danger"
             >
-              {deleteMutation.isPending ? 'Removing…' : 'Remove'}
+              Remove
             </Button>
           </Tooltip>
         </div>

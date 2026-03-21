@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { choresApi, ApiError } from '@/services/api';
 import { STALE_TIME_LONG } from '@/constants';
 import { useInfiniteList } from '@/hooks/useInfiniteList';
+import { useUndoableDelete } from '@/hooks/useUndoableDelete';
 import type {
   Chore,
   ChoreCreate,
@@ -209,6 +210,24 @@ export function useDeleteChore(projectId: string | null | undefined) {
       }
     },
   });
+}
+
+// ── Undoable Delete ──
+
+export function useUndoableDeleteChore(projectId: string | null | undefined) {
+  const { undoableDelete, pendingIds } = useUndoableDelete({
+    queryKey: choreKeys.list(projectId ?? ''),
+  });
+
+  return {
+    deleteChore: (choreId: string, choreName: string) =>
+      undoableDelete({
+        id: choreId,
+        entityLabel: `Chore: ${choreName}`,
+        onDelete: () => choresApi.delete(projectId!, choreId).then(() => undefined),
+      }),
+    pendingIds,
+  };
 }
 
 // ── Trigger Mutation ──

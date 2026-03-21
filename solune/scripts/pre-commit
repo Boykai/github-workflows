@@ -87,6 +87,23 @@ if [ -n "$STAGED_PY_FILES" ]; then
         $PYRIGHT "$REPO_ROOT/solune/backend/src" --pythonpath "$REPO_ROOT/solune/backend/.venv/bin/python" 2>&1 | tail -10
         FAILED=1
     fi
+
+    # Run backend tests (mirrors CI: pytest with coverage)
+    echo -n "  🧪 Pytest... "
+    if [ -d "$REPO_ROOT/solune/backend/.venv" ]; then
+        PYTEST="$REPO_ROOT/solune/backend/.venv/bin/pytest"
+    else
+        PYTEST="pytest"
+    fi
+
+    if $PYTEST "$REPO_ROOT/solune/backend" --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency -q --no-header --tb=no > /dev/null 2>&1; then
+        echo -e "${GREEN}✓${NC}"
+    else
+        echo -e "${RED}✗${NC}"
+        echo -e "${YELLOW}    Test failures must be fixed manually${NC}"
+        $PYTEST "$REPO_ROOT/solune/backend" --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency -q --no-header --tb=line 2>&1 | tail -15
+        FAILED=1
+    fi
 fi
 
 # ============================================
