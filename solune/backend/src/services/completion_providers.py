@@ -60,10 +60,10 @@ class CopilotClientPool:
                 return self._clients[key]
 
             from copilot import CopilotClient  # type: ignore[reportMissingImports]
-            from copilot.types import CopilotClientOptions  # type: ignore[reportMissingImports]
+            from copilot.types import SubprocessConfig  # type: ignore[reportMissingImports]
 
-            options = CopilotClientOptions(github_token=github_token)
-            client = CopilotClient(options=options)  # pyright: ignore[reportCallIssue]
+            config = SubprocessConfig(github_token=github_token)
+            client = CopilotClient(config=config, auto_start=False)  # pyright: ignore[reportCallIssue]
             await client.start()
             self._clients[key] = client
             logger.info(
@@ -168,10 +168,6 @@ class CopilotCompletionProvider(CompletionProvider):
         from copilot.generated.session_events import (  # type: ignore[reportMissingImports]
             SessionEventType,
         )
-        from copilot.types import (  # type: ignore[reportMissingImports]
-            MessageOptions,  # pyright: ignore[reportAttributeAccessIssue]
-            SessionConfig,  # pyright: ignore[reportAttributeAccessIssue]
-        )
 
         # Extract system message for session config, user message for prompt
         system_content = ""
@@ -182,18 +178,16 @@ class CopilotCompletionProvider(CompletionProvider):
             elif msg["role"] == "user":
                 user_content = msg["content"]
 
-        # Build typed session config
-        # SystemMessageConfig is a Union of TypedDicts, so use a dict literal
+        # Build create_session kwargs (SessionConfig was removed in SDK 0.1.0)
         session_kwargs: dict[str, Any] = {
             "model": self._model,
             "on_permission_request": PermissionHandler.approve_all,  # pyright: ignore[reportAttributeAccessIssue]
         }
         if system_content:
             session_kwargs["system_message"] = {"mode": "replace", "content": system_content}
-        config = SessionConfig(**session_kwargs)
 
         # Create session, send prompt, wait for response
-        session = await client.create_session(config)
+        session = await client.create_session(**session_kwargs)
         done = asyncio.Event()
         result_content: list[str] = []
         error_content: list[str] = []
@@ -216,7 +210,7 @@ class CopilotCompletionProvider(CompletionProvider):
                 done.set()
 
         session.on(on_event)
-        await session.send(MessageOptions(prompt=user_content))
+        await session.send(user_content)
 
         try:
             await asyncio.wait_for(done.wait(), timeout=120)
