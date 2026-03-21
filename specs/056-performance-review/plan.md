@@ -1,104 +1,106 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Performance Review
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `056-performance-review` | **Date**: 2026-03-21 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/056-performance-review/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Deliver a balanced first pass of measurable, low-risk performance improvements across backend and frontend. The work starts by capturing baselines and instrumentation, then targets the highest-value issues already surfaced in the codebase: backend GitHub API churn around board refreshes and polling (WebSocket subscription refresh logic, sub-issue cache reuse, polling-triggered board refreshes), and frontend board responsiveness issues (broad query invalidation on lightweight updates, full-list rerenders without stable props, and hot event listeners on drag/popover positioning). Deeper architectural refactors (virtualization, service decomposition) are deferred unless first-pass metrics prove them necessary.
+
+The technical approach proceeds in four phases:
+1. **Baseline & Guardrails** — Capture before metrics, confirm current state against existing rate-limit protections.
+2. **Backend API Consumption Fixes** — Eliminate redundant upstream API calls during idle viewing, harden sub-issue cache reuse, prevent polling-triggered full board refreshes.
+3. **Frontend Refresh-Path & Render Fixes** — Decouple lightweight task updates from full board queries, stabilize props and memoize heavy components, throttle hot event listeners.
+4. **Verification & Regression Coverage** — Prove improvements with before/after comparisons, extend automated test coverage.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.13 (backend), TypeScript 5.x (frontend)
+**Primary Dependencies**: FastAPI, Starlette WebSockets, httpx (backend); React 18, TanStack Query v5, Radix UI, dnd-kit (frontend)
+**Storage**: SQLite (backend persistence), In-memory cache with TTL (runtime caching)
+**Testing**: pytest (backend unit/integration), Vitest (frontend unit), Ruff + Pyright (backend lint/type), ESLint + tsc (frontend lint/type)
+**Target Platform**: Linux server (backend), Modern browsers (frontend SPA)
+**Project Type**: Web application (backend + frontend monorepo under `solune/`)
+**Performance Goals**: ≥50% reduction in idle upstream API calls (SC-001); measurable reduction in board rerenders (SC-005); polling fallback never triggers full board refresh when data unchanged (SC-003)
+**Constraints**: No new runtime dependencies in first pass; no board virtualization unless baseline proves necessary; changes must not regress existing test suites
+**Scale/Scope**: Boards with 5+ columns and 50+ tasks as representative workload; single-user performance focus (no multi-tenant scaling changes)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | spec.md includes 6 prioritized user stories with Given-When-Then acceptance scenarios, clear scope boundaries, and out-of-scope declarations |
+| **II. Template-Driven** | ✅ PASS | All artifacts follow canonical templates from `.specify/templates/` |
+| **III. Agent-Orchestrated** | ✅ PASS | Plan phase produces plan.md, research.md, data-model.md, contracts/, quickstart.md; hands off to tasks phase |
+| **IV. Test Optionality** | ✅ PASS | Tests are explicitly requested in the spec (User Story 5, FR-014). Test tasks will follow implementation tasks per spec sequencing (verification depends on optimization phases completing first) |
+| **V. Simplicity and DRY** | ✅ PASS | First pass intentionally avoids premature abstraction (no virtualization, no service decomposition). Consolidates duplicate repository resolution. No new dependencies |
+
+**Post-Phase 1 Re-check**: All gates remain PASS. Design artifacts add no unnecessary complexity — data-model captures existing cache/refresh structures being optimized, contracts define the refresh policy interface between backend and frontend, no new entities or services introduced.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/056-performance-review/
+├── plan.md              # This file
+├── research.md          # Phase 0: research findings
+├── data-model.md        # Phase 1: cache and refresh data structures
+├── quickstart.md        # Phase 1: developer quickstart
+├── contracts/           # Phase 1: refresh policy contracts
+│   └── refresh-policy.md
+└── tasks.md             # Phase 2 output (created by /speckit.tasks)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
+solune/backend/
 ├── src/
-│   ├── models/
+│   ├── api/
+│   │   ├── board.py             # Board cache, manual refresh, sub-issue invalidation
+│   │   ├── projects.py          # WebSocket subscription, change detection, task endpoints
+│   │   └── workflow.py          # Duplicate repository resolution path (consolidation target)
 │   ├── services/
-│   └── api/
+│   │   ├── cache.py             # InMemoryCache, TTL, data hash, cached_fetch
+│   │   ├── copilot_polling/
+│   │   │   └── polling_loop.py  # Polling hot path, rate-limit-aware scheduling
+│   │   └── github_projects/
+│   │       └── service.py       # GraphQL/REST client, cycle cache, inflight coalescing
+│   └── utils.py                 # Repository resolution, BoundedDict/BoundedSet
 └── tests/
+    └── unit/
+        ├── test_cache.py            # Cache TTL, stale fallback, hash change detection
+        ├── test_api_board.py        # Board endpoint, cache behavior, sub-issue cache
+        └── test_copilot_polling.py  # Polling orchestration, rate-limit behavior
 
-frontend/
+solune/frontend/
 ├── src/
+│   ├── hooks/
+│   │   ├── useRealTimeSync.ts       # WebSocket + polling fallback, query invalidation
+│   │   ├── useBoardRefresh.ts       # Manual/auto-refresh, debounce, page visibility
+│   │   └── useProjectBoard.ts       # Board query ownership, project selection
 │   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+│   │   ├── board/
+│   │   │   ├── BoardColumn.tsx      # Column rendering (React.memo, infinite scroll)
+│   │   │   ├── IssueCard.tsx        # Card rendering (React.memo, draggable)
+│   │   │   └── AddAgentPopover.tsx  # Agent selection popover (Radix positioning)
+│   │   └── chat/
+│   │       └── ChatPopup.tsx        # Resizable chat (RAF-gated drag listeners)
+│   └── pages/
+│       └── ProjectsPage.tsx         # Board page, heroStats, derived state
+└── src/hooks/
+    ├── useRealTimeSync.test.tsx      # WebSocket/polling invalidation tests
+    └── useBoardRefresh.test.tsx      # Refresh timer/deduplication tests
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Existing web application structure (backend + frontend under `solune/`). This feature modifies existing files only — no new modules or services are introduced, consistent with the low-risk first-pass approach.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+No constitution violations requiring justification. All changes follow YAGNI principles:
+- Optimizations target existing code paths rather than introducing new abstractions
+- No new dependencies added
+- Deferred work (virtualization, service decomposition) explicitly excluded unless metrics justify it
