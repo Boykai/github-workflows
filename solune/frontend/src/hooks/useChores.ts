@@ -16,12 +16,14 @@ import type {
   ChoreCreate,
   ChoreTemplate,
   ChoreUpdate,
+  ChoreStatus,
   ChoreTriggerResult,
   ChoreChatMessage,
   ChoreChatResponse,
   ChoreInlineUpdate,
   ChoreCreateWithConfirmation,
   ChoreCreateResponse,
+  ScheduleType,
 } from '@/types';
 
 // ── Query Keys ──
@@ -50,11 +52,11 @@ export function useChoresList(projectId: string | null | undefined) {
 // ── Filter Params Interface ──
 
 export interface ChoresFilterParams {
-  status?: string;
-  scheduleType?: string;
+  status?: ChoreStatus;
+  scheduleType?: ScheduleType | 'unscheduled';
   search?: string;
-  sort?: string;
-  order?: string;
+  sort?: 'name' | 'updated_at' | 'created_at' | 'attention';
+  order?: 'asc' | 'desc';
 }
 
 // ── Paginated List Hook ──

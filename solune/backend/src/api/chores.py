@@ -190,6 +190,7 @@ async def list_chores(
     ] = None,
 ) -> list[Chore] | dict:
     """List all chores for a project."""
+    await resolve_repository(session.access_token, project_id)
     service = _get_service()
     chores = await service.list_chores(project_id)
 

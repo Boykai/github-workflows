@@ -45,6 +45,7 @@ import type {
   ChoreCreate,
   ChoreTemplate,
   ChoreUpdate,
+  ChoreStatus,
   ChoreTriggerResult,
   ChoreChatMessage,
   ChoreChatResponse,
@@ -53,6 +54,7 @@ import type {
   ChoreCreateWithConfirmation,
   ChoreCreateResponse,
   EvaluateChoreTriggersResponse,
+  ScheduleType,
   RepositoryMetadata,
   PipelineConfig,
   PipelineConfigCreate,
@@ -736,7 +738,7 @@ export const choresApi = {
    */
   listPaginated(
     projectId: string,
-    params: { limit: number; cursor?: string; status?: string; scheduleType?: string; search?: string; sort?: string; order?: string },
+    params: { limit: number; cursor?: string; status?: ChoreStatus; scheduleType?: ScheduleType | 'unscheduled'; search?: string; sort?: 'name' | 'updated_at' | 'created_at' | 'attention'; order?: 'asc' | 'desc' },
   ): Promise<PaginatedResponse<Chore>> {
     const qs = new URLSearchParams({ limit: String(params.limit) });
     if (params.cursor) qs.set('cursor', params.cursor);

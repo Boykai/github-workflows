@@ -46,7 +46,7 @@ export function ChoresPanel({
   const deferredSearch = useDeferredValue(search);
 
   // ── Server-side filter params ──
-  const sortMap: Record<ChoreSortMode, { sort: string; order: string }> = {
+  const sortMap: Record<ChoreSortMode, Pick<ChoresFilterParams, 'sort' | 'order'>> = {
     attention: { sort: 'attention', order: 'asc' },
     updated: { sort: 'updated_at', order: 'desc' },
     name: { sort: 'name', order: 'asc' },
@@ -149,6 +149,9 @@ export function ChoresPanel({
     setSortMode('attention');
   }, []);
 
+  // TODO: uncreatedTemplates checks against the paginated/filtered `chores` list,
+  // so a template may appear "uncreated" when its chore exists on a later page or
+  // is filtered out. A dedicated unfiltered count endpoint would fix this.
   const uncreatedTemplates = useMemo(
     () => repoTemplates?.filter((tpl) => !chores?.some((c) => c.name === tpl.name)) ?? [],
     [repoTemplates, chores]
