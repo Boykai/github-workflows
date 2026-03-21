@@ -87,6 +87,12 @@ export function ChatPopup({
   const isResizing = useRef(false);
   const startPos = useRef({ x: 0, y: 0, w: 0, h: 0 });
   const cleanupResize = useRef<(() => void) | null>(null);
+  // Keep a ref of the latest size so onResizeStart doesn't need `size` in
+  // its dependency array — prevents callback recreation on every resize (T026).
+  const sizeRef = useRef(size);
+  useEffect(() => {
+    sizeRef.current = size;
+  }, [size]);
 
   // Registers window-level mousemove/mouseup listeners only while a resize
   // is in progress, then removes them on mouseup. This avoids firing handlers
@@ -95,7 +101,7 @@ export function ChatPopup({
     (e: React.MouseEvent) => {
       e.preventDefault();
       isResizing.current = true;
-      startPos.current = { x: e.clientX, y: e.clientY, w: size.width, h: size.height };
+      startPos.current = { x: e.clientX, y: e.clientY, w: sizeRef.current.width, h: sizeRef.current.height };
 
       let rafId = 0;
       const onMouseMove = (ev: MouseEvent) => {
@@ -141,7 +147,7 @@ export function ChatPopup({
       window.addEventListener('mouseup', onMouseUp);
       cleanupResize.current = cleanup;
     },
-    [size]
+    [] // size read via sizeRef to keep callback stable (T026)
   );
 
   // Clean up any in-progress resize listeners on unmount.
