@@ -534,6 +534,9 @@ class TestUpdateIssueStatusForCopilotPr:
 
         assert result["status"] == "success"
         assert result["new_status"] == "In Review"
+
+
+class TestGithubWebhookEndpoint:
     """Integration tests for the webhook endpoint via client."""
 
     @pytest.fixture
