@@ -259,23 +259,22 @@ describe('useChoresListPaginated', () => {
     });
   });
 
-  it('produces different query keys for different filter values', () => {
+  it('produces different query keys for different filter values', async () => {
     const wrapper = createWrapper();
 
     mockChoresApi.listPaginated.mockResolvedValue(mockPaginatedResponse);
 
-    const { result: r1 } = renderHook(
+    renderHook(
       () => useChoresListPaginated('proj-1', { status: 'active' }),
       { wrapper },
     );
-    const { result: r2 } = renderHook(
+    renderHook(
       () => useChoresListPaginated('proj-1', { status: 'paused' }),
       { wrapper },
     );
 
     // Both hooks should call the API — different filter values produce separate caches
-    expect(mockChoresApi.listPaginated).toHaveBeenCalledTimes(2);
-    expect(r1).not.toBe(r2);
+    await waitFor(() => expect(mockChoresApi.listPaginated).toHaveBeenCalledTimes(2));
   });
 
   it('changing filter triggers fresh fetch', async () => {
