@@ -6,6 +6,7 @@ import type { ReactNode } from 'react';
 vi.mock('@/services/api', () => ({
   choresApi: {
     list: vi.fn(),
+    listPaginated: vi.fn(),
     listTemplates: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
@@ -33,6 +34,7 @@ vi.mock('@/constants', () => ({
 import * as api from '@/services/api';
 import {
   useChoresList,
+  useChoresListPaginated,
   useChoreTemplates,
   useCreateChore,
   useUpdateChore,
@@ -43,6 +45,7 @@ import {
 
 const mockChoresApi = api.choresApi as unknown as {
   list: ReturnType<typeof vi.fn>;
+  listPaginated: ReturnType<typeof vi.fn>;
   listTemplates: ReturnType<typeof vi.fn>;
   create: ReturnType<typeof vi.fn>;
   update: ReturnType<typeof vi.fn>;
@@ -207,5 +210,89 @@ describe('useChoreChat', () => {
       const res = await result.current.mutateAsync({ content: 'Hello' } as never);
       expect(res).toEqual(response);
     });
+  });
+});
+
+describe('useChoresListPaginated', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const mockPaginatedResponse = {
+    items: [mockChore],
+    has_more: false,
+    next_cursor: null,
+    total_count: 1,
+  };
+
+  it('calls listPaginated with default params', async () => {
+    mockChoresApi.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+    const { result } = renderHook(() => useChoresListPaginated('proj-1'), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.allItems).toHaveLength(1));
+    expect(mockChoresApi.listPaginated).toHaveBeenCalledWith('proj-1', {
+      limit: 25,
+      cursor: undefined,
+    });
+  });
+
+  it('does not fetch when projectId is null', () => {
+    renderHook(() => useChoresListPaginated(null), { wrapper: createWrapper() });
+    expect(mockChoresApi.listPaginated).not.toHaveBeenCalled();
+  });
+
+  it('includes filter params in API call', async () => {
+    mockChoresApi.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+    const filters = { status: 'active', search: 'deploy', sort: 'name', order: 'asc' };
+    const { result } = renderHook(
+      () => useChoresListPaginated('proj-1', filters),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.allItems).toHaveLength(1));
+    expect(mockChoresApi.listPaginated).toHaveBeenCalledWith('proj-1', {
+      limit: 25,
+      cursor: undefined,
+      ...filters,
+    });
+  });
+
+  it('produces different query keys for different filter values', async () => {
+    const wrapper = createWrapper();
+
+    mockChoresApi.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+    renderHook(
+      () => useChoresListPaginated('proj-1', { status: 'active' }),
+      { wrapper },
+    );
+    renderHook(
+      () => useChoresListPaginated('proj-1', { status: 'paused' }),
+      { wrapper },
+    );
+
+    // Both hooks should call the API — different filter values produce separate caches
+    await waitFor(() => expect(mockChoresApi.listPaginated).toHaveBeenCalledTimes(2));
+  });
+
+  it('changing filter triggers fresh fetch', async () => {
+    mockChoresApi.listPaginated.mockResolvedValue(mockPaginatedResponse);
+
+    let filters = { status: 'active' };
+    const { result, rerender } = renderHook(
+      () => useChoresListPaginated('proj-1', filters),
+      { wrapper: createWrapper() },
+    );
+
+    await waitFor(() => expect(result.current.allItems).toHaveLength(1));
+    expect(mockChoresApi.listPaginated).toHaveBeenCalledTimes(1);
+
+    // Change filters
+    filters = { status: 'paused' };
+    rerender();
+
+    await waitFor(() => expect(mockChoresApi.listPaginated).toHaveBeenCalledTimes(2));
   });
 });

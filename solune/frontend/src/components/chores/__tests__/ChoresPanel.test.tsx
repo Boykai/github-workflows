@@ -16,6 +16,7 @@ import type { ReactNode } from 'react';
 // ── Mock API ──
 
 const mockList = vi.fn();
+const mockListPaginated = vi.fn();
 const mockListTemplates = vi.fn();
 const mockUpdate = vi.fn();
 const mockInlineUpdate = vi.fn();
@@ -24,6 +25,7 @@ const mockPipelinesList = vi.fn();
 vi.mock('@/services/api', () => ({
   choresApi: {
     list: (...args: unknown[]) => mockList(...args),
+    listPaginated: (...args: unknown[]) => mockListPaginated(...args),
     listTemplates: (...args: unknown[]) => mockListTemplates(...args),
     update: (...args: unknown[]) => mockUpdate(...args),
     inlineUpdate: (...args: unknown[]) => mockInlineUpdate(...args),
@@ -90,6 +92,10 @@ function createChore(overrides: Partial<Chore> = {}): Chore {
   };
 }
 
+function paginatedResponse(chores: Chore[]) {
+  return { items: chores, has_more: false, next_cursor: null, total_count: chores.length };
+}
+
 // ── Tests ──
 
 describe('ChoresPanel', () => {
@@ -110,7 +116,7 @@ describe('ChoresPanel', () => {
   });
 
   it('renders empty state when no chores exist', async () => {
-    mockList.mockResolvedValue([]);
+    mockListPaginated.mockResolvedValue(paginatedResponse([]));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -122,7 +128,7 @@ describe('ChoresPanel', () => {
   });
 
   it('renders chore list with ChoreCards', async () => {
-    mockList.mockResolvedValue([
+    mockListPaginated.mockResolvedValue(paginatedResponse([
       createChore({ id: 'c1', name: 'Bug Bash' }),
       createChore({
         id: 'c2',
@@ -130,7 +136,7 @@ describe('ChoresPanel', () => {
         schedule_type: 'count',
         schedule_value: 5,
       }),
-    ]);
+    ]));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -143,7 +149,7 @@ describe('ChoresPanel', () => {
 
   it('renders loading state with CelestialLoader', () => {
     // Never resolve the promise to keep loading state
-    mockList.mockReturnValue(new Promise(() => {}));
+    mockListPaginated.mockReturnValue(new Promise(() => {}));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -152,7 +158,7 @@ describe('ChoresPanel', () => {
   });
 
   it('renders error state when API call fails', async () => {
-    mockList.mockRejectedValue(new Error('Network error'));
+    mockListPaginated.mockRejectedValue(new Error('Network error'));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -162,7 +168,7 @@ describe('ChoresPanel', () => {
   });
 
   it('displays the Chores header', async () => {
-    mockList.mockResolvedValue([]);
+    mockListPaginated.mockResolvedValue(paginatedResponse([]));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -172,7 +178,7 @@ describe('ChoresPanel', () => {
   });
 
   it('shows Active badge for active chores', async () => {
-    mockList.mockResolvedValue([createChore({ status: 'active' })]);
+    mockListPaginated.mockResolvedValue(paginatedResponse([createChore({ status: 'active' })]));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -186,7 +192,7 @@ describe('ChoresPanel', () => {
   });
 
   it('shows Paused badge for paused chores', async () => {
-    mockList.mockResolvedValue([createChore({ status: 'paused' })]);
+    mockListPaginated.mockResolvedValue(paginatedResponse([createChore({ status: 'paused' })]));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -201,9 +207,9 @@ describe('ChoresPanel', () => {
 
   it('saves a selected saved pipeline from chore inline edit', async () => {
     const user = userEvent.setup();
-    mockList.mockResolvedValue([
+    mockListPaginated.mockResolvedValue(paginatedResponse([
       createChore({ id: 'c1', name: 'Bug Bash', agent_pipeline_id: '' }),
-    ]);
+    ]));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 
@@ -228,9 +234,9 @@ describe('ChoresPanel', () => {
 
   it('updates the pipeline directly from the pipeline pill pop-out', async () => {
     const user = userEvent.setup();
-    mockList.mockResolvedValue([
+    mockListPaginated.mockResolvedValue(paginatedResponse([
       createChore({ id: 'c1', name: 'Bug Bash', agent_pipeline_id: '' }),
-    ]);
+    ]));
 
     render(<ChoresPanel projectId="PVT_1" />, { wrapper: createWrapper() });
 

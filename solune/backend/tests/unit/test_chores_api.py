@@ -121,8 +121,225 @@ class TestListChores:
 
 
 # =============================================================================
-# ChoresService direct tests
+# GET /chores/{project_id} — Filtered Pagination
 # =============================================================================
+
+
+class TestListChoresFilteredPagination:
+    """Tests for server-side filtering, sorting, and pagination of chores."""
+
+    @pytest.mark.anyio
+    async def test_pagination_first_page(self, client, mock_db):
+        """GET with limit=3 returns first 3 chores with has_more=true when more exist."""
+        for i in range(5):
+            await _insert_chore(mock_db, project_id="PVT_1", name=f"Chore {i:02d}")
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=3")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) == 3
+        assert data["has_more"] is True
+        assert data["next_cursor"] is not None
+        assert data["total_count"] == 5
+
+    @pytest.mark.anyio
+    async def test_pagination_second_page(self, client, mock_db):
+        """GET with cursor returns the next page of chores."""
+        for i in range(5):
+            await _insert_chore(mock_db, project_id="PVT_1", name=f"Chore {i:02d}")
+
+        resp1 = await client.get("/api/v1/chores/PVT_1?limit=3")
+        cursor = resp1.json()["next_cursor"]
+
+        resp2 = await client.get(f"/api/v1/chores/PVT_1?limit=3&cursor={cursor}")
+        assert resp2.status_code == 200
+        data = resp2.json()
+        assert len(data["items"]) == 2
+        assert data["has_more"] is False
+
+    @pytest.mark.anyio
+    async def test_pagination_fewer_than_limit(self, client, mock_db):
+        """GET with limit returns all chores with has_more=false when fewer than limit."""
+        for i in range(2):
+            await _insert_chore(mock_db, project_id="PVT_1", name=f"Chore {i}")
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=25")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) == 2
+        assert data["has_more"] is False
+
+    @pytest.mark.anyio
+    async def test_filter_by_status_active(self, client, mock_db):
+        """GET with status=active returns only active chores."""
+        await _insert_chore(mock_db, project_id="PVT_1", name="Active One", status="active")
+        await _insert_chore(mock_db, project_id="PVT_1", name="Paused One", status="paused")
+        await _insert_chore(mock_db, project_id="PVT_1", name="Active Two", status="active")
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=25&status=active")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) == 2
+        assert all(c["status"] == "active" for c in data["items"])
+
+    @pytest.mark.anyio
+    async def test_filter_by_schedule_type_time(self, client, mock_db):
+        """GET with schedule_type=time returns only time-scheduled chores."""
+        await _insert_chore(mock_db, name="Time Chore", schedule_type="time", schedule_value=7)
+        await _insert_chore(mock_db, name="Count Chore", schedule_type="count", schedule_value=5)
+        await _insert_chore(mock_db, name="Unscheduled")
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=25&schedule_type=time")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == "Time Chore"
+
+    @pytest.mark.anyio
+    async def test_filter_by_schedule_type_unscheduled(self, client, mock_db):
+        """GET with schedule_type=unscheduled returns only chores with null schedule_type."""
+        await _insert_chore(mock_db, name="Time Chore", schedule_type="time", schedule_value=7)
+        await _insert_chore(mock_db, name="No Schedule")
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=25&schedule_type=unscheduled")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == "No Schedule"
+
+    @pytest.mark.anyio
+    async def test_filter_by_search(self, client, mock_db):
+        """GET with search returns chores matching name or template_path."""
+        await _insert_chore(mock_db, name="Deploy Check", template_path=".github/deploy.md")
+        await _insert_chore(mock_db, name="Bug Bash", template_path=".github/bug-bash.md")
+        await _insert_chore(mock_db, name="Release Notes", template_path=".github/deploy-notes.md")
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=25&search=deploy")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) == 2
+        names = {c["name"] for c in data["items"]}
+        assert "Deploy Check" in names
+        assert "Release Notes" in names
+
+    @pytest.mark.anyio
+    async def test_combined_filters(self, client, mock_db):
+        """GET with status+schedule_type+search returns intersection of all filters."""
+        await _insert_chore(
+            mock_db, name="Deploy Active Time", status="active",
+            schedule_type="time", schedule_value=7,
+            template_path=".github/deploy.md",
+        )
+        await _insert_chore(
+            mock_db, name="Deploy Paused Time", status="paused",
+            schedule_type="time", schedule_value=7,
+            template_path=".github/deploy2.md",
+        )
+        await _insert_chore(
+            mock_db, name="Deploy Active Count", status="active",
+            schedule_type="count", schedule_value=5,
+            template_path=".github/deploy3.md",
+        )
+        await _insert_chore(
+            mock_db, name="Bug Bash", status="active",
+            schedule_type="time", schedule_value=7,
+        )
+
+        resp = await client.get(
+            "/api/v1/chores/PVT_1?limit=25&status=active&schedule_type=time&search=deploy"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert len(data["items"]) == 1
+        assert data["items"][0]["name"] == "Deploy Active Time"
+
+    @pytest.mark.anyio
+    async def test_cursor_pagination_with_filters(self, client, mock_db):
+        """Cursor pagination respects active filters on subsequent pages."""
+        for i in range(5):
+            await _insert_chore(
+                mock_db, name=f"Active {i:02d}", status="active",
+            )
+        for i in range(3):
+            await _insert_chore(mock_db, name=f"Paused {i}", status="paused")
+
+        resp1 = await client.get("/api/v1/chores/PVT_1?limit=3&status=active")
+        data1 = resp1.json()
+        assert len(data1["items"]) == 3
+        assert data1["has_more"] is True
+        assert data1["total_count"] == 5
+
+        resp2 = await client.get(
+            f"/api/v1/chores/PVT_1?limit=3&status=active&cursor={data1['next_cursor']}"
+        )
+        data2 = resp2.json()
+        assert len(data2["items"]) == 2
+        assert data2["has_more"] is False
+        assert all(c["status"] == "active" for c in data2["items"])
+
+    @pytest.mark.anyio
+    async def test_total_count_reflects_filtered_count(self, client, mock_db):
+        """total_count in paginated response reflects filtered count, not total chores."""
+        for i in range(4):
+            await _insert_chore(mock_db, name=f"Active {i}", status="active")
+        for i in range(3):
+            await _insert_chore(mock_db, name=f"Paused {i}", status="paused")
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=25&status=active")
+        data = resp.json()
+        assert data["total_count"] == 4
+
+    @pytest.mark.anyio
+    async def test_sort_by_name_asc(self, client, mock_db):
+        """GET with sort=name&order=asc returns chores sorted by name ascending."""
+        await _insert_chore(mock_db, name="Charlie")
+        await _insert_chore(mock_db, name="Alpha")
+        await _insert_chore(mock_db, name="Bravo")
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=25&sort=name&order=asc")
+        assert resp.status_code == 200
+        data = resp.json()
+        names = [c["name"] for c in data["items"]]
+        assert names == ["Alpha", "Bravo", "Charlie"]
+
+    @pytest.mark.anyio
+    async def test_sort_by_updated_at_desc(self, client, mock_db):
+        """GET with sort=updated_at&order=desc returns chores sorted by updated_at descending."""
+        c1 = await _insert_chore(mock_db, name="Old")
+        c2 = await _insert_chore(mock_db, name="New")
+        # Make "New" have a later updated_at
+        await mock_db.execute(
+            "UPDATE chores SET updated_at = '2026-12-01T00:00:00Z' WHERE id = ?", (c2,)
+        )
+        await mock_db.execute(
+            "UPDATE chores SET updated_at = '2026-01-01T00:00:00Z' WHERE id = ?", (c1,)
+        )
+        await mock_db.commit()
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=25&sort=updated_at&order=desc")
+        assert resp.status_code == 200
+        data = resp.json()
+        names = [c["name"] for c in data["items"]]
+        assert names == ["New", "Old"]
+
+    @pytest.mark.anyio
+    async def test_sort_by_attention(self, client, mock_db):
+        """GET with sort=attention&order=asc returns chores sorted by attention score."""
+        # Score 0: active + no schedule
+        await _insert_chore(mock_db, name="Needs Attention", status="active")
+        # Score 3: paused
+        await _insert_chore(mock_db, name="Paused", status="paused")
+        # Score 2: normal (active + has schedule)
+        await _insert_chore(
+            mock_db, name="Normal", status="active",
+            schedule_type="time", schedule_value=7,
+        )
+
+        resp = await client.get("/api/v1/chores/PVT_1?limit=25&sort=attention&order=asc")
+        assert resp.status_code == 200
+        data = resp.json()
+        names = [c["name"] for c in data["items"]]
+        assert names == ["Needs Attention", "Normal", "Paused"]
 
 
 class TestChoresServiceCRUD:

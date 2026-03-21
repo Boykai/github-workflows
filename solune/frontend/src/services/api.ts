@@ -45,6 +45,7 @@ import type {
   ChoreCreate,
   ChoreTemplate,
   ChoreUpdate,
+  ChoreStatus,
   ChoreTriggerResult,
   ChoreChatMessage,
   ChoreChatResponse,
@@ -53,6 +54,7 @@ import type {
   ChoreCreateWithConfirmation,
   ChoreCreateResponse,
   EvaluateChoreTriggersResponse,
+  ScheduleType,
   RepositoryMetadata,
   PipelineConfig,
   PipelineConfigCreate,
@@ -732,14 +734,19 @@ export const choresApi = {
   },
 
   /**
-   * List chores with cursor-based pagination.
+   * List chores with cursor-based pagination and optional server-side filters.
    */
   listPaginated(
     projectId: string,
-    params: { limit: number; cursor?: string },
+    params: { limit: number; cursor?: string; status?: ChoreStatus; scheduleType?: ScheduleType | 'unscheduled'; search?: string; sort?: 'name' | 'updated_at' | 'created_at' | 'attention'; order?: 'asc' | 'desc' },
   ): Promise<PaginatedResponse<Chore>> {
     const qs = new URLSearchParams({ limit: String(params.limit) });
     if (params.cursor) qs.set('cursor', params.cursor);
+    if (params.status) qs.set('status', params.status);
+    if (params.scheduleType) qs.set('schedule_type', params.scheduleType);
+    if (params.search) qs.set('search', params.search);
+    if (params.sort) qs.set('sort', params.sort);
+    if (params.order) qs.set('order', params.order);
     return request<PaginatedResponse<Chore>>(`/chores/${projectId}?${qs}`);
   },
 
