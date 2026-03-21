@@ -21,8 +21,8 @@
 
 **Purpose**: No new project initialization needed — all infrastructure exists. This phase ensures the existing codebase is ready for modification and establishes the filter parameter types.
 
-- [ ] T001 Define `ChoresFilterParams` TypeScript interface in `solune/frontend/src/hooks/useChores.ts` for filter/sort parameter typing used by hook and API layer
-- [ ] T002 Verify `ChoresGrid.tsx` already accepts pagination props (`hasNextPage`, `isFetchingNextPage`, `fetchNextPage`) and wraps content in `InfiniteScrollContainer` in `solune/frontend/src/components/chores/ChoresGrid.tsx`
+- [x] T001 Define `ChoresFilterParams` TypeScript interface in `solune/frontend/src/hooks/useChores.ts` for filter/sort parameter typing used by hook and API layer
+- [x] T002 Verify `ChoresGrid.tsx` already accepts pagination props (`hasNextPage`, `isFetchingNextPage`, `fetchNextPage`) and wraps content in `InfiniteScrollContainer` in `solune/frontend/src/components/chores/ChoresGrid.tsx`
 
 ---
 
@@ -32,13 +32,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Add `status`, `schedule_type`, `search`, `sort`, and `order` query parameters to the `list_chores` endpoint signature in `solune/backend/src/api/chores.py`
-- [ ] T004 Implement status filtering logic — filter chore list by `status` param (`active`, `paused`) before `apply_pagination()` in `solune/backend/src/api/chores.py`
-- [ ] T005 Implement schedule_type filtering logic — filter chore list by `schedule_type` param (`time`, `count`, `unscheduled` for null) before `apply_pagination()` in `solune/backend/src/api/chores.py`
-- [ ] T006 Implement search filtering logic — case-insensitive substring match on `name` and `template_path` before `apply_pagination()` in `solune/backend/src/api/chores.py`
-- [ ] T007 Implement sort logic — support `name`, `updated_at`, `created_at`, `attention` sort fields with `asc`/`desc` order before `apply_pagination()` in `solune/backend/src/api/chores.py`
-- [ ] T008 [P] Update `choresApi.listPaginated()` to accept optional filter params (`status`, `scheduleType`, `search`, `sort`, `order`) and append them to query string using `URLSearchParams` in `solune/frontend/src/services/api.ts`
-- [ ] T009 Update `useChoresListPaginated()` to accept optional `filters` parameter (using `ChoresFilterParams` interface), include filter values in `queryKey` array, and spread filters into `queryFn` API call in `solune/frontend/src/hooks/useChores.ts`
+- [x] T003 Add `status`, `schedule_type`, `search`, `sort`, and `order` query parameters to the `list_chores` endpoint signature in `solune/backend/src/api/chores.py`
+- [x] T004 Implement status filtering logic — filter chore list by `status` param (`active`, `paused`) before `apply_pagination()` in `solune/backend/src/api/chores.py`
+- [x] T005 Implement schedule_type filtering logic — filter chore list by `schedule_type` param (`time`, `count`, `unscheduled` for null) before `apply_pagination()` in `solune/backend/src/api/chores.py`
+- [x] T006 Implement search filtering logic — case-insensitive substring match on `name` and `template_path` before `apply_pagination()` in `solune/backend/src/api/chores.py`
+- [x] T007 Implement sort logic — support `name`, `updated_at`, `created_at`, `attention` sort fields with `asc`/`desc` order before `apply_pagination()` in `solune/backend/src/api/chores.py`
+- [x] T008 [P] Update `choresApi.listPaginated()` to accept optional filter params (`status`, `scheduleType`, `search`, `sort`, `order`) and append them to query string using `URLSearchParams` in `solune/frontend/src/services/api.ts`
+- [x] T009 Update `useChoresListPaginated()` to accept optional `filters` parameter (using `ChoresFilterParams` interface), include filter values in `queryKey` array, and spread filters into `queryFn` API call in `solune/frontend/src/hooks/useChores.ts`
 
 **Checkpoint**: Backend accepts filter/sort params and returns correctly filtered+sorted paginated results. Frontend API layer and hook can forward filter params to backend. User story integration can now begin.
 
@@ -54,14 +54,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T010 [P] [US1] Add pytest test: `GET /chores/{project_id}?limit=25` returns first 25 chores with `has_more=true` and valid `next_cursor` when project has 50+ chores in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T011 [P] [US1] Add pytest test: `GET /chores/{project_id}?limit=25&cursor=<next_cursor>` returns next page of chores correctly in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T012 [P] [US1] Add pytest test: `GET /chores/{project_id}?limit=25` returns all chores with `has_more=false` when project has fewer than 25 chores in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T010 [P] [US1] Add pytest test: `GET /chores/{project_id}?limit=25` returns first 25 chores with `has_more=true` and valid `next_cursor` when project has 50+ chores in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T011 [P] [US1] Add pytest test: `GET /chores/{project_id}?limit=25&cursor=<next_cursor>` returns next page of chores correctly in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T012 [P] [US1] Add pytest test: `GET /chores/{project_id}?limit=25` returns all chores with `has_more=false` when project has fewer than 25 chores in `solune/backend/tests/unit/api/test_chores.py`
 
 ### Implementation for User Story 1
 
-- [ ] T013 [US1] Switch `ChoresPanel.tsx` from `useChoresList()` to `useChoresListPaginated()` — destructure `allItems`, `isLoading`, `hasNextPage`, `isFetchingNextPage`, `fetchNextPage` from the hook in `solune/frontend/src/components/chores/ChoresPanel.tsx`
-- [ ] T014 [US1] Pass pagination props (`hasNextPage`, `isFetchingNextPage`, `fetchNextPage`) to `ChoresGrid` component in `solune/frontend/src/components/chores/ChoresPanel.tsx`
+- [x] T013 [US1] Switch `ChoresPanel.tsx` from `useChoresList()` to `useChoresListPaginated()` — destructure `allItems`, `isLoading`, `hasNextPage`, `isFetchingNextPage`, `fetchNextPage` from the hook in `solune/frontend/src/components/chores/ChoresPanel.tsx`
+- [x] T014 [US1] Pass pagination props (`hasNextPage`, `isFetchingNextPage`, `fetchNextPage`) to `ChoresGrid` component in `solune/frontend/src/components/chores/ChoresPanel.tsx`
 
 **Checkpoint**: ChoresPanel loads 25 chores initially and scrolling loads more. No filters wired yet — default (unfiltered) paginated loading works.
 
@@ -77,20 +77,20 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T015 [P] [US2] Add pytest test: `GET /chores/{project_id}?limit=25&status=active` returns only active chores in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T016 [P] [US2] Add pytest test: `GET /chores/{project_id}?limit=25&schedule_type=time` returns only time-scheduled chores in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T017 [P] [US2] Add pytest test: `GET /chores/{project_id}?limit=25&schedule_type=unscheduled` returns only chores with null schedule_type in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T018 [P] [US2] Add pytest test: `GET /chores/{project_id}?limit=25&search=deploy` returns only chores matching search term in name or template_path in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T019 [P] [US2] Add pytest test: combined filters `status=active&schedule_type=time&search=deploy` returns intersection of all filter criteria in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T020 [P] [US2] Add pytest test: cursor pagination works correctly with active filters — second page respects same filters in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T021 [P] [US2] Add pytest test: `total_count` in paginated response reflects filtered count (not total chores) in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T015 [P] [US2] Add pytest test: `GET /chores/{project_id}?limit=25&status=active` returns only active chores in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T016 [P] [US2] Add pytest test: `GET /chores/{project_id}?limit=25&schedule_type=time` returns only time-scheduled chores in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T017 [P] [US2] Add pytest test: `GET /chores/{project_id}?limit=25&schedule_type=unscheduled` returns only chores with null schedule_type in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T018 [P] [US2] Add pytest test: `GET /chores/{project_id}?limit=25&search=deploy` returns only chores matching search term in name or template_path in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T019 [P] [US2] Add pytest test: combined filters `status=active&schedule_type=time&search=deploy` returns intersection of all filter criteria in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T020 [P] [US2] Add pytest test: cursor pagination works correctly with active filters — second page respects same filters in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T021 [P] [US2] Add pytest test: `total_count` in paginated response reflects filtered count (not total chores) in `solune/backend/tests/unit/api/test_chores.py`
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Pass filter state (`status`, `scheduleType`, `search`) from `ChoresPanel` component state as params to `useChoresListPaginated()` hook — map `statusFilter`, `scheduleFilter`, `deferredSearch` to hook filter params in `solune/frontend/src/components/chores/ChoresPanel.tsx`
-- [ ] T023 [US2] Remove the client-side `filteredChores` `useMemo` block that previously applied status, schedule type, and search filters on the full chore list in `solune/frontend/src/components/chores/ChoresPanel.tsx`
-- [ ] T024 [P] [US2] Add Vitest test: `useChoresListPaginated` includes filter params in query key — verify different filter values produce different query keys in `solune/frontend/tests/hooks/useChores.test.ts`
-- [ ] T025 [P] [US2] Add Vitest test: `useChoresListPaginated` passes filter params to `choresApi.listPaginated()` call in `solune/frontend/tests/hooks/useChores.test.ts`
+- [x] T022 [US2] Pass filter state (`status`, `scheduleType`, `search`) from `ChoresPanel` component state as params to `useChoresListPaginated()` hook — map `statusFilter`, `scheduleFilter`, `deferredSearch` to hook filter params in `solune/frontend/src/components/chores/ChoresPanel.tsx`
+- [x] T023 [US2] Remove the client-side `filteredChores` `useMemo` block that previously applied status, schedule type, and search filters on the full chore list in `solune/frontend/src/components/chores/ChoresPanel.tsx`
+- [x] T024 [P] [US2] Add Vitest test: `useChoresListPaginated` includes filter params in query key — verify different filter values produce different query keys in `solune/frontend/tests/hooks/useChores.test.ts`
+- [x] T025 [P] [US2] Add Vitest test: `useChoresListPaginated` passes filter params to `choresApi.listPaginated()` call in `solune/frontend/tests/hooks/useChores.test.ts`
 
 **Checkpoint**: Filtering by status, schedule type, and search works end-to-end — server returns only matching chores across all pages. Client-side filter logic is removed.
 
@@ -106,14 +106,14 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T026 [P] [US3] Add pytest test: `GET /chores/{project_id}?limit=25&sort=name&order=asc` returns chores sorted by name ascending in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T027 [P] [US3] Add pytest test: `GET /chores/{project_id}?limit=25&sort=updated_at&order=desc` returns chores sorted by updated_at descending in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T028 [P] [US3] Add pytest test: `GET /chores/{project_id}?limit=25&sort=attention&order=asc` returns chores sorted by attention score (0=active+no schedule, 1=has issue, 2=normal, 3=paused) in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T026 [P] [US3] Add pytest test: `GET /chores/{project_id}?limit=25&sort=name&order=asc` returns chores sorted by name ascending in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T027 [P] [US3] Add pytest test: `GET /chores/{project_id}?limit=25&sort=updated_at&order=desc` returns chores sorted by updated_at descending in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T028 [P] [US3] Add pytest test: `GET /chores/{project_id}?limit=25&sort=attention&order=asc` returns chores sorted by attention score (0=active+no schedule, 1=has issue, 2=normal, 3=paused) in `solune/backend/tests/unit/api/test_chores.py`
 
 ### Implementation for User Story 3
 
-- [ ] T029 [US3] Pass sort state (`sort`, `order`) from `ChoresPanel` component state as params to `useChoresListPaginated()` hook — map `sortMode` to hook sort params in `solune/frontend/src/components/chores/ChoresPanel.tsx`
-- [ ] T030 [US3] Remove the client-side sort `useMemo` block that previously sorted the chore list on the client in `solune/frontend/src/components/chores/ChoresPanel.tsx`
+- [x] T029 [US3] Pass sort state (`sort`, `order`) from `ChoresPanel` component state as params to `useChoresListPaginated()` hook — map `sortMode` to hook sort params in `solune/frontend/src/components/chores/ChoresPanel.tsx`
+- [x] T030 [US3] Remove the client-side sort `useMemo` block that previously sorted the chore list on the client in `solune/frontend/src/components/chores/ChoresPanel.tsx`
 
 **Checkpoint**: Sorting works end-to-end — server returns correctly sorted paginated results. Client-side sort logic is removed.
 
@@ -129,12 +129,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T031 [P] [US4] Add Vitest test: changing a filter value in `useChoresListPaginated` produces a new query key, causing TanStack Query to discard old pages and refetch from page 1 in `solune/frontend/tests/hooks/useChores.test.ts`
+- [x] T031 [P] [US4] Add Vitest test: changing a filter value in `useChoresListPaginated` produces a new query key, causing TanStack Query to discard old pages and refetch from page 1 in `solune/frontend/tests/hooks/useChores.test.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T032 [US4] Verify that filter/sort params are included in `queryKey` of `useChoresListPaginated` so TanStack Query automatically resets on param changes — confirm no manual `resetPagination()` or `useEffect` is needed in `solune/frontend/src/hooks/useChores.ts`
-- [ ] T033 [US4] Verify `useDeferredValue` for search text is preserved in `ChoresPanel.tsx` — the deferred value becomes a filter param passed to the hook, naturally debouncing API calls in `solune/frontend/src/components/chores/ChoresPanel.tsx`
+- [x] T032 [US4] Verify that filter/sort params are included in `queryKey` of `useChoresListPaginated` so TanStack Query automatically resets on param changes — confirm no manual `resetPagination()` or `useEffect` is needed in `solune/frontend/src/hooks/useChores.ts`
+- [x] T033 [US4] Verify `useDeferredValue` for search text is preserved in `ChoresPanel.tsx` — the deferred value becomes a filter param passed to the hook, naturally debouncing API calls in `solune/frontend/src/components/chores/ChoresPanel.tsx`
 
 **Checkpoint**: Changing filters/sort resets pagination automatically. Search is debounced via `useDeferredValue`. No manual reset logic needed.
 
@@ -148,12 +148,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T034 [US5] Search codebase for all imports and usages of `useChoresList` (non-paginated variant) across all `.ts` and `.tsx` files to determine if it is used outside `ChoresPanel.tsx`
-- [ ] T035 [US5] Search codebase for all imports and usages of `choresApi.list` (non-paginated variant) across all `.ts` and `.tsx` files to determine if it is used outside direct callers
-- [ ] T036 [US5] If `useChoresList` is not used elsewhere: remove the `useChoresList` function from `solune/frontend/src/hooks/useChores.ts`
-- [ ] T037 [US5] If `choresApi.list` is not used elsewhere: remove the `list` function from `choresApi` in `solune/frontend/src/services/api.ts`
-- [ ] T038 [US5] If either function IS used elsewhere: add deprecation JSDoc comment (`@deprecated Use useChoresListPaginated / choresApi.listPaginated instead`) to the retained functions
-- [ ] T039 [US5] Remove any unused imports that resulted from removing non-paginated functions in affected files
+- [x] T034 [US5] Search codebase for all imports and usages of `useChoresList` (non-paginated variant) across all `.ts` and `.tsx` files to determine if it is used outside `ChoresPanel.tsx`
+- [x] T035 [US5] Search codebase for all imports and usages of `choresApi.list` (non-paginated variant) across all `.ts` and `.tsx` files to determine if it is used outside direct callers
+- [x] T036 [US5] If `useChoresList` is not used elsewhere: remove the `useChoresList` function from `solune/frontend/src/hooks/useChores.ts`
+- [x] T037 [US5] If `choresApi.list` is not used elsewhere: remove the `list` function from `choresApi` in `solune/frontend/src/services/api.ts`
+- [x] T038 [US5] If either function IS used elsewhere: add deprecation JSDoc comment (`@deprecated Use useChoresListPaginated / choresApi.listPaginated instead`) to the retained functions
+- [x] T039 [US5] Remove any unused imports that resulted from removing non-paginated functions in affected files
 
 **Checkpoint**: Codebase has a single approach to loading chores. No dead code or duplicate code paths remain (unless explicitly retained with deprecation notice).
 
@@ -163,11 +163,11 @@
 
 **Purpose**: Final validation across all user stories
 
-- [ ] T040 [P] Run full pytest test suite for chores API to verify no regressions in `solune/backend/tests/unit/api/test_chores.py`
-- [ ] T041 [P] Run full Vitest test suite for chores hooks to verify no regressions in `solune/frontend/tests/hooks/useChores.test.ts`
-- [ ] T042 Verify edge case: zero-result filter shows appropriate empty state message (not loading spinner) in `solune/frontend/src/components/chores/ChoresPanel.tsx`
-- [ ] T043 Verify edge case: rapid filter toggling does not cause errors, duplicate results, or race conditions
-- [ ] T044 Run quickstart.md verification checklist against the implementation
+- [x] T040 [P] Run full pytest test suite for chores API to verify no regressions in `solune/backend/tests/unit/api/test_chores.py`
+- [x] T041 [P] Run full Vitest test suite for chores hooks to verify no regressions in `solune/frontend/tests/hooks/useChores.test.ts`
+- [x] T042 Verify edge case: zero-result filter shows appropriate empty state message (not loading spinner) in `solune/frontend/src/components/chores/ChoresPanel.tsx`
+- [x] T043 Verify edge case: rapid filter toggling does not cause errors, duplicate results, or race conditions
+- [x] T044 Run quickstart.md verification checklist against the implementation
 
 ---
 

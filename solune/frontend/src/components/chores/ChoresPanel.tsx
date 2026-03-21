@@ -8,7 +8,8 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { ScrollText } from 'lucide-react';
-import { useChoresList, useChoreTemplates, useInlineUpdateChore } from '@/hooks/useChores';
+import { useChoresListPaginated, useChoreTemplates, useInlineUpdateChore } from '@/hooks/useChores';
+import type { ChoresFilterParams } from '@/hooks/useChores';
 import { AddChoreModal } from './AddChoreModal';
 import { ChoresToolbar } from './ChoresToolbar';
 import { ChoresGrid } from './ChoresGrid';
@@ -36,8 +37,6 @@ export function ChoresPanel({
   parentIssueCount = 0,
   onDirtyChange,
 }: ChoresPanelProps) {
-  const { data: chores, isLoading, error, refetch } = useChoresList(projectId);
-  const { data: repoTemplates } = useChoreTemplates(projectId);
   const [showAddModal, setShowAddModal] = useState(false);
   const [preselectedTemplate, setPreselectedTemplate] = useState<ChoreTemplate | null>(null);
   const [search, setSearch] = useState('');
@@ -46,6 +45,29 @@ export function ChoresPanel({
   const [sortMode, setSortMode] = useState<ChoreSortMode>('attention');
   const deferredSearch = useDeferredValue(search);
 
+  // ── Server-side filter params ──
+  const sortMap: Record<ChoreSortMode, { sort: string; order: string }> = {
+    attention: { sort: 'attention', order: 'asc' },
+    updated: { sort: 'updated_at', order: 'desc' },
+    name: { sort: 'name', order: 'asc' },
+  };
+  const filterParams: ChoresFilterParams = {
+    ...(statusFilter !== 'all' ? { status: statusFilter } : {}),
+    ...(scheduleFilter !== 'all' ? { scheduleType: scheduleFilter } : {}),
+    ...(deferredSearch.trim() ? { search: deferredSearch.trim() } : {}),
+    ...sortMap[sortMode],
+  };
+
+  const {
+    allItems: chores,
+    isLoading,
+    error,
+    refetch,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useChoresListPaginated(projectId, filterParams);
+  const { data: repoTemplates } = useChoreTemplates(projectId);
   // ── Inline Edit State ──
   const [editState, setEditState] = useState<Record<string, ChoreEditState>>({});
   const inlineUpdateMutation = useInlineUpdateChore(projectId);
@@ -132,41 +154,10 @@ export function ChoresPanel({
     [repoTemplates, chores]
   );
 
-  const filteredChores = useMemo(() => {
-    return (chores ?? [])
-      .filter((chore) => {
-        const query = deferredSearch.trim().toLowerCase();
-        const matchesSearch =
-          query.length === 0 ||
-          chore.name.toLowerCase().includes(query) ||
-          chore.template_path.toLowerCase().includes(query);
-        const matchesStatus = statusFilter === 'all' || chore.status === statusFilter;
-        const matchesSchedule =
-          scheduleFilter === 'all' ||
-          (scheduleFilter === 'unscheduled'
-            ? !chore.schedule_type
-            : chore.schedule_type === scheduleFilter);
-        return matchesSearch && matchesStatus && matchesSchedule;
-      })
-      .sort((left, right) => {
-        if (sortMode === 'name') return left.name.localeCompare(right.name);
-        if (sortMode === 'updated') {
-          return new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime();
-        }
-        const attentionScore = (value: typeof left) => {
-          if (value.status === 'active' && !value.schedule_type) return 0;
-          if (value.current_issue_number) return 1;
-          if (value.status === 'paused') return 3;
-          return 2;
-        };
-        return attentionScore(left) - attentionScore(right);
-      });
-  }, [chores, deferredSearch, statusFilter, scheduleFilter, sortMode]);
-
-  const spotlightChores = filteredChores.slice(0, 3);
-  const activeChores = chores?.filter((chore) => chore.status === 'active').length ?? 0;
-  const pausedChores = chores?.filter((chore) => chore.status === 'paused').length ?? 0;
-  const unscheduledChores = chores?.filter((chore) => !chore.schedule_type).length ?? 0;
+  const spotlightChores = chores.slice(0, 3);
+  const activeChores = chores.filter((chore) => chore.status === 'active').length;
+  const pausedChores = chores.filter((chore) => chore.status === 'paused').length;
+  const unscheduledChores = chores.filter((chore) => !chore.schedule_type).length;
   const isRateLimited = isRateLimitApiError(error);
 
   return (
@@ -226,7 +217,6 @@ export function ChoresPanel({
 
       {!isLoading &&
         !error &&
-        chores &&
         chores.length === 0 &&
         uncreatedTemplates.length === 0 && (
           <div className="celestial-panel flex flex-col items-center gap-3 rounded-[1.5rem] border-2 border-dashed border-border bg-background/28 p-8 text-center">
@@ -242,7 +232,7 @@ export function ChoresPanel({
       {!isLoading && !error && (
         <>
           <ChoresSpotlight
-            chores={chores ?? []}
+            chores={chores}
             uncreatedTemplates={uncreatedTemplates}
             spotlightChores={spotlightChores}
             projectId={projectId}
@@ -259,7 +249,7 @@ export function ChoresPanel({
             onTemplateClick={handleTemplateClick}
           />
 
-          {chores && chores.length > 0 && (
+          {chores.length > 0 && (
             <section
               id="chores-catalog"
               className="ritual-stage scroll-mt-6 rounded-[1.55rem] p-4 sm:rounded-[1.85rem] sm:p-6"
@@ -275,7 +265,7 @@ export function ChoresPanel({
                 onSortModeChange={setSortMode}
               />
               <ChoresGrid
-                chores={filteredChores}
+                chores={chores}
                 projectId={projectId}
                 parentIssueCount={parentIssueCount}
                 editState={editState}
@@ -285,6 +275,9 @@ export function ChoresPanel({
                 onEditDiscard={handleEditDiscard}
                 isSaving={inlineUpdateMutation.isPending}
                 onResetFilters={handleResetFilters}
+                hasNextPage={hasNextPage}
+                isFetchingNextPage={isFetchingNextPage}
+                fetchNextPage={fetchNextPage}
               />
             </section>
           )}

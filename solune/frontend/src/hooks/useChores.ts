@@ -34,6 +34,10 @@ export const choreKeys = {
 
 // ── List Hook ──
 
+/**
+ * @deprecated Use `useChoresListPaginated` instead for paginated, server-side
+ * filtered/sorted results. Retained for legacy callers (e.g. useCommandPalette).
+ */
 export function useChoresList(projectId: string | null | undefined) {
   return useQuery<Chore[]>({
     queryKey: choreKeys.list(projectId ?? ''),
@@ -43,13 +47,27 @@ export function useChoresList(projectId: string | null | undefined) {
   });
 }
 
+// ── Filter Params Interface ──
+
+export interface ChoresFilterParams {
+  status?: string;
+  scheduleType?: string;
+  search?: string;
+  sort?: string;
+  order?: string;
+}
+
 // ── Paginated List Hook ──
 
-export function useChoresListPaginated(projectId: string | null | undefined) {
+export function useChoresListPaginated(
+  projectId: string | null | undefined,
+  filters?: ChoresFilterParams,
+) {
   const queryClient = useQueryClient();
   const result = useInfiniteList<Chore>({
-    queryKey: [...choreKeys.list(projectId ?? ''), 'paginated'],
-    queryFn: (params) => choresApi.listPaginated(projectId!, params),
+    queryKey: [...choreKeys.list(projectId ?? ''), 'paginated', filters ?? {}],
+    queryFn: (params) =>
+      choresApi.listPaginated(projectId!, { ...params, ...filters }),
     limit: 25,
     staleTime: STALE_TIME_LONG,
     enabled: !!projectId,

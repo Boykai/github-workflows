@@ -173,10 +173,60 @@ async def list_chores(
     session: Annotated[UserSession, Depends(get_session_dep)],
     limit: Annotated[int | None, Query(ge=1, le=100, description="Items per page")] = None,
     cursor: Annotated[str | None, Query(description="Pagination cursor")] = None,
+    status: Annotated[str | None, Query(description="Filter by status (active, paused)")] = None,
+    schedule_type: Annotated[
+        str | None, Query(description="Filter by schedule type (time, count, unscheduled)")
+    ] = None,
+    search: Annotated[str | None, Query(description="Search by name or template_path")] = None,
+    sort: Annotated[
+        str | None, Query(description="Sort field (name, updated_at, created_at, attention)")
+    ] = None,
+    order: Annotated[str | None, Query(description="Sort order (asc, desc)")] = None,
 ) -> list[Chore] | dict:
     """List all chores for a project."""
     service = _get_service()
     chores = await service.list_chores(project_id)
+
+    # ── Server-side filtering ──
+    if status is not None:
+        chores = [c for c in chores if c.status == status]
+
+    if schedule_type is not None:
+        if schedule_type == "unscheduled":
+            chores = [c for c in chores if c.schedule_type is None]
+        else:
+            chores = [c for c in chores if c.schedule_type is not None and c.schedule_type == schedule_type]
+
+    if search is not None:
+        query = search.strip().lower()
+        if query:
+            chores = [
+                c
+                for c in chores
+                if query in c.name.lower() or query in c.template_path.lower()
+            ]
+
+    # ── Server-side sorting ──
+    if sort is not None:
+        reverse = order == "desc"
+        if sort == "name":
+            chores.sort(key=lambda c: c.name.lower(), reverse=reverse)
+        elif sort == "updated_at":
+            chores.sort(key=lambda c: c.updated_at, reverse=reverse)
+        elif sort == "created_at":
+            chores.sort(key=lambda c: c.created_at, reverse=reverse)
+        elif sort == "attention":
+
+            def _attention_score(c: Chore) -> int:
+                if c.status == "active" and c.schedule_type is None:
+                    return 0
+                if c.current_issue_number is not None:
+                    return 1
+                if c.status == "paused":
+                    return 3
+                return 2
+
+            chores.sort(key=_attention_score, reverse=reverse)
 
     if limit is not None or cursor is not None:
         from src.services.pagination import apply_pagination
