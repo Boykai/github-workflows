@@ -547,6 +547,40 @@ async def update_issue_status_for_copilot_pr(
                 "message": f"Copilot PR #{pr_number} is ready. Issue #{issue_number} not found in any project.",
             }
 
+        # ── Pipeline-position guard: only move to "In Review" when appropriate ──
+        # For pipeline-tracked issues, the status transition should only happen
+        # when the pipeline has reached the copilot-review step.  If an earlier
+        # agent (e.g. speckit.implement) finishes and its PR triggers a
+        # ready_for_review event, we must NOT move the issue to "In Review"
+        # prematurely — the pipeline's own _transition_after_pipeline_complete()
+        # handles status transitions at the correct time.
+        from src.services.copilot_polling import get_pipeline_state
+
+        pipeline = get_pipeline_state(issue_number)
+        if pipeline is not None:
+            current_agent = getattr(pipeline, "current_agent", None)
+            if current_agent and current_agent != "copilot-review":
+                logger.warning(
+                    "Webhook guard: skipping 'In Review' move for issue #%d — "
+                    "pipeline current agent is '%s', not 'copilot-review'",
+                    issue_number,
+                    current_agent,
+                )
+                return {
+                    "status": "skipped",
+                    "event": "copilot_pr_ready",
+                    "pr_number": pr_number,
+                    "pr_author": pr_author,
+                    "repository": f"{repo_owner}/{repo_name}",
+                    "issue_number": issue_number,
+                    "reason": "pipeline_agent_not_copilot_review",
+                    "current_agent": current_agent,
+                    "message": (
+                        f"Skipped moving issue #{issue_number} to 'In Review': "
+                        f"pipeline current agent is '{current_agent}', not 'copilot-review'"
+                    ),
+                }
+
         # Update the issue status to "In Review"
         logger.info(
             "Updating issue #%d status to 'In Review' in project %s",
