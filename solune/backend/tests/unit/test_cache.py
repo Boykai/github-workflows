@@ -341,3 +341,28 @@ class TestCacheWarmPreventsOutboundCalls:
         assert entry is not None
         remaining = (entry.expires_at - utcnow()).total_seconds()
         assert 295 <= remaining <= 305
+
+    @patch("src.services.cache.get_settings")
+    def test_refresh_ttl_returns_false_for_missing_key(self, mock_settings):
+        """refresh_ttl() should return False when key does not exist (T016)."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+
+        assert c.refresh_ttl("nonexistent:key") is False
+
+    @patch("src.services.cache.get_settings")
+    def test_refresh_ttl_preserves_etag_and_last_modified(self, mock_settings):
+        """refresh_ttl() should preserve all metadata (etag, last_modified, data_hash) (T016)."""
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+
+        c.set("k", "val", etag='"abc"', last_modified="Mon, 01 Jan 2024", data_hash="hash123")
+        time.sleep(0.01)
+        assert c.refresh_ttl("k") is True
+
+        entry = c.get_entry("k")
+        assert entry is not None
+        assert entry.etag == '"abc"'
+        assert entry.last_modified == "Mon, 01 Jan 2024"
+        assert entry.data_hash == "hash123"
+        assert entry.value == "val"

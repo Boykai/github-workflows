@@ -325,11 +325,17 @@ async def websocket_subscribe(
         await websocket.close(code=1008, reason="Authentication required")
         return
 
-    # Verify the user has access to this project before accepting
+    # Verify the user has access to this project before accepting.
+    # Reuse the cached user-projects list when available to avoid an extra
+    # upstream API call on every WebSocket connection (R2 optimisation).
     try:
-        projects = await github_projects_service.list_user_projects(
-            session.access_token, session.github_username
-        )
+        user_projects_key = get_user_projects_cache_key(session.github_user_id)
+        projects = cache.get(user_projects_key)
+        if projects is None:
+            projects = await github_projects_service.list_user_projects(
+                session.access_token, session.github_username
+            )
+            cache.set(user_projects_key, projects)
         if not any(p.project_id == project_id for p in projects):
             logger.warning(
                 "WebSocket project access denied: user=%s project=%s",
