@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ExternalLink, Play, Square, Trash2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Play, Square, Trash2, RefreshCw } from '@/lib/icons';
 import { useApp, useStartApp, useStopApp, useUndoableDeleteApp, getErrorMessage } from '@/hooks/useApps';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useConfirmation } from '@/hooks/useConfirmation';

@@ -3,7 +3,7 @@
  * Shows Save, Discard, and Cancel options.
  */
 
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 
 interface UnsavedChangesDialogProps {

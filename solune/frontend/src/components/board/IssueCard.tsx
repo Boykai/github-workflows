@@ -5,7 +5,7 @@
 
 import { memo, useState, useMemo } from 'react';
 import { useDraggable } from '@dnd-kit/core';
-import { ChevronDown, ChevronRight, Circle, CircleCheckBig, Clock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Circle, CircleCheckBig, Clock } from '@/lib/icons';
 import type { BoardItem, SubIssue, AvailableAgent } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { PRIORITY_COLORS } from '@/constants';

@@ -3,7 +3,7 @@
  * Shows agent name, model selection, tool count badge, and remove button.
  */
 
-import { X, Wrench, Copy, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { X, Wrench, Copy, CheckCircle2, XCircle, Loader2 } from '@/lib/icons';
 
 export type AgentRunStatus = 'pending' | 'running' | 'completed' | 'failed';
 

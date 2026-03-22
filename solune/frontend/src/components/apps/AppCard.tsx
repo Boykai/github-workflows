@@ -3,7 +3,7 @@
  * Shows name, description, status badge, repo type badge, and action buttons.
  */
 
-import { ExternalLink, Play, Square, Trash2, Workflow } from 'lucide-react';
+import { ExternalLink, Play, Square, Trash2, Workflow } from '@/lib/icons';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { App, AppStatus, RepoType } from '@/types/apps';

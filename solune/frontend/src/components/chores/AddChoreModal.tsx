@@ -1,4 +1,4 @@
-import { ScrollText, X } from 'lucide-react';
+import { ScrollText, Sparkles, X } from '@/lib/icons';
 
 /**
  * AddChoreModal — modal dialog for creating a new chore.
@@ -8,7 +8,6 @@ import { ScrollText, X } from 'lucide-react';
  */
 
 import { useEffect, useState } from 'react';
-import { Sparkles } from 'lucide-react';
 import { useCreateChoreWithAutoMerge, useChoreTemplates } from '@/hooks/useChores';
 import { ChoreChatFlow } from './ChoreChatFlow';
 import { ConfirmChoreModal } from './ConfirmChoreModal';

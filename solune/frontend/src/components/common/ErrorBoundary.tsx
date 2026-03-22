@@ -1,4 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { getErrorHint } from '@/utils/errorHints';
+import { Lightbulb } from '@/lib/icons';
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -41,6 +43,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         return this.props.fallback;
       }
 
+      const errorHint = getErrorHint(this.state.error);
+
       return (
         <div
           role="alert"
@@ -53,6 +57,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <pre className="max-w-lg rounded-lg bg-muted/50 px-4 py-3 text-sm text-destructive whitespace-pre-wrap">
             {this.state.error?.message}
           </pre>
+          <div className="flex items-start gap-2 max-w-lg text-sm text-muted-foreground">
+            <Lightbulb className="h-4 w-4 shrink-0 mt-0.5" />
+            <p>
+              {errorHint.hint}
+              {errorHint.action && (
+                <>
+                  {' '}
+                  <a href={errorHint.action.href} className="underline text-primary hover:text-primary/80">
+                    {errorHint.action.label}
+                  </a>
+                </>
+              )}
+            </p>
+          </div>
           <button
             type="button"
             onClick={this.handleReset}

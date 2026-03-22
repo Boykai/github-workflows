@@ -4,7 +4,7 @@
  * Phase 8: Wrapped with UndoRedoProvider for session-scoped undo/redo.
  */
 
-import { Inbox, Search } from 'lucide-react';
+import { Inbox, Search } from '@/lib/icons';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { Button } from '@/components/ui/button';
 import type { BoardDataResponse, BoardItem, AvailableAgent } from '@/types';

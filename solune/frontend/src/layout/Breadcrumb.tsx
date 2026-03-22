@@ -5,7 +5,7 @@
 
 import { useLocation, Link } from 'react-router-dom';
 import { NAV_ROUTES } from '@/constants';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight } from '@/lib/icons';
 import { useBreadcrumbLabels } from '@/hooks/useBreadcrumb';
 import { buildBreadcrumbSegments } from '@/lib/breadcrumb-utils';
 

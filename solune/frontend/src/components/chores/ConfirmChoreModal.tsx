@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Loader2 } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 
 interface ConfirmChoreModalProps {

@@ -3,7 +3,7 @@
  */
 
 import type { ChatMessage } from '@/types';
-import { AlertCircle, RotateCcw } from 'lucide-react';
+import { AlertCircle, RotateCcw } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { MarkdownRenderer } from '@/components/chat/MarkdownRenderer';
 import { CopyButton } from '@/components/ui/copy-button';

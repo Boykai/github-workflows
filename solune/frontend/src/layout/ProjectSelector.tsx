@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef, useState } from 'react';
-import { Check, Plus } from 'lucide-react';
+import { Check, Plus } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { useOwners } from '@/hooks/useApps';
 import { useCreateProject } from '@/hooks/useProjects';

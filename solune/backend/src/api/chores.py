@@ -166,6 +166,26 @@ async def list_templates(
     return templates
 
 
+# ── Chore Names (lightweight, unpaginated) ──
+
+
+@router.get("/{project_id}/chore-names", response_model=list[str])
+async def list_chore_names(
+    project_id: str,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> list[str]:
+    """Return ALL chore names for a project — unpaginated and unfiltered.
+
+    This lightweight endpoint supports accurate template membership checks
+    without pulling full chore objects or being affected by pagination/filter
+    state on the client.
+    """
+    await resolve_repository(session.access_token, project_id)
+    service = _get_service()
+    chores = await service.list_chores(project_id)
+    return [c.name for c in chores]
+
+
 # ── List ──
 
 

@@ -1,4 +1,4 @@
-import { AlertCircle, Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import { AlertCircle, Pencil, RefreshCw, Trash2 } from '@/lib/icons';
 import type { RepoMcpConfigResponse, RepoMcpServerConfig } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';

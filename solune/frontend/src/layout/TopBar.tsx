@@ -2,7 +2,7 @@
  * TopBar — horizontal bar with breadcrumb, notification bell, and user avatar.
  */
 
-import { HelpCircle, Search } from 'lucide-react';
+import { HelpCircle, Search } from '@/lib/icons';
 import { NavLink } from 'react-router-dom';
 import { Breadcrumb } from './Breadcrumb';
 import { NotificationBell } from './NotificationBell';

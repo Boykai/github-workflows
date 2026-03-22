@@ -3,7 +3,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 
 interface ShortcutEntry {

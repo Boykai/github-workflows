@@ -6,7 +6,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Lock, Plus, Trash2, Layers } from 'lucide-react';
+import { Lock, Plus, Trash2, Layers } from '@/lib/icons';
 import { ExecutionGroupCard } from './ExecutionGroupCard';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';

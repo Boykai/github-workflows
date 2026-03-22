@@ -6,7 +6,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { ChevronUp, ChevronDown, X, Plus } from 'lucide-react';
+import { ChevronUp, ChevronDown, X, Plus } from '@/lib/icons';
 import { ToolSelectorModal } from '@/components/tools/ToolSelectorModal';
 import { Tooltip } from '@/components/ui/tooltip';
 

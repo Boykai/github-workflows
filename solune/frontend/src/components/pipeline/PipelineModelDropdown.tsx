@@ -3,7 +3,7 @@
  * Provides "Auto" option and batch-updates all agents when a model is selected.
  */
 
-import { ChevronDown, Sparkles } from 'lucide-react';
+import { ChevronDown, Sparkles } from '@/lib/icons';
 import { useState, useRef, useEffect } from 'react';
 import type { AIModel, PipelineModelOverride } from '@/types';
 import { cn } from '@/lib/utils';

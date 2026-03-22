@@ -7,7 +7,7 @@
  */
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Check, ClipboardCopy, Info, RefreshCw, Sparkles } from 'lucide-react';
+import { Check, ClipboardCopy, Info, RefreshCw, Sparkles } from '@/lib/icons';
 import type { McpToolConfig } from '@/types';
 import { cn } from '@/lib/utils';
 import { buildGitHubMcpConfig, BUILTIN_MCPS } from '@/lib/buildGitHubMcpConfig';

@@ -6,7 +6,7 @@
 import { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Circle, CircleCheckBig, X } from 'lucide-react';
+import { Circle, CircleCheckBig, X } from '@/lib/icons';
 import type { BoardItem, SubIssue } from '@/types';
 import { statusColorToCSS } from './colorUtils';
 import { useScrollLock } from '@/hooks/useScrollLock';

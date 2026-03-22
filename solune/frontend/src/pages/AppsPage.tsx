@@ -6,7 +6,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GitBranch, Plus, RefreshCw } from 'lucide-react';
+import { GitBranch, Plus, RefreshCw } from '@/lib/icons';
 import {
   useApp,
   useApps,
