@@ -280,10 +280,8 @@ class TestCreateCompletionProvider:
         assert isinstance(p, AzureOpenAICompletionProvider)
 
     def test_unknown_provider_raises(self):
-        s = _settings(ai_provider="unknown_llm")
-        with patch("src.services.completion_providers.get_settings", return_value=s):
-            with pytest.raises(ValueError, match="Unknown AI provider"):
-                create_completion_provider()
+        with pytest.raises(ValueError, match="Unknown AI_PROVIDER"):
+            _settings(ai_provider="unknown_llm")
 
 
 class TestAzureEmptyChoices:

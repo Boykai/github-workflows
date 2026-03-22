@@ -66,9 +66,15 @@ class EncryptionService:
 
         In passthrough mode returns *plaintext* unchanged.
         """
-        if self._fernet is None:
-            return plaintext
-        return self._fernet.encrypt(plaintext.encode()).decode()
+        from src.services.otel_setup import get_tracer
+
+        tracer = get_tracer()
+        with tracer.start_as_current_span(
+            "encryption.encrypt", attributes={"data_size": len(plaintext)}
+        ):
+            if self._fernet is None:
+                return plaintext
+            return self._fernet.encrypt(plaintext.encode()).decode()
 
     def decrypt(self, ciphertext: str) -> str:
         """Decrypt Fernet token → plaintext.
@@ -80,22 +86,28 @@ class EncryptionService:
         Raises :class:`ValueError` only on genuinely corrupted
         ciphertext (not legacy plaintext).
         """
-        if self._fernet is None:
-            return ciphertext
+        from src.services.otel_setup import get_tracer
 
-        # Legacy plaintext detection — do not attempt decryption
-        if _is_plaintext_token(ciphertext):
-            return ciphertext
+        tracer = get_tracer()
+        with tracer.start_as_current_span(
+            "encryption.decrypt", attributes={"data_size": len(ciphertext)}
+        ):
+            if self._fernet is None:
+                return ciphertext
 
-        try:
-            return self._fernet.decrypt(ciphertext.encode()).decode()
-        except InvalidToken:
-            # Could be a key rotation scenario — treat as expired/invalid
-            logger.warning("Failed to decrypt token (key change?) — treating as invalid")
-            raise ValueError("Unable to decrypt token — possible key rotation") from None
-        except UnicodeDecodeError:
-            logger.warning("Decrypted token contains invalid UTF-8 — treating as corrupted")
-            raise ValueError("Unable to decode decrypted token — corrupted data") from None
+            # Legacy plaintext detection — do not attempt decryption
+            if _is_plaintext_token(ciphertext):
+                return ciphertext
+
+            try:
+                return self._fernet.decrypt(ciphertext.encode()).decode()
+            except InvalidToken:
+                # Could be a key rotation scenario — treat as expired/invalid
+                logger.warning("Failed to decrypt token (key change?) — treating as invalid")
+                raise ValueError("Unable to decrypt token — possible key rotation") from None
+            except UnicodeDecodeError:
+                logger.warning("Decrypted token contains invalid UTF-8 — treating as corrupted")
+                raise ValueError("Unable to decode decrypted token — corrupted data") from None
 
 
 # ------------------------------------------------------------------

@@ -123,6 +123,15 @@ class PullRequestsMixin:
         Searches first via GraphQL timeline events, then falls back to
         the REST API to catch PRs not captured by timeline events.
 
+        NOTE: Evaluated for ``_with_fallback()`` adoption (Phase 2, US3).
+        **Not applied** because the post-processing (filter by Copilot
+        author, pick first match) diverges between the primary (GraphQL
+        timeline) and fallback (REST search) paths.  Extracting both
+        into ``primary_fn`` / ``fallback_fn`` lambdas would hide
+        important filtering logic, increasing indirection without
+        reducing code or improving clarity.
+        See research.md Task 7 for full rationale.
+
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner

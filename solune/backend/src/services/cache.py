@@ -191,6 +191,9 @@ async def cached_fetch[T](
     ttl_seconds: int | None = None,
     refresh: bool = False,
     stale_fallback: bool = False,
+    *,
+    rate_limit_fallback: bool = False,
+    data_hash_fn: Callable[[T], str] | None = None,
 ) -> T:
     """Fetch data with cache-aside pattern.
 
@@ -201,6 +204,16 @@ async def cached_fetch[T](
     When *stale_fallback* is ``True`` and *fetch_fn* raises, any stale
     cache entry is returned instead of propagating the error.
 
+    When *rate_limit_fallback* is ``True`` and *fetch_fn* raises a
+    :class:`~src.exceptions.RateLimitError`, stale cache data is
+    returned (if available) with a rate-limit-specific warning.  If no
+    stale data exists, the error is re-raised.
+
+    When *data_hash_fn* is provided, the hash of the fetched data is
+    compared against the existing cache entry's ``data_hash``.  If the
+    hashes match, only the TTL is refreshed (avoiding a full re-store).
+    If different, the entry is stored with the new hash.
+
     Args:
         cache_instance: The :class:`InMemoryCache` to read/write.
         key: Cache key.
@@ -209,19 +222,40 @@ async def cached_fetch[T](
             the cache instance's configured TTL is used.
         refresh: When ``True``, skip the cache and always call *fetch_fn*.
         stale_fallback: When ``True``, return stale data on fetch errors.
+        rate_limit_fallback: When ``True``, return stale data on
+            :class:`~src.exceptions.RateLimitError` and log a warning.
+        data_hash_fn: Optional callable that computes a hash string from
+            the fetched data for change detection.
 
     Returns:
         The cached or freshly-fetched value.
     """
     if not refresh:
-        cached = cache_instance.get(key)
-        if cached is not None:
-            logger.debug("cached_fetch hit: %s", key)
-            return cached  # type: ignore[return-value]
+        if rate_limit_fallback or stale_fallback:
+            # Use get_entry() to avoid evicting expired entries that may
+            # be needed by the stale/rate-limit fallback paths below.
+            entry = cache_instance.get_entry(key)
+            if entry is not None and not entry.is_expired:
+                logger.debug("cached_fetch hit: %s", key)
+                return entry.value  # type: ignore[return-value]
+        else:
+            cached = cache_instance.get(key)
+            if cached is not None:
+                logger.debug("cached_fetch hit: %s", key)
+                return cached  # type: ignore[return-value]
 
     try:
         result = await fetch_fn()
-    except Exception:
+    except Exception as exc:
+        from src.exceptions import RateLimitError
+
+        if rate_limit_fallback and isinstance(exc, RateLimitError):
+            stale = cache_instance.get_stale(key)
+            if stale is not None:
+                logger.warning("cached_fetch rate-limit fallback (stale): %s", key)
+                return stale  # type: ignore[return-value]
+            raise
+
         if stale_fallback:
             stale = cache_instance.get_stale(key)
             if stale is not None:
@@ -229,7 +263,16 @@ async def cached_fetch[T](
                 return stale  # type: ignore[return-value]
         raise
 
-    cache_instance.set(key, result, ttl_seconds=ttl_seconds)
+    if data_hash_fn is not None:
+        new_hash = data_hash_fn(result)
+        existing = cache_instance.get_entry(key)
+        if existing is not None and existing.data_hash == new_hash:
+            cache_instance.refresh_ttl(key, ttl_seconds=ttl_seconds)
+            logger.debug("cached_fetch hash unchanged, TTL refreshed: %s", key)
+            return result  # type: ignore[return-value]
+        cache_instance.set(key, result, ttl_seconds=ttl_seconds, data_hash=new_hash)
+    else:
+        cache_instance.set(key, result, ttl_seconds=ttl_seconds)
     logger.debug("cached_fetch set: %s (TTL: %ss)", key, ttl_seconds or "default")
     return result  # type: ignore[return-value]
 

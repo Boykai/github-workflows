@@ -191,3 +191,88 @@ class TestDebugModeDegradedGracefully:
             session_secret_key="a" * 64,
         )
         assert s.debug is True
+
+
+class TestAiProviderValidation:
+    """ai_provider must be 'copilot' or 'azure_openai'."""
+
+    def test_unknown_provider_raises(self):
+        with pytest.raises(ValueError, match="Unknown AI_PROVIDER"):
+            _make_production(ai_provider="openai")
+
+    def test_unknown_provider_raises_in_debug(self):
+        with pytest.raises(ValueError, match="Unknown AI_PROVIDER"):
+            _make_debug(ai_provider="openai")
+
+    def test_copilot_passes(self):
+        s = _make_production(ai_provider="copilot")
+        assert s.ai_provider == "copilot"
+
+    def test_azure_openai_passes(self):
+        s = _make_production(
+            ai_provider="azure_openai",
+            azure_openai_endpoint="https://example.openai.azure.com",
+            azure_openai_key="test-key",
+        )
+        assert s.ai_provider == "azure_openai"
+
+
+class TestAzureOpenAIConfigRequired:
+    """Azure OpenAI endpoint and key must be set when ai_provider is 'azure_openai'."""
+
+    def test_missing_endpoint_raises(self):
+        with pytest.raises(ValueError, match="AZURE_OPENAI_ENDPOINT"):
+            _make_production(
+                ai_provider="azure_openai",
+                azure_openai_endpoint=None,
+                azure_openai_key="test-key",
+            )
+
+    def test_missing_key_raises(self):
+        with pytest.raises(ValueError, match="AZURE_OPENAI_KEY"):
+            _make_production(
+                ai_provider="azure_openai",
+                azure_openai_endpoint="https://example.openai.azure.com",
+                azure_openai_key=None,
+            )
+
+    def test_complete_config_passes(self):
+        s = _make_production(
+            ai_provider="azure_openai",
+            azure_openai_endpoint="https://example.openai.azure.com",
+            azure_openai_key="test-key",
+        )
+        assert s.azure_openai_endpoint == "https://example.openai.azure.com"
+
+    def test_missing_config_warns_in_debug(self, caplog):
+        s = _make_debug(
+            ai_provider="azure_openai",
+            azure_openai_endpoint=None,
+            azure_openai_key=None,
+        )
+        assert s.debug is True
+        assert "AI features will not work" in caplog.text
+
+
+class TestDatabasePathValidation:
+    """database_path must be absolute in production mode."""
+
+    def test_empty_path_raises(self):
+        with pytest.raises(ValueError, match="DATABASE_PATH"):
+            _make_production(database_path="")
+
+    def test_relative_path_raises_in_production(self):
+        with pytest.raises(ValueError, match="DATABASE_PATH"):
+            _make_production(database_path="data/settings.db")
+
+    def test_absolute_path_passes(self):
+        s = _make_production(database_path="/var/lib/solune/data/settings.db")
+        assert s.database_path == "/var/lib/solune/data/settings.db"
+
+    def test_memory_path_allowed_in_production(self):
+        s = _make_production(database_path=":memory:")
+        assert s.database_path == ":memory:"
+
+    def test_relative_path_allowed_in_debug(self):
+        s = _make_debug(database_path="test.db")
+        assert s.database_path == "test.db"

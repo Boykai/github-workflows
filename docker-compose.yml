@@ -35,6 +35,14 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - ENABLE_DOCS=${ENABLE_DOCS:-false}
       - DATABASE_PATH=/var/lib/solune/data/settings.db
+      # Observability (Phase 5) — opt-in
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-http://jaeger:4317}
+      - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME:-solune-backend}
+      - SENTRY_DSN=${SENTRY_DSN:-}
+      - ALERT_WEBHOOK_URL=${ALERT_WEBHOOK_URL:-}
+      - PIPELINE_STALL_ALERT_MINUTES=${PIPELINE_STALL_ALERT_MINUTES:-30}
+      - RATE_LIMIT_CRITICAL_THRESHOLD=${RATE_LIMIT_CRITICAL_THRESHOLD:-20}
     volumes:
       - solune-data:/var/lib/solune/data
     healthcheck:
@@ -87,6 +95,21 @@ services:
       timeout: 10s
       retries: 5
       start_period: 15s
+    networks:
+      - solune-network
+
+  # ── Observability (Phase 5) — activated via: docker compose --profile observability up ──
+  jaeger:
+    image: jaegertracing/jaeger:latest
+    container_name: solune-jaeger
+    profiles:
+      - observability
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:16686:16686"  # Jaeger UI
+      - "127.0.0.1:4317:4317"    # OTLP gRPC
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
     networks:
       - solune-network
 

@@ -174,20 +174,22 @@ class IssuesMixin:
         """
         Add an existing issue to a GitHub Project (T020).
 
-        Uses a multi-strategy approach to work around a known GitHub API bug
-        where items added via ``addProjectV2ItemById`` (GraphQL) or the REST
-        API may not appear in the project's ``items()`` connection, despite
-        being visible through the issue's ``projectItems`` connection.
+        Uses ``_with_fallback()`` to implement a multi-strategy approach
+        that works around a known GitHub API bug where items added via
+        ``addProjectV2ItemById`` (GraphQL) or the REST API may not appear
+        in the project's ``items()`` connection, despite being visible
+        through the issue's ``projectItems`` connection.
 
         Strategy:
-        1. Add via GraphQL ``addProjectV2ItemById``
-        2. Verify the item is on the project via the issue's ``projectItems``
-        3. If verification fails and ``issue_database_id`` is provided, retry
-           via REST API (``POST /users/{owner}/projectsV2/{number}/items``)
+        1. Add via GraphQL ``addProjectV2ItemById`` (primary)
+        2. Verify the item is on the project via the issue's
+           ``projectItems`` (verify_fn)
+        3. If verification fails and ``issue_database_id`` is provided,
+           retry via REST API (fallback)
 
-        The board reconciliation in ``get_board_data()`` provides an additional
-        safety net by checking issue-side ``projectItems`` for any items the
-        project-side ``items()`` connection missed.
+        The board reconciliation in ``get_board_data()`` provides an
+        additional safety net by checking issue-side ``projectItems`` for
+        any items the project-side ``items()`` connection missed.
 
         Args:
             access_token: GitHub OAuth access token
@@ -198,46 +200,49 @@ class IssuesMixin:
         Returns:
             Project item ID
         """
-        # Strategy 1: GraphQL mutation
-        data = await self._graphql(
-            access_token,
-            ADD_ISSUE_TO_PROJECT_MUTATION,
-            {"projectId": project_id, "contentId": issue_node_id},
-        )
-        item_id = data.get("addProjectV2ItemById", {}).get("item", {}).get("id", "")
-        logger.info("Added issue %s to project via GraphQL, item_id: %s", issue_node_id, item_id)
+        # Capture the GraphQL item_id so fallback can reference it
+        graphql_item_id: str = ""
 
-        # Verify the item is on the project via the issue's projectItems
-        # connection (always consistent, unlike project.items()).
-        verified = await self._verify_item_on_project(access_token, issue_node_id, project_id)
-        if verified:
-            logger.info("Verified issue %s is on project %s", issue_node_id, project_id)
-            return item_id
+        async def _primary() -> str:
+            nonlocal graphql_item_id
+            data = await self._graphql(
+                access_token,
+                ADD_ISSUE_TO_PROJECT_MUTATION,
+                {"projectId": project_id, "contentId": issue_node_id},
+            )
+            graphql_item_id = data.get("addProjectV2ItemById", {}).get("item", {}).get("id", "")
+            logger.info(
+                "Added issue %s to project via GraphQL, item_id: %s",
+                issue_node_id,
+                graphql_item_id,
+            )
+            return graphql_item_id
 
-        logger.warning(
-            "Issue %s not verified on project %s after GraphQL add. "
-            "GitHub API eventual consistency detected.",
-            issue_node_id,
-            project_id,
-        )
+        async def _verify() -> bool:
+            return await self._verify_item_on_project(access_token, issue_node_id, project_id)
 
-        # Strategy 2: REST API fallback (delete + re-add via REST)
-        if issue_database_id:
+        async def _fallback() -> str:
+            if not issue_database_id:
+                # No REST fallback possible without database ID — return
+                # the GraphQL item_id as best-effort result.
+                return graphql_item_id
             rest_item_id = await self._add_issue_to_project_rest(
                 access_token=access_token,
                 project_id=project_id,
-                item_id=item_id,
+                item_id=graphql_item_id,
                 issue_database_id=issue_database_id,
             )
-            if rest_item_id:
-                logger.info(
-                    "REST API fallback returned item_id: %s for issue %s",
-                    rest_item_id,
-                    issue_node_id,
-                )
-                return rest_item_id
+            return rest_item_id or graphql_item_id
 
-        return item_id
+        result = await self._with_fallback(
+            primary_fn=_primary,
+            fallback_fn=_fallback,
+            operation=f"add issue {issue_node_id} to project {project_id}",
+            verify_fn=_verify,
+        )
+        # Soft-failure contract: _with_fallback returns None on total
+        # failure.  Fall back to the GraphQL item_id (possibly empty).
+        return result or graphql_item_id
 
     async def _verify_item_on_project(
         self,
