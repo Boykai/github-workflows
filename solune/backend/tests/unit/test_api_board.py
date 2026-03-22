@@ -927,4 +927,4 @@ class TestSubIssueCacheLifecycle:
             # The cache.delete calls for sub-issue entries depend on items in
             # the old cached data. Since our mock returns data with items,
             # cache.delete should be invoked for sub-issue cleanup.
-            # (In the real code, this happens at lines 388-399 of board.py)
+            # (In the real code, this happens in the manual refresh path of board.py)
