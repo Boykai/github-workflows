@@ -294,11 +294,11 @@ async def _resolve_repository_rest(access_token: str, project_id: str) -> tuple[
 
         project_number, owner_type, owner_login = rest_info
 
-        # Build REST endpoint for project items
+        # Build REST endpoint for project items (Projects V2)
         if owner_type == "Organization":
-            path = f"/orgs/{owner_login}/projects/{project_number}/items"
+            path = f"/orgs/{owner_login}/projectsV2/{project_number}/items"
         else:
-            path = f"/users/{owner_login}/projects/{project_number}/items"
+            path = f"/users/{owner_login}/projectsV2/{project_number}/items"
 
         response = await github_projects_service._rest_response(
             access_token, "GET", path, params={"per_page": "5"}
