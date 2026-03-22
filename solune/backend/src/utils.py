@@ -274,9 +274,7 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
     )
 
 
-async def _resolve_repository_rest(
-    access_token: str, project_id: str
-) -> tuple[str, str] | None:
+async def _resolve_repository_rest(access_token: str, project_id: str) -> tuple[str, str] | None:
     """Resolve repository from project items via the REST API.
 
     Uses ``_get_project_rest_info()`` to obtain the project's owner and
@@ -290,9 +288,7 @@ async def _resolve_repository_rest(
     from src.services.github_projects import github_projects_service
 
     try:
-        rest_info = await github_projects_service._get_project_rest_info(
-            access_token, project_id
-        )
+        rest_info = await github_projects_service._get_project_rest_info(access_token, project_id)
         if not rest_info:
             return None
 

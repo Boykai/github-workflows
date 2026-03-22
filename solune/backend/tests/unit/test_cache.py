@@ -429,9 +429,7 @@ class TestCachedFetchExtensions:
         async def fetch_fn():
             return {"key": "value"}
 
-        result = await cached_fetch(
-            c, "k", fetch_fn, refresh=True, data_hash_fn=compute_data_hash
-        )
+        result = await cached_fetch(c, "k", fetch_fn, refresh=True, data_hash_fn=compute_data_hash)
         assert result == {"key": "value"}
 
         entry_after = c.get_entry("k")
@@ -457,9 +455,7 @@ class TestCachedFetchExtensions:
         async def fetch_fn():
             return new_data
 
-        result = await cached_fetch(
-            c, "k", fetch_fn, refresh=True, data_hash_fn=compute_data_hash
-        )
+        result = await cached_fetch(c, "k", fetch_fn, refresh=True, data_hash_fn=compute_data_hash)
         assert result == new_data
 
         entry = c.get_entry("k")
