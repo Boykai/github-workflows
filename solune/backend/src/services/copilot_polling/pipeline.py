@@ -2169,7 +2169,12 @@ async def _transition_after_pipeline_complete(
             elif merge_result.status == "devops_needed":
                 from .auto_merge import dispatch_devops_agent
 
-                pipeline_metadata: dict[str, Any] = {}
+                # Use in-memory pipeline metadata if still available for
+                # DevOps retry tracking; otherwise start fresh.
+                existing_pipeline = _cp.get_pipeline_state(issue_number)
+                pipeline_metadata: dict[str, Any] = (
+                    dict(existing_pipeline.__dict__) if existing_pipeline else {}
+                )
                 dispatched = await dispatch_devops_agent(
                     access_token=access_token,
                     owner=owner,

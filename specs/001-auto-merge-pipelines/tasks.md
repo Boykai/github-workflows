@@ -27,10 +27,10 @@
 
 **Purpose**: Database migration and core model additions that all other phases depend on
 
-- [ ] T001 Create database migration adding auto_merge column to project_settings table in `solune/backend/src/migrations/034_auto_merge.sql`
-- [ ] T002 Add `auto_merge: bool = False` field to `ProjectBoardConfig` model in `solune/backend/src/models/settings.py`
-- [ ] T003 [P] Add `auto_merge: bool = False` field to `PipelineState` dataclass in `solune/backend/src/services/workflow_orchestrator/models.py`
-- [ ] T004 [P] Add `auto_merge: boolean` to `ProjectBoardConfig` and `PipelineConfig` TypeScript interfaces in `solune/frontend/src/types/index.ts`
+- [x] T001 Create database migration adding auto_merge column to project_settings table in `solune/backend/src/migrations/034_auto_merge.sql`
+- [x] T002 Add `auto_merge: bool = False` field to `ProjectBoardConfig` model in `solune/backend/src/models/settings.py`
+- [x] T003 [P] Add `auto_merge: bool = False` field to `PipelineState` dataclass in `solune/backend/src/services/workflow_orchestrator/models.py`
+- [x] T004 [P] Add `auto_merge: boolean` to `ProjectBoardConfig` and `PipelineConfig` TypeScript interfaces in `solune/frontend/src/types/index.ts`
 
 ---
 
@@ -40,13 +40,13 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Add `"auto_merge"` to `PROJECT_SETTINGS_COLUMNS` tuple and update `_merge_settings_rows()` to merge `auto_merge` column value into `ProjectBoardConfig` in `solune/backend/src/services/settings_store.py`
-- [ ] T006 Add `is_auto_merge_enabled()` function with 10-second TTL in-memory cache (mirror `is_queue_mode_enabled()`) in `solune/backend/src/services/settings_store.py`
-- [ ] T007 Handle `auto_merge` in `update_project_settings_endpoint()`: convert to int, upsert to user row, sync to `__workflow__` canonical row, invalidate cache (same pattern as `queue_mode`) in `solune/backend/src/api/settings.py`
-- [ ] T008 [P] Serialize `auto_merge` field in pipeline metadata JSON (read/write) in `solune/backend/src/services/pipeline_state_store.py`
-- [ ] T009 [P] Add `get_check_runs_for_ref(ref)` REST helper (`GET /repos/{owner}/{repo}/commits/{ref}/check-runs`) to `solune/backend/src/services/github_projects/pull_requests.py`
-- [ ] T010 [P] Add `get_pr_mergeable_state(pr_number)` GraphQL helper (query `pullRequest.mergeable` field) to `solune/backend/src/services/github_projects/pull_requests.py`
-- [ ] T011 [P] Create `AutoMergeResult` dataclass (`status`, `pr_number`, `merge_commit`, `error`, `context` fields) in `solune/backend/src/services/copilot_polling/auto_merge.py`
+- [x] T005 Add `"auto_merge"` to `PROJECT_SETTINGS_COLUMNS` tuple and update `_merge_settings_rows()` to merge `auto_merge` column value into `ProjectBoardConfig` in `solune/backend/src/services/settings_store.py`
+- [x] T006 Add `is_auto_merge_enabled()` function with 10-second TTL in-memory cache (mirror `is_queue_mode_enabled()`) in `solune/backend/src/services/settings_store.py`
+- [x] T007 Handle `auto_merge` in `update_project_settings_endpoint()`: convert to int, upsert to user row, sync to `__workflow__` canonical row, invalidate cache (same pattern as `queue_mode`) in `solune/backend/src/api/settings.py`
+- [x] T008 [P] Serialize `auto_merge` field in pipeline metadata JSON (read/write) in `solune/backend/src/services/pipeline_state_store.py`
+- [x] T009 [P] Add `get_check_runs_for_ref(ref)` REST helper (`GET /repos/{owner}/{repo}/commits/{ref}/check-runs`) to `solune/backend/src/services/github_projects/pull_requests.py`
+- [x] T010 [P] Add `get_pr_mergeable_state(pr_number)` GraphQL helper (query `pullRequest.mergeable` field) to `solune/backend/src/services/github_projects/pull_requests.py`
+- [x] T011 [P] Create `AutoMergeResult` dataclass (`status`, `pr_number`, `merge_commit`, `error`, `context` fields) in `solune/backend/src/services/copilot_polling/auto_merge.py`
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -62,21 +62,21 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T012 [P] [US1] Unit test for `_attempt_auto_merge()` success path (CI passes, PR mergeable, squash merge succeeds) in `solune/backend/tests/unit/test_auto_merge.py`
-- [ ] T013 [P] [US1] Unit test for `_attempt_auto_merge()` returning `devops_needed` on CI failure in `solune/backend/tests/unit/test_auto_merge.py`
-- [ ] T014 [P] [US1] Unit test for `_attempt_auto_merge()` returning `devops_needed` on CONFLICTING mergeability state in `solune/backend/tests/unit/test_auto_merge.py`
-- [ ] T015 [P] [US1] Unit test for `_attempt_auto_merge()` returning `merge_failed` when merge API call fails in `solune/backend/tests/unit/test_auto_merge.py`
-- [ ] T016 [P] [US1] Unit test for `_attempt_auto_merge()` marking draft PR ready-for-review before merge in `solune/backend/tests/unit/test_auto_merge.py`
-- [ ] T017 [P] [US1] Unit test for auto_merge flag resolution OR logic (project true OR pipeline true → active) in `solune/backend/tests/unit/test_settings_auto_merge.py`
-- [ ] T018 [P] [US1] Unit test for settings persistence round-trip (write auto_merge=true, read back) in `solune/backend/tests/unit/test_settings_auto_merge.py`
+- [x] T012 [P] [US1] Unit test for `_attempt_auto_merge()` success path (CI passes, PR mergeable, squash merge succeeds) in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T013 [P] [US1] Unit test for `_attempt_auto_merge()` returning `devops_needed` on CI failure in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T014 [P] [US1] Unit test for `_attempt_auto_merge()` returning `devops_needed` on CONFLICTING mergeability state in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T015 [P] [US1] Unit test for `_attempt_auto_merge()` returning `merge_failed` when merge API call fails in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T016 [P] [US1] Unit test for `_attempt_auto_merge()` marking draft PR ready-for-review before merge in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T017 [P] [US1] Unit test for auto_merge flag resolution OR logic (project true OR pipeline true → active) in `solune/backend/tests/unit/test_settings_auto_merge.py`
+- [x] T018 [P] [US1] Unit test for settings persistence round-trip (write auto_merge=true, read back) in `solune/backend/tests/unit/test_settings_auto_merge.py`
 
 ### Implementation for User Story 1
 
-- [ ] T019 [US1] Implement `_attempt_auto_merge()` function: discover main PR via existing multi-strategy logic, mark draft PRs ready-for-review, check CI status via `get_check_runs_for_ref()`, check mergeability via `get_pr_mergeable_state()`, call `merge_pull_request(merge_method='SQUASH')` if all pass, return structured `AutoMergeResult` in `solune/backend/src/services/copilot_polling/auto_merge.py`
-- [ ] T020 [US1] Add auto_merge flag resolution at pipeline start in `execute_full_workflow()`: check both project-level (`is_auto_merge_enabled()`) and pipeline-level auto_merge values (OR logic), set `pipeline_state.auto_merge = True` when either is true in `solune/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T021 [US1] Apply "auto-merge" GitHub label to the issue when auto_merge is activated for a pipeline in `execute_full_workflow()` in `solune/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T022 [US1] Add auto-merge trigger in `_transition_after_pipeline_complete()`: check `pipeline_state.auto_merge OR is_auto_merge_enabled(project_id)`, call `_attempt_auto_merge()`, handle result (merged → broadcast success; devops_needed → dispatch DevOps; merge_failed → mark ERROR, notify) in `solune/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T023 [US1] Add WebSocket broadcast calls for `auto_merge_completed` and `auto_merge_failed` events using `connection_manager.broadcast_to_project()` in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T019 [US1] Implement `_attempt_auto_merge()` function: discover main PR via existing multi-strategy logic, mark draft PRs ready-for-review, check CI status via `get_check_runs_for_ref()`, check mergeability via `get_pr_mergeable_state()`, call `merge_pull_request(merge_method='SQUASH')` if all pass, return structured `AutoMergeResult` in `solune/backend/src/services/copilot_polling/auto_merge.py`
+- [x] T020 [US1] Add auto_merge flag resolution at pipeline start in `execute_full_workflow()`: check both project-level (`is_auto_merge_enabled()`) and pipeline-level auto_merge values (OR logic), set `pipeline_state.auto_merge = True` when either is true in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T021 [US1] Apply "auto-merge" GitHub label to the issue when auto_merge is activated for a pipeline in `execute_full_workflow()` in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T022 [US1] Add auto-merge trigger in `_transition_after_pipeline_complete()`: check `pipeline_state.auto_merge OR is_auto_merge_enabled(project_id)`, call `_attempt_auto_merge()`, handle result (merged → broadcast success; devops_needed → dispatch DevOps; merge_failed → mark ERROR, notify) in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T023 [US1] Add WebSocket broadcast calls for `auto_merge_completed` and `auto_merge_failed` events using `connection_manager.broadcast_to_project()` in `solune/backend/src/services/copilot_polling/pipeline.py`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — enabling Auto Merge and having a pipeline complete triggers automatic squash-merge of the parent PR
 
@@ -92,15 +92,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T024 [P] [US2] Unit test for human agent skip when auto_merge is true and human is last step in `solune/backend/tests/unit/test_auto_merge.py`
-- [ ] T025 [P] [US2] Unit test for human agent NOT skipped when auto_merge is false in `solune/backend/tests/unit/test_auto_merge.py`
-- [ ] T026 [P] [US2] Unit test for human agent NOT skipped when human is NOT the last step in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T024 [P] [US2] Unit test for human agent skip when auto_merge is true and human is last step in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T025 [P] [US2] Unit test for human agent NOT skipped when auto_merge is false in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T026 [P] [US2] Unit test for human agent NOT skipped when human is NOT the last step in `solune/backend/tests/unit/test_auto_merge.py`
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Add human agent skip logic in `_advance_pipeline()`: when next agent is `"human"` AND it's the last step AND `auto_merge` is active, mark step as `AgentStepState.SKIPPED` (⏭) in tracking table in `solune/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T028 [US2] Close the human sub-issue with a "Skipped — Auto Merge enabled" comment when the human step is skipped in `solune/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T029 [US2] Proceed directly to pipeline completion and auto-merge flow after human skip (no human agent assignment) in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T027 [US2] Add human agent skip logic in `_advance_pipeline()`: when next agent is `"human"` AND it's the last step AND `auto_merge` is active, mark step as `AgentStepState.SKIPPED` (⏭) in tracking table in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T028 [US2] Close the human sub-issue with a "Skipped — Auto Merge enabled" comment when the human step is skipped in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T029 [US2] Proceed directly to pipeline completion and auto-merge flow after human skip (no human agent assignment) in `solune/backend/src/services/copilot_polling/pipeline.py`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work — pipelines with human last steps skip them and auto-merge
 
@@ -116,19 +116,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T030 [P] [US3] Unit test for `check_run` webhook routing to `dispatch_devops_agent()` on failure/timed_out in `solune/backend/tests/unit/test_webhook_ci.py`
-- [ ] T031 [P] [US3] Unit test for `check_suite` webhook routing to `dispatch_devops_agent()` on failure in `solune/backend/tests/unit/test_webhook_ci.py`
-- [ ] T032 [P] [US3] Unit test for DevOps deduplication (skip dispatch when `devops_active` is true) in `solune/backend/tests/unit/test_auto_merge.py`
-- [ ] T033 [P] [US3] Unit test for DevOps retry cap (no dispatch after 2 attempts, pipeline marked ERROR) in `solune/backend/tests/unit/test_auto_merge.py`
-- [ ] T034 [P] [US3] Unit test for DevOps completion detection via "devops: Done!" marker triggers `_attempt_auto_merge()` retry in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T030 [P] [US3] Unit test for `check_run` webhook routing to `dispatch_devops_agent()` on failure/timed_out in `solune/backend/tests/unit/test_webhook_ci.py`
+- [x] T031 [P] [US3] Unit test for `check_suite` webhook routing to `dispatch_devops_agent()` on failure in `solune/backend/tests/unit/test_webhook_ci.py`
+- [x] T032 [P] [US3] Unit test for DevOps deduplication (skip dispatch when `devops_active` is true) in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T033 [P] [US3] Unit test for DevOps retry cap (no dispatch after 2 attempts, pipeline marked ERROR) in `solune/backend/tests/unit/test_auto_merge.py`
+- [x] T034 [P] [US3] Unit test for DevOps completion detection via "devops: Done!" marker triggers `_attempt_auto_merge()` retry in `solune/backend/tests/unit/test_auto_merge.py`
 
 ### Implementation for User Story 3
 
-- [ ] T035 [P] [US3] Create DevOps repository agent with YAML frontmatter (`name: DevOps`, `description`, `icon: wrench`) and system prompt specialized for CI log reading, test failure identification, merge conflict resolution, and check re-triggering at `.github/agents/devops.agent.md`
-- [ ] T036 [P] [US3] Add `CheckRunEvent`, `CheckSuiteEvent`, `CheckRunData`, `CheckSuiteData`, `CheckRunPR`, and `BranchRef` Pydantic models in `solune/backend/src/api/webhook_models.py`
-- [ ] T037 [US3] Implement `dispatch_devops_agent()` function: check dedup (`devops_active`), check retry cap (`devops_attempts < 2`), dispatch via standard Copilot dispatch, set `devops_active=True`, increment `devops_attempts`, broadcast `devops_triggered` event in `solune/backend/src/services/copilot_polling/auto_merge.py`
-- [ ] T038 [US3] Route `check_run` (action=completed, conclusion=failure/timed_out) and `check_suite` (action=completed, conclusion=failure) events to `dispatch_devops_agent()` in `solune/backend/src/api/webhooks.py`
-- [ ] T039 [US3] Implement DevOps completion detection: on "devops: Done!" marker, set `devops_active=False`, retry `_attempt_auto_merge()`; after 2nd failed attempt mark pipeline ERROR and notify user in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T035 [P] [US3] Create DevOps repository agent with YAML frontmatter (`name: DevOps`, `description`, `icon: wrench`) and system prompt specialized for CI log reading, test failure identification, merge conflict resolution, and check re-triggering at `.github/agents/devops.agent.md`
+- [x] T036 [P] [US3] Add `CheckRunEvent`, `CheckSuiteEvent`, `CheckRunData`, `CheckSuiteData`, `CheckRunPR`, and `BranchRef` Pydantic models in `solune/backend/src/api/webhook_models.py`
+- [x] T037 [US3] Implement `dispatch_devops_agent()` function: check dedup (`devops_active`), check retry cap (`devops_attempts < 2`), dispatch via standard Copilot dispatch, set `devops_active=True`, increment `devops_attempts`, broadcast `devops_triggered` event in `solune/backend/src/services/copilot_polling/auto_merge.py`
+- [x] T038 [US3] Route `check_run` (action=completed, conclusion=failure/timed_out) and `check_suite` (action=completed, conclusion=failure) events to `dispatch_devops_agent()` in `solune/backend/src/api/webhooks.py`
+- [x] T039 [US3] Implement DevOps completion detection: on "devops: Done!" marker, set `devops_active=False`, retry `_attempt_auto_merge()`; after 2nd failed attempt mark pipeline ERROR and notify user in `solune/backend/src/services/copilot_polling/pipeline.py`
 
 **Checkpoint**: At this point, CI failures on auto-merge pipelines trigger DevOps agent recovery with proper retry cap and deduplication
 
@@ -144,15 +144,15 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T040 [P] [US4] Frontend test: Auto Merge toggle renders adjacent to Queue Mode toggle in `solune/frontend/src/__tests__/`
-- [ ] T041 [P] [US4] Frontend test: Toggle click persists auto_merge setting in `solune/frontend/src/__tests__/`
-- [ ] T042 [P] [US4] Frontend test: Confirmation dialog shown when enabling with active pipelines in `solune/frontend/src/__tests__/`
+- [x] T040 [P] [US4] Frontend test: Auto Merge toggle renders adjacent to Queue Mode toggle in `solune/frontend/src/__tests__/`
+- [x] T041 [P] [US4] Frontend test: Toggle click persists auto_merge setting in `solune/frontend/src/__tests__/`
+- [x] T042 [P] [US4] Frontend test: Confirmation dialog shown when enabling with active pipelines in `solune/frontend/src/__tests__/`
 
 ### Implementation for User Story 4
 
-- [ ] T043 [P] [US4] Export `GitMerge` icon from lucide-react in `solune/frontend/src/lib/icons.ts`
-- [ ] T044 [US4] Add Auto Merge toggle button to ProjectsPage adjacent to Queue Mode toggle: read from `projectSettings.project.board_display_config.auto_merge`, call `updateSettings({ auto_merge: !isAutoMerge })` on click, use GitMerge icon, green/primary active state, muted inactive state in `solune/frontend/src/pages/ProjectsPage.tsx`
-- [ ] T045 [US4] Add confirmation dialog for retroactive toggle: when enabling auto_merge on a project with active pipelines, show dialog listing N active pipelines that will be affected, require confirmation before saving in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T043 [P] [US4] Export `GitMerge` icon from lucide-react in `solune/frontend/src/lib/icons.ts`
+- [x] T044 [US4] Add Auto Merge toggle button to ProjectsPage adjacent to Queue Mode toggle: read from `projectSettings.project.board_display_config.auto_merge`, call `updateSettings({ auto_merge: !isAutoMerge })` on click, use GitMerge icon, green/primary active state, muted inactive state in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T045 [US4] Add confirmation dialog for retroactive toggle: when enabling auto_merge on a project with active pipelines, show dialog listing N active pipelines that will be affected, require confirmation before saving in `solune/frontend/src/pages/ProjectsPage.tsx`
 
 **Checkpoint**: At this point, the project-level Auto Merge toggle is functional with confirmation dialog for retroactive activation
 
@@ -166,7 +166,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T046 [US5] Add Auto Merge switch/toggle to the pipeline configuration panel (AgentsPipelinePage / PipelineToolbar), persisted via existing pipeline CRUD endpoints in `solune/frontend/src/components/pipelines/`
+- [x] T046 [US5] Add Auto Merge switch/toggle to the pipeline configuration panel (AgentsPipelinePage / PipelineToolbar), persisted via existing pipeline CRUD endpoints in `solune/frontend/src/components/pipelines/`
 
 **Checkpoint**: At this point, pipeline-level Auto Merge configuration is available alongside project-level control
 
@@ -182,12 +182,12 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T047 [P] [US6] Frontend test: Toast notification shown for `auto_merge_completed` WebSocket event in `solune/frontend/src/__tests__/`
+- [x] T047 [P] [US6] Frontend test: Toast notification shown for `auto_merge_completed` WebSocket event in `solune/frontend/src/__tests__/`
 
 ### Implementation for User Story 6
 
-- [ ] T048 [US6] Handle `auto_merge_completed`, `auto_merge_failed`, and `devops_triggered` WebSocket event types in the message handler: show success toast ("PR #X squash-merged"), error toast with details, and info toast ("DevOps agent resolving CI failure on #X") via sonner in `solune/frontend/src/hooks/useRealTimeSync.ts`
-- [ ] T049 [US6] Invalidate relevant TanStack Query caches on `auto_merge_completed` and `auto_merge_failed` events to refresh board data in `solune/frontend/src/hooks/useRealTimeSync.ts`
+- [x] T048 [US6] Handle `auto_merge_completed`, `auto_merge_failed`, and `devops_triggered` WebSocket event types in the message handler: show success toast ("PR #X squash-merged"), error toast with details, and info toast ("DevOps agent resolving CI failure on #X") via sonner in `solune/frontend/src/hooks/useRealTimeSync.ts`
+- [x] T049 [US6] Invalidate relevant TanStack Query caches on `auto_merge_completed` and `auto_merge_failed` events to refresh board data in `solune/frontend/src/hooks/useRealTimeSync.ts`
 
 **Checkpoint**: All user stories are now independently functional
 
@@ -197,11 +197,11 @@
 
 **Purpose**: Integration validation, documentation, and cross-cutting improvements
 
-- [ ] T050 [P] Add pipeline tracking table display for ⏭ SKIPPED indicator on auto_merge human skip (ensure existing SKIPPED state renders correctly) in `solune/frontend/src/components/pipelines/`
-- [ ] T051 [P] Verify DevOps agent is discoverable via `list_available_agents()` directory scan — no backend code changes needed, validate slug is `devops`
-- [ ] T052 Code cleanup: ensure all new code follows existing patterns (error handling via `getErrorHint`, logging, type safety)
-- [ ] T053 Run quickstart.md verification checklist to validate all implementation items
-- [ ] T054 [P] End-to-end validation: auto_merge column exists after migration, toggle persists, pipeline skips human, squash-merge executes, DevOps dispatches, WebSocket notifications arrive
+- [x] T050 [P] Add pipeline tracking table display for ⏭ SKIPPED indicator on auto_merge human skip (ensure existing SKIPPED state renders correctly) in `solune/frontend/src/components/pipelines/`
+- [x] T051 [P] Verify DevOps agent is discoverable via `list_available_agents()` directory scan — no backend code changes needed, validate slug is `devops`
+- [x] T052 Code cleanup: ensure all new code follows existing patterns (error handling via `getErrorHint`, logging, type safety)
+- [x] T053 Run quickstart.md verification checklist to validate all implementation items
+- [x] T054 [P] End-to-end validation: auto_merge column exists after migration, toggle persists, pipeline skips human, squash-merge executes, DevOps dispatches, WebSocket notifications arrive
 
 ---
 
