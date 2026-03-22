@@ -20,6 +20,9 @@ RUN npm run build
 # Production stage
 FROM nginx:1.29-alpine
 
+# Patch OS-level vulnerabilities
+RUN apk update --no-cache && apk upgrade --no-cache
+
 # Create non-root user for nginx
 RUN addgroup -S nginx-app && adduser -S -G nginx-app nginx-app \
     && sed -i 's|/run/nginx.pid|/tmp/nginx/nginx.pid|' /etc/nginx/nginx.conf \
