@@ -2,11 +2,13 @@
 
 import logging
 from functools import lru_cache
+from pathlib import Path
 from urllib.parse import urlparse
 
 from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+_SUPPORTED_AI_PROVIDERS = {"copilot", "azure_openai"}
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
@@ -160,6 +162,56 @@ class Settings(BaseSettings):
                     "ADMIN_GITHUB_USER_ID is %d which is not a valid GitHub user ID (debug mode)",
                     self.admin_github_user_id,
                 )
+
+        return self
+
+    @model_validator(mode="after")
+    def _validate_ai_provider_config(self) -> "Settings":
+        """Validate AI provider selection and its required settings.
+
+        Raises :class:`ValueError` if ``ai_provider`` is unrecognised, or if
+        the chosen provider's mandatory settings are missing.  DB path parent
+        directory is also validated here so that a single startup check
+        catches all config problems.
+        """
+        _logger = logging.getLogger(__name__)
+        errors: list[str] = []
+
+        # AI provider must be a known value
+        if self.ai_provider not in _SUPPORTED_AI_PROVIDERS:
+            errors.append(
+                f"AI_PROVIDER must be one of {sorted(_SUPPORTED_AI_PROVIDERS)} "
+                f"(got {self.ai_provider!r})."
+            )
+
+        # Azure OpenAI needs endpoint + key
+        if self.ai_provider == "azure_openai":
+            if not self.azure_openai_endpoint:
+                errors.append(
+                    "AZURE_OPENAI_ENDPOINT is required when AI_PROVIDER='azure_openai'."
+                )
+            if not self.azure_openai_key:
+                errors.append(
+                    "AZURE_OPENAI_KEY is required when AI_PROVIDER='azure_openai'."
+                )
+
+        # Database path parent must exist (or be creatable)
+        db_parent = Path(self.database_path).parent
+        if not db_parent.exists():
+            if self.debug:
+                _logger.warning(
+                    "DATABASE_PATH parent directory %s does not exist (debug mode)", db_parent
+                )
+            else:
+                errors.append(
+                    f"DATABASE_PATH parent directory {db_parent} does not exist. "
+                    "Create it or set DATABASE_PATH to a valid location."
+                )
+
+        if errors:
+            raise ValueError(
+                "Configuration errors:\n  - " + "\n  - ".join(errors)
+            )
 
         return self
 

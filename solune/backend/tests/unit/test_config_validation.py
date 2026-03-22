@@ -191,3 +191,76 @@ class TestDebugModeDegradedGracefully:
             session_secret_key="a" * 64,
         )
         assert s.debug is True
+
+
+# ── AI Provider Validation ──
+
+
+class TestAIProviderValidation:
+    """AI_PROVIDER must be a supported value."""
+
+    def test_unsupported_provider_raises(self):
+        with pytest.raises(ValueError, match="AI_PROVIDER must be one of"):
+            _make_debug(ai_provider="openai_direct")
+
+    def test_copilot_provider_passes(self):
+        s = _make_debug(ai_provider="copilot")
+        assert s.ai_provider == "copilot"
+
+    def test_azure_openai_provider_passes_with_settings(self):
+        s = _make_debug(
+            ai_provider="azure_openai",
+            azure_openai_endpoint="https://myoai.openai.azure.com",
+            azure_openai_key="key123",
+        )
+        assert s.ai_provider == "azure_openai"
+
+    def test_azure_openai_missing_endpoint_raises(self):
+        with pytest.raises(ValueError, match="AZURE_OPENAI_ENDPOINT is required"):
+            _make_debug(
+                ai_provider="azure_openai",
+                azure_openai_endpoint=None,
+                azure_openai_key="key123",
+            )
+
+    def test_azure_openai_missing_key_raises(self):
+        with pytest.raises(ValueError, match="AZURE_OPENAI_KEY is required"):
+            _make_debug(
+                ai_provider="azure_openai",
+                azure_openai_endpoint="https://myoai.openai.azure.com",
+                azure_openai_key=None,
+            )
+
+    def test_azure_openai_missing_both_raises(self):
+        with pytest.raises(ValueError, match="AZURE_OPENAI_ENDPOINT is required"):
+            _make_debug(
+                ai_provider="azure_openai",
+                azure_openai_endpoint=None,
+                azure_openai_key=None,
+            )
+
+
+# ── Database Path Validation ──
+
+
+class TestDatabasePathValidation:
+    """DATABASE_PATH parent directory must exist in production mode."""
+
+    def test_nonexistent_db_parent_raises_in_production(self):
+        with pytest.raises(ValueError, match="DATABASE_PATH parent directory"):
+            _make_production(database_path="/nonexistent/path/settings.db")
+
+    def test_nonexistent_db_parent_warns_in_debug(self, caplog):
+        s = _make_debug(database_path="/nonexistent/path/settings.db")
+        assert s.debug is True
+        assert "DATABASE_PATH parent directory" in caplog.text
+
+    def test_valid_db_path_passes(self, tmp_path):
+        db_path = str(tmp_path / "settings.db")
+        s = _make_debug(database_path=db_path)
+        assert s.database_path == db_path
+
+    def test_valid_db_path_production(self, tmp_path):
+        db_path = str(tmp_path / "settings.db")
+        s = _make_production(database_path=db_path)
+        assert s.database_path == db_path

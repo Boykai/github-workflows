@@ -173,7 +173,11 @@ class TestCopilotCompletionProvider:
 
 class TestAzureOpenAICompletionProvider:
     def test_raises_without_credentials(self):
-        s = _settings(ai_provider="azure_openai", azure_openai_endpoint=None, azure_openai_key=None)
+        s = MagicMock(spec=Settings)
+        s.ai_provider = "azure_openai"
+        s.azure_openai_endpoint = None
+        s.azure_openai_key = None
+        s.azure_openai_deployment = "gpt-4"
         with patch("src.services.completion_providers.get_settings", return_value=s):
             with pytest.raises(ValueError, match="credentials not configured"):
                 AzureOpenAICompletionProvider()
@@ -280,7 +284,8 @@ class TestCreateCompletionProvider:
         assert isinstance(p, AzureOpenAICompletionProvider)
 
     def test_unknown_provider_raises(self):
-        s = _settings(ai_provider="unknown_llm")
+        s = MagicMock(spec=Settings)
+        s.ai_provider = "unknown_llm"
         with patch("src.services.completion_providers.get_settings", return_value=s):
             with pytest.raises(ValueError, match="Unknown AI provider"):
                 create_completion_provider()

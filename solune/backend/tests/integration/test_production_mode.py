@@ -24,6 +24,7 @@ _PRODUCTION_BASE = {
     "GITHUB_WEBHOOK_SECRET": "abc123",
     "COOKIE_SECURE": "true",
     "ADMIN_GITHUB_USER_ID": "12345",
+    "DATABASE_PATH": ":memory:",
     "DEBUG": "false",
 }
 
