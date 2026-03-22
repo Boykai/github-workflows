@@ -574,3 +574,219 @@ class TestAgentCreationState:
     def test_available_projects_default_empty(self):
         state = AgentCreationState(session_id="s1")
         assert state.available_projects == []
+
+
+# ---------------------------------------------------------------------------
+# T029 – Exception paths
+# ---------------------------------------------------------------------------
+
+
+class TestExceptionPaths:
+    """Tests for GitHub API error handling in agent creation pipeline."""
+
+    async def test_db_error_in_admin_check_returns_false(self):
+        """Database failures in is_admin_user gracefully deny access."""
+        db = AsyncMock()
+        db.execute.side_effect = Exception("DB connection lost")
+        result = await is_admin_user(db, "12345")
+        assert result is False
+
+    async def test_handle_command_with_db_error_returns_error_message(self, mock_db):
+        """handle_agent_command returns error string when DB is broken for admin check."""
+        broken_db = AsyncMock()
+        broken_db.execute.side_effect = Exception("DB unavailable")
+
+        result = await handle_agent_command(
+            message="#agent Create a security reviewer",
+            session_key="err-session",
+            project_id="PVT_1",
+            owner="testowner",
+            repo="testrepo",
+            github_user_id="12345",
+            access_token="token",
+            db=broken_db,
+            project_columns=["Todo", "Done"],
+        )
+        # Should return an error or denied message, not crash
+        assert isinstance(result, str)
+
+    async def test_ai_service_network_error_surfaces_gracefully(self, mock_db):
+        """Network errors from AI service are caught during preview generation."""
+        await mock_db.execute(
+            "INSERT OR IGNORE INTO global_settings (id, updated_at) VALUES (1, '2026-01-01T00:00:00')",
+        )
+        await mock_db.execute(
+            "UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1",
+            ("admin-user",),
+        )
+        await mock_db.commit()
+
+        with patch("src.services.agent_creator.get_ai_agent_service") as mock_ai:
+            mock_service = AsyncMock()
+            mock_service.generate_agent_config.side_effect = ConnectionError(
+                "Network unreachable"
+            )
+            mock_ai.return_value = mock_service
+
+            result = await handle_agent_command(
+                message="#agent Create a reviewer #Done",
+                session_key="net-err-session",
+                project_id="PVT_1",
+                owner="testowner",
+                repo="testrepo",
+                github_user_id="admin-user",
+                access_token="token",
+                db=mock_db,
+                project_columns=["Todo", "Done"],
+            )
+            assert isinstance(result, str)
+            clear_session("net-err-session")
+
+
+# ---------------------------------------------------------------------------
+# T030 – Config parsing
+# ---------------------------------------------------------------------------
+
+
+class TestConfigParsing:
+    """Tests for malformed/missing config scenarios in agent creation."""
+
+    def test_parse_command_empty_raises(self):
+        """Empty description after prefix raises ValueError."""
+        with pytest.raises(ValueError, match="empty description"):
+            parse_command("#agent")
+
+    def test_parse_command_whitespace_only_raises(self):
+        """Whitespace-only description raises ValueError."""
+        with pytest.raises(ValueError, match="empty description"):
+            parse_command("#agent   ")
+
+    def test_parse_command_extracts_status_after_hash(self):
+        """Status is extracted from the last # in the command."""
+        desc, status = parse_command("#agent Build a linter #In Review")
+        assert desc == "Build a linter"
+        assert status is not None
+        assert "review" in status.lower()
+
+    def test_fuzzy_match_empty_columns_returns_none(self):
+        """Fuzzy match with no columns returns (None, False, [])."""
+        resolved, ambiguous, matches = fuzzy_match_status("Done", [])
+        assert resolved is None
+        assert ambiguous is False
+        assert matches == []
+
+    def test_fuzzy_match_empty_input_returns_none(self):
+        """Fuzzy match with empty input returns no match."""
+        resolved, _ambiguous, _matches = fuzzy_match_status("", ["Todo", "Done"])
+        assert resolved is None
+
+    async def test_ai_returns_tools_as_non_list(self, mock_db):
+        """When AI returns tools as a non-list, it should be handled gracefully."""
+        await mock_db.execute(
+            "INSERT OR IGNORE INTO global_settings (id, updated_at) VALUES (1, '2026-01-01T00:00:00')",
+        )
+        await mock_db.execute(
+            "UPDATE global_settings SET admin_github_user_id = ? WHERE id = 1",
+            ("admin-user",),
+        )
+        await mock_db.commit()
+
+        with patch("src.services.agent_creator.get_ai_agent_service") as mock_ai:
+            mock_service = AsyncMock()
+            mock_service.generate_agent_config.return_value = {
+                "name": "BadTools",
+                "description": "Agent with bad tools",
+                "system_prompt": "You are a test.",
+                "tools": "not-a-list",
+            }
+            mock_ai.return_value = mock_service
+
+            result = await handle_agent_command(
+                message="#agent Create agent #Done",
+                session_key="bad-tools-session",
+                project_id="PVT_1",
+                owner="testowner",
+                repo="testrepo",
+                github_user_id="admin-user",
+                access_token="token",
+                db=mock_db,
+                project_columns=["Todo", "Done"],
+            )
+            assert isinstance(result, str)
+            clear_session("bad-tools-session")
+
+
+# ---------------------------------------------------------------------------
+# T031 – Tool assignment
+# ---------------------------------------------------------------------------
+
+
+class TestToolAssignment:
+    """Tests for tool assignment logic in config file generation."""
+
+    @pytest.fixture
+    def preview_with_tools(self) -> AgentPreview:
+        return AgentPreview(
+            name="ToolAgent",
+            slug="tool-agent",
+            description="Agent with tools",
+            system_prompt="You use tools.",
+            status_column="Done",
+            tools=["search_code", "create_issue"],
+        )
+
+    @pytest.fixture
+    def preview_no_tools(self) -> AgentPreview:
+        return AgentPreview(
+            name="NoToolAgent",
+            slug="no-tool-agent",
+            description="Agent without tools",
+            system_prompt="You do things.",
+            status_column="Done",
+            tools=[],
+        )
+
+    def test_tools_appear_in_preview_format(self, preview_with_tools):
+        """Tools list is included in the formatted preview."""
+        from src.services.agent_creator import _format_preview
+
+        text = _format_preview(preview_with_tools, is_new_column=False)
+        assert "search_code" in text
+        assert "create_issue" in text
+
+    def test_no_tools_omits_tools_section_in_config(self, preview_no_tools):
+        """Config files with no tools should not include a tools key in frontmatter."""
+        files = generate_config_files(preview_no_tools)
+        agent_file = files[0]
+        assert "tools" not in agent_file["content"].split("---")[1]
+
+    def test_tools_with_mcp_servers_in_frontmatter(self):
+        """MCP servers appear in agent file frontmatter when specified."""
+        preview = AgentPreview(
+            name="McpAgent",
+            slug="mcp-agent",
+            description="Agent with MCP",
+            system_prompt="You use MCP.",
+            status_column="Done",
+            tools=["tool1"],
+            tool_ids=["tid-1"],
+            mcp_servers={"my-server": {"url": "https://example.com"}},
+        )
+        files = generate_config_files(preview)
+        agent_content = files[0]["content"]
+        assert "mcp-servers" in agent_content or "mcp_servers" in agent_content
+
+    def test_config_files_count_is_two(self, preview_with_tools):
+        """generate_config_files always returns exactly 2 files."""
+        files = generate_config_files(preview_with_tools)
+        assert len(files) == 2
+
+    def test_agent_file_path_matches_slug(self, preview_with_tools):
+        """Agent file path contains the slug."""
+        files = generate_config_files(preview_with_tools)
+        assert "tool-agent" in files[0]["path"]
+
+    def test_prompt_file_path_matches_slug(self, preview_with_tools):
+        """Prompt file path contains the slug."""
+        files = generate_config_files(preview_with_tools)
+        assert "tool-agent" in files[1]["path"]

@@ -543,3 +543,226 @@ class TestSubIssueCacheReuse:
             assert resp.status_code == 200
             # Service should NOT be called when cache is warm
             mock_github_service.get_board_data.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# T018 – Column transform edge cases
+# ---------------------------------------------------------------------------
+
+
+class TestColumnTransformEdgeCases:
+    """Edge-case tests for _to_board_projects and empty/missing column data."""
+
+    def test_empty_columns_list_produces_no_board_projects(self):
+        """A GitHubProject with an empty status_columns list is skipped."""
+        from src.api.board import _to_board_projects
+        from src.models.project import GitHubProject
+
+        project = GitHubProject(
+            project_id="PVT_empty",
+            name="No Columns",
+            url="https://github.com/users/testuser/projects/9",
+            owner_login="testuser",
+            status_columns=[],
+        )
+        result = _to_board_projects([project])
+        assert result == []
+
+    def test_single_column_with_no_items_still_creates_board_project(self):
+        """A column with a valid field_id/option_id produces a BoardProject."""
+        from src.api.board import _to_board_projects
+        from src.models.project import GitHubProject, ProjectStatusColumn
+
+        project = GitHubProject(
+            project_id="PVT_single",
+            name="One Column",
+            url="https://github.com/users/testuser/projects/10",
+            owner_login="testuser",
+            status_columns=[
+                ProjectStatusColumn(
+                    field_id="SF_1",
+                    option_id="opt_1",
+                    name="Backlog",
+                    color="GRAY",
+                ),
+            ],
+        )
+        result = _to_board_projects([project])
+        assert len(result) == 1
+        assert result[0].name == "One Column"
+        assert len(result[0].status_field.options) == 1
+
+    def test_column_missing_option_id_is_filtered_out(self):
+        """Columns without an option_id should be excluded from valid columns."""
+        from src.api.board import _to_board_projects
+        from src.models.project import GitHubProject, ProjectStatusColumn
+
+        project = GitHubProject(
+            project_id="PVT_no_opt",
+            name="Missing Option",
+            url="https://github.com/users/testuser/projects/11",
+            owner_login="testuser",
+            status_columns=[
+                ProjectStatusColumn(
+                    field_id="SF_1",
+                    option_id=None,
+                    name="Draft",
+                    color="GRAY",
+                ),
+            ],
+        )
+        result = _to_board_projects([project])
+        assert result == []
+
+
+# ---------------------------------------------------------------------------
+# T019 – Rate-limit recovery
+# ---------------------------------------------------------------------------
+
+
+class TestRateLimitRecovery:
+    """Tests for rate-limit detection, retry-after extraction, and cached header info."""
+
+    def test_retry_after_seconds_from_timedelta(self):
+        """_retry_after_seconds extracts seconds from a timedelta attribute."""
+        from datetime import timedelta
+
+        from src.api.board import _retry_after_seconds
+
+        exc = Exception("rate limited")
+        exc.retry_after = timedelta(seconds=42)  # type: ignore[attr-defined]
+        assert _retry_after_seconds(exc) == 42
+
+    def test_retry_after_seconds_from_int(self):
+        """_retry_after_seconds returns the integer directly."""
+        from src.api.board import _retry_after_seconds
+
+        exc = Exception("rate limited")
+        exc.retry_after = 30  # type: ignore[attr-defined]
+        assert _retry_after_seconds(exc) == 30
+
+    def test_retry_after_seconds_defaults_to_60(self):
+        """Falls back to 60 s when no retry-after info is available."""
+        from src.api.board import _retry_after_seconds
+
+        assert _retry_after_seconds(ValueError("no info")) == 60
+
+    def test_rate_limit_info_from_cached_headers(self):
+        """_get_rate_limit_info builds RateLimitInfo from service cache."""
+        from src.api.board import _get_rate_limit_info
+
+        rl_dict = {"limit": 5000, "remaining": 100, "reset_at": 1700000000, "used": 4900}
+        with patch("src.api.board.github_projects_service") as mock_svc:
+            mock_svc.get_last_rate_limit.return_value = rl_dict
+            info = _get_rate_limit_info()
+        assert info is not None
+        assert info.remaining == 100
+
+    def test_rate_limit_info_returns_none_for_missing_keys(self):
+        """Returns None when the cached dict is missing required keys."""
+        from src.api.board import _get_rate_limit_info
+
+        with patch("src.api.board.github_projects_service") as mock_svc:
+            mock_svc.get_last_rate_limit.return_value = {"limit": 5000}
+            info = _get_rate_limit_info()
+        assert info is None
+
+    def test_rate_limit_info_returns_none_for_non_dict(self):
+        """Returns None when the cached value is not a dict."""
+        from src.api.board import _get_rate_limit_info
+
+        with patch("src.api.board.github_projects_service") as mock_svc:
+            mock_svc.get_last_rate_limit.return_value = None
+            info = _get_rate_limit_info()
+        assert info is None
+
+
+# ---------------------------------------------------------------------------
+# T020 – Token expiration flows
+# ---------------------------------------------------------------------------
+
+
+class TestTokenExpirationFlows:
+    """Tests for authentication error detection and 401 flows."""
+
+    def test_is_github_auth_error_detects_bad_credentials(self):
+        """ValueError containing 'bad credentials' is classified as auth error."""
+        from src.api.board import _is_github_auth_error
+
+        assert _is_github_auth_error(ValueError("bad credentials")) is True
+
+    def test_is_github_auth_error_ignores_generic_errors(self):
+        """A generic RuntimeError is NOT classified as auth error."""
+        from src.api.board import _is_github_auth_error
+
+        assert _is_github_auth_error(RuntimeError("timeout")) is False
+
+    async def test_expired_token_returns_401(self, client, mock_github_service):
+        """A 'bad credentials' error from the service should yield HTTP 401."""
+        mock_github_service.list_board_projects.side_effect = ValueError(
+            "bad credentials"
+        )
+        resp = await client.get("/api/v1/board/projects", params={"refresh": True})
+        assert resp.status_code == 401
+        body = resp.json()
+        assert "expired" in body.get("error", "").lower() or "log in" in body.get(
+            "error", ""
+        ).lower()
+
+    async def test_401_does_not_leak_token(self, client, mock_github_service):
+        """Auth error responses must not include internal details."""
+        mock_github_service.list_board_projects.side_effect = ValueError(
+            "unauthorized: token ghp_SECRETTOKEN123"
+        )
+        resp = await client.get("/api/v1/board/projects", params={"refresh": True})
+        assert resp.status_code == 401
+        body_str = str(resp.json())
+        assert "ghp_SECRETTOKEN123" not in body_str
+
+
+# ---------------------------------------------------------------------------
+# T021 – Cache hash error branches
+# ---------------------------------------------------------------------------
+
+
+class TestCacheHashBranches:
+    """Tests for compute_data_hash with None / empty data."""
+
+    def test_hash_with_none_data(self):
+        """compute_data_hash handles None input without crashing."""
+        from src.services.cache import compute_data_hash
+
+        h = compute_data_hash(None)
+        assert isinstance(h, str)
+        assert len(h) == 64  # SHA-256 hex digest
+
+    def test_hash_with_empty_board_data(self):
+        """compute_data_hash produces a valid hash for empty dict."""
+        from src.services.cache import compute_data_hash
+
+        h = compute_data_hash({})
+        assert isinstance(h, str)
+        assert len(h) == 64
+
+    def test_hash_empty_list(self):
+        """compute_data_hash produces a valid hash for empty list."""
+        from src.services.cache import compute_data_hash
+
+        h = compute_data_hash([])
+        assert isinstance(h, str)
+        assert len(h) == 64
+
+    def test_hash_stability_for_none(self):
+        """Same None input yields the same hash on repeated calls."""
+        from src.services.cache import compute_data_hash
+
+        assert compute_data_hash(None) == compute_data_hash(None)
+
+    def test_different_data_produces_different_hash(self):
+        """None, empty dict, and empty list yield distinct hashes."""
+        from src.services.cache import compute_data_hash
+
+        h_none = compute_data_hash(None)
+        h_dict = compute_data_hash({})
+        h_list = compute_data_hash([])
+        assert len({h_none, h_dict, h_list}) == 3
