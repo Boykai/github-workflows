@@ -5,7 +5,7 @@
  */
 
 import { useRef } from 'react';
-import { Sparkles, Paperclip } from 'lucide-react';
+import { Sparkles, Paperclip } from '@/lib/icons';
 import { VoiceInputButton } from './VoiceInputButton';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';

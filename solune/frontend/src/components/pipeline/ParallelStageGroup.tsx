@@ -4,7 +4,7 @@
  * descriptive text to differentiate grouped stages from sequential ones.
  */
 
-import { GitBranch } from 'lucide-react';
+import { GitBranch } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 
 interface ParallelStageGroupProps {

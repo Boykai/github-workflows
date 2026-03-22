@@ -6,7 +6,7 @@
  */
 
 import { useCallback } from 'react';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '@/lib/icons';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';

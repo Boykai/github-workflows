@@ -6,7 +6,7 @@
  */
 
 import { useState } from 'react';
-import { GitBranch, Trash2, ArrowDownUp, Plus } from 'lucide-react';
+import { GitBranch, Trash2, ArrowDownUp, Plus } from '@/lib/icons';
 import {
   DndContext,
   closestCenter,

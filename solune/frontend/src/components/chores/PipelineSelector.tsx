@@ -7,7 +7,7 @@
 
 import { useId, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '@/lib/icons';
 import { pipelinesApi } from '@/services/api';
 import type { PipelineConfigSummary } from '@/types';
 

@@ -4,7 +4,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { Bell } from 'lucide-react';
+import { Bell } from '@/lib/icons';
 import { useNavigate } from 'react-router-dom';
 import type { Notification } from '@/types';
 import { cn } from '@/lib/utils';

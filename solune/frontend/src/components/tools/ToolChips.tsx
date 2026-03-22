@@ -2,7 +2,7 @@
  * ToolChips — renders selected MCP tools as removable chips on the agent form.
  */
 
-import { X, Wrench } from 'lucide-react';
+import { X, Wrench } from '@/lib/icons';
 import type { ToolChip as ToolChipType } from '@/types';
 
 interface ToolChipsProps {

@@ -2,7 +2,7 @@
  * PipelineIndicator component — badge near the submit button showing the active pipeline.
  */
 
-import { AlertTriangle, Info } from 'lucide-react';
+import { AlertTriangle, Info } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 
 interface PipelineIndicatorProps {

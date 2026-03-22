@@ -4,7 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
-import { Bot, X } from 'lucide-react';
+import { Bot, X } from '@/lib/icons';
 import { useAgentChat } from '@/hooks/useAgents';
 import { CHAT_PLACEHOLDERS } from '@/constants/chat-placeholders';
 import { cn } from '@/lib/utils';

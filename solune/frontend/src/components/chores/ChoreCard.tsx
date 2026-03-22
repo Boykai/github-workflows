@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Sparkles, Pencil, X, Save, Check, ChevronDown, Workflow } from 'lucide-react';
+import { Sparkles, Pencil, X, Save, Check, ChevronDown, Workflow } from '@/lib/icons';
 import type { Chore, ChoreEditState, ChoreInlineUpdate } from '@/types';
 import { formatMsRemaining, computeCountRemaining, computeTimeProgress } from '@/lib/time-utils';
 import { useUpdateChore, useUndoableDeleteChore, useTriggerChore } from '@/hooks/useChores';

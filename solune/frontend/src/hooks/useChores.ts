@@ -32,6 +32,7 @@ import type {
 export const choreKeys = {
   all: ['chores'] as const,
   list: (projectId: string) => [...choreKeys.all, 'list', projectId] as const,
+  names: (projectId: string) => [...choreKeys.all, 'names', projectId] as const,
   templates: (projectId: string) => [...choreKeys.all, 'templates', projectId] as const,
 };
 
@@ -93,6 +94,23 @@ export function useChoreTemplates(projectId: string | null | undefined) {
     queryKey: choreKeys.templates(projectId ?? ''),
     queryFn: () => choresApi.listTemplates(projectId!),
     staleTime: STALE_TIME_LONG,
+    enabled: !!projectId,
+  });
+}
+
+// ── All Chore Names Hook (unpaginated, for membership checks) ──
+
+/**
+ * Fetch ALL chore names for a project via the lightweight `/chore-names`
+ * endpoint.  Returns a complete, unfiltered list of names suitable for
+ * set-membership checks (e.g. determining which templates are already
+ * created).  Uses a 60-second stale time to balance freshness and traffic.
+ */
+export function useAllChoreNames(projectId: string | null | undefined) {
+  return useQuery<string[]>({
+    queryKey: choreKeys.names(projectId ?? ''),
+    queryFn: () => choresApi.listChoreNames(projectId!),
+    staleTime: 60_000,
     enabled: !!projectId,
   });
 }
