@@ -129,6 +129,7 @@ class ProjectBoardConfig(BaseModel):
     collapsed_columns: list[str] = Field(default_factory=list)
     show_estimates: bool = False
     queue_mode: bool = False
+    auto_merge: bool = False
 
 
 class ProjectAgentMapping(BaseModel):
@@ -218,6 +219,7 @@ class ProjectSettingsUpdate(BaseModel):
     board_display_config: ProjectBoardConfig | None = None
     agent_pipeline_mappings: dict[str, list[ProjectAgentMapping]] | None = None
     queue_mode: bool | None = None
+    auto_merge: bool | None = None
 
 
 # ── Database Row Models (for model_dump/model_validate with SQLite) ──
