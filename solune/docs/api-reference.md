@@ -108,6 +108,8 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 
 Workflow and pipeline endpoints control the agent pipeline engine — confirm or reject recommendations, retry failed agents, and manage polling.
 
+All `/pipelines/{project_id}` routes verify that the authenticated user can access the referenced GitHub Project before reading or mutating pipeline data. Requests for unowned or otherwise inaccessible projects return **403 Forbidden**.
+
 | Method | Path | Description |
 |--------|------|-------------|
 | POST | `/workflow/recommendations/{id}/confirm` | Confirm issue recommendation → full workflow |
