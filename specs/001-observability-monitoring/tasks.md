@@ -23,10 +23,10 @@
 
 **Purpose**: Add new dependencies and create project scaffolding for observability features.
 
-- [ ] T001 Add OpenTelemetry dependencies to `solune/backend/pyproject.toml`: opentelemetry-api, opentelemetry-sdk, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-httpx, opentelemetry-instrumentation-aiosqlite, opentelemetry-exporter-otlp
-- [ ] T002 Add Sentry dependency to `solune/backend/pyproject.toml`: sentry-sdk[fastapi]
-- [ ] T003 Add observability configuration fields to `solune/backend/src/config.py`: otel_enabled (bool, default False, env OTEL_ENABLED), otel_endpoint (str, default "http://localhost:4317", env OTEL_EXPORTER_OTLP_ENDPOINT), otel_service_name (str, default "solune-backend", env OTEL_SERVICE_NAME), sentry_dsn (str, default "", env SENTRY_DSN)
-- [ ] T004 Add alerting configuration fields to `solune/backend/src/config.py`: pipeline_stall_alert_minutes (int, default 30), agent_timeout_alert_minutes (int, default 15), rate_limit_critical_threshold (int, default 20), alert_webhook_url (str, default ""), alert_cooldown_minutes (int, default 15)
+- [x] T001 Add OpenTelemetry dependencies to `solune/backend/pyproject.toml`: opentelemetry-api, opentelemetry-sdk, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-httpx, opentelemetry-instrumentation-aiosqlite, opentelemetry-exporter-otlp
+- [x] T002 Add Sentry dependency to `solune/backend/pyproject.toml`: sentry-sdk[fastapi]
+- [x] T003 Add observability configuration fields to `solune/backend/src/config.py`: otel_enabled (bool, default False, env OTEL_ENABLED), otel_endpoint (str, default "http://localhost:4317", env OTEL_EXPORTER_OTLP_ENDPOINT), otel_service_name (str, default "solune-backend", env OTEL_SERVICE_NAME), sentry_dsn (str, default "", env SENTRY_DSN)
+- [x] T004 Add alerting configuration fields to `solune/backend/src/config.py`: pipeline_stall_alert_minutes (int, default 30), agent_timeout_alert_minutes (int, default 15), rate_limit_critical_threshold (int, default 20), alert_webhook_url (str, default ""), alert_cooldown_minutes (int, default 15)
 
 ---
 
@@ -36,8 +36,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 Create the alert dispatcher service in `solune/backend/src/services/alert_dispatcher.py` — implement AlertDispatcher class with `__init__(self, webhook_url: str = "", cooldown_minutes: int = 15)`, in-memory cooldown dict (`dict[str, datetime]`), and core `async def dispatch_alert(self, alert_type: str, summary: str, details: dict[str, Any]) -> None` method with cooldown enforcement (suppress if same alert_type fired within cooldown_minutes), structured WARNING log on dispatch, DEBUG log on suppression, and optional async HTTPX webhook POST (5s timeout, fire-and-forget, log warning on failure) per contract in `specs/001-observability-monitoring/contracts/alert-dispatcher.md`
-- [ ] T006 [P] Create the OTel setup module in `solune/backend/src/services/otel_setup.py` — implement `init_otel(service_name: str, endpoint: str) -> tuple[Tracer, Meter]` that configures TracerProvider with BatchSpanProcessor + OTLPSpanExporter, MeterProvider with OTLPMetricExporter, Resource with service.name attribute, FastAPIInstrumentor, HTTPXClientInstrumentor, and aiosqlite instrumentor; also implement a `get_tracer()` and `get_meter()` helper that returns the active tracer/meter or a no-op when OTel is not initialized (per research.md Decision 1)
+- [x] T005 Create the alert dispatcher service in `solune/backend/src/services/alert_dispatcher.py` — implement AlertDispatcher class with `__init__(self, webhook_url: str = "", cooldown_minutes: int = 15)`, in-memory cooldown dict (`dict[str, datetime]`), and core `async def dispatch_alert(self, alert_type: str, summary: str, details: dict[str, Any]) -> None` method with cooldown enforcement (suppress if same alert_type fired within cooldown_minutes), structured WARNING log on dispatch, DEBUG log on suppression, and optional async HTTPX webhook POST (5s timeout, fire-and-forget, log warning on failure) per contract in `specs/001-observability-monitoring/contracts/alert-dispatcher.md`
+- [x] T006 [P] Create the OTel setup module in `solune/backend/src/services/otel_setup.py` — implement `init_otel(service_name: str, endpoint: str) -> tuple[Tracer, Meter]` that configures TracerProvider with BatchSpanProcessor + OTLPSpanExporter, MeterProvider with OTLPMetricExporter, Resource with service.name attribute, FastAPIInstrumentor, HTTPXClientInstrumentor, and aiosqlite instrumentor; also implement a `get_tracer()` and `get_meter()` helper that returns the active tracer/meter or a no-op when OTel is not initialized (per research.md Decision 1)
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel.
 
@@ -51,9 +51,9 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Implement the readiness endpoint in `solune/backend/src/api/health.py` — add `GET /api/v1/ready` route that performs four checks in sequence: (1) database writeable via INSERT+DELETE on `_readiness_scratch` table (auto-CREATE TABLE IF NOT EXISTS), (2) OAuth configured via non-empty `settings.github_client_id` and `settings.github_client_secret`, (3) encryption enabled via `EncryptionService.enabled`, (4) polling alive via inspecting the asyncio.Task from `state.py` (pass if running or intentionally disabled). Return HTTP 200 with IETF health-check body when all pass, HTTP 503 when any fail, per contract in `specs/001-observability-monitoring/contracts/readiness.md`
-- [ ] T008 [US1] Define Pydantic response models for the readiness endpoint in `solune/backend/src/api/health.py` (or co-located): ReadinessCheckResult (component_id, component_type, status, time, optional output) and ReadinessResponse (status, checks dict) per data-model.md entities 1 and 2
-- [ ] T009 [US1] Wire the readiness endpoint into the FastAPI router — ensure it is registered under the existing health router or a new router included in `solune/backend/src/main.py`, verify `GET /health` remains completely unchanged (FR-005)
+- [x] T007 [US1] Implement the readiness endpoint in `solune/backend/src/api/health.py` — add `GET /api/v1/ready` route that performs four checks in sequence: (1) database writeable via INSERT+DELETE on `_readiness_scratch` table (auto-CREATE TABLE IF NOT EXISTS), (2) OAuth configured via non-empty `settings.github_client_id` and `settings.github_client_secret`, (3) encryption enabled via `EncryptionService.enabled`, (4) polling alive via inspecting the asyncio.Task from `state.py` (pass if running or intentionally disabled). Return HTTP 200 with IETF health-check body when all pass, HTTP 503 when any fail, per contract in `specs/001-observability-monitoring/contracts/readiness.md`
+- [x] T008 [US1] Define Pydantic response models for the readiness endpoint in `solune/backend/src/api/health.py` (or co-located): ReadinessCheckResult (component_id, component_type, status, time, optional output) and ReadinessResponse (status, checks dict) per data-model.md entities 1 and 2
+- [x] T009 [US1] Wire the readiness endpoint into the FastAPI router — ensure it is registered under the existing health router or a new router included in `solune/backend/src/main.py`, verify `GET /health` remains completely unchanged (FR-005)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — `GET /api/v1/ready` returns 200/503, `GET /health` unchanged.
 
@@ -67,9 +67,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Instantiate AlertDispatcher in the application lifespan in `solune/backend/src/main.py` — create the dispatcher with `webhook_url=settings.alert_webhook_url` and `cooldown_minutes=settings.alert_cooldown_minutes`, store on `app.state.alert_dispatcher`
-- [ ] T011 [US2] Wire pipeline stall alerting into `solune/backend/src/services/copilot_polling/recovery.py` — after detecting a stall exceeding `settings.pipeline_stall_alert_minutes`, call `await alert_dispatcher.dispatch_alert("pipeline_stall", summary, details)` with issue_number, stall_duration_minutes, threshold_minutes, and pipeline_state per the integration example in `specs/001-observability-monitoring/contracts/alert-dispatcher.md`
-- [ ] T012 [US2] Wire rate-limit critical alerting into `solune/backend/src/services/copilot_polling/polling_loop.py` — after rate-limit check, if `remaining < settings.rate_limit_critical_threshold`, call `await alert_dispatcher.dispatch_alert("rate_limit_critical", summary, details)` with remaining, limit, threshold, and reset_at per the integration example in `specs/001-observability-monitoring/contracts/alert-dispatcher.md`
+- [x] T010 [US2] Instantiate AlertDispatcher in the application lifespan in `solune/backend/src/main.py` — create the dispatcher with `webhook_url=settings.alert_webhook_url` and `cooldown_minutes=settings.alert_cooldown_minutes`, store on `app.state.alert_dispatcher`
+- [x] T011 [US2] Wire pipeline stall alerting into `solune/backend/src/services/copilot_polling/recovery.py` — after detecting a stall exceeding `settings.pipeline_stall_alert_minutes`, call `await alert_dispatcher.dispatch_alert("pipeline_stall", summary, details)` with issue_number, stall_duration_minutes, threshold_minutes, and pipeline_state per the integration example in `specs/001-observability-monitoring/contracts/alert-dispatcher.md`
+- [x] T012 [US2] Wire rate-limit critical alerting into `solune/backend/src/services/copilot_polling/polling_loop.py` — after rate-limit check, if `remaining < settings.rate_limit_critical_threshold`, call `await alert_dispatcher.dispatch_alert("rate_limit_critical", summary, details)` with remaining, limit, threshold, and reset_at per the integration example in `specs/001-observability-monitoring/contracts/alert-dispatcher.md`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently — readiness probe functional, alerts dispatching on threshold breaches with cooldown.
 
@@ -83,13 +83,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Initialize OTel in the application lifespan in `solune/backend/src/main.py` — conditionally import and call `init_otel()` from `otel_setup.py` only when `settings.otel_enabled` is True, store tracer and meter on `app.state` (per research.md Decision 1 conditional import pattern)
-- [ ] T014 [P] [US3] Add manual OTel spans to polling operations in `solune/backend/src/services/copilot_polling/polling_loop.py` — wrap each polling cycle in a span named "polling.cycle" and each poll step in a child span "polling.step", include request.id attribute via synthetic ID (e.g., `poll-{uuid4().hex[:8]}`), record span status on errors
-- [ ] T015 [P] [US3] Add manual OTel spans to stall recovery in `solune/backend/src/services/copilot_polling/recovery.py` — wrap recovery operations in a span named "recovery.stall_check", include stall details as span attributes
-- [ ] T016 [P] [US3] Add manual OTel span to resolve_repository() in `solune/backend/src/utils.py` — wrap the function body in a span named "resolve_repository", include project_id as span attribute
-- [ ] T017 [P] [US3] Add manual OTel spans to encrypt/decrypt in `solune/backend/src/services/encryption.py` — wrap encrypt() in span "encryption.encrypt" and decrypt() in span "encryption.decrypt", include data_size attribute (never include plaintext/ciphertext content per research.md Decision 9)
-- [ ] T018 [US3] Emit custom OTel metrics in `solune/backend/src/services/copilot_polling/polling_loop.py` — record pipeline.active_count gauge (from `_pipeline_states` dict length), pipeline.cycle_duration_ms histogram (from span timing), and github.api_remaining gauge (from `get_last_rate_limit()`) per research.md Decision 8
-- [ ] T019 [US3] Correlate OTel spans with X-Request-ID in `solune/backend/src/services/otel_setup.py` or middleware — read `request_id_var.get("")` from `request_id.py` and set as `request.id` span attribute on every span; for background tasks generate synthetic request ID per research.md Decision 7
+- [x] T013 [US3] Initialize OTel in the application lifespan in `solune/backend/src/main.py` — conditionally import and call `init_otel()` from `otel_setup.py` only when `settings.otel_enabled` is True, store tracer and meter on `app.state` (per research.md Decision 1 conditional import pattern)
+- [x] T014 [P] [US3] Add manual OTel spans to polling operations in `solune/backend/src/services/copilot_polling/polling_loop.py` — wrap each polling cycle in a span named "polling.cycle" and each poll step in a child span "polling.step", include request.id attribute via synthetic ID (e.g., `poll-{uuid4().hex[:8]}`), record span status on errors
+- [x] T015 [P] [US3] Add manual OTel spans to stall recovery in `solune/backend/src/services/copilot_polling/recovery.py` — wrap recovery operations in a span named "recovery.stall_check", include stall details as span attributes
+- [x] T016 [P] [US3] Add manual OTel span to resolve_repository() in `solune/backend/src/utils.py` — wrap the function body in a span named "resolve_repository", include project_id as span attribute
+- [x] T017 [P] [US3] Add manual OTel spans to encrypt/decrypt in `solune/backend/src/services/encryption.py` — wrap encrypt() in span "encryption.encrypt" and decrypt() in span "encryption.decrypt", include data_size attribute (never include plaintext/ciphertext content per research.md Decision 9)
+- [x] T018 [US3] Emit custom OTel metrics in `solune/backend/src/services/copilot_polling/polling_loop.py` — record pipeline.active_count gauge (from `_pipeline_states` dict length), pipeline.cycle_duration_ms histogram (from span timing), and github.api_remaining gauge (from `get_last_rate_limit()`) per research.md Decision 8
+- [x] T019 [US3] Correlate OTel spans with X-Request-ID in `solune/backend/src/services/otel_setup.py` or middleware — read `request_id_var.get("")` from `request_id.py` and set as `request.id` span attribute on every span; for background tasks generate synthetic request ID per research.md Decision 7
 
 **Checkpoint**: At this point, tracing is fully functional when enabled and zero-overhead when disabled.
 
@@ -103,8 +103,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] Initialize Sentry in the application lifespan in `solune/backend/src/main.py` — when `settings.sentry_dsn` is non-empty, call `sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0, integrations=[FastApiIntegration()])` to capture exceptions without creating duplicate traces (per research.md Decision 2)
-- [ ] T021 [US4] Enrich the generic exception handler with Sentry capture in `solune/backend/src/main.py` — in the existing exception handler (around line 495–520), add `sentry_sdk.capture_exception(exc)` with scope context: set_tag("request_id", request_id), set_context("request", {"path": request.url.path, "method": request.method}), and set_user({"id": user_id}) when available; guard with `if sentry_sdk.is_initialized()` check
+- [x] T020 [US4] Initialize Sentry in the application lifespan in `solune/backend/src/main.py` — when `settings.sentry_dsn` is non-empty, call `sentry_sdk.init(dsn=settings.sentry_dsn, traces_sample_rate=0, integrations=[FastApiIntegration()])` to capture exceptions without creating duplicate traces (per research.md Decision 2)
+- [x] T021 [US4] Enrich the generic exception handler with Sentry capture in `solune/backend/src/main.py` — in the existing exception handler (around line 495–520), add `sentry_sdk.capture_exception(exc)` with scope context: set_tag("request_id", request_id), set_context("request", {"path": request.url.path, "method": request.method}), and set_user({"id": user_id}) when available; guard with `if sentry_sdk.is_initialized()` check
 
 **Checkpoint**: At this point, User Story 4 is complete — Sentry captures exceptions with rich context, no double-tracing with OTel.
 
@@ -118,7 +118,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T022 [US5] Add Jaeger service to `docker-compose.yml` — add `jaeger` service using `jaegertracing/jaeger:latest` image with OTLP port 4317 and UI port 16686 mapped, under the `observability` Compose profile so it only starts with `docker compose --profile observability up` (per research.md Decision 6)
+- [x] T022 [US5] Add Jaeger service to `docker-compose.yml` — add `jaeger` service using `jaegertracing/jaeger:latest` image with OTLP port 4317 and UI port 16686 mapped, under the `observability` Compose profile so it only starts with `docker compose --profile observability up` (per research.md Decision 6)
 
 **Checkpoint**: Jaeger available for local trace visualization when profile is activated, zero impact on default deployments.
 
@@ -132,9 +132,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T023 [P] [US6] Create the rate-limit tracker service in `solune/backend/src/services/rate_limit_tracker.py` — implement RateLimitTracker class with `async def record_snapshot(remaining, limit, reset_at)` that inserts into `rate_limit_snapshots` SQLite table (CREATE TABLE IF NOT EXISTS per data-model.md entity 5 schema) and prunes rows older than 24 hours on each insert; implement `async def get_history(hours: int = 24) -> list[dict]` that queries snapshots within the time window ordered by timestamp
-- [ ] T024 [P] [US6] Implement `GET /api/v1/rate-limit/history` endpoint in `solune/backend/src/api/health.py` (or a new router file) — accept `hours` query parameter (int, default 24, range 1–168), call RateLimitTracker.get_history(hours), return JSON with snapshots array, hours, and count per contract in `specs/001-observability-monitoring/contracts/rate-limit-history.md`
-- [ ] T025 [US6] Wire rate-limit snapshot recording into `solune/backend/src/services/copilot_polling/polling_loop.py` — after each polling cycle, read rate-limit data from `get_last_rate_limit()` and call `await rate_limit_tracker.record_snapshot(remaining, limit, reset_at)` if data is available
+- [x] T023 [P] [US6] Create the rate-limit tracker service in `solune/backend/src/services/rate_limit_tracker.py` — implement RateLimitTracker class with `async def record_snapshot(remaining, limit, reset_at)` that inserts into `rate_limit_snapshots` SQLite table (CREATE TABLE IF NOT EXISTS per data-model.md entity 5 schema) and prunes rows older than 24 hours on each insert; implement `async def get_history(hours: int = 24) -> list[dict]` that queries snapshots within the time window ordered by timestamp
+- [x] T024 [P] [US6] Implement `GET /api/v1/rate-limit/history` endpoint in `solune/backend/src/api/health.py` (or a new router file) — accept `hours` query parameter (int, default 24, range 1–168), call RateLimitTracker.get_history(hours), return JSON with snapshots array, hours, and count per contract in `specs/001-observability-monitoring/contracts/rate-limit-history.md`
+- [x] T025 [US6] Wire rate-limit snapshot recording into `solune/backend/src/services/copilot_polling/polling_loop.py` — after each polling cycle, read rate-limit data from `get_last_rate_limit()` and call `await rate_limit_tracker.record_snapshot(remaining, limit, reset_at)` if data is available
 
 **Checkpoint**: Rate-limit history is captured per polling cycle and queryable via API with automatic 24-hour retention.
 
@@ -144,9 +144,9 @@
 
 **Purpose**: Final integration verification and documentation.
 
-- [ ] T026 Verify zero-overhead regression when all observability features are disabled — start the application without OTEL_ENABLED, SENTRY_DSN, or ALERT_WEBHOOK_URL and confirm no OTel/Sentry imports, no additional network calls, and no behavior change from baseline
-- [ ] T027 [P] Verify `GET /health` liveness endpoint remains completely unchanged after all modifications (FR-005) in `solune/backend/src/api/health.py`
-- [ ] T028 Run `specs/001-observability-monitoring/quickstart.md` validation — execute each verification step from the quickstart guide to confirm all features work end-to-end
+- [x] T026 Verify zero-overhead regression when all observability features are disabled — start the application without OTEL_ENABLED, SENTRY_DSN, or ALERT_WEBHOOK_URL and confirm no OTel/Sentry imports, no additional network calls, and no behavior change from baseline
+- [x] T027 [P] Verify `GET /health` liveness endpoint remains completely unchanged after all modifications (FR-005) in `solune/backend/src/api/health.py`
+- [x] T028 Run `specs/001-observability-monitoring/quickstart.md` validation — execute each verification step from the quickstart guide to confirm all features work end-to-end
 
 ---
 

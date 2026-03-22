@@ -103,6 +103,12 @@ class TestLifespan:
             mock_s.return_value = MagicMock(
                 debug=True,
                 session_cleanup_interval=999999,
+                alert_webhook_url="",
+                alert_cooldown_minutes=15,
+                otel_enabled=False,
+                otel_endpoint="http://localhost:4317",
+                otel_service_name="solune-backend",
+                sentry_dsn="",
             )
             async with lifespan(mock_app):
                 mock_init.assert_awaited_once()
@@ -156,6 +162,12 @@ class TestLifespan:
             mock_s.return_value = MagicMock(
                 debug=True,
                 session_cleanup_interval=999999,
+                alert_webhook_url="",
+                alert_cooldown_minutes=15,
+                otel_enabled=False,
+                otel_endpoint="http://localhost:4317",
+                otel_service_name="solune-backend",
+                sentry_dsn="",
             )
             try:
                 async with lifespan(mock_app):
@@ -361,6 +373,12 @@ class TestShutdownPollingLogging:
             mock_s.return_value = MagicMock(
                 debug=True,
                 session_cleanup_interval=999999,
+                alert_webhook_url="",
+                alert_cooldown_minutes=15,
+                otel_enabled=False,
+                otel_endpoint="http://localhost:4317",
+                otel_service_name="solune-backend",
+                sentry_dsn="",
             )
             async with lifespan(mock_app):
                 pass
