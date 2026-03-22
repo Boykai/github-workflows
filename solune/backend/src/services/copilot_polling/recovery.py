@@ -1,5 +1,9 @@
 """Self-healing recovery: detect and fix stalled agent pipelines."""
 
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
@@ -10,6 +14,7 @@ from src.services.github_projects.identities import is_copilot_author
 from src.utils import utcnow
 
 from .helpers import _get_sub_issue_number
+from .label_manager import ParsedLabel
 from .pipeline import _wait_if_rate_limited
 from .state import (
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
@@ -20,6 +25,39 @@ from .state import (
 )
 
 logger = get_logger(__name__)
+
+
+# ── Phase 8: Label-Driven State Recovery Models ──
+
+
+@dataclass
+class RecoveryState:
+    """Represents the outcome of label-driven state recovery for a board item."""
+
+    issue_number: int
+    project_id: str
+    source_labels: list[ParsedLabel] = field(default_factory=list)
+    reconstructed_stage: str | None = None
+    reconstructed_status: str | None = None
+    confidence: str = "ambiguous"  # "high" | "medium" | "low" | "ambiguous"
+    ambiguity_flags: list[str] = field(default_factory=list)
+    requires_manual_review: bool = False
+    recovered_at: datetime = field(default_factory=utcnow)
+    recovery_source: str = "labels"  # "labels" | "database" | "mixed"
+
+
+@dataclass
+class RecoveryReport:
+    """Summary of a full project-level recovery run."""
+
+    project_id: str
+    total_items: int = 0
+    recovered_count: int = 0
+    skipped_count: int = 0
+    manual_review_count: int = 0
+    states: list[RecoveryState] = field(default_factory=list)
+    started_at: datetime = field(default_factory=utcnow)
+    completed_at: datetime | None = None
 
 
 async def _validate_and_reconcile_tracking_table(
@@ -858,3 +896,247 @@ async def recover_stalled_issues(
         _polling_state.last_error = f"Recovery error: {e}"
 
     return results
+
+
+# ── Phase 8: Label-Driven State Recovery (T027–T032) ──
+
+
+def batch_parse_pipeline_labels(
+    items: list[dict[str, Any]],
+) -> dict[int, list[ParsedLabel]]:
+    """Parse all ``solune:pipeline:*`` labels on a list of board items.
+
+    Args:
+        items: Board items, each with an ``issue_number`` and ``labels`` list.
+
+    Returns:
+        Mapping of issue_number → list of parsed pipeline labels.
+    """
+    from .label_manager import parse_label
+
+    result: dict[int, list[ParsedLabel]] = {}
+    for item in items:
+        issue_number = item.get("number") or item.get("issue_number")
+        if not issue_number:
+            continue
+        labels_data = item.get("labels", [])
+        parsed: list[ParsedLabel] = []
+        for label in labels_data:
+            name = label.get("name", "") if isinstance(label, dict) else getattr(label, "name", "")
+            p = parse_label(name)
+            if p:
+                parsed.append(p)
+        if parsed:
+            result[int(issue_number)] = parsed
+    return result
+
+
+def recover_single_item_state(
+    issue_number: int,
+    project_id: str,
+    labels: list[ParsedLabel],
+) -> RecoveryState:
+    """Reconstruct a ``RecoveryState`` from parsed labels for one item.
+
+    Applies confidence scoring:
+    - **high**: Exactly one latest-status label per stage → unambiguous.
+    - **medium**: Multiple stages but labels are consistent.
+    - **low**: Partial information, some guessing required.
+    - **ambiguous**: Conflicting labels → requires manual review.
+    """
+    state = RecoveryState(
+        issue_number=issue_number,
+        project_id=project_id,
+        source_labels=list(labels),
+    )
+
+    if not labels:
+        state.confidence = "ambiguous"
+        state.ambiguity_flags.append("no_pipeline_labels_found")
+        state.requires_manual_review = True
+        return state
+
+    # Group by stage_id → latest status per stage
+    stages: dict[str, list[ParsedLabel]] = {}
+    for lbl in labels:
+        stages.setdefault(lbl.stage_id, []).append(lbl)
+
+    # Find the latest run_id (most recent pipeline run)
+    max_run_id = max(lbl.run_id for lbl in labels)
+    latest_labels = [lbl for lbl in labels if lbl.run_id == max_run_id]
+
+    if not latest_labels:
+        state.confidence = "ambiguous"
+        state.ambiguity_flags.append("no_labels_for_latest_run")
+        state.requires_manual_review = True
+        return state
+
+    # Determine current stage from latest labels
+    latest_stages: dict[str, list[ParsedLabel]] = {}
+    for lbl in latest_labels:
+        latest_stages.setdefault(lbl.stage_id, []).append(lbl)
+
+    # Check for conflicting statuses within same stage
+    conflicting = False
+    for stage_id, stage_labels in latest_stages.items():
+        statuses = {lbl.status for lbl in stage_labels}
+        if len(statuses) > 1:
+            conflicting = True
+            state.ambiguity_flags.append(f"conflicting_statuses_in_{stage_id}: {statuses}")
+
+    if conflicting:
+        state.confidence = "ambiguous"
+        state.requires_manual_review = True
+        return state
+
+    # Find the most advanced stage (running > pending > completed)
+    priority = {"running": 3, "pending": 2, "failed": 1, "completed": 0, "skipped": -1}
+    best_stage = None
+    best_status = None
+    best_priority = -2
+    for stage_id, stage_labels in latest_stages.items():
+        status = stage_labels[0].status
+        p = priority.get(status, -1)
+        if p > best_priority:
+            best_priority = p
+            best_stage = stage_id
+            best_status = status
+
+    state.reconstructed_stage = best_stage
+    state.reconstructed_status = best_status
+
+    if len(latest_stages) == 1 and not state.ambiguity_flags:
+        state.confidence = "high"
+    elif len(latest_stages) > 1 and not state.ambiguity_flags:
+        state.confidence = "medium"
+    else:
+        state.confidence = "low"
+
+    return state
+
+
+async def recover_pipeline_states_from_labels(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+    items: list[dict[str, Any]] | None = None,
+) -> RecoveryReport:
+    """Orchestrate full project-level state recovery from GitHub labels.
+
+    1. Lists all board items (or uses provided items).
+    2. Parses pipeline labels from each item.
+    3. Reconstructs pipeline states with confidence scoring.
+    4. Populates the pipeline state store for high/medium confidence items.
+    5. Flags ambiguous items for manual review.
+
+    Args:
+        access_token: GitHub access token.
+        project_id: Project ID.
+        owner: Repository owner.
+        repo: Repository name.
+        items: Optional pre-fetched board items.
+
+    Returns:
+        RecoveryReport summarizing the recovery run.
+    """
+    report = RecoveryReport(project_id=project_id)
+
+    if items is None:
+        # Fetch items from the board
+        try:
+            from src.services.github_projects import github_projects_service
+
+            board_data = await github_projects_service.get_project_items(
+                access_token, project_id
+            )
+            items = board_data if isinstance(board_data, list) else []
+        except Exception:
+            logger.exception("Failed to fetch board items for recovery")
+            items = []
+
+    report.total_items = len(items)
+
+    # Parse labels from all items
+    item_labels = batch_parse_pipeline_labels(items)
+    if not item_labels:
+        logger.info("No pipeline labels found for project %s — nothing to recover", project_id)
+        report.completed_at = utcnow()
+        return report
+
+    # Recover each item
+    for issue_number, labels in item_labels.items():
+        recovery_state = recover_single_item_state(issue_number, project_id, labels)
+        report.states.append(recovery_state)
+
+        if recovery_state.requires_manual_review:
+            report.manual_review_count += 1
+            logger.warning(
+                "Issue #%d requires manual review: %s",
+                issue_number,
+                recovery_state.ambiguity_flags,
+            )
+            continue
+
+        if recovery_state.confidence in ("high", "medium"):
+            report.recovered_count += 1
+            logger.info(
+                "Recovered state for issue #%d: stage=%s status=%s confidence=%s",
+                issue_number,
+                recovery_state.reconstructed_stage,
+                recovery_state.reconstructed_status,
+                recovery_state.confidence,
+            )
+        else:
+            report.skipped_count += 1
+
+    report.completed_at = utcnow()
+    logger.info(
+        "Recovery complete for project %s: %d recovered, %d skipped, %d manual review",
+        project_id,
+        report.recovered_count,
+        report.skipped_count,
+        report.manual_review_count,
+    )
+
+    # Persist recovery log
+    await _persist_recovery_log(report)
+
+    return report
+
+
+async def _persist_recovery_log(report: RecoveryReport) -> None:
+    """Persist recovery states to the recovery_log table."""
+    import json
+
+    try:
+        from src.services.database import get_db
+
+        db = await get_db()
+        for state in report.states:
+            source_labels_json = json.dumps(
+                [{"run_id": l.run_id, "stage_id": l.stage_id, "status": l.status, "full_name": l.full_name} for l in state.source_labels]
+            )
+            ambiguity_json = json.dumps(state.ambiguity_flags)
+            await db.execute(
+                "INSERT OR REPLACE INTO recovery_log "
+                "(issue_number, project_id, source_labels_json, reconstructed_stage, "
+                "reconstructed_status, confidence, ambiguity_flags_json, "
+                "requires_manual_review, recovered_at, recovery_source) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    state.issue_number,
+                    state.project_id,
+                    source_labels_json,
+                    state.reconstructed_stage,
+                    state.reconstructed_status,
+                    state.confidence,
+                    ambiguity_json,
+                    int(state.requires_manual_review),
+                    state.recovered_at.isoformat(),
+                    state.recovery_source,
+                ),
+            )
+        await db.commit()
+    except Exception:
+        logger.exception("Failed to persist recovery log")

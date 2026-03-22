@@ -166,6 +166,10 @@ class PipelineState:
     current_agent_index_in_group: int = 0
     # Queue mode: True when pipeline is waiting for another to complete
     queued: bool = False
+    # Phase 8: Concurrent pipeline execution tracking
+    concurrent_group_id: str | None = None  # Links concurrent sibling executions
+    is_isolated: bool = True  # Fault isolation flag for concurrent pipelines
+    recovered_at: datetime | None = None  # Timestamp of label-driven state recovery
 
     @property
     def current_agent(self) -> str | None:
