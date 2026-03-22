@@ -11,7 +11,7 @@
  * the Page Visibility API for tab-awareness.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // ── Configuration ──
 
@@ -116,7 +116,21 @@ function computeTier(
 export function useAdaptivePolling(
   config?: AdaptivePollingConfig,
 ): UseAdaptivePollingReturn {
-  const cfg: Required<AdaptivePollingConfig> = { ...DEFAULT_CONFIG, ...config };
+  const cfg = useMemo<Required<AdaptivePollingConfig>>(
+    () => ({ ...DEFAULT_CONFIG, ...config }),
+    // Depend on individual primitive values so the object identity stays stable
+    // when callers pass a new config literal on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      config?.baseInterval,
+      config?.minInterval,
+      config?.maxInterval,
+      config?.maxBackoffInterval,
+      config?.windowSize,
+      config?.highActivityThreshold,
+      config?.mediumActivityThreshold,
+    ],
+  );
 
   const windowRef = useRef<boolean[]>([]);
   const failuresRef = useRef(0);
