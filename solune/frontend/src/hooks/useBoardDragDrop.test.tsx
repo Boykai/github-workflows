@@ -43,16 +43,28 @@ const mockItem2: BoardItem = {
 };
 
 const boardData: BoardDataResponse = {
-  project: { id: 'proj-1', number: 1, title: 'Test', url: '' },
+  project: {
+    project_id: 'proj-1',
+    name: 'Test',
+    url: '',
+    owner_login: 'test-owner',
+    status_field: {
+      field_id: 'sf-1',
+      options: [
+        { option_id: 'col-1', name: 'Todo', color: 'GRAY' },
+        { option_id: 'col-2', name: 'In Progress', color: 'BLUE' },
+      ],
+    },
+  },
   columns: [
     {
-      status: { id: 'col-1', name: 'Todo' },
+      status: { option_id: 'col-1', name: 'Todo', color: 'GRAY' },
       items: [mockItem],
       item_count: 1,
       estimate_total: 0,
     },
     {
-      status: { id: 'col-2', name: 'In Progress' },
+      status: { option_id: 'col-2', name: 'In Progress', color: 'BLUE' },
       items: [mockItem2],
       item_count: 1,
       estimate_total: 0,
