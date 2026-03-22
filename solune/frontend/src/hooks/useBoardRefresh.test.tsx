@@ -826,4 +826,109 @@ describe('useBoardRefresh', () => {
       expect(resumedCalls.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  // ── Refresh contract regression tests (T029-T030/FR-009/FR-006) ──────────
+
+  describe('Refresh Contract Regression', () => {
+    it('T029: auto-refresh timer does not fire while WebSocket is connected (FR-009)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_WS', isWebSocketConnected: true }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      expect(result.current.isRefreshing).toBe(false);
+
+      // Advance past multiple auto-refresh intervals
+      invalidateSpy.mockClear();
+      await act(async () => {
+        vi.advanceTimersByTime(5000); // 5x the 1s test interval
+      });
+
+      // No board data invalidation should occur while WS connected
+      const boardCalls = invalidateSpy.mock.calls.filter((c) => {
+        const qk = c[0]?.queryKey;
+        return Array.isArray(qk) && qk[0] === 'board';
+      });
+      expect(boardCalls).toHaveLength(0);
+    });
+
+    it('T030: manual refresh calls backend with refresh=true for cache bypass (FR-006/SC-009)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_MANUAL' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      await act(async () => {
+        result.current.refresh();
+      });
+
+      // Should call getBoardData with refresh=true
+      expect(mockGetBoardData).toHaveBeenCalledWith('PVT_MANUAL', true);
+    });
+
+    it('manual refresh cancels pending debounced reload (Rule 3)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      // Use isWebSocketConnected to suppress the auto-refresh interval timer
+      // so it does not confound the debounce-cancellation assertions.
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_DEBOUNCE', isWebSocketConnected: true }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      // Start from a clean slate
+      mockGetBoardData.mockClear();
+      invalidateSpy.mockClear();
+
+      // 1) First reload request triggers an immediate auto-refresh
+      //    (elapsed since lastBoardReloadRef=0 exceeds the debounce window).
+      //    doRefresh(false) calls invalidateQueries, not getBoardData.
+      //    Flush the async work so lastBoardReloadRef updates.
+      await act(async () => {
+        result.current.requestBoardReload();
+        await vi.advanceTimersByTimeAsync(0);
+      });
+      expect(invalidateSpy).toHaveBeenCalledTimes(1);
+
+      // 2) Second reload request within the debounce window should be deferred
+      //    (a debounce timeout is scheduled, no additional immediate call).
+      await act(async () => {
+        result.current.requestBoardReload();
+      });
+      expect(invalidateSpy).toHaveBeenCalledTimes(1);
+
+      // 3) Manual refresh should take priority and cancel the pending debounced reload.
+      //    refresh() calls doRefresh(true) which uses getBoardData, not invalidateQueries.
+      await act(async () => {
+        result.current.refresh();
+        await vi.advanceTimersByTimeAsync(0);
+      });
+
+      expect(mockGetBoardData).toHaveBeenCalledTimes(1);
+      expect(mockGetBoardData).toHaveBeenCalledWith('PVT_DEBOUNCE', true);
+
+      const invalidateCountAfterManual = invalidateSpy.mock.calls.length;
+
+      // 4) Advance timers past the debounce interval; the debounced reload
+      //    should NOT fire because manual refresh cancelled it.
+      await act(async () => {
+        vi.advanceTimersByTime(3000);
+      });
+
+      // No additional invalidateQueries calls from the cancelled debounce
+      expect(invalidateSpy).toHaveBeenCalledTimes(invalidateCountAfterManual);
+    });
+  });
 });

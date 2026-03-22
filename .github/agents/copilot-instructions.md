@@ -301,6 +301,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via `database_path` setting (default: `/var/lib/solune/data/settings.db`) (001-startup-config-validation)
 - Python 3.12+ (backend), TypeScript 5.x + React 19 (frontend) + FastAPI ≥0.135, TanStack Query ≥5.91, Radix UI, @dnd-kit, Vite 8, aiosqlite, githubkit ≥0.14.6 (001-phase8-enhancements)
 - SQLite (async via aiosqlite) with BoundedDict L1 in-memory cache (001-phase8-enhancements)
+- Python ≥3.12 (target 3.13) backend; TypeScript ~5.9 frontend + FastAPI 0.135+, TanStack React Query 5.91+, React 19.2+, Vite 8.0+, @dnd-kit 6.3+ (001-performance-review)
+- SQLite (aiosqlite) for durable state; in-memory TTL cache (`InMemoryCache`) for hot data (001-performance-review)
 - Python ≥3.12 (backend; target 3.13), TypeScript / React (frontend) + FastAPI, Pydantic, aiosqlite (backend); React, TanStack Query, lucide-react, sonner (frontend) (001-auto-merge-pipelines)
 - SQLite via aiosqlite — project_settings table (adds `auto_merge` column); in-memory L1 caches with write-behind persistence (001-auto-merge-pipelines)
 - TypeScript 5.x (frontend), Python 3.11+ (backend) + React 18, TanStack Query (react-query), Vite, lucide-react (frontend); FastAPI, aiosqlite (backend) (001-frontend-polish-performance)

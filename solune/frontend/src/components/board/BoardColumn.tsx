@@ -4,7 +4,7 @@
  * Phase 8: Supports board projection with scroll sentinel for lazy loading.
  */
 
-import { memo } from 'react';
+import { memo, useMemo } from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import type { BoardColumn as BoardColumnType, BoardItem, AvailableAgent } from '@/types';
 import type { BoardGroup } from '@/hooks/useBoardControls';
@@ -43,7 +43,7 @@ export const BoardColumn = memo(function BoardColumn({
     data: { status: column.status.name },
   });
   const dotColor = statusColorToCSS(column.status.color);
-  const groups = getGroups?.(column.items);
+  const groups = useMemo(() => getGroups?.(column.items), [getGroups, column.items]);
 
   return (
     <div ref={setNodeRef} className={cn(
