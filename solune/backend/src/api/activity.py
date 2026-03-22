@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 from typing import Annotated
 
@@ -71,7 +72,15 @@ async def _query_events(
             cursor_ts, cursor_id = _decode_cursor(cursor)
             conditions.append("(created_at < ? OR (created_at = ? AND id < ?))")
             params.extend([cursor_ts, cursor_ts, cursor_id])
-        except (json.JSONDecodeError, ValueError, IndexError, UnicodeDecodeError):
+        except (
+            binascii.Error,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+            IndexError,
+            KeyError,
+            UnicodeDecodeError,
+        ):
             logger.warning("Invalid cursor value: %s", cursor)
 
     where = " AND ".join(conditions) if conditions else "1=1"
