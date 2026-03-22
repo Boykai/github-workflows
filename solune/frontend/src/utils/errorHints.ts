@@ -8,8 +8,6 @@
  * cross-cutting concern.
  */
 
-import { ApiError } from '@/services/api';
-
 export interface ErrorHint {
   title: string;
   hint: string;
@@ -18,11 +16,10 @@ export interface ErrorHint {
 
 /**
  * Extract an HTTP status code from an error, if available.
+ * Uses duck-typing (checks for a numeric `status` property) rather than
+ * importing `ApiError` to avoid test-mock conflicts.
  */
 function getStatusCode(error: unknown): number | null {
-  if (error instanceof ApiError) {
-    return error.status;
-  }
   if (
     error != null &&
     typeof error === 'object' &&
