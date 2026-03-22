@@ -364,8 +364,28 @@ class TestResolveRepository:
         mock_service.get_project_repository.assert_awaited_once_with("token", "proj-id")
 
     @pytest.mark.asyncio
-    async def test_step2_falls_back_to_workflow_config(self):
-        """Should fall back to workflow config when step 1 returns None."""
+    async def test_step2_rest_fallback_succeeds(self):
+        """Should use REST fallback when GraphQL step returns None."""
+        mock_service = AsyncMock()
+        mock_service.get_project_repository.return_value = None
+
+        with (
+            patch(
+                "src.services.github_projects.github_projects_service",
+                mock_service,
+            ),
+            patch(
+                "src.utils._resolve_repository_rest",
+                AsyncMock(return_value=("rest_owner", "rest_repo")),
+            ),
+        ):
+            result = await resolve_repository("token", "proj-id")
+
+        assert result == ("rest_owner", "rest_repo")
+
+    @pytest.mark.asyncio
+    async def test_step3_falls_back_to_workflow_config(self):
+        """Should fall back to workflow config when steps 1 and 2 return None."""
         mock_service = AsyncMock()
         mock_service.get_project_repository.return_value = None
 
@@ -379,6 +399,10 @@ class TestResolveRepository:
                 mock_service,
             ),
             patch(
+                "src.utils._resolve_repository_rest",
+                AsyncMock(return_value=None),
+            ),
+            patch(
                 "src.services.workflow_orchestrator.get_workflow_config",
                 AsyncMock(return_value=mock_config),
             ),
@@ -388,8 +412,8 @@ class TestResolveRepository:
         assert result == ("owner2", "repo2")
 
     @pytest.mark.asyncio
-    async def test_step3_falls_back_to_settings(self):
-        """Should fall back to settings when steps 1 and 2 return None."""
+    async def test_step4_falls_back_to_settings(self):
+        """Should fall back to settings when steps 1-3 return None."""
         mock_service = AsyncMock()
         mock_service.get_project_repository.return_value = None
 
@@ -401,6 +425,10 @@ class TestResolveRepository:
             patch(
                 "src.services.github_projects.github_projects_service",
                 mock_service,
+            ),
+            patch(
+                "src.utils._resolve_repository_rest",
+                AsyncMock(return_value=None),
             ),
             patch(
                 "src.services.workflow_orchestrator.get_workflow_config",
@@ -431,6 +459,10 @@ class TestResolveRepository:
                 mock_service,
             ),
             patch(
+                "src.utils._resolve_repository_rest",
+                AsyncMock(return_value=None),
+            ),
+            patch(
                 "src.services.workflow_orchestrator.get_workflow_config",
                 AsyncMock(return_value=None),
             ),
@@ -441,6 +473,33 @@ class TestResolveRepository:
         ):
             with pytest.raises(ValidationError, match="No repository found"):
                 await resolve_repository("token", "proj-id")
+
+    @pytest.mark.asyncio
+    async def test_rest_fallback_used_when_graphql_fails(self):
+        """Mock GraphQL to fail, REST to succeed — verify REST path resolves."""
+        mock_service = AsyncMock()
+        mock_service.get_project_repository.return_value = None
+
+        with (
+            patch(
+                "src.services.github_projects.github_projects_service",
+                mock_service,
+            ),
+            patch(
+                "src.utils._resolve_repository_rest",
+                AsyncMock(return_value=("rest_owner", "rest_repo")),
+            ) as mock_rest,
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_config",
+                AsyncMock(return_value=None),
+            ) as mock_config,
+        ):
+            result = await resolve_repository("token", "proj-id")
+
+        assert result == ("rest_owner", "rest_repo")
+        mock_rest.assert_awaited_once_with("token", "proj-id")
+        # Workflow config should NOT be called — REST succeeded
+        mock_config.assert_not_awaited()
 
 
 # =============================================================================

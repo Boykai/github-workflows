@@ -363,7 +363,18 @@ async def websocket_subscribe(
     STALE_REVALIDATION_LIMIT = 10  # revalidate after this many stale returns
 
     async def send_tasks(*, force_refresh: bool = False):
-        """Fetch and send current tasks, using cache when possible."""
+        """Fetch and send current tasks, using cache when possible.
+
+        NOTE: Evaluated for migration to ``cached_fetch()`` (Phase 2, Task 2.2).
+        **Not migrated** because the stale-revalidation counter pattern
+        (``stale_revalidation_count`` / ``STALE_REVALIDATION_LIMIT``) is
+        stateful across calls and controls *when* to bypass cache — a
+        fetch-scheduling concern that ``cached_fetch()`` should not own.
+        The ``data_hash_fn`` extension covers the hash-diffing portion,
+        but the counter introduces call-frequency-dependent state that
+        would require single-caller parameters, violating YAGNI.
+        See research.md Task 6 for full rationale.
+        """
         nonlocal stale_revalidation_count
         cache_key = get_project_items_cache_key(project_id)
         try:
