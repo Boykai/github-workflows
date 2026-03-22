@@ -26,7 +26,7 @@
 
 **Purpose**: Linter configuration changes that eliminate the need for inline suppressions globally
 
-- [ ] T001 Add `B008` to global `ignore` list in `solune/backend/pyproject.toml` `[tool.ruff.lint]` section with comment `# function call defaults (FastAPI Depends() pattern)`
+- [x] T001 Add `B008` to global `ignore` list in `solune/backend/pyproject.toml` `[tool.ruff.lint]` section with comment `# function call defaults (FastAPI Depends() pattern)`
 
 ---
 
@@ -36,20 +36,20 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T002 [P] Add justification comments to 8 file-level `# pyright: reportAttributeAccessIssue=false` directives in `solune/backend/src/services/github_projects/` files (service.py, copilot.py, agents.py, pull_requests.py, projects.py, issues.py, branches.py, board.py): comment `# GitHub API responses use dynamic attribute access; typing all response shapes is out of scope`
-- [ ] T003 [P] Add justification comments to 2 inline `# pyright: ignore[reportMissingImports]` directives in `solune/backend/src/services/completion_providers.py` (lines ~66, ~184): comment `# optional copilot SDK; type stubs may not be available`
-- [ ] T004 [P] Add justification comments to 5 `# type: ignore[reportMissingImports]` directives in `solune/backend/src/services/completion_providers.py` (lines ~62–63, ~167–168, ~262): comment `# optional SDK; not installed in all environments`
-- [ ] T005 [P] Add justification comment to `# noqa: E402` in `solune/backend/src/services/github_projects/__init__.py` (line ~60): comment `# import depends on prior module-level setup`
-- [ ] T006 [P] Add justification comments to `# noqa: PTH119` and `# noqa: PTH118` in `solune/backend/src/api/chat.py` (lines ~381, ~387): comment `# CodeQL recognizes os.path.basename/normpath as path-traversal sanitizers; do NOT migrate to pathlib`
-- [ ] T007 [P] Add justification comment to `# type: ignore[call-arg]` on `Settings()` in `solune/backend/src/config.py` (line ~217): comment `# pydantic-settings loads config from environment variables`
-- [ ] T008 [P] Add justification comments to 2 `# type: ignore[attr-defined]` on `record.request_id` in `solune/backend/src/logging_utils.py` (lines ~198, ~200): comment `# dynamic attribute injection on LogRecord is standard Python logging pattern`
-- [ ] T009 [P] Add justification comment to `# type: ignore[misc]` on `BoundedDict.pop` in `solune/backend/src/utils.py` (line ~140): comment `# intentional API widening: pop() accepts optional default for dict-compatible interface`
-- [ ] T010 [P] Add justification comments to retained `eslint-disable-next-line jsx-a11y/no-autofocus` in `solune/frontend/src/components/board/AddAgentPopover.tsx` (line ~114) and `solune/frontend/src/components/chores/AddChoreModal.tsx` (line ~276): comment `// autoFocus on modal/popover open is intentional UX for keyboard-first interaction`
-- [ ] T011 [P] Add justification comment to retained `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/agents/AgentChatFlow.tsx` (line ~65): comment `// initialization-only effect — runs once on mount, deps intentionally empty`
-- [ ] T012 [P] Add justification comment to retained `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/chores/ChoreChatFlow.tsx` (line ~62): comment `// initialization-only effect — runs once on mount, deps intentionally empty`
-- [ ] T013 [P] Verify existing justification comment on `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/hooks/useRealTimeSync.ts` (line ~219); add or improve if missing
-- [ ] T014 [P] Add justification comment to retained `eslint-disable-next-line @typescript-eslint/no-explicit-any` in `solune/frontend/src/lib/lazyWithRetry.ts` (line ~13): comment `// ComponentType<any> required — React.lazy() cannot accept unknown props generic`
-- [ ] T015 [P] Add justification comments to all 5 `@ts-expect-error` directives in `solune/frontend/src/test/setup.ts`: comment `// intentional override of read-only DOM global for test setup; no typed alternative exists`
+- [x] T002 [P] Add justification comments to 8 file-level `# pyright: reportAttributeAccessIssue=false` directives in `solune/backend/src/services/github_projects/` files (service.py, copilot.py, agents.py, pull_requests.py, projects.py, issues.py, branches.py, board.py): comment `# GitHub API responses use dynamic attribute access; typing all response shapes is out of scope`
+- [x] T003 [P] Add justification comments to 2 inline `# pyright: ignore[reportMissingImports]` directives in `solune/backend/src/services/completion_providers.py` (lines ~66, ~184): comment `# optional copilot SDK; type stubs may not be available`
+- [x] T004 [P] Add justification comments to 5 `# type: ignore[reportMissingImports]` directives in `solune/backend/src/services/completion_providers.py` (lines ~62–63, ~167–168, ~262): comment `# optional SDK; not installed in all environments`
+- [x] T005 [P] Add justification comment to `# noqa: E402` in `solune/backend/src/services/github_projects/__init__.py` (line ~60): comment `# import depends on prior module-level setup`
+- [x] T006 [P] Add justification comments to `# noqa: PTH119` and `# noqa: PTH118` in `solune/backend/src/api/chat.py` (lines ~381, ~387): comment `# CodeQL recognizes os.path.basename/normpath as path-traversal sanitizers; do NOT migrate to pathlib`
+- [x] T007 [P] Add justification comment to `# type: ignore[call-arg]` on `Settings()` in `solune/backend/src/config.py` (line ~217): comment `# pydantic-settings loads config from environment variables`
+- [x] T008 [P] Add justification comments to 2 `# type: ignore[attr-defined]` on `record.request_id` in `solune/backend/src/logging_utils.py` (lines ~198, ~200): comment `# dynamic attribute injection on LogRecord is standard Python logging pattern`
+- [x] T009 [P] Add justification comment to `# type: ignore[misc]` on `BoundedDict.pop` in `solune/backend/src/utils.py` (line ~140): comment `# intentional API widening: pop() accepts optional default for dict-compatible interface`
+- [x] T010 [P] Add justification comments to retained `eslint-disable-next-line jsx-a11y/no-autofocus` in `solune/frontend/src/components/board/AddAgentPopover.tsx` (line ~114) and `solune/frontend/src/components/chores/AddChoreModal.tsx` (line ~276): comment `// autoFocus on modal/popover open is intentional UX for keyboard-first interaction`
+- [x] T011 [P] Add justification comment to retained `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/agents/AgentChatFlow.tsx` (line ~65): comment `// initialization-only effect — runs once on mount, deps intentionally empty`
+- [x] T012 [P] Add justification comment to retained `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/chores/ChoreChatFlow.tsx` (line ~62): comment `// initialization-only effect — runs once on mount, deps intentionally empty`
+- [x] T013 [P] Verify existing justification comment on `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/hooks/useRealTimeSync.ts` (line ~219); add or improve if missing
+- [x] T014 [P] Add justification comment to retained `eslint-disable-next-line @typescript-eslint/no-explicit-any` in `solune/frontend/src/lib/lazyWithRetry.ts` (line ~13): comment `// ComponentType<any> required — React.lazy() cannot accept unknown props generic`
+- [x] T015 [P] Add justification comments to all 5 `@ts-expect-error` directives in `solune/frontend/src/test/setup.ts`: comment `// intentional override of read-only DOM global for test setup; no typed alternative exists`
 
 **Checkpoint**: All retained suppressions now have justification comments. User story implementation can begin.
 
@@ -63,34 +63,34 @@
 
 ### Category: return-value — Cast fixes (12 instances)
 
-- [ ] T016 [P] [US1] Add `from typing import cast` and replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/cache.py` (lines ~220, ~229, ~234)
-- [ ] T017 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/github_projects/copilot.py` (lines ~233, ~816)
-- [ ] T018 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/github_projects/pull_requests.py` (lines ~289, ~369, ~712)
-- [ ] T019 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/github_projects/projects.py` (line ~357)
-- [ ] T020 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/github_projects/issues.py` (line ~435)
-- [ ] T021 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/utils.py` (line ~297)
+- [x] T016 [P] [US1] Add `from typing import cast` and replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/cache.py` (lines ~220, ~229, ~234)
+- [x] T017 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/github_projects/copilot.py` (lines ~233, ~816)
+- [x] T018 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/github_projects/pull_requests.py` (lines ~289, ~369, ~712)
+- [x] T019 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/github_projects/projects.py` (line ~357)
+- [x] T020 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/services/github_projects/issues.py` (line ~435)
+- [x] T021 [P] [US1] Replace `# type: ignore[return-value]` with `cast()` in `solune/backend/src/utils.py` (line ~297)
 
 ### Category: type-arg — asyncio.Task generics (6 instances)
 
-- [ ] T022 [P] [US1] Change `asyncio.Task` to `asyncio.Task[None]` and remove `# type: ignore[type-arg]` in `solune/backend/src/services/task_registry.py` (lines ~33, ~44, ~55, ~101)
-- [ ] T023 [P] [US1] Change `asyncio.Task` to `asyncio.Task[Any]` and remove `# type: ignore[type-arg]` in `solune/backend/src/services/github_projects/service.py` (line ~89)
-- [ ] T024 [P] [US1] Change `asyncio.Task` to `asyncio.Task[Any]` and remove `# type: ignore[type-arg]` in `solune/backend/src/services/model_fetcher.py` (line ~28)
+- [x] T022 [P] [US1] Change `asyncio.Task` to `asyncio.Task[None]` and remove `# type: ignore[type-arg]` in `solune/backend/src/services/task_registry.py` (lines ~33, ~44, ~55, ~101)
+- [x] T023 [P] [US1] Change `asyncio.Task` to `asyncio.Task[Any]` and remove `# type: ignore[type-arg]` in `solune/backend/src/services/github_projects/service.py` (line ~89)
+- [x] T024 [P] [US1] Change `asyncio.Task` to `asyncio.Task[Any]` and remove `# type: ignore[type-arg]` in `solune/backend/src/services/model_fetcher.py` (line ~28)
 
 ### Category: arg-type — Argument type mismatches (7 instances)
 
-- [ ] T025 [P] [US1] Add `assert`/`if` guard for `settings.azure_openai_endpoint` (str | None → str) and remove `# type: ignore[arg-type]` in `solune/backend/src/services/completion_providers.py` (lines ~280–281)
-- [ ] T026 [P] [US1] Fix `name` parameter type annotation and remove `# type: ignore[arg-type]` in `solune/backend/src/services/task_registry.py` (line ~50)
-- [ ] T027 [P] [US1] Fix `min()` key function to use dict subscript instead of `.get()` and remove `# type: ignore[arg-type]` in `solune/backend/src/services/agents/service.py` (line ~1143)
-- [ ] T028 [P] [US1] Fix `self._data.pop(key, *args)` variadic args type and remove `# type: ignore` in `solune/backend/src/utils.py` (line ~141)
-- [ ] T029 [P] [US1] Fix `_rate_limit_exceeded_handler` callable type annotation and remove `# type: ignore[arg-type]` in `solune/backend/src/main.py` (line ~482)
-- [ ] T030 [P] [US1] Fix `dict(next(iter(...)))` arg-type and remove `# type: ignore[arg-type]` in `solune/backend/src/services/tools/service.py` (line ~710)
+- [x] T025 [P] [US1] Add `assert`/`if` guard for `settings.azure_openai_endpoint` (str | None → str) and remove `# type: ignore[arg-type]` in `solune/backend/src/services/completion_providers.py` (lines ~280–281)
+- [x] T026 [P] [US1] Fix `name` parameter type annotation and remove `# type: ignore[arg-type]` in `solune/backend/src/services/task_registry.py` (line ~50)
+- [x] T027 [P] [US1] Fix `min()` key function to use dict subscript instead of `.get()` and remove `# type: ignore[arg-type]` in `solune/backend/src/services/agents/service.py` (line ~1143)
+- [x] T028 [P] [US1] Fix `self._data.pop(key, *args)` variadic args type and remove `# type: ignore` in `solune/backend/src/utils.py` (line ~141)
+- [x] T029 [P] [US1] Fix `_rate_limit_exceeded_handler` callable type annotation and remove `# type: ignore[arg-type]` in `solune/backend/src/main.py` (line ~482)
+- [x] T030 [P] [US1] Fix `dict(next(iter(...)))` arg-type and remove `# type: ignore[arg-type]` in `solune/backend/src/services/tools/service.py` (line ~710)
 
 ### Category: Miscellaneous type fixes (4 removable instances)
 
-- [ ] T031 [P] [US1] Fix decorator return type with `cast()` or `@overload` and remove `# type: ignore[return-value]` in `solune/backend/src/logging_utils.py` (line ~301)
-- [ ] T032 [P] [US1] Fix `row[0]`, `row[1]`, `row[2]` indexing with proper tuple unpacking or type annotation and remove `# type: ignore[index]` in `solune/backend/src/services/metadata_service.py` (lines ~371–373)
-- [ ] T033 [P] [US1] Fix `config.agent_mappings = deduped` assignment type and remove `# type: ignore[assignment]` in `solune/backend/src/services/workflow_orchestrator/config.py` (line ~283)
-- [ ] T034 [P] [US1] Fix assignment type and remove `# type: ignore[assignment]` in `solune/backend/src/api/workflow.py` (line ~578)
+- [x] T031 [P] [US1] Fix decorator return type with `cast()` or `@overload` and remove `# type: ignore[return-value]` in `solune/backend/src/logging_utils.py` (line ~301)
+- [x] T032 [P] [US1] Fix `row[0]`, `row[1]`, `row[2]` indexing with proper tuple unpacking or type annotation and remove `# type: ignore[index]` in `solune/backend/src/services/metadata_service.py` (lines ~371–373)
+- [x] T033 [P] [US1] Fix `config.agent_mappings = deduped` assignment type and remove `# type: ignore[assignment]` in `solune/backend/src/services/workflow_orchestrator/config.py` (line ~283)
+- [x] T034 [P] [US1] Fix assignment type and remove `# type: ignore[assignment]` in `solune/backend/src/api/workflow.py` (line ~578)
 
 **Checkpoint**: Backend type suppressions reduced from 49 → ~20 (29 removed, 20 retained with justification). Run `pyright src/`, `ruff check src/`, `pytest tests/unit/` to verify.
 
@@ -104,19 +104,19 @@
 
 ### Category: jsx-a11y — Backdrop dismiss patterns (3 removable instances)
 
-- [ ] T035 [P] [US2] Replace raw `<div onClick={stopPropagation}>` with semantic interactive element (add `onKeyDown` handler or use `<dialog>`) and remove `eslint-disable-next-line` jsx-a11y directive in `solune/frontend/src/components/agents/AgentIconPickerModal.tsx` (line ~59)
-- [ ] T036 [P] [US2] Replace raw `<div onClick>` backdrop-dismiss with semantic interactive element and remove `eslint-disable-next-line` jsx-a11y directives in `solune/frontend/src/components/board/AgentPresetSelector.tsx` (lines ~424, ~472)
+- [x] T035 [P] [US2] Replace raw `<div onClick={stopPropagation}>` with semantic interactive element (add `onKeyDown` handler or use `<dialog>`) and remove `eslint-disable-next-line` jsx-a11y directive in `solune/frontend/src/components/agents/AgentIconPickerModal.tsx` (line ~59)
+- [x] T036 [P] [US2] Replace raw `<div onClick>` backdrop-dismiss with semantic interactive element and remove `eslint-disable-next-line` jsx-a11y directives in `solune/frontend/src/components/board/AgentPresetSelector.tsx` (lines ~424, ~472)
 
 ### Category: react-hooks/exhaustive-deps — Dependency array fixes (4 removable instances)
 
-- [ ] T037 [P] [US2] Fix missing dependency or simplify conditional in `useEffect` and remove `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/chat/ChatInterface.tsx` (line ~389)
-- [ ] T038 [P] [US2] Add missing `isOpen` dependency to `useEffect` and remove `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/pipeline/ModelSelector.tsx` (line ~86)
-- [ ] T039 [P] [US2] Add missing `name` dependency to `useEffect` and remove `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/tools/UploadMcpModal.tsx` (line ~201)
-- [ ] T040 [P] [US2] Add missing `resetAndClose` dependency (stabilize with `useCallback` if needed) and remove `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/chores/AddChoreModal.tsx` (line ~90)
+- [x] T037 [P] [US2] Fix missing dependency or simplify conditional in `useEffect` and remove `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/chat/ChatInterface.tsx` (line ~389)
+- [x] T038 [P] [US2] Add missing `isOpen` dependency to `useEffect` and remove `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/pipeline/ModelSelector.tsx` (line ~86)
+- [x] T039 [P] [US2] Add missing `name` dependency to `useEffect` and remove `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/tools/UploadMcpModal.tsx` (line ~201)
+- [x] T040 [P] [US2] Add missing `resetAndClose` dependency (stabilize with `useCallback` if needed) and remove `eslint-disable-next-line react-hooks/exhaustive-deps` in `solune/frontend/src/components/chores/AddChoreModal.tsx` (line ~90)
 
 ### Category: @typescript-eslint/no-explicit-any — Type replacement (1 removable instance)
 
-- [ ] T041 [P] [US2] Create a typed `WindowWithSpeechRecognition` interface and replace `window as any` cast; remove `eslint-disable-next-line @typescript-eslint/no-explicit-any` in `solune/frontend/src/hooks/useVoiceInput.ts` (line ~42)
+- [x] T041 [P] [US2] Create a typed `WindowWithSpeechRecognition` interface and replace `window as any` cast; remove `eslint-disable-next-line @typescript-eslint/no-explicit-any` in `solune/frontend/src/hooks/useVoiceInput.ts` (line ~42)
 
 **Checkpoint**: Frontend eslint-disable count reduced from 14 → 6 (8 removed, 6 retained with justification). Run `eslint .`, `tsc --noEmit`, `vitest run` to verify.
 
@@ -130,15 +130,15 @@
 
 ### Category: B008 — FastAPI Depends() (12 instances, all removed by T001 config)
 
-- [ ] T042 [P] [US3] Remove all `# noqa: B008` comments from `solune/backend/src/api/cleanup.py`
-- [ ] T043 [P] [US3] Remove all `# noqa: B008` comments from `solune/backend/src/api/activity.py`
-- [ ] T044 [P] [US3] Remove all `# noqa: B008` comments from `solune/backend/src/api/chat.py`
-- [ ] T045 [P] [US3] Remove all `# noqa: B008` comments from `solune/backend/src/dependencies.py`
+- [x] T042 [P] [US3] Remove all `# noqa: B008` comments from `solune/backend/src/api/cleanup.py`
+- [x] T043 [P] [US3] Remove all `# noqa: B008` comments from `solune/backend/src/api/activity.py`
+- [x] T044 [P] [US3] Remove all `# noqa: B008` comments from `solune/backend/src/api/chat.py`
+- [x] T045 [P] [US3] Remove all `# noqa: B008` comments from `solune/backend/src/dependencies.py`
 
 ### Category: F401 — Re-exports with __all__ (6 instances)
 
-- [ ] T046 [P] [US3] Add `__all__` list declaring all re-exported names and remove `# noqa: F401` from imports in `solune/backend/src/models/chat.py`
-- [ ] T047 [P] [US3] Remove `# noqa: F401` from imports in `solune/backend/src/services/copilot_polling/__init__.py` (already has `__all__` list at lines ~150–242)
+- [x] T046 [P] [US3] Add `__all__` list declaring all re-exported names and remove `# noqa: F401` from imports in `solune/backend/src/models/chat.py`
+- [x] T047 [P] [US3] Remove `# noqa: F401` from imports in `solune/backend/src/services/copilot_polling/__init__.py` (already has `__all__` list at lines ~150–242)
 
 **Checkpoint**: Backend noqa count reduced from 21 → 3 (18 removed, 3 retained — E402 + 2×PTH with justification). Run `ruff check src/`, `pytest tests/unit/` to verify.
 
@@ -152,27 +152,27 @@
 
 ### Category: Backend test spy typing (8 instances in test_metadata_service.py)
 
-- [ ] T048 [US4] Add explicit type annotations to spy cache class (e.g., `data`, `set_calls`, `deleted` attributes) and remove `# type: ignore` directives in `solune/backend/tests/unit/test_metadata_service.py`
+- [x] T048 [US4] Add explicit type annotations to spy cache class (e.g., `data`, `set_calls`, `deleted` attributes) and remove `# type: ignore` directives in `solune/backend/tests/unit/test_metadata_service.py`
 
 ### Category: Backend test production mode (6 instances in test_production_mode.py)
 
-- [ ] T049 [US4] Fix `Settings()` call-arg suppressions by adding `_env_file=None` parameter or using typed construction and remove `# type: ignore[call-arg]` in `solune/backend/tests/integration/test_production_mode.py`
+- [x] T049 [US4] Fix `Settings()` call-arg suppressions by adding `_env_file=None` parameter or using typed construction and remove `# type: ignore[call-arg]` in `solune/backend/tests/integration/test_production_mode.py`
 
 ### Category: Backend test transaction safety (2 instances)
 
-- [ ] T050 [P] [US4] Replace direct attribute access with `unittest.mock.patch.object()` or `MagicMock()` and remove `# type: ignore` in `solune/backend/tests/concurrency/test_transaction_safety.py`
+- [x] T050 [P] [US4] Replace direct attribute access with `unittest.mock.patch.object()` or `MagicMock()` and remove `# type: ignore` in `solune/backend/tests/concurrency/test_transaction_safety.py`
 
 ### Category: Backend test miscellaneous fixes (1 instance each)
 
-- [ ] T051 [P] [US4] Fix generator return type annotation and remove `# type: ignore` in `solune/backend/tests/unit/test_template_files.py`
-- [ ] T052 [P] [US4] Use `{**defaults, **overrides}` dict merge instead of `.update()` and remove `# type: ignore` in `solune/backend/tests/unit/test_pipeline_state_store.py`
+- [x] T051 [P] [US4] Fix generator return type annotation and remove `# type: ignore` in `solune/backend/tests/unit/test_template_files.py`
+- [x] T052 [P] [US4] Use `{**defaults, **overrides}` dict merge instead of `.update()` and remove `# type: ignore` in `solune/backend/tests/unit/test_pipeline_state_store.py`
 
 ### Category: Backend test retained suppressions (9 instances — justification only)
 
-- [ ] T053 [P] [US4] Add justification comments to 5 retained `# type: ignore[attr-defined]` for `record.request_id` dynamic attribute in `solune/backend/tests/unit/test_logging_utils.py`: comment `# dynamic attribute injection on LogRecord is standard Python logging pattern`
-- [ ] T054 [P] [US4] Add justification comment to retained `# type: ignore` for frozen dataclass mutation test in `solune/backend/tests/unit/test_polling_loop.py`
-- [ ] T055 [P] [US4] Add justification comment to retained `# type: ignore` for frozen dataclass mutation test in `solune/backend/tests/unit/test_transcript_detector.py`
-- [ ] T056 [P] [US4] Add justification comment to retained `# type: ignore` for frozen dataclass mutation test in `solune/backend/tests/unit/test_agent_output.py`
+- [x] T053 [P] [US4] Add justification comments to 5 retained `# type: ignore[attr-defined]` for `record.request_id` dynamic attribute in `solune/backend/tests/unit/test_logging_utils.py`: comment `# dynamic attribute injection on LogRecord is standard Python logging pattern`
+- [x] T054 [P] [US4] Add justification comment to retained `# type: ignore` for frozen dataclass mutation test in `solune/backend/tests/unit/test_polling_loop.py`
+- [x] T055 [P] [US4] Add justification comment to retained `# type: ignore` for frozen dataclass mutation test in `solune/backend/tests/unit/test_transcript_detector.py`
+- [x] T056 [P] [US4] Add justification comment to retained `# type: ignore` for frozen dataclass mutation test in `solune/backend/tests/unit/test_agent_output.py`
 
 **Checkpoint**: Backend test suppression count reduced from 26 → 9 (17 removed, 9 retained with justification). Frontend test `@ts-expect-error` count remains at 5 (all justified in Phase 2). Run all test suites to verify.
 
@@ -182,11 +182,11 @@
 
 **Purpose**: Final validation and cross-cutting verification across all user stories
 
-- [ ] T057 Run full backend verification: `cd solune/backend && ruff check src/ && python -m pyright src/ && python -m pytest tests/unit/ -x -q --timeout=30`
-- [ ] T058 Run full frontend verification: `cd solune/frontend && npx eslint . && npx tsc --noEmit && npx vitest run`
-- [ ] T059 Count total remaining suppressions across entire codebase and verify ≤58 (50% reduction from 115 baseline): `grep -rEn "# type: ignore|# noqa|# pyright:" solune/backend/src/ solune/backend/tests/ | wc -l` and `grep -rEn "eslint-disable|@ts-expect-error" solune/frontend/src/ | wc -l`
-- [ ] T060 Verify 100% of retained suppressions have inline justification comments: scan all remaining suppression lines for accompanying comments
-- [ ] T061 Run quickstart.md validation commands to confirm all verification steps pass
+- [x] T057 Run full backend verification: `cd solune/backend && ruff check src/ && python -m pyright src/ && python -m pytest tests/unit/ -x -q --timeout=30`
+- [x] T058 Run full frontend verification: `cd solune/frontend && npx eslint . && npx tsc --noEmit && npx vitest run`
+- [x] T059 Count total remaining suppressions across entire codebase and verify ≤58 (50% reduction from 115 baseline): `grep -rEn "# type: ignore|# noqa|# pyright:" solune/backend/src/ solune/backend/tests/ | wc -l` and `grep -rEn "eslint-disable|@ts-expect-error" solune/frontend/src/ | wc -l`
+- [x] T060 Verify 100% of retained suppressions have inline justification comments: scan all remaining suppression lines for accompanying comments
+- [x] T061 Run quickstart.md validation commands to confirm all verification steps pass
 
 ---
 
