@@ -149,14 +149,19 @@ class Settings(BaseSettings):
                     "Set it to the numeric GitHub user ID of the admin account."
                 )
             # 2. Azure OpenAI completeness — production
-            if self.ai_provider == "azure_openai" and (
-                not self.azure_openai_endpoint or not self.azure_openai_key
-            ):
-                errors.append(
-                    "AZURE_OPENAI_ENDPOINT and AZURE_OPENAI_KEY are both required "
-                    "when AI_PROVIDER is 'azure_openai'. "
-                    "Set both environment variables or switch to AI_PROVIDER=copilot."
-                )
+            if self.ai_provider == "azure_openai":
+                if not self.azure_openai_endpoint:
+                    errors.append(
+                        "AZURE_OPENAI_ENDPOINT is required when AI_PROVIDER is 'azure_openai'. "
+                        "Set the AZURE_OPENAI_ENDPOINT environment variable or switch to "
+                        "AI_PROVIDER=copilot."
+                    )
+                if not self.azure_openai_key:
+                    errors.append(
+                        "AZURE_OPENAI_KEY is required when AI_PROVIDER is 'azure_openai'. "
+                        "Set the AZURE_OPENAI_KEY environment variable or switch to "
+                        "AI_PROVIDER=copilot."
+                    )
             # 3. Database path — production only
             if not self.database_path or (
                 self.database_path != ":memory:" and not Path(self.database_path).is_absolute()
