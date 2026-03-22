@@ -1,0 +1,127 @@
+# Webhook Event Contracts — Auto Merge CI Detection
+
+## check_run Event
+
+**GitHub Event**: `check_run`
+**Trigger**: When a CI check run completes with a failure or timeout.
+**Routing Condition**: `action == "completed"` AND `conclusion in ("failure", "timed_out")`
+
+### Pydantic Model: `CheckRunEvent`
+
+```yaml
+CheckRunEvent:
+  type: object
+  required: [action, check_run, repository]
+  properties:
+    action:
+      type: string
+      enum: [created, completed, rerequested, requested_action]
+    check_run:
+      $ref: '#/components/schemas/CheckRunData'
+    repository:
+      $ref: '#/components/schemas/RepositoryData'
+
+CheckRunData:
+  type: object
+  required: [id, name, status, head_sha]
+  properties:
+    id:
+      type: integer
+    name:
+      type: string
+      description: Name of the check run (e.g., "tests", "lint")
+    status:
+      type: string
+      enum: [queued, in_progress, completed]
+    conclusion:
+      type: string
+      nullable: true
+      enum: [success, failure, neutral, cancelled, skipped, timed_out, action_required, stale]
+    head_sha:
+      type: string
+      description: Commit SHA the check ran against
+    pull_requests:
+      type: array
+      items:
+        $ref: '#/components/schemas/CheckRunPR'
+      default: []
+
+CheckRunPR:
+  type: object
+  required: [number]
+  properties:
+    number:
+      type: integer
+      description: PR number associated with this check run
+    head:
+      $ref: '#/components/schemas/BranchRef'
+    base:
+      $ref: '#/components/schemas/BranchRef'
+```
+
+### Handler Logic
+
+```text
+1. Parse CheckRunEvent from payload
+2. IF action != "completed" → SKIP
+3. IF conclusion NOT IN ("failure", "timed_out") → SKIP
+4. FOR each PR in check_run.pull_requests:
+   a. Look up pipeline state by PR number (scan active pipelines)
+   b. IF pipeline found AND pipeline.auto_merge == true:
+      i.   IF pipeline.metadata.devops_active == true → SKIP (dedup)
+      ii.  IF pipeline.metadata.devops_attempts >= 2 → SKIP (cap reached)
+      iii. Dispatch DevOps agent
+      iv.  Set pipeline.metadata.devops_active = true
+      v.   Increment pipeline.metadata.devops_attempts
+      vi.  Broadcast devops_triggered event
+```
+
+---
+
+## check_suite Event
+
+**GitHub Event**: `check_suite`
+**Trigger**: When an entire CI check suite completes with failures.
+**Routing Condition**: `action == "completed"` AND `conclusion == "failure"`
+
+### Pydantic Model: `CheckSuiteEvent`
+
+```yaml
+CheckSuiteEvent:
+  type: object
+  required: [action, check_suite, repository]
+  properties:
+    action:
+      type: string
+      enum: [completed, requested, rerequested]
+    check_suite:
+      $ref: '#/components/schemas/CheckSuiteData'
+    repository:
+      $ref: '#/components/schemas/RepositoryData'
+
+CheckSuiteData:
+  type: object
+  required: [id, status, head_sha]
+  properties:
+    id:
+      type: integer
+    status:
+      type: string
+      enum: [queued, in_progress, completed]
+    conclusion:
+      type: string
+      nullable: true
+      enum: [success, failure, neutral, cancelled, skipped, timed_out, action_required, stale]
+    head_sha:
+      type: string
+      description: Commit SHA the check suite ran against
+    pull_requests:
+      type: array
+      items:
+        $ref: '#/components/schemas/CheckRunPR'
+      default: []
+```
+
+### Handler Logic
+
+Same as `check_run` handler — shared `dispatch_devops_agent()` function handles both event types.
