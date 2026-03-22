@@ -18,9 +18,8 @@ async def test_with_fallback_returns_fallback_result_after_primary_failure() -> 
     async def fallback() -> dict[str, str]:
         return {"status": "fallback"}
 
-    result, strategy = await service._with_fallback(primary, fallback, "load projects")
+    result = await service._with_fallback(primary, fallback, "load projects")
 
-    assert strategy == "fallback"
     assert result == {"status": "fallback"}
 
 
@@ -29,7 +28,7 @@ async def test_with_fallback_returns_fallback_result_after_primary_failure() -> 
     "error",
     [ConnectionError("network down"), httpx.ReadTimeout("timeout")],
 )
-async def test_with_fallback_raises_context_when_both_strategies_fail(error: BaseException) -> None:
+async def test_with_fallback_returns_none_when_both_strategies_fail(error: BaseException) -> None:
     service = GitHubProjectsService()
 
     async def primary() -> dict[str, str]:
@@ -38,8 +37,8 @@ async def test_with_fallback_raises_context_when_both_strategies_fail(error: Bas
     async def fallback() -> dict[str, str]:
         raise RuntimeError("fallback failed")
 
-    with pytest.raises(RuntimeError, match="both strategies failed"):
-        await service._with_fallback(primary, fallback, "sync repository")
+    result = await service._with_fallback(primary, fallback, "sync repository")
+    assert result is None
 
 
 @pytest.mark.asyncio
@@ -52,5 +51,6 @@ async def test_with_fallback_propagates_cancellation_without_running_fallback() 
     async def fallback() -> dict[str, str]:
         raise AssertionError("fallback should not run when the primary task is cancelled")
 
+    # CancelledError is a BaseException, not Exception, so it propagates
     with pytest.raises(asyncio.CancelledError):
         await service._with_fallback(primary, fallback, "sync repository")

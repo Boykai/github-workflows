@@ -2,6 +2,7 @@
 
 import logging
 from functools import lru_cache
+from pathlib import Path
 from urllib.parse import urlparse
 
 from pydantic import Field, model_validator
@@ -134,6 +135,14 @@ class Settings(BaseSettings):
         _logger = logging.getLogger(__name__)
         errors: list[str] = []
 
+        # 1. ai_provider enum check — universal (fatal in all modes)
+        _valid_providers = {"copilot", "azure_openai"}
+        if self.ai_provider not in _valid_providers:
+            raise ValueError(
+                f"Unknown AI_PROVIDER {self.ai_provider!r}. "
+                f"Supported values: {', '.join(sorted(_valid_providers))}."
+            )
+
         if not self.debug:
             if not self.encryption_key:
                 errors.append(
@@ -162,6 +171,29 @@ class Settings(BaseSettings):
                     "ADMIN_GITHUB_USER_ID is required in production mode. "
                     "Set it to the numeric GitHub user ID of the admin account."
                 )
+            # 2. Azure OpenAI completeness — production
+            if self.ai_provider == "azure_openai":
+                if not self.azure_openai_endpoint:
+                    errors.append(
+                        "AZURE_OPENAI_ENDPOINT is required when AI_PROVIDER is 'azure_openai'. "
+                        "Set the AZURE_OPENAI_ENDPOINT environment variable or switch to "
+                        "AI_PROVIDER=copilot."
+                    )
+                if not self.azure_openai_key:
+                    errors.append(
+                        "AZURE_OPENAI_KEY is required when AI_PROVIDER is 'azure_openai'. "
+                        "Set the AZURE_OPENAI_KEY environment variable or switch to "
+                        "AI_PROVIDER=copilot."
+                    )
+            # 3. Database path — production only
+            if not self.database_path or (
+                self.database_path != ":memory:" and not Path(self.database_path).is_absolute()
+            ):
+                errors.append(
+                    "DATABASE_PATH must be a non-empty absolute path in production mode "
+                    "(e.g. /var/lib/solune/data/settings.db). "
+                    "Use ':memory:' only for testing."
+                )
             if errors:
                 raise ValueError("Production configuration errors:\n  - " + "\n  - ".join(errors))
         else:
@@ -182,6 +214,14 @@ class Settings(BaseSettings):
                 _logger.warning(
                     "ADMIN_GITHUB_USER_ID is %d which is not a valid GitHub user ID (debug mode)",
                     self.admin_github_user_id,
+                )
+            # 2. Azure OpenAI completeness — debug warning
+            if self.ai_provider == "azure_openai" and (
+                not self.azure_openai_endpoint or not self.azure_openai_key
+            ):
+                _logger.warning(
+                    "AI_PROVIDER is 'azure_openai' but AZURE_OPENAI_ENDPOINT or "
+                    "AZURE_OPENAI_KEY is missing — AI features will not work (debug mode)"
                 )
 
         return self

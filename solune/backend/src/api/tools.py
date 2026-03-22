@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from src.api.auth import get_session_dep
 from src.dependencies import verify_project_access
 from src.exceptions import AppException, GitHubAPIError, NotFoundError, ValidationError
-from src.logging_utils import get_logger
+from src.logging_utils import get_logger, handle_service_error
 from src.models.tools import (
     McpPresetListResponse,
     McpToolConfigCreate,
@@ -104,6 +104,7 @@ async def get_repo_config(
     """Read repository MCP configuration from supported GitHub paths."""
     service = _get_service()
 
+    # HTTPException kept as-is: MCP framework expects {"detail": ...} response shape
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
@@ -119,13 +120,7 @@ async def get_repo_config(
             access_token=session.access_token,
         )
     except Exception as exc:
-        logger.exception(
-            "Failed to fetch repository MCP config for project %s (%s/%s)",
-            project_id,
-            owner,
-            repo,
-        )
-        raise GitHubAPIError("Failed to fetch repository MCP config") from exc
+        handle_service_error(exc, "fetch repository MCP config", GitHubAPIError)
 
 
 @router.put(
@@ -145,8 +140,7 @@ async def update_repo_server(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
-        raise ValidationError("Cannot resolve repository for project") from exc
+        handle_service_error(exc, "resolve repository for project", ValidationError)
 
     try:
         return await service.update_repo_mcp_server(
@@ -161,14 +155,7 @@ async def update_repo_server(
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
     except RuntimeError as exc:
-        logger.exception(
-            "Failed to update repository MCP server %s for project %s (%s/%s)",
-            server_name,
-            project_id,
-            owner,
-            repo,
-        )
-        raise GitHubAPIError("Failed to update repository MCP server") from exc
+        handle_service_error(exc, "update repository MCP server", GitHubAPIError)
 
 
 @router.delete(
@@ -187,8 +174,7 @@ async def delete_repo_server(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
-        raise ValidationError("Cannot resolve repository for project") from exc
+        handle_service_error(exc, "resolve repository for project", ValidationError)
 
     try:
         return await service.delete_repo_mcp_server(
@@ -202,14 +188,7 @@ async def delete_repo_server(
     except ValueError as exc:
         raise ValidationError(str(exc)) from exc
     except RuntimeError as exc:
-        logger.exception(
-            "Failed to delete repository MCP server %s for project %s (%s/%s)",
-            server_name,
-            project_id,
-            owner,
-            repo,
-        )
-        raise GitHubAPIError("Failed to delete repository MCP server") from exc
+        handle_service_error(exc, "delete repository MCP server", GitHubAPIError)
 
 
 # ── Create Tool ──
@@ -232,8 +211,7 @@ async def create_tool(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
-        raise ValidationError("Cannot resolve repository for project") from exc
+        handle_service_error(exc, "resolve repository for project", ValidationError)
 
     try:
         result = await service.create_tool(
@@ -306,8 +284,7 @@ async def update_tool(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
-        raise ValidationError("Cannot resolve repository for project") from exc
+        handle_service_error(exc, "resolve repository for project", ValidationError)
 
     try:
         result = await service.update_tool(
@@ -368,8 +345,7 @@ async def sync_tool(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
-        raise ValidationError("Cannot resolve repository for project") from exc
+        handle_service_error(exc, "resolve repository for project", ValidationError)
 
     return await service.sync_tool_to_github(
         tool_id=tool_id,
@@ -409,8 +385,7 @@ async def delete_tool(
     try:
         owner, repo = await resolve_repository(session.access_token, project_id)
     except Exception as exc:
-        logger.error("Failed to resolve repository for project %s", project_id, exc_info=True)
-        raise ValidationError("Cannot resolve repository for project") from exc
+        handle_service_error(exc, "resolve repository for project", ValidationError)
 
     result = await service.delete_tool(
         project_id=project_id,
