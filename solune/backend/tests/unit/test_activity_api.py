@@ -32,3 +32,41 @@ class TestQueryEvents:
         assert result["has_more"] is False
         assert result["next_cursor"] is None
         assert result["total_count"] is None
+
+    @pytest.mark.anyio
+    @pytest.mark.parametrize(
+        "cursor",
+        [
+            _encode_cursor_payload("0z"),
+            _encode_cursor_payload([1, 2]),
+            _encode_cursor_payload(["2024-01-02T00:00:00Z"]),
+        ],
+    )
+    async def test_malformed_cursor_payloads_do_not_filter_real_results(self, mock_db, cursor: str):
+        await mock_db.execute(
+            """
+            INSERT INTO activity_events (
+                id, event_type, entity_type, entity_id, project_id,
+                actor, action, summary, detail, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "evt-1",
+                "pipeline_run",
+                "pipeline",
+                "pipe-1",
+                "PVT_test",
+                "alice",
+                "updated",
+                "Pipeline updated",
+                None,
+                "2024-01-02T00:00:00Z",
+            ),
+        )
+        await mock_db.commit()
+
+        result = await _query_events(mock_db, project_id="PVT_test", cursor=cursor)
+
+        assert [item["id"] for item in result["items"]] == ["evt-1"]
+        assert result["has_more"] is False
+        assert result["next_cursor"] is None
