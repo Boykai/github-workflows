@@ -121,8 +121,8 @@ def _clear_processed_delivery_ids():
 
 
 @pytest.mark.anyio
-async def test_issue_opened_webhook_triggers_pipeline_launch():
-    """Issue creation webhook is received and dispatched through the routing layer."""
+async def test_issue_opened_webhook_accepted():
+    """Issue webhook is accepted and acknowledged (currently ignored, no pipeline launch)."""
     settings = _make_settings()
     payload = _issue_webhook_payload(action="opened", issue_number=10)
     body = json.dumps(payload).encode()
@@ -229,12 +229,16 @@ def count_active(store_mod, project_id: str) -> int:
 
 @pytest.mark.anyio
 async def test_status_transition_preserves_pipeline_identity():
-    """Each transition updates the same pipeline in-place."""
-    from src.services import pipeline_state_store as store
-    from src.services.pipeline_state_store import count_active_pipelines_for_project
+    """Each transition updates the same pipeline in-place via the public state store API."""
+    from src.services.pipeline_state_store import (
+        _pipeline_states,
+        count_active_pipelines_for_project,
+        get_pipeline_state,
+        set_pipeline_state,
+    )
     from src.services.workflow_orchestrator.models import PipelineState
 
-    store._pipeline_states.clear()
+    _pipeline_states.clear()
 
     state = PipelineState(
         issue_number=60,
@@ -242,17 +246,19 @@ async def test_status_transition_preserves_pipeline_identity():
         status="Backlog",
         agents=["a"],
     )
-    store._pipeline_states[60] = state
+    await set_pipeline_state(60, state)
+    assert get_pipeline_state(60) is not None
     assert count_active_pipelines_for_project("PVT_proj1") == 1
 
-    # Move through transitions
+    # Move through transitions using the same pipeline instance
     for new_status in ("Ready", "In Progress", "In Review"):
         state.status = new_status
-        store._pipeline_states[60] = state
-        assert store._pipeline_states[60].status == new_status
+        await set_pipeline_state(60, state)
+        retrieved = get_pipeline_state(60)
+        assert retrieved.status == new_status
         assert count_active_pipelines_for_project("PVT_proj1") == 1
 
-    store._pipeline_states.clear()
+    _pipeline_states.clear()
 
 
 # ── T035: PR lifecycle — PR creation → state update → PR merge → cleanup ─

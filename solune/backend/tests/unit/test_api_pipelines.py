@@ -520,7 +520,7 @@ class TestQueueModeRouting:
                 return_value=mock_orchestrator,
             ),
             patch(
-                "src.api.pipelines.is_queue_mode_enabled",
+                "src.services.settings_store.is_queue_mode_enabled",
                 new_callable=AsyncMock,
                 return_value=True,
             ),
@@ -585,7 +585,7 @@ class TestQueueModeRouting:
                 return_value=mock_orchestrator,
             ),
             patch(
-                "src.api.pipelines.is_queue_mode_enabled",
+                "src.services.settings_store.is_queue_mode_enabled",
                 new_callable=AsyncMock,
                 return_value=True,
             ),
@@ -660,7 +660,7 @@ class TestPositionCalculation:
                 return_value=mock_orchestrator,
             ),
             patch(
-                "src.api.pipelines.is_queue_mode_enabled",
+                "src.services.settings_store.is_queue_mode_enabled",
                 new_callable=AsyncMock,
                 return_value=True,
             ),
@@ -700,11 +700,11 @@ class TestDequeueTrigger:
 
         with (
             patch(
-                "src.services.copilot_polling.pipeline.get_db",
+                "src.services.database.get_db",
                 return_value=AsyncMock(),
             ),
             patch(
-                "src.services.copilot_polling.pipeline.is_queue_mode_enabled",
+                "src.services.settings_store.is_queue_mode_enabled",
                 new_callable=AsyncMock,
                 return_value=False,
             ),
@@ -718,11 +718,11 @@ class TestDequeueTrigger:
 
         with (
             patch(
-                "src.services.copilot_polling.pipeline.get_db",
+                "src.services.database.get_db",
                 return_value=AsyncMock(),
             ),
             patch(
-                "src.services.copilot_polling.pipeline.is_queue_mode_enabled",
+                "src.services.settings_store.is_queue_mode_enabled",
                 new_callable=AsyncMock,
                 return_value=True,
             ),

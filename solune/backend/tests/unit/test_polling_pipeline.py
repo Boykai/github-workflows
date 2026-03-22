@@ -144,8 +144,8 @@ class TestDequeueNextPipeline:
         mock_config = AsyncMock()
 
         with (
-            patch("src.services.copilot_polling.pipeline.get_db", return_value=AsyncMock()),
-            patch("src.services.copilot_polling.pipeline.is_queue_mode_enabled", new_callable=AsyncMock, return_value=True),
+            patch("src.services.database.get_db", return_value=AsyncMock()),
+            patch("src.services.settings_store.is_queue_mode_enabled", new_callable=AsyncMock, return_value=True),
             patch("src.services.copilot_polling.pipeline._cp") as mock_cp,
         ):
             mock_cp.get_queued_pipelines_for_project.return_value = [mock_pipeline]
@@ -162,8 +162,8 @@ class TestDequeueNextPipeline:
         from src.services.copilot_polling.pipeline import _dequeue_next_pipeline
 
         with (
-            patch("src.services.copilot_polling.pipeline.get_db", return_value=AsyncMock()),
-            patch("src.services.copilot_polling.pipeline.is_queue_mode_enabled", new_callable=AsyncMock, return_value=False),
+            patch("src.services.database.get_db", return_value=AsyncMock()),
+            patch("src.services.settings_store.is_queue_mode_enabled", new_callable=AsyncMock, return_value=False),
             patch("src.services.copilot_polling.pipeline._cp") as mock_cp,
         ):
             await _dequeue_next_pipeline("token", "PVT_1", "test")
@@ -174,8 +174,8 @@ class TestDequeueNextPipeline:
         from src.services.copilot_polling.pipeline import _dequeue_next_pipeline
 
         with (
-            patch("src.services.copilot_polling.pipeline.get_db", return_value=AsyncMock()),
-            patch("src.services.copilot_polling.pipeline.is_queue_mode_enabled", new_callable=AsyncMock, return_value=True),
+            patch("src.services.database.get_db", return_value=AsyncMock()),
+            patch("src.services.settings_store.is_queue_mode_enabled", new_callable=AsyncMock, return_value=True),
             patch("src.services.copilot_polling.pipeline._cp") as mock_cp,
         ):
             mock_cp.get_queued_pipelines_for_project.return_value = []
