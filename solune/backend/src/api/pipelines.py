@@ -379,18 +379,31 @@ async def execute_pipeline_launch(
         # the count-check *and* the state registration atomically.
         from src.services.settings_store import is_queue_mode_enabled
 
+        queue_enabled = await is_queue_mode_enabled(get_db(), project_id)
         should_queue = False
-        async with get_project_launch_lock(project_id):
-            queue_enabled = await is_queue_mode_enabled(get_db(), project_id)
-            if queue_enabled and ctx.issue_number is not None:
-                active_count = count_active_pipelines_for_project(
-                    project_id, exclude_issue=ctx.issue_number
-                )
-                should_queue = active_count > 0
+        if agent_sub_issues and ctx.issue_number is not None:
+            if queue_enabled:
+                async with get_project_launch_lock(project_id):
+                    active_count = count_active_pipelines_for_project(
+                        project_id, exclude_issue=ctx.issue_number
+                    )
+                    should_queue = active_count > 0
 
-            # Register pipeline state under the lock with the correct
-            # queued flag so the next concurrent launch sees it immediately.
-            if agent_sub_issues and ctx.issue_number is not None:
+                    # Register pipeline state under the lock with the correct
+                    # queued flag so the next concurrent launch sees it immediately.
+                    set_pipeline_state(
+                        ctx.issue_number,
+                        PipelineState(
+                            issue_number=ctx.issue_number,
+                            project_id=project_id,
+                            status=status_name,
+                            agents=get_agent_slugs(config, status_name),
+                            agent_sub_issues=agent_sub_issues,
+                            started_at=utcnow(),
+                            queued=should_queue,
+                        ),
+                    )
+            else:
                 set_pipeline_state(
                     ctx.issue_number,
                     PipelineState(
@@ -400,7 +413,7 @@ async def execute_pipeline_launch(
                         agents=get_agent_slugs(config, status_name),
                         agent_sub_issues=agent_sub_issues,
                         started_at=utcnow(),
-                        queued=should_queue,
+                        queued=False,
                     ),
                 )
 

@@ -396,15 +396,24 @@ class TestGetProjectLaunchLock:
 
         _project_launch_locks.clear()
         order: list[int] = []
+        in_critical_section = 0
+        max_in_critical_section = 0
 
         async def worker(n: int) -> None:
+            nonlocal in_critical_section, max_in_critical_section
             async with get_project_launch_lock("PVT_proj1"):
-                order.append(n)
-                await asyncio.sleep(0.01)
+                in_critical_section += 1
+                max_in_critical_section = max(max_in_critical_section, in_critical_section)
+                try:
+                    order.append(n)
+                    await asyncio.sleep(0.01)
+                finally:
+                    in_critical_section -= 1
 
         await asyncio.gather(worker(1), worker(2), worker(3))
-        # All 3 ran; they may interleave but each acquired the lock
+        # All 3 ran; they may interleave in time, but must not overlap in the critical section.
         assert sorted(order) == [1, 2, 3]
+        assert max_in_critical_section == 1
         _project_launch_locks.clear()
 
 
@@ -417,7 +426,7 @@ class TestConcurrentLaunchQueueGate:
     """Verify that the per-project lock + exclude_issue prevents races."""
 
     async def test_first_pipeline_active_second_queued(self):
-        """Simulates two concurrent launches — only the first should be active."""
+        """Simulates two serialised launches — only the first should be active."""
 
         from src.services.pipeline_state_store import _project_launch_locks, get_project_launch_lock
 
@@ -437,7 +446,7 @@ class TestConcurrentLaunchQueueGate:
                     queued=should_queue,
                 )
 
-        # Launch sequentially under the lock (simulates serialised access)
+        # Launch sequentially under the lock to exercise the queue gate order.
         await simulate_launch(100)
         await simulate_launch(200)
 
