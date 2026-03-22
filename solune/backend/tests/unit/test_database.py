@@ -316,6 +316,39 @@ class TestCheckIntegrity:
         assert result is not db
         await result.close()
 
+    async def test_corrupt_file_db_continues_when_recovered_chmod_fails(self, tmp_path, caplog):
+        """Recovery should continue if chmod on the new database file fails."""
+        db_path = str(tmp_path / "test.db")
+        db = await aiosqlite.connect(db_path)
+        db.row_factory = aiosqlite.Row
+        await db.execute("CREATE TABLE t (id INTEGER)")
+        await db.commit()
+
+        with (
+            patch.object(db, "execute", new_callable=AsyncMock) as mock_exec,
+            patch("src.services.database.Path.chmod", side_effect=OSError("permission denied")),
+        ):
+            cursor = AsyncMock()
+            cursor.fetchone = AsyncMock(return_value=("page X: btree error",))
+            mock_exec.return_value = cursor
+            mock_exec.side_effect = None
+            original_close = db.close
+
+            async def patched_execute(sql, *args, **kwargs):
+                if "integrity_check" in sql:
+                    return cursor
+                return await aiosqlite.Connection.execute(
+                    db, sql, *args, **kwargs
+                )  # pragma: no cover
+
+            mock_exec.side_effect = patched_execute
+            db.close = original_close
+
+            result = await _check_integrity(db, db_path, is_in_memory=False)
+
+        assert "Could not set recovered database file permissions to 0600" in caplog.text
+        await result.close()
+
     async def test_execute_exception_treated_as_failed(self, raw_db):
         """If PRAGMA integrity_check itself throws, treat as failure."""
         with patch.object(raw_db, "execute", side_effect=Exception("disk I/O error")):

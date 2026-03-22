@@ -126,7 +126,10 @@ async def _check_integrity(
 
     db = await aiosqlite.connect(db_path)
     db.row_factory = aiosqlite.Row
-    Path(db_path).chmod(0o600)
+    try:
+        Path(db_path).chmod(0o600)
+    except OSError:
+        logger.warning("Could not set recovered database file permissions to 0600")
     await db.execute("PRAGMA journal_mode=WAL;")
     await db.execute("PRAGMA busy_timeout=5000;")
     await db.execute("PRAGMA foreign_keys=ON;")
