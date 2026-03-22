@@ -227,44 +227,49 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
     from src.exceptions import ValidationError
     from src.services.cache import cache
     from src.services.github_projects import github_projects_service
+    from src.services.otel_setup import get_tracer
     from src.services.workflow_orchestrator import get_workflow_config
 
-    # Check cache first to avoid repeated API calls for the same project.
-    # Include a hash of the access token so cached results are scoped to the
-    # caller — prevents a user without project access from reading a cache
-    # entry populated by another user.
-    token_hash = hashlib.sha256(access_token.encode()).hexdigest()[:16]
-    cache_key = f"resolve_repo:{token_hash}:{project_id}"
-    cached = cache.get(cache_key)
-    if cached is not None:
-        return cached
+    tracer = get_tracer()
+    with tracer.start_as_current_span(
+        "resolve_repository", attributes={"project_id": project_id}
+    ):
+        # Check cache first to avoid repeated API calls for the same project.
+        # Include a hash of the access token so cached results are scoped to the
+        # caller — prevents a user without project access from reading a cache
+        # entry populated by another user.
+        token_hash = hashlib.sha256(access_token.encode()).hexdigest()[:16]
+        cache_key = f"resolve_repo:{token_hash}:{project_id}"
+        cached = cache.get(cache_key)
+        if cached is not None:
+            return cached
 
-    # 1. Try project items
-    repo_info = await github_projects_service.get_project_repository(access_token, project_id)
-    if repo_info:
-        cache.set(cache_key, repo_info, ttl_seconds=300)
-        return repo_info
+        # 1. Try project items
+        repo_info = await github_projects_service.get_project_repository(access_token, project_id)
+        if repo_info:
+            cache.set(cache_key, repo_info, ttl_seconds=300)
+            return repo_info
 
-    # 2. Try workflow config
-    config = await get_workflow_config(project_id)
-    if config and config.repository_owner and config.repository_name:
-        result = (config.repository_owner, config.repository_name)
-        cache.set(cache_key, result, ttl_seconds=300)
-        return result
+        # 2. Try workflow config
+        config = await get_workflow_config(project_id)
+        if config and config.repository_owner and config.repository_name:
+            result = (config.repository_owner, config.repository_name)
+            cache.set(cache_key, result, ttl_seconds=300)
+            return result
 
-    # 3. Fall back to default repository from settings
-    from src.config import get_settings
+        # 3. Fall back to default repository from settings
+        from src.config import get_settings
 
-    settings = get_settings()
-    if settings.default_repo_owner and settings.default_repo_name:
-        result = (settings.default_repo_owner, settings.default_repo_name)
-        cache.set(cache_key, result, ttl_seconds=300)
-        return result
+        settings = get_settings()
+        if settings.default_repo_owner and settings.default_repo_name:
+            result = (settings.default_repo_owner, settings.default_repo_name)
+            cache.set(cache_key, result, ttl_seconds=300)
+            return result
 
-    raise ValidationError(
-        "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
-        "or ensure the project has at least one linked issue."
-    )
+        raise ValidationError(
+            "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
+            "or ensure the project has at least one linked issue."
+        )
 
 
 async def cached_fetch[R](

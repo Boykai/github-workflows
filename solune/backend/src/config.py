@@ -101,6 +101,29 @@ class Settings(BaseSettings):
     # authenticated user is auto-promoted (with a warning).
     admin_github_user_id: int | None = None
 
+    # ── Observability (Phase 5) — all opt-in with safe defaults ──
+
+    # OpenTelemetry — disabled by default; zero import/runtime overhead when off
+    otel_enabled: bool = False
+    otel_endpoint: str = Field(
+        default="http://localhost:4317",
+        validation_alias="OTEL_EXPORTER_OTLP_ENDPOINT",
+    )
+    otel_service_name: str = Field(
+        default="solune-backend",
+        validation_alias="OTEL_SERVICE_NAME",
+    )
+
+    # Sentry — disabled when DSN is empty
+    sentry_dsn: str = Field(default="", repr=False)
+
+    # Alert dispatcher — log-only by default
+    pipeline_stall_alert_minutes: int = 30
+    agent_timeout_alert_minutes: int = 15
+    rate_limit_critical_threshold: int = 20
+    alert_webhook_url: str = ""
+    alert_cooldown_minutes: int = 15
+
     @model_validator(mode="after")
     def _validate_production_secrets(self) -> "Settings":
         """Enforce mandatory secrets in non-debug (production) mode.

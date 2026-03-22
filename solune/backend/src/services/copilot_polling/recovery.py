@@ -390,6 +390,11 @@ async def recover_stalled_issues(
     """
     results: list[dict[str, Any]] = []
 
+    # ── OTel span: recovery.stall_check (Phase 5) ──
+    from src.services.otel_setup import get_tracer
+
+    _recovery_tracer = get_tracer()
+
     try:
         if tasks is None:
             tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
@@ -802,6 +807,39 @@ async def recover_stalled_issues(
                 "Active" if active_step else "Pending",
                 ", ".join(missing),
             )
+
+            # ── Alert dispatch: pipeline_stall (Phase 5) ──
+            try:
+                from src.config import get_settings as _get_settings
+
+                _settings = _get_settings()
+                # Estimate stall duration from recovery cooldown history
+                last_attempt_ts = _recovery_last_attempt.get(issue_number)
+                stall_minutes = (
+                    int((now - last_attempt_ts).total_seconds() / 60)
+                    if last_attempt_ts
+                    else _settings.pipeline_stall_alert_minutes
+                )
+                if stall_minutes >= _settings.pipeline_stall_alert_minutes:
+                    from src.main import app as _app
+
+                    dispatcher = getattr(_app.state, "alert_dispatcher", None)
+                    if dispatcher is not None:
+                        await dispatcher.dispatch_alert(
+                            alert_type="pipeline_stall",
+                            summary=(
+                                f"Pipeline stall detected: issue #{issue_number} "
+                                f"stalled for {stall_minutes} minutes"
+                            ),
+                            details={
+                                "issue_number": issue_number,
+                                "stall_duration_minutes": stall_minutes,
+                                "threshold_minutes": _settings.pipeline_stall_alert_minutes,
+                                "pipeline_state": "active" if active_step else "pending",
+                            },
+                        )
+            except Exception as alert_err:
+                logger.debug("Failed to dispatch pipeline_stall alert: %s", alert_err)
 
             # Re-assign the agent (T040)
             result = await _attempt_reassignment(
