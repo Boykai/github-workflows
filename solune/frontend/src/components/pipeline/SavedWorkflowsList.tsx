@@ -3,7 +3,7 @@
  * Shows pipeline name, flow graph, stage details, tool counts, and preset badges.
  */
 
-import { Clock, Layers, Bot, Workflow, Wrench, CheckCircle2, Copy } from 'lucide-react';
+import { Clock, Layers, Bot, Workflow, Wrench, CheckCircle2, Copy } from '@/lib/icons';
 import { PipelineFlowGraph } from './PipelineFlowGraph';
 import { PresetBadge } from './PresetBadge';
 import type { PipelineConfigSummary } from '@/types';

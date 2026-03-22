@@ -3,10 +3,11 @@
  * Extracted from ProjectsPage to keep the page file ≤250 lines.
  */
 
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert, Lightbulb } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { formatTimeUntil } from '@/utils/formatTime';
 import { ApiError } from '@/services/api';
+import { getErrorHint } from '@/utils/errorHints';
 
 interface RateLimitInfo {
   remaining: number;
@@ -33,6 +34,26 @@ interface ProjectBoardErrorBannersProps {
   boardRateLimitError: boolean;
   selectedProjectId: string | null;
   onRetryBoard: (projectId: string) => void;
+}
+
+function ErrorHintRow({ error }: { error: unknown }) {
+  const hint = getErrorHint(error);
+  return (
+    <p className="flex items-start gap-1.5 text-sm opacity-75">
+      <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+      <span>
+        {hint.hint}
+        {hint.action && (
+          <>
+            {' '}
+            <a href={hint.action.href} className="underline hover:opacity-80">
+              {hint.action.label}
+            </a>
+          </>
+        )}
+      </span>
+    </p>
+  );
 }
 
 export function ProjectBoardErrorBanners({
@@ -64,6 +85,16 @@ export function ProjectBoardErrorBanners({
                 ? `Resets ${formatTimeUntil(rateLimitRetryAfter)}.`
                 : 'GitHub API rate limit reached. Retry after the quota window resets.'}
             </p>
+            <p className="flex items-start gap-1.5 text-sm opacity-75">
+              <Lightbulb className="h-3.5 w-3.5 shrink-0 mt-0.5" />
+              <span>
+                Reduce polling frequency in{' '}
+                <a href="/settings" className="underline hover:opacity-80">
+                  Settings
+                </a>{' '}
+                to avoid hitting the limit.
+              </span>
+            </p>
           </div>
         </div>
       )}
@@ -90,6 +121,7 @@ export function ProjectBoardErrorBanners({
           <div className="flex flex-col gap-1">
             <strong>Refresh failed</strong>
             <p>{refreshError.message}</p>
+            <ErrorHintRow error={refreshError} />
           </div>
         </div>
       )}
@@ -110,6 +142,7 @@ export function ProjectBoardErrorBanners({
                 <p className="text-sm opacity-75">{reason}</p>
               ) : null;
             })()}
+            <ErrorHintRow error={projectsError} />
           </div>
         </div>
       )}
@@ -123,6 +156,7 @@ export function ProjectBoardErrorBanners({
           <div className="flex flex-col gap-1">
             <strong>Failed to load board data</strong>
             <p>{boardError.message}</p>
+            <ErrorHintRow error={boardError} />
           </div>
           <Button
             variant="destructive"

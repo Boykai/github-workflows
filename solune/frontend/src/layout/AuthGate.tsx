@@ -6,7 +6,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { MoonStar } from 'lucide-react';
+import { MoonStar } from '@/lib/icons';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useAuth } from '@/hooks/useAuth';
 

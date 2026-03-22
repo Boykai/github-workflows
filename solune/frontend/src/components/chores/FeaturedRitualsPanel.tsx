@@ -5,7 +5,7 @@
  */
 
 import { useMemo, useState } from 'react';
-import { Clock, PlayCircle, Trophy, type LucideIcon } from 'lucide-react';
+import { Clock, PlayCircle, Trophy, type LucideIcon } from '@/lib/icons';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatMsRemaining, formatMsAgo, computeCountRemaining, computeTimeProgress, computeCountProgress } from '@/lib/time-utils';
 import type { Chore } from '@/types';

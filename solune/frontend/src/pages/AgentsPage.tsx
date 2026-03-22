@@ -3,7 +3,7 @@
  * Composes AgentsPanel (catalog), useAgentConfig (assignments), and board columns.
  */
 
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '@/lib/icons';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';

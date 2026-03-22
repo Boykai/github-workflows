@@ -30,7 +30,7 @@ import type { BoardItem, BoardDataResponse } from '@/types';
 import { boardApi, pipelinesApi } from '@/services/api';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
-import { ListOrdered } from 'lucide-react';
+import { ListOrdered } from '@/lib/icons';
 import { toast } from 'sonner';
 
 export function ProjectsPage() {

@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useState } from 'react';
-import { Info } from 'lucide-react';
+import { Info } from '@/lib/icons';
 import type { AgentConfig } from '@/services/api';
 import { useUpdateAgent } from '@/hooks/useAgents';
 import { AgentIconCatalog } from '@/components/agents/AgentIconCatalog';

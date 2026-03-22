@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { ChevronDown, FileUp, Sparkles } from 'lucide-react';
+import { ChevronDown, FileUp, Sparkles } from '@/lib/icons';
 import type { AppCreate, Owner, RepoType } from '@/types/apps';
 import type { PipelineConfigSummary } from '@/types';
 

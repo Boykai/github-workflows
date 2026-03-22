@@ -12,7 +12,7 @@ import { CleanUpSummary } from './CleanUpSummary';
 import { CleanUpAuditHistory } from './CleanUpAuditHistory';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
-import { Trash2, Loader2, Lock, TriangleAlert } from 'lucide-react';
+import { Trash2, Loader2, Lock, TriangleAlert } from '@/lib/icons';
 import type { CleanupConfirmPayload } from '@/types';
 
 interface CleanUpButtonProps {

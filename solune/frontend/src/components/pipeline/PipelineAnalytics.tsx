@@ -5,7 +5,7 @@
  */
 
 import { useMemo } from 'react';
-import { Layers, Bot, Wrench, BarChart3, Cpu, Zap, TrendingUp, GitBranch } from 'lucide-react';
+import { Layers, Bot, Wrench, BarChart3, Cpu, Zap, TrendingUp, GitBranch } from '@/lib/icons';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { formatAgentName } from '@/utils/formatAgentName';

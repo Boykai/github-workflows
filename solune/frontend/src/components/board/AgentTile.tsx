@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '@/lib/icons';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import type { AgentAssignment, AvailableAgent } from '@/types';
 import { formatAgentName } from '@/utils/formatAgentName';
