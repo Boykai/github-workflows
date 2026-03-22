@@ -489,6 +489,7 @@ export interface ProjectBoardConfig {
   collapsed_columns: string[];
   show_estimates: boolean;
   queue_mode: boolean;
+  auto_merge: boolean;
 }
 
 export interface ProjectAgentMapping {
@@ -557,6 +558,7 @@ export interface ProjectSettingsUpdate {
   board_display_config?: ProjectBoardConfig | null;
   agent_pipeline_mappings?: Record<string, ProjectAgentMapping[]> | null;
   queue_mode?: boolean | null;
+  auto_merge?: boolean | null;
 }
 
 // ============ Dynamic Model Fetching Types (012-settings-dynamic-ux) ============
@@ -1126,6 +1128,7 @@ export interface PipelineConfig {
   preset_id: string;
   created_at: string;
   updated_at: string;
+  auto_merge?: boolean;
 }
 
 export interface PipelineConfigSummary {

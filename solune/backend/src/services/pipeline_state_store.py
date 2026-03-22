@@ -214,6 +214,7 @@ def _row_to_pipeline_state(row) -> Any:
         parallel_agent_statuses=metadata.get("parallel_agent_statuses", {}),
         failed_agents=metadata.get("failed_agents", []),
         queued=metadata.get("queued", False),
+        auto_merge=metadata.get("auto_merge", False),
     )
 
 
@@ -232,6 +233,7 @@ def _pipeline_state_to_row(issue_number: int, state: Any) -> tuple:
         "parallel_agent_statuses": state.parallel_agent_statuses,
         "failed_agents": state.failed_agents,
         "queued": state.queued,
+        "auto_merge": state.auto_merge,
     }
     now = utcnow().isoformat()
     return (
