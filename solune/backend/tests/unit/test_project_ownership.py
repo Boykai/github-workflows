@@ -248,9 +248,7 @@ class TestPipelineEndpointOwnershipCheck:
                     "src.dependencies.get_github_service",
                     lambda req: mock_svc,
                 )
-                response = await client.delete(
-                    "/api/v1/pipelines/PVT_unowned/pipe_123"
-                )
+                response = await client.delete("/api/v1/pipelines/PVT_unowned/pipe_123")
 
             assert response.status_code == 403
         finally:

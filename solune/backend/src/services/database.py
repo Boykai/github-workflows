@@ -75,8 +75,9 @@ async def close_database() -> None:
     """Close the persistent database connection. Called during lifespan shutdown."""
     global _connection
     if _connection is not None:
-        await _connection.close()
+        conn = _connection
         _connection = None
+        await conn.close()
         logger.info("Database connection closed")
 
 
