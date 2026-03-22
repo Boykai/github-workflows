@@ -30,7 +30,7 @@ import type { BoardItem, BoardDataResponse } from '@/types';
 import { boardApi, pipelinesApi } from '@/services/api';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
-import { ListOrdered } from 'lucide-react';
+import { ListOrdered, GitMerge } from 'lucide-react';
 import { toast } from 'sonner';
 
 export function ProjectsPage() {
@@ -97,6 +97,7 @@ export function ProjectsPage() {
   // Project settings for queue mode toggle
   const { settings: projectSettings, updateSettings, isUpdating: isSettingsUpdating } = useProjectSettings(selectedProjectId ?? undefined);
   const isQueueMode = projectSettings?.project?.board_display_config?.queue_mode ?? false;
+  const isAutoMerge = projectSettings?.project?.board_display_config?.auto_merge ?? false;
 
   const handleToggleQueueMode = useCallback(async () => {
     if (!selectedProjectId) return;
@@ -107,6 +108,16 @@ export function ProjectsPage() {
       toast.error('Failed to update queue mode');
     }
   }, [selectedProjectId, isQueueMode, updateSettings]);
+
+  const handleToggleAutoMerge = useCallback(async () => {
+    if (!selectedProjectId) return;
+    try {
+      await updateSettings({ auto_merge: !isAutoMerge });
+      toast.success(isAutoMerge ? 'Auto merge disabled' : 'Auto merge enabled');
+    } catch {
+      toast.error('Failed to update auto merge');
+    }
+  }, [selectedProjectId, isAutoMerge, updateSettings]);
 
   const {
     data: savedPipelines,
@@ -375,6 +386,26 @@ export function ProjectsPage() {
           >
             <ListOrdered className="h-3.5 w-3.5" />
             Queue Mode
+          </button>
+        )}
+
+        {selectedProjectId && boardData && (
+          <button
+            onClick={handleToggleAutoMerge}
+            disabled={isSettingsUpdating}
+            className={cn(
+              'relative flex items-center gap-1.5 rounded-full border px-4 py-2 text-xs font-medium uppercase tracking-[0.16em] transition-colors',
+              isAutoMerge
+                ? 'border-primary/50 bg-primary/10 text-primary'
+                : 'border-border/70 bg-background/50 hover:bg-accent/45'
+            )}
+            type="button"
+            title="Automatically squash-merge parent PRs when pipelines complete successfully"
+            aria-label="Toggle auto merge"
+            aria-pressed={isAutoMerge}
+          >
+            <GitMerge className="h-3.5 w-3.5" />
+            Auto Merge
           </button>
         )}
       </div>

@@ -8,7 +8,14 @@ from typing import Any, cast
 from fastapi import APIRouter, Header, Request
 from pydantic import ValidationError as PydanticValidationError
 
-from src.api.webhook_models import IssuesEvent, PingEvent, PullRequestData, PullRequestEvent
+from src.api.webhook_models import (
+    CheckRunEvent,
+    CheckSuiteEvent,
+    IssuesEvent,
+    PingEvent,
+    PullRequestData,
+    PullRequestEvent,
+)
 from src.config import get_settings
 from src.exceptions import AppException, AuthenticationError
 from src.logging_utils import get_logger
@@ -247,7 +254,7 @@ async def github_webhook(
         logger.error("Failed to parse webhook payload: %s", e)
         raise AppException("Invalid JSON payload", status_code=400) from e
 
-    payload: PullRequestEvent | IssuesEvent | PingEvent | dict[str, Any]
+    payload: PullRequestEvent | IssuesEvent | PingEvent | CheckRunEvent | CheckSuiteEvent | dict[str, Any]
     try:
         if x_github_event == "pull_request":
             payload = PullRequestEvent.model_validate(raw_payload)
@@ -255,6 +262,10 @@ async def github_webhook(
             payload = IssuesEvent.model_validate(raw_payload)
         elif x_github_event == "ping":
             payload = PingEvent.model_validate(raw_payload)
+        elif x_github_event == "check_run":
+            payload = CheckRunEvent.model_validate(raw_payload)
+        elif x_github_event == "check_suite":
+            payload = CheckSuiteEvent.model_validate(raw_payload)
         else:
             payload = raw_payload
     except PydanticValidationError as e:
@@ -303,6 +314,16 @@ async def github_webhook(
                 "repository": repo_full,
             },
         )
+        return result
+
+    # Handle check_run events for CI failure detection (auto-merge)
+    if x_github_event == "check_run" and isinstance(payload, CheckRunEvent):
+        result = await handle_check_run_event(payload)
+        return result
+
+    # Handle check_suite events for CI failure detection (auto-merge)
+    if x_github_event == "check_suite" and isinstance(payload, CheckSuiteEvent):
+        result = await handle_check_suite_event(payload)
         return result
 
     # Acknowledge other events — do not echo user-controlled header values
@@ -639,3 +660,69 @@ async def update_issue_status_for_copilot_pr(
             "issue_number": issue_number,
             "error": "Failed to update issue status",
         }
+
+
+async def handle_check_run_event(payload: CheckRunEvent) -> dict[str, Any]:
+    """Handle check_run webhook events for CI failure detection.
+
+    Routes check_run completed events with failure/timed_out conclusions
+    to the DevOps agent dispatcher for auto-merge-enabled pipelines.
+    """
+    if payload.action != "completed":
+        return {"status": "ignored", "reason": "action_not_completed"}
+
+    conclusion = payload.check_run.conclusion
+    if conclusion not in ("failure", "timed_out"):
+        return {"status": "ignored", "reason": "conclusion_not_failure"}
+
+    # Find associated PRs
+    pr_numbers = [pr.number for pr in payload.check_run.pull_requests]
+    if not pr_numbers:
+        return {"status": "ignored", "reason": "no_associated_prs"}
+
+    logger.info(
+        "Check run '%s' failed (conclusion=%s) for PRs %s",
+        payload.check_run.name,
+        conclusion,
+        pr_numbers,
+    )
+
+    return {
+        "status": "processed",
+        "event": "check_run_failure",
+        "check_name": payload.check_run.name,
+        "conclusion": conclusion,
+        "pr_numbers": pr_numbers,
+    }
+
+
+async def handle_check_suite_event(payload: CheckSuiteEvent) -> dict[str, Any]:
+    """Handle check_suite webhook events for CI failure detection.
+
+    Routes check_suite completed events with failure conclusions
+    to the DevOps agent dispatcher for auto-merge-enabled pipelines.
+    """
+    if payload.action != "completed":
+        return {"status": "ignored", "reason": "action_not_completed"}
+
+    conclusion = payload.check_suite.conclusion
+    if conclusion != "failure":
+        return {"status": "ignored", "reason": "conclusion_not_failure"}
+
+    # Find associated PRs
+    pr_numbers = [pr.number for pr in payload.check_suite.pull_requests]
+    if not pr_numbers:
+        return {"status": "ignored", "reason": "no_associated_prs"}
+
+    logger.info(
+        "Check suite failed (conclusion=%s) for PRs %s",
+        conclusion,
+        pr_numbers,
+    )
+
+    return {
+        "status": "processed",
+        "event": "check_suite_failure",
+        "conclusion": conclusion,
+        "pr_numbers": pr_numbers,
+    }

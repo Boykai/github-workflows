@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { WS_FALLBACK_POLL_MS, WS_CONNECTION_TIMEOUT_MS } from '@/constants';
 
 /** Maximum reconnection delay in milliseconds (30 seconds). */
@@ -86,6 +87,24 @@ export function useRealTimeSync(
         ) {
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          markUpdated();
+        }
+
+        // Handle auto-merge events
+        if (data.type === 'auto_merge_completed') {
+          toast.success(`PR #${data.pr_number} squash-merged`);
+          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          markUpdated();
+        }
+
+        if (data.type === 'auto_merge_failed') {
+          toast.error(`Auto merge failed for PR #${data.pr_number}: ${data.error || 'Unknown error'}`);
+          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          markUpdated();
+        }
+
+        if (data.type === 'devops_triggered') {
+          toast.info(`DevOps agent resolving CI failure on #${data.issue_number}`);
           markUpdated();
         }
 

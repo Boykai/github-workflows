@@ -837,3 +837,90 @@ class PullRequestsMixin:
                 return {"id": "", "number": 0, "url": "", "existing": True}
             logger.error("Failed to create PR: %s", exc)
             return None
+
+    # ──────────────────────────────────────────────────────────────────
+    # Auto Merge Helpers
+    # ──────────────────────────────────────────────────────────────────
+
+    async def get_check_runs_for_ref(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        ref: str,
+    ) -> list[dict] | None:
+        """Fetch check runs for a commit ref via REST API.
+
+        GET /repos/{owner}/{repo}/commits/{ref}/check-runs
+
+        Returns:
+            List of check run dicts, or None on failure.
+        """
+        try:
+            resp = await self._rest_response(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/commits/{ref}/check-runs",
+            )
+            if resp is None or resp.status_code != 200:
+                logger.warning(
+                    "Failed to fetch check runs for %s/%s ref=%s (status=%s)",
+                    owner,
+                    repo,
+                    ref[:8],
+                    resp.status_code if resp else "no response",
+                )
+                return None
+            data = resp.json()
+            return data.get("check_runs", [])
+        except Exception:
+            logger.error(
+                "Error fetching check runs for %s/%s ref=%s",
+                owner,
+                repo,
+                ref[:8],
+                exc_info=True,
+            )
+            return None
+
+    async def get_pr_mergeable_state(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+    ) -> str | None:
+        """Fetch the mergeable state of a PR via GraphQL.
+
+        Queries pullRequest.mergeable field which returns one of:
+        MERGEABLE, CONFLICTING, or UNKNOWN.
+
+        Returns:
+            Mergeable state string, or None on failure.
+        """
+        query = """
+        query($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $number) {
+              mergeable
+            }
+          }
+        }
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                query,
+                {"owner": owner, "repo": repo, "number": pr_number},
+            )
+            pr = data.get("repository", {}).get("pullRequest", {})
+            return pr.get("mergeable")
+        except Exception:
+            logger.error(
+                "Error fetching mergeable state for PR #%d in %s/%s",
+                pr_number,
+                owner,
+                repo,
+                exc_info=True,
+            )
+            return None
