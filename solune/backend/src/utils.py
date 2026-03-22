@@ -202,7 +202,7 @@ def utcnow() -> datetime:
 
 
 async def resolve_repository(access_token: str, project_id: str) -> tuple[str, str]:
-    """Resolve repository owner and name for a project using 3-step fallback.
+    """Resolve repository owner and name for a project using 4-step fallback.
 
     Results are cached in the global cache to avoid redundant GitHub API
     calls when multiple handlers in the same request (or closely-spaced
@@ -211,8 +211,9 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
     Lookup order:
     1. In-memory cache (short TTL)
     2. Project items (via GitHub Projects GraphQL API)
-    3. Workflow configuration (in-memory/DB)
-    4. Default repository from app settings (.env)
+    3. Project items (via GitHub REST API — resilience against GraphQL failures)
+    4. Workflow configuration (in-memory/DB)
+    5. Default repository from app settings (.env)
 
     Args:
         access_token: GitHub access token.
@@ -239,20 +240,26 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
     if cached is not None:
         return cached
 
-    # 1. Try project items
+    # 1. Try project items (GraphQL)
     repo_info = await github_projects_service.get_project_repository(access_token, project_id)
     if repo_info:
         cache.set(cache_key, repo_info, ttl_seconds=300)
         return repo_info
 
-    # 2. Try workflow config
+    # 2. Try project items (REST) — resilience against GraphQL failures
+    rest_repo = await _resolve_repository_rest(access_token, project_id)
+    if rest_repo:
+        cache.set(cache_key, rest_repo, ttl_seconds=300)
+        return rest_repo
+
+    # 3. Try workflow config
     config = await get_workflow_config(project_id)
     if config and config.repository_owner and config.repository_name:
         result = (config.repository_owner, config.repository_name)
         cache.set(cache_key, result, ttl_seconds=300)
         return result
 
-    # 3. Fall back to default repository from settings
+    # 4. Fall back to default repository from settings
     from src.config import get_settings
 
     settings = get_settings()
@@ -265,6 +272,74 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
         "No repository found for this project. Configure DEFAULT_REPOSITORY in .env "
         "or ensure the project has at least one linked issue."
     )
+
+
+async def _resolve_repository_rest(
+    access_token: str, project_id: str
+) -> tuple[str, str] | None:
+    """Resolve repository from project items via the REST API.
+
+    Uses ``_get_project_rest_info()`` to obtain the project's owner and
+    number, then queries the REST project-items endpoint to find a linked
+    repository.  Returns ``(owner, repo_name)`` on success or ``None`` if
+    the lookup fails.
+
+    This provides resilience against GraphQL-specific failures (rate
+    limits, schema changes) by using an independent REST code path.
+    """
+    from src.services.github_projects import github_projects_service
+
+    try:
+        rest_info = await github_projects_service._get_project_rest_info(
+            access_token, project_id
+        )
+        if not rest_info:
+            return None
+
+        project_number, owner_type, owner_login = rest_info
+
+        # Build REST endpoint for project items
+        if owner_type == "Organization":
+            path = f"/orgs/{owner_login}/projects/{project_number}/items"
+        else:
+            path = f"/users/{owner_login}/projects/{project_number}/items"
+
+        response = await github_projects_service._rest_response(
+            access_token, "GET", path, params={"per_page": "5"}
+        )
+        if response.status_code != 200:
+            logger.warning(
+                "REST project items returned status %d for project %s",
+                response.status_code,
+                project_id,
+            )
+            return None
+
+        items = response.json()
+        if not isinstance(items, list):
+            return None
+
+        # Extract repository owner/name from item content URLs
+        import re
+
+        repo_pattern = re.compile(r"repos/([^/]+)/([^/]+)")
+        for item in items:
+            content_url = item.get("content_url", "")
+            if content_url:
+                match = repo_pattern.search(content_url)
+                if match:
+                    owner, repo = match.group(1), match.group(2)
+                    logger.info(
+                        "Resolved repository %s/%s via REST project items",
+                        owner,
+                        repo,
+                    )
+                    return (owner, repo)
+
+        return None
+    except Exception as e:
+        logger.warning("REST repository resolution failed for project %s: %s", project_id, e)
+        return None
 
 
 async def cached_fetch[R](

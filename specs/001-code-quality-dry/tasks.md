@@ -24,8 +24,8 @@
 
 **Purpose**: Verify baseline state and confirm existing tests pass before any refactoring
 
-- [ ] T001 Run baseline test suite (`pytest tests/unit/ -x -q`) to confirm all existing tests pass before changes
-- [ ] T002 Run baseline lint/type checks (`ruff check src/` and `pyright src/`) to capture pre-existing state
+- [x] T001 Run baseline test suite (`pytest tests/unit/ -x -q`) to confirm all existing tests pass before changes
+- [x] T002 Run baseline lint/type checks (`ruff check src/` and `pyright src/`) to capture pre-existing state
 
 ---
 
@@ -39,10 +39,10 @@
 - US3 depends on T005 (_with_fallback creation)
 - US4 has no foundational dependencies (can start after Phase 1)
 
-- [ ] T003 [P] Extend `cached_fetch()` with keyword-only `rate_limit_fallback: bool = False` parameter in `solune/backend/src/services/cache.py` — when True and `fetch_fn` raises `RateLimitError`, return stale data via `get_stale()` and log rate-limit warning; if no stale data, re-raise
-- [ ] T004 [P] Extend `cached_fetch()` with keyword-only `data_hash_fn: Callable[[T], str] | None = None` parameter in `solune/backend/src/services/cache.py` — when provided, compute hash of fetched data; if hash matches existing entry's `data_hash`, call `refresh_ttl()` instead of `set()`; if different, call `set()` with new hash
-- [ ] T005 [P] Create `async def _with_fallback[T](self, primary_fn, fallback_fn, operation, verify_fn=None) -> T | None` on base service class in `solune/backend/src/services/github_projects/service.py` — implement primary → optional verify → fallback pattern with soft-failure contract (returns None on total failure, never raises)
-- [ ] T006 Inspect FastAPI exception handler middleware in `solune/backend/src/main.py` (lines ~486-515) and confirm research.md Task 1 decision: do NOT convert HTTPException sites in tools.py that would change the `{"detail": ...}` response contract to `{"error": ..., "details": {...}}`; migrate only sites where the raised type has an AppException equivalent
+- [x] T003 [P] Extend `cached_fetch()` with keyword-only `rate_limit_fallback: bool = False` parameter in `solune/backend/src/services/cache.py` — when True and `fetch_fn` raises `RateLimitError`, return stale data via `get_stale()` and log rate-limit warning; if no stale data, re-raise
+- [x] T004 [P] Extend `cached_fetch()` with keyword-only `data_hash_fn: Callable[[T], str] | None = None` parameter in `solune/backend/src/services/cache.py` — when provided, compute hash of fetched data; if hash matches existing entry's `data_hash`, call `refresh_ttl()` instead of `set()`; if different, call `set()` with new hash
+- [x] T005 [P] Create `async def _with_fallback[T](self, primary_fn, fallback_fn, operation, verify_fn=None) -> T | None` on base service class in `solune/backend/src/services/github_projects/service.py` — implement primary → optional verify → fallback pattern with soft-failure contract (returns None on total failure, never raises)
+- [x] T006 Inspect FastAPI exception handler middleware in `solune/backend/src/main.py` (lines ~486-515) and confirm research.md Task 1 decision: do NOT convert HTTPException sites in tools.py that would change the `{"detail": ...}` response contract to `{"error": ..., "details": {...}}`; migrate only sites where the raised type has an AppException equivalent
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -56,12 +56,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [P] [US1] Migrate 3 error-handling sites in `solune/backend/src/api/board.py` to `handle_service_error()`: lines ~246-260 (rate-limit/auth split — use isinstance checks before calling with appropriate `error_cls`), lines ~405-407 (ValueError→NotFoundError), lines ~408-433 (rate-limit/auth/generic split)
-- [ ] T008 [P] [US1] Migrate applicable error-handling sites in `solune/backend/src/api/tools.py` to `handle_service_error()` — evaluate each of the 7 sites individually per research.md Task 1 decision: sites raising `HTTPException(500)` for internal errors → migrate to `handle_service_error(e, op, GitHubAPIError)`; sites raising `HTTPException(4xx)` consumed by MCP framework → keep as-is with justification comment
-- [ ] T009 [P] [US1] Migrate 1 error-handling site in `solune/backend/src/api/pipelines.py` (line ~140) to `handle_service_error()`
-- [ ] T010 [P] [US1] Migrate 1 error-handling site in `solune/backend/src/api/tasks.py` (line ~137) to `handle_service_error()`
-- [ ] T011 [P] [US1] Migrate 2 error-handling sites in `solune/backend/src/api/webhooks.py` (lines ~246) to `handle_service_error()`
-- [ ] T012 [US1] Verify no error-returning handlers (health checks, WebSocket, error-returning webhook handlers) were migrated — these MUST remain as-is (return dicts, not raise)
+- [x] T007 [P] [US1] Migrate 3 error-handling sites in `solune/backend/src/api/board.py` to `handle_service_error()`: lines ~246-260 (rate-limit/auth split — use isinstance checks before calling with appropriate `error_cls`), lines ~405-407 (ValueError→NotFoundError), lines ~408-433 (rate-limit/auth/generic split)
+- [x] T008 [P] [US1] Migrate applicable error-handling sites in `solune/backend/src/api/tools.py` to `handle_service_error()` — evaluate each of the 7 sites individually per research.md Task 1 decision: sites raising `HTTPException(500)` for internal errors → migrate to `handle_service_error(e, op, GitHubAPIError)`; sites raising `HTTPException(4xx)` consumed by MCP framework → keep as-is with justification comment
+- [x] T009 [P] [US1] Migrate 1 error-handling site in `solune/backend/src/api/pipelines.py` (line ~140) to `handle_service_error()`
+- [x] T010 [P] [US1] Migrate 1 error-handling site in `solune/backend/src/api/tasks.py` (line ~137) to `handle_service_error()`
+- [x] T011 [P] [US1] Migrate 2 error-handling sites in `solune/backend/src/api/webhooks.py` (lines ~246) to `handle_service_error()`
+- [x] T012 [US1] Verify no error-returning handlers (health checks, WebSocket, error-returning webhook handlers) were migrated — these MUST remain as-is (return dicts, not raise)
 
 **Checkpoint**: All 14 error-handling sites migrated (or explicitly excluded with justification). Grep audit should show only excluded patterns outside `handle_service_error()`.
 
@@ -75,12 +75,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T013 [P] [US2] Migrate `list_projects()` in `solune/backend/src/api/projects.py` (~50 LOC inline cache) to `cached_fetch()` — map: cache check → `cached_fetch(stale_fallback=True)`, remove manual `cache.get/set` calls
-- [ ] T014 [US2] Migrate `list_board_projects()` in `solune/backend/src/api/board.py` (~87 LOC inline cache) to `cached_fetch()` — compose a `fetch_fn` that checks secondary `user_projects:{user_id}` cache key internally, transforms via `_to_board_projects()` if present, or fetches fresh from GitHub API and caches under both keys
-- [ ] T015 [US2] Migrate `get_board_data()` in `solune/backend/src/api/board.py` (~90 LOC inline cache) to `cached_fetch()` with `stale_fallback=True` and `rate_limit_fallback=True` — preserve pagination, sub-issue enrichment, and DB-cached Done items fallback
-- [ ] T016 [P] [US2] Simplify `send_message()` cache reads in `solune/backend/src/api/chat.py` (~30 LOC) — these are cache-read-only (no set); evaluate at implementation time whether `cached_fetch()` with a no-op `fetch_fn` or direct `cache.get()` is more appropriate, and apply the simpler approach
-- [ ] T017 [US2] Evaluate `send_tasks()` in `solune/backend/src/api/projects.py` for migration to `cached_fetch()` — **Decision (from research.md Task 6): Do not migrate** — add justification comment documenting why the stale-revalidation counter pattern is incompatible with `cached_fetch()`
-- [ ] T018 [US2] Add unit tests for `cached_fetch()` extensions in `solune/backend/tests/unit/test_cache.py`: (a) `rate_limit_fallback` with stale data available, (b) `rate_limit_fallback` with no stale data (verify re-raise), (c) `data_hash_fn` with matching hash (verify `refresh_ttl` called), (d) `data_hash_fn` with different hash (verify `set` called with hash), (e) backward compatibility (existing callers unchanged)
+- [x] T013 [P] [US2] Migrate `list_projects()` in `solune/backend/src/api/projects.py` (~50 LOC inline cache) to `cached_fetch()` — map: cache check → `cached_fetch(stale_fallback=True)`, remove manual `cache.get/set` calls
+- [x] T014 [US2] Migrate `list_board_projects()` in `solune/backend/src/api/board.py` (~87 LOC inline cache) to `cached_fetch()` — compose a `fetch_fn` that checks secondary `user_projects:{user_id}` cache key internally, transforms via `_to_board_projects()` if present, or fetches fresh from GitHub API and caches under both keys
+- [x] T015 [US2] Migrate `get_board_data()` in `solune/backend/src/api/board.py` (~90 LOC inline cache) to `cached_fetch()` with `stale_fallback=True` and `rate_limit_fallback=True` — preserve pagination, sub-issue enrichment, and DB-cached Done items fallback
+- [x] T016 [P] [US2] Simplify `send_message()` cache reads in `solune/backend/src/api/chat.py` (~30 LOC) — these are cache-read-only (no set); evaluate at implementation time whether `cached_fetch()` with a no-op `fetch_fn` or direct `cache.get()` is more appropriate, and apply the simpler approach
+- [x] T017 [US2] Evaluate `send_tasks()` in `solune/backend/src/api/projects.py` for migration to `cached_fetch()` — **Decision (from research.md Task 6): Do not migrate** — add justification comment documenting why the stale-revalidation counter pattern is incompatible with `cached_fetch()`
+- [x] T018 [US2] Add unit tests for `cached_fetch()` extensions in `solune/backend/tests/unit/test_cache.py`: (a) `rate_limit_fallback` with stale data available, (b) `rate_limit_fallback` with no stale data (verify re-raise), (c) `data_hash_fn` with matching hash (verify `refresh_ttl` called), (d) `data_hash_fn` with different hash (verify `set` called with hash), (e) backward compatibility (existing callers unchanged)
 
 **Checkpoint**: All 4 cache patterns migrated, `send_tasks()` evaluated and documented. Cache-hit/miss/stale behaviour verified identical for each endpoint.
 
@@ -94,10 +94,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T019 [US3] Refactor `add_issue_to_project()` in `solune/backend/src/services/github_projects/issues.py` to use `_with_fallback()` — map: GraphQL add → `primary_fn`, `_verify_item_on_project()` → `verify_fn`, REST fallback → `fallback_fn`; verify identical behaviour for primary success, primary+verify fail+fallback success, and both-fail scenarios
-- [ ] T020 [P] [US3] Evaluate and document `_with_fallback()` non-adoption for `assign_copilot_to_issue()` in `solune/backend/src/services/github_projects/copilot.py` — **Decision (from research.md Task 7): Do not apply** — add documentation comment explaining pre-step logic and `bool` return type make it a poor fit
-- [ ] T021 [P] [US3] Evaluate and document `_with_fallback()` non-adoption for `find_existing_pr_for_issue()` in `solune/backend/src/services/github_projects/pull_requests.py` — **Decision (from research.md Task 7): Do not apply** — add documentation comment explaining divergent post-processing between primary/fallback paths
-- [ ] T022 [US3] Add unit tests for `_with_fallback()` in `solune/backend/tests/unit/test_service.py`: (a) primary succeeds without verify, (b) primary succeeds with verify passing, (c) primary succeeds but verify fails → fallback succeeds, (d) primary raises → fallback succeeds, (e) both raise → returns None (soft-failure), (f) verify raises → treated as failure → fallback called
+- [x] T019 [US3] Refactor `add_issue_to_project()` in `solune/backend/src/services/github_projects/issues.py` to use `_with_fallback()` — map: GraphQL add → `primary_fn`, `_verify_item_on_project()` → `verify_fn`, REST fallback → `fallback_fn`; verify identical behaviour for primary success, primary+verify fail+fallback success, and both-fail scenarios
+- [x] T020 [P] [US3] Evaluate and document `_with_fallback()` non-adoption for `assign_copilot_to_issue()` in `solune/backend/src/services/github_projects/copilot.py` — **Decision (from research.md Task 7): Do not apply** — add documentation comment explaining pre-step logic and `bool` return type make it a poor fit
+- [x] T021 [P] [US3] Evaluate and document `_with_fallback()` non-adoption for `find_existing_pr_for_issue()` in `solune/backend/src/services/github_projects/pull_requests.py` — **Decision (from research.md Task 7): Do not apply** — add documentation comment explaining divergent post-processing between primary/fallback paths
+- [x] T022 [US3] Add unit tests for `_with_fallback()` in `solune/backend/tests/unit/test_service.py`: (a) primary succeeds without verify, (b) primary succeeds with verify passing, (c) primary succeeds but verify fails → fallback succeeds, (d) primary raises → fallback succeeds, (e) both raise → returns None (soft-failure), (f) verify raises → treated as failure → fallback called
 
 **Checkpoint**: `add_issue_to_project()` refactored. `_with_fallback()` tested with 100% branch coverage. Copilot/PR operations evaluated and documented.
 
@@ -111,10 +111,10 @@
 
 ### Implementation for User Story 4
 
-- [ ] T023 [US4] Add `_resolve_repository_rest()` helper to `solune/backend/src/utils.py` — uses `github_projects_service._get_project_rest_info()` + REST project items endpoint to extract repository owner/name; returns `tuple[str, str] | None`
-- [ ] T024 [US4] Insert REST fallback as Step 3 in `resolve_repository()` in `solune/backend/src/utils.py` — between GraphQL project-items (current Step 2) and workflow-config (current Step 3); on success, cache result with 300s TTL; on failure, log warning and proceed to next step
-- [ ] T025 [US4] Replace inline owner/repo extraction in `_auto_start_copilot_polling()` in `solune/backend/src/main.py` (~15 LOC) with `resolve_repository()` call — preserve existing webhook-token fallback strategy on failure
-- [ ] T026 [US4] Add unit test for REST fallback path in `resolve_repository()` in `solune/backend/tests/unit/test_utils.py` — mock GraphQL project-items to fail, mock REST to succeed, verify repository resolved without reaching workflow-config step
+- [x] T023 [US4] Add `_resolve_repository_rest()` helper to `solune/backend/src/utils.py` — uses `github_projects_service._get_project_rest_info()` + REST project items endpoint to extract repository owner/name; returns `tuple[str, str] | None`
+- [x] T024 [US4] Insert REST fallback as Step 3 in `resolve_repository()` in `solune/backend/src/utils.py` — between GraphQL project-items (current Step 2) and workflow-config (current Step 3); on success, cache result with 300s TTL; on failure, log warning and proceed to next step
+- [x] T025 [US4] Replace inline owner/repo extraction in `_auto_start_copilot_polling()` in `solune/backend/src/main.py` (~15 LOC) with `resolve_repository()` call — preserve existing webhook-token fallback strategy on failure
+- [x] T026 [US4] Add unit test for REST fallback path in `resolve_repository()` in `solune/backend/tests/unit/test_utils.py` — mock GraphQL project-items to fail, mock REST to succeed, verify repository resolved without reaching workflow-config step
 
 **Checkpoint**: Repository resolution has a new REST fallback step. Startup logic deduplicated. REST fallback verified by unit test.
 
@@ -124,11 +124,11 @@
 
 **Purpose**: End-to-end verification across all user stories and final quality checks
 
-- [ ] T027 Run full test suite (`pytest tests/unit/ -x -q`) and confirm all existing + new tests pass with zero regressions (FR-020)
-- [ ] T028 Run `ruff check src/` and `pyright src/` — confirm no new lint or type errors introduced
-- [ ] T029 Run grep audit: `grep -rn 'logger.error\|logger.exception' src/api/ | grep -v handle_service_error` — output must contain only excluded patterns (health checks, WebSocket, error-returning handlers) (FR-025)
-- [ ] T030 Integration smoke tests across board, project-list, and chat endpoints via the UI — confirm identical responses, no user-facing regressions (FR-024)
-- [ ] T031 Run quickstart.md validation — verify all example commands and patterns in `specs/001-code-quality-dry/quickstart.md` match the final implementation
+- [x] T027 Run full test suite (`pytest tests/unit/ -x -q`) and confirm all existing + new tests pass with zero regressions (FR-020)
+- [x] T028 Run `ruff check src/` and `pyright src/` — confirm no new lint or type errors introduced
+- [x] T029 Run grep audit: `grep -rn 'logger.error\|logger.exception' src/api/ | grep -v handle_service_error` — output must contain only excluded patterns (health checks, WebSocket, error-returning handlers) (FR-025)
+- [x] T030 Integration smoke tests across board, project-list, and chat endpoints via the UI — confirm identical responses, no user-facing regressions (FR-024)
+- [x] T031 Run quickstart.md validation — verify all example commands and patterns in `specs/001-code-quality-dry/quickstart.md` match the final implementation
 
 ---
 

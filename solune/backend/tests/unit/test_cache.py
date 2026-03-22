@@ -4,6 +4,8 @@ import time
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from src.services.cache import CacheEntry, InMemoryCache, compute_data_hash
 from src.utils import utcnow
 
@@ -366,3 +368,134 @@ class TestCacheWarmPreventsOutboundCalls:
         assert entry.last_modified == "Mon, 01 Jan 2024"
         assert entry.data_hash == "hash123"
         assert entry.value == "val"
+
+
+class TestCachedFetchExtensions:
+    """Tests for cached_fetch() rate_limit_fallback and data_hash_fn extensions."""
+
+    @patch("src.services.cache.get_settings")
+    @pytest.mark.asyncio
+    async def test_rate_limit_fallback_returns_stale_on_rate_limit(self, mock_settings):
+        """When rate_limit_fallback=True and RateLimitError raised, return stale data."""
+        from src.exceptions import RateLimitError
+        from src.services.cache import cached_fetch
+
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+        # Seed stale data
+        c.set("k", "stale_value", ttl_seconds=0)
+        time.sleep(0.01)
+
+        async def fetch_fn():
+            raise RateLimitError("rate limited")
+
+        result = await cached_fetch(c, "k", fetch_fn, rate_limit_fallback=True)
+        assert result == "stale_value"
+
+    @patch("src.services.cache.get_settings")
+    @pytest.mark.asyncio
+    async def test_rate_limit_fallback_reraises_when_no_stale(self, mock_settings):
+        """When rate_limit_fallback=True but no stale data, re-raise RateLimitError."""
+        from src.exceptions import RateLimitError
+        from src.services.cache import cached_fetch
+
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+
+        async def fetch_fn():
+            raise RateLimitError("rate limited")
+
+        with pytest.raises(RateLimitError):
+            await cached_fetch(c, "k", fetch_fn, rate_limit_fallback=True)
+
+    @patch("src.services.cache.get_settings")
+    @pytest.mark.asyncio
+    async def test_data_hash_fn_refreshes_ttl_on_unchanged_data(self, mock_settings):
+        """When data_hash_fn hash matches cached hash, refresh_ttl instead of set."""
+        from src.services.cache import cached_fetch
+
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+        data = {"key": "value"}
+        data_hash = compute_data_hash(data)
+        c.set("k", data, data_hash=data_hash)
+
+        entry_before = c.get_entry("k")
+        assert entry_before is not None
+        original_expires = entry_before.expires_at
+
+        time.sleep(0.01)
+
+        async def fetch_fn():
+            return {"key": "value"}
+
+        result = await cached_fetch(
+            c, "k", fetch_fn, refresh=True, data_hash_fn=compute_data_hash
+        )
+        assert result == {"key": "value"}
+
+        entry_after = c.get_entry("k")
+        assert entry_after is not None
+        # TTL should be refreshed (later expiry)
+        assert entry_after.expires_at > original_expires
+        # Hash preserved
+        assert entry_after.data_hash == data_hash
+
+    @patch("src.services.cache.get_settings")
+    @pytest.mark.asyncio
+    async def test_data_hash_fn_stores_on_different_hash(self, mock_settings):
+        """When data_hash_fn hash differs from cached hash, full set() is called."""
+        from src.services.cache import cached_fetch
+
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+        old_data = {"key": "old"}
+        c.set("k", old_data, data_hash=compute_data_hash(old_data))
+
+        new_data = {"key": "new"}
+
+        async def fetch_fn():
+            return new_data
+
+        result = await cached_fetch(
+            c, "k", fetch_fn, refresh=True, data_hash_fn=compute_data_hash
+        )
+        assert result == new_data
+
+        entry = c.get_entry("k")
+        assert entry is not None
+        assert entry.value == new_data
+        assert entry.data_hash == compute_data_hash(new_data)
+
+    @patch("src.services.cache.get_settings")
+    @pytest.mark.asyncio
+    async def test_backward_compatibility_no_new_params(self, mock_settings):
+        """Existing callers without new params should work identically."""
+        from src.services.cache import cached_fetch
+
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+
+        async def fetch_fn():
+            return "fresh_data"
+
+        result = await cached_fetch(c, "k", fetch_fn)
+        assert result == "fresh_data"
+        assert c.get("k") == "fresh_data"
+
+    @patch("src.services.cache.get_settings")
+    @pytest.mark.asyncio
+    async def test_stale_fallback_still_works(self, mock_settings):
+        """stale_fallback should still work without rate_limit_fallback."""
+        from src.services.cache import cached_fetch
+
+        mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
+        c = InMemoryCache()
+        c.set("k", "stale", ttl_seconds=0)
+        time.sleep(0.01)
+
+        async def fetch_fn():
+            raise ValueError("fetch failed")
+
+        result = await cached_fetch(c, "k", fetch_fn, stale_fallback=True)
+        assert result == "stale"

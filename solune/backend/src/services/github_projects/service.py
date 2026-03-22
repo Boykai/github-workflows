@@ -199,35 +199,92 @@ class GitHubProjectsService(
         self,
         primary_fn: Callable[[], Awaitable[_T]],
         fallback_fn: Callable[[], Awaitable[_T]],
-        context_msg: str,
-    ) -> tuple[_T, str]:
-        """Execute primary_fn, falling back to fallback_fn on failure.
+        operation: str,
+        verify_fn: Callable[[], Awaitable[bool]] | None = None,
+    ) -> _T | None:
+        """Execute *primary_fn*, optionally verify, then fall back on failure.
 
-        Both strategies are logged. If both fail, raises with context from
-        both exceptions.
+        Implements the primary → verify → fallback resilience pattern with
+        a **soft-failure contract**: returns ``None`` only when primary
+        itself raises **and** fallback also fails.  Never raises exceptions
+        to the caller.
+
+        Flow:
+        1. Call *primary_fn()*.  If it succeeds **and** either no *verify_fn*
+           is provided or *verify_fn()* returns ``True``, the primary result
+           is returned.
+        2. If *verify_fn* returns ``False`` / raises, call *fallback_fn()*.
+           If fallback succeeds, return its result; if fallback also fails,
+           return the primary result (primary did succeed, verification was
+           merely advisory).
+        3. If *primary_fn* itself raises, call *fallback_fn()*.  If fallback
+           succeeds, return its result; if fallback also fails, return
+           ``None`` (total failure).
+
+        All exceptions in primary, verify, and fallback paths are caught
+        and logged — the caller never sees them.
+
+        Args:
+            primary_fn: Async callable (no args) for the primary strategy.
+            fallback_fn: Async callable (no args) for the fallback strategy.
+            operation: Human-readable description of the operation (for logs).
+            verify_fn: Optional async callable that returns ``True`` when
+                the primary result should be accepted.
 
         Returns:
-            Tuple of (result, strategy_used) where strategy_used is
-            "primary" or "fallback".
+            The result from *primary_fn* or *fallback_fn*, or ``None``
+            when both strategies fail.
         """
         try:
             result = await primary_fn()
-            return result, "primary"
+
+            if verify_fn is not None:
+                try:
+                    verified = await verify_fn()
+                except Exception as verify_err:
+                    logger.warning(
+                        "%s: verification failed (%s), trying fallback",
+                        operation,
+                        verify_err,
+                    )
+                    verified = False
+
+                if not verified:
+                    logger.warning(
+                        "%s: primary succeeded but verification failed, trying fallback",
+                        operation,
+                    )
+                    try:
+                        fallback_result = await fallback_fn()
+                        logger.info("%s: fallback strategy succeeded", operation)
+                        return fallback_result
+                    except Exception as fallback_err:
+                        logger.warning(
+                            "%s: fallback also failed (%s), returning primary result",
+                            operation,
+                            fallback_err,
+                        )
+                        return result
+
+            return result
         except Exception as primary_err:
             logger.warning(
                 "%s: primary strategy failed (%s), trying fallback",
-                context_msg,
+                operation,
                 primary_err,
             )
             try:
                 result = await fallback_fn()
-                logger.info("%s: fallback strategy succeeded", context_msg)
-                return result, "fallback"
+                logger.info("%s: fallback strategy succeeded", operation)
+                return result
             except Exception as fallback_err:
-                raise RuntimeError(
-                    f"{context_msg}: both strategies failed. "
-                    f"Primary: {primary_err}; Fallback: {fallback_err}"
-                ) from fallback_err
+                logger.warning(
+                    "%s: both strategies failed. Primary: %s; Fallback: %s",
+                    operation,
+                    primary_err,
+                    fallback_err,
+                )
+                return None
 
     @staticmethod
     def is_copilot_author(login: str) -> bool:
