@@ -259,54 +259,13 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
 
 ## Active Technologies
-- Python 3.13 (backend runtime target, 3.12 CI, 3.14 Docker), TypeScript ~5.9 (frontend) + FastAPI >=0.135, React 19.2, Vite 8, TanStack Query 5.91, Tailwind CSS 4.2, @dnd-kit (drag-and-drop), Pydantic 2.12, aiosqlite, cryptography 46, githubkit >=0.14.6, Radix UI
-- SQLite via aiosqlite (persistent module-level connection, `init_database()` / `get_db()`), SQL-based migrations (001–032) in `backend/src/migrations/`
-- ESLint 10, eslint-plugin-react-hooks 7, eslint-plugin-security 4, Vitest 4.0, Playwright 1.58
-- Docker images: python:3.14-slim (backend), node:25-alpine + nginx:1.29-alpine (frontend)
-- TypeScript ~5.9.0, React 19.2.0 + TanStack React Query ^5.91.0, React Router DOM ^7.13.1, React Hook Form ^7.71.2, Radix UI (primitives), Tailwind CSS ^4.2.0, Zod ^4.3.6, Vite ^8.0.0 (052-ui-audit)
-- N/A (frontend-only; backend uses SQLite via aiosqlite — not modified by this feature) (052-ui-audit)
-- Python 3.12, TypeScript (ES2022) + FastAPI 0.135+, Pydantic 2.12+, aiosqlite, githubkit, React 18, TanStack Query, Vite (049-fix-repo-type-routing)
-- SQLite (WAL mode, aiosqlite) — `apps` table with `repo_type`, `external_repo_url`, `github_project_id`, `github_project_url` columns (049-fix-repo-type-routing)
-- Python 3.12+ (backend), TypeScript 5.x (frontend) + FastAPI 0.135+, React 18+, Pydantic 2.12+, Vitest, Playwright (050-fix-bugs-test-coverage)
-- SQLite via aiosqlite (existing — no changes in this feature) (050-fix-bugs-test-coverage)
-- TypeScript 5.x / React 19 / Vite, TanStack Query v5, @dnd-kit/core ^6.3.1, @dnd-kit/sortable ^10.0.0, react-markdown ^10.1.0, remark-gfm ^4.0.1, sonner (NEW — toast library), Radix UI primitives, lucide-react, class-variance-authority, zod (050-frontend-ux-improvements)
-- N/A (all state via TanStack Query against Python/FastAPI backend) (050-frontend-ux-improvements)
-- TypeScript ~5.9.0 (frontend only — no backend changes) + React ^19.2.0, TanStack React Query ^5.91.0, Tailwind CSS ^4.2.0, @dnd-kit/core ^6.3.1, Sonner ^2.0.7, Vite ^8.0.0, Radix UI (popover, tooltip), Lucide React ^0.577.0, Zod ^4.3.6, react-hook-form ^7.71.2 (051-solune-ux-improvements)
-- N/A (frontend-only changes; existing API endpoints remain unchanged) (051-solune-ux-improvements)
-- Python ≥3.12 (backend, pyright targets 3.13), TypeScript ~5.9.0 (frontend) + FastAPI ≥0.135 (backend), React 19.2 (frontend), Pydantic ≥2.12 (backend), Vite 8 (frontend), TanStack Query v5.91 (frontend), Tailwind CSS 4.2 (frontend), @dnd-kit (frontend drag-drop) (052-fix-bugs-test-coverage)
-- SQLite via aiosqlite ≥0.22 (existing — no changes in this feature) (052-fix-bugs-test-coverage)
-- TypeScript 5.9 (frontend only) + React 19, React Router v7, TanStack Query v5, Tailwind CSS 4, Lucide React, Radix UI (053-global-command-palette)
-- N/A (client-side search against already-loaded or cached entity data) (053-global-command-palette)
-- Python 3.12+/3.13 (backend), TypeScript 5.9 (frontend) + FastAPI 0.135+, React 19, Pydantic 2.12+, Vite 8, TanStack Query v5, Tailwind CSS 4, @dnd-kit/core (board drag-and-drop) (053-pagination-infinite-scroll)
-- SQLite via aiosqlite (existing — no schema changes required) (053-pagination-infinite-scroll)
-- TypeScript ~5.9.0, React ^19.2.0 + @tanstack/react-query ^5.91.0 (mutations, query cache), sonner ^2.0.7 (toast notifications), React hooks (useState, useRef, useCallback, useEffect) (054-undoable-delete)
-- N/A — client-side only; leverages TanStack Query cache for optimistic state (054-undoable-delete)
-- Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI + Pydantic (backend API/models), aiosqlite (async SQLite), React 18 + TanStack Query v5 (frontend state), React Router v6 (routing), Lucide React (icons), Tailwind CSS (styling) (054-activity-audit-trail)
-- SQLite via aiosqlite — direct SQL queries, no ORM. Pydantic models for serialization. Numbered SQL migration files (current highest: 032). (054-activity-audit-trail)
-- Python 3.13 (backend), TypeScript 5.x + React 19.2 (frontend) + FastAPI (backend), TanStack Query v5.91 + React 19 (frontend), Sonner v2 (toasts) (054-optimistic-ui-updates)
-- SQLite with aiosqlite (backend local state), GitHub Projects GraphQL API (board data source) (054-optimistic-ui-updates)
-- TypeScript 5.x + React 19.2 + React Router v7 (useLocation, Link), TanStack Query v5.91 (existing), Lucide React (ChevronRight icon) (055-breadcrumb-deep-routes)
-- N/A (no persistence — breadcrumb state is ephemeral React context) (055-breadcrumb-deep-routes)
-- Python 3.13 (backend) + FastAPI (API framework), httpx (HTTP client), githubkit (GitHub API), aiosqlite (async SQLite) (055-fix-copilot-review-completion)
-- SQLite with aiosqlite (durable state), in-memory `BoundedDict` (fast access) (055-fix-copilot-review-completion)
-- TypeScript 5.x (strict mode) + TanStack React Query v5, React 19 / ^19.2.0, Sonner (toast notifications) (001-optimistic-updates-mutations)
-- N/A (client-side cache only — TanStack Query `QueryClient`) (001-optimistic-updates-mutations)
-- Python 3.13 (backend), TypeScript 5.x (frontend) + FastAPI, Starlette WebSockets, httpx (backend); React 19.2, TanStack Query v5, Radix UI, dnd-kit (frontend) (056-performance-review)
-- SQLite (backend persistence), In-memory cache with TTL (runtime caching) (056-performance-review)
-- Python 3.13 (target-version in ruff/pyright), requires >=3.12 + FastAPI, Pydantic (BaseSettings), HTTPX, aiosqlite, slowapi; new: opentelemetry-api, opentelemetry-sdk, opentelemetry-instrumentation-fastapi, opentelemetry-instrumentation-httpx, opentelemetry-instrumentation-aiosqlite, opentelemetry-exporter-otlp, sentry-sdk[fastapi] (001-observability-monitoring)
-- SQLite via aiosqlite (path: `/var/lib/solune/data/settings.db`); new scratch table for readiness write-check; optional `rate_limit_snapshots` table for history (001-observability-monitoring)
-- Python ≥3.12 (target 3.13, ruff/pyright configured for 3.13) + FastAPI ≥0.135.0, githubkit ≥0.14.6, httpx ≥0.28.0, pydantic ≥2.12.0 (001-code-quality-dry)
-- SQLite (aiosqlite ≥0.22.0) + in-memory cache (`InMemoryCache`) (001-code-quality-dry)
-- Python 3.13 (target-version in ruff/pyright config; requires >=3.12) + Pydantic v2 (`model_validator`), pydantic-settings (`BaseSettings`), `pathlib.Path` (stdlib) (001-startup-config-validation)
-- SQLite via `database_path` setting (default: `/var/lib/solune/data/settings.db`) (001-startup-config-validation)
-- Python 3.12+ (backend), TypeScript 5.x + React 19 (frontend) + FastAPI ≥0.135, TanStack Query ≥5.91, Radix UI, @dnd-kit, Vite 8, aiosqlite, githubkit ≥0.14.6 (001-phase8-enhancements)
-- SQLite (async via aiosqlite) with BoundedDict L1 in-memory cache (001-phase8-enhancements)
-- Python ≥3.12 (target 3.13) backend; TypeScript ~5.9 frontend + FastAPI 0.135+, TanStack React Query 5.91+, React 19.2+, Vite 8.0+, @dnd-kit 6.3+ (001-performance-review)
-- SQLite (aiosqlite) for durable state; in-memory TTL cache (`InMemoryCache`) for hot data (001-performance-review)
-- Python ≥3.12 (backend; target 3.13), TypeScript / React (frontend) + FastAPI, Pydantic, aiosqlite (backend); React, TanStack Query, lucide-react, sonner (frontend) (001-auto-merge-pipelines)
-- SQLite via aiosqlite — project_settings table (adds `auto_merge` column); in-memory L1 caches with write-behind persistence (001-auto-merge-pipelines)
-- TypeScript 5.x (frontend), Python 3.11+ (backend) + React 18, TanStack Query (react-query), Vite, lucide-react (frontend); FastAPI, aiosqlite (backend) (001-frontend-polish-performance)
-- SQLite via aiosqlite (backend) (001-frontend-polish-performance)
+
+Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
+
+- **Backend:** Python ≥3.12 (target 3.13, Docker 3.14) · FastAPI · Pydantic v2 · aiosqlite (SQLite WAL) · githubkit · httpx · cryptography (Fernet) · slowapi · OpenTelemetry · sentry-sdk
+- **Frontend:** TypeScript ~5.9 · React 19.2 · Vite 8 · TanStack Query 5.91 · Tailwind CSS 4.2 · @dnd-kit · Radix UI · react-hook-form + zod · sonner · lucide-react · react-markdown
+- **Storage:** SQLite via aiosqlite (persistent module-level connection, `init_database()` / `get_db()`); SQL migrations in `backend/src/migrations/`; in-memory `BoundedDict` / `InMemoryCache` L1 caches
+- **Dev / CI:** ruff · pyright · pytest · ESLint 10 · Vitest 4 · Playwright 1.58 · Docker (python:3.14-slim, node:25-alpine, nginx:1.29-alpine)
 
 ## Recent Changes
 - Dependabot upgrades: ESLint 9→10, Vite 7→8, react-hooks 5→7, security 3→4, @vitejs/plugin-react 5→6, Docker images (python 3.14, node 25, nginx 1.29), GitHub Actions (checkout v6, setup-python v6, upload-artifact v7, setup-node v6)
