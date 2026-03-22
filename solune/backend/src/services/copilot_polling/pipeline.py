@@ -2010,12 +2010,16 @@ async def _transition_after_pipeline_complete(
     # Remove any old pipeline state for this issue
     _cp.remove_pipeline_state(issue_number)
 
-    # Dequeue the next waiting pipeline if queue mode is active
-    await _dequeue_next_pipeline(
-        access_token=access_token,
-        project_id=project_id,
-        trigger=f"pipeline_complete(issue=#{issue_number}, to={to_status})",
-    )
+    # Dequeue the next waiting pipeline if queue mode is active.
+    # Only release the queue when the pipeline reaches a terminal-ish status
+    # ("In Review" or "Done") — intermediate transitions (Backlog→Ready,
+    # Ready→In Progress) must NOT start the next queued pipeline.
+    if to_status.lower() in ("in review", "done"):
+        await _dequeue_next_pipeline(
+            access_token=access_token,
+            project_id=project_id,
+            trigger=f"pipeline_complete(issue=#{issue_number}, to={to_status})",
+        )
 
     # When transitioning to "In Review", convert main PR from draft→ready
     # and request Copilot code review on the main PR.

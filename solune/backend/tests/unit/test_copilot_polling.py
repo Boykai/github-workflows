@@ -2784,6 +2784,111 @@ class TestTransitionAfterPipelineComplete:
         mock_service.request_copilot_review = AsyncMock()  # ensure attribute exists
         # The function should not have called request_copilot_review since no PR found
 
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._dequeue_next_pipeline",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.remove_pipeline_state")
+    async def test_dequeue_called_for_in_review(
+        self, mock_remove, mock_config, mock_ws, mock_service, mock_dequeue
+    ):
+        """Dequeue should fire when pipeline reaches In Review."""
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_config.return_value = MagicMock(agent_mappings={})
+        mock_ws.broadcast_to_project = AsyncMock()
+
+        await _transition_after_pipeline_complete(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            from_status="In Progress",
+            to_status="In Review",
+            task_title="Test Issue",
+        )
+
+        mock_dequeue.assert_awaited_once_with(
+            access_token="token",
+            project_id="PVT_123",
+            trigger="pipeline_complete(issue=#42, to=In Review)",
+        )
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._dequeue_next_pipeline",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.remove_pipeline_state")
+    async def test_dequeue_called_for_done(
+        self, mock_remove, mock_config, mock_ws, mock_service, mock_dequeue
+    ):
+        """Dequeue should fire when pipeline reaches Done."""
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_config.return_value = MagicMock(agent_mappings={})
+        mock_ws.broadcast_to_project = AsyncMock()
+
+        await _transition_after_pipeline_complete(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            from_status="In Review",
+            to_status="Done",
+            task_title="Test Issue",
+        )
+
+        mock_dequeue.assert_awaited_once_with(
+            access_token="token",
+            project_id="PVT_123",
+            trigger="pipeline_complete(issue=#42, to=Done)",
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("to_status", ["Ready", "In Progress"])
+    @patch(
+        "src.services.copilot_polling.pipeline._dequeue_next_pipeline",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.remove_pipeline_state")
+    async def test_dequeue_not_called_for_intermediate_transitions(
+        self, mock_remove, mock_config, mock_ws, mock_service, mock_dequeue, to_status
+    ):
+        """Dequeue must NOT fire for intermediate status transitions."""
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_config.return_value = MagicMock(agent_mappings={})
+        mock_ws.broadcast_to_project = AsyncMock()
+
+        await _transition_after_pipeline_complete(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            from_status="Backlog",
+            to_status=to_status,
+            task_title="Test Issue",
+        )
+
+        mock_dequeue.assert_not_awaited()
+
 
 class TestAdvancePipeline:
     """Tests for _advance_pipeline function."""
