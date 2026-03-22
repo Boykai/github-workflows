@@ -170,6 +170,8 @@ class PipelineState:
     concurrent_group_id: str | None = None  # Links concurrent sibling executions
     is_isolated: bool = True  # Fault isolation flag for concurrent pipelines
     recovered_at: datetime | None = None  # Timestamp of label-driven state recovery
+    # Auto merge: True when pipeline should auto-squash-merge parent PR on completion
+    auto_merge: bool = False
 
     @property
     def current_agent(self) -> str | None:

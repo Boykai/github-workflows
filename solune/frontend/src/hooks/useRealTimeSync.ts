@@ -4,6 +4,7 @@
 
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { WS_FALLBACK_POLL_MS, WS_CONNECTION_TIMEOUT_MS } from '@/constants';
 
 /** Maximum reconnection delay in milliseconds (30 seconds). */
@@ -86,6 +87,37 @@ export function useRealTimeSync(
         ) {
           // Only invalidate tasks — board data refreshes on its own 5-minute schedule
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          markUpdated();
+        }
+
+        // Handle auto-merge events
+        if (data.type === 'auto_merge_completed') {
+          if (data.pr_number != null) {
+            toast.success(`PR #${data.pr_number} squash-merged`);
+          } else if (data.issue_number != null) {
+            toast.success(`Auto-merge completed for issue #${data.issue_number}`);
+          } else {
+            toast.success('Auto-merge completed');
+          }
+          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          markUpdated();
+        }
+
+        if (data.type === 'auto_merge_failed') {
+          const baseError = data.error || 'Unknown error';
+          if (data.pr_number != null) {
+            toast.error(`Auto merge failed for PR #${data.pr_number}: ${baseError}`);
+          } else if (data.issue_number != null) {
+            toast.error(`Auto merge failed for issue #${data.issue_number}: ${baseError}`);
+          } else {
+            toast.error(`Auto merge failed: ${baseError}`);
+          }
+          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+          markUpdated();
+        }
+
+        if (data.type === 'devops_triggered') {
+          toast.info(`DevOps agent resolving CI failure on #${data.issue_number}`);
           markUpdated();
         }
 
