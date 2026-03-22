@@ -6,13 +6,19 @@ Returns per-component health status following the IETF health check format:
 - polling_loop: asyncio.Task state
 - startup_checks: Configuration validation state
 - version: Application version string
+
+Also provides a readiness probe (GET /api/v1/ready) for Kubernetes-style
+deployment gates (Phase 5 — FR-001 through FR-005).
 """
 
 import time
+from datetime import UTC, datetime
 from importlib.metadata import PackageNotFoundError, version
+from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from src.logging_utils import get_logger
 
@@ -138,5 +144,189 @@ async def health_check() -> JSONResponse:
             "status": overall,
             "version": _APP_VERSION,
             "checks": checks,
+        },
+    )
+
+
+# ── Readiness probe (Phase 5) ──────────────────────────────────────────
+
+
+class ReadinessCheckResult(BaseModel):
+    """Single subsystem check result (IETF health-check format)."""
+
+    component_id: str
+    component_type: str = "component"
+    status: str  # "pass" | "fail"
+    time: str
+    output: str | None = None
+
+
+class ReadinessResponse(BaseModel):
+    """Top-level readiness response (IETF health-check format)."""
+
+    status: str  # "pass" | "fail"
+    checks: dict[str, list[dict[str, Any]]]
+
+
+async def _readiness_check_db() -> ReadinessCheckResult:
+    """Verify database is writeable via INSERT + DELETE on scratch table."""
+    now = datetime.now(UTC).isoformat()
+    try:
+        db = get_db()
+        await db.execute(
+            "CREATE TABLE IF NOT EXISTS _readiness_scratch (id INTEGER PRIMARY KEY)"
+        )
+        await db.execute("INSERT OR REPLACE INTO _readiness_scratch (id) VALUES (1)")
+        await db.execute("DELETE FROM _readiness_scratch WHERE id = 1")
+        await db.commit()
+        return ReadinessCheckResult(component_id="database:writeable", status="pass", time=now)
+    except Exception as exc:
+        return ReadinessCheckResult(
+            component_id="database:writeable",
+            status="fail",
+            time=now,
+            output=f"Database write check failed: {exc}",
+        )
+
+
+def _readiness_check_oauth() -> ReadinessCheckResult:
+    """Verify GitHub OAuth client ID and secret are non-empty."""
+    from src.config import get_settings
+
+    now = datetime.now(UTC).isoformat()
+    settings = get_settings()
+    if settings.github_client_id and settings.github_client_secret:
+        return ReadinessCheckResult(component_id="oauth:configured", status="pass", time=now)
+    return ReadinessCheckResult(
+        component_id="oauth:configured",
+        status="fail",
+        time=now,
+        output="GitHub OAuth client ID or secret is empty",
+    )
+
+
+def _readiness_check_encryption() -> ReadinessCheckResult:
+    """Verify EncryptionService is enabled (has a valid key)."""
+    now = datetime.now(UTC).isoformat()
+    try:
+        from src.config import get_settings
+        from src.services.encryption import EncryptionService
+
+        settings = get_settings()
+        svc = EncryptionService(settings.encryption_key, debug=settings.debug)
+        if svc.enabled:
+            return ReadinessCheckResult(
+                component_id="encryption:enabled", status="pass", time=now
+            )
+        return ReadinessCheckResult(
+            component_id="encryption:enabled",
+            status="fail",
+            time=now,
+            output="Encryption service is disabled (no valid key)",
+        )
+    except Exception as exc:
+        return ReadinessCheckResult(
+            component_id="encryption:enabled",
+            status="fail",
+            time=now,
+            output=f"Encryption check failed: {exc}",
+        )
+
+
+def _readiness_check_polling() -> ReadinessCheckResult:
+    """Verify the polling task is alive or intentionally disabled."""
+    now = datetime.now(UTC).isoformat()
+    try:
+        from src.config import get_settings
+
+        settings = get_settings()
+        # If polling is intentionally disabled (interval=0), that's a pass
+        if settings.copilot_polling_interval == 0:
+            return ReadinessCheckResult(
+                component_id="polling:alive", status="pass", time=now
+            )
+
+        from src.services.copilot_polling import _polling_task
+        from src.services.copilot_polling.state import _polling_state
+
+        if _polling_task is not None and not _polling_task.done():
+            return ReadinessCheckResult(
+                component_id="polling:alive", status="pass", time=now
+            )
+        if _polling_state.is_running:
+            return ReadinessCheckResult(
+                component_id="polling:alive", status="pass", time=now
+            )
+        return ReadinessCheckResult(
+            component_id="polling:alive",
+            status="fail",
+            time=now,
+            output="Polling task has crashed and is not intentionally disabled",
+        )
+    except Exception as exc:
+        return ReadinessCheckResult(
+            component_id="polling:alive",
+            status="fail",
+            time=now,
+            output=f"Polling check failed: {exc}",
+        )
+
+
+@router.get("/ready", tags=["health"])
+async def readiness_check() -> JSONResponse:
+    """Kubernetes-style readiness probe (Phase 5).
+
+    Returns HTTP 200 only when ALL four subsystem checks pass.
+    Returns HTTP 503 with IETF health-check-format body on any failure.
+    """
+    db_result = await _readiness_check_db()
+    oauth_result = _readiness_check_oauth()
+    encryption_result = _readiness_check_encryption()
+    polling_result = _readiness_check_polling()
+
+    all_results = [db_result, oauth_result, encryption_result, polling_result]
+    has_failure = any(r.status == "fail" for r in all_results)
+    overall = "fail" if has_failure else "pass"
+    status_code = 503 if has_failure else 200
+
+    checks: dict[str, list[dict[str, Any]]] = {}
+    for r in all_results:
+        entry: dict[str, Any] = {
+            "component_id": r.component_id,
+            "component_type": r.component_type,
+            "status": r.status,
+            "time": r.time,
+        }
+        if r.output is not None:
+            entry["output"] = r.output
+        checks[r.component_id] = [entry]
+
+    return JSONResponse(
+        status_code=status_code,
+        content={"status": overall, "checks": checks},
+    )
+
+
+# ── Rate-limit history (Phase 5, optional) ─────────────────────────────
+
+
+@router.get("/rate-limit/history", tags=["health"])
+async def rate_limit_history(
+    hours: int = Query(default=24, ge=1, le=168),
+) -> JSONResponse:
+    """Return rate-limit time-series snapshots (optional, P3).
+
+    Query params:
+        hours: Number of hours of history (1-168, default 24).
+    """
+    from src.services.rate_limit_tracker import RateLimitTracker
+
+    tracker = RateLimitTracker()
+    snapshots = await tracker.get_history(hours=hours)
+    return JSONResponse(
+        content={
+            "snapshots": snapshots,
+            "hours": hours,
+            "count": len(snapshots),
         },
     )

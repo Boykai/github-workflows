@@ -376,6 +376,37 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         _app.state.github_service = github_projects_service
         _app.state.connection_manager = connection_manager
 
+        # ── Observability: Alert dispatcher (Phase 5) ──
+        from src.services.alert_dispatcher import AlertDispatcher
+
+        _app.state.alert_dispatcher = AlertDispatcher(
+            webhook_url=settings.alert_webhook_url,
+            cooldown_minutes=settings.alert_cooldown_minutes,
+        )
+
+        # ── Observability: OpenTelemetry (Phase 5) ──
+        if settings.otel_enabled:
+            from src.services.otel_setup import init_otel
+
+            tracer, meter = init_otel(settings.otel_service_name, settings.otel_endpoint)
+            _app.state.otel_tracer = tracer
+            _app.state.otel_meter = meter
+        else:
+            _app.state.otel_tracer = None
+            _app.state.otel_meter = None
+
+        # ── Observability: Sentry (Phase 5) ──
+        if settings.sentry_dsn:
+            import sentry_sdk
+            from sentry_sdk.integrations.fastapi import FastApiIntegration
+
+            sentry_sdk.init(
+                dsn=settings.sentry_dsn,
+                traces_sample_rate=0,  # avoid double-tracing when OTel is also active
+                integrations=[FastApiIntegration()],
+            )
+            logger.info("Sentry SDK initialised")
+
         # Start Signal WebSocket listener for inbound messages
         await start_signal_ws_listener()
         signal_started = True
@@ -509,6 +540,22 @@ def create_app() -> FastAPI:
             _request.method,
             _request.url.path,
         )
+
+        # ── Sentry capture (Phase 5) ──
+        try:
+            import sentry_sdk
+
+            if sentry_sdk.is_initialized():
+                with sentry_sdk.new_scope() as scope:
+                    scope.set_tag("request_id", rid)
+                    scope.set_context(
+                        "request",
+                        {"path": _request.url.path, "method": _request.method},
+                    )
+                    sentry_sdk.capture_exception(exc)
+        except Exception:
+            pass  # Sentry capture is best-effort
+
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             content={"error": "Internal server error"},
