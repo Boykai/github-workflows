@@ -96,6 +96,27 @@ class GitHubProjectsService(
         for key in keys:
             self._cycle_cache.pop(key, None)
 
+    async def _cycle_cached(self, cache_key: str, fetch_fn: Callable[[], Awaitable[_T]]) -> _T:
+        """Return a cached result or call *fetch_fn*, store the result and return it.
+
+        Encapsulates the per-poll-cycle memoisation pattern used across
+        multiple service methods:
+
+        1. ``self._cycle_cache.get(cache_key)``
+        2. On hit → increment ``_cycle_cache_hit_count`` and return.
+        3. On miss → ``await fetch_fn()``, store in ``_cycle_cache``, return.
+
+        The caller is responsible for error handling — if *fetch_fn* raises,
+        the exception propagates without storing a value in the cache.
+        """
+        cached = self._cycle_cache.get(cache_key)
+        if cached is not None:
+            self._cycle_cache_hit_count += 1
+            return cached  # type: ignore[return-value]
+        result = await fetch_fn()
+        self._cycle_cache[cache_key] = result
+        return result
+
     async def _rest(
         self,
         access_token: str,
