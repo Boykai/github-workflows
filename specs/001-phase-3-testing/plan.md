@@ -56,10 +56,11 @@ solune/
 │   ├── src/
 │   │   ├── api/
 │   │   │   ├── board.py                    # Target: ≥80% coverage
-│   │   │   ├── pipelines.py                # Target: ≥80% coverage
-│   │   │   └── pipeline.py                 # Target: ≥85% coverage (via copilot_polling/)
+│   │   │   └── pipelines.py                # Target: ≥80% coverage
 │   │   └── services/
 │   │       ├── agent_creator.py            # Target: ≥70% coverage
+│   │       ├── copilot_polling/
+│   │       │   └── pipeline.py             # Target: ≥85% coverage
 │   │       ├── pipeline_state_store.py     # Queue functions under test
 │   │       └── workflow_orchestrator/
 │   │           └── transitions.py          # should_skip_agent_trigger() under test

@@ -65,7 +65,7 @@ pytest --cov=src/services/agent_creator --cov-report=term-missing
 ```bash
 cd solune/backend
 pytest tests/integration/test_full_workflow.py -v
-pytest tests/integration/test_queue_mode.py -v   # Note: test_queue_mode.py is under tests/unit/
+pytest tests/unit/test_queue_mode.py -v
 ```
 
 ### Property-Based Tests
