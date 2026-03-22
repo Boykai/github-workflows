@@ -17,7 +17,7 @@
 | M1 | Ambiguity | MEDIUM | spec.md:L157 (SC-004) | SC-004: "DevOps agent resolves at least **50% of simple CI failures**" — "simple" is undefined and unmeasurable. Examples given (flaky tests, minor conflicts) help but don't constitute a testable criterion. | Rephrase to specify failure categories: "resolves at least 50% of CI failures classified as flaky-test or merge-conflict" |
 | M2 | Inconsistency | MEDIUM | data-model.md:L47, tasks.md:L32 (T003), tasks.md:L33 (T004) | `PipelineConfig` location in data-model.md is ambiguous: "pipeline.py **(or dedicated config model)**". T003 adds `auto_merge` to `PipelineState` (runtime model), T004 adds to `PipelineConfig` TypeScript interface — these are different concepts (runtime state vs. configuration template). | Clarify in data-model.md whether `PipelineConfig` is a distinct backend entity or embedded in `PipelineState`, and ensure tasks align |
 | M3 | Inconsistency | MEDIUM | spec.md:L125 (FR-002), tasks.md:L48 (T008) | FR-002 says "persisted in the **pipeline configuration**" but T008 serializes `auto_merge` in `PipelineState` **metadata JSON** (runtime state). Configuration persistence ≠ runtime state serialization. | Distinguish between config persistence (user sets toggle → stored in pipeline config) and runtime state (resolved auto_merge flag set at pipeline start) in tasks |
-| M4 | Constitution Tension | MEDIUM | tasks.md:L215 (dependencies), constitution.md:L91-98 | US2 (Phase 4) explicitly depends on US1 (Phase 3) in task dependencies. Constitution says stories "MUST be independently implementable and testable" with "no hidden dependencies on other stories." The dependency is explicit and code-level (both modify `pipeline.py`), not a feature-level dependency. | Acceptable as-is since the dependency is explicit and the constitution targets *hidden* dependencies. Add a note in tasks.md acknowledging the shared file constraint |
+| M4 | Constitution Tension | LOW | tasks.md:L215 (dependencies), constitution.md:L91-98 | US2 (Phase 4) explicitly depends on US1 (Phase 3) in task dependencies. Constitution says stories "MUST be independently implementable and testable" with "no hidden dependencies on other stories." The dependency is explicit and code-level (both modify `pipeline.py`), not a hidden feature-level dependency. | Acceptable — dependency is explicit and constitution targets *hidden* dependencies. Optionally add a note in tasks.md acknowledging the shared file constraint |
 | M5 | Coverage Gap | MEDIUM | spec.md:L153-158 (SC-001/002/006) | Non-functional performance targets have no validation tasks: toggle < 10s (SC-001), merge < 60s after completion (SC-002), notifications < 5s (SC-006). These are measurable success criteria with no task coverage. | Add a validation task in Phase 9 to verify performance targets meet success criteria thresholds during end-to-end testing |
 | M6 | Coverage Gap | MEDIUM | spec.md:L113 (edge case) | Edge case: "branch protection rules requiring reviews not satisfied by the merge bot" — spec says system "must surface a clear error message guiding the user." No task explicitly handles this error message/guidance. T019's `merge_failed` return is generic. | Add specific error handling in T019 or a sub-task for branch-protection-specific error messages |
 | M7 | Coverage Gap | MEDIUM | spec.md:L159 (SC-007) | SC-007 requires "complete audit trail" for "each skipped step, merge action, and DevOps dispatch." Partially covered by T028 (sub-issue closure) and T050 (SKIPPED indicator), but no task ensures merge actions and DevOps dispatches are recorded in the pipeline tracking table or issue comments. | Add explicit audit-trail recording to T019 (merge action) and T037 (DevOps dispatch), or create a cross-cutting audit task in Phase 9 |
@@ -63,7 +63,7 @@
 | V. Simplicity/DRY | ✅ PASS | Reuses queue_mode patterns; Complexity Tracking section shows no violations |
 | Branch Naming | ✅ PASS | `001-auto-merge-pipelines` follows `###-short-name` |
 | Phase-Based Execution | ✅ PASS | Strict phase ordering maintained |
-| Independent Stories | ⚠️ TENSION | US2→US1 code-level dependency is explicit but creates sequential constraint. See M4 |
+| Independent Stories | ✅ PASS (noted) | US2→US1 code-level dependency is explicit (not hidden); acceptable per constitution intent. See M4 (LOW) |
 | Constitution Check | ✅ PASS | Present in plan.md with all gates passing |
 | Compliance Review | ✅ PASS | plan.md includes Constitution Check section with per-principle evaluation |
 
@@ -103,11 +103,11 @@ All 54 tasks map to either a user story, foundational infrastructure, or polish/
 | **Underspecification Count** | 3 (1 HIGH, 1 MEDIUM, 1 LOW) |
 | **Inconsistency Count** | 3 (1 HIGH, 2 MEDIUM) |
 | **Coverage Gaps** | 4 (3 MEDIUM, 1 HIGH) |
-| **Constitution Tensions** | 2 (both MEDIUM) |
+| **Constitution Tensions** | 1 (LOW — acknowledged and accepted) |
 | **Critical Issues** | **0** |
 | **High Issues** | **3** |
-| **Medium Issues** | **7** |
-| **Low Issues** | **5** |
+| **Medium Issues** | **6** |
+| **Low Issues** | **6** |
 
 ---
 
