@@ -117,10 +117,19 @@ export function useAdaptivePolling(
   config?: AdaptivePollingConfig,
 ): UseAdaptivePollingReturn {
   const cfg = useMemo<Required<AdaptivePollingConfig>>(
-    () => ({ ...DEFAULT_CONFIG, ...config }),
-    // Depend on individual primitive values so the object identity stays stable
-    // when callers pass a new config literal on every render.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    () => ({
+      baseInterval: config?.baseInterval ?? DEFAULT_CONFIG.baseInterval,
+      minInterval: config?.minInterval ?? DEFAULT_CONFIG.minInterval,
+      maxInterval: config?.maxInterval ?? DEFAULT_CONFIG.maxInterval,
+      maxBackoffInterval: config?.maxBackoffInterval ?? DEFAULT_CONFIG.maxBackoffInterval,
+      windowSize: config?.windowSize ?? DEFAULT_CONFIG.windowSize,
+      highActivityThreshold:
+        config?.highActivityThreshold ?? DEFAULT_CONFIG.highActivityThreshold,
+      mediumActivityThreshold:
+        config?.mediumActivityThreshold ?? DEFAULT_CONFIG.mediumActivityThreshold,
+    }),
+    // Individual primitive values as deps so the object identity stays stable
+    // when callers pass a new config object literal on every render.
     [
       config?.baseInterval,
       config?.minInterval,
