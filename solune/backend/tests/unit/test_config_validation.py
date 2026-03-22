@@ -200,6 +200,10 @@ class TestAiProviderValidation:
         with pytest.raises(ValueError, match="Unknown AI_PROVIDER"):
             _make_production(ai_provider="openai")
 
+    def test_unknown_provider_raises_in_debug(self):
+        with pytest.raises(ValueError, match="Unknown AI_PROVIDER"):
+            _make_debug(ai_provider="openai")
+
     def test_copilot_passes(self):
         s = _make_production(ai_provider="copilot")
         assert s.ai_provider == "copilot"
@@ -264,6 +268,10 @@ class TestDatabasePathValidation:
     def test_absolute_path_passes(self):
         s = _make_production(database_path="/var/lib/solune/data/settings.db")
         assert s.database_path == "/var/lib/solune/data/settings.db"
+
+    def test_memory_path_allowed_in_production(self):
+        s = _make_production(database_path=":memory:")
+        assert s.database_path == ":memory:"
 
     def test_relative_path_allowed_in_debug(self):
         s = _make_debug(database_path="test.db")
