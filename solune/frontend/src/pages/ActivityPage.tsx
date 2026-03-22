@@ -16,7 +16,7 @@ import {
   ChevronDown,
   ChevronRight,
   Activity,
-} from 'lucide-react';
+} from '@/lib/icons';
 import { useActivityFeed } from '@/hooks/useActivityFeed';
 import { InfiniteScrollContainer } from '@/components/common/InfiniteScrollContainer';
 import { useAuth } from '@/hooks/useAuth';

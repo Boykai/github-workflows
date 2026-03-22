@@ -1,4 +1,4 @@
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '@/lib/icons';
 
 /**
  * Signal Connection settings component.

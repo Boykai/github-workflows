@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronDown, Check } from 'lucide-react';
+import { ChevronDown, Check } from '@/lib/icons';
 import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { cn } from '@/lib/utils';

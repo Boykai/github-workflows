@@ -3,7 +3,7 @@
  * Shows pulsing animation when recording, disabled state when unsupported.
  */
 
-import { Mic, MicOff, Square } from 'lucide-react';
+import { Mic, MicOff, Square } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 import { Tooltip } from '@/components/ui/tooltip';
 

@@ -32,7 +32,7 @@ import { useFileUpload } from '@/hooks/useFileUpload';
 import { useVoiceInput } from '@/hooks/useVoiceInput';
 import { useMentionAutocomplete } from '@/hooks/useMentionAutocomplete';
 import type { CommandDefinition } from '@/lib/commands/types';
-import { History, Mic } from 'lucide-react';
+import { History, Mic } from '@/lib/icons';
 
 function formatDateSeparator(date: Date): string {
   const today = new Date();

@@ -20,8 +20,8 @@ import {
   SunMoon,
   MessageSquare,
   HelpCircle,
-} from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
+} from '@/lib/icons';
+import type { LucideIcon } from '@/lib/icons';
 import { NAV_ROUTES } from '@/constants';
 import { useAgentsList } from '@/hooks/useAgents';
 import { usePipelineConfig } from '@/hooks/usePipelineConfig';

@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Check, Search, Wrench } from 'lucide-react';
+import { Check, Search, Wrench } from '@/lib/icons';
 import { useToolsList } from '@/hooks/useTools';
 import { cn } from '@/lib/utils';
 

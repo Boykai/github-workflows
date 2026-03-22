@@ -47,10 +47,10 @@ _(No tasks — all user stories are self-contained and can start in parallel.)_
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Add `GET /{project_id}/chore-names` backend endpoint in `solune/backend/src/api/chores.py` that returns `list[str]` of ALL chore names via `SELECT name FROM chores WHERE project_id = ?` — unpaginated, unfiltered, per contract `specs/001-frontend-polish-performance/contracts/chore-names.yaml`
-- [ ] T002 [US1] Add API client method `listChoreNames(projectId: string): Promise<string[]>` in the appropriate frontend API service file (e.g., `solune/frontend/src/services/choresApi.ts` or equivalent) to call `GET /api/v1/chores/{project_id}/chore-names`
-- [ ] T003 [US1] Add `useAllChoreNames(projectId)` hook in `solune/frontend/src/hooks/useChores.ts` using `useQuery` with `queryKey: ['chore-names', projectId]`, `staleTime: 60_000`, and `enabled: !!projectId`
-- [ ] T004 [US1] Update `solune/frontend/src/components/chores/ChoresPanel.tsx` (lines 152–158) to replace the paginated `allItems` membership check with `useAllChoreNames` hook — build a `Set<string>` from the response and use it for template membership filtering; remove the related TODO comment
+- [x] T001 [US1] Add `GET /{project_id}/chore-names` backend endpoint in `solune/backend/src/api/chores.py` that returns `list[str]` of ALL chore names via `SELECT name FROM chores WHERE project_id = ?` — unpaginated, unfiltered, per contract `specs/001-frontend-polish-performance/contracts/chore-names.yaml`
+- [x] T002 [US1] Add API client method `listChoreNames(projectId: string): Promise<string[]>` in the appropriate frontend API service file (e.g., `solune/frontend/src/services/choresApi.ts` or equivalent) to call `GET /api/v1/chores/{project_id}/chore-names`
+- [x] T003 [US1] Add `useAllChoreNames(projectId)` hook in `solune/frontend/src/hooks/useChores.ts` using `useQuery` with `queryKey: ['chore-names', projectId]`, `staleTime: 60_000`, and `enabled: !!projectId`
+- [x] T004 [US1] Update `solune/frontend/src/components/chores/ChoresPanel.tsx` (lines 152–158) to replace the paginated `allItems` membership check with `useAllChoreNames` hook — build a `Set<string>` from the response and use it for template membership filtering; remove the related TODO comment
 
 **Checkpoint**: Chore templates now correctly display creation status regardless of active filters or pagination state.
 
@@ -64,13 +64,13 @@ _(No tasks — all user stories are self-contained and can start in parallel.)_
 
 ### Implementation for User Story 2
 
-- [ ] T005 [US2] Create `solune/frontend/src/utils/errorHints.ts` with `getErrorHint(error: unknown): ErrorHint` function that classifies errors by HTTP status code (401/403 → auth, 404 → not found, 422 → validation, 429 → rate limit with reset time, 500+ → server error, TypeError/fetch failure → connection error, unknown → fallback) and returns `{ title: string; hint: string; action?: { label: string; href: string } }` per data-model.md classification mapping
-- [ ] T006 [P] [US2] Integrate `getErrorHint()` into `solune/frontend/src/components/common/ErrorBoundary.tsx` — call `getErrorHint(this.state.error)` in the error fallback render path, display hint as a muted paragraph below the existing error message with an info/lightbulb icon, and render action link if present
-- [ ] T007 [P] [US2] Integrate `getErrorHint()` into `solune/frontend/src/components/board/ProjectBoardErrorBanners.tsx` — enhance each error banner variant with contextual hint text; add reset time display and "Open Settings" link to the rate limit banner; add "Go to Login" link to auth error banners
-- [ ] T008 [P] [US2] Extend `solune/frontend/src/components/common/EmptyState.tsx` with an optional `hint?: string` prop — when provided, render a muted paragraph below the description; ensure backward compatibility when `hint` is omitted
-- [ ] T009 [US2] Update `solune/frontend/src/pages/AgentsPage.tsx` to pass `hint={getErrorHint(error).hint}` when rendering error-variant EmptyState components
-- [ ] T010 [P] [US2] Update `solune/frontend/src/pages/ToolsPage.tsx` to pass `hint={getErrorHint(error).hint}` when rendering error-variant EmptyState components
-- [ ] T011 [P] [US2] Update `solune/frontend/src/pages/ChoresPage.tsx` to pass `hint={getErrorHint(error).hint}` when rendering error-variant EmptyState components
+- [x] T005 [US2] Create `solune/frontend/src/utils/errorHints.ts` with `getErrorHint(error: unknown): ErrorHint` function that classifies errors by HTTP status code (401/403 → auth, 404 → not found, 422 → validation, 429 → rate limit with reset time, 500+ → server error, TypeError/fetch failure → connection error, unknown → fallback) and returns `{ title: string; hint: string; action?: { label: string; href: string } }` per data-model.md classification mapping
+- [x] T006 [P] [US2] Integrate `getErrorHint()` into `solune/frontend/src/components/common/ErrorBoundary.tsx` — call `getErrorHint(this.state.error)` in the error fallback render path, display hint as a muted paragraph below the existing error message with an info/lightbulb icon, and render action link if present
+- [x] T007 [P] [US2] Integrate `getErrorHint()` into `solune/frontend/src/components/board/ProjectBoardErrorBanners.tsx` — enhance each error banner variant with contextual hint text; add reset time display and "Open Settings" link to the rate limit banner; add "Go to Login" link to auth error banners
+- [x] T008 [P] [US2] Extend `solune/frontend/src/components/common/EmptyState.tsx` with an optional `hint?: string` prop — when provided, render a muted paragraph below the description; ensure backward compatibility when `hint` is omitted
+- [x] T009 [US2] Update `solune/frontend/src/pages/AgentsPage.tsx` to pass `hint={getErrorHint(error).hint}` when rendering error-variant EmptyState components
+- [x] T010 [P] [US2] Update `solune/frontend/src/pages/ToolsPage.tsx` to pass `hint={getErrorHint(error).hint}` when rendering error-variant EmptyState components
+- [x] T011 [P] [US2] Update `solune/frontend/src/pages/ChoresPage.tsx` to pass `hint={getErrorHint(error).hint}` when rendering error-variant EmptyState components
 
 **Checkpoint**: All error surfaces display contextual, actionable recovery hints. 401 errors link to login, 429 errors show reset time and settings link, network errors suggest connectivity checks.
 
@@ -84,11 +84,11 @@ _(No tasks — all user stories are self-contained and can start in parallel.)_
 
 ### Implementation for User Story 3
 
-- [ ] T012 [US3] Scan the codebase to identify all unique Lucide icons currently imported across `solune/frontend/src/` — document the complete list of ~85 icons and ~68 import sites
-- [ ] T013 [US3] Create barrel file `solune/frontend/src/lib/icons.ts` with named re-exports (`export { Icon1, Icon2, ... } from 'lucide-react'`) for ALL identified Lucide icons, including the `LucideIcon` type if used
-- [ ] T014 [US3] Migrate all ~68 import sites across `solune/frontend/src/` to import from `@/lib/icons` instead of `lucide-react` directly — verify with `grep -rn "from 'lucide-react'" solune/frontend/src/` returning zero results (exclude `src/lib/icons.ts` itself)
-- [ ] T015 [US3] Add ESLint `no-restricted-imports` rule in `solune/frontend/eslint.config.js` to block direct imports from `lucide-react` with message: "Import icons from @/lib/icons instead of lucide-react directly." — verify `npm run lint` passes with no violations (barrel file itself may need an eslint-disable comment)
-- [ ] T016 [US3] Run production build (`npm run build` in `solune/frontend/`) and verify the `icons-vendor` chunk size is unchanged or smaller compared to before migration
+- [x] T012 [US3] Scan the codebase to identify all unique Lucide icons currently imported across `solune/frontend/src/` — document the complete list of ~85 icons and ~68 import sites
+- [x] T013 [US3] Create barrel file `solune/frontend/src/lib/icons.ts` with named re-exports (`export { Icon1, Icon2, ... } from 'lucide-react'`) for ALL identified Lucide icons, including the `LucideIcon` type if used
+- [x] T014 [US3] Migrate all ~68 import sites across `solune/frontend/src/` to import from `@/lib/icons` instead of `lucide-react` directly — verify with `grep -rn "from 'lucide-react'" solune/frontend/src/` returning zero results (exclude `src/lib/icons.ts` itself)
+- [x] T015 [US3] Add ESLint `no-restricted-imports` rule in `solune/frontend/eslint.config.js` to block direct imports from `lucide-react` with message: "Import icons from @/lib/icons instead of lucide-react directly." — verify `npm run lint` passes with no violations (barrel file itself may need an eslint-disable comment)
+- [x] T016 [US3] Run production build (`npm run build` in `solune/frontend/`) and verify the `icons-vendor` chunk size is unchanged or smaller compared to before migration
 
 **Checkpoint**: All icon imports are centralized. Lint rule prevents drift. Bundle size is unaffected.
 
@@ -98,10 +98,10 @@ _(No tasks — all user stories are self-contained and can start in parallel.)_
 
 **Purpose**: Final verification across all three workstreams.
 
-- [ ] T017 Run `npm run lint` in `solune/frontend/` and verify zero errors across all changed files
-- [ ] T018 Run `npm run test:coverage` in `solune/frontend/` and verify all tests pass with coverage thresholds met (statements 50%, branches 44%, functions 41%, lines 50%)
+- [x] T017 Run `npm run lint` in `solune/frontend/` and verify zero errors across all changed files
+- [x] T018 Run `npm run test:coverage` in `solune/frontend/` and verify all tests pass with coverage thresholds met (statements 50%, branches 44%, functions 41%, lines 50%)
 - [ ] T019 [P] Run backend tests (`pytest` in `solune/backend/`) to verify the new chore-names endpoint passes
-- [ ] T020 Run quickstart.md full verification checklist — confirm all 7 gates pass
+- [x] T020 Run quickstart.md full verification checklist — confirm all 7 gates pass
 
 ---
 

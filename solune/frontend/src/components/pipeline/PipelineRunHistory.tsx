@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Clock, CheckCircle2, XCircle, Ban } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, CheckCircle2, XCircle, Ban } from '@/lib/icons';
 import { useQuery } from '@tanstack/react-query';
 import { pipelinesApi } from '@/services/api';
 import { cn } from '@/lib/utils';

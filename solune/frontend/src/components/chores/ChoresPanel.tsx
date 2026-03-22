@@ -7,8 +7,8 @@
  */
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { ScrollText } from 'lucide-react';
-import { useChoresListPaginated, useChoreTemplates, useInlineUpdateChore } from '@/hooks/useChores';
+import { ScrollText } from '@/lib/icons';
+import { useChoresListPaginated, useChoreTemplates, useInlineUpdateChore, useAllChoreNames } from '@/hooks/useChores';
 import type { ChoresFilterParams } from '@/hooks/useChores';
 import { AddChoreModal } from './AddChoreModal';
 import { ChoresToolbar } from './ChoresToolbar';
@@ -68,6 +68,7 @@ export function ChoresPanel({
     fetchNextPage,
   } = useChoresListPaginated(projectId, filterParams);
   const { data: repoTemplates } = useChoreTemplates(projectId);
+  const { data: allChoreNames } = useAllChoreNames(projectId);
   // ── Inline Edit State ──
   const [editState, setEditState] = useState<Record<string, ChoreEditState>>({});
   const inlineUpdateMutation = useInlineUpdateChore(projectId);
@@ -149,12 +150,13 @@ export function ChoresPanel({
     setSortMode('attention');
   }, []);
 
-  // TODO: uncreatedTemplates checks against the paginated/filtered `chores` list,
-  // so a template may appear "uncreated" when its chore exists on a later page or
-  // is filtered out. A dedicated unfiltered count endpoint would fix this.
+  const allChoreNameSet = useMemo(
+    () => new Set(allChoreNames ?? []),
+    [allChoreNames]
+  );
   const uncreatedTemplates = useMemo(
-    () => repoTemplates?.filter((tpl) => !chores?.some((c) => c.name === tpl.name)) ?? [],
-    [repoTemplates, chores]
+    () => repoTemplates?.filter((tpl) => !allChoreNameSet.has(tpl.name)) ?? [],
+    [repoTemplates, allChoreNameSet]
   );
 
   const spotlightChores = chores.slice(0, 3);

@@ -7,7 +7,7 @@
  */
 
 import { useState } from 'react';
-import { CheckCircle2, CircleAlert, FilePenLine, BarChart3, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleAlert, FilePenLine, BarChart3, XCircle } from '@/lib/icons';
 import type { IssueCreateActionData, WorkflowResult } from '@/types';
 import { cn } from '@/lib/utils';
 
