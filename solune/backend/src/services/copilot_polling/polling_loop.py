@@ -352,6 +352,38 @@ async def _poll_loop(
             if await _pause_if_rate_limited("pre-cycle"):
                 continue  # restart the while loop
 
+            # ── Rate-limit critical alert (Phase 5) ──
+            try:
+                from src.config import get_settings as _get_settings
+
+                _settings = _get_settings()
+                rl_info = _cp.github_projects_service.get_last_rate_limit()
+                if (
+                    rl_info
+                    and rl_info.get("remaining") is not None
+                    and rl_info["remaining"] < _settings.rate_limit_critical_threshold
+                ):
+                    from src.services.alert_dispatcher import get_dispatcher
+
+                    dispatcher = get_dispatcher()
+                    if dispatcher is not None:
+                        await dispatcher.dispatch_alert(
+                            alert_type="rate_limit_critical",
+                            summary=(
+                                f"GitHub API rate limit critical: "
+                                f"{rl_info['remaining']} remaining "
+                                f"(threshold: {_settings.rate_limit_critical_threshold})"
+                            ),
+                            details={
+                                "remaining": rl_info["remaining"],
+                                "limit": rl_info.get("limit"),
+                                "threshold": _settings.rate_limit_critical_threshold,
+                                "reset_at": rl_info.get("reset_at"),
+                            },
+                        )
+            except Exception as alert_err:
+                logger.debug("Failed to dispatch rate_limit_critical alert: %s", alert_err)
+
             # Fetch all project items once per poll cycle
             all_tasks = await _cp.github_projects_service.get_project_items(
                 access_token, project_id
@@ -434,6 +466,41 @@ async def _poll_loop(
                         now_err,
                     )
                     _cp.github_projects_service.clear_last_rate_limit()
+
+        # ── OTel metrics emission (Phase 5) ──
+        try:
+            from src.services.otel_setup import get_meter as _get_otel_meter
+            from src.services.pipeline_state_store import get_all_pipeline_states
+
+            _cycle_meter = _get_otel_meter()
+            active_gauge = _cycle_meter.create_gauge("pipeline.active_count")
+            active_gauge.set(len(get_all_pipeline_states()))
+
+            rl_gauge = _cycle_meter.create_gauge("github.api_remaining")
+            _rl_data = _cp.github_projects_service.get_last_rate_limit()
+            if _rl_data and _rl_data.get("remaining") is not None:
+                rl_gauge.set(_rl_data["remaining"])
+        except Exception:
+            pass  # OTel metrics are best-effort
+
+        # ── Rate-limit snapshot recording (Phase 5, optional) ──
+        try:
+            from src.services.rate_limit_tracker import get_tracker
+
+            _rl_snap = _cp.github_projects_service.get_last_rate_limit()
+            if (
+                _rl_snap
+                and _rl_snap.get("remaining") is not None
+                and _rl_snap.get("limit") is not None
+                and _rl_snap.get("reset_at") is not None
+            ):
+                await get_tracker().record_snapshot(
+                    remaining=_rl_snap["remaining"],
+                    limit=_rl_snap["limit"],
+                    reset_at=_rl_snap["reset_at"],
+                )
+        except Exception as snap_err:
+            logger.debug("Rate-limit snapshot recording failed: %s", snap_err)
 
         # ── Dynamic interval based on remaining rate-limit budget ──
         remaining, _ = await _check_rate_limit_budget()

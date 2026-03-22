@@ -228,6 +228,7 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
     from src.exceptions import ValidationError
     from src.services.cache import cache
     from src.services.github_projects import github_projects_service
+    from src.services.otel_setup import get_tracer
     from src.services.workflow_orchestrator import get_workflow_config
 
     # Check cache first to avoid repeated API calls for the same project.
