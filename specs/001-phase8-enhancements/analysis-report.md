@@ -125,10 +125,10 @@
 7. **Address F8**: Add undo-polling divergence detection to T039 or T042.
 
 ### Command suggestions:
-- `Run /speckit.specify` with a refinement prompt to add the Out-of-Scope section (fixes C1)
+- Run `/speckit.specify` with a refinement prompt to add the Out-of-Scope section (fixes C1)
 - Manually edit `quickstart.md` line 53 (fixes F1)
 - Manually edit `tasks.md` T035 description to add "(optional, defaults to None for backward compatibility)" (fixes F2)
-- `Run /speckit.tasks` with refinement to add FR-009 and SC-002/SC-005 validation coverage (fixes F5–F7)
+- Run `/speckit.tasks` with refinement to add FR-009 and SC-002/SC-005 validation coverage (fixes F5–F7)
 
 ---
 
