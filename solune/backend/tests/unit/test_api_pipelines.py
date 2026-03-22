@@ -471,3 +471,385 @@ class TestCreatePipeline:
 
         assert resp.status_code == 403
         assert "Cannot modify preset pipelines" in resp.json()["error"]
+
+
+# ---------------------------------------------------------------------------
+# T022 - Queue mode routing
+# ---------------------------------------------------------------------------
+
+
+class TestQueueModeRouting:
+    """Tests for queue-mode gate in execute_pipeline_launch."""
+
+    @pytest.mark.anyio
+    async def test_pipeline_queued_when_queue_mode_active(
+        self, client, mock_db, mock_github_service
+    ):
+        """When queue mode is ON and an active pipeline exists, new launches are queued."""
+        pipeline_id = await _create_pipeline(mock_db)
+        mock_github_service.create_issue.return_value = {
+            "number": 100,
+            "node_id": "I_node_100",
+            "html_url": "https://github.com/owner/repo/issues/100",
+        }
+
+        mock_orchestrator = AsyncMock()
+
+        async def add_to_project(ctx, recommendation=None):
+            ctx.project_item_id = "PVTI_100"
+            return "PVTI_100"
+
+        mock_orchestrator.add_to_project_with_backlog.side_effect = add_to_project
+        mock_orchestrator.create_all_sub_issues.return_value = {}
+
+        with (
+            patch(
+                "src.api.pipelines.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
+            patch("src.api.pipelines.github_projects_service", mock_github_service),
+            patch(
+                "src.api.pipelines.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.pipelines.set_workflow_config", new_callable=AsyncMock),
+            patch(
+                "src.api.pipelines.get_workflow_orchestrator",
+                return_value=mock_orchestrator,
+            ),
+            patch(
+                "src.services.settings_store.is_queue_mode_enabled",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch("src.api.pipelines.count_active_pipelines_for_project", return_value=1),
+            patch(
+                "src.api.pipelines.get_queued_pipelines_for_project",
+                return_value=["fake_queued"],
+            ),
+            patch("src.api.pipelines.set_pipeline_state"),
+            patch("src.api.pipelines.get_agent_slugs", return_value=["speckit.specify"]),
+        ):
+            resp = await client.post(
+                "/api/v1/pipelines/PVT_1/launch",
+                json={
+                    "issue_description": "# Queued issue\n\nShould be queued.",
+                    "pipeline_id": pipeline_id,
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert "queued" in data["message"].lower()
+
+    @pytest.mark.anyio
+    async def test_pipeline_not_queued_when_no_active_pipelines(
+        self, client, mock_db, mock_github_service
+    ):
+        """When queue mode is ON but no active pipeline exists, launch proceeds normally."""
+        pipeline_id = await _create_pipeline(mock_db)
+        mock_github_service.create_issue.return_value = {
+            "number": 101,
+            "node_id": "I_node_101",
+            "html_url": "https://github.com/owner/repo/issues/101",
+        }
+
+        mock_orchestrator = AsyncMock()
+
+        async def add_to_project(ctx, recommendation=None):
+            ctx.project_item_id = "PVTI_101"
+            return "PVTI_101"
+
+        mock_orchestrator.add_to_project_with_backlog.side_effect = add_to_project
+        mock_orchestrator.create_all_sub_issues.return_value = {}
+        mock_orchestrator.assign_agent_for_status.return_value = True
+
+        with (
+            patch(
+                "src.api.pipelines.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
+            patch("src.api.pipelines.github_projects_service", mock_github_service),
+            patch(
+                "src.api.pipelines.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.pipelines.set_workflow_config", new_callable=AsyncMock),
+            patch(
+                "src.api.pipelines.get_workflow_orchestrator",
+                return_value=mock_orchestrator,
+            ),
+            patch(
+                "src.services.settings_store.is_queue_mode_enabled",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch("src.api.pipelines.count_active_pipelines_for_project", return_value=0),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+            ),
+            patch("src.api.pipelines.get_pipeline_state", return_value=None),
+        ):
+            resp = await client.post(
+                "/api/v1/pipelines/PVT_1/launch",
+                json={
+                    "issue_description": "# Direct launch\n\nNo queue.",
+                    "pipeline_id": pipeline_id,
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is True
+        assert "queued" not in data["message"].lower()
+
+
+# ---------------------------------------------------------------------------
+# T023 - Position calculation
+# ---------------------------------------------------------------------------
+
+
+class TestPositionCalculation:
+    """Tests for queue position reported in queued pipeline response."""
+
+    @pytest.mark.anyio
+    async def test_queue_position_reflects_depth(
+        self, client, mock_db, mock_github_service
+    ):
+        """Queue position should equal the length of the queued pipelines list."""
+        pipeline_id = await _create_pipeline(mock_db)
+        mock_github_service.create_issue.return_value = {
+            "number": 200,
+            "node_id": "I_node_200",
+            "html_url": "https://github.com/owner/repo/issues/200",
+        }
+
+        mock_orchestrator = AsyncMock()
+
+        async def add_to_project(ctx, recommendation=None):
+            ctx.project_item_id = "PVTI_200"
+            return "PVTI_200"
+
+        mock_orchestrator.add_to_project_with_backlog.side_effect = add_to_project
+        mock_orchestrator.create_all_sub_issues.return_value = {}
+
+        # Simulate 3 already-queued pipelines
+        queued_list = ["q1", "q2", "q3"]
+
+        with (
+            patch(
+                "src.api.pipelines.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
+            patch("src.api.pipelines.github_projects_service", mock_github_service),
+            patch(
+                "src.api.pipelines.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.pipelines.set_workflow_config", new_callable=AsyncMock),
+            patch(
+                "src.api.pipelines.get_workflow_orchestrator",
+                return_value=mock_orchestrator,
+            ),
+            patch(
+                "src.services.settings_store.is_queue_mode_enabled",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch("src.api.pipelines.count_active_pipelines_for_project", return_value=1),
+            patch(
+                "src.api.pipelines.get_queued_pipelines_for_project",
+                return_value=queued_list,
+            ),
+            patch("src.api.pipelines.set_pipeline_state"),
+            patch("src.api.pipelines.get_agent_slugs", return_value=["speckit.specify"]),
+        ):
+            resp = await client.post(
+                "/api/v1/pipelines/PVT_1/launch",
+                json={
+                    "issue_description": "# Position test\n\nBody.",
+                    "pipeline_id": pipeline_id,
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "#3" in data["message"]
+
+
+# ---------------------------------------------------------------------------
+# T024 - Dequeue trigger path
+# ---------------------------------------------------------------------------
+
+
+class TestDequeueTrigger:
+    """Tests for _dequeue_next_pipeline in the polling pipeline module."""
+
+    @pytest.mark.anyio
+    async def test_dequeue_skipped_when_queue_mode_disabled(self):
+        """No dequeue happens when queue mode is OFF."""
+        from src.services.copilot_polling.pipeline import _dequeue_next_pipeline
+
+        with (
+            patch(
+                "src.services.database.get_db",
+                return_value=AsyncMock(),
+            ),
+            patch(
+                "src.services.settings_store.is_queue_mode_enabled",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
+        ):
+            await _dequeue_next_pipeline("token", "PVT_1", "test")
+
+    @pytest.mark.anyio
+    async def test_dequeue_skipped_when_no_queued_pipelines(self):
+        """No dequeue happens when the queue is empty."""
+        from src.services.copilot_polling.pipeline import _dequeue_next_pipeline
+
+        with (
+            patch(
+                "src.services.database.get_db",
+                return_value=AsyncMock(),
+            ),
+            patch(
+                "src.services.settings_store.is_queue_mode_enabled",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch("src.services.copilot_polling.pipeline._cp") as mock_cp,
+        ):
+            mock_cp.get_queued_pipelines_for_project.return_value = []
+            await _dequeue_next_pipeline("token", "PVT_1", "test")
+            mock_cp.set_pipeline_state.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# T025 - Sub-issue error handling
+# ---------------------------------------------------------------------------
+
+
+class TestSubIssueErrors:
+    """Tests for error handling when sub-issue creation or assignment fails."""
+
+    @pytest.mark.anyio
+    async def test_pipeline_state_error_returns_failure(
+        self, client, mock_db, mock_github_service
+    ):
+        """If pipeline state has an error after agent assignment, response indicates failure."""
+        pipeline_id = await _create_pipeline(mock_db)
+        mock_github_service.create_issue.return_value = {
+            "number": 300,
+            "node_id": "I_node_300",
+            "html_url": "https://github.com/owner/repo/issues/300",
+        }
+
+        mock_orchestrator = AsyncMock()
+
+        async def add_to_project(ctx, recommendation=None):
+            ctx.project_item_id = "PVTI_300"
+            return "PVTI_300"
+
+        mock_orchestrator.add_to_project_with_backlog.side_effect = add_to_project
+        mock_orchestrator.create_all_sub_issues.return_value = {}
+        mock_orchestrator.assign_agent_for_status.return_value = True
+
+        # Simulate pipeline state with error flag
+        mock_pipeline_state = AsyncMock()
+        mock_pipeline_state.error = "Agent assignment failed"
+
+        with (
+            patch(
+                "src.api.pipelines.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
+            patch("src.api.pipelines.github_projects_service", mock_github_service),
+            patch(
+                "src.api.pipelines.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.pipelines.set_workflow_config", new_callable=AsyncMock),
+            patch(
+                "src.api.pipelines.get_workflow_orchestrator",
+                return_value=mock_orchestrator,
+            ),
+            patch(
+                "src.services.copilot_polling.ensure_polling_started",
+                new_callable=AsyncMock,
+            ),
+            patch("src.api.pipelines.get_pipeline_state", return_value=mock_pipeline_state),
+        ):
+            resp = await client.post(
+                "/api/v1/pipelines/PVT_1/launch",
+                json={
+                    "issue_description": "# Error case\n\nSub-issue failure.",
+                    "pipeline_id": pipeline_id,
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is False
+        assert "could not be assigned" in data["message"]
+
+    @pytest.mark.anyio
+    async def test_launch_catches_unexpected_exception(self, client, mock_db, mock_github_service):
+        """Unexpected exceptions during launch yield success=False with a user-friendly message."""
+        pipeline_id = await _create_pipeline(mock_db)
+        mock_github_service.create_issue.return_value = {
+            "number": 301,
+            "node_id": "I_node_301",
+            "html_url": "https://github.com/owner/repo/issues/301",
+        }
+
+        mock_orchestrator = AsyncMock()
+
+        async def add_to_project(ctx, recommendation=None):
+            ctx.project_item_id = "PVTI_301"
+            return "PVTI_301"
+
+        mock_orchestrator.add_to_project_with_backlog.side_effect = add_to_project
+        mock_orchestrator.create_all_sub_issues.side_effect = RuntimeError(
+            "sub-issue API down"
+        )
+
+        with (
+            patch(
+                "src.api.pipelines.resolve_repository",
+                new_callable=AsyncMock,
+                return_value=("owner", "repo"),
+            ),
+            patch("src.api.pipelines.github_projects_service", mock_github_service),
+            patch(
+                "src.api.pipelines.get_workflow_config",
+                new_callable=AsyncMock,
+                return_value=None,
+            ),
+            patch("src.api.pipelines.set_workflow_config", new_callable=AsyncMock),
+            patch(
+                "src.api.pipelines.get_workflow_orchestrator",
+                return_value=mock_orchestrator,
+            ),
+        ):
+            resp = await client.post(
+                "/api/v1/pipelines/PVT_1/launch",
+                json={
+                    "issue_description": "# Sub-issue error\n\nBreaks during creation.",
+                    "pipeline_id": pipeline_id,
+                },
+            )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["success"] is False

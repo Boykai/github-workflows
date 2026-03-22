@@ -330,3 +330,138 @@ class TestProjectSettingsUpdateQueueMode:
         dump = update.model_dump(exclude_unset=True)
         assert "queue_mode" in dump
         assert dump["queue_mode"] is False
+
+
+# =============================================================================
+# Two-Pipeline FIFO (T036)
+# =============================================================================
+
+
+class TestTwoPipelineFIFO:
+    """Pipeline A launches → Pipeline B queued → A completes → B dequeues."""
+
+    def test_pipeline_b_queued_when_a_active(self):
+        """When pipeline A is active, pipeline B is marked as queued."""
+        store._pipeline_states[100] = _make_pipeline_state(
+            issue_number=100,
+            project_id="PVT_proj1",
+            queued=False,
+            started_at=datetime(2026, 3, 12, 9, 0, 0, tzinfo=UTC),
+        )
+        store._pipeline_states[200] = _make_pipeline_state(
+            issue_number=200,
+            project_id="PVT_proj1",
+            queued=True,
+            started_at=datetime(2026, 3, 12, 9, 1, 0, tzinfo=UTC),
+        )
+
+        assert count_active_pipelines_for_project("PVT_proj1") == 1
+        queued = get_queued_pipelines_for_project("PVT_proj1")
+        assert len(queued) == 1
+        assert queued[0].issue_number == 200
+
+    def test_b_dequeues_after_a_completes(self):
+        """After removing A from active, B is the next queued pipeline."""
+        store._pipeline_states[100] = _make_pipeline_state(
+            issue_number=100,
+            project_id="PVT_proj1",
+            queued=False,
+            started_at=datetime(2026, 3, 12, 9, 0, 0, tzinfo=UTC),
+        )
+        store._pipeline_states[200] = _make_pipeline_state(
+            issue_number=200,
+            project_id="PVT_proj1",
+            queued=True,
+            started_at=datetime(2026, 3, 12, 9, 1, 0, tzinfo=UTC),
+        )
+
+        # Simulate A completing — remove from states
+        del store._pipeline_states[100]
+
+        assert count_active_pipelines_for_project("PVT_proj1") == 0
+        queued = get_queued_pipelines_for_project("PVT_proj1")
+        assert len(queued) == 1
+        assert queued[0].issue_number == 200
+
+        # Dequeue B — mark as active
+        store._pipeline_states[200] = _make_pipeline_state(
+            issue_number=200,
+            project_id="PVT_proj1",
+            queued=False,
+            started_at=datetime(2026, 3, 12, 9, 1, 0, tzinfo=UTC),
+        )
+        assert count_active_pipelines_for_project("PVT_proj1") == 1
+        assert get_queued_pipelines_for_project("PVT_proj1") == []
+
+
+# =============================================================================
+# Three-Pipeline Strict FIFO (T037)
+# =============================================================================
+
+
+class TestThreePipelineStrictFIFO:
+    """A, B, C submitted → A runs, B/C queued → A done → B starts → B done → C starts."""
+
+    def test_three_pipeline_strict_fifo_ordering(self):
+        """Verify strict FIFO ordering with 3 pipelines."""
+        # Submit A (active), B (queued), C (queued)
+        store._pipeline_states[100] = _make_pipeline_state(
+            issue_number=100,
+            project_id="PVT_proj1",
+            queued=False,
+            started_at=datetime(2026, 3, 12, 9, 0, 0, tzinfo=UTC),
+        )
+        store._pipeline_states[200] = _make_pipeline_state(
+            issue_number=200,
+            project_id="PVT_proj1",
+            queued=True,
+            started_at=datetime(2026, 3, 12, 9, 1, 0, tzinfo=UTC),
+        )
+        store._pipeline_states[300] = _make_pipeline_state(
+            issue_number=300,
+            project_id="PVT_proj1",
+            queued=True,
+            started_at=datetime(2026, 3, 12, 9, 2, 0, tzinfo=UTC),
+        )
+
+        # Verify initial state: 1 active, 2 queued in FIFO order
+        assert count_active_pipelines_for_project("PVT_proj1") == 1
+        queued = get_queued_pipelines_for_project("PVT_proj1")
+        assert len(queued) == 2
+        assert [q.issue_number for q in queued] == [200, 300]
+
+        # A completes — remove from states
+        del store._pipeline_states[100]
+
+        # B should be next (FIFO — earliest started_at)
+        queued = get_queued_pipelines_for_project("PVT_proj1")
+        assert queued[0].issue_number == 200
+
+        # Dequeue B — mark as active
+        store._pipeline_states[200] = _make_pipeline_state(
+            issue_number=200,
+            project_id="PVT_proj1",
+            queued=False,
+            started_at=datetime(2026, 3, 12, 9, 1, 0, tzinfo=UTC),
+        )
+        assert count_active_pipelines_for_project("PVT_proj1") == 1
+        queued = get_queued_pipelines_for_project("PVT_proj1")
+        assert len(queued) == 1
+        assert queued[0].issue_number == 300
+
+        # B completes
+        del store._pipeline_states[200]
+
+        # C should be next
+        queued = get_queued_pipelines_for_project("PVT_proj1")
+        assert queued[0].issue_number == 300
+
+        # Dequeue C — mark as active
+        store._pipeline_states[300] = _make_pipeline_state(
+            issue_number=300,
+            project_id="PVT_proj1",
+            queued=False,
+            started_at=datetime(2026, 3, 12, 9, 2, 0, tzinfo=UTC),
+        )
+        assert count_active_pipelines_for_project("PVT_proj1") == 1
+        assert get_queued_pipelines_for_project("PVT_proj1") == []

@@ -274,6 +274,15 @@ class CopilotMixin:
         ``agentAssignment`` input which explicitly supports ``customAgent``.
         Falls back to the REST API if GraphQL fails.
 
+        NOTE: Evaluated for ``_with_fallback()`` adoption (Phase 2, US3).
+        **Not applied** because:
+        1. A conditional pre-step (unassign custom agent) executes before
+           the primary/fallback flow — ``_with_fallback()`` does not model
+           "do X before trying primary".
+        2. Returns ``bool``, not ``T | None``.  The caller would need to
+           handle ``None`` as ``False``, adding indirection without benefit.
+        See research.md Task 7 for full rationale.
+
         Args:
             access_token: GitHub OAuth access token
             owner: Repository owner
