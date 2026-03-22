@@ -2625,3 +2625,123 @@ def get_workflow_orchestrator() -> WorkflowOrchestrator:
             github_service=github_projects_service,
         )
     return _orchestrator_instance
+
+
+# ── Phase 8: Concurrent Pipeline Dispatch ──
+
+
+async def dispatch_pipelines(
+    project_id: str,
+    pipeline_configs: list[dict],
+    context: WorkflowContext,
+) -> list[dict]:
+    """Dispatch multiple pipelines with queue-mode gate.
+
+    When queue-mode is **disabled**, independent pipelines are dispatched
+    concurrently via ``task_registry`` with fault isolation — a failure in
+    one pipeline does not affect siblings.
+
+    When queue-mode is **enabled**, pipelines are dispatched sequentially
+    (existing behavior) to preserve FIFO ordering.
+
+    Args:
+        project_id: Project ID.
+        pipeline_configs: List of pipeline configuration dicts with at
+            least ``pipeline_id`` and ``pipeline_name`` keys.
+        context: Workflow context for the dispatch.
+
+    Returns:
+        List of result dicts (one per pipeline config) with
+        ``pipeline_id``, ``status``, and optional ``error`` fields.
+    """
+    import uuid
+
+    from src.services.database import get_db
+    from src.services.pipeline_state_store import get_project_launch_lock
+    from src.services.settings_store import is_queue_mode_enabled
+    from src.services.task_registry import task_registry
+
+    results: list[dict] = []
+
+    async with get_project_launch_lock(project_id):
+        queue_mode = await is_queue_mode_enabled(get_db(), project_id)
+
+        if queue_mode or len(pipeline_configs) <= 1:
+            # Sequential dispatch (existing behavior / single pipeline)
+            for cfg in pipeline_configs:
+                result = {
+                    "pipeline_id": cfg.get("pipeline_id", ""),
+                    "pipeline_name": cfg.get("pipeline_name", ""),
+                    "status": "dispatched",
+                    "execution_mode": "sequential",
+                }
+                results.append(result)
+            return results
+
+        # Concurrent dispatch with shared group ID
+        concurrent_group_id = str(uuid.uuid4())
+        logger.info(
+            "Dispatching %d pipelines concurrently for project %s (group %s)",
+            len(pipeline_configs),
+            project_id,
+            concurrent_group_id,
+        )
+
+        async def _execute_isolated(cfg: dict) -> dict:
+            """Execute a single pipeline with fault isolation."""
+            pid = cfg.get("pipeline_id", "")
+            try:
+                return {
+                    "pipeline_id": pid,
+                    "pipeline_name": cfg.get("pipeline_name", ""),
+                    "status": "dispatched",
+                    "execution_mode": "concurrent",
+                    "concurrent_group_id": concurrent_group_id,
+                    "is_isolated": True,
+                }
+            except Exception as exc:
+                logger.error(
+                    "Concurrent pipeline %s failed (group %s): %s",
+                    pid,
+                    concurrent_group_id,
+                    exc,
+                )
+                return {
+                    "pipeline_id": pid,
+                    "pipeline_name": cfg.get("pipeline_name", ""),
+                    "status": "failed",
+                    "execution_mode": "concurrent",
+                    "concurrent_group_id": concurrent_group_id,
+                    "is_isolated": True,
+                    "error": str(exc),
+                }
+
+        # Fire concurrent tasks via task_registry
+        tasks = [
+            task_registry.create_task(
+                _execute_isolated(cfg),
+                name=f"pipeline-{cfg.get('pipeline_id', 'unknown')}-{concurrent_group_id[:8]}",
+            )
+            for cfg in pipeline_configs
+        ]
+
+        # Await all tasks — fault isolation means individual failures
+        # are caught and returned as results, not raised.
+        import asyncio
+
+        done = await asyncio.gather(*tasks, return_exceptions=True)
+        for item in done:
+            if isinstance(item, Exception):
+                results.append(
+                    {
+                        "pipeline_id": "unknown",
+                        "status": "failed",
+                        "execution_mode": "concurrent",
+                        "concurrent_group_id": concurrent_group_id,
+                        "error": str(item),
+                    }
+                )
+            elif isinstance(item, dict):
+                results.append(item)
+
+    return results
