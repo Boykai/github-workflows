@@ -2656,6 +2656,7 @@ async def dispatch_pipelines(
     """
     import uuid
 
+    from src.services.database import get_db
     from src.services.pipeline_state_store import get_project_launch_lock
     from src.services.settings_store import is_queue_mode_enabled
     from src.services.task_registry import task_registry
@@ -2663,7 +2664,7 @@ async def dispatch_pipelines(
     results: list[dict] = []
 
     async with get_project_launch_lock(project_id):
-        queue_mode = is_queue_mode_enabled(project_id)
+        queue_mode = await is_queue_mode_enabled(get_db(), project_id)
 
         if queue_mode or len(pipeline_configs) <= 1:
             # Sequential dispatch (existing behavior / single pipeline)

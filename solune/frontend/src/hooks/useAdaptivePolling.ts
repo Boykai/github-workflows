@@ -11,7 +11,7 @@
  * the Page Visibility API for tab-awareness.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 // ── Configuration ──
 
@@ -116,7 +116,30 @@ function computeTier(
 export function useAdaptivePolling(
   config?: AdaptivePollingConfig,
 ): UseAdaptivePollingReturn {
-  const cfg: Required<AdaptivePollingConfig> = { ...DEFAULT_CONFIG, ...config };
+  const cfg = useMemo<Required<AdaptivePollingConfig>>(
+    () => ({
+      baseInterval: config?.baseInterval ?? DEFAULT_CONFIG.baseInterval,
+      minInterval: config?.minInterval ?? DEFAULT_CONFIG.minInterval,
+      maxInterval: config?.maxInterval ?? DEFAULT_CONFIG.maxInterval,
+      maxBackoffInterval: config?.maxBackoffInterval ?? DEFAULT_CONFIG.maxBackoffInterval,
+      windowSize: config?.windowSize ?? DEFAULT_CONFIG.windowSize,
+      highActivityThreshold:
+        config?.highActivityThreshold ?? DEFAULT_CONFIG.highActivityThreshold,
+      mediumActivityThreshold:
+        config?.mediumActivityThreshold ?? DEFAULT_CONFIG.mediumActivityThreshold,
+    }),
+    // Individual primitive values as deps so the object identity stays stable
+    // when callers pass a new config object literal on every render.
+    [
+      config?.baseInterval,
+      config?.minInterval,
+      config?.maxInterval,
+      config?.maxBackoffInterval,
+      config?.windowSize,
+      config?.highActivityThreshold,
+      config?.mediumActivityThreshold,
+    ],
+  );
 
   const windowRef = useRef<boolean[]>([]);
   const failuresRef = useRef(0);

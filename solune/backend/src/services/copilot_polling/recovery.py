@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 import src.services.copilot_polling as _cp
 from src.constants import STALLED_LABEL
@@ -1050,7 +1050,9 @@ async def recover_pipeline_states_from_labels(
             board_data = await github_projects_service.get_project_items(
                 access_token, project_id
             )
-            items = board_data if isinstance(board_data, list) else []
+            # get_project_items returns list[Task]; cast to list[dict] since
+            # batch_parse_pipeline_labels accesses both .get() and attribute paths.
+            items = cast(list[dict[str, Any]], board_data) if isinstance(board_data, list) else []
         except Exception:
             logger.exception("Failed to fetch board items for recovery")
             items = []

@@ -74,52 +74,75 @@ export function useBoardProjection(
 
   const observersRef = useRef<Map<string, IntersectionObserver>>(new Map());
   const debounceTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const [projections, setProjections] = useState<Map<string, ColumnProjection>>(new Map());
+  // Keep a stable ref to boardData for use inside callbacks without stale closures.
+  // Updated in an effect (not during render) to satisfy the react-hooks/refs rule.
+  const boardDataRef = useRef(boardData);
+  useEffect(() => {
+    boardDataRef.current = boardData;
+  }, [boardData]);
+
+  // Track per-column expanded end indexes beyond the initial buffer.
+  // Using a Map<columnId, expandedEndIndex> avoids a full projection copy on expand.
+  const [expansions, setExpansions] = useState<Map<string, number>>(new Map());
+
+  // Reset expansions when boardData changes.
+  // React idiom: calling setState during render (before effects) triggers an
+  // immediate re-render with the new state, avoiding the setState-in-effect
+  // anti-pattern while still resetting on every new dataset.
+  const [prevBoardData, setPrevBoardData] = useState(boardData);
+  if (boardData !== prevBoardData) {
+    setPrevBoardData(boardData);
+    setExpansions(new Map());
+  }
+
   const [isInitialRenderComplete, setIsInitialRenderComplete] = useState(false);
 
-  // Build initial projections when board data changes
-  useEffect(() => {
-    if (!boardData?.columns) {
-      setProjections(new Map());
-      setIsInitialRenderComplete(false);
-      return;
-    }
-
-    const initial = new Map<string, ColumnProjection>();
+  // Compute projections from boardData + expansions (pure derivation — no effect).
+  const projections = useMemo(() => {
+    if (!boardData?.columns) return new Map<string, ColumnProjection>();
+    const result = new Map<string, ColumnProjection>();
     for (const col of boardData.columns) {
       const statusName = col.status.name;
       const totalItems = col.items.length;
-      // Initially render only the first buffer-sized batch
-      const end = Math.min(bufferSize, totalItems);
-      initial.set(statusName, {
+      const expandedEnd = expansions.get(statusName);
+      const end = Math.min(expandedEnd ?? bufferSize, totalItems);
+      result.set(statusName, {
         columnId: statusName,
         renderedRange: { start: 0, end },
         totalItems,
         hasMore: end < totalItems,
       });
     }
-    setProjections(initial);
+    return result;
+  }, [boardData, bufferSize, expansions]);
 
-    // Mark initial render complete after a microtask
-    requestAnimationFrame(() => setIsInitialRenderComplete(true));
-  }, [boardData, bufferSize]);
+  // Signal initial render complete after the DOM has painted.
+  // Both branches use requestAnimationFrame so setState is never called
+  // synchronously inside the effect body.
+  useEffect(() => {
+    let raf: number;
+    if (boardData?.columns) {
+      raf = requestAnimationFrame(() => setIsInitialRenderComplete(true));
+    } else {
+      raf = requestAnimationFrame(() => setIsInitialRenderComplete(false));
+    }
+    return () => cancelAnimationFrame(raf);
+  }, [boardData]);
 
-  // Expand rendered range for a column (triggered by scroll / intersection)
+  // Expand rendered range for a column (triggered by scroll / intersection).
+  // boardDataRef is used instead of boardData to keep the callback stable.
   const expandColumn = useCallback(
     (columnId: string) => {
-      setProjections((prev) => {
-        const current = prev.get(columnId);
-        if (!current || !current.hasMore) return prev;
-
-        const newEnd = Math.min(current.renderedRange.end + bufferSize, current.totalItems);
-        if (newEnd === current.renderedRange.end) return prev;
-
+      const bd = boardDataRef.current;
+      setExpansions((prev) => {
+        const col = bd?.columns?.find((c) => c.status.name === columnId);
+        if (!col) return prev;
+        const totalItems = col.items.length;
+        const currentEnd = prev.get(columnId) ?? Math.min(bufferSize, totalItems);
+        if (currentEnd >= totalItems) return prev;
+        const newEnd = Math.min(currentEnd + bufferSize, totalItems);
         const updated = new Map(prev);
-        updated.set(columnId, {
-          ...current,
-          renderedRange: { start: current.renderedRange.start, end: newEnd },
-          hasMore: newEnd < current.totalItems,
-        });
+        updated.set(columnId, newEnd);
         return updated;
       });
     },
@@ -169,15 +192,17 @@ export function useBoardProjection(
 
   // Cleanup on unmount
   useEffect(() => {
+    const observers = observersRef.current;
+    const debounceTimers = debounceTimersRef.current;
     return () => {
-      for (const observer of observersRef.current.values()) {
+      for (const observer of observers.values()) {
         observer.disconnect();
       }
-      observersRef.current.clear();
-      for (const timer of debounceTimersRef.current.values()) {
+      observers.clear();
+      for (const timer of debounceTimers.values()) {
         clearTimeout(timer);
       }
-      debounceTimersRef.current.clear();
+      debounceTimers.clear();
     };
   }, []);
 
