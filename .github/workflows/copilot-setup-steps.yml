@@ -19,7 +19,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install CodeGraphContext
-        run: pip install codegraphcontext
+        run: pip install "tree-sitter-language-pack<1.0.0" codegraphcontext
 
       - name: Index the repository
         run: cgc index .
