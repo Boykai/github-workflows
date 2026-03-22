@@ -131,38 +131,30 @@ export function UndoRedoProvider({
   // ── Undo ──
 
   const undo = useCallback((): ActionHistoryEntry | null => {
-    let undone: ActionHistoryEntry | null = null;
-    setUndoStack((prev) => {
-      if (prev.length === 0) return prev;
-      const copy = [...prev];
-      undone = copy.pop()!;
-      return copy;
-    });
+    if (undoStack.length === 0) return null;
 
-    if (undone) {
-      const entry = undone;
-      setRedoStack((prev) => [...prev.slice(-(MAX_STACK_SIZE - 1)), entry]);
-    }
+    const copy = [...undoStack];
+    const undone = copy.pop()!;
+
+    setUndoStack(copy);
+    setRedoStack((prev) => [...prev.slice(-(MAX_STACK_SIZE - 1)), undone]);
+
     return undone;
-  }, []);
+  }, [undoStack]);
 
   // ── Redo ──
 
   const redo = useCallback((): ActionHistoryEntry | null => {
-    let redone: ActionHistoryEntry | null = null;
-    setRedoStack((prev) => {
-      if (prev.length === 0) return prev;
-      const copy = [...prev];
-      redone = copy.pop()!;
-      return copy;
-    });
+    if (redoStack.length === 0) return null;
 
-    if (redone) {
-      const entry = redone;
-      setUndoStack((prev) => [...prev.slice(-(MAX_STACK_SIZE - 1)), entry]);
-    }
+    const copy = [...redoStack];
+    const redone = copy.pop()!;
+
+    setRedoStack(copy);
+    setUndoStack((prev) => [...prev.slice(-(MAX_STACK_SIZE - 1)), redone]);
+
     return redone;
-  }, []);
+  }, [redoStack]);
 
   // ── Keyboard shortcuts ──
 
@@ -170,6 +162,16 @@ export function UndoRedoProvider({
     function handleKeyDown(e: KeyboardEvent) {
       const isModifier = e.ctrlKey || e.metaKey;
       if (!isModifier) return;
+
+      // Skip when focus is inside a text input to avoid breaking native undo
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === 'INPUT' ||
+        target.tagName === 'TEXTAREA' ||
+        target.isContentEditable
+      ) {
+        return;
+      }
 
       if (e.key === 'z' || e.key === 'Z') {
         if (e.shiftKey) {

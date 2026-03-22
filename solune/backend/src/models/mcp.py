@@ -20,7 +20,18 @@ class McpConfigurationUpdate(BaseModel):
 
     name: str = Field(min_length=1, max_length=100)
     endpoint_url: str = Field(min_length=1, max_length=2048)
-    expected_version: int = Field(ge=1, description="Expected current version for concurrency check")
+    expected_version: int = Field(
+        ge=1, description="Expected current version for concurrency check"
+    )
+
+
+class CollisionSummary(BaseModel):
+    """Summary of a resolved collision returned in update responses."""
+
+    collision_id: str
+    resolution_strategy: str
+    resolution_outcome: str
+    winning_operation: str
 
 
 class McpConfigurationResponse(BaseModel):
@@ -33,6 +44,7 @@ class McpConfigurationResponse(BaseModel):
     version: int = 1
     created_at: str
     updated_at: str
+    collision: CollisionSummary | None = None
 
 
 class McpConfigurationListResponse(BaseModel):

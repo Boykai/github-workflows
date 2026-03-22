@@ -62,7 +62,7 @@ async def update_mcp_configuration(
     mcp_id: str,
     body: McpConfigurationUpdate,
     session: Annotated[UserSession, Depends(get_session_dep)],
-) -> dict:
+) -> McpConfigurationResponse:
     """Update an MCP configuration with optimistic concurrency control.
 
     Returns the updated configuration. If a version collision is detected
@@ -85,7 +85,7 @@ async def update_mcp_configuration(
         }
 
     logger.info("User %s updated MCP %s", session.github_username, mcp_id)
-    return response
+    return McpConfigurationResponse(**response)
 
 
 @router.delete("/mcps/{mcp_id}")

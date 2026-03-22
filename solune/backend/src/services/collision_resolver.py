@@ -42,7 +42,7 @@ def detect_collision(
         operation_id=str(uuid.uuid4()),
         operation_type="update",
         initiated_by="automation",
-        timestamp=utcnow(),
+        timestamp=incoming_operation.timestamp,
         version_expected=current_version,
     )
 
@@ -109,24 +109,28 @@ async def log_collision_event(
 ) -> None:
     """Persist a collision event to the ``collision_events`` table (FR-019)."""
     try:
-        op_a_json = json.dumps({
-            "operation_id": collision.operation_a.operation_id,
-            "operation_type": collision.operation_a.operation_type,
-            "initiated_by": collision.operation_a.initiated_by,
-            "user_id": collision.operation_a.user_id,
-            "timestamp": collision.operation_a.timestamp.isoformat(),
-            "payload": collision.operation_a.payload,
-            "version_expected": collision.operation_a.version_expected,
-        })
-        op_b_json = json.dumps({
-            "operation_id": collision.operation_b.operation_id,
-            "operation_type": collision.operation_b.operation_type,
-            "initiated_by": collision.operation_b.initiated_by,
-            "user_id": collision.operation_b.user_id,
-            "timestamp": collision.operation_b.timestamp.isoformat(),
-            "payload": collision.operation_b.payload,
-            "version_expected": collision.operation_b.version_expected,
-        })
+        op_a_json = json.dumps(
+            {
+                "operation_id": collision.operation_a.operation_id,
+                "operation_type": collision.operation_a.operation_type,
+                "initiated_by": collision.operation_a.initiated_by,
+                "user_id": collision.operation_a.user_id,
+                "timestamp": collision.operation_a.timestamp.isoformat(),
+                "payload": collision.operation_a.payload,
+                "version_expected": collision.operation_a.version_expected,
+            }
+        )
+        op_b_json = json.dumps(
+            {
+                "operation_id": collision.operation_b.operation_id,
+                "operation_type": collision.operation_b.operation_type,
+                "initiated_by": collision.operation_b.initiated_by,
+                "user_id": collision.operation_b.user_id,
+                "timestamp": collision.operation_b.timestamp.isoformat(),
+                "payload": collision.operation_b.payload,
+                "version_expected": collision.operation_b.version_expected,
+            }
+        )
         await db.execute(
             "INSERT INTO collision_events "
             "(collision_id, target_entity_type, target_entity_id, "

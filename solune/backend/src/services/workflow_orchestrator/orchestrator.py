@@ -2732,13 +2732,15 @@ async def dispatch_pipelines(
         done = await asyncio.gather(*tasks, return_exceptions=True)
         for item in done:
             if isinstance(item, Exception):
-                results.append({
-                    "pipeline_id": "unknown",
-                    "status": "failed",
-                    "execution_mode": "concurrent",
-                    "concurrent_group_id": concurrent_group_id,
-                    "error": str(item),
-                })
+                results.append(
+                    {
+                        "pipeline_id": "unknown",
+                        "status": "failed",
+                        "execution_mode": "concurrent",
+                        "concurrent_group_id": concurrent_group_id,
+                        "error": str(item),
+                    }
+                )
             elif isinstance(item, dict):
                 results.append(item)
 

@@ -250,9 +250,7 @@ async def update_mcp(
             payload={"name": data.name, "endpoint_url": data.endpoint_url},
             version_expected=data.expected_version,
         )
-        collision_event = detect_collision(
-            "mcp_config", mcp_id, incoming_op, current_version
-        )
+        collision_event = detect_collision("mcp_config", mcp_id, incoming_op, current_version)
 
         if collision_event and collision_event.winning_operation != "b":
             # The incoming operation lost — log and return current state
@@ -281,7 +279,9 @@ async def update_mcp(
         await log_collision_event(db, collision_event)
         logger.info(
             "Updated MCP %s with collision resolution (v%d→v%d)",
-            mcp_id, current_version, new_version,
+            mcp_id,
+            current_version,
+            new_version,
         )
     else:
         logger.info("Updated MCP %s (v%d→v%d)", mcp_id, current_version, new_version)

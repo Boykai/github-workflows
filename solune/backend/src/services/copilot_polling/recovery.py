@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 import src.services.copilot_polling as _cp
 from src.constants import STALLED_LABEL
@@ -1047,12 +1047,14 @@ async def recover_pipeline_states_from_labels(
         try:
             from src.services.github_projects import github_projects_service
 
-            board_data = await github_projects_service.get_project_items(
-                access_token, project_id
-            )
-            # get_project_items returns list[Task]; cast to list[dict] since
+            board_data = await github_projects_service.get_project_items(access_token, project_id)
+            # get_project_items returns list[Task]; convert to list[dict] since
             # batch_parse_pipeline_labels accesses both .get() and attribute paths.
-            items = cast(list[dict[str, Any]], board_data) if isinstance(board_data, list) else []
+            items = (
+                [t.model_dump(mode="json") for t in board_data]
+                if isinstance(board_data, list)
+                else []
+            )
         except Exception:
             logger.exception("Failed to fetch board items for recovery")
             items = []
@@ -1114,10 +1116,18 @@ async def _persist_recovery_log(report: RecoveryReport) -> None:
     try:
         from src.services.database import get_db
 
-        db = await get_db()
+        db = get_db()
         for state in report.states:
             source_labels_json = json.dumps(
-                [{"run_id": lbl.run_id, "stage_id": lbl.stage_id, "status": lbl.status, "full_name": lbl.full_name} for lbl in state.source_labels]
+                [
+                    {
+                        "run_id": lbl.run_id,
+                        "stage_id": lbl.stage_id,
+                        "status": lbl.status,
+                        "full_name": lbl.full_name,
+                    }
+                    for lbl in state.source_labels
+                ]
             )
             ambiguity_json = json.dumps(state.ambiguity_flags)
             await db.execute(

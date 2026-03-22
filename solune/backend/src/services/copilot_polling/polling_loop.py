@@ -536,21 +536,18 @@ async def _poll_loop(
         _poll_state._activity_window.append(had_activity)
 
         if _poll_state._activity_window:
-            activity_score = sum(1 for x in _poll_state._activity_window if x) / len(_poll_state._activity_window)
+            activity_score = sum(1 for x in _poll_state._activity_window if x) / len(
+                _poll_state._activity_window
+            )
         else:
             activity_score = 0.0
 
-        if _poll_state._consecutive_poll_failures > 0:
-            _poll_state._adaptive_tier = "backoff"
-        elif activity_score > _poll_state.ACTIVITY_SCORE_HIGH_THRESHOLD:
+        if activity_score > _poll_state.ACTIVITY_SCORE_HIGH_THRESHOLD:
             _poll_state._adaptive_tier = "high"
         elif activity_score > _poll_state.ACTIVITY_SCORE_MEDIUM_THRESHOLD:
             _poll_state._adaptive_tier = "medium"
         else:
             _poll_state._adaptive_tier = "low"
-
-        # Reset failure counter on successful poll
-        _poll_state._consecutive_poll_failures = 0
 
         # Only apply adaptive backoff when rate-limit doubling is NOT already
         # active — avoid stacking both multipliers.
