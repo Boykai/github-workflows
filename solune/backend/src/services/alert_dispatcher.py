@@ -18,6 +18,9 @@ logger = get_logger(__name__)
 # ── Module-level singleton ─────────────────────────────────────────────
 _dispatcher: AlertDispatcher | None = None
 
+# Track fire-and-forget webhook tasks to prevent GC collection
+_background_tasks: set[asyncio.Task[None]] = set()
+
 
 def set_dispatcher(dispatcher: AlertDispatcher) -> None:
     """Register the global ``AlertDispatcher`` singleton (called at startup)."""
@@ -86,7 +89,9 @@ class AlertDispatcher:
 
         # ── Optional webhook delivery (fire-and-forget) ──
         if self._webhook_url:
-            asyncio.create_task(self._send_webhook(alert_type, summary, details, fired_at))
+            task = asyncio.create_task(self._send_webhook(alert_type, summary, details, fired_at))
+            _background_tasks.add(task)
+            task.add_done_callback(_background_tasks.discard)
 
         # ── Update cooldown ──
         self._last_fired[alert_type] = now
