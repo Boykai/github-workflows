@@ -159,8 +159,7 @@ class Settings(BaseSettings):
                 )
             # 3. Database path — production only
             if not self.database_path or (
-                self.database_path != ":memory:"
-                and not Path(self.database_path).is_absolute()
+                self.database_path != ":memory:" and not Path(self.database_path).is_absolute()
             ):
                 errors.append(
                     "DATABASE_PATH must be a non-empty absolute path in production mode "
