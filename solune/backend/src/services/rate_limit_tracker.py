@@ -39,9 +39,7 @@ class RateLimitTracker:
         await db.execute(_INDEX_DDL)
         await db.commit()
 
-    async def record_snapshot(
-        self, remaining: int, limit: int, reset_at: int
-    ) -> None:
+    async def record_snapshot(self, remaining: int, limit: int, reset_at: int) -> None:
         """Insert a snapshot and prune rows older than 24 hours."""
         from src.services.database import get_db
 
@@ -65,7 +63,7 @@ class RateLimitTracker:
         await self._ensure_table()
         db = get_db()
         cursor = await db.execute(
-            "SELECT timestamp, remaining, \"limit\", reset_at "
+            'SELECT timestamp, remaining, "limit", reset_at '
             "FROM rate_limit_snapshots "
             "WHERE timestamp >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?) "
             "ORDER BY timestamp ASC",
