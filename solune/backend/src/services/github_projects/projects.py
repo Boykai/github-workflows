@@ -413,7 +413,9 @@ class ProjectsMixin:
                                 if status_value
                                 else DEFAULT_STATUS_BACKLOG
                             ),
-                            status_option_id=(status_value.get("optionId", "") if status_value else ""),
+                            status_option_id=(
+                                status_value.get("optionId", "") if status_value else ""
+                            ),
                             labels=label_list,
                         )
                     )
