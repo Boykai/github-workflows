@@ -742,14 +742,11 @@ class IssuesMixin:
         Returns:
             List of sub-issue dicts with id, node_id, number, title, state, html_url, assignees, etc.
         """
-        from src.services.cache import cache, get_sub_issues_cache_key
+        from src.services.cache import cache, cached_fetch, get_sub_issues_cache_key
 
         cache_key = get_sub_issues_cache_key(owner, repo, issue_number)
-        cached = cache.get(cache_key)
-        if cached is not None:
-            return cached
 
-        try:
+        async def _fetch() -> list:
             response = await self._rest_response(
                 access_token,
                 "GET",
@@ -764,7 +761,6 @@ class IssuesMixin:
                     len(sub_issues),
                     issue_number,
                 )
-                cache.set(cache_key, sub_issues, ttl_seconds=600)
                 return sub_issues
             else:
                 logger.debug(
@@ -774,6 +770,8 @@ class IssuesMixin:
                 )
                 return []
 
+        try:
+            return await cached_fetch(cache, cache_key, _fetch, ttl_seconds=600)
         except Exception as e:
             logger.debug("Failed to get sub-issues for issue #%d: %s", issue_number, e)
             return []
