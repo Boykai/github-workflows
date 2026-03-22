@@ -79,14 +79,11 @@ export function ModelSelector({
   }, []);
 
   const recentModels = useMemo(
-    () => {
-      // isOpen triggers recalculation when the dropdown opens,
-      // since recentModelIdsRef is a mutable ref, not reactive state.
-      void isOpen;
-      return recentModelIdsRef.current
+    () =>
+      recentModelIdsRef.current
         .map((id) => models.find((m) => m.id === id))
-        .filter((m): m is AIModel => m !== undefined);
-    },
+        .filter((m): m is AIModel => m !== undefined),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- isOpen triggers recalculation when dropdown opens; recentModelIdsRef is a mutable ref, not reactive state
     [models, isOpen]
   );
 

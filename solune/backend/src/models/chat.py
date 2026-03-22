@@ -42,15 +42,13 @@ from src.models.workflow import (
 from src.utils import utcnow
 
 __all__ = [
-    # Re-exports: agent
+    "AVAILABLE_LABELS",
+    "AITaskProposal",
     "AgentAssignment",
     "AgentAssignmentInput",
     "AgentSource",
     "AvailableAgent",
     "AvailableAgentsResponse",
-    # Re-exports: recommendation
-    "AVAILABLE_LABELS",
-    "AITaskProposal",
     "IssueLabel",
     "IssueMetadata",
     "IssuePriority",
@@ -59,7 +57,6 @@ __all__ = [
     "ProposalConfirmRequest",
     "ProposalStatus",
     "RecommendationStatus",
-    # Re-exports: workflow
     "TriggeredBy",
     "WorkflowConfiguration",
     "WorkflowResult",

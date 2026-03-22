@@ -93,7 +93,9 @@ export function UploadMcpModal({
 }: UploadMcpModalProps) {
   const [name, setName] = useState('');
   const nameRef = useRef(name);
-  nameRef.current = name;
+  useEffect(() => {
+    nameRef.current = name;
+  }, [name]);
   const [description, setDescription] = useState('');
   const [configContent, setConfigContent] = useState('');
   const [githubRepoTarget, setGithubRepoTarget] = useState('');

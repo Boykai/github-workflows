@@ -60,6 +60,8 @@ export function ChoreChatFlow({
       }
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- initialization-only effect — runs once on mount, deps intentionally empty
+  }, []);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);

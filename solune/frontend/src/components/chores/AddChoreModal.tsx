@@ -77,6 +77,19 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
     }
   }, [isOpen, initialTemplate]);
 
+  const resetAndClose = useCallback(() => {
+    setName('');
+    setTemplateContent('');
+    setError(null);
+    setShowChatFlow(false);
+    setSparseContent('');
+    setAiEnhance(true);
+    setAgentPipelineId('');
+    setShowConfirm(false);
+    setPendingContent('');
+    onClose();
+  }, [onClose]);
+
   // Close modal and reset all state on Escape key (document-level listener)
   useEffect(() => {
     if (!isOpen) return;
@@ -114,19 +127,6 @@ export function AddChoreModal({ projectId, isOpen, onClose, initialTemplate }: A
       setShowConfirm(false);
     }
   };
-
-  const resetAndClose = useCallback(() => {
-    setName('');
-    setTemplateContent('');
-    setError(null);
-    setShowChatFlow(false);
-    setSparseContent('');
-    setAiEnhance(true);
-    setAgentPipelineId('');
-    setShowConfirm(false);
-    setPendingContent('');
-    onClose();
-  }, [onClose]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

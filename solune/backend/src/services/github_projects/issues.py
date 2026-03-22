@@ -434,7 +434,8 @@ class IssuesMixin:
             self._cycle_cache_hit_count += 1
             return cast(dict, cached)
 
-        try:            all_comments: list[dict] = []
+        try:
+            all_comments: list[dict] = []
             title = ""
             body = ""
             author_login = ""

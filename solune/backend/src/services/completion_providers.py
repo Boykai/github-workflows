@@ -59,8 +59,12 @@ class CopilotClientPool:
             if key in self._clients:
                 return self._clients[key]
 
-            from copilot import CopilotClient  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
-            from copilot.types import SubprocessConfig  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
+            from copilot import (
+                CopilotClient,  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
+            )
+            from copilot.types import (
+                SubprocessConfig,  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
+            )
 
             config = SubprocessConfig(github_token=github_token)
             client = CopilotClient(config=config, auto_start=False)  # pyright: ignore[reportCallIssue]  # optional copilot SDK; type stubs may not be available
@@ -164,7 +168,9 @@ class CopilotCompletionProvider(CompletionProvider):
 
         client = await self._pool.get_or_create(github_token)
 
-        from copilot import PermissionHandler  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
+        from copilot import (
+            PermissionHandler,  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
+        )
         from copilot.generated.session_events import (  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
             SessionEventType,
         )
@@ -262,7 +268,9 @@ class AzureOpenAICompletionProvider(CompletionProvider):
 
         # Try Azure OpenAI SDK first (openai package)
         try:
-            from openai import AzureOpenAI  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
+            from openai import (
+                AzureOpenAI,  # type: ignore[reportMissingImports]  # optional SDK; not installed in all environments
+            )
 
             self._client = AzureOpenAI(
                 azure_endpoint=endpoint,
