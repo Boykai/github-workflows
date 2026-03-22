@@ -1220,10 +1220,15 @@ describe('useRealTimeSync', () => {
           mockWebSocketInstances[0]?.simulateMessage({ type, task: { id: '1' } });
         });
 
-        // Each message type invalidates tasks query
+        // Each message type invalidates tasks query with full key shape
         const tasksCalls = invalidateSpy.mock.calls.filter(([opts]) => {
           const key = (opts as { queryKey: unknown[] }).queryKey;
-          return Array.isArray(key) && key[0] === 'projects';
+          return (
+            Array.isArray(key) &&
+            key[0] === 'projects' &&
+            key[1] === 'PVT_789' &&
+            key[2] === 'tasks'
+          );
         });
         expect(tasksCalls.length).toBe(1);
 

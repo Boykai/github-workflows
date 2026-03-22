@@ -13,6 +13,7 @@ from src.models.board import (
     BoardItem,
     BoardProject,
     ContentType,
+    Repository,
     StatusColor,
     StatusField,
     StatusOption,
@@ -774,15 +775,15 @@ class TestCacheHashBranches:
         assert len({h_none, h_dict, h_list}) == 3
 
 
-# ── WebSocket Hash-Based Change Detection (T018/FR-003/SC-001) ─────────────
+# ── Hash-Based Change Detection and Cache Semantics (T018/FR-003/SC-001) ───
 
 
-class TestWebSocketHashChangeDetection:
-    """Verify that the WebSocket subscription loop suppresses refresh messages
-    when the data hash is unchanged (FR-003, SC-001, SC-007).
+class TestHashChangeDetectionLogic:
+    """Unit tests for hash-based change detection and cache behavior.
 
-    These tests validate the hash comparison logic used in the subscription
-    loop in ``projects.py`` to avoid sending redundant ``refresh`` messages.
+    These tests exercise ``compute_data_hash`` and cache TTL refresh semantics
+    that are used by higher-level components (e.g. WebSocket handlers) to
+    avoid sending redundant ``refresh`` messages when data is unchanged.
     """
 
     def test_same_tasks_payload_produces_same_hash(self):
@@ -914,7 +915,29 @@ class TestSubIssueCacheLifecycle:
 
     async def test_sub_issue_cache_cleared_on_manual_refresh(self, client, mock_github_service):
         """Manual refresh clears sub-issue caches before fetching (FR-006)."""
-        board_data = _make_board_data()
+        # Build board data with a realistic BoardItem that has number + repository,
+        # so the manual-refresh path in board.py triggers cache.delete for sub-issues.
+        proj = _make_board_project()
+        board_data = BoardDataResponse(
+            project=proj,
+            columns=[
+                BoardColumn(
+                    status=proj.status_field.options[0],
+                    items=[
+                        BoardItem(
+                            item_id="PVTI_sub",
+                            content_type=ContentType.ISSUE,
+                            title="Issue with sub-issues",
+                            status="Todo",
+                            status_option_id="opt1",
+                            number=42,
+                            repository=Repository(owner="testowner", name="testrepo"),
+                        )
+                    ],
+                    item_count=1,
+                ),
+            ],
+        )
         mock_github_service.get_board_data.return_value = board_data
 
         # First call to populate cache
@@ -923,8 +946,10 @@ class TestSubIssueCacheLifecycle:
         # Manual refresh should clear sub-issue caches
         with patch("src.api.board.cache") as mock_cache:
             mock_cache.get.return_value = board_data
-            await client.get("/api/v1/board/projects/PVT_abc", params={"refresh": True})
-            # The cache.delete calls for sub-issue entries depend on items in
-            # the old cached data. Since our mock returns data with items,
-            # cache.delete should be invoked for sub-issue cleanup.
-            # (In the real code, this happens in the manual refresh path of board.py)
+            resp = await client.get("/api/v1/board/projects/PVT_abc", params={"refresh": True})
+            assert resp.status_code == 200
+            # board.py deletes sub-issue cache entries when item.number and
+            # item.repository are present — verify that cache.delete was called.
+            assert mock_cache.delete.call_count >= 1, (
+                "cache.delete should be called for sub-issue cleanup on manual refresh"
+            )
