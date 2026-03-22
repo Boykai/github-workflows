@@ -629,25 +629,6 @@ def _categorize_pr(
 
     branch_preserved = head_branch in preserved_branch_names
     if branch_preserved:
-        # TODO(bug-bash): The inner `branch_in_delete` check (lines below) is
-        # unreachable because `preserved_branch_names` and `branches_to_delete`
-        # are built from the same exclusive categorisation — a branch cannot be
-        # in both sets simultaneously. Options: (a) remove the dead inner block,
-        # (b) investigate whether the categorisation *should* allow overlap.
-        # Deferred because: removing code needs careful validation that no
-        # edge case was intended, and this is a code-quality issue not a runtime
-        # bug.
-        branch_in_delete = any(b.name == head_branch for b in branches_to_delete)
-        if branch_in_delete and pr_is_solune_owned:
-            matched = next((b for b in branches_to_delete if b.name == head_branch), None)
-            return PullRequestInfo(
-                number=pr_number,
-                title=pr_title,
-                head_branch=head_branch,
-                referenced_issues=referenced,
-                eligible_for_deletion=True,
-                deletion_reason=matched.deletion_reason if matched else None,
-            )
         return PullRequestInfo(
             number=pr_number,
             title=pr_title,
