@@ -7,12 +7,27 @@ type from firing more than once per ``cooldown_minutes``.
 
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime
 from typing import Any
 
 from src.logging_utils import get_logger
 
 logger = get_logger(__name__)
+
+# ── Module-level singleton ─────────────────────────────────────────────
+_dispatcher: AlertDispatcher | None = None
+
+
+def set_dispatcher(dispatcher: AlertDispatcher) -> None:
+    """Register the global ``AlertDispatcher`` singleton (called at startup)."""
+    global _dispatcher
+    _dispatcher = dispatcher
+
+
+def get_dispatcher() -> AlertDispatcher | None:
+    """Return the global dispatcher, or ``None`` if not initialised."""
+    return _dispatcher
 
 
 class AlertDispatcher:
@@ -69,9 +84,9 @@ class AlertDispatcher:
             fired_at,
         )
 
-        # ── Optional webhook delivery ──
+        # ── Optional webhook delivery (fire-and-forget) ──
         if self._webhook_url:
-            await self._send_webhook(alert_type, summary, details, fired_at)
+            asyncio.create_task(self._send_webhook(alert_type, summary, details, fired_at))
 
         # ── Update cooldown ──
         self._last_fired[alert_type] = now

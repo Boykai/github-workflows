@@ -90,7 +90,9 @@ class TestAlertDispatcherWebhook:
     """Tests for webhook delivery."""
 
     async def test_webhook_sends_post(self):
-        """When webhook_url is set, a POST should be sent."""
+        """When webhook_url is set, a POST should be sent (fire-and-forget)."""
+        import asyncio
+
         dispatcher = AlertDispatcher(webhook_url="https://hooks.example.com/alert")
 
         with patch("httpx.AsyncClient") as mock_client_cls:
@@ -104,6 +106,9 @@ class TestAlertDispatcherWebhook:
                 summary="Rate limit critical",
                 details={"remaining": 5},
             )
+
+            # Give the fire-and-forget task time to run
+            await asyncio.sleep(0.05)
 
             mock_client.post.assert_called_once()
             call_kwargs = mock_client.post.call_args
@@ -122,6 +127,8 @@ class TestAlertDispatcherWebhook:
 
     async def test_webhook_failure_does_not_raise(self, caplog):
         """Webhook failure should be logged but not raise."""
+        import asyncio
+
         dispatcher = AlertDispatcher(webhook_url="https://hooks.example.com/alert")
 
         with patch("httpx.AsyncClient") as mock_client_cls:
@@ -139,4 +146,6 @@ class TestAlertDispatcherWebhook:
                     summary="Test",
                     details={},
                 )
+                # Give the fire-and-forget task time to run
+                await asyncio.sleep(0.05)
             assert "Webhook delivery failed" in caplog.text

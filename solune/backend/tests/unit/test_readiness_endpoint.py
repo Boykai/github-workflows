@@ -230,6 +230,104 @@ class TestReadinessPollingFail:
         assert resp.json()["status"] == "fail"
 
 
+class TestReadinessEncryptionFail:
+    """Tests when encryption is disabled (no valid key)."""
+
+    @pytest.fixture(autouse=True)
+    def _patch(self):
+        with (
+            patch(
+                "src.api.health._readiness_check_db",
+                new_callable=AsyncMock,
+            ) as mock_db,
+            patch("src.api.health._readiness_check_oauth") as mock_oauth,
+            patch("src.api.health._readiness_check_encryption") as mock_enc,
+            patch("src.api.health._readiness_check_polling") as mock_poll,
+        ):
+            from src.api.health import ReadinessCheckResult
+
+            mock_db.return_value = ReadinessCheckResult(
+                component_id="database:writeable",
+                status="pass",
+                time="2026-03-22T14:00:00Z",
+            )
+            mock_oauth.return_value = ReadinessCheckResult(
+                component_id="oauth:configured",
+                status="pass",
+                time="2026-03-22T14:00:00Z",
+            )
+            mock_enc.return_value = ReadinessCheckResult(
+                component_id="encryption:enabled",
+                status="fail",
+                time="2026-03-22T14:00:00Z",
+                output="Encryption service is disabled (no valid key)",
+            )
+            mock_poll.return_value = ReadinessCheckResult(
+                component_id="polling:alive",
+                status="pass",
+                time="2026-03-22T14:00:00Z",
+            )
+            yield
+
+    async def test_encryption_disabled_returns_503(self, client):
+        """Encryption disabled causes 503."""
+        resp = await client.get(READY_URL)
+        assert resp.status_code == 503
+        assert resp.json()["status"] == "fail"
+
+    async def test_encryption_disabled_includes_output(self, client):
+        """Encryption failure check includes descriptive output."""
+        resp = await client.get(READY_URL)
+        enc_check = resp.json()["checks"]["encryption:enabled"][0]
+        assert enc_check["status"] == "fail"
+        assert "output" in enc_check
+
+
+class TestReadinessPollingDisabled:
+    """Tests when polling is intentionally disabled (interval=0)."""
+
+    @pytest.fixture(autouse=True)
+    def _patch(self):
+        with (
+            patch(
+                "src.api.health._readiness_check_db",
+                new_callable=AsyncMock,
+            ) as mock_db,
+            patch("src.api.health._readiness_check_oauth") as mock_oauth,
+            patch("src.api.health._readiness_check_encryption") as mock_enc,
+            patch("src.api.health._readiness_check_polling") as mock_poll,
+        ):
+            from src.api.health import ReadinessCheckResult
+
+            mock_db.return_value = ReadinessCheckResult(
+                component_id="database:writeable",
+                status="pass",
+                time="2026-03-22T14:00:00Z",
+            )
+            mock_oauth.return_value = ReadinessCheckResult(
+                component_id="oauth:configured",
+                status="pass",
+                time="2026-03-22T14:00:00Z",
+            )
+            mock_enc.return_value = ReadinessCheckResult(
+                component_id="encryption:enabled",
+                status="pass",
+                time="2026-03-22T14:00:00Z",
+            )
+            mock_poll.return_value = ReadinessCheckResult(
+                component_id="polling:alive",
+                status="pass",
+                time="2026-03-22T14:00:00Z",
+            )
+            yield
+
+    async def test_polling_disabled_returns_200(self, client):
+        """Polling intentionally disabled (interval=0) still returns 200."""
+        resp = await client.get(READY_URL)
+        assert resp.status_code == 200
+        assert resp.json()["status"] == "pass"
+
+
 class TestHealthEndpointUnchanged:
     """Verify GET /health liveness endpoint remains unchanged (FR-005)."""
 

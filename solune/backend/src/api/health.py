@@ -179,11 +179,12 @@ async def _readiness_check_db() -> ReadinessCheckResult:
         await db.commit()
         return ReadinessCheckResult(component_id="database:writeable", status="pass", time=now)
     except Exception as exc:
+        logger.warning("Readiness: database write check failed — %s", exc, exc_info=True)
         return ReadinessCheckResult(
             component_id="database:writeable",
             status="fail",
             time=now,
-            output=f"Database write check failed: {exc}",
+            output="Database write check failed",
         )
 
 

@@ -341,15 +341,6 @@ async def _poll_loop(
             # Clear per-cycle cache so each iteration starts with fresh data.
             _cp.github_projects_service.clear_cycle_cache()
 
-            # ── OTel: wrap polling cycle in a span (Phase 5) ──
-            from src.services.otel_setup import get_meter, get_tracer
-
-            _otel_tracer = get_tracer()
-            _otel_meter = get_meter()
-            import uuid as _uuid
-
-            _cycle_request_id = f"poll-{_uuid.uuid4().hex[:8]}"
-
             logger.debug(
                 "Polling for Copilot PR completions (poll #%d)",
                 _polling_state.poll_count,
@@ -372,9 +363,9 @@ async def _poll_loop(
                     and rl_info.get("remaining") is not None
                     and rl_info["remaining"] < _settings.rate_limit_critical_threshold
                 ):
-                    from src.main import app as _app
+                    from src.services.alert_dispatcher import get_dispatcher
 
-                    dispatcher = getattr(_app.state, "alert_dispatcher", None)
+                    dispatcher = get_dispatcher()
                     if dispatcher is not None:
                         await dispatcher.dispatch_alert(
                             alert_type="rate_limit_critical",
@@ -479,11 +470,11 @@ async def _poll_loop(
         # ── OTel metrics emission (Phase 5) ──
         try:
             from src.services.otel_setup import get_meter as _get_otel_meter
-            from src.services.pipeline_state_store import _pipeline_states
+            from src.services.pipeline_state_store import get_all_pipeline_states
 
             _cycle_meter = _get_otel_meter()
             active_gauge = _cycle_meter.create_gauge("pipeline.active_count")
-            active_gauge.set(len(_pipeline_states))
+            active_gauge.set(len(get_all_pipeline_states()))
 
             rl_gauge = _cycle_meter.create_gauge("github.api_remaining")
             _rl_data = _cp.github_projects_service.get_last_rate_limit()
@@ -494,7 +485,7 @@ async def _poll_loop(
 
         # ── Rate-limit snapshot recording (Phase 5, optional) ──
         try:
-            from src.services.rate_limit_tracker import RateLimitTracker
+            from src.services.rate_limit_tracker import get_tracker
 
             _rl_snap = _cp.github_projects_service.get_last_rate_limit()
             if (
@@ -503,8 +494,7 @@ async def _poll_loop(
                 and _rl_snap.get("limit") is not None
                 and _rl_snap.get("reset_at") is not None
             ):
-                _tracker = RateLimitTracker()
-                await _tracker.record_snapshot(
+                await get_tracker().record_snapshot(
                     remaining=_rl_snap["remaining"],
                     limit=_rl_snap["limit"],
                     reset_at=_rl_snap["reset_at"],

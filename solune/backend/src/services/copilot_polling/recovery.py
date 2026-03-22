@@ -390,11 +390,6 @@ async def recover_stalled_issues(
     """
     results: list[dict[str, Any]] = []
 
-    # ── OTel span: recovery.stall_check (Phase 5) ──
-    from src.services.otel_setup import get_tracer
-
-    _recovery_tracer = get_tracer()
-
     try:
         if tasks is None:
             tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
@@ -821,9 +816,9 @@ async def recover_stalled_issues(
                     else _settings.pipeline_stall_alert_minutes
                 )
                 if stall_minutes >= _settings.pipeline_stall_alert_minutes:
-                    from src.main import app as _app
+                    from src.services.alert_dispatcher import get_dispatcher
 
-                    dispatcher = getattr(_app.state, "alert_dispatcher", None)
+                    dispatcher = get_dispatcher()
                     if dispatcher is not None:
                         await dispatcher.dispatch_alert(
                             alert_type="pipeline_stall",
