@@ -60,6 +60,9 @@ async def init_database() -> aiosqlite.Connection:
     await db.execute("PRAGMA busy_timeout=5000;")
     await db.execute("PRAGMA foreign_keys=ON;")
 
+    # Integrity check before migrations
+    db = await _check_integrity(db, db_path, is_in_memory)
+
     # Run migrations
     await _run_migrations(db)
 
@@ -86,6 +89,51 @@ def get_db() -> aiosqlite.Connection:
     if _connection is None:
         raise RuntimeError("Database not initialized. Call init_database() first.")
     return _connection
+
+
+async def _check_integrity(
+    db: aiosqlite.Connection, db_path: str, is_in_memory: bool
+) -> aiosqlite.Connection:
+    """Run PRAGMA integrity_check. If corrupt, rename the file and start fresh."""
+    try:
+        cursor = await db.execute("PRAGMA integrity_check;")
+        result = await cursor.fetchone()
+        status = result[0] if result else "unknown"
+    except Exception:
+        logger.exception("integrity_check query failed for %s", db_path)
+        status = "error"
+
+    if status == "ok":
+        return db
+
+    logger.error("Database integrity check FAILED (%s): %s", db_path, status)
+
+    if is_in_memory:
+        logger.warning("In-memory database failed integrity check — continuing anyway")
+        return db
+
+    # Rename corrupt file and open a fresh connection
+    await db.close()
+    corrupt_name = f"{db_path}.corrupt.{int(datetime.now(UTC).timestamp())}"
+    Path(db_path).rename(corrupt_name)
+    logger.warning("Renamed corrupt database to %s — creating fresh database", corrupt_name)
+
+    # Also move WAL/SHM sidecar files if present
+    for suffix in ("-wal", "-shm"):
+        sidecar = Path(db_path + suffix)
+        if sidecar.exists():
+            sidecar.rename(corrupt_name + suffix)
+
+    db = await aiosqlite.connect(db_path)
+    db.row_factory = aiosqlite.Row
+    try:
+        Path(db_path).chmod(0o600)
+    except OSError:
+        logger.warning("Could not set recovered database file permissions to 0600")
+    await db.execute("PRAGMA journal_mode=WAL;")
+    await db.execute("PRAGMA busy_timeout=5000;")
+    await db.execute("PRAGMA foreign_keys=ON;")
+    return db
 
 
 async def _run_migrations(db: aiosqlite.Connection) -> None:
