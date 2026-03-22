@@ -96,6 +96,27 @@ class GitHubProjectsService(
         for key in keys:
             self._cycle_cache.pop(key, None)
 
+    async def _cycle_cached(self, cache_key: str, fetch_fn: Callable[[], Awaitable[_T]]) -> _T:
+        """Return a cached result or call *fetch_fn*, store the result and return it.
+
+        Encapsulates the per-poll-cycle memoisation pattern used across
+        multiple service methods:
+
+        1. ``self._cycle_cache.get(cache_key)``
+        2. On hit → increment ``_cycle_cache_hit_count`` and return.
+        3. On miss → ``await fetch_fn()``, store in ``_cycle_cache``, return.
+
+        The caller is responsible for error handling — if *fetch_fn* raises,
+        the exception propagates without storing a value in the cache.
+        """
+        cached = self._cycle_cache.get(cache_key)
+        if cached is not None:
+            self._cycle_cache_hit_count += 1
+            return cached  # type: ignore[return-value]
+        result = await fetch_fn()
+        self._cycle_cache[cache_key] = result
+        return result
+
     async def _rest(
         self,
         access_token: str,
@@ -460,5 +481,14 @@ class GitHubProjectsService(
 # in favor of exclusive app.state registration. Deferred because 17+ files
 # import this directly in non-request contexts (background tasks, signal bridge,
 # orchestrator) where Request.app.state is not available.
+#
+# FR-008 (001-code-quality-tech-debt) explicitly defers this to a follow-up PR.
+# Required scope for that PR:
+#   1. Audit all 17+ consuming files (background tasks, signal bridge,
+#      orchestrator, polling loops).
+#   2. Introduce a get_github_service() accessor pattern that returns the
+#      singleton from app.state in request contexts and falls back to the
+#      module-level instance in non-request contexts.
+#   3. Update all affected test mocks to use the accessor.
 # Global service instance
 github_projects_service = GitHubProjectsService()

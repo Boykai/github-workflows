@@ -25,8 +25,8 @@
 
 **Purpose**: Establish green baseline before any refactoring
 
-- [ ] T001 Verify existing test suite passes with `cd solune/backend && python -m pytest tests/ -x`
-- [ ] T002 Verify ruff check passes with `cd solune/backend && ruff check src/`
+- [x] T001 Verify existing test suite passes with `cd solune/backend && python -m pytest tests/ -x`
+- [x] T002 Verify ruff check passes with `cd solune/backend && ruff check src/`
 
 ---
 
@@ -50,12 +50,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T003 [US2] Add `_cycle_cached(self, cache_key: str, fetch_fn: Callable[[], Awaitable[T]]) -> T` instance method to `GitHubProjectsService` in `solune/backend/src/services/github_projects/service.py` — implement cache check, hit-count increment on hit, fetch-and-store on miss
-- [ ] T004 [P] [US2] Refactor 3 cycle cache call sites in `solune/backend/src/services/github_projects/pull_requests.py` (~lines 295, 375, 450) to use `self._cycle_cached(cache_key, fetch_fn)`
-- [ ] T005 [P] [US2] Refactor 1 cycle cache call site in `solune/backend/src/services/github_projects/projects.py` (~line 354) to use `self._cycle_cached(cache_key, fetch_fn)`
-- [ ] T006 [P] [US2] Refactor 2 cycle cache call sites in `solune/backend/src/services/github_projects/copilot.py` (~lines 230, 280) to use `self._cycle_cached(cache_key, fetch_fn)`
-- [ ] T007 [P] [US2] Refactor 1 cycle cache call site in `solune/backend/src/services/github_projects/issues.py` (~line 437) to use `self._cycle_cached(cache_key, fetch_fn)`
-- [ ] T008 [US2] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
+- [x] T003 [US2] Add `_cycle_cached(self, cache_key: str, fetch_fn: Callable[[], Awaitable[T]]) -> T` instance method to `GitHubProjectsService` in `solune/backend/src/services/github_projects/service.py` — implement cache check, hit-count increment on hit, fetch-and-store on miss
+- [x] T004 [P] [US2] Refactor 3 cycle cache call sites in `solune/backend/src/services/github_projects/pull_requests.py` (~lines 295, 375, 450) to use `self._cycle_cached(cache_key, fetch_fn)`
+- [x] T005 [P] [US2] Refactor 1 cycle cache call site in `solune/backend/src/services/github_projects/projects.py` (~line 354) to use `self._cycle_cached(cache_key, fetch_fn)`
+- [x] T006 [P] [US2] Refactor 2 cycle cache call sites in `solune/backend/src/services/github_projects/copilot.py` (~lines 230, 280) to use `self._cycle_cached(cache_key, fetch_fn)`
+- [x] T007 [P] [US2] Refactor 1 cycle cache call site in `solune/backend/src/services/github_projects/issues.py` (~line 437) to use `self._cycle_cached(cache_key, fetch_fn)`
+- [x] T008 [US2] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
 
 **Checkpoint**: All 7 cycle cache call sites consolidated into `_cycle_cached()`. Existing tests pass unchanged.
 
@@ -71,9 +71,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T009 [P] [US5] Add inline comment at `solune/backend/src/api/workflow.py` (~line 543) documenting why `get_config` uses a custom `session.github_username` fallback instead of the canonical `resolve_repository()` 5-step fallback — explain the ~90% consolidation state
-- [ ] T010 [P] [US5] Add inline comment at `solune/backend/src/api/workflow.py` (~line 615) documenting why `discover_agents` uses intentional partial-resolution with query param override instead of the canonical `resolve_repository()` 5-step fallback
-- [ ] T011 [US5] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
+- [x] T009 [P] [US5] Add inline comment at `solune/backend/src/api/workflow.py` (~line 543) documenting why `get_config` uses a custom `session.github_username` fallback instead of the canonical `resolve_repository()` 5-step fallback — explain the ~90% consolidation state
+- [x] T010 [P] [US5] Add inline comment at `solune/backend/src/api/workflow.py` (~line 615) documenting why `discover_agents` uses intentional partial-resolution with query param override instead of the canonical `resolve_repository()` 5-step fallback
+- [x] T011 [US5] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
 
 **Checkpoint**: Both deviation sites documented. No functional changes.
 
@@ -93,18 +93,18 @@
 
 #### Part 1: Dead Code Block Removal (Plan Phase A — parallel)
 
-- [ ] T012 [US4] Verify mutual exclusivity of `preserved_branch_names` and `branches_to_delete` by inspecting the `_classify_branches()` categorization logic in `solune/backend/src/services/cleanup_service.py` — confirm the `if/else` at ~lines 758–767 places each branch in exactly one list
-- [ ] T013 [US4] Remove unreachable `branch_in_delete` inner block (lines 641–649) in `solune/backend/src/services/cleanup_service.py` — remove the nested check and its body, preserving the outer `branch_preserved` logic
-- [ ] T014 [US4] Add regression test exercising the `branch_preserved` code path in `solune/backend/tests/unit/test_cleanup_service.py` — test that a branch categorized as preserved is correctly handled and does NOT appear in `branches_to_delete`
-- [ ] T015 [US4] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
+- [x] T012 [US4] Verify mutual exclusivity of `preserved_branch_names` and `branches_to_delete` by inspecting the `_classify_branches()` categorization logic in `solune/backend/src/services/cleanup_service.py` — confirm the `if/else` at ~lines 758–767 places each branch in exactly one list
+- [x] T013 [US4] Remove unreachable `branch_in_delete` inner block (lines 641–649) in `solune/backend/src/services/cleanup_service.py` — remove the nested check and its body, preserving the outer `branch_preserved` logic
+- [x] T014 [US4] Add regression test exercising the `branch_preserved` code path in `solune/backend/tests/unit/test_cleanup_service.py` — test that a branch categorized as preserved is correctly handled and does NOT appear in `branches_to_delete`
+- [x] T015 [US4] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
 
 #### Part 2: Spec 039 Authoring & Dead Code Sweep (Plan Phase D — after Phases 6–7)
 
-- [ ] T016 [US4] Run `ruff check --select F401,F811 solune/backend/src/` and capture full output as dead code inventory input
-- [ ] T017 [US4] Run `vulture solune/backend/src/` (install if not available via `pip install vulture`) and capture full output as dead code inventory input
-- [ ] T018 [US4] Create `specs/039-dead-code-cleanup/` directory and author `spec.md` documenting all dead code items — include the `cleanup_service.py` L641–649 block, all `ruff` findings, all `vulture` findings, and a disposition for each item (remove, defer, or retain with justification)
-- [ ] T019 [US4] Execute time-boxed dead code sweep: remove only items with "remove" disposition from Spec 039, skip deferred or retained items
-- [ ] T020 [US4] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/ && ruff check --select F401,F811 src/`
+- [x] T016 [US4] Run `ruff check --select F401,F811 solune/backend/src/` and capture full output as dead code inventory input
+- [x] T017 [US4] Run `vulture solune/backend/src/` (install if not available via `pip install vulture`) and capture full output as dead code inventory input
+- [x] T018 [US4] Create `specs/039-dead-code-cleanup/` directory and author `spec.md` documenting all dead code items — include the `cleanup_service.py` L641–649 block, all `ruff` findings, all `vulture` findings, and a disposition for each item (remove, defer, or retain with justification)
+- [x] T019 [US4] Execute time-boxed dead code sweep: remove only items with "remove" disposition from Spec 039, skip deferred or retained items
+- [x] T020 [US4] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/ && ruff check --select F401,F811 src/`
 
 **Checkpoint**: Dead code block removed, regression test passes, Spec 039 authored with complete inventory, sweep executed. `ruff check --select F401,F811 src/` returns zero new findings.
 
@@ -122,13 +122,13 @@
 
 ### Implementation for User Story 1
 
-- [ ] T021 [US1] Audit all 10 global cache call sites across `board.py`, `projects.py`, `utils.py`, `issues.py`, `service.py` — classify each as refactorable (single-key pattern) or must-stay-inline (dual-key/custom variant per board.py) using the call-site mapping from data-model.md
-- [ ] T022 [P] [US1] Refactor 4 cache call sites in `solune/backend/src/api/projects.py` (~lines 128, 150, 170, 190) to use `await cached_fetch(cache_key, fetch_fn, ttl_seconds=...)` — these form a single stale-fallback group and should be consolidated into one `cached_fetch()` call
-- [ ] T023 [P] [US1] Refactor 1 cache call site in `solune/backend/src/utils.py` (~line 238, `resolve_repository`) to use `await cached_fetch(cache_key, fetch_fn, ttl_seconds=...)`
-- [ ] T024 [P] [US1] Refactor 1 cache call site in `solune/backend/src/services/github_projects/issues.py` (~line 751, `sub_issues`) to use `await cached_fetch(cache_key, fetch_fn, ttl_seconds=600)`
-- [ ] T025 [P] [US1] Refactor 1 cache call site in `solune/backend/src/services/github_projects/service.py` (~line 108) to use `await cached_fetch(cache_key, fetch_fn, ttl_seconds=...)`
-- [ ] T026 [US1] Evaluate and refactor refactorable cache call sites in `solune/backend/src/api/board.py` (~lines 221, 293, 432) — skip dual-key variants with stale-fallback + rate-limit classification that don't fit `cached_fetch()` cleanly; document which sites remain inline and why
-- [ ] T027 [US1] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
+- [x] T021 [US1] Audit all 10 global cache call sites across `board.py`, `projects.py`, `utils.py`, `issues.py`, `service.py` — classify each as refactorable (single-key pattern) or must-stay-inline (dual-key/custom variant per board.py) using the call-site mapping from data-model.md
+- [x] T022 [P] [US1] Refactor 4 cache call sites in `solune/backend/src/api/projects.py` (~lines 128, 150, 170, 190) to use `await cached_fetch(cache_key, fetch_fn, ttl_seconds=...)` — these form a single stale-fallback group and should be consolidated into one `cached_fetch()` call
+- [x] T023 [P] [US1] Refactor 1 cache call site in `solune/backend/src/utils.py` (~line 238, `resolve_repository`) to use `await cached_fetch(cache_key, fetch_fn, ttl_seconds=...)`
+- [x] T024 [P] [US1] Refactor 1 cache call site in `solune/backend/src/services/github_projects/issues.py` (~line 751, `sub_issues`) to use `await cached_fetch(cache_key, fetch_fn, ttl_seconds=600)`
+- [x] T025 [P] [US1] Refactor 1 cache call site in `solune/backend/src/services/github_projects/service.py` (~line 108) to use `await cached_fetch(cache_key, fetch_fn, ttl_seconds=...)`
+- [x] T026 [US1] Evaluate and refactor refactorable cache call sites in `solune/backend/src/api/board.py` (~lines 221, 293, 432) — skip dual-key variants with stale-fallback + rate-limit classification that don't fit `cached_fetch()` cleanly; document which sites remain inline and why
+- [x] T027 [US1] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
 
 **Checkpoint**: Up to 10 cache call sites consolidated. ~80 LOC reduction achieved. Board.py dual-key sites documented if kept inline. All existing tests pass unchanged.
 
@@ -146,14 +146,14 @@
 
 ### Implementation for User Story 3
 
-- [ ] T028 [US3] Extend `handle_service_error()` in `solune/backend/src/logging_utils.py` — relax `error_cls` type annotation from `type[AppException] | None` to `type[Exception] | None` and add type-aware construction: use `error_cls(message=...)` for `AppException` subclasses, `error_cls(...)` (positional) for other exception types like `ValueError`
-- [ ] T029 [US3] Add test case in `solune/backend/tests/unit/test_logging_utils.py` covering `handle_service_error()` with `error_cls=ValueError` — verify `ValueError` is raised with positional message, not keyword `message=`
-- [ ] T030 [US3] Audit API-layer test assertions across `solune/backend/tests/` for hardcoded exception type checks (e.g., `GitHubAPIError`, `ValueError`) — document which tests verify exception types so post-migration regression can be confirmed
-- [ ] T031 [P] [US3] Migrate 3 catch-log-raise patterns in `solune/backend/src/api/board.py` (L293, L432, L532) to `handle_service_error(e, "operation", error_cls=GitHubAPIError)` — preserve identical `GitHubAPIError` with same message format
-- [ ] T032 [P] [US3] Migrate 4 catch-log-raise patterns in `solune/backend/src/services/ai_agent.py` (L193, L262, L595, L769) to `handle_service_error(e, "operation", error_cls=ValueError)` — preserve string-based error classification (`"401"`, `"404"`, `"Access denied"`) as pre-check conditionals before calling the helper; document string-based classification as tech debt with inline comment
-- [ ] T033 [US3] Add inline comment in `solune/backend/src/services/ai_agent.py` at each migrated site documenting the deliberate `ValueError` deviation from the `AppException` subclass convention — explain that changing to `AppException` would silently alter API error-response shape (FR-010)
-- [ ] T034 [US3] Migrate 1 bare-raise pattern in `solune/backend/src/services/agents/service.py` (~L1176) to `handle_service_error(exc, "agent chat completion")` — preserve re-raise behavior (no `error_cls`, original exception propagates)
-- [ ] T035 [US3] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/` — confirm all API-layer exception type assertions pass unchanged
+- [x] T028 [US3] Extend `handle_service_error()` in `solune/backend/src/logging_utils.py` — relax `error_cls` type annotation from `type[AppException] | None` to `type[Exception] | None` and add type-aware construction: use `error_cls(message=...)` for `AppException` subclasses, `error_cls(...)` (positional) for other exception types like `ValueError`
+- [x] T029 [US3] Add test case in `solune/backend/tests/unit/test_logging_utils.py` covering `handle_service_error()` with `error_cls=ValueError` — verify `ValueError` is raised with positional message, not keyword `message=`
+- [x] T030 [US3] Audit API-layer test assertions across `solune/backend/tests/` for hardcoded exception type checks (e.g., `GitHubAPIError`, `ValueError`) — document which tests verify exception types so post-migration regression can be confirmed
+- [x] T031 [P] [US3] Migrate 3 catch-log-raise patterns in `solune/backend/src/api/board.py` (L293, L432, L532) to `handle_service_error(e, "operation", error_cls=GitHubAPIError)` — preserve identical `GitHubAPIError` with same message format
+- [x] T032 [P] [US3] Migrate 4 catch-log-raise patterns in `solune/backend/src/services/ai_agent.py` (L193, L262, L595, L769) to `handle_service_error(e, "operation", error_cls=ValueError)` — preserve string-based error classification (`"401"`, `"404"`, `"Access denied"`) as pre-check conditionals before calling the helper; document string-based classification as tech debt with inline comment
+- [x] T033 [US3] Add inline comment in `solune/backend/src/services/ai_agent.py` at each migrated site documenting the deliberate `ValueError` deviation from the `AppException` subclass convention — explain that changing to `AppException` would silently alter API error-response shape (FR-010)
+- [x] T034 [US3] Migrate 1 bare-raise pattern in `solune/backend/src/services/agents/service.py` (~L1176) to `handle_service_error(exc, "agent chat completion")` — preserve re-raise behavior (no `error_cls`, original exception propagates)
+- [x] T035 [US3] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/` — confirm all API-layer exception type assertions pass unchanged
 
 **Checkpoint**: All 8 catch-log-raise patterns migrated. `ValueError` preserved at `ai_agent.py` boundaries. ~15–20 LOC reduction achieved. All existing tests pass unchanged.
 
@@ -169,9 +169,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T036 [P] [US6] Add deferral documentation comment at the module-level singleton in `solune/backend/src/services/github_projects/service.py` (~line 459) — note that removal is deferred to a follow-up PR per FR-008, list required scope: audit 17+ consumers (background tasks, signal bridge, orchestrator), introduce `get_github_service()` accessor, update all test mocks
-- [ ] T037 [P] [US6] Add deferral documentation comment at the module-level singleton in `solune/backend/src/services/github_projects/agents.py` (~line 363) — note that removal is deferred to a follow-up PR per FR-008, with same scope requirements as T036
-- [ ] T038 [US6] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
+- [x] T036 [P] [US6] Add deferral documentation comment at the module-level singleton in `solune/backend/src/services/github_projects/service.py` (~line 459) — note that removal is deferred to a follow-up PR per FR-008, list required scope: audit 17+ consumers (background tasks, signal bridge, orchestrator), introduce `get_github_service()` accessor, update all test mocks
+- [x] T037 [P] [US6] Add deferral documentation comment at the module-level singleton in `solune/backend/src/services/github_projects/agents.py` (~line 363) — note that removal is deferred to a follow-up PR per FR-008, with same scope requirements as T036
+- [x] T038 [US6] Run verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/`
 
 **Checkpoint**: Singleton deferral documented. No functional changes to singletons. Follow-up PR scope pre-defined.
 
@@ -181,11 +181,11 @@
 
 **Purpose**: Final validation, quality checks, and cross-cutting verification
 
-- [ ] T039 Run full verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/ && ruff check --select F401,F811 src/`
-- [ ] T040 Verify zero behavioral changes at API boundaries — spot-check that cache TTLs, stale-fallback semantics, exception types, and response shapes are identical pre/post refactoring
-- [ ] T041 Run optional quality checks: `cd solune/backend && pyright src/` (type checking) and `bandit -r src/` (security scanning)
-- [ ] T042 Verify Spec 039 inventory matches actual dead code removal — confirm all "remove" items were removed and all "defer"/"retain" items are untouched
-- [ ] T043 Confirm singleton patterns at `service.py:459` and `agents.py:363` are untouched (FR-008 deferral compliance)
+- [x] T039 Run full verification gate: `cd solune/backend && python -m pytest tests/ -x && ruff check src/ && ruff check --select F401,F811 src/`
+- [x] T040 Verify zero behavioral changes at API boundaries — spot-check that cache TTLs, stale-fallback semantics, exception types, and response shapes are identical pre/post refactoring
+- [x] T041 Run optional quality checks: `cd solune/backend && pyright src/` (type checking) and `bandit -r src/` (security scanning)
+- [x] T042 Verify Spec 039 inventory matches actual dead code removal — confirm all "remove" items were removed and all "defer"/"retain" items are untouched
+- [x] T043 Confirm singleton patterns at `service.py:459` and `agents.py:363` are untouched (FR-008 deferral compliance)
 
 ---
 

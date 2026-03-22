@@ -224,9 +224,9 @@ def get_logger(name: str) -> logging.Logger:
 def handle_service_error(
     exc: Exception,
     operation: str,
-    error_cls: type[AppException] | None = None,
+    error_cls: type[Exception] | None = None,
 ) -> NoReturn:
-    """Log the exception and raise an :class:`AppException` with a safe message.
+    """Log the exception and raise a structured exception with a safe message.
 
     This helper centralises the repeated pattern of:
 
@@ -237,11 +237,14 @@ def handle_service_error(
     Args:
         exc: The caught exception.
         operation: Human-readable description of the failed operation.
-        error_cls: The :class:`AppException` subclass to raise.  Defaults
-            to :class:`src.exceptions.GitHubAPIError` if not provided.
+        error_cls: The exception class to raise.  Defaults to
+            :class:`src.exceptions.GitHubAPIError` if not provided.
+            Supports both :class:`AppException` subclasses (constructed
+            with ``message=``) and plain exception types such as
+            ``ValueError`` (constructed with a positional argument).
 
     Raises:
-        AppException: Always raised (the specific subclass is *error_cls*).
+        Exception: Always raised (the specific subclass is *error_cls*).
     """
     from src.exceptions import GitHubAPIError
 
@@ -256,9 +259,12 @@ def handle_service_error(
         exc_info=True,
     )
 
-    raise error_cls(
-        message=f"Failed to {operation}",
-    ) from exc
+    msg = f"Failed to {operation}"
+    from src.exceptions import AppException
+
+    if issubclass(error_cls, AppException):
+        raise error_cls(message=msg) from exc
+    raise error_cls(msg) from exc
 
 
 def handle_github_errors(

@@ -15,7 +15,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
-from src.logging_utils import get_logger
+from src.logging_utils import get_logger, handle_service_error
 from src.models.recommendation import (
     IssueMetadata,
     IssuePriority,
@@ -189,9 +189,13 @@ class AIAgentService:
             )
 
         except Exception as e:
+            # NOTE(001-code-quality-tech-debt): ValueError is used here
+            # deliberately instead of an AppException subclass. Changing to
+            # AppException would silently alter the API error-response shape
+            # seen by callers. The string-based classification below is
+            # fragile tech debt but must be preserved for behavioral
+            # equivalence.
             error_msg = str(e)
-            logger.error("Failed to generate issue recommendation: %s", error_msg)
-
             if "401" in error_msg or "Access denied" in error_msg:
                 raise ValueError(
                     "AI provider authentication failed. Check your credentials "
@@ -202,7 +206,7 @@ class AIAgentService:
                     "AI model/deployment not found. Verify your provider configuration."
                 ) from e
             else:
-                raise ValueError(f"Failed to generate recommendation: {error_msg}") from e
+                handle_service_error(e, "generate recommendation", ValueError)
 
     async def analyze_transcript(
         self,
@@ -258,9 +262,9 @@ class AIAgentService:
             return recommendation
 
         except Exception as e:
+            # NOTE(001-code-quality-tech-debt): ValueError preserved for
+            # backward compatibility — see note in generate_issue_recommendation.
             error_msg = str(e)
-            logger.error("Failed to analyse transcript: %s", error_msg)
-
             if "401" in error_msg or "Access denied" in error_msg:
                 raise ValueError(
                     "AI provider authentication failed. Check your credentials "
@@ -271,7 +275,7 @@ class AIAgentService:
                     "AI model/deployment not found. Verify your provider configuration."
                 ) from e
             else:
-                raise ValueError(f"Failed to analyse transcript: {error_msg}") from e
+                handle_service_error(e, "analyse transcript", ValueError)
 
     def _parse_issue_recommendation_response(
         self,
@@ -591,10 +595,9 @@ class AIAgentService:
             return self._validate_generated_task(task_data)
 
         except Exception as e:
+            # NOTE(001-code-quality-tech-debt): ValueError preserved for
+            # backward compatibility — see note in generate_issue_recommendation.
             error_msg = str(e)
-            logger.error("Failed to generate task: %s", error_msg)
-
-            # Provide helpful error messages
             if "401" in error_msg or "Access denied" in error_msg:
                 raise ValueError(
                     "AI provider authentication failed. Check your credentials "
@@ -607,7 +610,7 @@ class AIAgentService:
                     f"Original error: {error_msg}"
                 ) from e
             else:
-                raise ValueError(f"Failed to generate task: {error_msg}") from e
+                handle_service_error(e, "generate task", ValueError)
 
     async def parse_status_change_request(
         self,

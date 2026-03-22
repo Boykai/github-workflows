@@ -292,12 +292,8 @@ class PullRequestsMixin:
             List of PR details with id, number, title, state, isDraft, url, author
         """
         cache_key = f"linked_prs:{owner}/{repo}/{issue_number}"
-        cached = self._cycle_cache.get(cache_key)
-        if cached is not None:
-            self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
 
-        try:
+        async def _fetch() -> list[dict]:
             data = await self._graphql(
                 access_token,
                 GET_ISSUE_LINKED_PRS_QUERY,
@@ -345,9 +341,10 @@ class PullRequestsMixin:
                 issue_number,
                 [pr["number"] for pr in unique_prs],
             )
-            self._cycle_cache[cache_key] = unique_prs
             return unique_prs
 
+        try:
+            return await self._cycle_cached(cache_key, _fetch)
         except Exception as e:
             logger.error("Failed to get linked PRs for issue #%d: %s", issue_number, e)
             return []
@@ -372,12 +369,8 @@ class PullRequestsMixin:
             PR details dict or None if not found
         """
         cache_key = f"pr:{owner}/{repo}/{pr_number}"
-        cached = self._cycle_cache.get(cache_key)
-        if cached is not None:
-            self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
 
-        try:
+        async def _fetch() -> dict | None:
             data = await self._graphql(
                 access_token,
                 GET_PULL_REQUEST_QUERY,
@@ -402,7 +395,7 @@ class PullRequestsMixin:
                 if status_rollup:
                     check_status = status_rollup.get("state")
 
-            result = {
+            return {
                 "id": pr.get("id"),
                 "number": pr.get("number"),
                 "title": pr.get("title"),
@@ -419,9 +412,9 @@ class PullRequestsMixin:
                 "last_commit": last_commit,
                 "check_status": check_status,  # SUCCESS, FAILURE, PENDING, etc.
             }
-            self._cycle_cache[cache_key] = result
-            return result
 
+        try:
+            return await self._cycle_cached(cache_key, _fetch)
         except Exception as e:
             logger.error("Failed to get PR #%d: %s", pr_number, e)
             return None
@@ -715,21 +708,17 @@ class PullRequestsMixin:
             List of timeline events
         """
         cache_key = f"timeline:{owner}/{repo}/{issue_number}"
-        cached = self._cycle_cache.get(cache_key)
-        if cached is not None:
-            self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
 
-        try:
+        async def _fetch() -> list:
             result = await self._rest(
                 access_token,
                 "GET",
                 f"/repos/{owner}/{repo}/issues/{issue_number}/timeline",
             )
-            if isinstance(result, list):
-                self._cycle_cache[cache_key] = result
-                return result
-            return []
+            return result if isinstance(result, list) else []
+
+        try:
+            return await self._cycle_cached(cache_key, _fetch)
         except Exception as e:
             logger.error(
                 "Failed to get timeline events for issue #%d: %s",
