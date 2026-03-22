@@ -165,7 +165,7 @@
 
 **Independent Test**: Confirm no changes are made to singleton patterns in this PR. Verify deferral documentation exists with follow-up scope.
 
-**Plan Phase**: E (deferred — NOT part of this PR, documentation only)
+**Plan Phase**: Deferred (NOT part of this PR, documentation only)
 
 ### Implementation for User Story 6
 
@@ -234,7 +234,7 @@ Phase 2: Foundational (N/A)
 └─────────────────────────────────────────────────────────────┘
          │
          ▼
-Phase 8: US6 (Singleton Deferral — documentation only)
+Phase 8: US6 (Singleton Deferral — documentation only, deferred)
 Phase 9: Polish & Cross-Cutting Concerns
 ```
 
@@ -270,7 +270,7 @@ Phase 9: Polish & Cross-Cutting Concerns
 
 **Cross-phase parallelism**:
 - Phases 3, 4, and 5 Part 1 can be staffed to three developers simultaneously
-- Phases 6 and 7 can potentially overlap if they don't touch the same files (US1 touches `board.py` and `issues.py`, US3 touches `board.py` — so board.py is a conflict point; sequence US1 board.py work before US3 board.py work)
+- Phases 6 and 7 are sequential (Phase 7 requires Phase 6 completion) — they share `board.py` and both require Phase A stability
 
 ---
 
