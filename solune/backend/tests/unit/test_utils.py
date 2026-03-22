@@ -378,10 +378,16 @@ class TestResolveRepository:
                 "src.utils._resolve_repository_rest",
                 AsyncMock(return_value=("rest_owner", "rest_repo")),
             ),
+            patch(
+                "src.services.workflow_orchestrator.get_workflow_config",
+                AsyncMock(return_value=None),
+            ) as mock_config,
         ):
             result = await resolve_repository("token", "proj-id")
 
         assert result == ("rest_owner", "rest_repo")
+        # REST succeeded — workflow config should NOT be called
+        mock_config.assert_not_awaited()
 
     @pytest.mark.asyncio
     async def test_step3_falls_back_to_workflow_config(self):
@@ -473,33 +479,6 @@ class TestResolveRepository:
         ):
             with pytest.raises(ValidationError, match="No repository found"):
                 await resolve_repository("token", "proj-id")
-
-    @pytest.mark.asyncio
-    async def test_rest_fallback_used_when_graphql_fails(self):
-        """Mock GraphQL to fail, REST to succeed — verify REST path resolves."""
-        mock_service = AsyncMock()
-        mock_service.get_project_repository.return_value = None
-
-        with (
-            patch(
-                "src.services.github_projects.github_projects_service",
-                mock_service,
-            ),
-            patch(
-                "src.utils._resolve_repository_rest",
-                AsyncMock(return_value=("rest_owner", "rest_repo")),
-            ) as mock_rest,
-            patch(
-                "src.services.workflow_orchestrator.get_workflow_config",
-                AsyncMock(return_value=None),
-            ) as mock_config,
-        ):
-            result = await resolve_repository("token", "proj-id")
-
-        assert result == ("rest_owner", "rest_repo")
-        mock_rest.assert_awaited_once_with("token", "proj-id")
-        # Workflow config should NOT be called — REST succeeded
-        mock_config.assert_not_awaited()
 
 
 # =============================================================================

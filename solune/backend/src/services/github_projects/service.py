@@ -205,16 +205,21 @@ class GitHubProjectsService(
         """Execute *primary_fn*, optionally verify, then fall back on failure.
 
         Implements the primary → verify → fallback resilience pattern with
-        a **soft-failure contract**: returns ``None`` on total failure and
-        never raises exceptions to the caller.
+        a **soft-failure contract**: returns ``None`` only when primary
+        itself raises **and** fallback also fails.  Never raises exceptions
+        to the caller.
 
         Flow:
         1. Call *primary_fn()*.  If it succeeds **and** either no *verify_fn*
            is provided or *verify_fn()* returns ``True``, the primary result
            is returned.
-        2. If *primary_fn* raises, or *verify_fn* returns ``False`` / raises,
-           call *fallback_fn()*.
-        3. If *fallback_fn* also fails, return ``None``.
+        2. If *verify_fn* returns ``False`` / raises, call *fallback_fn()*.
+           If fallback succeeds, return its result; if fallback also fails,
+           return the primary result (primary did succeed, verification was
+           merely advisory).
+        3. If *primary_fn* itself raises, call *fallback_fn()*.  If fallback
+           succeeds, return its result; if fallback also fails, return
+           ``None`` (total failure).
 
         All exceptions in primary, verify, and fallback paths are caught
         and logged — the caller never sees them.

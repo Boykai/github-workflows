@@ -10,7 +10,7 @@ from pydantic import ValidationError as PydanticValidationError
 
 from src.api.webhook_models import IssuesEvent, PingEvent, PullRequestData, PullRequestEvent
 from src.config import get_settings
-from src.exceptions import AppException, AuthenticationError, ValidationError
+from src.exceptions import AuthenticationError, ValidationError
 from src.logging_utils import get_logger, handle_service_error
 from src.services.activity_logger import log_event
 from src.services.cache import cache, get_repo_agents_cache_key
