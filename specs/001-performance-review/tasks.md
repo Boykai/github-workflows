@@ -23,12 +23,12 @@
 
 **Purpose**: Environment setup, verify all existing tests pass, and confirm tooling works before any measurement or optimization work begins.
 
-- [ ] T001 Verify backend dev dependencies install cleanly with `cd solune/backend && pip install -e ".[dev]"`
-- [ ] T002 [P] Verify frontend dependencies install cleanly with `cd solune/frontend && npm install`
-- [ ] T003 Run existing backend test suite for performance-related files with `pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --timeout=60` in `solune/backend/`
-- [ ] T004 [P] Run existing frontend test suite for refresh-related hooks with `npm run test -- --run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx` in `solune/frontend/`
-- [ ] T005 [P] Run backend linting and type checks with `ruff check src tests && pyright src` in `solune/backend/`
-- [ ] T006 [P] Run frontend linting, type checks, and build with `npm run lint && npm run type-check && npm run build` in `solune/frontend/`
+- [x] T001 Verify backend dev dependencies install cleanly with `cd solune/backend && pip install -e ".[dev]"`
+- [x] T002 [P] Verify frontend dependencies install cleanly with `cd solune/frontend && npm install`
+- [x] T003 Run existing backend test suite for performance-related files with `pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --timeout=60` in `solune/backend/`
+- [x] T004 [P] Run existing frontend test suite for refresh-related hooks with `npm run test -- --run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx` in `solune/frontend/`
+- [x] T005 [P] Run backend linting and type checks with `ruff check src tests && pyright src` in `solune/backend/`
+- [x] T006 [P] Run frontend linting, type checks, and build with `npm run lint && npm run type-check && npm run build` in `solune/frontend/`
 
 **Checkpoint**: All existing tests pass, tooling works, and the codebase is in a known-good state before measurement begins.
 
@@ -42,17 +42,17 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Audit WebSocket subscription loop for hash-based change detection status in `solune/backend/src/api/projects.py` — document whether `compute_data_hash()` is wired into the send-tasks flow and record current behavior (sends on every cycle vs. hash-gated)
-- [ ] T008 [P] [US1] Audit board endpoint cache behavior in `solune/backend/src/api/board.py` — confirm 300s TTL is active, sub-issue cache is cleared on manual refresh (`refresh=True`), and cached data is served within TTL window
-- [ ] T009 [P] [US1] Audit polling loop rate-limit budget behavior in `solune/backend/src/services/copilot_polling/polling_loop.py` — confirm `_check_rate_limit_budget()` and `_pause_if_rate_limited()` are active and record current threshold values
-- [ ] T010 [P] [US1] Audit sub-issue caching in `solune/backend/src/services/github_projects/service.py` — confirm `get_sub_issues()` checks cache first with 600s TTL and only makes REST API calls on cache miss
-- [ ] T011 [P] [US1] Audit frontend refresh-path separation in `solune/frontend/src/hooks/useRealTimeSync.ts` — confirm WebSocket messages and fallback polling invalidate only `['projects', projectId, 'tasks']` and do not touch `['board', 'data', projectId]`
-- [ ] T012 [P] [US1] Audit auto-refresh suppression in `solune/frontend/src/hooks/useBoardRefresh.ts` — confirm auto-refresh timer is paused when `isWebSocketConnected=true` and resumes on disconnect
-- [ ] T013 [P] [US1] Audit board query invalidation strategy in `solune/frontend/src/hooks/useProjectBoard.ts` — confirm query keys, stale times, and refetch triggers align with the refresh contract in `specs/001-performance-review/contracts/refresh-contract.md`
-- [ ] T014 [P] [US1] Audit frontend component memoization in `solune/frontend/src/components/board/BoardColumn.tsx` and `solune/frontend/src/components/board/IssueCard.tsx` — confirm `React.memo()` wrapping and `useMemo` usage, identify any unstable callback references passed as props
-- [ ] T015 [P] [US1] Audit page-level derived data in `solune/frontend/src/pages/ProjectsPage.tsx` — confirm `heroStats`, `rateLimitState`, `syncStatusLabel` are memoized via `useMemo`, identify any inline sorting/aggregation computed on every render
-- [ ] T016 [P] [US1] Audit event listener patterns in `solune/frontend/src/components/chat/ChatPopup.tsx` — confirm resize/mousemove handlers are RAF-gated or throttled, identify any unthrottled hot listeners
-- [ ] T017 [US1] Create baseline measurement document recording all audit findings at `specs/001-performance-review/checklists/baseline-measurements.md` — include current state of each audited behavior, gaps found, and before-values for SC-001 through SC-010
+- [x] T007 [US1] Audit WebSocket subscription loop for hash-based change detection status in `solune/backend/src/api/projects.py` — document whether `compute_data_hash()` is wired into the send-tasks flow and record current behavior (sends on every cycle vs. hash-gated)
+- [x] T008 [P] [US1] Audit board endpoint cache behavior in `solune/backend/src/api/board.py` — confirm 300s TTL is active, sub-issue cache is cleared on manual refresh (`refresh=True`), and cached data is served within TTL window
+- [x] T009 [P] [US1] Audit polling loop rate-limit budget behavior in `solune/backend/src/services/copilot_polling/polling_loop.py` — confirm `_check_rate_limit_budget()` and `_pause_if_rate_limited()` are active and record current threshold values
+- [x] T010 [P] [US1] Audit sub-issue caching in `solune/backend/src/services/github_projects/service.py` — confirm `get_sub_issues()` checks cache first with 600s TTL and only makes REST API calls on cache miss
+- [x] T011 [P] [US1] Audit frontend refresh-path separation in `solune/frontend/src/hooks/useRealTimeSync.ts` — confirm WebSocket messages and fallback polling invalidate only `['projects', projectId, 'tasks']` and do not touch `['board', 'data', projectId]`
+- [x] T012 [P] [US1] Audit auto-refresh suppression in `solune/frontend/src/hooks/useBoardRefresh.ts` — confirm auto-refresh timer is paused when `isWebSocketConnected=true` and resumes on disconnect
+- [x] T013 [P] [US1] Audit board query invalidation strategy in `solune/frontend/src/hooks/useProjectBoard.ts` — confirm query keys, stale times, and refetch triggers align with the refresh contract in `specs/001-performance-review/contracts/refresh-contract.md`
+- [x] T014 [P] [US1] Audit frontend component memoization in `solune/frontend/src/components/board/BoardColumn.tsx` and `solune/frontend/src/components/board/IssueCard.tsx` — confirm `React.memo()` wrapping and `useMemo` usage, identify any unstable callback references passed as props
+- [x] T015 [P] [US1] Audit page-level derived data in `solune/frontend/src/pages/ProjectsPage.tsx` — confirm `heroStats`, `rateLimitState`, `syncStatusLabel` are memoized via `useMemo`, identify any inline sorting/aggregation computed on every render
+- [x] T016 [P] [US1] Audit event listener patterns in `solune/frontend/src/components/chat/ChatPopup.tsx` — confirm resize/mousemove handlers are RAF-gated or throttled, identify any unthrottled hot listeners
+- [x] T017 [US1] Create baseline measurement document recording all audit findings at `specs/001-performance-review/checklists/baseline-measurements.md` — include current state of each audited behavior, gaps found, and before-values for SC-001 through SC-010
 
 **Checkpoint**: Baseline measurements are documented. All gaps between current behavior and target behavior are identified. Optimization work can now begin with clear before/after comparison points.
 
@@ -68,18 +68,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T018 [P] [US2] Add test for WebSocket hash-based change detection suppression in `solune/backend/tests/unit/test_api_board.py` — test that when `compute_data_hash()` returns the same hash as the last-sent message, no `refresh` message is sent to the client
-- [ ] T019 [P] [US2] Add test for board endpoint cache hit within TTL in `solune/backend/tests/unit/test_api_board.py` — test that calling the board endpoint within 300s TTL without `refresh=True` returns cached data without an outbound GitHub API call
-- [ ] T020 [P] [US2] Add test for sub-issue cache reuse on non-manual refresh in `solune/backend/tests/unit/test_api_board.py` — test that warm sub-issue cache entries are reused and no additional GitHub API calls are made for sub-issues
-- [ ] T021 [P] [US2] Add test for fallback polling not triggering full board refetch in `solune/backend/tests/unit/test_copilot_polling.py` — test that polling interval fires do not invoke the board data endpoint
+- [x] T018 [P] [US2] Add test for WebSocket hash-based change detection suppression in `solune/backend/tests/unit/test_api_board.py` — test that when `compute_data_hash()` returns the same hash as the last-sent message, no `refresh` message is sent to the client
+- [x] T019 [P] [US2] Add test for board endpoint cache hit within TTL in `solune/backend/tests/unit/test_api_board.py` — test that calling the board endpoint within 300s TTL without `refresh=True` returns cached data without an outbound GitHub API call
+- [x] T020 [P] [US2] Add test for sub-issue cache reuse on non-manual refresh in `solune/backend/tests/unit/test_api_board.py` — test that warm sub-issue cache entries are reused and no additional GitHub API calls are made for sub-issues
+- [x] T021 [P] [US2] Add test for fallback polling not triggering full board refetch in `solune/backend/tests/unit/test_copilot_polling.py` — test that polling interval fires do not invoke the board data endpoint
 
 ### Implementation for User Story 2
 
-- [ ] T022 [US2] Wire `compute_data_hash()` into the WebSocket subscription send-tasks flow in `solune/backend/src/api/projects.py` — store last-sent hash per subscription, compare current hash against last-sent hash, skip sending `refresh` message when hashes match (FR-003, SC-001, SC-007)
-- [ ] T023 [US2] Verify stale-revalidation counter correctly forces a fresh fetch after 10 unchanged cycles in `solune/backend/src/api/projects.py` — confirm the counter resets after a force-refresh and does not suppress legitimate data changes
-- [ ] T024 [P] [US2] Verify board endpoint returns cached data within TTL without outbound API calls in `solune/backend/src/api/board.py` — confirm `cached_fetch()` is used correctly with the `board_data:{project_id}` cache key and 300s TTL (FR-004, SC-002)
-- [ ] T025 [P] [US2] Verify sub-issue cache entries are preserved on non-manual board requests and cleared only on manual refresh in `solune/backend/src/api/board.py` — confirm the `refresh=True` path deletes sub-issue cache entries while the default path reuses them (FR-005, FR-006)
-- [ ] T026 [P] [US2] Verify rate limit exhaustion returns stale cached data gracefully in `solune/backend/src/services/cache.py` — confirm `cached_fetch()` stale fallback activates on rate limit detection (429/403) and includes rate limit info in response (FR-014)
+- [x] T022 [US2] Wire `compute_data_hash()` into the WebSocket subscription send-tasks flow in `solune/backend/src/api/projects.py` — store last-sent hash per subscription, compare current hash against last-sent hash, skip sending `refresh` message when hashes match (FR-003, SC-001, SC-007)
+- [x] T023 [US2] Verify stale-revalidation counter correctly forces a fresh fetch after 10 unchanged cycles in `solune/backend/src/api/projects.py` — confirm the counter resets after a force-refresh and does not suppress legitimate data changes
+- [x] T024 [P] [US2] Verify board endpoint returns cached data within TTL without outbound API calls in `solune/backend/src/api/board.py` — confirm `cached_fetch()` is used correctly with the `board_data:{project_id}` cache key and 300s TTL (FR-004, SC-002)
+- [x] T025 [P] [US2] Verify sub-issue cache entries are preserved on non-manual board requests and cleared only on manual refresh in `solune/backend/src/api/board.py` — confirm the `refresh=True` path deletes sub-issue cache entries while the default path reuses them (FR-005, FR-006)
+- [x] T026 [P] [US2] Verify rate limit exhaustion returns stale cached data gracefully in `solune/backend/src/services/cache.py` — confirm `cached_fetch()` stale fallback activates on rate limit detection (429/403) and includes rate limit info in response (FR-014)
 
 **Checkpoint**: Backend idle API consumption is eliminated. WebSocket subscription loop suppresses unchanged refresh messages. Cached board data is served within TTL. Sub-issue caches are reused. Rate limit exhaustion is handled gracefully.
 
@@ -95,18 +95,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T027 [P] [US3] Add test for WebSocket `task_update` invalidating only tasks query in `solune/frontend/src/hooks/useRealTimeSync.test.tsx` — test that receiving a `task_update` message calls `invalidateQueries` with `['projects', projectId, 'tasks']` and does NOT call it with `['board', 'data', projectId]`
-- [ ] T028 [P] [US3] Add test for fallback polling invalidating only tasks query in `solune/frontend/src/hooks/useRealTimeSync.test.tsx` — test that when WebSocket is unavailable and polling fires, only `['projects', projectId, 'tasks']` is invalidated
-- [ ] T029 [P] [US3] Add test for auto-refresh suppression when WebSocket is connected in `solune/frontend/src/hooks/useBoardRefresh.test.tsx` — test that the auto-refresh timer does not fire when `isWebSocketConnected=true`
-- [ ] T030 [P] [US3] Add test for manual refresh triggering full board data refetch with cache bypass in `solune/frontend/src/hooks/useBoardRefresh.test.tsx` — test that manual refresh calls the backend with `refresh=true` and the board data query is refetched
+- [x] T027 [P] [US3] Add test for WebSocket `task_update` invalidating only tasks query in `solune/frontend/src/hooks/useRealTimeSync.test.tsx` — test that receiving a `task_update` message calls `invalidateQueries` with `['projects', projectId, 'tasks']` and does NOT call it with `['board', 'data', projectId]`
+- [x] T028 [P] [US3] Add test for fallback polling invalidating only tasks query in `solune/frontend/src/hooks/useRealTimeSync.test.tsx` — test that when WebSocket is unavailable and polling fires, only `['projects', projectId, 'tasks']` is invalidated
+- [x] T029 [P] [US3] Add test for auto-refresh suppression when WebSocket is connected in `solune/frontend/src/hooks/useBoardRefresh.test.tsx` — test that the auto-refresh timer does not fire when `isWebSocketConnected=true`
+- [x] T030 [P] [US3] Add test for manual refresh triggering full board data refetch with cache bypass in `solune/frontend/src/hooks/useBoardRefresh.test.tsx` — test that manual refresh calls the backend with `refresh=true` and the board data query is refetched
 
 ### Implementation for User Story 3
 
-- [ ] T031 [US3] Verify and enforce tasks-only invalidation for all WebSocket message types in `solune/frontend/src/hooks/useRealTimeSync.ts` — confirm `task_update`, `task_created`, `status_changed`, `refresh`, and `initial_data` messages all invalidate only `['projects', projectId, 'tasks']` per the refresh contract (FR-007, FR-008)
-- [ ] T032 [US3] Verify and enforce tasks-only invalidation for fallback polling in `solune/frontend/src/hooks/useRealTimeSync.ts` — confirm polling fallback path invalidates only `['projects', projectId, 'tasks']` and does not touch board data query (FR-007, SC-008)
-- [ ] T033 [US3] Verify auto-refresh timer coordination with WebSocket status in `solune/frontend/src/hooks/useBoardRefresh.ts` — confirm timer is paused when WS connected, resumes on disconnect, and resets on WS-triggered refresh (FR-009)
-- [ ] T034 [US3] Verify manual refresh bypasses all caches and triggers full board data reload in `solune/frontend/src/hooks/useBoardRefresh.ts` — confirm `requestBoardReload()` sends `refresh=true` to backend, cancels pending debounced reloads, and the board data query refetches with fresh data (FR-006, SC-009)
-- [ ] T035 [US3] Verify board data query stale time and auto-refresh interval alignment in `solune/frontend/src/hooks/useProjectBoard.ts` — confirm board data query uses `STALE_TIME_SHORT` matching the 5-minute auto-refresh schedule, and query key `['board', 'data', projectId]` is stable
+- [x] T031 [US3] Verify and enforce tasks-only invalidation for all WebSocket message types in `solune/frontend/src/hooks/useRealTimeSync.ts` — confirm `task_update`, `task_created`, `status_changed`, `refresh`, and `initial_data` messages all invalidate only `['projects', projectId, 'tasks']` per the refresh contract (FR-007, FR-008)
+- [x] T032 [US3] Verify and enforce tasks-only invalidation for fallback polling in `solune/frontend/src/hooks/useRealTimeSync.ts` — confirm polling fallback path invalidates only `['projects', projectId, 'tasks']` and does not touch board data query (FR-007, SC-008)
+- [x] T033 [US3] Verify auto-refresh timer coordination with WebSocket status in `solune/frontend/src/hooks/useBoardRefresh.ts` — confirm timer is paused when WS connected, resumes on disconnect, and resets on WS-triggered refresh (FR-009)
+- [x] T034 [US3] Verify manual refresh bypasses all caches and triggers full board data reload in `solune/frontend/src/hooks/useBoardRefresh.ts` — confirm `requestBoardReload()` sends `refresh=true` to backend, cancels pending debounced reloads, and the board data query refetches with fresh data (FR-006, SC-009)
+- [x] T035 [US3] Verify board data query stale time and auto-refresh interval alignment in `solune/frontend/src/hooks/useProjectBoard.ts` — confirm board data query uses `STALE_TIME_SHORT` matching the 5-minute auto-refresh schedule, and query key `['board', 'data', projectId]` is stable
 
 **Checkpoint**: Refresh-path separation is enforced end-to-end. Lightweight task updates never trigger expensive board data reloads. Manual refresh still performs full cache bypass. Auto-refresh coordinates correctly with WebSocket status.
 
@@ -120,13 +120,13 @@
 
 ### Implementation for User Story 4
 
-- [ ] T036 [US4] Stabilize callback references passed to memoized `BoardColumn` children in `solune/frontend/src/pages/ProjectsPage.tsx` — wrap callbacks (e.g., `getGroups`, card click handlers, drag handlers) in `useCallback` with stable dependency arrays so `React.memo` on `BoardColumn` can skip re-renders when data is unchanged (FR-010, SC-005)
-- [ ] T037 [P] [US4] Verify `useBoardControls` transform output referential stability in the hook used by `solune/frontend/src/pages/ProjectsPage.tsx` — confirm that `transformedData` from `useBoardControls` returns the same object reference when the underlying board data has not changed, preventing unnecessary downstream re-renders
-- [ ] T038 [P] [US4] Verify `getGroups` callback reference stability in `solune/frontend/src/components/board/BoardColumn.tsx` — confirm the callback passed as a prop is stable across renders and does not break `React.memo` on child components
-- [ ] T039 [P] [US4] Verify `React.memo` effectiveness on `IssueCard` in `solune/frontend/src/components/board/IssueCard.tsx` — confirm `useMemo` for labels, pipeline/agent parsing, and body snippet are correctly dependency-arrayed and that all props passed to `IssueCard` are referentially stable
-- [ ] T040 [P] [US4] Verify page-level `useMemo` correctness for `heroStats`, `rateLimitState`, and `syncStatusLabel` in `solune/frontend/src/pages/ProjectsPage.tsx` — confirm dependency arrays are minimal and correct, and that these memoized values do not recompute when unrelated state changes (FR-010, SC-005)
-- [ ] T041 [P] [US4] Verify RAF-gated mousemove handler in `solune/frontend/src/components/chat/ChatPopup.tsx` — confirm resize/drag positioning listener uses `requestAnimationFrame` gating and does not fire continuously when idle (FR-011)
-- [ ] T042 [P] [US4] Verify event listener patterns in `solune/frontend/src/components/agents/AddAgentModal.tsx` — confirm no hot positioning listeners exist (research found modal-based, not popover) and no throttling changes are needed
+- [x] T036 [US4] Stabilize callback references passed to memoized `BoardColumn` children in `solune/frontend/src/pages/ProjectsPage.tsx` — wrap callbacks (e.g., `getGroups`, card click handlers, drag handlers) in `useCallback` with stable dependency arrays so `React.memo` on `BoardColumn` can skip re-renders when data is unchanged (FR-010, SC-005)
+- [x] T037 [P] [US4] Verify `useBoardControls` transform output referential stability in the hook used by `solune/frontend/src/pages/ProjectsPage.tsx` — confirm that `transformedData` from `useBoardControls` returns the same object reference when the underlying board data has not changed, preventing unnecessary downstream re-renders
+- [x] T038 [P] [US4] Verify `getGroups` callback reference stability in `solune/frontend/src/components/board/BoardColumn.tsx` — confirm the callback passed as a prop is stable across renders and does not break `React.memo` on child components
+- [x] T039 [P] [US4] Verify `React.memo` effectiveness on `IssueCard` in `solune/frontend/src/components/board/IssueCard.tsx` — confirm `useMemo` for labels, pipeline/agent parsing, and body snippet are correctly dependency-arrayed and that all props passed to `IssueCard` are referentially stable
+- [x] T040 [P] [US4] Verify page-level `useMemo` correctness for `heroStats`, `rateLimitState`, and `syncStatusLabel` in `solune/frontend/src/pages/ProjectsPage.tsx` — confirm dependency arrays are minimal and correct, and that these memoized values do not recompute when unrelated state changes (FR-010, SC-005)
+- [x] T041 [P] [US4] Verify RAF-gated mousemove handler in `solune/frontend/src/components/chat/ChatPopup.tsx` — confirm resize/drag positioning listener uses `requestAnimationFrame` gating and does not fire continuously when idle (FR-011)
+- [x] T042 [P] [US4] Verify event listener patterns in `solune/frontend/src/components/agents/AddAgentModal.tsx` — confirm no hot positioning listeners exist (research found modal-based, not popover) and no throttling changes are needed
 
 **Checkpoint**: Board rendering is optimized with stable callback references, proper memoization, and throttled event listeners. Board interactions (scroll, drag, hover) on 50+ card boards maintain >30 FPS with no perceptible jank.
 
@@ -140,15 +140,15 @@
 
 ### Implementation for User Story 5
 
-- [ ] T043 [P] [US5] Extend cache TTL behavior tests in `solune/backend/tests/unit/test_cache.py` — add test cases for: cache hit returns data without API call within TTL, stale fallback activates on rate limit, hash comparison refreshes TTL without re-storing data (FR-004, FR-014, SC-002)
-- [ ] T044 [P] [US5] Extend WebSocket change detection tests in `solune/backend/tests/unit/test_api_board.py` — add test cases for: hash unchanged → no refresh message sent, hash changed → refresh message sent, stale counter reaches limit → force refresh, counter resets after force refresh (FR-003, SC-001)
-- [ ] T045 [P] [US5] Extend polling behavior tests in `solune/backend/tests/unit/test_copilot_polling.py` — add test cases for: polling does not trigger board data refetch, rate limit budget pauses polling at threshold, expensive operations skipped at skip threshold (SC-008)
-- [ ] T046 [P] [US5] Extend real-time sync tests in `solune/frontend/src/hooks/useRealTimeSync.test.tsx` — add test cases for: each WebSocket message type (`task_update`, `task_created`, `status_changed`, `refresh`, `initial_data`) invalidates only tasks query, reconnection debounce prevents query storm (FR-007, FR-008, SC-003)
-- [ ] T047 [P] [US5] Extend board refresh tests in `solune/frontend/src/hooks/useBoardRefresh.test.tsx` — add test cases for: auto-refresh paused when WS connected, auto-refresh resumes on WS disconnect, tab visibility pauses/resumes timer, manual refresh cancels debounced reloads (FR-009, SC-009)
-- [ ] T048 [US5] Run full backend test suite to confirm zero regressions with `pytest tests/ -v --timeout=60` in `solune/backend/` (SC-006)
-- [ ] T049 [US5] Run full frontend test suite to confirm zero regressions with `npm run test` in `solune/frontend/` (SC-006)
-- [ ] T050 [US5] Run backend linting and type checks to confirm no new violations with `ruff check src tests && pyright src` in `solune/backend/`
-- [ ] T051 [US5] Run frontend linting, type checks, and build to confirm no new violations with `npm run lint && npm run type-check && npm run build` in `solune/frontend/`
+- [x] T043 [P] [US5] Extend cache TTL behavior tests in `solune/backend/tests/unit/test_cache.py` — add test cases for: cache hit returns data without API call within TTL, stale fallback activates on rate limit, hash comparison refreshes TTL without re-storing data (FR-004, FR-014, SC-002)
+- [x] T044 [P] [US5] Extend WebSocket change detection tests in `solune/backend/tests/unit/test_api_board.py` — add test cases for: hash unchanged → no refresh message sent, hash changed → refresh message sent, stale counter reaches limit → force refresh, counter resets after force refresh (FR-003, SC-001)
+- [x] T045 [P] [US5] Extend polling behavior tests in `solune/backend/tests/unit/test_copilot_polling.py` — add test cases for: polling does not trigger board data refetch, rate limit budget pauses polling at threshold, expensive operations skipped at skip threshold (SC-008)
+- [x] T046 [P] [US5] Extend real-time sync tests in `solune/frontend/src/hooks/useRealTimeSync.test.tsx` — add test cases for: each WebSocket message type (`task_update`, `task_created`, `status_changed`, `refresh`, `initial_data`) invalidates only tasks query, reconnection debounce prevents query storm (FR-007, FR-008, SC-003)
+- [x] T047 [P] [US5] Extend board refresh tests in `solune/frontend/src/hooks/useBoardRefresh.test.tsx` — add test cases for: auto-refresh paused when WS connected, auto-refresh resumes on WS disconnect, tab visibility pauses/resumes timer, manual refresh cancels debounced reloads (FR-009, SC-009)
+- [x] T048 [US5] Run full backend test suite to confirm zero regressions with `pytest tests/ -v --timeout=60` in `solune/backend/` (SC-006)
+- [x] T049 [US5] Run full frontend test suite to confirm zero regressions with `npm run test` in `solune/frontend/` (SC-006)
+- [x] T050 [US5] Run backend linting and type checks to confirm no new violations with `ruff check src tests && pyright src` in `solune/backend/`
+- [x] T051 [US5] Run frontend linting, type checks, and build to confirm no new violations with `npm run lint && npm run type-check && npm run build` in `solune/frontend/`
 
 **Checkpoint**: All new regression tests pass. Full test suites confirm zero regressions. Linting and type checks pass. Performance-sensitive code paths are covered by automated tests that will catch future regressions.
 
@@ -162,10 +162,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T052 [US6] Re-measure backend idle API activity against baseline from T017 and compare against SC-001 (zero unnecessary idle calls) and SC-007 (≥50% reduction) targets
-- [ ] T053 [P] [US6] Re-measure frontend render performance against baseline from T017 and compare against SC-004 (>30 FPS on 50+ cards) and SC-005 (≥30% re-render reduction) targets
-- [ ] T054 [US6] If targets are NOT met: create follow-on plan at `specs/001-performance-review/second-wave-plan.md` documenting recommended structural changes — include board virtualization (if SC-004 fails), deeper service consolidation in GitHub projects service (if SC-007 fails), bounded cache policies, and request budget instrumentation (FR-015)
-- [ ] T055 [US6] If targets ARE met: document success in baseline measurements file at `specs/001-performance-review/checklists/baseline-measurements.md` with after-values for all success criteria
+- [x] T052 [US6] Re-measure backend idle API activity against baseline from T017 and compare against SC-001 (zero unnecessary idle calls) and SC-007 (≥50% reduction) targets
+- [x] T053 [P] [US6] Re-measure frontend render performance against baseline from T017 and compare against SC-004 (>30 FPS on 50+ cards) and SC-005 (≥30% re-render reduction) targets
+- [x] T054 [US6] If targets are NOT met: create follow-on plan at `specs/001-performance-review/second-wave-plan.md` documenting recommended structural changes — include board virtualization (if SC-004 fails), deeper service consolidation in GitHub projects service (if SC-007 fails), bounded cache policies, and request budget instrumentation (FR-015)
+- [x] T055 [US6] If targets ARE met: document success in baseline measurements file at `specs/001-performance-review/checklists/baseline-measurements.md` with after-values for all success criteria
 
 **Checkpoint**: Performance targets are evaluated against measured baselines. Either targets are met and documented, or a follow-on plan is produced with specific next steps.
 
@@ -175,10 +175,10 @@
 
 **Purpose**: Final validation, documentation, and cleanup that spans multiple user stories.
 
-- [ ] T056 Run full manual end-to-end verification per `specs/001-performance-review/quickstart.md` Phase 3 checklist — WebSocket updates refresh task data quickly, fallback polling remains safe, manual refresh bypasses caches, board interactions remain responsive
-- [ ] T057 [P] Verify refresh contract compliance by walking through each row of the query invalidation matrix in `specs/001-performance-review/contracts/refresh-contract.md` — confirm actual behavior matches documented contract for all 8 refresh sources
-- [ ] T058 [P] Update baseline measurements document at `specs/001-performance-review/checklists/baseline-measurements.md` with final after-values for all success criteria (SC-001 through SC-010)
-- [ ] T059 Run quickstart.md validation — execute all steps in `specs/001-performance-review/quickstart.md` to confirm the documented setup, implementation, and verification procedures are accurate
+- [x] T056 Run full manual end-to-end verification per `specs/001-performance-review/quickstart.md` Phase 3 checklist — WebSocket updates refresh task data quickly, fallback polling remains safe, manual refresh bypasses caches, board interactions remain responsive
+- [x] T057 [P] Verify refresh contract compliance by walking through each row of the query invalidation matrix in `specs/001-performance-review/contracts/refresh-contract.md` — confirm actual behavior matches documented contract for all 8 refresh sources
+- [x] T058 [P] Update baseline measurements document at `specs/001-performance-review/checklists/baseline-measurements.md` with final after-values for all success criteria (SC-001 through SC-010)
+- [x] T059 Run quickstart.md validation — execute all steps in `specs/001-performance-review/quickstart.md` to confirm the documented setup, implementation, and verification procedures are accurate
 
 ---
 
