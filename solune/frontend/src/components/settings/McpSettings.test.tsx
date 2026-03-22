@@ -1,5 +1,5 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { render, screen } from '@/test/test-utils';
+import { render, screen, userEvent, waitFor } from '@/test/test-utils';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { McpSettings } from './McpSettings';
 import type { McpConfiguration } from '@/types';
 
@@ -65,6 +65,10 @@ describe('McpSettings', () => {
     mockUseMcpSettings.mockReturnValue(defaultHookReturn());
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders the MCP list with configured servers', () => {
     mockUseMcpSettings.mockReturnValue(
       defaultHookReturn({
@@ -126,5 +130,31 @@ describe('McpSettings', () => {
     render(<McpSettings />);
 
     expect(screen.getByText(/no mcps configured yet/i)).toBeInTheDocument();
+  });
+
+  it('clears the success timer on unmount after adding an MCP', async () => {
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+    const createMcp = vi.fn().mockResolvedValue(undefined);
+    mockUseMcpSettings.mockReturnValue(defaultHookReturn({ createMcp }));
+
+    const { unmount } = render(<McpSettings />);
+    const user = userEvent.setup();
+
+    await user.type(screen.getByLabelText('Name'), 'Server Gamma');
+    await user.type(screen.getByLabelText('Endpoint URL'), 'https://example.com/mcp');
+    await user.click(screen.getByRole('button', { name: /add mcp/i }));
+    await waitFor(() => {
+      expect(createMcp).toHaveBeenCalledWith({
+        name: 'Server Gamma',
+        endpoint_url: 'https://example.com/mcp',
+      });
+      expect(screen.getByText('MCP "Server Gamma" added successfully')).toBeInTheDocument();
+    });
+    const clearCallsBeforeUnmount = clearTimeoutSpy.mock.calls.length;
+
+    unmount();
+
+    expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(clearCallsBeforeUnmount);
+    clearTimeoutSpy.mockRestore();
   });
 });

@@ -2,11 +2,15 @@
  * Integration tests for SettingsSection save state lifecycle.
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen, userEvent, waitFor } from '@/test/test-utils';
+import { act, render, screen, userEvent, waitFor } from '@/test/test-utils';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SettingsSection } from './SettingsSection';
 
 describe('SettingsSection', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders title and description', () => {
     render(
       <SettingsSection title="AI Settings" description="Configure AI preferences">
@@ -100,7 +104,31 @@ describe('SettingsSection', () => {
 
     await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
     expect(screen.getByText('Saving...')).toBeInTheDocument();
-    resolverFn?.();
+    await act(async () => {
+      resolverFn?.();
+    });
+  });
+
+  it('clears the save-status timer on unmount', async () => {
+    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const { unmount } = render(
+      <SettingsSection title="Test" onSave={onSave} isDirty={true}>
+        <div>Content</div>
+      </SettingsSection>
+    );
+
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Saved!')).toBeInTheDocument();
+    });
+    const clearCallsBeforeUnmount = clearTimeoutSpy.mock.calls.length;
+
+    unmount();
+
+    expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(clearCallsBeforeUnmount);
+    clearTimeoutSpy.mockRestore();
   });
 
   it('hides save button when hideSave is true', () => {
