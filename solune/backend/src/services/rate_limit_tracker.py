@@ -67,7 +67,7 @@ class RateLimitTracker:
         cursor = await db.execute(
             "SELECT timestamp, remaining, \"limit\", reset_at "
             "FROM rate_limit_snapshots "
-            "WHERE timestamp >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?)"
+            "WHERE timestamp >= strftime('%Y-%m-%dT%H:%M:%SZ', 'now', ?) "
             "ORDER BY timestamp ASC",
             (f"-{hours} hours",),
         )

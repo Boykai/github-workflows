@@ -8,8 +8,6 @@ Covers:
 """
 
 
-
-
 class TestOtelSetupNoOp:
     """Tests for no-op behavior when OTel is not initialised."""
 
