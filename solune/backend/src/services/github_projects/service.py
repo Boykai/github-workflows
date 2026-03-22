@@ -272,6 +272,7 @@ class GitHubProjectsService(
                 "%s: primary strategy failed (%s), trying fallback",
                 operation,
                 primary_err,
+                exc_info=True,
             )
             try:
                 result = await fallback_fn()
@@ -283,6 +284,7 @@ class GitHubProjectsService(
                     operation,
                     primary_err,
                     fallback_err,
+                    exc_info=True,
                 )
                 return None
 

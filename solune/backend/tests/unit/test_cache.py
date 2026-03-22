@@ -382,14 +382,14 @@ class TestCachedFetchExtensions:
 
         mock_settings.return_value = MagicMock(cache_ttl_seconds=300)
         c = InMemoryCache()
-        # Seed stale data
-        c.set("k", "stale_value", ttl_seconds=0)
-        time.sleep(0.01)
+        # Seed data that will become stale before fetch is attempted
+        c.set("k", "stale_value", ttl_seconds=1)
+        time.sleep(1.1)
 
         async def fetch_fn():
             raise RateLimitError("rate limited")
 
-        result = await cached_fetch(c, "k", fetch_fn, rate_limit_fallback=True)
+        result = await cached_fetch(c, "k", fetch_fn, rate_limit_fallback=True, refresh=True)
         assert result == "stale_value"
 
     @patch("src.services.cache.get_settings")

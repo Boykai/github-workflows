@@ -231,10 +231,18 @@ async def cached_fetch[T](
         The cached or freshly-fetched value.
     """
     if not refresh:
-        cached = cache_instance.get(key)
-        if cached is not None:
-            logger.debug("cached_fetch hit: %s", key)
-            return cached  # type: ignore[return-value]
+        if rate_limit_fallback or stale_fallback:
+            # Use get_entry() to avoid evicting expired entries that may
+            # be needed by the stale/rate-limit fallback paths below.
+            entry = cache_instance.get_entry(key)
+            if entry is not None and not entry.is_expired:
+                logger.debug("cached_fetch hit: %s", key)
+                return entry.value  # type: ignore[return-value]
+        else:
+            cached = cache_instance.get(key)
+            if cached is not None:
+                logger.debug("cached_fetch hit: %s", key)
+                return cached  # type: ignore[return-value]
 
     try:
         result = await fetch_fn()
