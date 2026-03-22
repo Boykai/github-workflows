@@ -68,9 +68,12 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
     """Load all active pipeline states from SQLite into L1 caches.
 
     Called once during application startup (in ``lifespan()``).
+    Phase 8: If the pipeline state table is empty or unavailable, the
+    system attempts label-driven state recovery.
     """
     global _db
     _db = db
+    pipeline_state_count = 0
 
     # Load pipeline states
     try:
@@ -83,7 +86,8 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
                 _pipeline_states[issue_number] = state
             except Exception:
                 logger.error("Failed to load pipeline state row: %s", row, exc_info=True)
-        logger.info("Loaded %d pipeline states from SQLite", len(rows))
+        pipeline_state_count = len(rows)
+        logger.info("Loaded %d pipeline states from SQLite", pipeline_state_count)
     except aiosqlite.Error:
         logger.warning(
             "pipeline_states table not available; starting with empty cache", exc_info=True
@@ -143,8 +147,28 @@ async def init_pipeline_state_store(db: aiosqlite.Connection) -> None:
             "agent_trigger_inflight table not available; starting with empty cache", exc_info=True
         )
 
+    # Phase 8: If pipeline state table was empty or corrupt, log that
+    # label-driven recovery is available. Actual recovery is triggered
+    # on demand when a project poll cycle starts, not at startup, to
+    # avoid needing an access token at init time.
+    if pipeline_state_count == 0:
+        logger.info(
+            "No pipeline states loaded from SQLite. "
+            "Label-driven recovery will be attempted when polling starts."
+        )
+
 
 # ── Row conversion helpers ──────────────────────────────────────
+
+
+def _safe_parse_datetime(value: str | None) -> datetime | None:
+    """Parse an ISO 8601 timestamp, returning None on failure."""
+    if not value:
+        return None
+    try:
+        return datetime.fromisoformat(value)
+    except (ValueError, TypeError):
+        return None
 
 
 def _row_to_pipeline_state(row) -> Any:
@@ -214,6 +238,9 @@ def _row_to_pipeline_state(row) -> Any:
         parallel_agent_statuses=metadata.get("parallel_agent_statuses", {}),
         failed_agents=metadata.get("failed_agents", []),
         queued=metadata.get("queued", False),
+        concurrent_group_id=metadata.get("concurrent_group_id"),
+        is_isolated=metadata.get("is_isolated", True),
+        recovered_at=_safe_parse_datetime(metadata.get("recovered_at")),
     )
 
 
@@ -232,6 +259,9 @@ def _pipeline_state_to_row(issue_number: int, state: Any) -> tuple:
         "parallel_agent_statuses": state.parallel_agent_statuses,
         "failed_agents": state.failed_agents,
         "queued": state.queued,
+        "concurrent_group_id": state.concurrent_group_id,
+        "is_isolated": state.is_isolated,
+        "recovered_at": state.recovered_at.isoformat() if state.recovered_at else None,
     }
     now = utcnow().isoformat()
     return (

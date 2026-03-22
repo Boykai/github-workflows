@@ -532,6 +532,28 @@ async def _poll_loop(
         else:
             _poll_state._consecutive_idle_polls += 1
 
+        # Phase 8: Update sliding-window activity tracking and tier
+        _poll_state._activity_window.append(had_activity)
+        if len(_poll_state._activity_window) > _poll_state.ACTIVITY_WINDOW_SIZE:
+            _poll_state._activity_window = _poll_state._activity_window[-_poll_state.ACTIVITY_WINDOW_SIZE:]
+
+        if _poll_state._activity_window:
+            activity_score = sum(1 for x in _poll_state._activity_window if x) / len(_poll_state._activity_window)
+        else:
+            activity_score = 0.0
+
+        if _poll_state._consecutive_poll_failures > 0:
+            _poll_state._adaptive_tier = "backoff"
+        elif activity_score > _poll_state.ACTIVITY_SCORE_HIGH_THRESHOLD:
+            _poll_state._adaptive_tier = "high"
+        elif activity_score > _poll_state.ACTIVITY_SCORE_MEDIUM_THRESHOLD:
+            _poll_state._adaptive_tier = "medium"
+        else:
+            _poll_state._adaptive_tier = "low"
+
+        # Reset failure counter on successful poll
+        _poll_state._consecutive_poll_failures = 0
+
         # Only apply adaptive backoff when rate-limit doubling is NOT already
         # active — avoid stacking both multipliers.
         if _poll_state._consecutive_idle_polls > 0 and effective_interval == interval_seconds:

@@ -15,6 +15,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AUTO_REFRESH_INTERVAL_MS, RATE_LIMIT_LOW_THRESHOLD } from '@/constants';
 import type { RateLimitInfo, RefreshError, BoardDataResponse } from '@/types';
 import { ApiError, boardApi } from '@/services/api';
+import type { AdaptivePollingState } from './useAdaptivePolling';
 
 /** Debounce window for board-reload triggers (Rule 3). */
 const BOARD_RELOAD_DEBOUNCE_MS = 2_000;
@@ -26,6 +27,8 @@ interface UseBoardRefreshOptions {
   boardData?: BoardDataResponse | null;
   /** Whether a healthy WebSocket connection is actively delivering updates. */
   isWebSocketConnected?: boolean;
+  /** Adaptive polling state from useAdaptivePolling (for refresh UI indicators). */
+  adaptivePollingState?: AdaptivePollingState | null;
 }
 
 interface UseBoardRefreshReturn {
@@ -45,12 +48,17 @@ interface UseBoardRefreshReturn {
   resetTimer: () => void;
   /** Request a debounced board reload (used by WebSocket refresh handler). */
   requestBoardReload: () => void;
+  /** Current adaptive polling tier (for UI display). */
+  pollingTier: string | null;
+  /** Whether adaptive polling is currently paused (tab hidden). */
+  isPollingPaused: boolean;
 }
 
 export function useBoardRefresh({
   projectId,
   boardData,
   isWebSocketConnected = false,
+  adaptivePollingState = null,
 }: UseBoardRefreshOptions): UseBoardRefreshReturn {
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -233,6 +241,8 @@ export function useBoardRefresh({
     isRateLimitLow,
     resetTimer,
     requestBoardReload,
+    pollingTier: adaptivePollingState?.tier ?? null,
+    isPollingPaused: adaptivePollingState?.isPaused ?? false,
   };
 }
 

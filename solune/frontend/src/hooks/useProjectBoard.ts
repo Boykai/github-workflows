@@ -1,12 +1,17 @@
 /**
- * Hook for Project Board data fetching with auto-refresh polling.
+ * Hook for Project Board data fetching with adaptive polling.
+ *
+ * Uses `useAdaptivePolling` to dynamically adjust the refetch interval
+ * based on detected board activity, with exponential backoff on errors
+ * and tab-visibility awareness.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { boardApi } from '@/services/api';
 import { STALE_TIME_PROJECTS, STALE_TIME_SHORT } from '@/constants';
 import type { BoardProject, BoardDataResponse, RateLimitInfo } from '@/types';
+import { useAdaptivePolling, type AdaptivePollingConfig } from './useAdaptivePolling';
 
 /** Stable empty array to avoid creating new references each render. */
 const EMPTY_PROJECTS: BoardProject[] = [];
@@ -16,6 +21,8 @@ interface UseProjectBoardOptions {
   selectedProjectId?: string | null;
   /** Callback when user selects a project (persists to session) */
   onProjectSelect?: (projectId: string) => void;
+  /** Optional adaptive polling configuration overrides */
+  adaptivePollingConfig?: AdaptivePollingConfig;
 }
 
 interface UseProjectBoardReturn {
@@ -41,14 +48,26 @@ interface UseProjectBoardReturn {
   lastUpdated: Date | null;
   /** Select a project to display on the board */
   selectProject: (projectId: string) => void;
+  /** Current adaptive polling state */
+  pollingState: ReturnType<typeof useAdaptivePolling>['state'];
 }
 
 export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjectBoardReturn {
-  const { selectedProjectId: externalProjectId, onProjectSelect } = options;
+  const { selectedProjectId: externalProjectId, onProjectSelect, adaptivePollingConfig } = options;
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const previousDataRef = useRef<string | null>(null);
 
   // Use the externally managed project ID (from session)
   const selectedProjectId = externalProjectId ?? null;
+
+  // Adaptive polling integration
+  const {
+    getRefetchInterval,
+    reportPollResult,
+    reportPollFailure,
+    reportPollSuccess,
+    state: pollingState,
+  } = useAdaptivePolling(adaptivePollingConfig);
 
   // Fetch projects list
   const {
@@ -62,10 +81,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     retry: false,
   });
 
-  // Fetch board data for selected project.
-  // NOTE: No refetchInterval here — useRealTimeSync handles periodic
-  // refresh via WebSocket messages or its own polling fallback,
-  // preventing duplicate polling storms that freeze the UI.
+  // Fetch board data for selected project with adaptive polling.
   const {
     data: boardData,
     isLoading: boardLoading,
@@ -74,17 +90,33 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
   } = useQuery({
     queryKey: ['board', 'data', selectedProjectId],
     queryFn: async () => {
-      const result = await boardApi.getBoardData(selectedProjectId!);
-      setLastUpdated(new Date());
-      return result;
+      try {
+        const result = await boardApi.getBoardData(selectedProjectId!);
+        setLastUpdated(new Date());
+
+        // Report poll result to adaptive polling — detect changes by
+        // comparing a lightweight hash of the response data.
+        const dataHash = JSON.stringify(result.columns.map(c => c.item_count));
+        const hasChanges = previousDataRef.current !== null && previousDataRef.current !== dataHash;
+        previousDataRef.current = dataHash;
+        reportPollResult(hasChanges);
+        reportPollSuccess();
+
+        return result;
+      } catch (err) {
+        reportPollFailure();
+        throw err;
+      }
     },
     enabled: !!selectedProjectId,
     staleTime: STALE_TIME_SHORT,
+    refetchInterval: getRefetchInterval,
   });
 
   const selectProject = useCallback(
     (projectId: string) => {
       setLastUpdated(null);
+      previousDataRef.current = null;
       if (onProjectSelect) {
         onProjectSelect(projectId);
       }
@@ -104,5 +136,6 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     boardError: boardError as Error | null,
     lastUpdated,
     selectProject,
+    pollingState,
   };
 }
