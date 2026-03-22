@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Check, Copy } from '@/lib/icons';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 

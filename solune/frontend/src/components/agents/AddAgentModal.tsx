@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2 } from '@/lib/icons';
 import { AgentIconCatalog } from '@/components/agents/AgentIconCatalog';
 import { isCelestialIconName, type CelestialIconName } from '@/components/common/agentIcons';
 import { ToolChips } from '@/components/tools/ToolChips';

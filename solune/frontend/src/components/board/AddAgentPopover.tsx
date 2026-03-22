@@ -1,4 +1,4 @@
-import { TriangleAlert } from 'lucide-react';
+import { TriangleAlert } from '@/lib/icons';
 
 /**
  * AddAgentPopover component - dropdown popover for adding agents to a column.

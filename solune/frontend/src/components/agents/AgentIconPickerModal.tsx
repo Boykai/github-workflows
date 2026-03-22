@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X } from '@/lib/icons';
 import { isCelestialIconName, type CelestialIconName } from '@/components/common/agentIcons';
 import { AgentIconCatalog } from './AgentIconCatalog';
 import { useScrollLock } from '@/hooks/useScrollLock';

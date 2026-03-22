@@ -301,6 +301,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via `database_path` setting (default: `/var/lib/solune/data/settings.db`) (001-startup-config-validation)
 - Python 3.11 (backend), TypeScript / React (frontend) + FastAPI, Pydantic, aiosqlite (backend); React, TanStack Query, lucide-react, sonner (frontend) (001-auto-merge-pipelines)
 - SQLite via aiosqlite — project_settings and pipeline_configs tables; in-memory L1 caches with write-behind persistence (001-auto-merge-pipelines)
+- TypeScript 5.x (frontend), Python 3.11+ (backend) + React 18, TanStack Query (react-query), Vite, lucide-react (frontend); FastAPI, aiosqlite (backend) (001-frontend-polish-performance)
+- SQLite via aiosqlite (backend) (001-frontend-polish-performance)
 
 ## Recent Changes
 - Dependabot upgrades: ESLint 9→10, Vite 7→8, react-hooks 5→7, security 3→4, @vitejs/plugin-react 5→6, Docker images (python 3.14, node 25, nginx 1.29), GitHub Actions (checkout v6, setup-python v6, upload-artifact v7, setup-node v6)

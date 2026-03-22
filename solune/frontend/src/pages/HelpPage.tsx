@@ -3,7 +3,7 @@
  * Sections: Hero → Getting Started → FAQ → Feature Guides → Slash Commands
  */
 
-import { Play, Kanban, GitBranch, Bot, Wrench, ListChecks, Settings, Boxes, LayoutDashboard } from 'lucide-react';
+import { Play, Kanban, GitBranch, Bot, Wrench, ListChecks, Settings, Boxes, LayoutDashboard } from '@/lib/icons';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { FaqAccordion } from '@/components/help/FaqAccordion';
 import { FeatureGuideCard } from '@/components/help/FeatureGuideCard';

@@ -4,7 +4,7 @@
  */
 
 import { useSelectedPipeline } from '@/hooks/useSelectedPipeline';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle } from '@/lib/icons';
 
 interface PipelineWarningBannerProps {
   projectId: string;

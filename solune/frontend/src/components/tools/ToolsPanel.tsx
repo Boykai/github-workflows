@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertCircle, Search, Wrench } from 'lucide-react';
+import { AlertCircle, Search, Wrench } from '@/lib/icons';
 import { useToolsList, useToolsListPaginated, useUndoableDeleteTool } from '@/hooks/useTools';
 import { useRepoMcpConfig } from '@/hooks/useRepoMcpConfig';
 import { useMcpPresets } from '@/hooks/useMcpPresets';

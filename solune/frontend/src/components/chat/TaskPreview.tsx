@@ -3,7 +3,7 @@
  */
 
 import type { AITaskProposal } from '@/types';
-import { GitBranch } from 'lucide-react';
+import { GitBranch } from '@/lib/icons';
 
 interface TaskPreviewProps {
   proposal: AITaskProposal;

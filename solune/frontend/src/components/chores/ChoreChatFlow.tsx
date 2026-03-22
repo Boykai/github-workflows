@@ -1,4 +1,4 @@
-import { Sparkles } from 'lucide-react';
+import { Sparkles } from '@/lib/icons';
 
 /**
  * ChoreChatFlow — embedded mini-chat UI for sparse input template building.
