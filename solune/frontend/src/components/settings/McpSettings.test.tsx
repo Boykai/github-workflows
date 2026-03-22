@@ -1,4 +1,4 @@
-import { render, screen, userEvent, waitFor } from '@/test/test-utils';
+import { act, fireEvent, render, screen } from '@/test/test-utils';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { McpSettings } from './McpSettings';
 import type { McpConfiguration } from '@/types';
@@ -133,28 +133,30 @@ describe('McpSettings', () => {
   });
 
   it('clears the success timer on unmount after adding an MCP', async () => {
-    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+    vi.useFakeTimers();
     const createMcp = vi.fn().mockResolvedValue(undefined);
     mockUseMcpSettings.mockReturnValue(defaultHookReturn({ createMcp }));
 
     const { unmount } = render(<McpSettings />);
-    const user = userEvent.setup();
-
-    await user.type(screen.getByLabelText('Name'), 'Server Gamma');
-    await user.type(screen.getByLabelText('Endpoint URL'), 'https://example.com/mcp');
-    await user.click(screen.getByRole('button', { name: /add mcp/i }));
-    await waitFor(() => {
-      expect(createMcp).toHaveBeenCalledWith({
-        name: 'Server Gamma',
-        endpoint_url: 'https://example.com/mcp',
-      });
-      expect(screen.getByText('MCP "Server Gamma" added successfully')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Server Gamma' } });
+    fireEvent.change(screen.getByLabelText('Endpoint URL'), {
+      target: { value: 'https://example.com/mcp' },
     });
-    const clearCallsBeforeUnmount = clearTimeoutSpy.mock.calls.length;
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /add mcp/i }));
+      await Promise.resolve();
+    });
+
+    expect(createMcp).toHaveBeenCalledWith({
+      name: 'Server Gamma',
+      endpoint_url: 'https://example.com/mcp',
+    });
+    expect(screen.getByText('MCP "Server Gamma" added successfully')).toBeInTheDocument();
+    expect(vi.getTimerCount()).toBe(1);
 
     unmount();
 
-    expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(clearCallsBeforeUnmount);
-    clearTimeoutSpy.mockRestore();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

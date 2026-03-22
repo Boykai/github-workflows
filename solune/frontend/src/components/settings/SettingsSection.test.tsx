@@ -2,7 +2,7 @@
  * Integration tests for SettingsSection save state lifecycle.
  */
 
-import { act, render, screen, userEvent, waitFor } from '@/test/test-utils';
+import { act, fireEvent, render, screen, userEvent, waitFor } from '@/test/test-utils';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { SettingsSection } from './SettingsSection';
 
@@ -110,7 +110,7 @@ describe('SettingsSection', () => {
   });
 
   it('clears the save-status timer on unmount', async () => {
-    const clearTimeoutSpy = vi.spyOn(globalThis, 'clearTimeout');
+    vi.useFakeTimers();
     const onSave = vi.fn().mockResolvedValue(undefined);
     const { unmount } = render(
       <SettingsSection title="Test" onSave={onSave} isDirty={true}>
@@ -118,17 +118,17 @@ describe('SettingsSection', () => {
       </SettingsSection>
     );
 
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(screen.getByText('Saved!')).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+      await Promise.resolve();
     });
-    const clearCallsBeforeUnmount = clearTimeoutSpy.mock.calls.length;
+
+    expect(screen.getByText('Saved!')).toBeInTheDocument();
+    expect(vi.getTimerCount()).toBe(1);
 
     unmount();
 
-    expect(clearTimeoutSpy.mock.calls.length).toBeGreaterThan(clearCallsBeforeUnmount);
-    clearTimeoutSpy.mockRestore();
+    expect(vi.getTimerCount()).toBe(0);
   });
 
   it('hides save button when hideSave is true', () => {
