@@ -57,7 +57,7 @@ class TestAttemptAutoMerge:
         )
         mock_service.get_pr_mergeable_state = AsyncMock(return_value="MERGEABLE")
         mock_service.merge_pull_request = AsyncMock(
-            return_value={"merged": True, "mergeCommit": {"oid": "abc123def456"}}
+            return_value={"merged": True, "merge_commit": "abc123def456"}
         )
 
         result = await _attempt_auto_merge(
@@ -175,7 +175,7 @@ class TestAttemptAutoMerge:
         )
         mock_service.get_pr_mergeable_state = AsyncMock(return_value="MERGEABLE")
         mock_service.merge_pull_request = AsyncMock(
-            return_value={"merged": True, "mergeCommit": {"oid": "abc123"}}
+            return_value={"merged": True, "merge_commit": "abc123"}
         )
 
         result = await _attempt_auto_merge(
@@ -202,6 +202,102 @@ class TestAttemptAutoMerge:
 
         assert result.status == "merge_failed"
         assert "No main PR found" in (result.error or "")
+
+    @pytest.mark.asyncio
+    async def test_pending_checks_returns_retry_later(self, mock_service, mock_discover):
+        """Checks still running → retry_later (not devops_needed)."""
+        mock_discover.return_value = {
+            "pr_number": 42,
+            "pr_id": "PR_node_42",
+            "head_ref": "feature-branch",
+            "is_draft": False,
+        }
+        mock_service.get_check_runs_for_ref = AsyncMock(
+            return_value=[
+                {"status": "in_progress", "conclusion": None, "name": "ci"},
+            ]
+        )
+
+        result = await _attempt_auto_merge(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=10,
+        )
+
+        assert result.status == "retry_later"
+        assert result.context is not None
+        assert result.context["reason"] == "checks_pending"
+
+    @pytest.mark.asyncio
+    async def test_missing_head_ref_returns_retry_later(self, mock_service, mock_discover):
+        """Missing head_ref → retry_later (fail closed)."""
+        mock_discover.return_value = {
+            "pr_number": 42,
+            "pr_id": "PR_node_42",
+            "head_ref": "",
+            "is_draft": False,
+        }
+
+        result = await _attempt_auto_merge(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=10,
+        )
+
+        assert result.status == "retry_later"
+        assert result.context is not None
+        assert result.context["reason"] == "ci_status_unavailable"
+
+    @pytest.mark.asyncio
+    async def test_check_runs_fetch_failure_returns_retry_later(self, mock_service, mock_discover):
+        """Failed to fetch check runs → retry_later (fail closed)."""
+        mock_discover.return_value = {
+            "pr_number": 42,
+            "pr_id": "PR_node_42",
+            "head_ref": "feature-branch",
+            "is_draft": False,
+        }
+        mock_service.get_check_runs_for_ref = AsyncMock(return_value=None)
+
+        result = await _attempt_auto_merge(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=10,
+        )
+
+        assert result.status == "retry_later"
+        assert result.context is not None
+        assert result.context["reason"] == "ci_status_unavailable"
+
+    @pytest.mark.asyncio
+    async def test_unknown_mergeability_returns_retry_later(self, mock_service, mock_discover):
+        """UNKNOWN mergeability → retry_later (not devops_needed)."""
+        mock_discover.return_value = {
+            "pr_number": 42,
+            "pr_id": "PR_node_42",
+            "head_ref": "feature-branch",
+            "is_draft": False,
+        }
+        mock_service.get_check_runs_for_ref = AsyncMock(
+            return_value=[
+                {"status": "completed", "conclusion": "success", "name": "ci"},
+            ]
+        )
+        mock_service.get_pr_mergeable_state = AsyncMock(return_value="UNKNOWN")
+
+        result = await _attempt_auto_merge(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=10,
+        )
+
+        assert result.status == "retry_later"
+        assert result.context is not None
+        assert result.context["reason"] == "unknown_mergeability"
 
 
 class TestDispatchDevopsAgent:

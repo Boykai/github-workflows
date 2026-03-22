@@ -19,7 +19,7 @@ logger = get_logger(__name__)
 class AutoMergeResult:
     """Structured result from an auto-merge attempt."""
 
-    status: Literal["merged", "devops_needed", "merge_failed"]
+    status: Literal["merged", "devops_needed", "merge_failed", "retry_later"]
     pr_number: int | None = None
     merge_commit: str | None = None
     error: str | None = None
@@ -91,57 +91,78 @@ async def _attempt_auto_merge(
                 pr_number,
             )
 
-    # Step 3: Check CI status
-    if head_ref:
-        check_runs = await _cp.github_projects_service.get_check_runs_for_ref(
-            access_token=access_token,
-            owner=owner,
-            repo=repo,
-            ref=head_ref,
+    # Step 3: Check CI status — fail closed (never merge when CI status unknown)
+    if not head_ref:
+        logger.warning(
+            "Auto-merge: missing head_ref for PR #%d; cannot determine CI status",
+            pr_number,
         )
-        if check_runs is not None:
-            failed_checks = [
-                cr
-                for cr in check_runs
-                if cr.get("status") == "completed"
-                and cr.get("conclusion") in ("failure", "timed_out")
-            ]
-            if failed_checks:
-                logger.info(
-                    "Auto-merge: CI failures found on PR #%d (%d failed checks)",
-                    pr_number,
-                    len(failed_checks),
-                )
-                return AutoMergeResult(
-                    status="devops_needed",
-                    pr_number=pr_number,
-                    context={
-                        "reason": "ci_failure",
-                        "failed_checks": [
-                            {"name": cr.get("name", ""), "conclusion": cr.get("conclusion", "")}
-                            for cr in failed_checks
-                        ],
-                    },
-                )
+        return AutoMergeResult(
+            status="retry_later",
+            pr_number=pr_number,
+            context={"reason": "ci_status_unavailable", "details": "Missing head_ref"},
+        )
 
-            # Check if there are still running checks
-            in_progress = [
-                cr for cr in check_runs if cr.get("status") in ("queued", "in_progress")
-            ]
-            if in_progress:
-                logger.info(
-                    "Auto-merge: %d checks still running on PR #%d, will retry later",
-                    len(in_progress),
-                    pr_number,
-                )
-                return AutoMergeResult(
-                    status="devops_needed",
-                    pr_number=pr_number,
-                    context={
-                        "reason": "checks_pending",
-                        "pending_count": len(in_progress),
-                    },
-                )
+    check_runs = await _cp.github_projects_service.get_check_runs_for_ref(
+        access_token=access_token,
+        owner=owner,
+        repo=repo,
+        ref=head_ref,
+    )
+    if check_runs is None:
+        logger.warning(
+            "Auto-merge: unable to fetch CI check runs for PR #%d (ref=%s)",
+            pr_number,
+            head_ref,
+        )
+        return AutoMergeResult(
+            status="retry_later",
+            pr_number=pr_number,
+            context={"reason": "ci_status_unavailable", "details": "Failed to fetch check runs"},
+        )
+
+    failed_checks = [
+        cr
+        for cr in check_runs
+        if cr.get("status") == "completed"
+        and cr.get("conclusion") in ("failure", "timed_out")
+    ]
+    if failed_checks:
+        logger.info(
+            "Auto-merge: CI failures found on PR #%d (%d failed checks)",
+            pr_number,
+            len(failed_checks),
+        )
+        return AutoMergeResult(
+            status="devops_needed",
+            pr_number=pr_number,
+            context={
+                "reason": "ci_failure",
+                "failed_checks": [
+                    {"name": cr.get("name", ""), "conclusion": cr.get("conclusion", "")}
+                    for cr in failed_checks
+                ],
+            },
+        )
+
+    # Check if there are still running checks — retry later, don't dispatch DevOps
+    in_progress = [
+        cr for cr in check_runs if cr.get("status") in ("queued", "in_progress")
+    ]
+    if in_progress:
+        logger.info(
+            "Auto-merge: %d checks still running on PR #%d, will retry later",
+            len(in_progress),
+            pr_number,
+        )
+        return AutoMergeResult(
+            status="retry_later",
+            pr_number=pr_number,
+            context={
+                "reason": "checks_pending",
+                "pending_count": len(in_progress),
+            },
+        )
 
     # Step 4: Check mergeability
     mergeable_state = await _cp.github_projects_service.get_pr_mergeable_state(
@@ -162,7 +183,7 @@ async def _attempt_auto_merge(
     if mergeable_state == "UNKNOWN":
         logger.info("Auto-merge: PR #%d mergeability is UNKNOWN, will retry", pr_number)
         return AutoMergeResult(
-            status="devops_needed",
+            status="retry_later",
             pr_number=pr_number,
             context={"reason": "unknown_mergeability"},
         )
@@ -194,7 +215,7 @@ async def _attempt_auto_merge(
             merge_method="SQUASH",
         )
         if merge_result and merge_result.get("merged"):
-            merge_commit = merge_result.get("mergeCommit", {}).get("oid", "")
+            merge_commit = merge_result.get("merge_commit", "")
             logger.info(
                 "Auto-merge: successfully squash-merged PR #%d (commit=%s)",
                 pr_number,

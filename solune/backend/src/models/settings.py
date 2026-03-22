@@ -219,6 +219,7 @@ class ProjectSettingsUpdate(BaseModel):
     board_display_config: ProjectBoardConfig | None = None
     agent_pipeline_mappings: dict[str, list[ProjectAgentMapping]] | None = None
     queue_mode: bool | None = None
+    auto_merge: bool | None = None
 
 
 # ── Database Row Models (for model_dump/model_validate with SQLite) ──

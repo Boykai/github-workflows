@@ -92,13 +92,26 @@ export function useRealTimeSync(
 
         // Handle auto-merge events
         if (data.type === 'auto_merge_completed') {
-          toast.success(`PR #${data.pr_number} squash-merged`);
+          if (data.pr_number != null) {
+            toast.success(`PR #${data.pr_number} squash-merged`);
+          } else if (data.issue_number != null) {
+            toast.success(`Auto-merge completed for issue #${data.issue_number}`);
+          } else {
+            toast.success('Auto-merge completed');
+          }
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
           markUpdated();
         }
 
         if (data.type === 'auto_merge_failed') {
-          toast.error(`Auto merge failed for PR #${data.pr_number}: ${data.error || 'Unknown error'}`);
+          const baseError = data.error || 'Unknown error';
+          if (data.pr_number != null) {
+            toast.error(`Auto merge failed for PR #${data.pr_number}: ${baseError}`);
+          } else if (data.issue_number != null) {
+            toast.error(`Auto merge failed for issue #${data.issue_number}: ${baseError}`);
+          } else {
+            toast.error(`Auto merge failed: ${baseError}`);
+          }
           queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
           markUpdated();
         }

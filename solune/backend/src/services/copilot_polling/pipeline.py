@@ -1814,10 +1814,10 @@ async def _advance_pipeline(
     pipeline.started_at = utcnow()
 
     # ── Human Agent Skip (Auto Merge) ──
-    # When auto_merge is active and the human agent is the last step in the
-    # pipeline, skip it with a ⏭ SKIPPED indicator and proceed directly
-    # to pipeline completion and auto-merge flow.
-    if next_agent == "human" and pipeline.auto_merge:
+    # When auto_merge is active (project-level OR pipeline-level) and the
+    # human agent is the last step in the pipeline, skip it with a ⏭ SKIPPED
+    # indicator and proceed directly to pipeline completion and auto-merge flow.
+    if next_agent == "human":
         # Check if human is the last step
         remaining_agents = pipeline.agents[pipeline.current_agent_index :]
         is_last_step = len(remaining_agents) == 1
@@ -2134,18 +2134,32 @@ async def _transition_after_pipeline_complete(
     if to_status.lower() == "in review":
         from .auto_merge import _attempt_auto_merge
 
-        auto_merge_active = False
+        # Check pipeline-level auto_merge before state is removed
+        pipeline_auto_merge = False
+        try:
+            pipeline_state = _cp.get_pipeline_state(issue_number)
+            if pipeline_state is not None:
+                pipeline_auto_merge = bool(getattr(pipeline_state, "auto_merge", False))
+        except Exception:
+            logger.debug(
+                "Auto-merge pipeline-state check skipped for issue #%d",
+                issue_number,
+            )
+
+        project_auto_merge = False
         try:
             from src.services.database import get_db
             from src.services.settings_store import is_auto_merge_enabled
 
             db = get_db()
-            auto_merge_active = await is_auto_merge_enabled(db, project_id)
+            project_auto_merge = await is_auto_merge_enabled(db, project_id)
         except Exception:
             logger.debug(
-                "Auto-merge check skipped for issue #%d — database not available",
+                "Auto-merge project-setting check skipped for issue #%d — database not available",
                 issue_number,
             )
+
+        auto_merge_active = pipeline_auto_merge or project_auto_merge
 
         if auto_merge_active:
             logger.info(
@@ -2174,6 +2188,14 @@ async def _transition_after_pipeline_complete(
                     issue_number,
                     merge_result.pr_number,
                 )
+                # Short-circuit: PR is already merged, skip draft→ready and
+                # review-request steps which would fail on a closed PR.
+                return {
+                    "status": "auto_merged",
+                    "issue_number": issue_number,
+                    "pr_number": merge_result.pr_number,
+                    "merge_commit": merge_result.merge_commit,
+                }
             elif merge_result.status == "devops_needed":
                 from .auto_merge import dispatch_devops_agent
 
@@ -2212,7 +2234,7 @@ async def _transition_after_pipeline_complete(
                         "error": merge_result.error,
                     },
                 )
-            # Continue to normal In Review transition below
+            # retry_later: no action needed, will retry on next poll cycle
 
     # When transitioning to "In Review", convert main PR from draft→ready
     # and request Copilot code review on the main PR.

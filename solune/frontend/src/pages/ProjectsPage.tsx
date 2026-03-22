@@ -30,7 +30,7 @@ import type { BoardItem, BoardDataResponse } from '@/types';
 import { boardApi, pipelinesApi } from '@/services/api';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
-import { ListOrdered, GitMerge } from 'lucide-react';
+import { ListOrdered, GitMerge } from '@/lib/icons';
 import { toast } from 'sonner';
 
 export function ProjectsPage() {
@@ -109,16 +109,6 @@ export function ProjectsPage() {
     }
   }, [selectedProjectId, isQueueMode, updateSettings]);
 
-  const handleToggleAutoMerge = useCallback(async () => {
-    if (!selectedProjectId) return;
-    try {
-      await updateSettings({ auto_merge: !isAutoMerge });
-      toast.success(isAutoMerge ? 'Auto merge disabled' : 'Auto merge enabled');
-    } catch {
-      toast.error('Failed to update auto merge');
-    }
-  }, [selectedProjectId, isAutoMerge, updateSettings]);
-
   const {
     data: savedPipelines,
     isLoading: savedPipelinesLoading,
@@ -130,6 +120,31 @@ export function ProjectsPage() {
     enabled: !!selectedProjectId,
     staleTime: 60_000,
   });
+
+  const handleToggleAutoMerge = useCallback(async () => {
+    if (!selectedProjectId) return;
+
+    // When enabling auto-merge on a project with active pipelines,
+    // require explicit user confirmation (retroactive impact).
+    if (!isAutoMerge) {
+      const hasPipelines = Array.isArray(savedPipelines) && savedPipelines.length > 0;
+      if (hasPipelines) {
+        const confirmed = window.confirm(
+          `Enable auto-merge for this project? This will also apply to ${savedPipelines.length} existing pipeline(s) and may change how they are merged.`
+        );
+        if (!confirmed) {
+          return;
+        }
+      }
+    }
+
+    try {
+      await updateSettings({ auto_merge: !isAutoMerge });
+      toast.success(isAutoMerge ? 'Auto merge disabled' : 'Auto merge enabled');
+    } catch {
+      toast.error('Failed to update auto merge');
+    }
+  }, [selectedProjectId, isAutoMerge, updateSettings, savedPipelines]);
 
   const { data: pipelineAssignment } = useQuery({
     queryKey: ['pipelines', 'assignment', selectedProjectId],

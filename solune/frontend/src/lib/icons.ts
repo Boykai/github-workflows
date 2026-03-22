@@ -46,6 +46,7 @@ export {
   FileUp,
   Filter,
   GitBranch,
+  GitMerge,
   GitPullRequest,
   HelpCircle,
   History,
