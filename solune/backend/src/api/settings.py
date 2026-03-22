@@ -132,6 +132,10 @@ async def update_project_settings_endpoint(
         val = update_data["queue_mode"]
         updates["queue_mode"] = int(val) if val is not None else 0
 
+    if "auto_merge" in update_data:
+        val = update_data["auto_merge"]
+        updates["auto_merge"] = int(val) if val is not None else 0
+
     if updates:
         await upsert_project_settings(db, session.github_user_id, project_id, updates)
         logger.info(
@@ -170,6 +174,15 @@ async def update_project_settings_endpoint(
             from src.services.settings_store import _queue_mode_cache
 
             _queue_mode_cache.pop(project_id, None)
+
+        # Sync auto_merge to the canonical __workflow__ row and invalidate cache
+        if "auto_merge" in updates:
+            workflow_updates = {"auto_merge": updates["auto_merge"]}
+            await upsert_project_settings(db, "__workflow__", project_id, workflow_updates)
+            # Invalidate the auto merge in-memory cache
+            from src.services.settings_store import _auto_merge_cache
+
+            _auto_merge_cache.pop(project_id, None)
 
     return await get_effective_project_settings(db, session.github_user_id, project_id)
 

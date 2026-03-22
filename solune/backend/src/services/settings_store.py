@@ -49,6 +49,7 @@ PROJECT_SETTINGS_COLUMNS = (
     "board_display_config",
     "agent_pipeline_mappings",
     "queue_mode",
+    "auto_merge",
 )
 
 
@@ -268,6 +269,10 @@ async def upsert_project_settings(
     queue_mode_idx = list(PROJECT_SETTINGS_COLUMNS).index("queue_mode")
     if insert_values[queue_mode_idx] is None:
         insert_values[queue_mode_idx] = 0
+    # auto_merge must be non-NULL (DEFAULT 0 in schema)
+    auto_merge_idx = list(PROJECT_SETTINGS_COLUMNS).index("auto_merge")
+    if insert_values[auto_merge_idx] is None:
+        insert_values[auto_merge_idx] = 0
 
     await db.execute(
         """
@@ -277,8 +282,9 @@ async def upsert_project_settings(
             board_display_config,
             agent_pipeline_mappings,
             queue_mode,
+            auto_merge,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(github_user_id, project_id) DO UPDATE SET
             board_display_config = CASE
                 WHEN ? THEN excluded.board_display_config
@@ -291,6 +297,10 @@ async def upsert_project_settings(
             queue_mode = CASE
                 WHEN ? THEN excluded.queue_mode
                 ELSE project_settings.queue_mode
+            END,
+            auto_merge = CASE
+                WHEN ? THEN excluded.auto_merge
+                ELSE project_settings.auto_merge
             END,
             updated_at = excluded.updated_at
         """,
@@ -451,11 +461,15 @@ def _build_project_section(
     queue_mode_val = (
         bool(project_row["queue_mode"]) if "queue_mode" in project_row.keys() else False
     )
+    auto_merge_val = (
+        bool(project_row["auto_merge"]) if "auto_merge" in project_row.keys() else False
+    )
     if board_config is None:
-        if queue_mode_val:
-            board_config = ProjectBoardConfig(queue_mode=True)
+        if queue_mode_val or auto_merge_val:
+            board_config = ProjectBoardConfig(queue_mode=queue_mode_val, auto_merge=auto_merge_val)
     else:
         board_config.queue_mode = queue_mode_val
+        board_config.auto_merge = auto_merge_val
 
     agent_mappings = None
     if project_row["agent_pipeline_mappings"]:
@@ -506,6 +520,43 @@ async def is_queue_mode_enabled(db: aiosqlite.Connection, project_id: str) -> bo
     row = await cursor.fetchone()
     enabled = row is not None and bool(row[0])
     _queue_mode_cache[project_id] = (enabled, now)
+    return enabled
+
+
+# ── Auto Merge Helpers ──
+
+
+# Short-TTL in-memory cache for auto merge lookups to avoid repeated DB reads
+# during a single polling cycle.
+_auto_merge_cache: dict[str, tuple[bool, float]] = {}
+_AUTO_MERGE_CACHE_TTL_SECONDS = 10.0
+
+
+async def is_auto_merge_enabled(db: aiosqlite.Connection, project_id: str) -> bool:
+    """Check if auto merge is enabled for a project.
+
+    Uses a short-TTL in-memory cache to avoid repeated DB reads during
+    polling cycles.  Falls back to DB query on cache miss or expiry.
+    """
+    import time
+
+    now = time.monotonic()
+    cached = _auto_merge_cache.get(project_id)
+    if cached is not None:
+        value, cached_at = cached
+        if now - cached_at < _AUTO_MERGE_CACHE_TTL_SECONDS:
+            return value
+
+    # Query only the canonical __workflow__ row — the settings API syncs
+    # auto_merge to this row, so it is the single source of truth.
+    cursor = await db.execute(
+        "SELECT auto_merge FROM project_settings"
+        " WHERE project_id = ? AND github_user_id = '__workflow__' LIMIT 1",
+        (project_id,),
+    )
+    row = await cursor.fetchone()
+    enabled = row is not None and bool(row[0])
+    _auto_merge_cache[project_id] = (enabled, now)
     return enabled
 
 

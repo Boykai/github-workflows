@@ -69,6 +69,7 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
       .filter(Boolean),
     show_estimates: showEstimates,
     queue_mode: settings?.project?.board_display_config?.queue_mode ?? false,
+    auto_merge: settings?.project?.board_display_config?.auto_merge ?? false,
   });
 
   const parseAgentMappings = (): Record<string, ProjectAgentMapping[]> | null => {
