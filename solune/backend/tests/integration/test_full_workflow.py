@@ -1,4 +1,4 @@
-"""Full pipeline lifecycle integration tests (T032–T035).
+"""Full pipeline lifecycle integration tests (T032-T035).
 
 Exercises real HTTP routing via httpx.ASGITransport with mocked services.
 """
@@ -18,7 +18,6 @@ from httpx import ASGITransport, AsyncClient
 from src.api.webhooks import _processed_delivery_ids
 from src.config import Settings
 from src.exceptions import AppException
-
 
 # ── Helpers / fixtures ───────────────────────────────────────────
 
@@ -201,7 +200,7 @@ async def test_status_transitions_backlog_to_in_review():
 
     transitions = ["Backlog", "Ready", "In Progress", "In Review"]
 
-    for idx, status in enumerate(transitions):
+    for _idx, status in enumerate(transitions):
         state = PipelineState(
             issue_number=50,
             project_id="PVT_proj1",

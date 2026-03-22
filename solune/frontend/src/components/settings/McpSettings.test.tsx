@@ -1,5 +1,4 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { fireEvent } from '@testing-library/react';
 import { render, screen } from '@/test/test-utils';
 import { McpSettings } from './McpSettings';
 import type { McpConfiguration } from '@/types';

@@ -33,8 +33,8 @@ _project_ids = st.sampled_from(["PVT_proj1", "PVT_proj2", "PVT_proj3"])
 _issue_numbers = st.integers(min_value=1, max_value=9999)
 _queued_flags = st.booleans()
 _timestamps = st.datetimes(
-    min_value=datetime(2026, 1, 1, tzinfo=UTC),
-    max_value=datetime(2026, 12, 31, tzinfo=UTC),
+    min_value=datetime(2026, 1, 1),
+    max_value=datetime(2026, 12, 31),
     timezones=st.just(UTC),
 )
 
