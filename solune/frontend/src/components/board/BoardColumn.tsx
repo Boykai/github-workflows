@@ -1,6 +1,7 @@
 /**
  * BoardColumn component - displays a status column with header and scrollable card list.
  * Supports optional grouping of items within the column.
+ * Phase 8: Supports board projection with scroll sentinel for lazy loading.
  */
 
 import { memo } from 'react';
@@ -20,6 +21,10 @@ interface BoardColumnProps {
   hasNextPage?: boolean;
   isFetchingNextPage?: boolean;
   fetchNextPage?: () => void;
+  /** Whether more items are available beyond the rendered range (projection). */
+  hasMore?: boolean;
+  /** Ref callback from useBoardProjection for the scroll sentinel. */
+  scrollSentinelRef?: (node: HTMLElement | null) => void;
 }
 
 export const BoardColumn = memo(function BoardColumn({
@@ -30,6 +35,8 @@ export const BoardColumn = memo(function BoardColumn({
   hasNextPage = false,
   isFetchingNextPage = false,
   fetchNextPage,
+  hasMore = false,
+  scrollSentinelRef,
 }: BoardColumnProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `column-${column.status.name}`,
@@ -136,6 +143,16 @@ export const BoardColumn = memo(function BoardColumn({
           >
             <span />
           </InfiniteScrollContainer>
+        )}
+        {/* Board projection scroll sentinel — triggers lazy loading of additional items */}
+        {hasMore && scrollSentinelRef && (
+          <div
+            ref={scrollSentinelRef}
+            className="flex items-center justify-center py-2 text-xs text-muted-foreground/60"
+            aria-hidden="true"
+          >
+            Loading more items…
+          </div>
         )}
       </div>
     </div>

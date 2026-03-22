@@ -1,6 +1,7 @@
 /**
  * ProjectBoardContent — The main board area including empty state handling.
  * Extracted from ProjectsPage to keep the page file ≤250 lines.
+ * Phase 8: Wrapped with UndoRedoProvider for session-scoped undo/redo.
  */
 
 import { Inbox, Search } from 'lucide-react';
@@ -8,6 +9,8 @@ import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { Button } from '@/components/ui/button';
 import type { BoardDataResponse, BoardItem, AvailableAgent } from '@/types';
 import type { BoardGroup } from '@/hooks/useBoardControls';
+import { UndoRedoProvider } from '@/context/UndoRedoContext';
+import { useUndoRedo } from '@/hooks/useUndoRedo';
 
 interface BoardControls {
   hasActiveControls: boolean;
@@ -23,13 +26,15 @@ interface ProjectBoardContentProps {
   onStatusUpdate?: (itemId: string, newStatus: string) => void | Promise<void>;
 }
 
-export function ProjectBoardContent({
+/** Inner content that consumes the UndoRedoContext. */
+function ProjectBoardContentInner({
   boardData,
   boardControls,
   onCardClick,
   availableAgents,
   onStatusUpdate,
 }: ProjectBoardContentProps) {
+  const { nextUndoDescription, canUndo, undo } = useUndoRedo();
   const allEmpty = boardData.columns.every((col) => col.items.length === 0);
 
   if (allEmpty) {
@@ -76,6 +81,27 @@ export function ProjectBoardContent({
         getGroups={boardControls.getGroups}
         onStatusUpdate={onStatusUpdate}
       />
+      {/* Undo toast banner — visible when an undoable action is available */}
+      {canUndo && nextUndoDescription && (
+        <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2 flex items-center gap-3 rounded-full border border-border bg-card px-4 py-2 shadow-lg animate-in fade-in slide-in-from-bottom-4">
+          <span className="text-sm text-muted-foreground">{nextUndoDescription}</span>
+          <button
+            type="button"
+            onClick={() => undo()}
+            className="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary hover:bg-primary/20 transition-colors"
+          >
+            Undo
+          </button>
+        </div>
+      )}
     </div>
+  );
+}
+
+export function ProjectBoardContent(props: ProjectBoardContentProps) {
+  return (
+    <UndoRedoProvider>
+      <ProjectBoardContentInner {...props} />
+    </UndoRedoProvider>
   );
 }
