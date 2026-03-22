@@ -75,6 +75,10 @@ check_feature_branch() {
     if [[ ! "$branch" =~ ^[0-9]{3}- ]]; then
         echo "ERROR: Not on a feature branch. Current branch: $branch" >&2
         echo "Feature branches should be named like: 001-feature-name" >&2
+        if [[ "$branch" =~ ^copilot/ ]]; then
+            echo "On Copilot branches, set SPECIFY_FEATURE to the target spec directory before running Speckit scripts." >&2
+            echo "Example: SPECIFY_FEATURE=001-my-feature .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks" >&2
+        fi
         return 1
     fi
 
@@ -89,6 +93,15 @@ find_feature_dir_by_prefix() {
     local repo_root="$1"
     local branch_name="$2"
     local specs_dir="$repo_root/specs"
+
+    # If the caller already provided an exact feature directory name
+    # (for example via SPECIFY_FEATURE), honor it before doing any
+    # prefix-based fallback. This avoids ambiguous warnings when
+    # multiple specs share the same numeric prefix.
+    if [[ -d "$specs_dir/$branch_name" ]]; then
+        echo "$specs_dir/$branch_name"
+        return
+    fi
 
     # Extract numeric prefix from branch (e.g., "004" from "004-whatever")
     if [[ ! "$branch_name" =~ ^([0-9]{3})- ]]; then
@@ -153,4 +166,3 @@ EOF
 
 check_file() { [[ -f "$1" ]] && echo "  ✓ $2" || echo "  ✗ $2"; }
 check_dir() { [[ -d "$1" && -n $(ls -A "$1" 2>/dev/null) ]] && echo "  ✓ $2" || echo "  ✗ $2"; }
-
