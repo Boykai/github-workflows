@@ -1,0 +1,147 @@
+# Recovery API Contract
+
+**Feature**: `001-phase8-enhancements` | **Story**: US-5 Label-Driven State Recovery  
+**Type**: Backend internal service interface
+
+## Backend: State Recovery Service
+
+### Interface
+
+```python
+# In copilot_polling/recovery.py (extend existing)
+
+async def recover_pipeline_states_from_labels(
+    project_id: str,
+    access_token: str,
+    owner: str,
+    repo: str,
+) -> RecoveryReport:
+    """
+    Full state reconstruction from GitHub item labels.
+    
+    Called on startup when pipeline_state_store is empty or after
+    database corruption is detected by database.py.
+    
+    Steps:
+    1. List all project items via GitHub API
+    2. Parse solune:pipeline:* labels on each item
+    3. Reconstruct PipelineState entries
+    4. Handle ambiguities (log + mark for manual review)
+    5. Populate pipeline_state_store with recovered states
+    
+    Returns a RecoveryReport with statistics and flagged items.
+    """
+
+async def recover_single_item_state(
+    issue_number: int,
+    labels: list[str],
+    project_id: str,
+) -> RecoveryState:
+    """
+    Reconstruct pipeline state for a single item from its labels.
+    
+    Returns RecoveryState with confidence level and any ambiguity flags.
+    """
+```
+
+### Data Models
+
+```python
+from dataclasses import dataclass, field
+from datetime import datetime
+
+@dataclass
+class RecoveryState:
+    issue_number: int
+    project_id: str
+    source_labels: list  # list[ParsedLabel]
+    reconstructed_stage: str | None = None
+    reconstructed_status: str | None = None
+    confidence: str = "high"  # "high" | "medium" | "low" | "ambiguous"
+    ambiguity_flags: list[str] = field(default_factory=list)
+    requires_manual_review: bool = False
+    recovered_at: datetime = field(default_factory=datetime.utcnow)
+    recovery_source: str = "labels"  # "labels" | "database" | "mixed"
+
+@dataclass
+class RecoveryReport:
+    project_id: str
+    total_items_scanned: int = 0
+    items_recovered: int = 0
+    items_flagged_for_review: int = 0
+    items_skipped: int = 0
+    recovery_states: list[RecoveryState] = field(default_factory=list)
+    errors: list[str] = field(default_factory=list)
+    started_at: datetime = field(default_factory=datetime.utcnow)
+    completed_at: datetime | None = None
+    duration_seconds: float = 0.0
+```
+
+### Recovery Flow
+
+```text
+system_startup()
+│
+├─ init_pipeline_state_store(db)
+│   │
+│   ├─ load from SQLite → states found → DONE (normal path)
+│   │
+│   └─ SQLite empty/corrupt
+│       │
+│       ├─ database.py detects corruption → renames *.corrupt.{timestamp}
+│       │
+│       └─ trigger recover_pipeline_states_from_labels()
+│           │
+│           ├─ for each project:
+│           │   ├─ list_project_items(project_id)
+│           │   ├─ for each item:
+│           │   │   ├─ extract labels matching solune:pipeline:*
+│           │   │   ├─ parse_label() each → ParsedLabel
+│           │   │   ├─ determine latest run_id
+│           │   │   ├─ reconstruct stage + status
+│           │   │   ├─ assess confidence:
+│           │   │   │   ├─ single clear label set → high
+│           │   │   │   ├─ multiple run_ids → medium (use latest)
+│           │   │   │   ├─ conflicting stages → low (log warning)
+│           │   │   │   └─ no pipeline labels → skip
+│           │   │   └─ if ambiguous → mark requires_manual_review
+│           │   │
+│           │   └─ set_pipeline_state() for each recovered item
+│           │       └─ set recovered_at timestamp
+│           │
+│           ├─ log RecoveryReport via alert dispatcher
+│           │
+│           └─ persist recovery_log to SQLite
+│
+└─ resume normal polling
+    └─ check recovered_at on each item
+        └─ skip re-processing if recovered_at is within current startup cycle
+```
+
+### Health Check Integration
+
+```python
+# In health.py readiness check (GET /api/v1/ready)
+
+# Add recovery status to readiness probe
+{
+    "checks": {
+        # ... existing checks ...
+        "recovery": {
+            "status": "completed",  # or "in_progress" or "not_needed"
+            "items_recovered": 42,
+            "items_flagged": 2,
+            "duration_seconds": 3.5
+        }
+    }
+}
+```
+
+## Requirements Mapping
+
+| Requirement | Contract Element |
+|-------------|-----------------|
+| FR-013 | `recover_pipeline_states_from_labels()` triggered on startup |
+| FR-014 | `recover_single_item_state()` + `set_pipeline_state()` |
+| FR-015 | `confidence` field + `requires_manual_review` flag + logging |
+| FR-016 | `recovered_at` timestamp checked by polling to skip re-processing |

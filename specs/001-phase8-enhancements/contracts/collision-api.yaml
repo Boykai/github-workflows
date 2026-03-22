@@ -1,0 +1,193 @@
+# Collision Resolution API Contract
+
+**Feature**: `001-phase8-enhancements` | **Story**: US-6 MCP Collision Resolution  
+**Type**: Backend service interface + API extension
+
+## Backend: Collision Detection Service
+
+### Interface
+
+```python
+# New: services/collision_resolver.py
+
+from dataclasses import dataclass, field
+from datetime import datetime
+
+@dataclass
+class CollisionOperation:
+    operation_id: str
+    operation_type: str        # "update" | "delete" | "move" | "label_change"
+    initiated_by: str          # "user" | "automation"
+    user_id: str | None = None
+    timestamp: datetime = field(default_factory=datetime.utcnow)
+    payload: dict = field(default_factory=dict)
+    version_expected: int = 0
+
+@dataclass
+class CollisionEvent:
+    collision_id: str
+    target_entity_type: str
+    target_entity_id: str
+    operation_a: CollisionOperation
+    operation_b: CollisionOperation
+    resolution_strategy: str     # "last_write_wins" | "user_priority" | "manual_review"
+    resolution_outcome: str
+    winning_operation: str       # "a" | "b" | "neither"
+    detected_at: datetime = field(default_factory=datetime.utcnow)
+    resolved_at: datetime | None = None
+
+async def detect_collision(
+    entity_type: str,
+    entity_id: str,
+    incoming_operation: CollisionOperation,
+    current_version: int,
+) -> CollisionEvent | None:
+    """
+    Check if the incoming operation conflicts with the current state.
+    
+    Returns None if no collision detected.
+    Returns CollisionEvent with resolution if collision found.
+    """
+
+async def resolve_collision(
+    collision: CollisionEvent,
+) -> CollisionEvent:
+    """
+    Apply the resolution strategy and return the resolved collision event.
+    
+    Resolution priority:
+    1. User-initiated over automated (FR-018)
+    2. Last-write-wins by timestamp for same-type operations
+    3. Manual review for contradictory state transitions (FR-020)
+    """
+
+async def log_collision_event(
+    collision: CollisionEvent,
+) -> None:
+    """
+    Persist collision event to collision_events table and log details (FR-019).
+    """
+```
+
+### MCP Store Extension
+
+```python
+# In mcp_store.py (extend existing)
+
+async def update_mcp_configuration(
+    mcp_id: str,
+    updates: dict,
+    expected_version: int,
+    initiated_by: str = "user",
+    user_id: str | None = None,
+) -> tuple[McpConfigurationResponse, CollisionEvent | None]:
+    """
+    Update MCP configuration with optimistic concurrency control.
+    
+    If version mismatch detected, triggers collision resolution.
+    Returns the updated config and any collision event (for logging/notification).
+    """
+```
+
+### API Extension
+
+```
+PUT /api/v1/mcps/{mcp_id}
+```
+
+**Request** (extended):
+```json
+{
+  "name": "Updated MCP Config",
+  "endpoint_url": "https://example.com/mcp",
+  "expected_version": 3
+}
+```
+
+**Response** (200 OK, no collision):
+```json
+{
+  "id": "mcp-123",
+  "name": "Updated MCP Config",
+  "endpoint_url": "https://example.com/mcp",
+  "is_active": true,
+  "version": 4,
+  "created_at": "2026-03-20T10:00:00Z",
+  "updated_at": "2026-03-22T18:00:00Z"
+}
+```
+
+**Response** (200 OK, collision resolved):
+```json
+{
+  "id": "mcp-123",
+  "name": "Updated MCP Config",
+  "endpoint_url": "https://example.com/mcp",
+  "is_active": true,
+  "version": 4,
+  "created_at": "2026-03-20T10:00:00Z",
+  "updated_at": "2026-03-22T18:00:00Z",
+  "collision": {
+    "collision_id": "col-456",
+    "resolution_strategy": "user_priority",
+    "resolution_outcome": "User operation took precedence over automated update",
+    "winning_operation": "incoming"
+  }
+}
+```
+
+**Response** (409 Conflict, manual review required):
+```json
+{
+  "error": "collision_manual_review_required",
+  "message": "Conflicting operations could not be automatically resolved",
+  "collision": {
+    "collision_id": "col-789",
+    "target_entity_id": "mcp-123",
+    "resolution_strategy": "manual_review",
+    "operation_a": { "type": "update", "initiated_by": "user" },
+    "operation_b": { "type": "delete", "initiated_by": "automation" }
+  }
+}
+```
+
+### Collision Detection Flow
+
+```text
+incoming_operation(entity, operation)
+│
+├─ read current entity version
+│
+├─ compare operation.version_expected with current version
+│   │
+│   ├─ MATCH → no collision, apply operation, increment version
+│   │
+│   └─ MISMATCH → collision detected
+│       │
+│       ├─ construct CollisionEvent
+│       │
+│       ├─ determine resolution strategy:
+│       │   ├─ op_a.initiated_by == "user" && op_b.initiated_by == "automation"
+│       │   │   → user_priority (user wins)
+│       │   │
+│       │   ├─ same initiated_by
+│       │   │   → last_write_wins (latest timestamp wins)
+│       │   │
+│       │   └─ contradictory transitions
+│       │       → manual_review (neither applied)
+│       │
+│       ├─ apply resolution
+│       │
+│       ├─ log_collision_event(collision)
+│       │
+│       └─ return result + collision summary
+```
+
+## Requirements Mapping
+
+| Requirement | Contract Element |
+|-------------|-----------------|
+| FR-017 | `detect_collision()` with version comparison |
+| FR-018 | Resolution priority: `user_priority` strategy |
+| FR-019 | `log_collision_event()` with full operation details |
+| FR-020 | `manual_review` strategy + 409 response with notification |
