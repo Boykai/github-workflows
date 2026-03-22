@@ -312,3 +312,16 @@ class TestHandleServiceError:
         with caplog.at_level(logging.ERROR, logger="error_handler"), pytest.raises(GitHubAPIError):
             handle_service_error(exc, "test op")
         assert "internal detail" in caplog.text
+
+    def test_raises_value_error_with_positional_message(self) -> None:
+        """ValueError (non-AppException) is constructed with a positional arg."""
+        exc = RuntimeError("provider error")
+        with pytest.raises(ValueError, match="Failed to call AI provider"):
+            handle_service_error(exc, "call AI provider", ValueError)
+
+    def test_value_error_does_not_leak_details(self) -> None:
+        exc = RuntimeError("secret-key-12345")
+        with pytest.raises(ValueError) as exc_info:
+            handle_service_error(exc, "process request", ValueError)
+        assert "secret-key-12345" not in str(exc_info.value)
+        assert "process request" in str(exc_info.value)
