@@ -69,3 +69,61 @@ class PingEvent(BaseModel):
 
     zen: str = ""
     hook_id: int | None = None
+
+
+# ── Check Run / Check Suite Webhook Events ──
+
+
+class CheckRunPR(BaseModel):
+    """PR reference within a check run event."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    number: int
+    head: BranchRef = Field(default_factory=BranchRef)
+    base: BranchRef = Field(default_factory=BranchRef)
+
+
+class CheckRunData(BaseModel):
+    """Check run details from webhook payload."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    name: str = ""
+    status: str = ""
+    conclusion: str | None = None
+    head_sha: str = ""
+    pull_requests: list[CheckRunPR] = Field(default_factory=list)
+
+
+class CheckSuiteData(BaseModel):
+    """Check suite details from webhook payload."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    id: int
+    status: str = ""
+    conclusion: str | None = None
+    head_sha: str = ""
+    pull_requests: list[CheckRunPR] = Field(default_factory=list)
+
+
+class CheckRunEvent(BaseModel):
+    """GitHub check_run webhook event."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    action: str
+    check_run: CheckRunData
+    repository: RepositoryData
+
+
+class CheckSuiteEvent(BaseModel):
+    """GitHub check_suite webhook event."""
+
+    model_config = ConfigDict(extra="ignore")
+
+    action: str
+    check_suite: CheckSuiteData
+    repository: RepositoryData

@@ -1173,6 +1173,11 @@ class AgentsService:
                 max_tokens=2000,
             )
         except Exception as exc:
+            # NOTE(001-code-quality-tech-debt): This is a bare re-raise
+            # (the original exception type must propagate). Cannot use
+            # handle_service_error() because that function always constructs
+            # a *new* exception (defaulting to GitHubAPIError), which would
+            # silently change the exception type seen by callers.
             logger.error("Agent chat completion failed: %s", exc)
             raise
 

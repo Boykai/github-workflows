@@ -538,7 +538,15 @@ async def get_config(
 
     config = await get_workflow_config(project_id)
     if not config:
-        # Resolve repository via canonical 3-step fallback
+        # NOTE(001-code-quality-tech-debt, Item 1.1): This call site
+        # intentionally deviates from the canonical resolve_repository()
+        # 5-step fallback.  Here we only need a best-effort owner/repo
+        # for the *default* WorkflowConfiguration that is returned when
+        # no saved config exists yet.  A full ValidationError propagation
+        # would prevent the UI from rendering a config form at all, so
+        # we catch all exceptions and fall back to session.github_username
+        # as a reasonable default.  ~90 % of resolve_repository() callers
+        # have been consolidated; this site is a deliberate exception.
         try:
             owner, repo = await resolve_repository(session.access_token, project_id)
         except Exception as e:
@@ -606,7 +614,16 @@ async def list_agents(
     # Verify ownership before proceeding
     await verify_project_access(request, project_id, session)
 
-    # Resolve owner/repo using the same 3-step fallback as the Agents panel
+    # NOTE(001-code-quality-tech-debt, Item 1.1): This call site uses an
+    # intentional partial-resolution pattern that differs from the canonical
+    # resolve_repository() 5-step fallback.  The query params `owner` and
+    # `repo` are supplied by the frontend and may each be present or absent
+    # independently.  We only invoke resolve_repository() to fill in the
+    # *missing* component(s), and we only catch ValidationError (not generic
+    # Exception) because an unexpected failure here should surface rather than
+    # silently returning agents scoped to the wrong repository.  ~90 % of
+    # resolve_repository() callers have been consolidated; this site is a
+    # deliberate exception.
     resolved_owner = owner
     resolved_repo = repo
 

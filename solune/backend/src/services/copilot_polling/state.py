@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -132,3 +133,27 @@ RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD: int = 100
 # Resets to 0 when any state change occurs.
 _consecutive_idle_polls: int = 0
 MAX_POLL_INTERVAL_SECONDS: int = 300  # 5 minutes cap
+
+# ── Phase 8: Adaptive polling tier configuration ──
+# Defines the polling tiers and thresholds for activity-based interval adjustment.
+# Activity score is computed from a sliding window of recent poll results.
+POLLING_TIER_HIGH_INTERVAL: int = 3  # seconds — fast polling during active periods
+POLLING_TIER_MEDIUM_INTERVAL: int = 10  # seconds — moderate polling
+POLLING_TIER_LOW_INTERVAL: int = 30  # seconds — slow polling during idle
+POLLING_TIER_BACKOFF_MAX_INTERVAL: int = 60  # seconds — max backoff on errors
+
+# Activity score thresholds for tier transitions (0.0-1.0)
+ACTIVITY_SCORE_HIGH_THRESHOLD: float = 0.6  # score > threshold → high tier
+ACTIVITY_SCORE_MEDIUM_THRESHOLD: float = 0.2  # score > threshold → medium tier
+
+# Sliding window size for change detection
+ACTIVITY_WINDOW_SIZE: int = 5
+
+# Sliding window of recent poll change-detection results (True = changes detected)
+_activity_window: deque[bool] = deque(maxlen=ACTIVITY_WINDOW_SIZE)
+
+# Current adaptive polling tier
+_adaptive_tier: str = "medium"  # "high" | "medium" | "low" | "backoff"
+
+# Consecutive poll failure counter for exponential backoff
+_consecutive_poll_failures: int = 0

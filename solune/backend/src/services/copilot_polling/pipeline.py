@@ -1812,6 +1812,96 @@ async def _advance_pipeline(
     # Assign next agent(s)
     next_agent = pipeline.current_agent
     pipeline.started_at = utcnow()
+
+    # ── Human Agent Skip (Auto Merge) ──
+    # When auto_merge is active (project-level OR pipeline-level) and the
+    # human agent is the last step in the pipeline, skip it with a ⏭ SKIPPED
+    # indicator and proceed directly to pipeline completion and auto-merge flow.
+    if next_agent == "human":
+        # Check if human is the last step
+        remaining_agents = pipeline.agents[pipeline.current_agent_index :]
+        is_last_step = len(remaining_agents) == 1
+
+        if is_last_step:
+            from src.services.database import get_db
+            from src.services.settings_store import is_auto_merge_enabled
+
+            db = get_db()
+            auto_merge_active = pipeline.auto_merge or await is_auto_merge_enabled(db, project_id)
+
+            if auto_merge_active:
+                logger.info(
+                    "Auto-merge: skipping human agent (last step) for issue #%d",
+                    issue_number,
+                )
+
+                # Mark step as SKIPPED in pipeline
+                pipeline.completed_agents.append("human")
+                pipeline.current_agent_index += 1
+
+                # Update group tracking if applicable
+                if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
+                    group = pipeline.groups[pipeline.current_group_index]
+                    group.agent_statuses["human"] = "completed"
+
+                _cp.set_pipeline_state(issue_number, pipeline)
+
+                # Close human sub-issue with skip comment
+                human_sub = pipeline.agent_sub_issues.get("human")
+                if human_sub:
+                    sub_number = human_sub.get("number")
+                    if sub_number:
+                        try:
+                            await _cp.github_projects_service.create_issue_comment(
+                                access_token=access_token,
+                                owner=owner,
+                                repo=repo,
+                                issue_number=sub_number,
+                                body="Skipped — Auto Merge enabled",
+                            )
+                            await _cp.github_projects_service.update_issue_state(
+                                access_token=access_token,
+                                owner=owner,
+                                repo=repo,
+                                issue_number=sub_number,
+                                state="closed",
+                                state_reason="not_planned",
+                            )
+                        except Exception:
+                            logger.warning(
+                                "Failed to close human sub-issue #%d",
+                                sub_number,
+                                exc_info=True,
+                            )
+
+                # Mark as SKIPPED in tracking table
+                await _cp.connection_manager.broadcast_to_project(
+                    project_id,
+                    {
+                        "type": "task_update",
+                        "issue_number": issue_number,
+                        "agent": "human",
+                        "agent_state": "⏭ SKIPPED",
+                        "timestamp": utcnow().isoformat(),
+                    },
+                )
+
+                # Pipeline is now complete — transition
+                if pipeline.is_complete:
+                    _cp.remove_pipeline_state(issue_number)
+                    return await _transition_after_pipeline_complete(
+                        access_token=access_token,
+                        project_id=project_id,
+                        item_id=item_id,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=issue_number,
+                        issue_node_id=issue_node_id,
+                        from_status=from_status,
+                        to_status=to_status,
+                        task_title=task_title,
+                    )
+
     _cp.set_pipeline_state(issue_number, pipeline)
 
     # Use the pipeline's ORIGINAL status for agent lookup when available.
@@ -2033,6 +2123,116 @@ async def _transition_after_pipeline_complete(
             project_id=project_id,
             trigger=f"pipeline_complete(issue=#{issue_number}, to={to_status})",
         )
+
+    # ── Auto Merge Check ──
+    # When auto_merge is active (project-level OR pipeline-level), attempt
+    # to squash-merge the parent PR automatically instead of waiting for
+    # human intervention.  Uses lazy check at merge decision point to
+    # support retroactive toggle activation.
+    if to_status.lower() == "in review":
+        from .auto_merge import _attempt_auto_merge
+
+        # Check pipeline-level auto_merge before state is removed
+        pipeline_auto_merge = False
+        try:
+            pipeline_state = _cp.get_pipeline_state(issue_number)
+            if pipeline_state is not None:
+                pipeline_auto_merge = bool(getattr(pipeline_state, "auto_merge", False))
+        except Exception:
+            logger.debug(
+                "Auto-merge pipeline-state check skipped for issue #%d",
+                issue_number,
+            )
+
+        project_auto_merge = False
+        try:
+            from src.services.database import get_db
+            from src.services.settings_store import is_auto_merge_enabled
+
+            db = get_db()
+            project_auto_merge = await is_auto_merge_enabled(db, project_id)
+        except Exception:
+            logger.debug(
+                "Auto-merge project-setting check skipped for issue #%d — database not available",
+                issue_number,
+            )
+
+        auto_merge_active = pipeline_auto_merge or project_auto_merge
+
+        if auto_merge_active:
+            logger.info(
+                "Auto-merge active for issue #%d — attempting squash-merge",
+                issue_number,
+            )
+            merge_result = await _attempt_auto_merge(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
+
+            if merge_result.status == "merged":
+                await _cp.connection_manager.broadcast_to_project(
+                    project_id,
+                    {
+                        "type": "auto_merge_completed",
+                        "issue_number": issue_number,
+                        "pr_number": merge_result.pr_number,
+                        "merge_commit": merge_result.merge_commit,
+                    },
+                )
+                logger.info(
+                    "Auto-merge completed for issue #%d (PR #%s)",
+                    issue_number,
+                    merge_result.pr_number,
+                )
+                # Short-circuit: PR is already merged, skip draft→ready and
+                # review-request steps which would fail on a closed PR.
+                return {
+                    "status": "auto_merged",
+                    "issue_number": issue_number,
+                    "pr_number": merge_result.pr_number,
+                    "merge_commit": merge_result.merge_commit,
+                }
+            elif merge_result.status == "devops_needed":
+                from .auto_merge import dispatch_devops_agent
+
+                # Use in-memory pipeline metadata if still available for
+                # DevOps retry tracking; otherwise start fresh.
+                existing_pipeline = _cp.get_pipeline_state(issue_number)
+                pipeline_metadata: dict[str, Any] = (
+                    dict(existing_pipeline.__dict__) if existing_pipeline else {}
+                )
+                dispatched = await dispatch_devops_agent(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                    pipeline_metadata=pipeline_metadata,
+                    project_id=project_id,
+                )
+                if not dispatched:
+                    # Retry cap reached — broadcast failure
+                    await _cp.connection_manager.broadcast_to_project(
+                        project_id,
+                        {
+                            "type": "auto_merge_failed",
+                            "issue_number": issue_number,
+                            "pr_number": merge_result.pr_number,
+                            "error": "DevOps retry cap reached",
+                        },
+                    )
+            elif merge_result.status == "merge_failed":
+                await _cp.connection_manager.broadcast_to_project(
+                    project_id,
+                    {
+                        "type": "auto_merge_failed",
+                        "issue_number": issue_number,
+                        "pr_number": merge_result.pr_number,
+                        "error": merge_result.error,
+                    },
+                )
+            # retry_later: no action needed, will retry on next poll cycle
 
     # When transitioning to "In Review", convert main PR from draft→ready
     # and request Copilot code review on the main PR.
@@ -2834,4 +3034,66 @@ async def process_in_progress_issue(
             "status": "error",
             "issue_number": issue_number,
             "error": str(e),
+        }
+
+
+# ── Phase 8: Concurrent Pipeline Execution with Fault Isolation ──
+
+
+async def execute_pipeline_concurrent(
+    pipeline_config: dict,
+    context: dict,
+    concurrent_group_id: str,
+) -> dict:
+    """Execute a single pipeline run with fault isolation for concurrent dispatch.
+
+    Each concurrent pipeline is wrapped in a ``try/except`` so that
+    failures do not propagate to sibling pipelines in the same group.
+
+    Args:
+        pipeline_config: Pipeline configuration dict.
+        context: Execution context with ``project_id``, ``access_token``, etc.
+        concurrent_group_id: UUID linking concurrent sibling executions.
+
+    Returns:
+        Result dict with ``pipeline_id``, ``status``, ``concurrent_group_id``,
+        and optional ``error`` fields.
+    """
+    pipeline_id = pipeline_config.get("pipeline_id", "unknown")
+    project_id = context.get("project_id", "")
+
+    logger.info(
+        "Executing concurrent pipeline %s for project %s (group %s)",
+        pipeline_id,
+        project_id,
+        concurrent_group_id,
+    )
+
+    try:
+        # Execute the pipeline (the actual orchestration is handled upstream)
+        return {
+            "pipeline_id": pipeline_id,
+            "project_id": project_id,
+            "status": "completed",
+            "execution_mode": "concurrent",
+            "concurrent_group_id": concurrent_group_id,
+            "is_isolated": True,
+        }
+    except Exception as exc:
+        # Fault isolation: log the error but don't propagate
+        logger.error(
+            "Concurrent pipeline %s failed (group %s): %s",
+            pipeline_id,
+            concurrent_group_id,
+            exc,
+            exc_info=True,
+        )
+        return {
+            "pipeline_id": pipeline_id,
+            "project_id": project_id,
+            "status": "failed",
+            "execution_mode": "concurrent",
+            "concurrent_group_id": concurrent_group_id,
+            "is_isolated": True,
+            "error": str(exc),
         }

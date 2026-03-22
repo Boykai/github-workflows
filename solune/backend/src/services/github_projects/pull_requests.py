@@ -292,12 +292,8 @@ class PullRequestsMixin:
             List of PR details with id, number, title, state, isDraft, url, author
         """
         cache_key = f"linked_prs:{owner}/{repo}/{issue_number}"
-        cached = self._cycle_cache.get(cache_key)
-        if cached is not None:
-            self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
 
-        try:
+        async def _fetch() -> list[dict]:
             data = await self._graphql(
                 access_token,
                 GET_ISSUE_LINKED_PRS_QUERY,
@@ -345,9 +341,10 @@ class PullRequestsMixin:
                 issue_number,
                 [pr["number"] for pr in unique_prs],
             )
-            self._cycle_cache[cache_key] = unique_prs
             return unique_prs
 
+        try:
+            return await self._cycle_cached(cache_key, _fetch)
         except Exception as e:
             logger.error("Failed to get linked PRs for issue #%d: %s", issue_number, e)
             return []
@@ -372,12 +369,8 @@ class PullRequestsMixin:
             PR details dict or None if not found
         """
         cache_key = f"pr:{owner}/{repo}/{pr_number}"
-        cached = self._cycle_cache.get(cache_key)
-        if cached is not None:
-            self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
 
-        try:
+        async def _fetch() -> dict | None:
             data = await self._graphql(
                 access_token,
                 GET_PULL_REQUEST_QUERY,
@@ -402,7 +395,7 @@ class PullRequestsMixin:
                 if status_rollup:
                     check_status = status_rollup.get("state")
 
-            result = {
+            return {
                 "id": pr.get("id"),
                 "number": pr.get("number"),
                 "title": pr.get("title"),
@@ -419,9 +412,9 @@ class PullRequestsMixin:
                 "last_commit": last_commit,
                 "check_status": check_status,  # SUCCESS, FAILURE, PENDING, etc.
             }
-            self._cycle_cache[cache_key] = result
-            return result
 
+        try:
+            return await self._cycle_cached(cache_key, _fetch)
         except Exception as e:
             logger.error("Failed to get PR #%d: %s", pr_number, e)
             return None
@@ -715,21 +708,17 @@ class PullRequestsMixin:
             List of timeline events
         """
         cache_key = f"timeline:{owner}/{repo}/{issue_number}"
-        cached = self._cycle_cache.get(cache_key)
-        if cached is not None:
-            self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
 
-        try:
+        async def _fetch() -> list:
             result = await self._rest(
                 access_token,
                 "GET",
                 f"/repos/{owner}/{repo}/issues/{issue_number}/timeline",
             )
-            if isinstance(result, list):
-                self._cycle_cache[cache_key] = result
-                return result
-            return []
+            return result if isinstance(result, list) else []
+
+        try:
+            return await self._cycle_cached(cache_key, _fetch)
         except Exception as e:
             logger.error(
                 "Failed to get timeline events for issue #%d: %s",
@@ -836,4 +825,91 @@ class PullRequestsMixin:
                 logger.info("PR for %s→%s already exists", head_branch, base_branch)
                 return {"id": "", "number": 0, "url": "", "existing": True}
             logger.error("Failed to create PR: %s", exc)
+            return None
+
+    # ──────────────────────────────────────────────────────────────────
+    # Auto Merge Helpers
+    # ──────────────────────────────────────────────────────────────────
+
+    async def get_check_runs_for_ref(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        ref: str,
+    ) -> list[dict] | None:
+        """Fetch check runs for a commit ref via REST API.
+
+        GET /repos/{owner}/{repo}/commits/{ref}/check-runs
+
+        Returns:
+            List of check run dicts, or None on failure.
+        """
+        try:
+            resp = await self._rest_response(
+                access_token,
+                "GET",
+                f"/repos/{owner}/{repo}/commits/{ref}/check-runs",
+            )
+            if resp is None or resp.status_code != 200:
+                logger.warning(
+                    "Failed to fetch check runs for %s/%s ref=%s (status=%s)",
+                    owner,
+                    repo,
+                    ref[:8],
+                    resp.status_code if resp else "no response",
+                )
+                return None
+            data = resp.json()
+            return data.get("check_runs", [])
+        except Exception:
+            logger.error(
+                "Error fetching check runs for %s/%s ref=%s",
+                owner,
+                repo,
+                ref[:8],
+                exc_info=True,
+            )
+            return None
+
+    async def get_pr_mergeable_state(
+        self,
+        access_token: str,
+        owner: str,
+        repo: str,
+        pr_number: int,
+    ) -> str | None:
+        """Fetch the mergeable state of a PR via GraphQL.
+
+        Queries pullRequest.mergeable field which returns one of:
+        MERGEABLE, CONFLICTING, or UNKNOWN.
+
+        Returns:
+            Mergeable state string, or None on failure.
+        """
+        query = """
+        query($owner: String!, $repo: String!, $number: Int!) {
+          repository(owner: $owner, name: $repo) {
+            pullRequest(number: $number) {
+              mergeable
+            }
+          }
+        }
+        """
+        try:
+            data = await self._graphql(
+                access_token,
+                query,
+                {"owner": owner, "repo": repo, "number": pr_number},
+            )
+            pr = data.get("repository", {}).get("pullRequest", {})
+            return pr.get("mergeable")
+        except Exception:
+            logger.error(
+                "Error fetching mergeable state for PR #%d in %s/%s",
+                pr_number,
+                owner,
+                repo,
+                exc_info=True,
+            )
             return None

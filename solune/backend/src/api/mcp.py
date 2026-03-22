@@ -1,4 +1,4 @@
-"""MCP configuration API endpoints — list, create, delete.
+"""MCP configuration API endpoints — list, create, update, delete.
 
 Uses AppException subclasses (McpValidationError, McpLimitExceededError,
 NotFoundError) so that error responses follow the standard
@@ -18,10 +18,11 @@ from src.models.mcp import (
     McpConfigurationCreate,
     McpConfigurationListResponse,
     McpConfigurationResponse,
+    McpConfigurationUpdate,
 )
 from src.models.user import UserSession
 from src.services.database import get_db
-from src.services.mcp_store import create_mcp, delete_mcp, list_mcps
+from src.services.mcp_store import create_mcp, delete_mcp, list_mcps, update_mcp
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -54,6 +55,37 @@ async def create_mcp_configuration(
 
     logger.info("User %s created MCP %s", session.github_username, result.id)
     return result
+
+
+@router.put("/mcps/{mcp_id}", response_model=McpConfigurationResponse)
+async def update_mcp_configuration(
+    mcp_id: str,
+    body: McpConfigurationUpdate,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> McpConfigurationResponse:
+    """Update an MCP configuration with optimistic concurrency control.
+
+    Returns the updated configuration. If a version collision is detected
+    and resolved, the response includes a ``collision`` field describing
+    the resolution.
+    """
+    db = get_db()
+    result, collision = await update_mcp(db, session.github_user_id, mcp_id, body)
+
+    if result is None:
+        raise NotFoundError("MCP configuration not found")
+
+    response = result.model_dump()
+    if collision:
+        response["collision"] = {
+            "collision_id": collision.collision_id,
+            "resolution_strategy": collision.resolution_strategy,
+            "resolution_outcome": collision.resolution_outcome,
+            "winning_operation": collision.winning_operation,
+        }
+
+    logger.info("User %s updated MCP %s", session.github_username, mcp_id)
+    return McpConfigurationResponse(**response)
 
 
 @router.delete("/mcps/{mcp_id}")

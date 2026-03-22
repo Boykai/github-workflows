@@ -3,6 +3,7 @@
  * Uses CSS grid matching AgentConfigRow for aligned columns.
  * Supports optional grouping within columns via getGroups callback.
  * Wraps columns with DndContext + DragOverlay for card drag-and-drop.
+ * Phase 8: Supports board projection for lazy-loading large boards.
  */
 
 import { useMemo } from 'react';
@@ -17,6 +18,7 @@ import {
 import type { BoardDataResponse, BoardItem, AvailableAgent } from '@/types';
 import type { BoardGroup } from '@/hooks/useBoardControls';
 import { useBoardDragDrop } from '@/hooks/useBoardDragDrop';
+import { useBoardProjection, type BoardProjectionConfig } from '@/hooks/useBoardProjection';
 import { BoardColumn } from './BoardColumn';
 import { BoardDragOverlay } from './BoardDragOverlay';
 
@@ -26,6 +28,8 @@ interface ProjectBoardProps {
   availableAgents?: AvailableAgent[];
   getGroups?: (items: BoardItem[]) => BoardGroup[] | null;
   onStatusUpdate?: (itemId: string, newStatus: string) => void | Promise<void>;
+  /** Optional board projection config for lazy loading. */
+  projectionConfig?: BoardProjectionConfig;
 }
 
 export function ProjectBoard({
@@ -34,6 +38,7 @@ export function ProjectBoard({
   availableAgents,
   getGroups,
   onStatusUpdate,
+  projectionConfig,
 }: ProjectBoardProps) {
   const columnCount = Math.max(boardData.columns.length, 1);
   const gridStyle = useMemo(
@@ -46,6 +51,12 @@ export function ProjectBoard({
   );
 
   const { activeCard, handlers } = useBoardDragDrop(boardData, onStatusUpdate);
+
+  // Board projection for lazy loading large boards
+  const {
+    columnProjections,
+    observerRef,
+  } = useBoardProjection(boardData, projectionConfig);
 
   return (
     <DndContext
@@ -61,15 +72,30 @@ export function ProjectBoard({
           className="grid min-h-full min-w-full items-stretch gap-5 pb-2"
           style={gridStyle}
         >
-          {boardData.columns.map((column) => (
-            <BoardColumn
-              key={column.status.option_id}
-              column={column}
-              onCardClick={onCardClick}
-              availableAgents={availableAgents}
-              getGroups={getGroups}
-            />
-          ))}
+          {boardData.columns.map((column) => {
+            const projection = columnProjections.get(column.status.name);
+            const projectedColumn = projection
+              ? {
+                  ...column,
+                  items: column.items.slice(
+                    projection.renderedRange.start,
+                    projection.renderedRange.end,
+                  ),
+                }
+              : column;
+
+            return (
+              <BoardColumn
+                key={column.status.option_id}
+                column={projectedColumn}
+                onCardClick={onCardClick}
+                availableAgents={availableAgents}
+                getGroups={getGroups}
+                hasMore={projection?.hasMore}
+                scrollSentinelRef={observerRef(column.status.name)}
+              />
+            );
+          })}
         </div>
       </div>
       <DragOverlay>
