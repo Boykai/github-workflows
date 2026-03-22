@@ -5,6 +5,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from src.utils import utcnow
+
 
 class McpConfigurationCreate(BaseModel):
     """Request body for creating a new MCP configuration."""
@@ -51,7 +53,7 @@ class CollisionOperation:
     operation_type: str  # "update" | "delete" | "move" | "label_change"
     initiated_by: str  # "user" | "automation"
     user_id: str | None = None
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=utcnow)
     payload: dict = field(default_factory=dict)
     version_expected: int = 0
 
@@ -68,5 +70,5 @@ class CollisionEvent:
     resolution_strategy: str  # "last_write_wins" | "user_priority" | "manual_review"
     resolution_outcome: str
     winning_operation: str  # "a" | "b" | "neither"
-    detected_at: datetime = field(default_factory=datetime.utcnow)
+    detected_at: datetime = field(default_factory=utcnow)
     resolved_at: datetime | None = None

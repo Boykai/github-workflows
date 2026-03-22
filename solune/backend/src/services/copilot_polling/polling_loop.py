@@ -534,8 +534,6 @@ async def _poll_loop(
 
         # Phase 8: Update sliding-window activity tracking and tier
         _poll_state._activity_window.append(had_activity)
-        if len(_poll_state._activity_window) > _poll_state.ACTIVITY_WINDOW_SIZE:
-            _poll_state._activity_window = _poll_state._activity_window[-_poll_state.ACTIVITY_WINDOW_SIZE:]
 
         if _poll_state._activity_window:
             activity_score = sum(1 for x in _poll_state._activity_window if x) / len(_poll_state._activity_window)

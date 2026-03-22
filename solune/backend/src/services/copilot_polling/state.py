@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -141,7 +142,7 @@ POLLING_TIER_MEDIUM_INTERVAL: int = 10  # seconds — moderate polling
 POLLING_TIER_LOW_INTERVAL: int = 30  # seconds — slow polling during idle
 POLLING_TIER_BACKOFF_MAX_INTERVAL: int = 60  # seconds — max backoff on errors
 
-# Activity score thresholds for tier transitions (0.0–1.0)
+# Activity score thresholds for tier transitions (0.0-1.0)
 ACTIVITY_SCORE_HIGH_THRESHOLD: float = 0.6  # score > threshold → high tier
 ACTIVITY_SCORE_MEDIUM_THRESHOLD: float = 0.2  # score > threshold → medium tier
 
@@ -149,7 +150,7 @@ ACTIVITY_SCORE_MEDIUM_THRESHOLD: float = 0.2  # score > threshold → medium tie
 ACTIVITY_WINDOW_SIZE: int = 5
 
 # Sliding window of recent poll change-detection results (True = changes detected)
-_activity_window: list[bool] = []
+_activity_window: deque[bool] = deque(maxlen=ACTIVITY_WINDOW_SIZE)
 
 # Current adaptive polling tier
 _adaptive_tier: str = "medium"  # "high" | "medium" | "low" | "backoff"

@@ -95,9 +95,9 @@ function tierInterval(
   }
 }
 
-function computeActivityScore(window: boolean[]): number {
-  if (window.length === 0) return 0;
-  return window.filter(Boolean).length / window.length;
+function computeActivityScore(activityWindow: boolean[]): number {
+  if (activityWindow.length === 0) return 0;
+  return activityWindow.filter(Boolean).length / activityWindow.length;
 }
 
 function computeTier(
