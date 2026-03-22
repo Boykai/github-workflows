@@ -1,0 +1,118 @@
+# Pipeline API Contract
+
+**Feature**: `001-phase8-enhancements` | **Story**: US-2 Concurrent Pipeline Execution  
+**Type**: Backend API extension + internal service interface
+
+## Backend: Concurrent Pipeline Dispatch
+
+### Internal Service Interface
+
+```python
+# In workflow_orchestrator/orchestrator.py
+
+async def dispatch_pipelines(
+    project_id: str,
+    pipeline_configs: list[PipelineConfig],
+    context: WorkflowContext,
+) -> list[PipelineExecution]:
+    """
+    Dispatch multiple pipelines for a project.
+    
+    - If queue_mode is enabled: execute sequentially (existing behavior).
+    - If queue_mode is disabled: dispatch independent pipelines concurrently
+      via task_registry.
+    
+    Returns list of PipelineExecution results.
+    """
+
+async def execute_pipeline_concurrent(
+    pipeline_config: PipelineConfig,
+    context: WorkflowContext,
+    concurrent_group_id: str,
+) -> PipelineExecution:
+    """
+    Execute a single pipeline as part of a concurrent group.
+    Fault-isolated: failures do not propagate to siblings.
+    """
+```
+
+### Pipeline State Extension
+
+```python
+# Extended PipelineState in workflow_orchestrator/models.py
+
+@dataclass
+class PipelineState:
+    # ... existing fields ...
+    execution_mode: str = "sequential"        # "sequential" | "concurrent"
+    concurrent_group_id: str | None = None    # Links concurrent siblings
+    is_isolated: bool = True                  # Fault isolation flag
+    recovered_at: datetime | None = None      # Label-based recovery timestamp
+```
+
+### `GET /api/v1/projects/{project_id}/pipelines` (existing, extended)
+
+**Response** (extended fields in bold):
+
+```json
+{
+  "pipelines": [
+    {
+      "pipeline_id": "abc-123",
+      "pipeline_config_id": "config-1",
+      "status": "running",
+      "execution_mode": "concurrent",
+      "concurrent_group_id": "group-xyz",
+      "is_isolated": true,
+      "started_at": "2026-03-22T18:00:00Z",
+      "completed_at": null,
+      "error_message": null
+    },
+    {
+      "pipeline_id": "def-456",
+      "pipeline_config_id": "config-2",
+      "status": "running",
+      "execution_mode": "concurrent",
+      "concurrent_group_id": "group-xyz",
+      "is_isolated": true,
+      "started_at": "2026-03-22T18:00:01Z",
+      "completed_at": null,
+      "error_message": null
+    }
+  ],
+  "active_count": 2,
+  "queue_mode_enabled": false
+}
+```
+
+### Concurrency Control Flow
+
+```text
+trigger_pipelines(project_id, configs)
+│
+├─ acquire get_project_launch_lock(project_id)
+│
+├─ check is_queue_mode_enabled(project_id)
+│   │
+│   ├─ YES → sequential dispatch (existing behavior)
+│   │         release lock after each pipeline completes
+│   │
+│   └─ NO  → concurrent dispatch
+│            │
+│            ├─ generate concurrent_group_id
+│            ├─ release lock (allow other projects)
+│            ├─ for each independent pipeline config:
+│            │   └─ task_registry.create_task(
+│            │        execute_pipeline_concurrent(config, ctx, group_id)
+│            │      )
+│            └─ await all tasks (TaskGroup)
+│                 each task has independent try/except
+```
+
+## Requirements Mapping
+
+| Requirement | Contract Element |
+|-------------|-----------------|
+| FR-004 | `dispatch_pipelines()` with concurrent mode |
+| FR-005 | `is_isolated: True` + independent try/except per task |
+| FR-006 | `is_queue_mode_enabled()` gate before concurrent dispatch |

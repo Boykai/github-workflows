@@ -1,0 +1,231 @@
+# Undo/Redo API Contract
+
+**Feature**: `001-phase8-enhancements` | **Story**: US-7 Undo/Redo for Destructive Actions  
+**Type**: Frontend context + hook interfaces
+
+## Frontend: `UndoRedoContext`
+
+### Context Interface
+
+```typescript
+interface ActionHistoryEntry {
+  /** Unique entry identifier */
+  id: string;
+  /** Destructive action type */
+  actionType: 'archive' | 'delete' | 'label_remove' | 'status_change';
+  /** Type of affected entity */
+  entityType: 'board_item' | 'label' | 'card';
+  /** ID of the affected entity */
+  entityId: string;
+  /** State snapshot before the action */
+  previousState: Record<string, unknown>;
+  /** State snapshot after the action */
+  newState: Record<string, unknown>;
+  /** Unix timestamp of the action */
+  timestamp: number;
+  /** Unix timestamp when undo window closes */
+  expiresAt: number;
+  /** Human-readable description */
+  description: string;
+}
+
+interface UndoRedoConfig {
+  /** Undo window duration in ms (default: 30000) */
+  undoWindowMs?: number;
+  /** Maximum undo stack depth (default: 50) */
+  maxStackDepth?: number;
+}
+
+interface UndoRedoContextValue {
+  /** Undo the most recent destructive action */
+  undo: () => Promise<void>;
+  /** Redo the most recently undone action */
+  redo: () => Promise<void>;
+  /** Record a new destructive action */
+  pushAction: (entry: Omit<ActionHistoryEntry, 'id' | 'timestamp' | 'expiresAt'>) => void;
+  /** Whether undo is available */
+  canUndo: boolean;
+  /** Whether redo is available */
+  canRedo: boolean;
+  /** Current undo stack (most recent first) */
+  undoStack: ActionHistoryEntry[];
+  /** Current redo stack (most recent first) */
+  redoStack: ActionHistoryEntry[];
+  /** Description of the next undoable action */
+  nextUndoDescription: string | null;
+  /** Description of the next redoable action */
+  nextRedoDescription: string | null;
+}
+```
+
+### Provider Setup
+
+```typescript
+// In app root or board layout
+<UndoRedoProvider config={{ undoWindowMs: 30000, maxStackDepth: 50 }}>
+  <ProjectBoardContent />
+</UndoRedoProvider>
+```
+
+### Hook Usage
+
+```typescript
+function useUndoRedo(): UndoRedoContextValue;
+
+// In a component:
+const { pushAction, undo, canUndo, nextUndoDescription } = useUndoRedo();
+
+// When performing a destructive action:
+const handleArchive = async (item: BoardItem) => {
+  const previousState = { ...item };
+  await archiveItem(item.id);
+  
+  pushAction({
+    actionType: 'archive',
+    entityType: 'board_item',
+    entityId: item.id,
+    previousState,
+    newState: { ...item, archived: true },
+    description: `Archived "${item.title}"`,
+  });
+  
+  // Toast with undo button shown automatically by provider
+};
+```
+
+## Frontend: Toast Integration
+
+### Undo Toast Pattern
+
+```typescript
+// UndoRedoProvider internally shows toasts via sonner:
+import { toast } from 'sonner';
+
+// After pushAction:
+toast(`${entry.description}`, {
+  action: {
+    label: 'Undo',
+    onClick: () => undo(),
+  },
+  duration: config.undoWindowMs,
+  onAutoClose: () => {
+    // Entry has expired, remove from undoStack
+    expireEntry(entry.id);
+  },
+});
+
+// After undo:
+toast.success(`Undone: ${entry.description}`);
+
+// After redo:
+toast.success(`Redone: ${entry.description}`);
+
+// On window expiry:
+toast.info('Undo window has expired. Contact an admin for recovery options.');
+```
+
+## Frontend: Keyboard Shortcuts
+
+```typescript
+// In UndoRedoProvider:
+useEffect(() => {
+  const handler = (e: KeyboardEvent) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+      e.preventDefault();
+      if (canUndo) undo();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z' && e.shiftKey) {
+      e.preventDefault();
+      if (canRedo) redo();
+    }
+  };
+  document.addEventListener('keydown', handler);
+  return () => document.removeEventListener('keydown', handler);
+}, [canUndo, canRedo, undo, redo]);
+```
+
+## Backend: Soft Delete Support
+
+### Internal Interface
+
+```python
+# Extend relevant API endpoints to support soft delete
+
+async def soft_delete_item(
+    item_id: str,
+    user_id: str,
+) -> dict:
+    """
+    Mark item as pending deletion instead of immediate delete.
+    Returns the item state for undo capability.
+    """
+
+async def restore_item(
+    item_id: str,
+    previous_state: dict,
+) -> dict:
+    """
+    Restore a soft-deleted item to its previous state.
+    Called when user triggers undo.
+    """
+
+async def finalize_deletions() -> int:
+    """
+    Background task: permanently delete items whose undo window has expired.
+    Returns count of finalized deletions.
+    """
+```
+
+### `POST /api/v1/board/items/{item_id}/undo`
+
+**Request**:
+```json
+{
+  "action_type": "archive",
+  "previous_state": {
+    "status": "in_progress",
+    "labels": ["bug", "p1"],
+    "archived": false
+  }
+}
+```
+
+**Response** (200 OK):
+```json
+{
+  "success": true,
+  "item_id": "item-123",
+  "restored_state": {
+    "status": "in_progress",
+    "labels": ["bug", "p1"],
+    "archived": false
+  },
+  "server_diverged": false,
+  "divergence_warning": null
+}
+```
+
+**Response** (200 OK, server state diverged):
+```json
+{
+  "success": true,
+  "item_id": "item-123",
+  "restored_state": {
+    "status": "in_progress",
+    "labels": ["bug", "p1"],
+    "archived": false
+  },
+  "server_diverged": true,
+  "divergence_warning": "Item labels changed since action was performed. Undo restored to your original state but some automated changes may have been overridden."
+}
+```
+
+## Requirements Mapping
+
+| Requirement | Contract Element |
+|-------------|-----------------|
+| FR-021 | `pushAction()` + `UndoRedoConfig.undoWindowMs` + `soft_delete_item()` |
+| FR-022 | `redo()` + `redoStack` management |
+| FR-023 | LIFO stack behavior in `undoStack` |
+| FR-024 | `pushAction()` clears `redoStack` |
+| FR-025 | Toast `onAutoClose` + expiry notification |
