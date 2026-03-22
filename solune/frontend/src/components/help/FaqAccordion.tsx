@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown } from '@/lib/icons';
 import type { FaqEntry, FaqCategory } from '@/types';
 import { cn } from '@/lib/utils';
 

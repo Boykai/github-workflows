@@ -7,7 +7,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle2, CircleAlert, XCircle } from 'lucide-react';
+import { CheckCircle2, CircleAlert, XCircle } from '@/lib/icons';
 import type { CleanupExecuteResponse } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
 

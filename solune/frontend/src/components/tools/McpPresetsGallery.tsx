@@ -1,4 +1,4 @@
-import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertCircle, RefreshCw, Sparkles } from '@/lib/icons';
 import type { McpPreset } from '@/types';
 import { Button } from '@/components/ui/button';
 import { CelestialLoader } from '@/components/common/CelestialLoader';

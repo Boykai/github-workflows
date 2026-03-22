@@ -6,7 +6,7 @@
 import { LoginButton } from '@/components/auth/LoginButton';
 import { AnimatedBackground } from '@/components/AnimatedBackground';
 import { useTheme } from '@/components/ThemeProvider';
-import { MoonStar, SunMedium } from 'lucide-react';
+import { MoonStar, SunMedium } from '@/lib/icons';
 
 export function LoginPage() {
   const { theme, setTheme } = useTheme();

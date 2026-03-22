@@ -3,7 +3,7 @@
  * Extracted from ProjectsPage to keep the page file ≤250 lines.
  */
 
-import { Inbox, Search } from 'lucide-react';
+import { Inbox, Search } from '@/lib/icons';
 import { ProjectBoard } from '@/components/board/ProjectBoard';
 import { Button } from '@/components/ui/button';
 import type { BoardDataResponse, BoardItem, AvailableAgent } from '@/types';

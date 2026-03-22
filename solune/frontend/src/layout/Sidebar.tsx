@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { NAV_ROUTES } from '@/constants';
-import { Moon, PanelLeftClose, PanelLeft, Sun } from 'lucide-react';
+import { Moon, PanelLeftClose, PanelLeft, Sun } from '@/lib/icons';
 import { ProjectSelector } from './ProjectSelector';
 import { Tooltip } from '@/components/ui/tooltip';
 import { statusColorToCSS } from '@/components/board/colorUtils';

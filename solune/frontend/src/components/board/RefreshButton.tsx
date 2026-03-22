@@ -2,7 +2,7 @@
  * RefreshButton component with spinning animation and tooltip.
  */
 
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';

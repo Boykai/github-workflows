@@ -4,7 +4,7 @@
  */
 
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Clock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock } from '@/lib/icons';
 import { useEntityHistory } from '@/hooks/useEntityHistory';
 import { cn } from '@/lib/utils';
 

@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Filter, ArrowUpDown, Columns3, Search, X } from 'lucide-react';
+import { Filter, ArrowUpDown, Columns3, Search, X } from '@/lib/icons';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import type { BoardFilterState, BoardSortState, BoardGroupState } from '@/hooks/useBoardControls';

@@ -758,6 +758,14 @@ export const choresApi = {
   },
 
   /**
+   * List ALL chore names for a project — unpaginated, unfiltered.
+   * Used for accurate template membership checks.
+   */
+  listChoreNames(projectId: string): Promise<string[]> {
+    return request<string[]>(`/chores/${projectId}/chore-names`);
+  },
+
+  /**
    * Create a new chore.
    */
   create(projectId: string, data: ChoreCreate): Promise<Chore> {

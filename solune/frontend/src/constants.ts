@@ -69,7 +69,7 @@ import {
   Settings,
   Boxes,
   Clock,
-} from 'lucide-react';
+} from '@/lib/icons';
 import type { NavRoute } from '@/types';
 
 /** Sidebar navigation routes with Lucide icons. */

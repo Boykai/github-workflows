@@ -24,6 +24,12 @@ export default tseslint.config(
         assert: 'either',
         depth: 3,
       }],
+      'no-restricted-imports': ['error', {
+        paths: [{
+          name: 'lucide-react',
+          message: 'Import icons from @/lib/icons instead of lucide-react directly.',
+        }],
+      }],
     },
   },
   {
@@ -31,6 +37,12 @@ export default tseslint.config(
     rules: {
       'security/detect-non-literal-fs-filename': 'off',
       'security/detect-unsafe-regex': 'off',
+    },
+  },
+  {
+    files: ['src/lib/icons.ts'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   }
 );
