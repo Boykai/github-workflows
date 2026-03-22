@@ -2657,10 +2657,8 @@ async def dispatch_pipelines(
     import uuid
 
     from src.services.pipeline_state_store import get_project_launch_lock
-    from src.services.task_registry import task_registry
-
-    # Check queue-mode setting
     from src.services.settings_store import is_queue_mode_enabled
+    from src.services.task_registry import task_registry
 
     results: list[dict] = []
 
@@ -2730,7 +2728,7 @@ async def dispatch_pipelines(
         # are caught and returned as results, not raised.
         import asyncio
 
-        done = await asyncio.gather(*[t for t in tasks], return_exceptions=True)
+        done = await asyncio.gather(*tasks, return_exceptions=True)
         for item in done:
             if isinstance(item, Exception):
                 results.append({

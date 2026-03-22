@@ -898,7 +898,7 @@ async def recover_stalled_issues(
     return results
 
 
-# ── Phase 8: Label-Driven State Recovery (T027–T032) ──
+# ── Phase 8: Label-Driven State Recovery (T027-T032) ──
 
 
 def batch_parse_pipeline_labels(
@@ -1115,7 +1115,7 @@ async def _persist_recovery_log(report: RecoveryReport) -> None:
         db = await get_db()
         for state in report.states:
             source_labels_json = json.dumps(
-                [{"run_id": l.run_id, "stage_id": l.stage_id, "status": l.status, "full_name": l.full_name} for l in state.source_labels]
+                [{"run_id": lbl.run_id, "stage_id": lbl.stage_id, "status": lbl.status, "full_name": lbl.full_name} for lbl in state.source_labels]
             )
             ambiguity_json = json.dumps(state.ambiguity_flags)
             await db.execute(

@@ -23,11 +23,11 @@
 
 **Purpose**: Database migrations, model extensions, and icon setup shared across multiple user stories
 
-- [ ] T001 Create database migration for `pipeline_states` table extensions (`concurrent_group_id TEXT`, `is_isolated INTEGER DEFAULT 1`, `recovered_at TEXT`) in `solune/backend/src/migrations/` (next sequential migration file)
-- [ ] T002 [P] Create database migration for `mcp_configurations` version column (`version INTEGER NOT NULL DEFAULT 1`) in `solune/backend/src/migrations/` (next sequential migration file)
-- [ ] T003 [P] Create database migration for new `collision_events` table in `solune/backend/src/migrations/` (next sequential migration file, schema per data-model.md)
-- [ ] T004 [P] Create database migration for new `recovery_log` table in `solune/backend/src/migrations/` (next sequential migration file, schema per data-model.md)
-- [ ] T005 [P] Add new Lucide icons (Filter, Undo2, Redo2, Activity, Loader) to frontend barrel file in `solune/frontend/src/lib/icons.ts`
+- [x] T001 Create database migration for `pipeline_states` table extensions (`concurrent_group_id TEXT`, `is_isolated INTEGER DEFAULT 1`, `recovered_at TEXT`) in `solune/backend/src/migrations/` (next sequential migration file)
+- [x] T002 [P] Create database migration for `mcp_configurations` version column (`version INTEGER NOT NULL DEFAULT 1`) in `solune/backend/src/migrations/` (next sequential migration file)
+- [x] T003 [P] Create database migration for new `collision_events` table in `solune/backend/src/migrations/` (next sequential migration file, schema per data-model.md)
+- [x] T004 [P] Create database migration for new `recovery_log` table in `solune/backend/src/migrations/` (next sequential migration file, schema per data-model.md)
+- [x] T005 [P] Add new Lucide icons (Filter, Undo2, Redo2, Activity, Loader) to frontend barrel file in `solune/frontend/src/lib/icons.ts`
 
 ---
 
@@ -37,10 +37,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Add adaptive polling interval constants and tier configuration (`POLLING_TIER_HIGH`, `POLLING_TIER_MEDIUM`, `POLLING_TIER_LOW`, `POLLING_TIER_BACKOFF`, thresholds, and window size defaults) to `solune/backend/src/services/copilot_polling/state.py`
-- [ ] T007 [P] Extend `PipelineState` dataclass with `execution_mode`, `concurrent_group_id`, `is_isolated`, and `recovered_at` fields in `solune/backend/src/services/workflow_orchestrator/models.py`
-- [ ] T008 [P] Add `CollisionOperation` and `CollisionEvent` dataclass models to `solune/backend/src/models/mcp.py` (fields per data-model.md and collision-api.yaml contract)
-- [ ] T009 [P] Add `RecoveryState` and `RecoveryReport` dataclasses to `solune/backend/src/services/copilot_polling/recovery.py` (fields per data-model.md and recovery-api.yaml contract)
+- [x] T006 Add adaptive polling interval constants and tier configuration (`POLLING_TIER_HIGH`, `POLLING_TIER_MEDIUM`, `POLLING_TIER_LOW`, `POLLING_TIER_BACKOFF`, thresholds, and window size defaults) to `solune/backend/src/services/copilot_polling/state.py`
+- [x] T007 [P] Extend `PipelineState` dataclass with `execution_mode`, `concurrent_group_id`, `is_isolated`, and `recovered_at` fields in `solune/backend/src/services/workflow_orchestrator/models.py`
+- [x] T008 [P] Add `CollisionOperation` and `CollisionEvent` dataclass models to `solune/backend/src/models/mcp.py` (fields per data-model.md and collision-api.yaml contract)
+- [x] T009 [P] Add `RecoveryState` and `RecoveryReport` dataclasses to `solune/backend/src/services/copilot_polling/recovery.py` (fields per data-model.md and recovery-api.yaml contract)
 
 **Checkpoint**: Foundation ready — user story implementation can now begin in parallel
 
@@ -54,11 +54,11 @@
 
 ### Implementation for User Story 1
 
-- [ ] T010 [US1] Add activity tracking logic (sliding window `changes_detected` counter, activity score computation, tier transition logic) to the poll tick in `solune/backend/src/services/copilot_polling/polling_loop.py`
-- [ ] T011 [P] [US1] Create `useAdaptivePolling` hook implementing `AdaptivePollingConfig`, `AdaptivePollingState`, and `UseAdaptivePollingReturn` interfaces in `solune/frontend/src/hooks/useAdaptivePolling.ts` (contract per polling-api.yaml)
-- [ ] T012 [US1] Integrate `useAdaptivePolling` into `useProjectBoard` hook — pass dynamic `getRefetchInterval` to TanStack Query's `refetchInterval` option, wire `reportPollResult` and `reportPollFailure` callbacks in `solune/frontend/src/hooks/useProjectBoard.ts`
-- [ ] T013 [US1] Add tab visibility handling (`document.visibilitychange` event listener) with immediate poll on tab focus and polling pause when hidden in `solune/frontend/src/hooks/useAdaptivePolling.ts`
-- [ ] T014 [P] [US1] Extend `useBoardRefresh` hook to use adaptive polling state for refresh indicators (show activity tier badge or polling status) in `solune/frontend/src/hooks/useBoardRefresh.ts`
+- [x] T010 [US1] Add activity tracking logic (sliding window `changes_detected` counter, activity score computation, tier transition logic) to the poll tick in `solune/backend/src/services/copilot_polling/polling_loop.py`
+- [x] T011 [P] [US1] Create `useAdaptivePolling` hook implementing `AdaptivePollingConfig`, `AdaptivePollingState`, and `UseAdaptivePollingReturn` interfaces in `solune/frontend/src/hooks/useAdaptivePolling.ts` (contract per polling-api.yaml)
+- [x] T012 [US1] Integrate `useAdaptivePolling` into `useProjectBoard` hook — pass dynamic `getRefetchInterval` to TanStack Query's `refetchInterval` option, wire `reportPollResult` and `reportPollFailure` callbacks in `solune/frontend/src/hooks/useProjectBoard.ts`
+- [x] T013 [US1] Add tab visibility handling (`document.visibilitychange` event listener) with immediate poll on tab focus and polling pause when hidden in `solune/frontend/src/hooks/useAdaptivePolling.ts`
+- [x] T014 [P] [US1] Extend `useBoardRefresh` hook to use adaptive polling state for refresh indicators (show activity tier badge or polling status) in `solune/frontend/src/hooks/useBoardRefresh.ts`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. Board polling adapts to activity, backs off on errors, and pauses/resumes on tab visibility changes.
 
@@ -72,11 +72,11 @@
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] Implement `dispatch_pipelines()` function with queue-mode gate in `solune/backend/src/services/workflow_orchestrator/orchestrator.py` — check `is_queue_mode_enabled()`, dispatch concurrently via `task_registry` when off, sequentially when on
-- [ ] T016 [P] [US2] Extend `pipeline_state_store.py` to read/write `concurrent_group_id`, `is_isolated`, and `execution_mode` fields in `solune/backend/src/services/pipeline_state_store.py`
-- [ ] T017 [US2] Implement `execute_pipeline_concurrent()` with fault isolation (`try/except` per pipeline, failures do not propagate to siblings) in `solune/backend/src/services/copilot_polling/pipeline.py`
-- [ ] T018 [US2] Extend `GET /api/v1/projects/{project_id}/pipelines` response to include `execution_mode`, `concurrent_group_id`, and `is_isolated` fields in `solune/backend/src/api/pipelines.py`
-- [ ] T019 [P] [US2] Add `concurrent_group_id` generation (UUID) and group linking logic for sibling pipelines in `solune/backend/src/services/workflow_orchestrator/orchestrator.py`
+- [x] T015 [US2] Implement `dispatch_pipelines()` function with queue-mode gate in `solune/backend/src/services/workflow_orchestrator/orchestrator.py` — check `is_queue_mode_enabled()`, dispatch concurrently via `task_registry` when off, sequentially when on
+- [x] T016 [P] [US2] Extend `pipeline_state_store.py` to read/write `concurrent_group_id`, `is_isolated`, and `execution_mode` fields in `solune/backend/src/services/pipeline_state_store.py`
+- [x] T017 [US2] Implement `execute_pipeline_concurrent()` with fault isolation (`try/except` per pipeline, failures do not propagate to siblings) in `solune/backend/src/services/copilot_polling/pipeline.py`
+- [x] T018 [US2] Extend `GET /api/v1/projects/{project_id}/pipelines` response to include `execution_mode`, `concurrent_group_id`, and `is_isolated` fields in `solune/backend/src/api/pipelines.py`
+- [x] T019 [P] [US2] Add `concurrent_group_id` generation (UUID) and group linking logic for sibling pipelines in `solune/backend/src/services/workflow_orchestrator/orchestrator.py`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Concurrent pipelines execute in parallel with fault isolation.
 
@@ -90,10 +90,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Create `useBoardProjection` hook implementing `BoardProjectionConfig`, `ColumnProjection`, and `UseBoardProjectionReturn` interfaces with intersection observer logic in `solune/frontend/src/hooks/useBoardProjection.ts` (contract per board-api.yaml)
-- [ ] T021 [US3] Integrate `useBoardProjection` into `ProjectBoard.tsx` — pass projected items to columns, use `observerRef` for scroll-triggered loading in `solune/frontend/src/components/board/ProjectBoard.tsx`
-- [ ] T022 [US3] Add intersection observer ref attachment and projected item rendering to `BoardColumn.tsx` — render only items within `renderedRange`, show placeholder for off-screen items in `solune/frontend/src/components/board/BoardColumn.tsx`
-- [ ] T023 [P] [US3] Add scroll debouncing (150ms default) to intersection observer callbacks in `useBoardProjection` to handle rapid scrolling in `solune/frontend/src/hooks/useBoardProjection.ts`
+- [x] T020 [US3] Create `useBoardProjection` hook implementing `BoardProjectionConfig`, `ColumnProjection`, and `UseBoardProjectionReturn` interfaces with intersection observer logic in `solune/frontend/src/hooks/useBoardProjection.ts` (contract per board-api.yaml)
+- [x] T021 [US3] Integrate `useBoardProjection` into `ProjectBoard.tsx` — pass projected items to columns, use `observerRef` for scroll-triggered loading in `solune/frontend/src/components/board/ProjectBoard.tsx`
+- [x] T022 [US3] Add intersection observer ref attachment and projected item rendering to `BoardColumn.tsx` — render only items within `renderedRange`, show placeholder for off-screen items in `solune/frontend/src/components/board/BoardColumn.tsx`
+- [x] T023 [P] [US3] Add scroll debouncing (150ms default) to intersection observer callbacks in `useBoardProjection` to handle rapid scrolling in `solune/frontend/src/hooks/useBoardProjection.ts`
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 should all work independently. Large boards render fast with lazy loading.
 
@@ -107,9 +107,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Add `pipelineConfigId: string | null` field and `setPipelineConfigFilter` handler to `BoardFilterState` in `solune/frontend/src/hooks/useBoardControls.ts`
-- [ ] T025 [US4] Implement client-side filtering logic — filter board items by `pipelineConfigId` when set (null = "All Pipelines") and derive `availablePipelineConfigs` from board data in `solune/frontend/src/hooks/useBoardControls.ts`
-- [ ] T026 [US4] Add pipeline config filter dropdown UI (Radix UI `Select` component with "All Pipelines" default + pipeline config options with item counts) to `solune/frontend/src/components/board/BoardToolbar.tsx`
+- [x] T024 [US4] Add `pipelineConfigId: string | null` field and `setPipelineConfigFilter` handler to `BoardFilterState` in `solune/frontend/src/hooks/useBoardControls.ts`
+- [x] T025 [US4] Implement client-side filtering logic — filter board items by `pipelineConfigId` when set (null = "All Pipelines") and derive `availablePipelineConfigs` from board data in `solune/frontend/src/hooks/useBoardControls.ts`
+- [x] T026 [US4] Add pipeline config filter dropdown UI (Radix UI `Select` component with "All Pipelines" default + pipeline config options with item counts) to `solune/frontend/src/components/board/BoardToolbar.tsx`
 
 **Checkpoint**: At this point, User Stories 1–4 should all work independently. Pipeline filtering works client-side with no backend changes.
 
@@ -123,12 +123,12 @@
 
 ### Implementation for User Story 5
 
-- [ ] T027 [US5] Extend `label_manager.py` with `batch_parse_pipeline_labels()` function for parsing all `solune:pipeline:*` labels on a list of items in `solune/backend/src/services/copilot_polling/label_manager.py`
-- [ ] T028 [US5] Implement `recover_single_item_state()` function to reconstruct `RecoveryState` from parsed labels with confidence scoring and ambiguity detection in `solune/backend/src/services/copilot_polling/recovery.py`
-- [ ] T029 [US5] Implement `recover_pipeline_states_from_labels()` function orchestrating full project-level recovery: list items, parse labels, reconstruct states, handle ambiguities, populate state store in `solune/backend/src/services/copilot_polling/recovery.py`
-- [ ] T030 [US5] Add `recovered_at` timestamp handling to `pipeline_state_store.py` — set on recovered states, check in polling pipeline to skip re-processing in `solune/backend/src/services/pipeline_state_store.py`
-- [ ] T031 [US5] Wire recovery into startup — call `recover_pipeline_states_from_labels()` when `init_pipeline_state_store()` detects empty or corrupt state, use `get_dispatcher()` for alerts in `solune/backend/src/services/pipeline_state_store.py`
-- [ ] T032 [P] [US5] Add recovery event logging to `recovery_log` table (persist `RecoveryState` entries for auditability) in `solune/backend/src/services/copilot_polling/recovery.py`
+- [x] T027 [US5] Extend `label_manager.py` with `batch_parse_pipeline_labels()` function for parsing all `solune:pipeline:*` labels on a list of items in `solune/backend/src/services/copilot_polling/label_manager.py`
+- [x] T028 [US5] Implement `recover_single_item_state()` function to reconstruct `RecoveryState` from parsed labels with confidence scoring and ambiguity detection in `solune/backend/src/services/copilot_polling/recovery.py`
+- [x] T029 [US5] Implement `recover_pipeline_states_from_labels()` function orchestrating full project-level recovery: list items, parse labels, reconstruct states, handle ambiguities, populate state store in `solune/backend/src/services/copilot_polling/recovery.py`
+- [x] T030 [US5] Add `recovered_at` timestamp handling to `pipeline_state_store.py` — set on recovered states, check in polling pipeline to skip re-processing in `solune/backend/src/services/pipeline_state_store.py`
+- [x] T031 [US5] Wire recovery into startup — call `recover_pipeline_states_from_labels()` when `init_pipeline_state_store()` detects empty or corrupt state, use `get_dispatcher()` for alerts in `solune/backend/src/services/pipeline_state_store.py`
+- [x] T032 [P] [US5] Add recovery event logging to `recovery_log` table (persist `RecoveryState` entries for auditability) in `solune/backend/src/services/copilot_polling/recovery.py`
 
 **Checkpoint**: At this point, User Stories 1–5 should all work independently. The system self-heals from state loss using label-based recovery.
 
@@ -142,10 +142,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T033 [US6] Create `collision_resolver.py` service with `detect_collision()`, `resolve_collision()`, and `log_collision_event()` functions implementing resolution priority (user > automation, last-write-wins, manual review fallback) in `solune/backend/src/services/collision_resolver.py`
-- [ ] T034 [US6] Add version field and optimistic concurrency check to `update_mcp_configuration()` in `solune/backend/src/services/mcp_store.py` — increment version on write, detect version mismatch, call `detect_collision()`
-- [ ] T035 [US6] Add `expected_version` parameter to MCP update API endpoint and return collision summary in response when collision is detected in `solune/backend/src/api/mcp.py`
-- [ ] T036 [P] [US6] Add collision event persistence to `collision_events` table (insert collision records, query for audit) in `solune/backend/src/services/collision_resolver.py`
+- [x] T033 [US6] Create `collision_resolver.py` service with `detect_collision()`, `resolve_collision()`, and `log_collision_event()` functions implementing resolution priority (user > automation, last-write-wins, manual review fallback) in `solune/backend/src/services/collision_resolver.py`
+- [x] T034 [US6] Add version field and optimistic concurrency check to `update_mcp_configuration()` in `solune/backend/src/services/mcp_store.py` — increment version on write, detect version mismatch, call `detect_collision()`
+- [x] T035 [US6] Add `expected_version` parameter to MCP update API endpoint and return collision summary in response when collision is detected in `solune/backend/src/api/mcp.py`
+- [x] T036 [P] [US6] Add collision event persistence to `collision_events` table (insert collision records, query for audit) in `solune/backend/src/services/collision_resolver.py`
 
 **Checkpoint**: At this point, User Stories 1–6 should all work independently. Concurrent MCP operations are safe with deterministic collision resolution.
 
@@ -159,12 +159,12 @@
 
 ### Implementation for User Story 7
 
-- [ ] T037 [US7] Create `UndoRedoContext.tsx` with `UndoRedoProvider` component implementing `UndoRedoContextValue` interface — undo/redo stacks, pushAction, expiry timer, stack clearing on new action in `solune/frontend/src/context/UndoRedoContext.tsx`
-- [ ] T038 [US7] Create `useUndoRedo` hook wrapping `UndoRedoContext` with convenience methods (`undo`, `redo`, `canUndo`, `canRedo`, `nextUndoDescription`, `nextRedoDescription`) in `solune/frontend/src/hooks/useUndoRedo.ts`
-- [ ] T039 [US7] Wrap `ProjectBoardContent` with `UndoRedoProvider` and wire destructive actions (archive, delete, label removal) to call `pushAction` with state snapshots in `solune/frontend/src/components/board/ProjectBoardContent.tsx`
-- [ ] T040 [US7] Add undo toast notification using `sonner` — display toast with "Undo" button and countdown timer on destructive actions in `solune/frontend/src/components/board/ProjectBoardContent.tsx`
-- [ ] T041 [P] [US7] Add keyboard shortcut handler (Ctrl+Z for undo, Ctrl+Shift+Z for redo) as a global keydown listener inside `UndoRedoProvider` in `solune/frontend/src/context/UndoRedoContext.tsx`
-- [ ] T042 [US7] Add undo window expiry logic — remove expired entries from undo stack, show "undo window expired" notification with recovery guidance in `solune/frontend/src/context/UndoRedoContext.tsx`
+- [x] T037 [US7] Create `UndoRedoContext.tsx` with `UndoRedoProvider` component implementing `UndoRedoContextValue` interface — undo/redo stacks, pushAction, expiry timer, stack clearing on new action in `solune/frontend/src/context/UndoRedoContext.tsx`
+- [x] T038 [US7] Create `useUndoRedo` hook wrapping `UndoRedoContext` with convenience methods (`undo`, `redo`, `canUndo`, `canRedo`, `nextUndoDescription`, `nextRedoDescription`) in `solune/frontend/src/hooks/useUndoRedo.ts`
+- [x] T039 [US7] Wrap `ProjectBoardContent` with `UndoRedoProvider` and wire destructive actions (archive, delete, label removal) to call `pushAction` with state snapshots in `solune/frontend/src/components/board/ProjectBoardContent.tsx`
+- [x] T040 [US7] Add undo toast notification using `sonner` — display toast with "Undo" button and countdown timer on destructive actions in `solune/frontend/src/components/board/ProjectBoardContent.tsx`
+- [x] T041 [P] [US7] Add keyboard shortcut handler (Ctrl+Z for undo, Ctrl+Shift+Z for redo) as a global keydown listener inside `UndoRedoProvider` in `solune/frontend/src/context/UndoRedoContext.tsx`
+- [x] T042 [US7] Add undo window expiry logic — remove expired entries from undo stack, show "undo window expired" notification with recovery guidance in `solune/frontend/src/context/UndoRedoContext.tsx`
 
 **Checkpoint**: All user stories (1–7) should now be independently functional. Users can undo/redo destructive actions with visual feedback.
 
@@ -174,11 +174,11 @@
 
 **Purpose**: Improvements that affect multiple user stories — documentation, validation, and integration hardening
 
-- [ ] T043 [P] Update `solune/docs/` with documentation for adaptive polling configuration, concurrent pipeline behavior, and undo/redo usage
-- [ ] T044 Code cleanup — ensure all new modules have consistent docstrings and follow existing code conventions across `solune/backend/src/` and `solune/frontend/src/`
-- [ ] T045 [P] Performance validation — verify board initial render ≤2s for 500 items (SC-003), scroll batch load ≤500ms (FR-008), poll updates visible within 5s (SC-001)
-- [ ] T046 [P] Run quickstart.md validation — execute all setup and verification steps from `specs/001-phase8-enhancements/quickstart.md`
-- [ ] T047 Integration validation — verify polling + lazy loading + pipeline filter work together without regressions
+- [x] T043 [P] Update `solune/docs/` with documentation for adaptive polling configuration, concurrent pipeline behavior, and undo/redo usage
+- [x] T044 Code cleanup — ensure all new modules have consistent docstrings and follow existing code conventions across `solune/backend/src/` and `solune/frontend/src/`
+- [x] T045 [P] Performance validation — verify board initial render ≤2s for 500 items (SC-003), scroll batch load ≤500ms (FR-008), poll updates visible within 5s (SC-001)
+- [x] T046 [P] Run quickstart.md validation — execute all setup and verification steps from `specs/001-phase8-enhancements/quickstart.md`
+- [x] T047 Integration validation — verify polling + lazy loading + pipeline filter work together without regressions
 
 ---
 
