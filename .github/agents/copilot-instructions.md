@@ -299,6 +299,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite (aiosqlite ≥0.22.0) + in-memory cache (`InMemoryCache`) (001-code-quality-dry)
 - Python 3.13 (target-version in ruff/pyright config; requires >=3.12) + Pydantic v2 (`model_validator`), pydantic-settings (`BaseSettings`), `pathlib.Path` (stdlib) (001-startup-config-validation)
 - SQLite via `database_path` setting (default: `/var/lib/solune/data/settings.db`) (001-startup-config-validation)
+- Python 3.11+ (backend), TypeScript 5.x (frontend) + FastAPI, aiosqlite, httpx, Pydantic (backend); React 19, Vite, TanStack Query, Zod, Radix UI (frontend) (001-bug-basher)
+- SQLite via aiosqlite (async), file path configurable via `DATABASE_PATH` env var (001-bug-basher)
 
 ## Recent Changes
 - Dependabot upgrades: ESLint 9→10, Vite 7→8, react-hooks 5→7, security 3→4, @vitejs/plugin-react 5→6, Docker images (python 3.14, node 25, nginx 1.29), GitHub Actions (checkout v6, setup-python v6, upload-artifact v7, setup-node v6)
