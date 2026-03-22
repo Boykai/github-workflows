@@ -377,12 +377,14 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
         _app.state.connection_manager = connection_manager
 
         # ── Observability: Alert dispatcher (Phase 5) ──
-        from src.services.alert_dispatcher import AlertDispatcher
+        from src.services.alert_dispatcher import AlertDispatcher, set_dispatcher
 
-        _app.state.alert_dispatcher = AlertDispatcher(
+        _alert_dispatcher = AlertDispatcher(
             webhook_url=settings.alert_webhook_url,
             cooldown_minutes=settings.alert_cooldown_minutes,
         )
+        _app.state.alert_dispatcher = _alert_dispatcher
+        set_dispatcher(_alert_dispatcher)
 
         # ── Observability: OpenTelemetry (Phase 5) ──
         if settings.otel_enabled:

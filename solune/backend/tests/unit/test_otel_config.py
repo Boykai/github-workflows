@@ -12,27 +12,23 @@ class TestOtelSetupNoOp:
     """Tests for no-op behavior when OTel is not initialised."""
 
     def test_get_tracer_returns_noop(self):
-        """get_tracer() returns a NoOpTracer when OTel is not initialised."""
+        """get_tracer() returns a local no-op tracer when OTel is not initialised."""
         # Reset module state
         import src.services.otel_setup as otel_mod
 
         otel_mod._tracer = None
 
-        from opentelemetry.trace import NoOpTracer
-
         tracer = otel_mod.get_tracer()
-        assert isinstance(tracer, NoOpTracer)
+        assert isinstance(tracer, otel_mod._NoOpTracer)
 
     def test_get_meter_returns_noop(self):
-        """get_meter() returns a NoOpMeter when OTel is not initialised."""
+        """get_meter() returns a local no-op meter when OTel is not initialised."""
         import src.services.otel_setup as otel_mod
 
         otel_mod._meter = None
 
-        from opentelemetry.metrics import NoOpMeter
-
         meter = otel_mod.get_meter()
-        assert isinstance(meter, NoOpMeter)
+        assert isinstance(meter, otel_mod._NoOpMeter)
 
 
 class TestObservabilityConfigDefaults:

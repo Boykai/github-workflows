@@ -30,14 +30,19 @@ CREATE INDEX IF NOT EXISTS idx_rate_limit_snapshots_timestamp
 class RateLimitTracker:
     """Records and queries rate-limit snapshots in SQLite."""
 
+    _table_ready: bool = False
+
     async def _ensure_table(self) -> None:
-        """Create the snapshots table if it does not exist."""
+        """Create the snapshots table if it does not exist (once per process)."""
+        if self._table_ready:
+            return
         from src.services.database import get_db
 
         db = get_db()
         await db.execute(_TABLE_DDL)
         await db.execute(_INDEX_DDL)
         await db.commit()
+        self._table_ready = True
 
     async def record_snapshot(self, remaining: int, limit: int, reset_at: int) -> None:
         """Insert a snapshot and prune rows older than 24 hours."""
@@ -79,3 +84,12 @@ class RateLimitTracker:
             }
             for row in rows
         ]
+
+
+# ── Module-level singleton ─────────────────────────────────────────────
+_tracker = RateLimitTracker()
+
+
+def get_tracker() -> RateLimitTracker:
+    """Return the shared ``RateLimitTracker`` singleton."""
+    return _tracker

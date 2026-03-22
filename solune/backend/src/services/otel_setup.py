@@ -91,19 +91,55 @@ def init_otel(service_name: str, endpoint: str) -> tuple[Tracer, Meter]:
     return _tracer, _meter
 
 
+class _NoOpSpan:
+    """Minimal no-op span that satisfies the context-manager protocol."""
+
+    def set_attribute(self, key: str, value: object) -> None:  # noqa: ARG002
+        pass
+
+    def __enter__(self):  # type: ignore[no-untyped-def]
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        pass
+
+
+class _NoOpTracer:
+    """Lightweight no-op tracer — avoids importing ``opentelemetry``."""
+
+    def start_as_current_span(self, name: str, **kwargs: object):  # type: ignore[no-untyped-def]  # noqa: ARG002
+        return _NoOpSpan()
+
+
+class _NoOpMeter:
+    """Lightweight no-op meter — avoids importing ``opentelemetry``."""
+
+    class _NoOpInstrument:
+        def set(self, value: object, attributes: object = None) -> None:  # noqa: ARG002
+            pass
+
+        def record(self, value: object, attributes: object = None) -> None:  # noqa: ARG002
+            pass
+
+    def create_gauge(self, name: str, **kwargs: object) -> _NoOpInstrument:  # noqa: ARG002
+        return self._NoOpInstrument()
+
+    def create_histogram(self, name: str, **kwargs: object) -> _NoOpInstrument:  # noqa: ARG002
+        return self._NoOpInstrument()
+
+    def create_counter(self, name: str, **kwargs: object) -> _NoOpInstrument:  # noqa: ARG002
+        return self._NoOpInstrument()
+
+
 def get_tracer() -> Tracer:
-    """Return the active tracer, or a no-op tracer when OTel is not initialised."""
+    """Return the active tracer, or a local no-op tracer (zero OTel imports)."""
     if _tracer is not None:
         return _tracer
-    from opentelemetry.trace import NoOpTracer
-
-    return NoOpTracer()
+    return _NoOpTracer()  # type: ignore[return-value]
 
 
 def get_meter() -> Meter:
-    """Return the active meter, or a no-op meter when OTel is not initialised."""
+    """Return the active meter, or a local no-op meter (zero OTel imports)."""
     if _meter is not None:
         return _meter
-    from opentelemetry.metrics import NoOpMeter
-
-    return NoOpMeter("")
+    return _NoOpMeter()  # type: ignore[return-value]
