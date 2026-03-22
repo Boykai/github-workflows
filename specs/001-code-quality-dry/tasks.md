@@ -78,7 +78,7 @@
 - [ ] T013 [P] [US2] Migrate `list_projects()` in `solune/backend/src/api/projects.py` (~50 LOC inline cache) to `cached_fetch()` — map: cache check → `cached_fetch(stale_fallback=True)`, remove manual `cache.get/set` calls
 - [ ] T014 [US2] Migrate `list_board_projects()` in `solune/backend/src/api/board.py` (~87 LOC inline cache) to `cached_fetch()` — compose a `fetch_fn` that checks secondary `user_projects:{user_id}` cache key internally, transforms via `_to_board_projects()` if present, or fetches fresh from GitHub API and caches under both keys
 - [ ] T015 [US2] Migrate `get_board_data()` in `solune/backend/src/api/board.py` (~90 LOC inline cache) to `cached_fetch()` with `stale_fallback=True` and `rate_limit_fallback=True` — preserve pagination, sub-issue enrichment, and DB-cached Done items fallback
-- [ ] T016 [P] [US2] Migrate `send_message()` cache reads in `solune/backend/src/api/chat.py` (~30 LOC) to `cached_fetch()` read pattern — these are cache-read-only (no set); use `cached_fetch()` with a no-op `fetch_fn` or use `cache.get()` directly if overhead is unjustified
+- [ ] T016 [P] [US2] Simplify `send_message()` cache reads in `solune/backend/src/api/chat.py` (~30 LOC) — these are cache-read-only (no set); evaluate at implementation time whether `cached_fetch()` with a no-op `fetch_fn` or direct `cache.get()` is more appropriate, and apply the simpler approach
 - [ ] T017 [US2] Evaluate `send_tasks()` in `solune/backend/src/api/projects.py` for migration to `cached_fetch()` — **Decision (from research.md Task 6): Do not migrate** — add justification comment documenting why the stale-revalidation counter pattern is incompatible with `cached_fetch()`
 - [ ] T018 [US2] Add unit tests for `cached_fetch()` extensions in `solune/backend/tests/unit/test_cache.py`: (a) `rate_limit_fallback` with stale data available, (b) `rate_limit_fallback` with no stale data (verify re-raise), (c) `data_hash_fn` with matching hash (verify `refresh_ttl` called), (d) `data_hash_fn` with different hash (verify `set` called with hash), (e) backward compatibility (existing callers unchanged)
 
@@ -183,7 +183,7 @@ Phase 2 (Foundational)
 
 ### Parallel Opportunities
 
-- **Foundational**: T003, T004, T005 can run in parallel (three different files)
+- **Foundational**: T003, T004, T005, T006 can run in parallel (four different files: cache.py, service.py, main.py)
 - **US1**: T007, T008, T009, T010, T011 can run in parallel (five different files)
 - **US2**: T013 and T016 can run in parallel (projects.py and chat.py)
 - **US3**: T020 and T021 can run in parallel (copilot.py and pull_requests.py)
