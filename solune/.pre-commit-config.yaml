@@ -70,7 +70,7 @@ repos:
     hooks:
       - id: generate-diagrams
         name: Regenerate Architecture Diagrams
-        entry: bash -c 'cd solune && ./scripts/generate-diagrams.sh && git add docs/architectures/'
+        entry: bash -c 'cd solune && ./scripts/generate-diagrams.sh'
         language: system
         files: (^backend/src/|^frontend/src/|^docker-compose\.yml$|^scripts/generate-diagrams\.sh$)
         pass_filenames: false
