@@ -230,6 +230,7 @@ def count_active(store_mod, project_id: str) -> int:
 @pytest.mark.anyio
 async def test_status_transition_preserves_pipeline_identity():
     """Each transition updates the same pipeline in-place via the public state store API."""
+    import src.services.pipeline_state_store as store
     from src.services.pipeline_state_store import (
         _pipeline_states,
         count_active_pipelines_for_project,
@@ -239,6 +240,9 @@ async def test_status_transition_preserves_pipeline_identity():
     from src.services.workflow_orchestrator.models import PipelineState
 
     _pipeline_states.clear()
+    # Ensure no stale DB connection is used — this test only validates L1 cache
+    prev_db = store._db
+    store._db = None
 
     state = PipelineState(
         issue_number=60,
@@ -259,6 +263,7 @@ async def test_status_transition_preserves_pipeline_identity():
         assert count_active_pipelines_for_project("PVT_proj1") == 1
 
     _pipeline_states.clear()
+    store._db = prev_db
 
 
 # ── T035: PR lifecycle — PR creation → state update → PR merge → cleanup ─

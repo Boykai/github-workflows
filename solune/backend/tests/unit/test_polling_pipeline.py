@@ -5,6 +5,7 @@ Covers:
 - _wait_if_rate_limited(): above threshold (no wait), below threshold (returns True)
 """
 
+import asyncio
 from unittest.mock import AsyncMock, patch
 
 from src.services.copilot_polling.pipeline import (
@@ -145,9 +146,18 @@ class TestDequeueNextPipeline:
 
         with (
             patch("src.services.database.get_db", return_value=AsyncMock()),
-            patch("src.services.settings_store.is_queue_mode_enabled", new_callable=AsyncMock, return_value=True),
+            patch(
+                "src.services.settings_store.is_queue_mode_enabled",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
+            patch(
+                "src.services.copilot_polling.pipeline.get_project_launch_lock",
+                return_value=asyncio.Lock(),
+            ),
             patch("src.services.copilot_polling.pipeline._cp") as mock_cp,
         ):
+            mock_cp.count_active_pipelines_for_project.return_value = 0
             mock_cp.get_queued_pipelines_for_project.return_value = [mock_pipeline]
             mock_cp.get_workflow_config = AsyncMock(return_value=mock_config)
             mock_cp.get_workflow_orchestrator.return_value = AsyncMock()
@@ -163,7 +173,11 @@ class TestDequeueNextPipeline:
 
         with (
             patch("src.services.database.get_db", return_value=AsyncMock()),
-            patch("src.services.settings_store.is_queue_mode_enabled", new_callable=AsyncMock, return_value=False),
+            patch(
+                "src.services.settings_store.is_queue_mode_enabled",
+                new_callable=AsyncMock,
+                return_value=False,
+            ),
             patch("src.services.copilot_polling.pipeline._cp") as mock_cp,
         ):
             await _dequeue_next_pipeline("token", "PVT_1", "test")
@@ -175,7 +189,11 @@ class TestDequeueNextPipeline:
 
         with (
             patch("src.services.database.get_db", return_value=AsyncMock()),
-            patch("src.services.settings_store.is_queue_mode_enabled", new_callable=AsyncMock, return_value=True),
+            patch(
+                "src.services.settings_store.is_queue_mode_enabled",
+                new_callable=AsyncMock,
+                return_value=True,
+            ),
             patch("src.services.copilot_polling.pipeline._cp") as mock_cp,
         ):
             mock_cp.get_queued_pipelines_for_project.return_value = []
