@@ -20,7 +20,9 @@ def _init_test_repo(tmp_path: Path) -> Path:
     scripts_dir.mkdir(parents=True)
     feature_dir.mkdir(parents=True)
 
-    shutil.copy2(SOURCE_SCRIPTS_DIR / "check-prerequisites.sh", scripts_dir / "check-prerequisites.sh")
+    shutil.copy2(
+        SOURCE_SCRIPTS_DIR / "check-prerequisites.sh", scripts_dir / "check-prerequisites.sh"
+    )
     shutil.copy2(SOURCE_SCRIPTS_DIR / "common.sh", scripts_dir / "common.sh")
 
     (feature_dir / "spec.md").write_text("# Spec\n")
