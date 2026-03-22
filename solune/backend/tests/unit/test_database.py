@@ -14,6 +14,7 @@ import aiosqlite
 import pytest
 
 from src.services.database import (
+    _check_integrity,
     _column_exists,
     _discover_migrations,
     _run_migrations,
@@ -258,3 +259,66 @@ class TestColumnExistsSQLInjectionGuard:
     async def test_allows_underscored_table_name(self, raw_db: aiosqlite.Connection):
         await raw_db.execute("CREATE TABLE my_table_v2 (col_a TEXT)")
         assert await _column_exists(raw_db, "my_table_v2", "col_a") is True
+
+
+# =============================================================================
+# _check_integrity
+# =============================================================================
+
+
+class TestCheckIntegrity:
+    async def test_healthy_db_returns_same_connection(self, raw_db):
+        result = await _check_integrity(raw_db, ":memory:", is_in_memory=True)
+        assert result is raw_db
+
+    async def test_corrupt_in_memory_continues(self, raw_db):
+        """In-memory DB that fails integrity check should continue with warning."""
+        with patch.object(raw_db, "execute", new_callable=AsyncMock) as mock_exec:
+            cursor = AsyncMock()
+            cursor.fetchone = AsyncMock(return_value=("corruption found",))
+            mock_exec.return_value = cursor
+            result = await _check_integrity(raw_db, ":memory:", is_in_memory=True)
+        assert result is raw_db
+
+    async def test_corrupt_file_db_renames_and_creates_fresh(self, tmp_path):
+        """Corrupt file DB should be renamed and a fresh DB returned."""
+        db_path = str(tmp_path / "test.db")
+        db = await aiosqlite.connect(db_path)
+        db.row_factory = aiosqlite.Row
+        # Create a table so the DB has content
+        await db.execute("CREATE TABLE t (id INTEGER)")
+        await db.commit()
+
+        with patch.object(db, "execute", new_callable=AsyncMock) as mock_exec:
+            cursor = AsyncMock()
+            cursor.fetchone = AsyncMock(return_value=("page X: btree error",))
+            mock_exec.return_value = cursor
+            # Need to allow close on original
+            mock_exec.side_effect = None
+            original_close = db.close
+
+            async def patched_execute(sql, *args, **kwargs):
+                if "integrity_check" in sql:
+                    return cursor
+                return await aiosqlite.Connection.execute(
+                    db, sql, *args, **kwargs
+                )  # pragma: no cover
+
+            mock_exec.side_effect = patched_execute
+            db.close = original_close
+
+            result = await _check_integrity(db, db_path, is_in_memory=False)
+
+        # Original file should be renamed
+        corrupt_files = list(tmp_path.glob("test.db.corrupt.*"))
+        assert len(corrupt_files) == 1
+        # New connection should be returned (different from original)
+        assert result is not db
+        await result.close()
+
+    async def test_execute_exception_treated_as_failed(self, raw_db):
+        """If PRAGMA integrity_check itself throws, treat as failure."""
+        with patch.object(raw_db, "execute", side_effect=Exception("disk I/O error")):
+            # For in-memory, should still return the db
+            result = await _check_integrity(raw_db, ":memory:", is_in_memory=True)
+        assert result is raw_db

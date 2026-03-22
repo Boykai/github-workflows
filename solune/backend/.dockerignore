@@ -58,6 +58,21 @@ Dockerfile
 # Tests
 tests/
 
+# Mutation testing
+mutants/
+
+# Scripts (not needed at runtime)
+scripts/
+
+# Documentation
+docs/
+
+# Coverage reports
+htmlcov/
+
+# OpenAPI spec (generated at runtime)
+openapi.json
+
 # Documentation
 *.md
 docs/

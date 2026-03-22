@@ -290,3 +290,13 @@ jobs:
       - name: Verify images
         run: |
           docker images | grep solune
+
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Scan backend image
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed solune-backend
+
+      - name: Scan frontend image
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed solune-frontend
