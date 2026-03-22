@@ -126,7 +126,7 @@ class TestWaitIfRateLimited:
 
 
 # ---------------------------------------------------------------------------
-# T026 – _dequeue_next_pipeline
+# T026 - _dequeue_next_pipeline
 # ---------------------------------------------------------------------------
 
 
@@ -184,7 +184,7 @@ class TestDequeueNextPipeline:
 
 
 # ---------------------------------------------------------------------------
-# T027 – Grace period
+# T027 - Grace period
 # ---------------------------------------------------------------------------
 
 
@@ -226,7 +226,7 @@ class TestGracePeriod:
 
 
 # ---------------------------------------------------------------------------
-# T028 – BoundedDict edge cases
+# T028 - BoundedDict edge cases
 # ---------------------------------------------------------------------------
 
 
@@ -268,8 +268,9 @@ class TestBoundedDictEdgeCases:
 
     def test_maxlen_zero_raises(self):
         """maxlen <= 0 raises ValueError."""
-        from src.utils import BoundedDict
         import pytest as _pytest
+
+        from src.utils import BoundedDict
 
         with _pytest.raises(ValueError, match="maxlen must be > 0"):
             BoundedDict(maxlen=0)
