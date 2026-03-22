@@ -5,7 +5,7 @@
  */
 
 import { useState, useRef, useEffect, useCallback, type CSSProperties } from 'react';
-import { GitBranch, Layers, PencilLine } from 'lucide-react';
+import { GitBranch, Layers, PencilLine } from '@/lib/icons';
 import { StageCard } from './StageCard';
 import { PipelineModelDropdown } from './PipelineModelDropdown';
 import { cn } from '@/lib/utils';

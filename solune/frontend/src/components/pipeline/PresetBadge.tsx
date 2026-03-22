@@ -3,7 +3,7 @@
  * Shows a lock icon with the preset name in accent colors.
  */
 
-import { Lock } from 'lucide-react';
+import { Lock } from '@/lib/icons';
 import { cn } from '@/lib/utils';
 
 interface PresetBadgeProps {

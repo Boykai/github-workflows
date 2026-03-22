@@ -3,7 +3,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
-import { Kanban, GitBranch, Bot, ListChecks, Sparkles, Boxes, ArrowUpRight } from 'lucide-react';
+import { Kanban, GitBranch, Bot, ListChecks, Sparkles, Boxes, ArrowUpRight } from '@/lib/icons';
 
 const quickLinks = [
   {

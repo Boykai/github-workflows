@@ -5,7 +5,7 @@
  * Extracted from ChoresPanel for single-responsibility.
  */
 
-import { ScrollText, Sparkles } from 'lucide-react';
+import { ScrollText, Sparkles } from '@/lib/icons';
 import { ChoreCard } from './ChoreCard';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Chore, ChoreEditState, ChoreInlineUpdate, ChoreTemplate } from '@/types';

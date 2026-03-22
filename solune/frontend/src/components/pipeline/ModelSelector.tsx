@@ -6,7 +6,7 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { useModels } from '@/hooks/useModels';
-import { ChevronDown, Search, Check, Zap, DollarSign, Crown } from 'lucide-react';
+import { ChevronDown, Search, Check, Zap, DollarSign, Crown } from '@/lib/icons';
 import type { AIModel } from '@/types';
 import { cn } from '@/lib/utils';
 

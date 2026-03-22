@@ -5,7 +5,7 @@
  */
 
 import { useState } from 'react';
-import { AlertTriangle, Monitor } from 'lucide-react';
+import { AlertTriangle, Monitor } from '@/lib/icons';
 
 interface AppPreviewProps {
   port: number | null;

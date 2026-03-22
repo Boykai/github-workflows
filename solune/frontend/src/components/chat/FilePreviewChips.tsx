@@ -3,7 +3,7 @@
  * Renders between the ChatToolbar and the text input.
  */
 
-import { X, FileText, Image, Loader2, Check, AlertTriangle } from 'lucide-react';
+import { X, FileText, Image, Loader2, Check, AlertTriangle } from '@/lib/icons';
 import type { FileAttachment } from '@/types';
 import { cn } from '@/lib/utils';
 

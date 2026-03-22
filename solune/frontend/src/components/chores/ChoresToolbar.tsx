@@ -4,7 +4,7 @@
  * Extracted from ChoresPanel for single-responsibility.
  */
 
-import { Search } from 'lucide-react';
+import { Search } from '@/lib/icons';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 

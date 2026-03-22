@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Outlet } from 'react-router-dom';
-import { TriangleAlert, X } from 'lucide-react';
+import { TriangleAlert, X } from '@/lib/icons';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useAppTheme } from '@/hooks/useAppTheme';

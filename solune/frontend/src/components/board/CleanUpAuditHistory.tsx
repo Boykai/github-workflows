@@ -4,7 +4,7 @@
 
 import { useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { X } from 'lucide-react';
+import { X } from '@/lib/icons';
 import type { CleanupHistoryResponse } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
 import { cn } from '@/lib/utils';

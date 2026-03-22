@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useDeferredValue, useMemo, useRef, useState } from 'react';
-import { Search, Sparkles, RefreshCw } from 'lucide-react';
+import { Search, Sparkles, RefreshCw } from '@/lib/icons';
 import { useAgentsListPaginated, usePendingAgentsList, useClearPendingAgents } from '@/hooks/useAgents';
 import { useModels } from '@/hooks/useModels';
 import { useConfirmation } from '@/hooks/useConfirmation';

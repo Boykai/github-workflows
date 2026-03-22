@@ -2,7 +2,7 @@
  * ToolCard — displays a single MCP tool configuration with sync status and actions.
  */
 
-import { Pencil, RefreshCw, Trash2, Wrench } from 'lucide-react';
+import { Pencil, RefreshCw, Trash2, Wrench } from '@/lib/icons';
 import type { McpToolConfig } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useState } from 'react';
-import { Save, Copy, Trash2, RotateCcw, Loader2 } from 'lucide-react';
+import { Save, Copy, Trash2, RotateCcw, Loader2 } from '@/lib/icons';
 import { Button } from '@/components/ui/button';
 import type { PipelineBoardState, PipelineValidationErrors } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
