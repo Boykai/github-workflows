@@ -1854,12 +1854,20 @@ async def _advance_pipeline(
                     sub_number = human_sub.get("number")
                     if sub_number:
                         try:
-                            await _cp.github_projects_service.close_issue(
+                            await _cp.github_projects_service.create_issue_comment(
                                 access_token=access_token,
                                 owner=owner,
                                 repo=repo,
                                 issue_number=sub_number,
-                                comment="Skipped — Auto Merge enabled",
+                                body="Skipped — Auto Merge enabled",
+                            )
+                            await _cp.github_projects_service.update_issue_state(
+                                access_token=access_token,
+                                owner=owner,
+                                repo=repo,
+                                issue_number=sub_number,
+                                state="closed",
+                                state_reason="not_planned",
                             )
                         except Exception:
                             logger.warning(
