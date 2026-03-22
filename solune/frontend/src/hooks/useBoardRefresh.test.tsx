@@ -826,4 +826,78 @@ describe('useBoardRefresh', () => {
       expect(resumedCalls.length).toBeGreaterThanOrEqual(1);
     });
   });
+
+  // ── Refresh contract regression tests (T029-T030/FR-009/FR-006) ──────────
+
+  describe('Refresh Contract Regression', () => {
+    it('T029: auto-refresh timer does not fire while WebSocket is connected (FR-009)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_WS', isWebSocketConnected: true }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      expect(result.current.isRefreshing).toBe(false);
+
+      // Advance past multiple auto-refresh intervals
+      invalidateSpy.mockClear();
+      await act(async () => {
+        vi.advanceTimersByTime(5000); // 5x the 1s test interval
+      });
+
+      // No board data invalidation should occur while WS connected
+      const boardCalls = invalidateSpy.mock.calls.filter((c) => {
+        const qk = c[0]?.queryKey;
+        return Array.isArray(qk) && qk[0] === 'board';
+      });
+      expect(boardCalls).toHaveLength(0);
+    });
+
+    it('T030: manual refresh calls backend with refresh=true for cache bypass (FR-006/SC-009)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_MANUAL' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      await act(async () => {
+        result.current.refresh();
+      });
+
+      // Should call getBoardData with refresh=true
+      expect(mockGetBoardData).toHaveBeenCalledWith('PVT_MANUAL', true);
+    });
+
+    it('manual refresh cancels pending debounced reload (Rule 3)', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+
+      const { result } = renderHook(
+        () => useBoardRefresh({ projectId: 'PVT_DEBOUNCE' }),
+        { wrapper: createWrapper(queryClient) },
+      );
+
+      // Trigger a board reload request
+      await act(async () => {
+        result.current.requestBoardReload();
+      });
+
+      // Manual refresh should take priority (cancel debounce)
+      mockGetBoardData.mockClear();
+      await act(async () => {
+        result.current.refresh();
+      });
+
+      // Manual refresh should have called with refresh=true
+      expect(mockGetBoardData).toHaveBeenCalledWith('PVT_DEBOUNCE', true);
+    });
+  });
 });

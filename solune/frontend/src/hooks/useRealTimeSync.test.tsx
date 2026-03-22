@@ -1147,4 +1147,93 @@ describe('useRealTimeSync', () => {
       vi.useRealTimers();
     });
   });
+
+  // ── Refresh contract regression tests (T027-T028/FR-007/FR-008) ──────────
+
+  describe('Refresh Contract Regression', () => {
+    it('T027: WebSocket refresh message invalidates only tasks query, never board data', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      renderHook(() => useRealTimeSync('PVT_456'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      // Open connection
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      invalidateSpy.mockClear();
+
+      // Send refresh message (the type backend sends periodically)
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateMessage({
+          type: 'refresh',
+          project_id: 'PVT_456',
+          tasks: [],
+          count: 0,
+        });
+      });
+
+      // Tasks query MUST be invalidated
+      const tasksCalls = invalidateSpy.mock.calls.filter(([opts]) => {
+        const key = (opts as { queryKey: unknown[] }).queryKey;
+        return Array.isArray(key) && key[0] === 'projects' && key[2] === 'tasks';
+      });
+      expect(tasksCalls.length).toBe(1);
+
+      // Board data query MUST NOT be invalidated (FR-008)
+      const boardCalls = invalidateSpy.mock.calls.filter(([opts]) => {
+        const key = (opts as { queryKey: unknown[] }).queryKey;
+        return Array.isArray(key) && key[0] === 'board' && key[1] === 'data';
+      });
+      expect(boardCalls).toHaveLength(0);
+    });
+
+    it('T028: all WebSocket message types consistently invalidate tasks only', async () => {
+      const queryClient = new QueryClient({
+        defaultOptions: { queries: { retry: false } },
+      });
+      const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries').mockResolvedValue();
+
+      renderHook(() => useRealTimeSync('PVT_789'), {
+        wrapper: ({ children }) => (
+          <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+        ),
+      });
+
+      await act(async () => {
+        mockWebSocketInstances[0]?.simulateOpen();
+      });
+
+      const messageTypes = ['task_update', 'task_created', 'status_changed'];
+
+      for (const type of messageTypes) {
+        invalidateSpy.mockClear();
+
+        await act(async () => {
+          mockWebSocketInstances[0]?.simulateMessage({ type, task: { id: '1' } });
+        });
+
+        // Each message type invalidates tasks query
+        const tasksCalls = invalidateSpy.mock.calls.filter(([opts]) => {
+          const key = (opts as { queryKey: unknown[] }).queryKey;
+          return Array.isArray(key) && key[0] === 'projects';
+        });
+        expect(tasksCalls.length).toBe(1);
+
+        // None invalidate board data
+        const boardCalls = invalidateSpy.mock.calls.filter(([opts]) => {
+          const key = (opts as { queryKey: unknown[] }).queryKey;
+          return Array.isArray(key) && key[0] === 'board' && key[1] === 'data';
+        });
+        expect(boardCalls).toHaveLength(0);
+      }
+    });
+  });
 });
