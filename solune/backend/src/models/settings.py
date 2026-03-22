@@ -129,6 +129,7 @@ class ProjectBoardConfig(BaseModel):
     collapsed_columns: list[str] = Field(default_factory=list)
     show_estimates: bool = False
     queue_mode: bool = False
+    auto_merge: bool = False
 
 
 class ProjectAgentMapping(BaseModel):
