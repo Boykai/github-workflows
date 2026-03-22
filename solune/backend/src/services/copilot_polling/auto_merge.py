@@ -124,8 +124,7 @@ async def _attempt_auto_merge(
     failed_checks = [
         cr
         for cr in check_runs
-        if cr.get("status") == "completed"
-        and cr.get("conclusion") in ("failure", "timed_out")
+        if cr.get("status") == "completed" and cr.get("conclusion") in ("failure", "timed_out")
     ]
     if failed_checks:
         logger.info(
@@ -146,9 +145,7 @@ async def _attempt_auto_merge(
         )
 
     # Check if there are still running checks — retry later, don't dispatch DevOps
-    in_progress = [
-        cr for cr in check_runs if cr.get("status") in ("queued", "in_progress")
-    ]
+    in_progress = [cr for cr in check_runs if cr.get("status") in ("queued", "in_progress")]
     if in_progress:
         logger.info(
             "Auto-merge: %d checks still running on PR #%d, will retry later",

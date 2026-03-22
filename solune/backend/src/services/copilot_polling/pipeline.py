@@ -1827,9 +1827,7 @@ async def _advance_pipeline(
             from src.services.settings_store import is_auto_merge_enabled
 
             db = get_db()
-            auto_merge_active = pipeline.auto_merge or await is_auto_merge_enabled(
-                db, project_id
-            )
+            auto_merge_active = pipeline.auto_merge or await is_auto_merge_enabled(db, project_id)
 
             if auto_merge_active:
                 logger.info(

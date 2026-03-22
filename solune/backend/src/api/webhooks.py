@@ -254,7 +254,14 @@ async def github_webhook(
         logger.error("Failed to parse webhook payload: %s", e)
         raise AppException("Invalid JSON payload", status_code=400) from e
 
-    payload: PullRequestEvent | IssuesEvent | PingEvent | CheckRunEvent | CheckSuiteEvent | dict[str, Any]
+    payload: (
+        PullRequestEvent
+        | IssuesEvent
+        | PingEvent
+        | CheckRunEvent
+        | CheckSuiteEvent
+        | dict[str, Any]
+    )
     try:
         if x_github_event == "pull_request":
             payload = PullRequestEvent.model_validate(raw_payload)
