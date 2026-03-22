@@ -478,12 +478,14 @@ async def _poll_loop(
 
         # ── OTel metrics emission (Phase 5) ──
         try:
+            from src.services.otel_setup import get_meter as _get_otel_meter
             from src.services.pipeline_state_store import _pipeline_states
 
-            active_gauge = _otel_meter.create_gauge("pipeline.active_count")
+            _cycle_meter = _get_otel_meter()
+            active_gauge = _cycle_meter.create_gauge("pipeline.active_count")
             active_gauge.set(len(_pipeline_states))
 
-            rl_gauge = _otel_meter.create_gauge("github.api_remaining")
+            rl_gauge = _cycle_meter.create_gauge("github.api_remaining")
             _rl_data = _cp.github_projects_service.get_last_rate_limit()
             if _rl_data and _rl_data.get("remaining") is not None:
                 rl_gauge.set(_rl_data["remaining"])

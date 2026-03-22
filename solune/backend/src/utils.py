@@ -231,9 +231,7 @@ async def resolve_repository(access_token: str, project_id: str) -> tuple[str, s
     from src.services.workflow_orchestrator import get_workflow_config
 
     tracer = get_tracer()
-    with tracer.start_as_current_span(
-        "resolve_repository", attributes={"project_id": project_id}
-    ):
+    with tracer.start_as_current_span("resolve_repository", attributes={"project_id": project_id}):
         # Check cache first to avoid repeated API calls for the same project.
         # Include a hash of the access token so cached results are scoped to the
         # caller — prevents a user without project access from reading a cache

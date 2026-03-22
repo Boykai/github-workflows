@@ -173,9 +173,7 @@ async def _readiness_check_db() -> ReadinessCheckResult:
     now = datetime.now(UTC).isoformat()
     try:
         db = get_db()
-        await db.execute(
-            "CREATE TABLE IF NOT EXISTS _readiness_scratch (id INTEGER PRIMARY KEY)"
-        )
+        await db.execute("CREATE TABLE IF NOT EXISTS _readiness_scratch (id INTEGER PRIMARY KEY)")
         await db.execute("INSERT OR REPLACE INTO _readiness_scratch (id) VALUES (1)")
         await db.execute("DELETE FROM _readiness_scratch WHERE id = 1")
         await db.commit()
@@ -215,9 +213,7 @@ def _readiness_check_encryption() -> ReadinessCheckResult:
         settings = get_settings()
         svc = EncryptionService(settings.encryption_key, debug=settings.debug)
         if svc.enabled:
-            return ReadinessCheckResult(
-                component_id="encryption:enabled", status="pass", time=now
-            )
+            return ReadinessCheckResult(component_id="encryption:enabled", status="pass", time=now)
         return ReadinessCheckResult(
             component_id="encryption:enabled",
             status="fail",
@@ -242,21 +238,15 @@ def _readiness_check_polling() -> ReadinessCheckResult:
         settings = get_settings()
         # If polling is intentionally disabled (interval=0), that's a pass
         if settings.copilot_polling_interval == 0:
-            return ReadinessCheckResult(
-                component_id="polling:alive", status="pass", time=now
-            )
+            return ReadinessCheckResult(component_id="polling:alive", status="pass", time=now)
 
         from src.services.copilot_polling import _polling_task
         from src.services.copilot_polling.state import _polling_state
 
         if _polling_task is not None and not _polling_task.done():
-            return ReadinessCheckResult(
-                component_id="polling:alive", status="pass", time=now
-            )
+            return ReadinessCheckResult(component_id="polling:alive", status="pass", time=now)
         if _polling_state.is_running:
-            return ReadinessCheckResult(
-                component_id="polling:alive", status="pass", time=now
-            )
+            return ReadinessCheckResult(component_id="polling:alive", status="pass", time=now)
         return ReadinessCheckResult(
             component_id="polling:alive",
             status="fail",
