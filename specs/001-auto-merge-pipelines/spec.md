@@ -88,7 +88,7 @@ As a developer, I want to enable or disable Auto Merge at the individual pipelin
 
 1. **Given** the pipeline configuration panel is open, **When** the user views the settings, **Then** an Auto Merge toggle is available.
 2. **Given** Auto Merge is disabled at the project level, **When** the user enables it at the pipeline level, **Then** that specific pipeline uses Auto Merge (either level being true activates the feature).
-3. **Given** Auto Merge is enabled at both project and pipeline levels, **When** the user disables it at the pipeline level only, **Then** Auto Merge remains active for that pipeline because the project-level setting is still enabled.
+3. **Given** Auto Merge is enabled at the project level, **When** the user disables it at the pipeline level only, **Then** Auto Merge remains active for that pipeline because the project-level setting takes precedence (OR logic — either level being true activates the feature). To fully disable Auto Merge for a specific pipeline, the project-level setting must also be disabled.
 
 ---
 
@@ -163,6 +163,7 @@ As a developer, I want to receive real-time toast notifications when auto-merge 
 ## Assumptions
 
 - The merge strategy is always squash merge. No other merge strategies (merge commit, rebase) are supported for auto-merge.
+- The Auto Merge flag uses OR logic: if either the project-level or pipeline-level setting is true, Auto Merge is active. This means the pipeline-level toggle can only add Auto Merge (opt-in), not override a project-level enablement. To disable Auto Merge for a specific pipeline when it is enabled at the project level, the project-level setting must be changed.
 - Branch protection rules on the target branch must be compatible with the merge bot's permissions. If required reviews are configured, the Copilot review must satisfy the required review count.
 - The existing agent directory scanning mechanism will discover the DevOps agent without additional backend code changes.
 - The existing WebSocket broadcast infrastructure supports the new event types needed for auto-merge notifications.
