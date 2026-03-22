@@ -25,11 +25,11 @@
 
 **Purpose**: Prepare the monorepo for the bug-bash workflow without changing architecture, public APIs, or dependencies.
 
-- [ ] T001 Review scope, priorities, and constraints in specs/001-bug-basher/plan.md and specs/001-bug-basher/spec.md
-- [ ] T002 Install backend development tooling from solune/backend/pyproject.toml in solune/backend/
-- [ ] T003 [P] Install frontend development tooling from solune/frontend/package.json in solune/frontend/
-- [ ] T004 [P] Capture baseline backend test, lint, type-check, and Bandit results for solune/backend/ using specs/001-bug-basher/quickstart.md
-- [ ] T005 [P] Capture baseline frontend test, lint, type-check, and build results for solune/frontend/ using specs/001-bug-basher/quickstart.md
+- [x] T001 Review scope, priorities, and constraints in specs/001-bug-basher/plan.md and specs/001-bug-basher/spec.md
+- [x] T002 Install backend development tooling from solune/backend/pyproject.toml in solune/backend/
+- [x] T003 [P] Install frontend development tooling from solune/frontend/package.json in solune/frontend/
+- [x] T004 [P] Capture baseline backend test, lint, type-check, and Bandit results for solune/backend/ using specs/001-bug-basher/quickstart.md
+- [x] T005 [P] Capture baseline frontend test, lint, type-check, and build results for solune/frontend/ using specs/001-bug-basher/quickstart.md
 
 ---
 
@@ -39,12 +39,12 @@
 
 **⚠️ CRITICAL**: No user story work should begin until this phase is complete.
 
-- [ ] T006 Review the summary-table contract in specs/001-bug-basher/contracts/bug-report.yaml and the entity rules in specs/001-bug-basher/data-model.md
-- [ ] T007 Review the TODO(bug-bash) decision rules and comment format in specs/001-bug-basher/research.md and specs/001-bug-basher/spec.md
-- [ ] T008 [P] Build the backend audit checklist for solune/backend/src/api/, solune/backend/src/middleware/, solune/backend/src/models/, solune/backend/src/services/, solune/backend/src/utils.py, solune/backend/src/config.py, solune/backend/src/dependencies.py, and solune/backend/src/main.py
-- [ ] T009 [P] Build the frontend audit checklist for solune/frontend/src/components/, solune/frontend/src/hooks/, solune/frontend/src/services/, solune/frontend/src/utils/, solune/frontend/src/__tests__/, solune/frontend/src/test/, and solune/frontend/e2e/
-- [ ] T010 Define the per-fix workflow for updating affected tests and adding co-located regression tests in solune/backend/tests/**/test_*.py and solune/frontend/src/**/*.{test.ts,test.tsx}
-- [ ] T011 Establish the final validation checklist from solune/backend/pyproject.toml, solune/frontend/package.json, and specs/001-bug-basher/quickstart.md
+- [x] T006 Review the summary-table contract in specs/001-bug-basher/contracts/bug-report.yaml and the entity rules in specs/001-bug-basher/data-model.md
+- [x] T007 Review the TODO(bug-bash) decision rules and comment format in specs/001-bug-basher/research.md and specs/001-bug-basher/spec.md
+- [x] T008 [P] Build the backend audit checklist for solune/backend/src/api/, solune/backend/src/middleware/, solune/backend/src/models/, solune/backend/src/services/, solune/backend/src/utils.py, solune/backend/src/config.py, solune/backend/src/dependencies.py, and solune/backend/src/main.py
+- [x] T009 [P] Build the frontend audit checklist for solune/frontend/src/components/, solune/frontend/src/hooks/, solune/frontend/src/services/, solune/frontend/src/utils/, solune/frontend/src/__tests__/, solune/frontend/src/test/, and solune/frontend/e2e/
+- [x] T010 Define the per-fix workflow for updating affected tests and adding co-located regression tests in solune/backend/tests/**/test_*.py and solune/frontend/src/**/*.{test.ts,test.tsx}
+- [x] T011 Establish the final validation checklist from solune/backend/pyproject.toml, solune/frontend/package.json, and specs/001-bug-basher/quickstart.md
 
 **Checkpoint**: Setup, scope, and validation rules are locked; bug-category work can now proceed in priority order.
 
@@ -60,17 +60,17 @@
 
 > **NOTE**: Add or update the regression tests before finalizing each security fix, and confirm they fail against the pre-fix behavior when practical.
 
-- [ ] T012 [P] [US1] Add or update backend security regression tests in the nearest files under solune/backend/tests/unit/ and solune/backend/tests/integration/ for fixes in solune/backend/src/api/, solune/backend/src/middleware/, solune/backend/src/dependencies.py, solune/backend/src/config.py, and solune/backend/src/main.py
+- [x] T012 [P] [US1] Add or update backend security regression tests in the nearest files under solune/backend/tests/unit/ and solune/backend/tests/integration/ for fixes in solune/backend/src/api/, solune/backend/src/middleware/, solune/backend/src/dependencies.py, solune/backend/src/config.py, and solune/backend/src/main.py
 - [ ] T013 [P] [US1] Add or update frontend security regression tests in existing files under solune/frontend/src/**/*.test.ts and solune/frontend/src/**/*.test.tsx for fixes in solune/frontend/src/components/, solune/frontend/src/hooks/, solune/frontend/src/services/, and solune/frontend/src/utils/
 
 ### Implementation for User Story 1
 
-- [ ] T014 [P] [US1] Run a Bandit-guided security audit and apply minimal fixes in solune/backend/src/api/ and solune/backend/src/models/
-- [ ] T015 [P] [US1] Audit authentication, authorization, CORS, and dependency guards and apply minimal fixes in solune/backend/src/middleware/, solune/backend/src/dependencies.py, solune/backend/src/config.py, and solune/backend/src/main.py
-- [ ] T016 [P] [US1] Audit backend secret handling, unsafe I/O, and injection-prone code paths and apply minimal fixes in solune/backend/src/services/ and solune/backend/src/utils.py
-- [ ] T017 [P] [US1] Audit frontend security lint findings, unsafe rendering, and input/data handling and apply minimal fixes in solune/frontend/src/components/, solune/frontend/src/hooks/, solune/frontend/src/services/, and solune/frontend/src/utils/
+- [x] T014 [P] [US1] Run a Bandit-guided security audit and apply minimal fixes in solune/backend/src/api/ and solune/backend/src/models/
+- [x] T015 [P] [US1] Audit authentication, authorization, CORS, and dependency guards and apply minimal fixes in solune/backend/src/middleware/, solune/backend/src/dependencies.py, solune/backend/src/config.py, and solune/backend/src/main.py
+- [x] T016 [P] [US1] Audit backend secret handling, unsafe I/O, and injection-prone code paths and apply minimal fixes in solune/backend/src/services/ and solune/backend/src/utils.py
+- [x] T017 [P] [US1] Audit frontend security lint findings, unsafe rendering, and input/data handling and apply minimal fixes in solune/frontend/src/components/, solune/frontend/src/hooks/, solune/frontend/src/services/, and solune/frontend/src/utils/
 - [ ] T018 [US1] Add TODO(bug-bash) comments for unresolved security trade-offs directly in affected files under solune/backend/src/ and solune/frontend/src/ using the format from specs/001-bug-basher/research.md
-- [ ] T019 [US1] Verify User Story 1 with Bandit in solune/backend/, frontend lint checks from solune/frontend/eslint.config.js in solune/frontend/, and the new security regression tests in solune/backend/tests/ and solune/frontend/src/
+- [x] T019 [US1] Verify User Story 1 with Bandit in solune/backend/, frontend lint checks from solune/frontend/eslint.config.js in solune/frontend/, and the new security regression tests in solune/backend/tests/ and solune/frontend/src/
 
 **Checkpoint**: Security audit fixes are complete, regression-tested, and safe to build on.
 
@@ -84,17 +84,17 @@
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T020 [P] [US2] Add or update backend runtime regression tests in the nearest files under solune/backend/tests/unit/, solune/backend/tests/integration/, and solune/backend/tests/concurrency/ for fixes in solune/backend/src/api/, solune/backend/src/services/, solune/backend/src/utils.py, and solune/backend/src/dependencies.py
-- [ ] T021 [P] [US2] Add or update frontend runtime regression tests in existing files under solune/frontend/src/**/*.test.ts and solune/frontend/src/**/*.test.tsx for fixes in solune/frontend/src/hooks/, solune/frontend/src/services/, and solune/frontend/src/components/
+- [x] T020 [P] [US2] Add or update backend runtime regression tests in the nearest files under solune/backend/tests/unit/, solune/backend/tests/integration/, and solune/backend/tests/concurrency/ for fixes in solune/backend/src/api/, solune/backend/src/services/, solune/backend/src/utils.py, and solune/backend/src/dependencies.py
+- [x] T021 [P] [US2] Add or update frontend runtime regression tests in existing files under solune/frontend/src/**/*.test.ts and solune/frontend/src/**/*.test.tsx for fixes in solune/frontend/src/hooks/, solune/frontend/src/services/, and solune/frontend/src/components/
 
 ### Implementation for User Story 2
 
-- [ ] T022 [P] [US2] Audit exception handling and crash paths and apply minimal fixes in solune/backend/src/api/, solune/backend/src/services/, and solune/backend/src/logging_utils.py
-- [ ] T023 [P] [US2] Audit null or None dereferences, file/DB resource management, and guard clauses and apply minimal fixes in solune/backend/src/services/, solune/backend/src/utils.py, solune/backend/src/dependencies.py, and solune/backend/src/migrations/
+- [x] T022 [P] [US2] Audit exception handling and crash paths and apply minimal fixes in solune/backend/src/api/, solune/backend/src/services/, and solune/backend/src/logging_utils.py
+- [x] T023 [P] [US2] Audit null or None dereferences, file/DB resource management, and guard clauses and apply minimal fixes in solune/backend/src/services/, solune/backend/src/utils.py, solune/backend/src/dependencies.py, and solune/backend/src/migrations/
 - [ ] T024 [P] [US2] Audit async and concurrency risks and apply minimal fixes in solune/backend/src/services/copilot_polling/, solune/backend/src/services/github_projects/, and solune/backend/src/services/workflow_orchestrator/
-- [ ] T025 [P] [US2] Audit frontend runtime safety, async cleanup, and state-guard issues and apply minimal fixes in solune/frontend/src/hooks/, solune/frontend/src/services/, and solune/frontend/src/components/
+- [x] T025 [P] [US2] Audit frontend runtime safety, async cleanup, and state-guard issues and apply minimal fixes in solune/frontend/src/hooks/, solune/frontend/src/services/, and solune/frontend/src/components/
 - [ ] T026 [US2] Add TODO(bug-bash) comments for ambiguous runtime or race-condition findings directly in affected files under solune/backend/src/ and solune/frontend/src/
-- [ ] T027 [US2] Verify User Story 2 with pyright in solune/backend/, npm run type-check in solune/frontend/, and the new runtime regression tests in solune/backend/tests/ and solune/frontend/src/
+- [x] T027 [US2] Verify User Story 2 with pyright in solune/backend/, npm run type-check in solune/frontend/, and the new runtime regression tests in solune/backend/tests/ and solune/frontend/src/
 
 **Checkpoint**: Runtime-critical paths are guarded, typed, and regression-tested.
 
@@ -117,7 +117,7 @@
 - [ ] T031 [P] [US3] Audit API parameter passing, return-value handling, and repository-resolution logic and apply minimal fixes in solune/backend/src/api/ and solune/backend/src/services/github_projects/
 - [ ] T032 [P] [US3] Audit boundary conditions, indexing, and control-flow bugs and apply minimal fixes in solune/backend/src/services/, solune/backend/src/utils.py, and solune/frontend/src/hooks/
 - [ ] T033 [P] [US3] Audit frontend API-client and UI-state logic and apply minimal fixes in solune/frontend/src/services/, solune/frontend/src/hooks/, and solune/frontend/src/components/
-- [ ] T034 [US3] Verify User Story 3 with targeted pytest runs in solune/backend/tests/, targeted Vitest runs in solune/frontend/src/, and any affected integration coverage in solune/backend/tests/integration/
+- [x] T034 [US3] Verify User Story 3 with targeted pytest runs in solune/backend/tests/, targeted Vitest runs in solune/frontend/src/, and any affected integration coverage in solune/backend/tests/integration/
 
 **Checkpoint**: Logic paths behave correctly and remain independently testable.
 
@@ -131,13 +131,13 @@
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T035 [P] [US4] Add or update backend regression and coverage tests in solune/backend/tests/unit/, solune/backend/tests/integration/, solune/backend/tests/property/, and solune/backend/tests/concurrency/ for critical paths fixed during earlier stories
+- [x] T035 [P] [US4] Add or update backend regression and coverage tests in solune/backend/tests/unit/, solune/backend/tests/integration/, solune/backend/tests/property/, and solune/backend/tests/concurrency/ for critical paths fixed during earlier stories
 - [ ] T036 [P] [US4] Add or update frontend regression and coverage tests in solune/frontend/src/**/*.test.ts, solune/frontend/src/**/*.test.tsx, and solune/frontend/e2e/ for critical paths fixed during earlier stories
 
 ### Implementation for User Story 4
 
-- [ ] T037 [P] [US4] Audit mock leakage, brittle fixtures, and test-only values escaping into runtime behavior in solune/backend/tests/ and fix affected tests alongside the referenced modules under solune/backend/src/
-- [ ] T038 [P] [US4] Audit tautological, non-assertive, or ineffective tests in solune/backend/tests/, solune/frontend/src/__tests__/, and collocated tests under solune/frontend/src/
+- [x] T037 [P] [US4] Audit mock leakage, brittle fixtures, and test-only values escaping into runtime behavior in solune/backend/tests/ and fix affected tests alongside the referenced modules under solune/backend/src/
+- [x] T038 [P] [US4] Audit tautological, non-assertive, or ineffective tests in solune/backend/tests/, solune/frontend/src/__tests__/, and collocated tests under solune/frontend/src/
 - [ ] T039 [P] [US4] Add missing high-risk backend coverage for previously untested paths in solune/backend/src/services/ and solune/backend/src/api/ with matching tests in solune/backend/tests/
 - [ ] T040 [P] [US4] Add missing high-risk frontend coverage for previously untested paths in solune/frontend/src/components/, solune/frontend/src/hooks/, and solune/frontend/src/services/ with matching tests in solune/frontend/src/
 - [ ] T041 [US4] Verify User Story 4 with pytest --cov from solune/backend/ and npm run test:coverage from solune/frontend/ against the thresholds defined in solune/backend/pyproject.toml and solune/frontend/package.json
@@ -159,7 +159,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T044 [P] [US5] Audit dead code, unused imports, and unreachable branches and apply minimal fixes in solune/backend/src/, solune/frontend/src/, and the lint-scoped paths governed by solune/backend/pyproject.toml and solune/frontend/eslint.config.js
+- [x] T044 [P] [US5] Audit dead code, unused imports, and unreachable branches and apply minimal fixes in solune/backend/src/, solune/frontend/src/, and the lint-scoped paths governed by solune/backend/pyproject.toml and solune/frontend/eslint.config.js
 - [ ] T045 [P] [US5] Audit duplicated logic that can be consolidated without public-API changes and apply minimal fixes in solune/backend/src/api/, solune/backend/src/services/, solune/frontend/src/hooks/, and solune/frontend/src/utils/
 - [ ] T046 [P] [US5] Audit silent failures and missing diagnostics and add minimal logging or error feedback in solune/backend/src/logging_utils.py, solune/backend/src/services/, and solune/frontend/src/services/
 - [ ] T047 [P] [US5] Audit hardcoded values that should already be configurable and apply minimal fixes in solune/backend/src/config.py, solune/backend/src/main.py, solune/frontend/src/services/, and solune/frontend/src/utils/
@@ -195,8 +195,8 @@
 
 **Purpose**: Run the full validation pipeline and verify the final delivery stays within the issue constraints.
 
-- [ ] T055 [P] Run the full backend validation pipeline from specs/001-bug-basher/quickstart.md in solune/backend/ using the commands defined by solune/backend/pyproject.toml
-- [ ] T056 [P] Run the full frontend validation pipeline from specs/001-bug-basher/quickstart.md in solune/frontend/ using the scripts defined by solune/frontend/package.json
+- [x] T055 [P] Run the full backend validation pipeline from specs/001-bug-basher/quickstart.md in solune/backend/ using the commands defined by solune/backend/pyproject.toml
+- [x] T056 [P] Run the full frontend validation pipeline from specs/001-bug-basher/quickstart.md in solune/frontend/ using the scripts defined by solune/frontend/package.json
 - [ ] T057 Re-run repository-wide TODO(bug-bash) discovery under solune/backend/src/ and solune/frontend/src/ and reconcile flagged items with specs/001-bug-basher/contracts/bug-report.yaml
 - [ ] T058 Review all changed files under solune/backend/src/, solune/frontend/src/, solune/backend/tests/, and solune/frontend/src/**/*.test.tsx to ensure every fix remains minimal, focused, dependency-free, and API-compatible with specs/001-bug-basher/spec.md
 - [ ] T059 Confirm the final delivery satisfies the verification checklist in specs/001-bug-basher/quickstart.md and the constraints in specs/001-bug-basher/spec.md
