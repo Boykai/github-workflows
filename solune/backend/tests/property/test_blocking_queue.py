@@ -78,9 +78,7 @@ def _make_pipeline_state(**overrides) -> PipelineState:
 
 @settings(max_examples=200)
 @given(pipelines=_pipeline_lists, target_project=_project_ids)
-def test_count_active_matches_manual_count(
-    pipelines: list[dict], target_project: str
-) -> None:
+def test_count_active_matches_manual_count(pipelines: list[dict], target_project: str) -> None:
     """count_active_pipelines_for_project returns the exact number of
     non-queued pipelines matching the given project_id."""
     store._pipeline_states.clear()
@@ -94,9 +92,7 @@ def test_count_active_matches_manual_count(
         store._pipeline_states[p["issue_number"]] = _make_pipeline_state(**p)
 
     expected = sum(
-        1
-        for p in deduped.values()
-        if p["project_id"] == target_project and not p["queued"]
+        1 for p in deduped.values() if p["project_id"] == target_project and not p["queued"]
     )
 
     assert count_active_pipelines_for_project(target_project) == expected
@@ -105,9 +101,7 @@ def test_count_active_matches_manual_count(
 
 @settings(max_examples=200)
 @given(pipelines=_pipeline_lists, target_project=_project_ids)
-def test_count_active_never_negative(
-    pipelines: list[dict], target_project: str
-) -> None:
+def test_count_active_never_negative(pipelines: list[dict], target_project: str) -> None:
     """Active pipeline count is always ≥ 0."""
     store._pipeline_states.clear()
 
@@ -127,9 +121,7 @@ def test_count_active_never_negative(
 
 @settings(max_examples=200)
 @given(pipelines=_pipeline_lists, target_project=_project_ids)
-def test_queued_pipelines_sorted_by_started_at(
-    pipelines: list[dict], target_project: str
-) -> None:
+def test_queued_pipelines_sorted_by_started_at(pipelines: list[dict], target_project: str) -> None:
     """Queued pipelines are always returned sorted by started_at (FIFO)."""
     store._pipeline_states.clear()
 
@@ -153,9 +145,7 @@ def test_queued_pipelines_sorted_by_started_at(
 
 @settings(max_examples=200)
 @given(pipelines=_pipeline_lists, target_project=_project_ids)
-def test_queued_pipelines_only_contains_queued(
-    pipelines: list[dict], target_project: str
-) -> None:
+def test_queued_pipelines_only_contains_queued(pipelines: list[dict], target_project: str) -> None:
     """All returned pipelines must have queued=True and matching project_id."""
     store._pipeline_states.clear()
 

@@ -94,7 +94,7 @@ def init_otel(service_name: str, endpoint: str) -> tuple[Tracer, Meter]:
 class _NoOpSpan:
     """Minimal no-op span that satisfies the context-manager protocol."""
 
-    def set_attribute(self, key: str, value: object) -> None:  # noqa: ARG002
+    def set_attribute(self, key: str, value: object) -> None:
         pass
 
     def __enter__(self):  # type: ignore[no-untyped-def]
@@ -107,7 +107,7 @@ class _NoOpSpan:
 class _NoOpTracer:
     """Lightweight no-op tracer — avoids importing ``opentelemetry``."""
 
-    def start_as_current_span(self, name: str, **kwargs: object):  # type: ignore[no-untyped-def]  # noqa: ARG002
+    def start_as_current_span(self, name: str, **kwargs: object):  # type: ignore[no-untyped-def]
         return _NoOpSpan()
 
 
@@ -115,19 +115,19 @@ class _NoOpMeter:
     """Lightweight no-op meter — avoids importing ``opentelemetry``."""
 
     class _NoOpInstrument:
-        def set(self, value: object, attributes: object = None) -> None:  # noqa: ARG002
+        def set(self, value: object, attributes: object = None) -> None:
             pass
 
-        def record(self, value: object, attributes: object = None) -> None:  # noqa: ARG002
+        def record(self, value: object, attributes: object = None) -> None:
             pass
 
-    def create_gauge(self, name: str, **kwargs: object) -> _NoOpInstrument:  # noqa: ARG002
+    def create_gauge(self, name: str, **kwargs: object) -> _NoOpInstrument:
         return self._NoOpInstrument()
 
-    def create_histogram(self, name: str, **kwargs: object) -> _NoOpInstrument:  # noqa: ARG002
+    def create_histogram(self, name: str, **kwargs: object) -> _NoOpInstrument:
         return self._NoOpInstrument()
 
-    def create_counter(self, name: str, **kwargs: object) -> _NoOpInstrument:  # noqa: ARG002
+    def create_counter(self, name: str, **kwargs: object) -> _NoOpInstrument:
         return self._NoOpInstrument()
 
 

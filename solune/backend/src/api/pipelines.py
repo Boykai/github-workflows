@@ -35,6 +35,7 @@ from src.services.workflow_orchestrator import (
     count_active_pipelines_for_project,
     get_agent_slugs,
     get_pipeline_state,
+    get_project_launch_lock,
     get_queued_pipelines_for_project,
     get_status_order,
     get_workflow_config,
@@ -360,18 +361,6 @@ async def execute_pipeline_launch(
 
         status_name = config.status_backlog
         agent_sub_issues = await orchestrator.create_all_sub_issues(ctx)
-        if agent_sub_issues and ctx.issue_number is not None:
-            set_pipeline_state(
-                ctx.issue_number,
-                PipelineState(
-                    issue_number=ctx.issue_number,
-                    project_id=project_id,
-                    status=status_name,
-                    agents=get_agent_slugs(config, status_name),
-                    agent_sub_issues=agent_sub_issues,
-                    started_at=utcnow(),
-                ),
-            )
 
         if not get_agent_slugs(config, status_name):
             next_status = find_next_actionable_status(config, status_name)
@@ -385,24 +374,50 @@ async def execute_pipeline_launch(
                 status_name = next_status
 
         # ── Queue mode gate ──
-        # If queue mode is ON and another pipeline is already active for this
-        # project, mark this pipeline as queued and skip agent assignment.
+        # Acquire a per-project lock so concurrent launches cannot both
+        # see active_count == 0 and bypass the queue.  The lock covers
+        # the count-check *and* the state registration atomically.
         from src.services.settings_store import is_queue_mode_enabled
 
         queue_enabled = await is_queue_mode_enabled(get_db(), project_id)
-        active_count = count_active_pipelines_for_project(project_id)
-        if queue_enabled and active_count > 0 and ctx.issue_number is not None:
-            # Mark pipeline as queued — no agent assigned, no polling started
-            queued_state = PipelineState(
-                issue_number=ctx.issue_number,
-                project_id=project_id,
-                status=status_name,
-                agents=get_agent_slugs(config, status_name),
-                agent_sub_issues=agent_sub_issues or {},
-                started_at=utcnow(),
-                queued=True,
-            )
-            set_pipeline_state(ctx.issue_number, queued_state)
+        should_queue = False
+        if agent_sub_issues and ctx.issue_number is not None:
+            if queue_enabled:
+                async with get_project_launch_lock(project_id):
+                    active_count = count_active_pipelines_for_project(
+                        project_id, exclude_issue=ctx.issue_number
+                    )
+                    should_queue = active_count > 0
+
+                    # Register pipeline state under the lock with the correct
+                    # queued flag so the next concurrent launch sees it immediately.
+                    set_pipeline_state(
+                        ctx.issue_number,
+                        PipelineState(
+                            issue_number=ctx.issue_number,
+                            project_id=project_id,
+                            status=status_name,
+                            agents=get_agent_slugs(config, status_name),
+                            agent_sub_issues=agent_sub_issues,
+                            started_at=utcnow(),
+                            queued=should_queue,
+                        ),
+                    )
+            else:
+                set_pipeline_state(
+                    ctx.issue_number,
+                    PipelineState(
+                        issue_number=ctx.issue_number,
+                        project_id=project_id,
+                        status=status_name,
+                        agents=get_agent_slugs(config, status_name),
+                        agent_sub_issues=agent_sub_issues,
+                        started_at=utcnow(),
+                        queued=False,
+                    ),
+                )
+
+        if should_queue and ctx.issue_number is not None:
             queue_position = len(get_queued_pipelines_for_project(project_id))
             logger.info(
                 "Pipeline for issue #%d queued (position #%d) — queue mode ON for project %s",

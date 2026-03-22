@@ -30,6 +30,9 @@ from src.services.pipeline_state_store import (
     delete_trigger_inflight as _delete_trigger_inflight_async,
 )
 from src.services.pipeline_state_store import (
+    get_project_launch_lock as get_project_launch_lock,
+)
+from src.services.pipeline_state_store import (
     get_queued_pipelines_for_project as get_queued_pipelines_for_project,
 )
 from src.services.pipeline_state_store import (

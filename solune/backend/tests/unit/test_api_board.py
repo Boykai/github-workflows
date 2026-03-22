@@ -558,11 +558,15 @@ class TestColumnTransformEdgeCases:
         from src.api.board import _to_board_projects
         from src.models.project import GitHubProject
 
-        project = GitHubProject(
+        # Use model_construct to bypass validation — simulates a project whose
+        # columns were stripped after construction (e.g. deserialized legacy data).
+        project = GitHubProject.model_construct(
             project_id="PVT_empty",
-            name="No Columns",
-            url="https://github.com/users/testuser/projects/9",
+            owner_id="O_empty",
             owner_login="testuser",
+            name="No Columns",
+            type="user",
+            url="https://github.com/users/testuser/projects/9",
             status_columns=[],
         )
         result = _to_board_projects([project])
@@ -571,15 +575,17 @@ class TestColumnTransformEdgeCases:
     def test_single_column_with_no_items_still_creates_board_project(self):
         """A column with a valid field_id/option_id produces a BoardProject."""
         from src.api.board import _to_board_projects
-        from src.models.project import GitHubProject, ProjectStatusColumn
+        from src.models.project import GitHubProject, StatusColumn
 
         project = GitHubProject(
             project_id="PVT_single",
-            name="One Column",
-            url="https://github.com/users/testuser/projects/10",
+            owner_id="O_single",
             owner_login="testuser",
+            name="One Column",
+            type="user",
+            url="https://github.com/users/testuser/projects/10",
             status_columns=[
-                ProjectStatusColumn(
+                StatusColumn(
                     field_id="SF_1",
                     option_id="opt_1",
                     name="Backlog",
@@ -595,21 +601,23 @@ class TestColumnTransformEdgeCases:
     def test_column_missing_option_id_is_filtered_out(self):
         """Columns without an option_id should be excluded from valid columns."""
         from src.api.board import _to_board_projects
-        from src.models.project import GitHubProject, ProjectStatusColumn
+        from src.models.project import GitHubProject, StatusColumn
 
-        project = GitHubProject(
+        # Use model_construct on the column to bypass option_id required validation
+        col = StatusColumn.model_construct(
+            field_id="SF_1",
+            option_id=None,
+            name="Draft",
+            color="GRAY",
+        )
+        project = GitHubProject.model_construct(
             project_id="PVT_no_opt",
-            name="Missing Option",
-            url="https://github.com/users/testuser/projects/11",
+            owner_id="O_no_opt",
             owner_login="testuser",
-            status_columns=[
-                ProjectStatusColumn(
-                    field_id="SF_1",
-                    option_id=None,
-                    name="Draft",
-                    color="GRAY",
-                ),
-            ],
+            name="Missing Option",
+            type="user",
+            url="https://github.com/users/testuser/projects/11",
+            status_columns=[col],
         )
         result = _to_board_projects([project])
         assert result == []
@@ -699,15 +707,13 @@ class TestTokenExpirationFlows:
 
     async def test_expired_token_returns_401(self, client, mock_github_service):
         """A 'bad credentials' error from the service should yield HTTP 401."""
-        mock_github_service.list_board_projects.side_effect = ValueError(
-            "bad credentials"
-        )
+        mock_github_service.list_board_projects.side_effect = ValueError("bad credentials")
         resp = await client.get("/api/v1/board/projects", params={"refresh": True})
         assert resp.status_code == 401
         body = resp.json()
-        assert "expired" in body.get("error", "").lower() or "log in" in body.get(
-            "error", ""
-        ).lower()
+        assert (
+            "expired" in body.get("error", "").lower() or "log in" in body.get("error", "").lower()
+        )
 
     async def test_401_does_not_leak_token(self, client, mock_github_service):
         """Auth error responses must not include internal details."""

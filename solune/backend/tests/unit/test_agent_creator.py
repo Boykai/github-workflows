@@ -623,9 +623,7 @@ class TestExceptionPaths:
 
         with patch("src.services.agent_creator.get_ai_agent_service") as mock_ai:
             mock_service = AsyncMock()
-            mock_service.generate_agent_config.side_effect = ConnectionError(
-                "Network unreachable"
-            )
+            mock_service.generate_agent_config.side_effect = ConnectionError("Network unreachable")
             mock_ai.return_value = mock_service
 
             result = await handle_agent_command(
@@ -740,7 +738,7 @@ class TestToolAssignment:
         return AgentPreview(
             name="NoToolAgent",
             slug="no-tool-agent",
-            description="Agent without tools",
+            description="Agent without extras",
             system_prompt="You do things.",
             status_column="Done",
             tools=[],

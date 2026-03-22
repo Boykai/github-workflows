@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -500,7 +501,7 @@ class TestQueueModeRouting:
             return "PVTI_100"
 
         mock_orchestrator.add_to_project_with_backlog.side_effect = add_to_project
-        mock_orchestrator.create_all_sub_issues.return_value = {}
+        mock_orchestrator.create_all_sub_issues.return_value = {"speckit.specify": 101}
 
         with (
             patch(
@@ -531,6 +532,7 @@ class TestQueueModeRouting:
             ),
             patch("src.api.pipelines.set_pipeline_state"),
             patch("src.api.pipelines.get_agent_slugs", return_value=["speckit.specify"]),
+            patch("src.api.pipelines.get_project_launch_lock", return_value=asyncio.Lock()),
         ):
             resp = await client.post(
                 "/api/v1/pipelines/PVT_1/launch",
@@ -564,7 +566,7 @@ class TestQueueModeRouting:
             return "PVTI_101"
 
         mock_orchestrator.add_to_project_with_backlog.side_effect = add_to_project
-        mock_orchestrator.create_all_sub_issues.return_value = {}
+        mock_orchestrator.create_all_sub_issues.return_value = {"speckit.specify": 102}
         mock_orchestrator.assign_agent_for_status.return_value = True
 
         with (
@@ -590,6 +592,9 @@ class TestQueueModeRouting:
                 return_value=True,
             ),
             patch("src.api.pipelines.count_active_pipelines_for_project", return_value=0),
+            patch("src.api.pipelines.set_pipeline_state"),
+            patch("src.api.pipelines.get_agent_slugs", return_value=["speckit.specify"]),
+            patch("src.api.pipelines.get_project_launch_lock", return_value=asyncio.Lock()),
             patch(
                 "src.services.copilot_polling.ensure_polling_started",
                 new_callable=AsyncMock,
@@ -619,9 +624,7 @@ class TestPositionCalculation:
     """Tests for queue position reported in queued pipeline response."""
 
     @pytest.mark.anyio
-    async def test_queue_position_reflects_depth(
-        self, client, mock_db, mock_github_service
-    ):
+    async def test_queue_position_reflects_depth(self, client, mock_db, mock_github_service):
         """Queue position should equal the length of the queued pipelines list."""
         pipeline_id = await _create_pipeline(mock_db)
         mock_github_service.create_issue.return_value = {
@@ -637,7 +640,7 @@ class TestPositionCalculation:
             return "PVTI_200"
 
         mock_orchestrator.add_to_project_with_backlog.side_effect = add_to_project
-        mock_orchestrator.create_all_sub_issues.return_value = {}
+        mock_orchestrator.create_all_sub_issues.return_value = {"speckit.specify": 201}
 
         # Simulate 3 already-queued pipelines
         queued_list = ["q1", "q2", "q3"]
@@ -671,6 +674,7 @@ class TestPositionCalculation:
             ),
             patch("src.api.pipelines.set_pipeline_state"),
             patch("src.api.pipelines.get_agent_slugs", return_value=["speckit.specify"]),
+            patch("src.api.pipelines.get_project_launch_lock", return_value=asyncio.Lock()),
         ):
             resp = await client.post(
                 "/api/v1/pipelines/PVT_1/launch",
@@ -742,9 +746,7 @@ class TestSubIssueErrors:
     """Tests for error handling when sub-issue creation or assignment fails."""
 
     @pytest.mark.anyio
-    async def test_pipeline_state_error_returns_failure(
-        self, client, mock_db, mock_github_service
-    ):
+    async def test_pipeline_state_error_returns_failure(self, client, mock_db, mock_github_service):
         """If pipeline state has an error after agent assignment, response indicates failure."""
         pipeline_id = await _create_pipeline(mock_db)
         mock_github_service.create_issue.return_value = {
@@ -820,9 +822,7 @@ class TestSubIssueErrors:
             return "PVTI_301"
 
         mock_orchestrator.add_to_project_with_backlog.side_effect = add_to_project
-        mock_orchestrator.create_all_sub_issues.side_effect = RuntimeError(
-            "sub-issue API down"
-        )
+        mock_orchestrator.create_all_sub_issues.side_effect = RuntimeError("sub-issue API down")
 
         with (
             patch(

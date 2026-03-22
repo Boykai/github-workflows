@@ -33,6 +33,10 @@ _agent_trigger_inflight: BoundedDict[str, datetime] = BoundedDict(maxlen=50_000)
 # Module-level lock for all mutations
 _store_lock: asyncio.Lock | None = None
 
+# Per-project launch locks — serialises the queue-gate check-and-register
+# sequence so concurrent launches for the same project cannot race.
+_project_launch_locks: dict[str, asyncio.Lock] = {}
+
 # Module-level DB reference (set during init)
 _db: aiosqlite.Connection | None = None
 
@@ -43,6 +47,18 @@ def _get_store_lock() -> asyncio.Lock:
     if _store_lock is None:
         _store_lock = asyncio.Lock()
     return _store_lock
+
+
+def get_project_launch_lock(project_id: str) -> asyncio.Lock:
+    """Return (or create) an asyncio.Lock for the given project.
+
+    Serialises the queue-gate decision so that concurrent pipeline
+    launches for the same project cannot both see ``active_count == 0``
+    and bypass the queue.
+    """
+    if project_id not in _project_launch_locks:
+        _project_launch_locks[project_id] = asyncio.Lock()
+    return _project_launch_locks[project_id]
 
 
 # ── Initialization ──────────────────────────────────────────────
@@ -304,14 +320,25 @@ def get_all_pipeline_states() -> dict[int, Any]:
     return dict(_pipeline_states)
 
 
-def count_active_pipelines_for_project(project_id: str) -> int:
+def count_active_pipelines_for_project(
+    project_id: str,
+    *,
+    exclude_issue: int | None = None,
+) -> int:
     """Count non-queued pipelines for a project from L1 cache.
 
     Scans the in-memory cache — O(n) but fast for realistic cardinality.
     Only counts pipelines that are actively running (not queued).
+
+    Args:
+        project_id: Project to count active pipelines for.
+        exclude_issue: Issue number to exclude from the count (prevents
+            a pipeline from counting itself during the queue gate check).
     """
     count = 0
-    for state in _pipeline_states.values():
+    for issue_number, state in _pipeline_states.items():
+        if issue_number == exclude_issue:
+            continue
         if getattr(state, "project_id", None) == project_id and not getattr(state, "queued", False):
             count += 1
     return count
