@@ -51,6 +51,10 @@ class PipelineRun(BaseModel):
     stages: list[PipelineRunStageState] = Field(default_factory=list)
     created_at: str = ""
     updated_at: str = ""
+    # Phase 8: Concurrent execution tracking
+    execution_mode: str = "sequential"
+    concurrent_group_id: str | None = None
+    is_isolated: bool = True
 
     @model_validator(mode="after")
     def _validate_completion(self) -> PipelineRun:
@@ -74,6 +78,10 @@ class PipelineRunSummary(BaseModel):
     completed_at: str | None = None
     trigger: str = "manual"
     stage_summary: PipelineRunStageSummary = Field(default_factory=PipelineRunStageSummary)
+    # Phase 8: Concurrent execution tracking
+    execution_mode: str = "sequential"
+    concurrent_group_id: str | None = None
+    is_isolated: bool = True
 
 
 class PipelineRunListResponse(BaseModel):
