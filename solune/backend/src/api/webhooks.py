@@ -10,8 +10,8 @@ from pydantic import ValidationError as PydanticValidationError
 
 from src.api.webhook_models import IssuesEvent, PingEvent, PullRequestData, PullRequestEvent
 from src.config import get_settings
-from src.exceptions import AppException, AuthenticationError
-from src.logging_utils import get_logger
+from src.exceptions import AppException, AuthenticationError, ValidationError
+from src.logging_utils import get_logger, handle_service_error
 from src.services.activity_logger import log_event
 from src.services.cache import cache, get_repo_agents_cache_key
 from src.services.database import get_db
@@ -244,8 +244,7 @@ async def github_webhook(
     try:
         raw_payload = await request.json()
     except Exception as e:
-        logger.error("Failed to parse webhook payload: %s", e)
-        raise AppException("Invalid JSON payload", status_code=400) from e
+        handle_service_error(e, "parse webhook payload", ValidationError)
 
     payload: PullRequestEvent | IssuesEvent | PingEvent | dict[str, Any]
     try:
@@ -258,12 +257,7 @@ async def github_webhook(
         else:
             payload = raw_payload
     except PydanticValidationError as e:
-        logger.warning("Invalid webhook payload for event %s: %s", x_github_event, e)
-        raise AppException(
-            "Invalid webhook payload",
-            status_code=422,
-            details={"errors": e.errors()},
-        ) from e
+        handle_service_error(e, "validate webhook payload", ValidationError)
 
     logger.info(
         "Received GitHub webhook: event=%s, delivery=%s",

@@ -16,7 +16,7 @@ from src.exceptions import (
     RateLimitError,
     ValidationError,
 )
-from src.logging_utils import get_logger
+from src.logging_utils import get_logger, handle_service_error
 from src.models.board import (
     BoardDataResponse,
     BoardProject,
@@ -290,11 +290,7 @@ async def list_board_projects(
                         rate_limit=_get_rate_limit_info(),
                     )
 
-        logger.error("Failed to fetch board projects: %s", e, exc_info=True)
-        raise GitHubAPIError(
-            message="Failed to fetch board projects from GitHub.",
-            details={"reason": _classify_github_error(e)},
-        ) from e
+        handle_service_error(e, "fetch board projects", GitHubAPIError)
 
     cache.set(cache_key, projects)
     return BoardProjectListResponse(projects=projects, rate_limit=_get_rate_limit_info())
@@ -403,8 +399,7 @@ async def get_board_data(
     try:
         board_data = await github_projects_service.get_board_data(session.access_token, project_id)
     except ValueError as e:
-        logger.warning("Project not found: %s - %s", project_id, e)
-        raise NotFoundError("Project not found") from e
+        handle_service_error(e, "find project", NotFoundError)
     except Exception as e:
         # On API failure, try serving DB-cached Done items as partial board
         db_fallback = await _build_done_fallback_board(project_id, e)
@@ -429,11 +424,7 @@ async def get_board_data(
             raise AuthenticationError(
                 "Your GitHub session has expired. Please log in again."
             ) from e
-        logger.error("Failed to fetch board data: %s", e, exc_info=True)
-        raise GitHubAPIError(
-            message="Failed to fetch board data from GitHub",
-            details={"reason": _classify_github_error(e)},
-        ) from e
+        handle_service_error(e, "fetch board data", GitHubAPIError)
 
     board_data.rate_limit = _get_rate_limit_info()
 
@@ -529,11 +520,7 @@ async def update_board_item_status(
             raise AuthenticationError(
                 "Your GitHub session has expired. Please log in again."
             ) from e
-        logger.error("Failed to update item status: %s", e, exc_info=True)
-        raise GitHubAPIError(
-            message="Failed to update item status",
-            details={"reason": _classify_github_error(e)},
-        ) from e
+        handle_service_error(e, "update item status", GitHubAPIError)
 
     if not success:
         raise NotFoundError("Status not found or update failed")
