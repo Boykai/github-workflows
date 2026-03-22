@@ -134,12 +134,9 @@ async def list_projects(
     logger.info("Fetching projects for user %s", session.github_username)
 
     try:
-        # Get user's personal projects
-        user_projects = await github_projects_service.list_user_projects(
+        all_projects = await github_projects_service.list_user_projects(
             session.access_token, session.github_username
         )
-
-        all_projects = user_projects
 
         # Cache results
         cache.set(cache_key, all_projects)

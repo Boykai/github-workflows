@@ -351,84 +351,85 @@ class ProjectsMixin:
             List of Task objects
         """
         cache_key = f"items:{project_id}"
-        cached = self._cycle_cache.get(cache_key)
-        if cached is not None:
-            self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
 
-        all_tasks = []
-        has_next_page = True
-        after = None
+        async def _fetch() -> list[Task]:
+            all_tasks: list[Task] = []
+            has_next_page = True
+            after = None
 
-        while has_next_page:
-            data = await self._graphql(
-                access_token,
-                GET_PROJECT_ITEMS_QUERY,
-                {"projectId": project_id, "first": limit, "after": after},
-            )
-
-            node = data.get("node")
-            if not node:
-                break
-
-            items_data = node.get("items", {})
-            items = items_data.get("nodes", [])
-            page_info = items_data.get("pageInfo", {})
-
-            for item in items:
-                if not item:
-                    continue
-
-                content = item.get("content", {})
-                if not content:
-                    continue
-
-                status_value = item.get("fieldValueByName", {})
-
-                # Extract repository info if available
-                repo_info = content.get("repository", {})
-                repo_owner = repo_info.get("owner", {}).get("login") if repo_info else None
-                repo_name = repo_info.get("name") if repo_info else None
-
-                # Extract labels if available
-                labels_data = content.get("labels")
-                label_list = None
-                if labels_data:
-                    label_list = [
-                        {"name": ln.get("name", ""), "color": ln.get("color", "")}
-                        for ln in labels_data.get("nodes", [])
-                        if ln
-                    ]
-
-                all_tasks.append(
-                    Task(
-                        project_id=project_id,
-                        github_item_id=item["id"],
-                        github_content_id=content.get("id"),
-                        github_issue_id=(content.get("id") if content.get("number") else None),
-                        issue_number=content.get("number"),
-                        repository_owner=repo_owner,
-                        repository_name=repo_name,
-                        title=content.get("title", "Untitled"),
-                        description=content.get("body"),
-                        status=(
-                            status_value.get("name", DEFAULT_STATUS_BACKLOG)
-                            if status_value
-                            else DEFAULT_STATUS_BACKLOG
-                        ),
-                        status_option_id=(status_value.get("optionId", "") if status_value else ""),
-                        labels=label_list,
-                    )
+            while has_next_page:
+                data = await self._graphql(
+                    access_token,
+                    GET_PROJECT_ITEMS_QUERY,
+                    {"projectId": project_id, "first": limit, "after": after},
                 )
 
-            has_next_page = page_info.get("hasNextPage", False)
-            after = page_info.get("endCursor")
+                node = data.get("node")
+                if not node:
+                    break
 
-            # Safety check to prevent infinite loops
-            if not after:
-                break
+                items_data = node.get("items", {})
+                items = items_data.get("nodes", [])
+                page_info = items_data.get("pageInfo", {})
 
-        self._cycle_cache[cache_key] = all_tasks
+                for item in items:
+                    if not item:
+                        continue
+
+                    content = item.get("content", {})
+                    if not content:
+                        continue
+
+                    status_value = item.get("fieldValueByName", {})
+
+                    # Extract repository info if available
+                    repo_info = content.get("repository", {})
+                    repo_owner = repo_info.get("owner", {}).get("login") if repo_info else None
+                    repo_name = repo_info.get("name") if repo_info else None
+
+                    # Extract labels if available
+                    labels_data = content.get("labels")
+                    label_list = None
+                    if labels_data:
+                        label_list = [
+                            {"name": ln.get("name", ""), "color": ln.get("color", "")}
+                            for ln in labels_data.get("nodes", [])
+                            if ln
+                        ]
+
+                    all_tasks.append(
+                        Task(
+                            project_id=project_id,
+                            github_item_id=item["id"],
+                            github_content_id=content.get("id"),
+                            github_issue_id=(content.get("id") if content.get("number") else None),
+                            issue_number=content.get("number"),
+                            repository_owner=repo_owner,
+                            repository_name=repo_name,
+                            title=content.get("title", "Untitled"),
+                            description=content.get("body"),
+                            status=(
+                                status_value.get("name", DEFAULT_STATUS_BACKLOG)
+                                if status_value
+                                else DEFAULT_STATUS_BACKLOG
+                            ),
+                            status_option_id=(
+                                status_value.get("optionId", "") if status_value else ""
+                            ),
+                            labels=label_list,
+                        )
+                    )
+
+                has_next_page = page_info.get("hasNextPage", False)
+                after = page_info.get("endCursor")
+
+                # Safety check to prevent infinite loops
+                if not after:
+                    break
+
+            return all_tasks
+
+        all_tasks = await self._cycle_cached(cache_key, _fetch)
 
         # Persist Done items to DB for fast cold-start loading
         done_tasks = [t.model_dump(mode="json") for t in all_tasks if t.status == StatusNames.DONE]

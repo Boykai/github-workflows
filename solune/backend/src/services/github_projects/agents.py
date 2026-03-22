@@ -364,4 +364,13 @@ class AgentsMixin:
 # in favor of exclusive app.state registration. Deferred because 17+ files
 # import this directly in non-request contexts (background tasks, signal bridge,
 # orchestrator) where Request.app.state is not available.
+#
+# FR-008 (001-code-quality-tech-debt) explicitly defers this to a follow-up PR.
+# Required scope for that PR:
+#   1. Audit all 17+ consuming files (background tasks, signal bridge,
+#      orchestrator, polling loops).
+#   2. Introduce a get_github_service() accessor pattern that returns the
+#      singleton from app.state in request contexts and falls back to the
+#      module-level instance in non-request contexts.
+#   3. Update all affected test mocks to use the accessor.
 # Global service instance

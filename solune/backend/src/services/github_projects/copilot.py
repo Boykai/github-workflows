@@ -227,12 +227,8 @@ class CopilotMixin:
             True if Copilot is currently assigned
         """
         cache_key = f"assigned:{owner}/{repo}/{issue_number}"
-        cached = self._cycle_cache.get(cache_key)
-        if cached is not None:
-            self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
 
-        try:
+        async def _fetch() -> bool:
             issue_data = await self._rest(
                 access_token, "GET", f"/repos/{owner}/{repo}/issues/{issue_number}"
             )
@@ -241,16 +237,14 @@ class CopilotMixin:
                 return True
 
             assignees = issue_data.get("assignees", [])
-            result = False
             for assignee in assignees:
                 login = assignee.get("login") or ""
                 if self.is_copilot_author(login):
-                    result = True
-                    break
+                    return True
+            return False
 
-            self._cycle_cache[cache_key] = result
-            return result
-
+        try:
+            return await self._cycle_cached(cache_key, _fetch)
         except Exception as e:
             logger.warning("Error checking Copilot assignment for issue #%d: %s", issue_number, e)
             return True  # Assume still assigned on error (conservative)
@@ -819,90 +813,83 @@ class CopilotMixin:
         """
         _ts_suffix = f":{min_submitted_after.isoformat()}" if min_submitted_after else ""
         cache_key = f"reviewed:{owner}/{repo}/{pr_number}{_ts_suffix}"
-        cached = self._cycle_cache.get(cache_key)
-        if cached is not None:
-            self._cycle_cache_hit_count += 1
-            return cached  # type: ignore[return-value]
 
-        try:
-            requested = await self._rest(
-                access_token,
-                "GET",
-                f"/repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers",
-            )
-            requested_users = requested.get("users", []) if isinstance(requested, dict) else []
-            copilot_still_requested = any(
-                isinstance(user, dict) and self.is_copilot_reviewer_bot(user.get("login", ""))
-                for user in requested_users
-            )
-            if copilot_still_requested:
-                logger.debug(
-                    "Copilot reviewer is still requested on PR #%d; review not complete yet",
-                    pr_number,
+        async def _fetch() -> bool:
+            try:
+                requested = await self._rest(
+                    access_token,
+                    "GET",
+                    f"/repos/{owner}/{repo}/pulls/{pr_number}/requested_reviewers",
                 )
-                self._cycle_cache[cache_key] = False
-                return False
-
-            reviews_result = await self._rest(
-                access_token,
-                "GET",
-                f"/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
-                params={"per_page": 100},
-            )
-            reviews = reviews_result if isinstance(reviews_result, list) else []
-
-            for review in reviews:
-                user = review.get("user", {}) if isinstance(review, dict) else {}
-                state = (
-                    (review.get("state", "") if isinstance(review, dict) else "") or ""
-                ).upper()
-                body = (review.get("body", "") if isinstance(review, dict) else "") or ""
-                submitted_at = review.get("submitted_at") if isinstance(review, dict) else None
-                if (
-                    user
-                    and self.is_copilot_reviewer_bot(user.get("login", ""))
-                    and state != "PENDING"
-                    and submitted_at
-                    and body.strip()
-                ):
-                    # Filter out reviews submitted before Solune requested
-                    if min_submitted_after:
-                        from datetime import datetime as _dt
-
-                        try:
-                            review_ts = _dt.fromisoformat(submitted_at)
-                            if review_ts <= min_submitted_after:
-                                logger.debug(
-                                    "Ignoring Copilot review on PR #%d submitted at %s "
-                                    "(before Solune request at %s)",
-                                    pr_number,
-                                    submitted_at,
-                                    min_submitted_after.isoformat(),
-                                )
-                                continue
-                        except (ValueError, TypeError):
-                            pass  # Cannot parse — accept the review
-                    logger.info(
-                        "Found submitted Copilot review on PR #%d via REST "
-                        "(state: %s, submitted_at: %s, body_len: %d)",
+                requested_users = requested.get("users", []) if isinstance(requested, dict) else []
+                copilot_still_requested = any(
+                    isinstance(user, dict) and self.is_copilot_reviewer_bot(user.get("login", ""))
+                    for user in requested_users
+                )
+                if copilot_still_requested:
+                    logger.debug(
+                        "Copilot reviewer is still requested on PR #%d; review not complete yet",
                         pr_number,
-                        state,
-                        submitted_at,
-                        len(body),
                     )
-                    self._cycle_cache[cache_key] = True
-                    return True
+                    return False
 
-            self._cycle_cache[cache_key] = False
-            return False
-        except Exception as e:
-            logger.warning(
-                "REST Copilot review status check failed for PR #%d; falling back to GraphQL: %s",
-                pr_number,
-                e,
-            )
+                reviews_result = await self._rest(
+                    access_token,
+                    "GET",
+                    f"/repos/{owner}/{repo}/pulls/{pr_number}/reviews",
+                    params={"per_page": 100},
+                )
+                reviews = reviews_result if isinstance(reviews_result, list) else []
 
-        try:
+                for review in reviews:
+                    user = review.get("user", {}) if isinstance(review, dict) else {}
+                    state = (
+                        (review.get("state", "") if isinstance(review, dict) else "") or ""
+                    ).upper()
+                    body = (review.get("body", "") if isinstance(review, dict) else "") or ""
+                    submitted_at = review.get("submitted_at") if isinstance(review, dict) else None
+                    if (
+                        user
+                        and self.is_copilot_reviewer_bot(user.get("login", ""))
+                        and state != "PENDING"
+                        and submitted_at
+                        and body.strip()
+                    ):
+                        # Filter out reviews submitted before Solune requested
+                        if min_submitted_after:
+                            from datetime import datetime as _dt
+
+                            try:
+                                review_ts = _dt.fromisoformat(submitted_at)
+                                if review_ts <= min_submitted_after:
+                                    logger.debug(
+                                        "Ignoring Copilot review on PR #%d submitted at %s "
+                                        "(before Solune request at %s)",
+                                        pr_number,
+                                        submitted_at,
+                                        min_submitted_after.isoformat(),
+                                    )
+                                    continue
+                            except (ValueError, TypeError):
+                                pass  # Cannot parse — accept the review
+                        logger.info(
+                            "Found submitted Copilot review on PR #%d via REST "
+                            "(state: %s, submitted_at: %s, body_len: %d)",
+                            pr_number,
+                            state,
+                            submitted_at,
+                            len(body),
+                        )
+                        return True
+
+                return False
+            except Exception as e:
+                logger.warning(
+                    "REST Copilot review status check failed for PR #%d; falling back to GraphQL: %s",
+                    pr_number,
+                    e,
+                )
+
             data = await self._graphql(
                 access_token,
                 GET_PULL_REQUEST_QUERY,
@@ -926,7 +913,6 @@ class CopilotMixin:
                     "Copilot reviewer is still requested on PR #%d per GraphQL; review not complete yet",
                     pr_number,
                 )
-                self._cycle_cache[cache_key] = False
                 return False
 
             reviews = pr.get("reviews", {}).get("nodes", [])
@@ -972,12 +958,12 @@ class CopilotMixin:
                         submitted_at,
                         len(body),
                     )
-                    self._cycle_cache[cache_key] = True
                     return True
 
-            self._cycle_cache[cache_key] = False
             return False
 
+        try:
+            return await self._cycle_cached(cache_key, _fetch)
         except Exception as e:
             logger.error("Failed to check Copilot review status for PR #%d: %s", pr_number, e)
             return False
