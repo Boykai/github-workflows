@@ -44,7 +44,8 @@ async def _attempt_auto_merge(
     Returns:
         AutoMergeResult with status indicating outcome.
     """
-    from src.services.copilot_polling import state as _cp
+    import src.services.copilot_polling as _cp
+
     from .helpers import _discover_main_pr_for_review
 
     # Step 1: Discover main PR
@@ -252,7 +253,7 @@ async def dispatch_devops_agent(
     Returns:
         True if agent was dispatched, False if skipped.
     """
-    from src.services.copilot_polling import state as _cp
+    import src.services.copilot_polling as _cp
 
     devops_active = pipeline_metadata.get("devops_active", False)
     devops_attempts = pipeline_metadata.get("devops_attempts", 0)

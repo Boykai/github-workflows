@@ -2124,13 +2124,20 @@ async def _transition_after_pipeline_complete(
     # human intervention.  Uses lazy check at merge decision point to
     # support retroactive toggle activation.
     if to_status.lower() == "in review":
-        from src.services.database import get_db
-        from src.services.settings_store import is_auto_merge_enabled
+        from .auto_merge import _attempt_auto_merge
 
-        from .auto_merge import AutoMergeResult, _attempt_auto_merge
+        auto_merge_active = False
+        try:
+            from src.services.database import get_db
+            from src.services.settings_store import is_auto_merge_enabled
 
-        db = get_db()
-        auto_merge_active = await is_auto_merge_enabled(db, project_id)
+            db = get_db()
+            auto_merge_active = await is_auto_merge_enabled(db, project_id)
+        except Exception:
+            logger.debug(
+                "Auto-merge check skipped for issue #%d — database not available",
+                issue_number,
+            )
 
         if auto_merge_active:
             logger.info(

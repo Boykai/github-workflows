@@ -269,6 +269,10 @@ async def upsert_project_settings(
     queue_mode_idx = list(PROJECT_SETTINGS_COLUMNS).index("queue_mode")
     if insert_values[queue_mode_idx] is None:
         insert_values[queue_mode_idx] = 0
+    # auto_merge must be non-NULL (DEFAULT 0 in schema)
+    auto_merge_idx = list(PROJECT_SETTINGS_COLUMNS).index("auto_merge")
+    if insert_values[auto_merge_idx] is None:
+        insert_values[auto_merge_idx] = 0
 
     await db.execute(
         """
@@ -278,8 +282,9 @@ async def upsert_project_settings(
             board_display_config,
             agent_pipeline_mappings,
             queue_mode,
+            auto_merge,
             updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(github_user_id, project_id) DO UPDATE SET
             board_display_config = CASE
                 WHEN ? THEN excluded.board_display_config
@@ -292,6 +297,10 @@ async def upsert_project_settings(
             queue_mode = CASE
                 WHEN ? THEN excluded.queue_mode
                 ELSE project_settings.queue_mode
+            END,
+            auto_merge = CASE
+                WHEN ? THEN excluded.auto_merge
+                ELSE project_settings.auto_merge
             END,
             updated_at = excluded.updated_at
         """,
