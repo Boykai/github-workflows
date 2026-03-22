@@ -31,6 +31,12 @@ def _decode_cursor(cursor: str) -> tuple[str, str]:
     """Decode a base64 compound cursor into (created_at, id)."""
     raw = base64.urlsafe_b64decode(cursor.encode()).decode()
     parts = json.loads(raw)
+    if (
+        not isinstance(parts, list | tuple)
+        or len(parts) != 2
+        or not all(isinstance(part, str) and part for part in parts)
+    ):
+        raise ValueError("Cursor payload must contain [created_at, id]")
     return parts[0], parts[1]
 
 
