@@ -71,7 +71,7 @@ async def _query_events(
             cursor_ts, cursor_id = _decode_cursor(cursor)
             conditions.append("(created_at < ? OR (created_at = ? AND id < ?))")
             params.extend([cursor_ts, cursor_ts, cursor_id])
-        except Exception:
+        except (json.JSONDecodeError, ValueError, IndexError, UnicodeDecodeError):
             logger.warning("Invalid cursor value: %s", cursor)
 
     where = " AND ".join(conditions) if conditions else "1=1"
