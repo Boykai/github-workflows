@@ -7,6 +7,7 @@ from typing import Any
 import src.services.copilot_polling as _cp
 from src.constants import ACTIVE_LABEL, build_agent_label, find_agent_label, find_pipeline_label
 from src.logging_utils import get_logger
+from src.services.pipeline_state_store import get_project_launch_lock
 from src.utils import utcnow
 
 from .state import (
@@ -46,24 +47,36 @@ async def _dequeue_next_pipeline(
         if not await is_queue_mode_enabled(db, project_id):
             return
 
-        queued = _cp.get_queued_pipelines_for_project(project_id)
-        if not queued:
-            return
+        async with get_project_launch_lock(project_id):
+            # Re-check active count under the lock — a concurrent launch may
+            # have just registered a new active pipeline.
+            active_count = _cp.count_active_pipelines_for_project(project_id)
+            if active_count > 0:
+                logger.debug(
+                    "Skipping dequeue for project %s — %d pipeline(s) still active",
+                    project_id,
+                    active_count,
+                )
+                return
 
-        next_pipeline = queued[0]
-        logger.info(
-            "Dequeuing pipeline for issue #%d (trigger: %s, project: %s, queue depth: %d)",
-            next_pipeline.issue_number,
-            trigger,
-            project_id,
-            len(queued),
-        )
+            queued = _cp.get_queued_pipelines_for_project(project_id)
+            if not queued:
+                return
 
-        # Mark as no longer queued
-        next_pipeline.queued = False
-        _cp.set_pipeline_state(next_pipeline.issue_number, next_pipeline)
+            next_pipeline = queued[0]
+            logger.info(
+                "Dequeuing pipeline for issue #%d (trigger: %s, project: %s, queue depth: %d)",
+                next_pipeline.issue_number,
+                trigger,
+                project_id,
+                len(queued),
+            )
 
-        # Get workflow config and assign the first agent
+            # Mark as no longer queued
+            next_pipeline.queued = False
+            _cp.set_pipeline_state(next_pipeline.issue_number, next_pipeline)
+
+        # Get workflow config and assign the first agent (outside lock)
         config = await _cp.get_workflow_config(project_id)
         if not config:
             logger.warning(

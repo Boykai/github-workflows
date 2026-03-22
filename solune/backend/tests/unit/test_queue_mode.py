@@ -101,6 +101,38 @@ class TestCountActivePipelinesForProject:
         )
         assert count_active_pipelines_for_project("PVT_proj1") == 3
 
+    def test_exclude_issue_prevents_self_counting(self):
+        """A pipeline should not count itself when deciding whether to queue."""
+        store._pipeline_states[100] = _make_pipeline_state(
+            issue_number=100, project_id="PVT_proj1", queued=False
+        )
+        # Without exclude_issue → 1
+        assert count_active_pipelines_for_project("PVT_proj1") == 1
+        # With exclude_issue → 0
+        assert count_active_pipelines_for_project("PVT_proj1", exclude_issue=100) == 0
+
+    def test_exclude_issue_only_removes_specified(self):
+        """exclude_issue removes exactly one pipeline from the count."""
+        store._pipeline_states[100] = _make_pipeline_state(
+            issue_number=100, project_id="PVT_proj1", queued=False
+        )
+        store._pipeline_states[200] = _make_pipeline_state(
+            issue_number=200, project_id="PVT_proj1", queued=False
+        )
+        assert count_active_pipelines_for_project("PVT_proj1", exclude_issue=100) == 1
+        assert count_active_pipelines_for_project("PVT_proj1", exclude_issue=200) == 1
+        assert count_active_pipelines_for_project("PVT_proj1", exclude_issue=999) == 2
+
+    def test_exclude_issue_ignores_queued(self):
+        """exclude_issue with a queued pipeline has no effect (already excluded)."""
+        store._pipeline_states[100] = _make_pipeline_state(
+            issue_number=100, project_id="PVT_proj1", queued=False
+        )
+        store._pipeline_states[200] = _make_pipeline_state(
+            issue_number=200, project_id="PVT_proj1", queued=True
+        )
+        assert count_active_pipelines_for_project("PVT_proj1", exclude_issue=200) == 1
+
 
 # =============================================================================
 # get_queued_pipelines_for_project
@@ -330,3 +362,124 @@ class TestProjectSettingsUpdateQueueMode:
         dump = update.model_dump(exclude_unset=True)
         assert "queue_mode" in dump
         assert dump["queue_mode"] is False
+
+
+# =============================================================================
+# get_project_launch_lock
+# =============================================================================
+
+
+class TestGetProjectLaunchLock:
+    def test_returns_same_lock_for_same_project(self):
+        from src.services.pipeline_state_store import _project_launch_locks, get_project_launch_lock
+
+        _project_launch_locks.clear()
+        lock_a = get_project_launch_lock("PVT_proj1")
+        lock_b = get_project_launch_lock("PVT_proj1")
+        assert lock_a is lock_b
+        _project_launch_locks.clear()
+
+    def test_returns_different_locks_for_different_projects(self):
+        from src.services.pipeline_state_store import _project_launch_locks, get_project_launch_lock
+
+        _project_launch_locks.clear()
+        lock_a = get_project_launch_lock("PVT_proj1")
+        lock_b = get_project_launch_lock("PVT_proj2")
+        assert lock_a is not lock_b
+        _project_launch_locks.clear()
+
+    async def test_lock_serialises_access(self):
+        """Concurrent tasks acquire the lock one at a time."""
+        import asyncio
+
+        from src.services.pipeline_state_store import _project_launch_locks, get_project_launch_lock
+
+        _project_launch_locks.clear()
+        order: list[int] = []
+
+        async def worker(n: int) -> None:
+            async with get_project_launch_lock("PVT_proj1"):
+                order.append(n)
+                await asyncio.sleep(0.01)
+
+        await asyncio.gather(worker(1), worker(2), worker(3))
+        # All 3 ran; they may interleave but each acquired the lock
+        assert sorted(order) == [1, 2, 3]
+        _project_launch_locks.clear()
+
+
+# =============================================================================
+# Concurrent launch queue gate
+# =============================================================================
+
+
+class TestConcurrentLaunchQueueGate:
+    """Verify that the per-project lock + exclude_issue prevents races."""
+
+    async def test_first_pipeline_active_second_queued(self):
+        """Simulates two concurrent launches — only the first should be active."""
+
+        from src.services.pipeline_state_store import _project_launch_locks, get_project_launch_lock
+
+        _project_launch_locks.clear()
+        project_id = "PVT_proj1"
+        results: dict[int, bool] = {}  # issue_number → should_queue
+
+        async def simulate_launch(issue_number: int) -> None:
+            async with get_project_launch_lock(project_id):
+                active = count_active_pipelines_for_project(project_id, exclude_issue=issue_number)
+                should_queue = active > 0
+                results[issue_number] = should_queue
+                # Register as active (not queued) or queued
+                store._pipeline_states[issue_number] = _make_pipeline_state(
+                    issue_number=issue_number,
+                    project_id=project_id,
+                    queued=should_queue,
+                )
+
+        # Launch sequentially under the lock (simulates serialised access)
+        await simulate_launch(100)
+        await simulate_launch(200)
+
+        # First pipeline should NOT be queued
+        assert results[100] is False
+        # Second pipeline SHOULD be queued
+        assert results[200] is True
+        _project_launch_locks.clear()
+
+    async def test_concurrent_launches_serialised_by_lock(self):
+        """Two concurrent asyncio tasks use the lock to avoid racing."""
+        import asyncio
+
+        from src.services.pipeline_state_store import _project_launch_locks, get_project_launch_lock
+
+        _project_launch_locks.clear()
+        project_id = "PVT_proj1"
+        results: dict[int, bool] = {}
+
+        async def simulate_launch(issue_number: int) -> None:
+            async with get_project_launch_lock(project_id):
+                active = count_active_pipelines_for_project(project_id, exclude_issue=issue_number)
+                should_queue = active > 0
+                results[issue_number] = should_queue
+                store._pipeline_states[issue_number] = _make_pipeline_state(
+                    issue_number=issue_number,
+                    project_id=project_id,
+                    queued=should_queue,
+                )
+                # Small delay to simulate work inside the lock
+                await asyncio.sleep(0.01)
+
+        await asyncio.gather(
+            simulate_launch(100),
+            simulate_launch(200),
+            simulate_launch(300),
+            simulate_launch(400),
+        )
+
+        # Exactly one pipeline should be active, rest queued
+        active_count = sum(1 for q in results.values() if not q)
+        queued_count = sum(1 for q in results.values() if q)
+        assert active_count == 1
+        assert queued_count == 3
+        _project_launch_locks.clear()

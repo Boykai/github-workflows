@@ -51,6 +51,7 @@ from .transitions import (
     get_issue_main_branch,
     get_issue_sub_issues,
     get_pipeline_state,
+    get_project_launch_lock,
     get_queued_pipelines_for_project,
     remove_pipeline_state,
     set_issue_main_branch,
@@ -91,6 +92,7 @@ __all__ = [
     "get_next_status",
     # transitions
     "get_pipeline_state",
+    "get_project_launch_lock",
     "get_queued_pipelines_for_project",
     "get_status_order",
     "get_transitions",
