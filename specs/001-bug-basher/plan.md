@@ -1,104 +1,178 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Bug Basher — Full Codebase Review & Fix
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-bug-basher` | **Date**: 2026-03-22 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-bug-basher/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Perform a comprehensive bug bash code review of the entire codebase (141 Python files in `solune/backend/src/`, 409 TypeScript/TSX files in `solune/frontend/src/`). Systematically audit all files across five priority-ordered categories: security vulnerabilities, runtime errors, logic bugs, test quality gaps, and code quality issues. For each clear bug found, fix it directly with at least one regression test. For ambiguous issues, flag with `TODO(bug-bash)` comments. Produce a final summary table of all findings. All existing tests and lint checks must pass after fixes.
+
+This is a **process-oriented feature** — it does not add new functionality, APIs, or dependencies. Instead, it applies targeted fixes across the existing codebase while preserving the current architecture, public API surface, and code style.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.13 (backend), TypeScript 5.x (frontend)
+**Primary Dependencies**: FastAPI, aiosqlite, Pydantic, OpenAI SDK, Sentry (backend); React 18, TanStack Query, Vite, lucide-react, Tailwind CSS 4 (frontend)
+**Storage**: SQLite via aiosqlite (backend)
+**Testing**: pytest with pytest-asyncio, hypothesis, freezegun (backend); Vitest with happy-dom, @testing-library/react, Playwright E2E (frontend)
+**Target Platform**: Web application (SPA served by Vite, API served by FastAPI/Uvicorn)
+**Project Type**: Web (frontend + backend monorepo under `solune/`)
+**Performance Goals**: N/A — bug fixes must not degrade existing performance characteristics
+**Constraints**: No new dependencies; no public API changes; no architecture changes; each fix minimal and focused; preserve code style; all tests + lint green after fixes
+**Scale/Scope**: ~550 source files total (141 Python + 409 TypeScript/TSX); 5 bug categories audited in priority order; test suites: backend coverage ≥75%, frontend coverage thresholds (50% statements, 44% branches, 41% functions, 50% lines)
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| **I. Specification-First** | ✅ PASS | `spec.md` completed with 6 prioritized user stories (P1–P3), acceptance scenarios per story, edge cases, and 15 functional requirements |
+| **II. Template-Driven Workflow** | ✅ PASS | All artifacts follow canonical templates from `.specify/templates/` |
+| **III. Agent-Orchestrated Execution** | ✅ PASS | Plan phase produces plan.md, research.md, data-model.md, contracts/, quickstart.md as defined. Bug-bashing execution decomposes into category-based passes (security → runtime → logic → tests → quality) |
+| **IV. Test Optionality** | ✅ PASS | Tests are mandated by spec: FR-004 requires at least one regression test per bug fix; FR-007 requires full test suite to pass. This is explicit spec requirement, not optional |
+| **V. Simplicity and DRY** | ✅ PASS | Each fix is minimal and focused (FR-014). No refactors, no new abstractions. Fixes address exactly one bug each. Ambiguous cases flagged rather than over-engineered |
+
+**Gate Result**: ✅ All principles satisfied. No violations requiring justification.
+
+**Post-Phase 1 Re-check**: ✅ All principles remain satisfied. The process-oriented nature of this feature (fixing existing code, not adding new features) inherently aligns with simplicity and DRY — no new abstractions are introduced.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-bug-basher/
+├── plan.md              # This file
+├── research.md          # Phase 0 output — research on audit strategy and tooling
+├── data-model.md        # Phase 1 output — bug report entity model
+├── quickstart.md        # Phase 1 output — developer guide for bug-bash workflow
+├── contracts/           # Phase 1 output — bug report format contract
+│   └── bug-report.yaml  # Summary table schema
+└── tasks.md             # Phase 2 output (NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+solune/
+├── backend/
+│   ├── src/
+│   │   ├── api/                    # FastAPI route handlers (11 modules)
+│   │   ├── middleware/             # Request middleware (auth, CORS, rate limiting)
+│   │   ├── migrations/            # SQLite migration scripts (31+ files)
+│   │   ├── models/                # Pydantic models
+│   │   ├── services/              # Business logic
+│   │   │   ├── agents/            # AI agent services
+│   │   │   ├── chores/            # Chore scheduling services
+│   │   │   ├── copilot_polling/   # GitHub Copilot polling
+│   │   │   ├── github_projects/   # GitHub Projects integration
+│   │   │   ├── pipelines/         # Pipeline management
+│   │   │   ├── tools/             # Tool integrations
+│   │   │   └── workflow_orchestrator/  # Workflow state machine
+│   │   ├── config.py              # Application configuration
+│   │   ├── dependencies.py        # FastAPI dependency injection
+│   │   ├── exceptions.py          # Custom exception classes
+│   │   ├── logging_utils.py       # Structured logging utilities
+│   │   ├── main.py                # Application entry point
+│   │   └── utils.py               # Shared utilities
+│   └── tests/
+│       ├── unit/                  # Unit tests
+│       ├── integration/           # Integration tests
+│       ├── property/              # Hypothesis property tests
+│       ├── fuzz/                  # Fuzz tests
+│       ├── chaos/                 # Chaos engineering tests
+│       ├── concurrency/           # Concurrency tests
+│       ├── architecture/          # Architecture validation tests
+│       └── helpers/               # Test utilities and fixtures
+├── frontend/
+│   ├── src/
+│   │   ├── components/            # React components
+│   │   ├── hooks/                 # Custom React hooks
+│   │   ├── lib/                   # Shared libraries (icons barrel)
+│   │   ├── services/              # API client and schemas
+│   │   ├── utils/                 # Utility functions
+│   │   ├── __tests__/             # Test files
+│   │   ├── test/                  # Test setup and helpers
+│   │   └── e2e/                   # E2E test fixtures
+│   └── e2e/                       # Playwright E2E tests
+└── docs/                          # Documentation
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure — existing `solune/backend/` and `solune/frontend/` layout. Bug-bash audits all files in-place. No new directories or structural changes. Fixes modify existing files only; new files are limited to regression tests when needed.
+
+## Implementation Phases
+
+### Phase 1 — Security Vulnerability Audit (Priority: P1)
+
+| Step | Description | Depends On | Scope |
+|------|-------------|------------|-------|
+| 1.1 | Audit authentication & authorization logic | — | `middleware/`, `api/`, `dependencies.py` |
+| 1.2 | Audit input validation and injection risks | — | `api/` route handlers, Pydantic models |
+| 1.3 | Scan for exposed secrets/tokens in code and config | — | All source files, config files, `.env` patterns |
+| 1.4 | Review insecure defaults (CORS, rate limiting, crypto) | — | `config.py`, `middleware/`, `main.py` |
+| 1.5 | Run `bandit -r src/` and address findings | 1.1–1.4 | Backend Python source |
+| 1.6 | Run ESLint security plugin checks | — | Frontend TypeScript source |
+
+**Verification**: `bandit -r src/` clean; ESLint security rules pass; no secrets in source; regression tests for each fix.
+
+### Phase 2 — Runtime Error Elimination (Priority: P1)
+
+| Step | Description | Depends On | Scope |
+|------|-------------|------------|-------|
+| 2.1 | Audit exception handling (try/catch/except) | Phase 1 | All service modules, API handlers |
+| 2.2 | Check for null/None dereferences | — | All source files |
+| 2.3 | Audit resource management (file handles, DB connections) | — | `aiosqlite` usage, file I/O |
+| 2.4 | Identify race conditions in async code | — | `asyncio` tasks, shared state, caches |
+| 2.5 | Check for missing imports and type errors | — | All modules |
+
+**Verification**: `pyright src` clean; `npm run type-check` clean; regression tests for each fix.
+
+### Phase 3 — Logic Bug Resolution (Priority: P2)
+
+| Step | Description | Depends On | Scope |
+|------|-------------|------------|-------|
+| 3.1 | Trace state transitions in workflow orchestrator | Phase 2 | `workflow_orchestrator/`, `transitions.py` |
+| 3.2 | Verify API call parameters and return handling | — | All API client code, service calls |
+| 3.3 | Check boundary conditions (off-by-one, pagination) | — | Loops, list operations, pagination logic |
+| 3.4 | Validate control flow and return values | — | All functions with conditional logic |
+
+**Verification**: Full pytest suite passes; regression tests for each logic fix.
+
+### Phase 4 — Test Quality Improvement (Priority: P2)
+
+| Step | Description | Depends On | Scope |
+|------|-------------|------------|-------|
+| 4.1 | Audit mock usage for leaks (MagicMock in prod paths) | Phase 3 | All test files |
+| 4.2 | Identify tautological assertions | — | All test assertions |
+| 4.3 | Find untested critical code paths | — | Coverage gaps in services/ |
+| 4.4 | Add missing edge case tests | 4.3 | Test files for identified gaps |
+
+**Verification**: `pytest --cov` meets thresholds; `npm run test:coverage` meets thresholds; no mock leaks.
+
+### Phase 5 — Code Quality Cleanup (Priority: P3)
+
+| Step | Description | Depends On | Scope |
+|------|-------------|------------|-------|
+| 5.1 | Remove dead code (unused functions, variables, imports) | Phase 4 | All source files |
+| 5.2 | Consolidate duplicated logic | 5.1 | Cross-file duplicate detection |
+| 5.3 | Add error logging for silent failures | — | Exception handlers with `pass` or bare `except` |
+| 5.4 | Replace hardcoded values with configuration | — | Magic numbers, hardcoded strings |
+
+**Verification**: `ruff check src tests` clean; `npm run lint` clean; all tests pass.
+
+### Phase 6 — Summary & Validation
+
+| Step | Description | Depends On | Scope |
+|------|-------------|------------|-------|
+| 6.1 | Run full backend test suite | Phases 1–5 | `pytest --timeout=60` |
+| 6.2 | Run full frontend test suite | Phases 1–5 | `npm run test` |
+| 6.3 | Run all linting/formatting checks | 6.1–6.2 | `ruff`, `pyright`, `eslint`, `prettier` |
+| 6.4 | Generate final summary table | 6.1–6.3 | All identified issues |
+| 6.5 | Review all `TODO(bug-bash)` comments | 6.4 | Flagged ambiguous issues |
+
+**Verification**: Zero test failures; zero lint errors; complete summary table with every finding categorized.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No constitution violations to justify. All changes follow simplicity and DRY principles. Each fix is minimal, focused, and addresses exactly one bug.
