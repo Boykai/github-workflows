@@ -2219,16 +2219,23 @@ async def _transition_after_pipeline_complete(
     _cp.remove_pipeline_state(issue_number)
 
     # Auto-unregister the project from multi-project monitoring when no
-    # active pipelines remain.  This prevents polling empty projects.
+    # active or queued pipelines remain.  This prevents polling empty projects
+    # while keeping projects with queued pipelines monitored until dequeue.
     try:
-        from src.services.pipeline_state_store import count_active_pipelines_for_project
+        from src.services.pipeline_state_store import (
+            count_active_pipelines_for_project,
+            get_queued_pipelines_for_project,
+        )
 
-        if count_active_pipelines_for_project(project_id) == 0:
+        if (
+            count_active_pipelines_for_project(project_id) == 0
+            and len(get_queued_pipelines_for_project(project_id)) == 0
+        ):
             from src.services.copilot_polling.state import unregister_project
 
             unregister_project(project_id)
     except Exception:
-        pass  # best-effort cleanup
+        logger.debug("Failed to auto-unregister project %s: %s", project_id, exc_info=True)
 
     # Dequeue the next waiting pipeline if queue mode is active.
     # Only release the queue when the pipeline reaches a terminal-ish status

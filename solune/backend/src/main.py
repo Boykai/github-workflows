@@ -172,9 +172,10 @@ async def _auto_start_copilot_polling() -> bool:
 async def _discover_and_register_active_projects() -> int:
     """Discover all projects with active pipeline states and register them.
 
-    Queries the ``pipeline_states`` table for distinct ``project_id`` values,
-    resolves each project's owner/repo from ``project_settings.workflow_config``,
-    and registers them for multi-project monitoring.
+    Reads distinct ``project_id`` values from the in-memory pipeline state
+    cache, resolves each project's owner/repo from
+    ``project_settings.workflow_config``, and registers them for
+    multi-project monitoring.
 
     Returns the number of newly registered projects.
     """
@@ -354,10 +355,16 @@ async def _polling_watchdog_loop() -> None:
 
                 # Auto-unregister projects whose pipelines have all completed
                 from src.services.copilot_polling import get_monitored_projects, unregister_project
-                from src.services.pipeline_state_store import count_active_pipelines_for_project
+                from src.services.pipeline_state_store import (
+                    count_active_pipelines_for_project,
+                    get_queued_pipelines_for_project,
+                )
 
                 for mp in get_monitored_projects():
-                    if count_active_pipelines_for_project(mp.project_id) == 0:
+                    if (
+                        count_active_pipelines_for_project(mp.project_id) == 0
+                        and len(get_queued_pipelines_for_project(mp.project_id)) == 0
+                    ):
                         unregister_project(mp.project_id)
             except Exception as e:
                 logger.debug("Watchdog multi-project sync failed: %s", e)
