@@ -31,6 +31,9 @@
 
 ## Notes
 
-- All items pass validation. The specification is ready for `/speckit.clarify` or `/speckit.plan`.
-- The spec references specific library names (slowapi, hmac.compare_digest) only in the Assumptions and Dependencies sections for context, not in functional requirements or success criteria.
-- The Assumptions section documents reasonable defaults chosen for areas where the issue provided guidance (e.g., preferred rate limiting strategy, migration path requirements).
+- All 29 functional requirements (FR-001 through FR-029) have corresponding user stories with acceptance scenarios
+- 12 measurable success criteria (SC-001 through SC-012) cover all four phases
+- Phased approach (Critical → High → Medium → Low) allows incremental implementation
+- Key decisions documented: OAuth scope change requires staging testing, encryption enforcement needs migration path, rate limiting prefers per-user over per-IP
+- Out of scope clearly defined: GitHub API security, MCP server internals, network-layer infrastructure
+- The spec references specific library names (slowapi, hmac.compare_digest) only in the Assumptions and Dependencies sections for context, not in functional requirements or success criteria
