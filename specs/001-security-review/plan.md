@@ -5,7 +5,7 @@
 
 ## Summary
 
-Comprehensive security audit covering 21 findings across OWASP Top 10 categories (3 Critical, 8 High, 9 Medium, 2 Low). The audit validates session management, encryption enforcement, container security, authorization controls, HTTP hardening, rate limiting, data privacy, and configuration validation. All findings have been remediated across the backend (FastAPI/Python), frontend (React/TypeScript), nginx reverse proxy, Docker containers, and CI/CD workflows.
+Comprehensive security audit covering 21 findings across OWASP Top 10 categories (3 Critical, 8 High, 9 Medium, 2 Low). The audit addresses session management, encryption enforcement, container security, authorization controls, HTTP hardening, rate limiting, data privacy, and configuration validation. Remediation spans the backend (FastAPI/Python), frontend (React/TypeScript), nginx reverse proxy, Docker containers, and CI/CD workflows.
 
 ## Technical Context
 
@@ -17,7 +17,7 @@ Comprehensive security audit covering 21 findings across OWASP Top 10 categories
 **Project Type**: Web application (backend + frontend)
 **Performance Goals**: Rate limits — 10 req/min on chat/workflow, 5 req/min on agents, 20 req/min on OAuth callback
 **Constraints**: All containers non-root, ports bound to 127.0.0.1 only, database dir 0700 / file 0600
-**Scale/Scope**: 21 security findings across 4 severity phases, ~25 files modified
+**Scale/Scope**: 21 security findings across 4 severity phases, ~25 files to be modified
 
 ## Constitution Check
 
@@ -57,9 +57,9 @@ solune/
 ├── backend/
 │   ├── src/
 │   │   ├── api/
-│   │   │   ├── auth.py          # FR-001/002/012: Secure OAuth, cookie-based sessions, POST dev-login
+│   │   │   ├── auth.py          # FR-001/002/012/017: Secure OAuth, cookie-based sessions, POST dev-login, OAuth rate limit
 │   │   │   ├── agents.py        # FR-006/016: Project access + rate limiting
-│   │   │   ├── chat.py          # FR-016: Rate limiting on chat endpoints
+│   │   │   ├── chat.py          # FR-016/018: Rate limiting on chat endpoints
 │   │   │   ├── pipelines.py     # FR-006: Project access verification
 │   │   │   ├── projects.py      # FR-006: Project access verification
 │   │   │   ├── settings.py      # FR-006: Project access verification
