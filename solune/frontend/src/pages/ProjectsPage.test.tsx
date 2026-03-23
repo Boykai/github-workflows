@@ -192,10 +192,6 @@ vi.mock('@/components/common/CelestialCatalogHero', () => ({
   ),
 }));
 
-vi.mock('@/components/common/CelestialLoader', () => ({
-  CelestialLoader: ({ label }: { label?: string }) => <div>{label ?? 'Loading'}</div>,
-}));
-
 vi.mock('@/components/board/BoardSkeleton', () => ({
   BoardSkeleton: () => <div data-testid="board-skeleton">Loading board skeleton</div>,
 }));
@@ -281,6 +277,8 @@ describe('ProjectsPage', () => {
 
   it('uses the scoped retry CTA for board failures', async () => {
     mocks.projectBoard.boardError = new Error('Board request failed');
+    mocks.projectBoard.boardData = null;
+    mocks.boardControls.transformedData = null;
 
     render(<ProjectsPage />);
 
@@ -298,6 +296,8 @@ describe('ProjectsPage', () => {
 
   it('renders the board error banner with role="alert"', () => {
     mocks.projectBoard.boardError = new Error('Network timeout');
+    mocks.projectBoard.boardData = null;
+    mocks.boardControls.transformedData = null;
 
     render(<ProjectsPage />);
 
@@ -347,6 +347,36 @@ describe('ProjectsPage', () => {
     render(<ProjectsPage />);
 
     expect(screen.getByTestId('board-skeleton')).toBeInTheDocument();
+  });
+
+  it('shows "Updating…" indicator when board has placeholder data', () => {
+    mocks.projectBoard.boardLoading = false;
+    mocks.projectBoard.isPlaceholderData = true;
+
+    render(<ProjectsPage />);
+
+    expect(screen.getByText('Updating…')).toBeInTheDocument();
+  });
+
+  it('shows "Updating…" indicator when board is refetching in the background', () => {
+    mocks.projectBoard.boardLoading = false;
+    mocks.projectBoard.isPlaceholderData = false;
+    mocks.projectBoard.isFetching = true;
+
+    render(<ProjectsPage />);
+
+    expect(screen.getByText('Updating…')).toBeInTheDocument();
+  });
+
+  it('suppresses "Updating…" indicator when a background board error occurs', () => {
+    mocks.projectBoard.boardLoading = false;
+    mocks.projectBoard.isPlaceholderData = false;
+    mocks.projectBoard.isFetching = true;
+    mocks.projectBoard.boardError = new Error('Background board error');
+
+    render(<ProjectsPage />);
+
+    expect(screen.queryByText('Updating…')).not.toBeInTheDocument();
   });
 
   it('shows empty state when no project is selected', () => {

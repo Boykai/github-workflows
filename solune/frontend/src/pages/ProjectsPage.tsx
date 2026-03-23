@@ -169,7 +169,12 @@ export function ProjectsPage() {
     },
   });
 
-  const handleCardClick = useCallback((item: BoardItem) => setSelectedItem(item), []);
+  const handleCardClick = useCallback(
+    (item: BoardItem) => {
+      if (!isPlaceholderData) setSelectedItem(item);
+    },
+    [isPlaceholderData],
+  );
   const handleCloseModal = useCallback(() => setSelectedItem(null), []);
 
   // ── Board status update mutation with optimistic UI ──
@@ -442,7 +447,7 @@ export function ProjectsPage() {
         refreshError={refreshError}
         projectsError={projectsError}
         projectsRateLimitError={projectsRateLimitError}
-        boardError={boardError}
+        boardError={boardData ? null : boardError}
         boardLoading={boardLoading}
         boardRateLimitError={boardRateLimitError}
         selectedProjectId={selectedProjectId}
@@ -468,7 +473,7 @@ export function ProjectsPage() {
         <div className="relative flex flex-1 flex-col gap-6 overflow-visible">
           {/* Background refetch / placeholder indicator */}
           {((isFetching && !boardLoading) || isPlaceholderData) &&
-            !(boardError && transformedBoardData) && (
+            !boardError && (
               <span className="absolute right-2 top-0 z-10 text-xs font-medium text-muted-foreground">
                 Updating…
               </span>
@@ -477,8 +482,7 @@ export function ProjectsPage() {
           <div
             className={cn(
               'flex flex-1 flex-col gap-6 overflow-visible transition-opacity duration-300',
-              ((isFetching && !boardLoading) || isPlaceholderData) &&
-                !(boardError && transformedBoardData)
+              ((isFetching && !boardLoading) || isPlaceholderData) && !boardError
                 ? 'opacity-60'
                 : 'opacity-100'
             )}
@@ -515,7 +519,7 @@ export function ProjectsPage() {
               boardControls={boardControls}
               onCardClick={handleCardClick}
               availableAgents={availableAgents}
-              onStatusUpdate={handleStatusUpdate}
+              onStatusUpdate={isPlaceholderData ? undefined : handleStatusUpdate}
             />
           </div>
         </div>
