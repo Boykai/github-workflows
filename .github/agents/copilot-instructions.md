@@ -259,8 +259,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
 
 ## Active Technologies
-- Python ≥3.12 (backend), TypeScript ~5.9.0 (frontend) + FastAPI ≥0.135.0, React 19.2, nginx 1.29, slowapi ≥0.1.9, cryptography ≥46.0.5 (001-security-review)
-- SQLite via aiosqlite ≥0.22.0 (encrypted at rest with Fernet) (001-security-review)
+- Python ≥3.12 (backend, targeting 3.13), TypeScript/React (frontend) + FastAPI, uvicorn, Pydantic, slowapi, cryptography (backend); React, Vite, TanStack Query, Tailwind CSS (frontend); nginx (reverse proxy/static serving) (001-security-review)
+- SQLite via aiosqlite (async), encrypted at rest with Fernet (cryptography library) (001-security-review)
 
 Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
 
