@@ -130,9 +130,11 @@ from .state import (  # noqa: F401
     RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD,
     RATE_LIMIT_SLOW_THRESHOLD,
     RECOVERY_COOLDOWN_SECONDS,
+    MonitoredProject,
     PollingState,
     _app_polling_tasks,
     _claimed_child_prs,
+    _monitored_projects,
     _pending_agent_assignments,
     _polling_state,
     _polling_task,
@@ -141,6 +143,9 @@ from .state import (  # noqa: F401
     _recovery_last_attempt,
     _review_requested_cache,
     _system_marked_ready_prs,
+    get_monitored_projects,
+    register_project,
+    unregister_project,
 )
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -179,6 +184,7 @@ __all__ = [
     "_get_tracking_state_from_issue",
     "_link_prs_to_parent",
     "_merge_child_pr_if_applicable",
+    "_monitored_projects",
     "_pending_agent_assignments",
     "_poll_loop",
     "_polling_state",
@@ -214,6 +220,7 @@ __all__ = [
     "get_current_agent_from_tracking",
     "get_issue_main_branch",
     "get_issue_sub_issues",
+    "get_monitored_projects",
     "get_next_pending_agent",
     "get_next_status",
     "get_pipeline_state",
@@ -232,12 +239,14 @@ __all__ = [
     "post_agent_outputs_from_pr",
     "process_in_progress_issue",
     "recover_stalled_issues",
+    "register_project",
     "remove_pipeline_state",
     "set_issue_main_branch",
     "set_issue_sub_issues",
     "set_pipeline_state",
     "set_workflow_config",
     "stop_polling",
+    "unregister_project",
     "update_issue_main_branch_sha",
 ]
 
@@ -278,6 +287,12 @@ async def ensure_polling_started(
         ``True`` if polling was started, ``False`` if it was already running.
     """
     global _polling_task
+
+    # Always register the project so the multi-project polling loop
+    # picks it up even if the loop is already running for another project.
+    from .state import register_project as _register
+
+    _register(project_id, owner, repo, access_token)
 
     try:
         status = get_polling_status()

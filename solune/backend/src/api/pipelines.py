@@ -475,6 +475,13 @@ async def execute_pipeline_launch(
                 caller="pipeline_issue_launch",
             )
 
+        # Always register the project for multi-project monitoring so the
+        # main polling loop picks it up even if the loop was already running
+        # for a different project.
+        from src.services.copilot_polling import register_project
+
+        register_project(project_id, owner, repo, session.access_token)
+
         pipeline_state = (
             get_pipeline_state(ctx.issue_number) if ctx.issue_number is not None else None
         )

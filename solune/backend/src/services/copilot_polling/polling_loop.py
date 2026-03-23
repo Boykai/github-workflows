@@ -323,6 +323,72 @@ async def poll_for_copilot_completion(
         _polling_state.is_running = False
 
 
+async def _poll_single_project(
+    access_token: str,
+    project_id: str,
+    owner: str,
+    repo: str,
+) -> dict[str, list] | None:
+    """Execute all polling steps for a single project.
+
+    Returns a dict of step_name → results, or ``None`` if the rate-limit
+    budget was exhausted (caller should abort the cycle).
+    """
+    from .helpers import is_sub_issue
+
+    all_tasks = await _cp.github_projects_service.get_project_items(access_token, project_id)
+
+    parent_tasks = [t for t in all_tasks if not is_sub_issue(t)]
+    sub_count = len(all_tasks) - len(parent_tasks)
+    if sub_count:
+        logger.debug(
+            "Project %s: filtered out %d sub-issues from %d board items",
+            project_id[:12],
+            sub_count,
+            len(all_tasks),
+        )
+
+    remaining_pre, _ = await _check_rate_limit_budget()
+    skip_expensive = (
+        remaining_pre is not None and remaining_pre <= RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD
+    )
+
+    results: dict[str, list] = {}
+    for step in POLL_STEPS:
+        if step.is_expensive and skip_expensive:
+            logger.warning(
+                "Poll #%d (%s): Skipping %s — rate limit budget low (remaining=%d)",
+                _polling_state.poll_count,
+                project_id[:12],
+                step.name,
+                remaining_pre,
+            )
+            results[step.name] = []
+            continue
+
+        results[step.name] = await step.execute(
+            access_token,
+            project_id,
+            owner,
+            repo,
+            parent_tasks,
+        )
+
+        if results[step.name]:
+            logger.info(
+                "Poll #%d (%s): %s — processed %d items",
+                _polling_state.poll_count,
+                project_id[:12],
+                step.name,
+                len(results[step.name]),
+            )
+
+        if await _pause_if_rate_limited(step.name):
+            return None  # signal caller to abort cycle
+
+    return results
+
+
 async def _poll_loop(
     access_token: str,
     project_id: str,
@@ -341,9 +407,25 @@ async def _poll_loop(
             # Clear per-cycle cache so each iteration starts with fresh data.
             _cp.github_projects_service.clear_cycle_cache()
 
+            # ── Build project list: primary project first, then others ──
+            from .state import MonitoredProject, get_monitored_projects
+
+            primary = MonitoredProject(
+                project_id=project_id,
+                owner=owner,
+                repo=repo,
+                access_token=access_token,
+                registered_at=utcnow(),
+            )
+            projects_to_poll: list[MonitoredProject] = [primary]
+            projects_to_poll.extend(
+                mp for mp in get_monitored_projects() if mp.project_id != project_id
+            )
+
             logger.debug(
-                "Polling for Copilot PR completions (poll #%d)",
+                "Polling for Copilot PR completions (poll #%d, %d project(s))",
                 _polling_state.poll_count,
+                len(projects_to_poll),
             )
 
             # ── Pre-cycle rate-limit check ──
@@ -384,63 +466,25 @@ async def _poll_loop(
             except Exception as alert_err:
                 logger.debug("Failed to dispatch rate_limit_critical alert: %s", alert_err)
 
-            # Fetch all project items once per poll cycle
-            all_tasks = await _cp.github_projects_service.get_project_items(
-                access_token, project_id
-            )
-
-            # Filter out agent sub-issues — they are on the board but should
-            # NOT be processed as standalone pipeline-tracked issues.  Processing
-            # them wastes API calls (linked PRs, comments) and can create
-            # spurious pipeline states that burn through the rate limit.
-            from .helpers import is_sub_issue
-
-            parent_tasks = [t for t in all_tasks if not is_sub_issue(t)]
-            sub_count = len(all_tasks) - len(parent_tasks)
-            if sub_count:
-                logger.debug(
-                    "Filtered out %d sub-issues from %d board items",
-                    sub_count,
-                    len(all_tasks),
-                )
-
-            # ── Execute polling steps (data-driven via POLL_STEPS) ──
-            remaining_pre, _ = await _check_rate_limit_budget()
-            skip_expensive = (
-                remaining_pre is not None and remaining_pre <= RATE_LIMIT_SKIP_EXPENSIVE_THRESHOLD
-            )
-
+            # ── Poll each registered project ──
             cycle_aborted = False
-            for step in POLL_STEPS:
-                if step.is_expensive and skip_expensive:
-                    logger.warning(
-                        "Poll #%d: Skipping %s — rate limit budget low (remaining=%d)",
-                        _polling_state.poll_count,
-                        step.name,
-                        remaining_pre,
-                    )
-                    step_results[step.name] = []
-                    continue
-
-                step_results[step.name] = await step.execute(
-                    access_token,
-                    project_id,
-                    owner,
-                    repo,
-                    parent_tasks,
-                )
-
-                if step_results[step.name]:
-                    logger.info(
-                        "Poll #%d: %s — processed %d items",
-                        _polling_state.poll_count,
-                        step.name,
-                        len(step_results[step.name]),
-                    )
-
-                if await _pause_if_rate_limited(step.name):
-                    cycle_aborted = True
+            for proj in projects_to_poll:
+                if cycle_aborted:
                     break
+
+                proj_results = await _poll_single_project(
+                    access_token=proj.access_token,
+                    project_id=proj.project_id,
+                    owner=proj.owner,
+                    repo=proj.repo,
+                )
+                if proj_results is None:
+                    # Rate-limit pause triggered — abort remaining projects
+                    cycle_aborted = True
+                else:
+                    for k, v in proj_results.items():
+                        step_results.setdefault(k, []).extend(v)
+                    proj.last_polled = utcnow()
 
             if cycle_aborted:
                 continue
