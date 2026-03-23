@@ -2375,6 +2375,114 @@ class TestReconstructPipelineState:
         )
 
 
+class TestReconstructionHumanSkipAutoMerge:
+    """Regression: reconstruction polling must skip human agent and call
+    _transition_after_pipeline_complete when human is 🔄 Active, is the last
+    step, and auto-merge is enabled."""
+
+    @pytest.fixture(autouse=True)
+    def clear_states(self):
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        _pipeline_states.clear()
+        yield
+        _pipeline_states.clear()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.pipeline._transition_after_pipeline_complete",
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "src.services.settings_store.is_auto_merge_enabled",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.database.get_db")
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch(
+        "src.services.copilot_polling._check_agent_done_on_sub_or_parent",
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "src.services.copilot_polling._get_tracking_state_from_issue",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.get_current_agent_from_tracking")
+    async def test_reconstruction_skips_human_and_transitions(
+        self,
+        mock_get_tracking,
+        mock_get_tracking_state,
+        mock_check_done,
+        mock_get_pipeline,
+        mock_set_pipeline,
+        mock_ws,
+        mock_service,
+        mock_get_db,
+        mock_is_auto_merge,
+        mock_transition,
+    ):
+        """When reconstruction finds human as 🔄 Active, last step, auto-merge on,
+        it must skip human and invoke _transition_after_pipeline_complete."""
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        pipeline = PipelineState(
+            issue_number=99,
+            project_id="PVT_X",
+            status="In Progress",
+            agents=["speckit.plan", "human"],
+            current_agent_index=1,
+            completed_agents=["speckit.plan"],
+            auto_merge=True,
+        )
+        _pipeline_states[99] = pipeline
+        mock_get_pipeline.return_value = pipeline
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_service.create_issue_comment = AsyncMock()
+        mock_service.update_issue_state = AsyncMock()
+
+        # Agent not done yet on sub-issue/parent
+        mock_check_done.return_value = False
+
+        # Tracking table shows human as 🔄 Active
+        mock_get_tracking_state.return_value = (
+            "| Agent | Status |\n|---|---|\n| speckit.plan | ✅ Done |\n| human | 🔄 Active |",
+            [],
+        )
+        mock_get_tracking.return_value = MagicMock(agent_name="human")
+
+        mock_transition.return_value = {"status": "success"}
+
+        task = MagicMock()
+        task.issue_number = 99
+        task.github_item_id = "PVTI_99"
+        task.github_content_id = "I_99"
+        task.repository_owner = "owner"
+        task.repository_name = "repo"
+        task.title = "Test"
+        task.labels = []
+
+        await _process_pipeline_completion(
+            access_token="token",
+            project_id="PVT_X",
+            task=task,
+            owner="owner",
+            repo="repo",
+            pipeline=pipeline,
+            from_status="In Progress",
+            to_status="In Review",
+        )
+
+        # Pipeline should have skipped human
+        assert "human" in pipeline.completed_agents
+        assert pipeline.current_agent_index == 2
+
+        # _transition_after_pipeline_complete must have been called
+        mock_transition.assert_awaited_once()
+
+
 class TestReconstructPipelineLinksParentIssue:
     """Tests that pipeline reconstruction links the discovered PR to the parent issue."""
 
@@ -2888,6 +2996,88 @@ class TestTransitionAfterPipelineComplete:
         )
 
         mock_dequeue.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    @patch(
+        "src.services.copilot_polling.auto_merge._attempt_auto_merge",
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "src.services.copilot_polling.pipeline._dequeue_next_pipeline",
+        new_callable=AsyncMock,
+    )
+    @patch(
+        "src.services.settings_store.is_auto_merge_enabled",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.database.get_db")
+    @patch(
+        "src.services.copilot_polling.helpers._discover_main_pr_for_review",
+        new_callable=AsyncMock,
+    )
+    @patch("src.services.copilot_polling.github_projects_service")
+    @patch("src.services.copilot_polling.connection_manager")
+    @patch("src.services.copilot_polling.get_workflow_config", new_callable=AsyncMock)
+    @patch("src.services.copilot_polling.set_pipeline_state")
+    @patch("src.services.copilot_polling.get_pipeline_state")
+    @patch("src.services.copilot_polling.remove_pipeline_state")
+    async def test_auto_merge_invoked_after_state_cleanup(
+        self,
+        mock_remove,
+        mock_get_pipeline,
+        mock_set_pipeline,
+        mock_config,
+        mock_ws,
+        mock_service,
+        mock_discover,
+        mock_get_db,
+        mock_is_auto_merge,
+        mock_dequeue,
+        mock_attempt,
+    ):
+        """Regression: auto_merge flag must survive remove_pipeline_state so
+        _attempt_auto_merge fires on In Review transition."""
+        from src.services.workflow_orchestrator import _pipeline_states
+
+        # Pipeline with auto_merge=True stored before transition
+        pipeline = PipelineState(
+            issue_number=42,
+            project_id="PVT_123",
+            status="In Progress",
+            agents=["speckit.plan", "human"],
+            current_agent_index=2,
+            completed_agents=["speckit.plan", "human"],
+            auto_merge=True,
+        )
+        _pipeline_states[42] = pipeline
+
+        mock_service.update_item_status_by_name = AsyncMock(return_value=True)
+        mock_config.return_value = MagicMock(agent_mappings={})
+        mock_ws.broadcast_to_project = AsyncMock()
+        mock_discover.return_value = None
+        mock_is_auto_merge.return_value = False
+        mock_attempt.return_value = MagicMock(status="merged")
+
+        result = await _transition_after_pipeline_complete(
+            access_token="token",
+            project_id="PVT_123",
+            item_id="PVTI_123",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+            issue_node_id="I_123",
+            from_status="In Progress",
+            to_status="In Review",
+            task_title="Test Issue",
+        )
+
+        assert result["status"] == "auto_merged"
+        mock_attempt.assert_awaited_once_with(
+            access_token="token",
+            owner="owner",
+            repo="repo",
+            issue_number=42,
+        )
 
 
 class TestAdvancePipeline:
