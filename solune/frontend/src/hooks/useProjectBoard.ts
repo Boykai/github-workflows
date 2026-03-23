@@ -6,8 +6,8 @@
  * and tab-visibility awareness.
  */
 
-import { useState, useCallback, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { boardApi } from '@/services/api';
 import { STALE_TIME_PROJECTS, STALE_TIME_SHORT } from '@/constants';
 import type { BoardProject, BoardDataResponse, RateLimitInfo } from '@/types';
@@ -42,6 +42,8 @@ interface UseProjectBoardReturn {
   boardLoading: boolean;
   /** Whether board data is being refetched in background */
   isFetching: boolean;
+  /** Whether the currently displayed board data is placeholder (stale from a different project) */
+  isPlaceholderData: boolean;
   /** Error fetching board data */
   boardError: Error | null;
   /** Last time data was successfully updated */
@@ -59,6 +61,15 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
 
   // Use the externally managed project ID (from session)
   const selectedProjectId = externalProjectId ?? null;
+
+  // Reset change-detection state when the project changes externally (e.g. on
+  // initial mount with a stored session project) to avoid skewed adaptive
+  // polling caused by comparing hashes across different projects.
+  // Note: lastUpdated is reset by the selectProject callback for user-initiated
+  // switches; on initial mount it is already null.
+  useEffect(() => {
+    previousDataRef.current = null;
+  }, [selectedProjectId]);
 
   // Adaptive polling integration
   const {
@@ -86,6 +97,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     data: boardData,
     isLoading: boardLoading,
     isFetching,
+    isPlaceholderData,
     error: boardError,
   } = useQuery({
     queryKey: ['board', 'data', selectedProjectId],
@@ -109,6 +121,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
       }
     },
     enabled: !!selectedProjectId,
+    placeholderData: keepPreviousData,
     staleTime: STALE_TIME_SHORT,
     refetchInterval: getRefetchInterval,
   });
@@ -133,6 +146,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     boardData: boardData ?? null,
     boardLoading,
     isFetching,
+    isPlaceholderData,
     boardError: boardError as Error | null,
     lastUpdated,
     selectProject,
