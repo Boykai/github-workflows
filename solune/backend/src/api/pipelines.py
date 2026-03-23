@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, Query
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
-from src.dependencies import verify_project_access
 from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, build_pipeline_label
+from src.dependencies import verify_project_access
 from src.exceptions import AppException, AuthorizationError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
 from src.models.pipeline import (
