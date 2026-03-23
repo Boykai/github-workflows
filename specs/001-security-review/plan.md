@@ -57,16 +57,16 @@ solune/
 ├── backend/
 │   ├── src/
 │   │   ├── api/
-│   │   │   ├── auth.py          # FR-001/002/012: Secure OAuth, cookie-based sessions, POST dev-login
-│   │   │   ├── agents.py        # FR-006/016: Project access + rate limiting
-│   │   │   ├── chat.py          # FR-016: Rate limiting on chat endpoints
+│   │   │   ├── auth.py          # FR-001/002/012/017/018: Secure OAuth, cookie-based sessions, POST dev-login, OAuth callback rate limiting
+│   │   │   ├── agents.py        # FR-006/016/018: Project access + rate limiting (429 on excess)
+│   │   │   ├── chat.py          # FR-016/018: Rate limiting on chat endpoints (429 on excess)
 │   │   │   ├── pipelines.py     # FR-006: Project access verification
 │   │   │   ├── projects.py      # FR-006: Project access verification
 │   │   │   ├── settings.py      # FR-006: Project access verification
 │   │   │   ├── signal.py        # FR-008: Constant-time secret comparison
 │   │   │   ├── tasks.py         # FR-006: Project access verification
 │   │   │   ├── webhooks.py      # FR-008/020: Webhook verification, no debug bypass
-│   │   │   └── workflow.py      # FR-006/016: Project access + rate limiting
+│   │   │   └── workflow.py      # FR-006/016/018: Project access + rate limiting (429 on excess)
 │   │   ├── config.py            # FR-003/004/014/019/023: Startup validation suite
 │   │   ├── dependencies.py      # FR-007: Centralized verify_project_access
 │   │   ├── main.py              # FR-021: ENABLE_DOCS gate
