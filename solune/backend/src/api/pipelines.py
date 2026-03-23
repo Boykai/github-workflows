@@ -10,7 +10,6 @@ from fastapi import APIRouter, Depends, Query
 from src.api.auth import get_session_dep
 from src.config import get_settings
 from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, build_pipeline_label
-from src.dependencies import verify_project_access
 from src.exceptions import AppException, AuthorizationError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
 from src.models.pipeline import (
@@ -147,7 +146,7 @@ async def _load_user_agent_model(session: UserSession) -> str:
 # ── List Pipelines ──
 
 
-@router.get("/{project_id}", dependencies=[Depends(verify_project_access)])
+@router.get("/{project_id}")
 async def list_pipelines(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -183,7 +182,7 @@ async def list_pipelines(
 # ── Seed Presets ──
 
 
-@router.post("/{project_id}/seed-presets", dependencies=[Depends(verify_project_access)])
+@router.post("/{project_id}/seed-presets")
 async def seed_presets(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -196,11 +195,7 @@ async def seed_presets(
 # ── Assignment ──
 
 
-@router.get(
-    "/{project_id}/assignment",
-    response_model=ProjectPipelineAssignment,
-    dependencies=[Depends(verify_project_access)],
-)
+@router.get("/{project_id}/assignment", response_model=ProjectPipelineAssignment)
 async def get_assignment(
     project_id: str,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -210,11 +205,7 @@ async def get_assignment(
     return await service.get_assignment(project_id)
 
 
-@router.put(
-    "/{project_id}/assignment",
-    response_model=ProjectPipelineAssignment,
-    dependencies=[Depends(verify_project_access)],
-)
+@router.put("/{project_id}/assignment", response_model=ProjectPipelineAssignment)
 async def set_assignment(
     project_id: str,
     body: ProjectPipelineAssignmentUpdate,
@@ -228,11 +219,7 @@ async def set_assignment(
         raise NotFoundError(str(exc)) from exc
 
 
-@router.post(
-    "/{project_id}/launch",
-    response_model=WorkflowResult,
-    dependencies=[Depends(verify_project_access)],
-)
+@router.post("/{project_id}/launch", response_model=WorkflowResult)
 async def launch_pipeline_issue(
     project_id: str,
     body: PipelineIssueLaunchRequest,
@@ -524,12 +511,7 @@ async def execute_pipeline_launch(
 # ── Create Pipeline ──
 
 
-@router.post(
-    "/{project_id}",
-    response_model=PipelineConfig,
-    status_code=201,
-    dependencies=[Depends(verify_project_access)],
-)
+@router.post("/{project_id}", response_model=PipelineConfig, status_code=201)
 async def create_pipeline(
     project_id: str,
     body: PipelineConfigCreate,
@@ -558,11 +540,7 @@ async def create_pipeline(
 # ── Get Pipeline ──
 
 
-@router.get(
-    "/{project_id}/{pipeline_id}",
-    response_model=PipelineConfig,
-    dependencies=[Depends(verify_project_access)],
-)
+@router.get("/{project_id}/{pipeline_id}", response_model=PipelineConfig)
 async def get_pipeline(
     project_id: str,
     pipeline_id: str,
@@ -579,11 +557,7 @@ async def get_pipeline(
 # ── Update Pipeline ──
 
 
-@router.put(
-    "/{project_id}/{pipeline_id}",
-    response_model=PipelineConfig,
-    dependencies=[Depends(verify_project_access)],
-)
+@router.put("/{project_id}/{pipeline_id}", response_model=PipelineConfig)
 async def update_pipeline(
     project_id: str,
     pipeline_id: str,
@@ -618,7 +592,7 @@ async def update_pipeline(
 # ── Delete Pipeline ──
 
 
-@router.delete("/{project_id}/{pipeline_id}", dependencies=[Depends(verify_project_access)])
+@router.delete("/{project_id}/{pipeline_id}")
 async def delete_pipeline(
     project_id: str,
     pipeline_id: str,

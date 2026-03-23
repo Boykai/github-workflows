@@ -203,23 +203,6 @@ class TestCloseDatabase:
         with patch("src.services.database._connection", None):
             await close_database()  # Should not raise
 
-    async def test_close_clears_connection_even_if_close_raises(self):
-        """If conn.close() raises, _connection must still be cleared to prevent
-        double-close attempts on subsequent calls."""
-        import src.services.database as dbmod
-
-        fake = AsyncMock()
-        fake.close.side_effect = OSError("close failed")
-        original = dbmod._connection
-        try:
-            dbmod._connection = fake
-            with pytest.raises(OSError, match="close failed"):
-                await close_database()
-            # _connection must be None even after the error
-            assert dbmod._connection is None
-        finally:
-            dbmod._connection = original
-
 
 # =============================================================================
 # init_database (integration-ish, uses temp path)

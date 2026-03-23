@@ -259,8 +259,6 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
 
 ## Active Technologies
-- TypeScript 5.x (React 18+ with Vite) + @tanstack/react-query ^5.91.0, React 18, Tailwind CSS, sonner (toast), Shadcn/ui (Skeleton component) (002-board-loading-ux)
-- N/A (client-side TanStack Query cache only — `staleTime: 60s` for board data) (002-board-loading-ux)
 
 Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
 

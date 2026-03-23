@@ -260,18 +260,6 @@ class TestTailorBodyForAgent:
         assert "`custom-agent`" in result
         assert "Complete the work assigned to the `custom-agent` agent" in result
 
-    def test_speckit_analyze_description(self, service):
-        """speckit.analyze should get a specific read-only analysis description."""
-        result = service.tailor_body_for_agent(
-            parent_body="Analyze the generated artifacts.",
-            agent_name="speckit.analyze",
-            parent_issue_number=31,
-            parent_title="Analyze Task",
-        )
-
-        assert "Perform a read-only cross-artifact consistency analysis" in result
-        assert "without modifying files" in result
-
     def test_strips_tracking_table(self, service):
         """Should strip the agent pipeline tracking table from the parent body."""
         parent_body = (

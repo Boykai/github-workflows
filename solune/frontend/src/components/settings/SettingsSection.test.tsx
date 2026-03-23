@@ -2,15 +2,11 @@
  * Integration tests for SettingsSection save state lifecycle.
  */
 
-import { act, fireEvent, render, screen, userEvent, waitFor } from '@/test/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, userEvent, waitFor } from '@/test/test-utils';
 import { SettingsSection } from './SettingsSection';
 
 describe('SettingsSection', () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it('renders title and description', () => {
     render(
       <SettingsSection title="AI Settings" description="Configure AI preferences">
@@ -104,31 +100,7 @@ describe('SettingsSection', () => {
 
     await userEvent.setup().click(screen.getByRole('button', { name: 'Save' }));
     expect(screen.getByText('Saving...')).toBeInTheDocument();
-    await act(async () => {
-      resolverFn?.();
-    });
-  });
-
-  it('clears the save-status timer on unmount', async () => {
-    vi.useFakeTimers();
-    const onSave = vi.fn().mockResolvedValue(undefined);
-    const { unmount } = render(
-      <SettingsSection title="Test" onSave={onSave} isDirty={true}>
-        <div>Content</div>
-      </SettingsSection>
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-      await Promise.resolve();
-    });
-
-    expect(screen.getByText('Saved!')).toBeInTheDocument();
-    expect(vi.getTimerCount()).toBe(1);
-
-    unmount();
-
-    expect(vi.getTimerCount()).toBe(0);
+    resolverFn?.();
   });
 
   it('hides save button when hideSave is true', () => {

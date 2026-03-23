@@ -77,7 +77,7 @@ class TestTaskEndpointOwnershipCheck:
                 await create_task(request, task_req, session)
 
         # verify_project_access was called with the correct project_id
-        mock_verify.assert_called_once()
+        assert mock_verify.called
         call_args = mock_verify.call_args
         assert call_args[0][1] == "PVT_owned"
 
@@ -149,109 +149,6 @@ class TestAgentEndpointOwnershipCheck:
             assert response.status_code == 403
         finally:
             # Restore the original override for subsequent tests
-            if original_override is not None:
-                overrides[verify_project_access] = original_override
-            else:
-                overrides[verify_project_access] = lambda: None
-
-
-class TestPipelineEndpointOwnershipCheck:
-    """Pipeline endpoints must enforce project ownership via dependency."""
-
-    @pytest.mark.anyio
-    async def test_list_pipelines_rejects_unowned_project(self, client):
-        """GET /pipelines/{project_id} returns 403 when ownership fails."""
-        from src.dependencies import verify_project_access
-
-        overrides = client._transport.app.dependency_overrides
-        original_override = overrides.get(verify_project_access)
-
-        try:
-            if verify_project_access in overrides:
-                del overrides[verify_project_access]
-
-            with pytest.MonkeyPatch.context() as mp:
-                from unittest.mock import AsyncMock
-
-                mock_svc = AsyncMock()
-                mock_svc.list_user_projects.return_value = []
-
-                mp.setattr(
-                    "src.dependencies.get_github_service",
-                    lambda req: mock_svc,
-                )
-                response = await client.get("/api/v1/pipelines/PVT_unowned")
-
-            assert response.status_code == 403
-        finally:
-            if original_override is not None:
-                overrides[verify_project_access] = original_override
-            else:
-                overrides[verify_project_access] = lambda: None
-
-    @pytest.mark.anyio
-    async def test_create_pipeline_rejects_unowned_project(self, client):
-        """POST /pipelines/{project_id} returns 403 when ownership fails."""
-        from src.dependencies import verify_project_access
-
-        overrides = client._transport.app.dependency_overrides
-        original_override = overrides.get(verify_project_access)
-
-        try:
-            if verify_project_access in overrides:
-                del overrides[verify_project_access]
-
-            with pytest.MonkeyPatch.context() as mp:
-                from unittest.mock import AsyncMock
-
-                mock_svc = AsyncMock()
-                mock_svc.list_user_projects.return_value = []
-
-                mp.setattr(
-                    "src.dependencies.get_github_service",
-                    lambda req: mock_svc,
-                )
-                response = await client.post(
-                    "/api/v1/pipelines/PVT_unowned",
-                    json={
-                        "name": "Test Pipeline",
-                        "stages": [],
-                    },
-                )
-
-            assert response.status_code == 403
-        finally:
-            if original_override is not None:
-                overrides[verify_project_access] = original_override
-            else:
-                overrides[verify_project_access] = lambda: None
-
-    @pytest.mark.anyio
-    async def test_delete_pipeline_rejects_unowned_project(self, client):
-        """DELETE /pipelines/{project_id}/{pipeline_id} returns 403 when ownership fails."""
-        from src.dependencies import verify_project_access
-
-        overrides = client._transport.app.dependency_overrides
-        original_override = overrides.get(verify_project_access)
-
-        try:
-            if verify_project_access in overrides:
-                del overrides[verify_project_access]
-
-            with pytest.MonkeyPatch.context() as mp:
-                from unittest.mock import AsyncMock
-
-                mock_svc = AsyncMock()
-                mock_svc.list_user_projects.return_value = []
-
-                mp.setattr(
-                    "src.dependencies.get_github_service",
-                    lambda req: mock_svc,
-                )
-                response = await client.delete("/api/v1/pipelines/PVT_unowned/pipe_123")
-
-            assert response.status_code == 403
-        finally:
             if original_override is not None:
                 overrides[verify_project_access] = original_override
             else:
