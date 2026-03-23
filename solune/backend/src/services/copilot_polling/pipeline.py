@@ -730,6 +730,90 @@ async def _process_pipeline_completion(
             )
             tracking_step = _cp.get_current_agent_from_tracking(body)
             if tracking_step and tracking_step.agent_name == current_agent:
+                # ── Human Agent Skip (Auto Merge) during reconstruction ──
+                # When reconstruction finds human as 🔄 Active but auto_merge is
+                # enabled and human is the last step, skip it and proceed to
+                # pipeline completion + auto-merge.  This handles the case where
+                # the server restarted after all other agents completed but before
+                # the human skip logic in _advance_pipeline fired.
+                if current_agent == "human":
+                    remaining = pipeline.agents[pipeline.current_agent_index :]
+                    if len(remaining) == 1:
+                        from src.services.database import get_db
+                        from src.services.settings_store import is_auto_merge_enabled
+
+                        db = get_db()
+                        _auto_merge_on = pipeline.auto_merge or await is_auto_merge_enabled(
+                            db, project_id
+                        )
+                        if _auto_merge_on:
+                            logger.info(
+                                "Auto-merge: skipping human agent (last step, reconstruction) "
+                                "for issue #%d",
+                                task.issue_number,
+                            )
+                            pipeline.completed_agents.append("human")
+                            pipeline.current_agent_index += 1
+                            if pipeline.groups and pipeline.current_group_index < len(
+                                pipeline.groups
+                            ):
+                                group = pipeline.groups[pipeline.current_group_index]
+                                group.agent_statuses["human"] = "completed"
+                            _cp.set_pipeline_state(task.issue_number, pipeline)
+
+                            # Close human sub-issue with skip comment
+                            human_sub = pipeline.agent_sub_issues.get("human")
+                            if human_sub:
+                                sub_number = human_sub.get("number")
+                                if sub_number:
+                                    try:
+                                        await _cp.github_projects_service.create_issue_comment(
+                                            access_token=access_token,
+                                            owner=task_owner,
+                                            repo=task_repo,
+                                            issue_number=sub_number,
+                                            body="Skipped — Auto Merge enabled",
+                                        )
+                                        await _cp.github_projects_service.update_issue_state(
+                                            access_token=access_token,
+                                            owner=task_owner,
+                                            repo=task_repo,
+                                            issue_number=sub_number,
+                                            state="closed",
+                                            state_reason="not_planned",
+                                        )
+                                    except Exception:
+                                        logger.warning(
+                                            "Failed to close human sub-issue #%d",
+                                            sub_number,
+                                            exc_info=True,
+                                        )
+
+                            await _cp.connection_manager.broadcast_to_project(
+                                project_id,
+                                {
+                                    "type": "task_update",
+                                    "issue_number": task.issue_number,
+                                    "agent": "human",
+                                    "agent_state": "⏭ SKIPPED",
+                                    "timestamp": utcnow().isoformat(),
+                                },
+                            )
+
+                            if pipeline.is_complete:
+                                return await _transition_after_pipeline_complete(
+                                    access_token=access_token,
+                                    project_id=project_id,
+                                    item_id=task.github_item_id,
+                                    owner=task_owner,
+                                    repo=task_repo,
+                                    issue_number=task.issue_number,
+                                    issue_node_id=task.github_content_id,
+                                    from_status=from_status,
+                                    to_status=to_status,
+                                    task_title=task.title,
+                                )
+
                 logger.debug(
                     "Agent '%s' is 🔄 Active in issue #%d tracking table — waiting",
                     current_agent,
@@ -1763,7 +1847,8 @@ async def _advance_pipeline(
 
     if pipeline.is_complete:
         # Pipeline complete → transition to next status
-        _cp.remove_pipeline_state(issue_number)
+        # Note: _transition_after_pipeline_complete handles its own
+        # remove_pipeline_state after reading pipeline-level auto_merge.
         return await _transition_after_pipeline_complete(
             access_token=access_token,
             project_id=project_id,
@@ -1887,8 +1972,9 @@ async def _advance_pipeline(
                 )
 
                 # Pipeline is now complete — transition
+                # Note: _transition_after_pipeline_complete handles its own
+                # remove_pipeline_state after reading pipeline-level auto_merge.
                 if pipeline.is_complete:
-                    _cp.remove_pipeline_state(issue_number)
                     return await _transition_after_pipeline_complete(
                         access_token=access_token,
                         project_id=project_id,
@@ -2110,6 +2196,16 @@ async def _transition_after_pipeline_complete(
             "error": f"Failed to update status to {to_status}",
         }
 
+    # Capture pipeline-level auto_merge BEFORE removing state.
+    # Callers may have already removed it, so this is best-effort.
+    _pipeline_auto_merge = False
+    try:
+        _pipeline_state = _cp.get_pipeline_state(issue_number)
+        if _pipeline_state is not None:
+            _pipeline_auto_merge = bool(getattr(_pipeline_state, "auto_merge", False))
+    except Exception:
+        pass
+
     # Remove any old pipeline state for this issue
     _cp.remove_pipeline_state(issue_number)
 
@@ -2132,17 +2228,7 @@ async def _transition_after_pipeline_complete(
     if to_status.lower() == "in review":
         from .auto_merge import _attempt_auto_merge
 
-        # Check pipeline-level auto_merge before state is removed
-        pipeline_auto_merge = False
-        try:
-            pipeline_state = _cp.get_pipeline_state(issue_number)
-            if pipeline_state is not None:
-                pipeline_auto_merge = bool(getattr(pipeline_state, "auto_merge", False))
-        except Exception:
-            logger.debug(
-                "Auto-merge pipeline-state check skipped for issue #%d",
-                issue_number,
-            )
+        pipeline_auto_merge = _pipeline_auto_merge
 
         project_auto_merge = False
         try:
