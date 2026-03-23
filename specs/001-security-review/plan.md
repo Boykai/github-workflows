@@ -90,7 +90,7 @@ solune/
     └── branch-issue-link.yml    # FR-028: Minimal workflow permissions
 ```
 
-**Structure Decision**: Web application (Option 2) with backend + frontend. All security changes are scoped to existing files — no new directories or modules required.
+**Structure Decision**: Web application with backend + frontend. All security changes are scoped to existing files — no new directories or modules required.
 
 ## Complexity Tracking
 
