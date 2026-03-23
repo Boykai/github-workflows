@@ -207,6 +207,7 @@ class AgentsMixin:
             "speckit.plan": "Create a detailed implementation plan. Break down the specification into actionable steps, identify dependencies, and define the order of execution.",
             "speckit.tasks": "Generate granular implementation tasks from the plan. Each task should be a well-defined unit of work with clear inputs, outputs, and acceptance criteria.",
             "speckit.implement": "Implement the feature based on the specification, plan, and tasks. Write production-quality code with tests.",
+            "speckit.analyze": "Perform a read-only cross-artifact consistency analysis of spec.md, plan.md, and tasks.md after task generation. Report findings and optional remediation suggestions without modifying files.",
             "copilot": "Implement the requested changes. Write production-quality code with tests.",
             "human": "This is a manual human task. Complete the work described below, then close this issue or comment 'Done!' on the parent issue to continue the pipeline.",
             "copilot-review": (

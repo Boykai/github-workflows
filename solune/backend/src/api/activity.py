@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import base64
+import binascii
 import json
 from typing import Annotated
 
@@ -30,6 +31,12 @@ def _decode_cursor(cursor: str) -> tuple[str, str]:
     """Decode a base64 compound cursor into (created_at, id)."""
     raw = base64.urlsafe_b64decode(cursor.encode()).decode()
     parts = json.loads(raw)
+    if (
+        not isinstance(parts, (list, tuple))
+        or len(parts) != 2
+        or not all(isinstance(part, str) and part for part in parts)
+    ):
+        raise ValueError("Cursor payload must contain [created_at, id]")
     return parts[0], parts[1]
 
 
@@ -71,7 +78,15 @@ async def _query_events(
             cursor_ts, cursor_id = _decode_cursor(cursor)
             conditions.append("(created_at < ? OR (created_at = ? AND id < ?))")
             params.extend([cursor_ts, cursor_ts, cursor_id])
-        except Exception:
+        except (
+            binascii.Error,
+            json.JSONDecodeError,
+            TypeError,
+            ValueError,
+            IndexError,
+            KeyError,
+            UnicodeDecodeError,
+        ):
             logger.warning("Invalid cursor value: %s", cursor)
 
     where = " AND ".join(conditions) if conditions else "1=1"
