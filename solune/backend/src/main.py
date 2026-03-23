@@ -169,6 +169,95 @@ async def _auto_start_copilot_polling() -> bool:
         request_id_var.reset(correlation_token)
 
 
+async def _discover_and_register_active_projects() -> int:
+    """Discover all projects with active pipeline states and register them.
+
+    Queries the ``pipeline_states`` table for distinct ``project_id`` values,
+    resolves each project's owner/repo from ``project_settings.workflow_config``,
+    and registers them for multi-project monitoring.
+
+    Returns the number of newly registered projects.
+    """
+    from src.services.copilot_polling import register_project
+    from src.services.database import get_db
+    from src.services.pipeline_state_store import get_all_pipeline_states
+
+    # Collect distinct project_ids from in-memory pipeline state cache
+    active_project_ids: set[str] = set()
+    for state in get_all_pipeline_states().values():
+        pid = getattr(state, "project_id", None)
+        if pid:
+            active_project_ids.add(pid)
+
+    if not active_project_ids:
+        return 0
+
+    # Resolve owner/repo and access_token for each project
+    db = get_db()
+    import json
+
+    from src.config import get_settings
+
+    settings = get_settings()
+    fallback_token = settings.github_webhook_token or ""
+
+    # Also try the most recent session token
+    session_token: str | None = None
+    try:
+        cursor = await db.execute(
+            "SELECT access_token FROM user_sessions "
+            "WHERE selected_project_id IS NOT NULL "
+            "ORDER BY updated_at DESC LIMIT 1",
+        )
+        row = await cursor.fetchone()
+        if row:
+            session_token = row["access_token"]
+    except Exception:
+        pass
+
+    token = session_token or fallback_token
+    if not token:
+        return 0
+
+    # Build a lookup of project_id → (owner, repo) from project_settings
+    project_repo_map: dict[str, tuple[str, str]] = {}
+    try:
+        cursor = await db.execute(
+            "SELECT project_id, workflow_config FROM project_settings "
+            "WHERE workflow_config IS NOT NULL",
+        )
+        for ps_row in await cursor.fetchall():
+            try:
+                wf = json.loads(ps_row["workflow_config"])
+                wf_owner = wf.get("repository_owner", "")
+                wf_repo = wf.get("repository_name", "")
+                if wf_owner and wf_repo:
+                    project_repo_map[ps_row["project_id"]] = (wf_owner, wf_repo)
+            except (json.JSONDecodeError, TypeError):
+                continue
+    except Exception:
+        pass
+
+    # Fallback: default repo from settings
+    default_owner = settings.default_repo_owner or ""
+    default_repo = settings.default_repo_name or ""
+
+    registered_count = 0
+    for pid in active_project_ids:
+        owner, repo = project_repo_map.get(pid, (default_owner, default_repo))
+        if not owner or not repo:
+            continue
+        if register_project(pid, owner, repo, token):
+            registered_count += 1
+
+    if registered_count:
+        logger.info(
+            "Multi-project discovery: registered %d project(s) with active pipelines",
+            registered_count,
+        )
+    return registered_count
+
+
 async def _startup_agent_mcp_sync(db: aiosqlite.Connection) -> None:
     """Run agent MCP sync on startup to reconcile drift (FR-009).
 
@@ -221,9 +310,8 @@ async def _polling_watchdog_loop() -> None:
     """Watchdog task: restart the Copilot polling loop if it stops unexpectedly.
 
     Runs every 30 seconds and calls ``_auto_start_copilot_polling()`` whenever
-    ``is_running`` is False.  This ensures the agent pipeline always recovers
-    after crashes, task cancellations, or unexpected asyncio exits — without
-    manual intervention.
+    ``is_running`` is False.  Also discovers orphaned projects with active
+    pipelines and registers them for multi-project monitoring.
 
     Uses a short fixed interval (30 s) so issues blocked by a stopped polling
     loop are unblocked within at most one minute.
@@ -257,6 +345,22 @@ async def _polling_watchdog_loop() -> None:
                         consecutive_failures,
                         e,
                     )
+
+            # ── Multi-project discovery ──
+            # Register any projects with active pipelines that aren't yet
+            # monitored, and unregister projects with no remaining pipelines.
+            try:
+                await _discover_and_register_active_projects()
+
+                # Auto-unregister projects whose pipelines have all completed
+                from src.services.copilot_polling import get_monitored_projects, unregister_project
+                from src.services.pipeline_state_store import count_active_pipelines_for_project
+
+                for mp in get_monitored_projects():
+                    if count_active_pipelines_for_project(mp.project_id) == 0:
+                        unregister_project(mp.project_id)
+            except Exception as e:
+                logger.debug("Watchdog multi-project sync failed: %s", e)
         except asyncio.CancelledError:
             logger.debug("Polling watchdog task cancelled")
             break
@@ -418,6 +522,13 @@ async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
             await _auto_start_copilot_polling()
         except Exception as e:
             logger.exception("Failed to auto-start Copilot polling (non-fatal): %s", e)
+
+        # Discover all projects with active pipelines and register them
+        # for multi-project monitoring (survives container restarts).
+        try:
+            await _discover_and_register_active_projects()
+        except Exception as e:
+            logger.warning("Multi-project discovery failed (non-fatal): %s", e)
 
         # Agent MCP sync — fire-and-forget via TaskRegistry
         async def _run_startup_agent_mcp_sync_background() -> None:

@@ -7,7 +7,10 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import datetime
 
+from src.logging_utils import get_logger
 from src.utils import BoundedDict, BoundedSet
+
+_logger = get_logger(__name__)
 
 
 @dataclass
@@ -22,6 +25,83 @@ class PollingState:
     processed_issues: BoundedDict[int, datetime] = field(
         default_factory=lambda: BoundedDict(maxlen=2000)
     )
+
+
+@dataclass
+class MonitoredProject:
+    """Metadata for a project registered for multi-project polling."""
+
+    project_id: str
+    owner: str
+    repo: str
+    access_token: str
+    registered_at: datetime
+    last_polled: datetime | None = None
+
+
+# ── Multi-project registry ──
+# Maps project_id → MonitoredProject.  The main polling loop iterates
+# over all registered projects each cycle (round-robin).  Projects are
+# registered on pipeline creation and auto-discovered on startup.
+_monitored_projects: dict[str, MonitoredProject] = {}
+
+
+def register_project(
+    project_id: str,
+    owner: str,
+    repo: str,
+    access_token: str,
+) -> bool:
+    """Register a project for multi-project polling.
+
+    Returns ``True`` if newly registered, ``False`` if already present
+    (access_token/owner/repo are updated in-place either way).
+    """
+    from src.utils import utcnow
+
+    existing = _monitored_projects.get(project_id)
+    if existing is not None:
+        existing.access_token = access_token
+        existing.owner = owner
+        existing.repo = repo
+        return False
+
+    _monitored_projects[project_id] = MonitoredProject(
+        project_id=project_id,
+        owner=owner,
+        repo=repo,
+        access_token=access_token,
+        registered_at=utcnow(),
+    )
+    _logger.info(
+        "Registered project %s (%s/%s) for multi-project monitoring",
+        project_id,
+        owner,
+        repo,
+    )
+    return True
+
+
+def unregister_project(project_id: str) -> bool:
+    """Remove a project from multi-project polling.
+
+    Returns ``True`` if removed, ``False`` if not found.
+    """
+    removed = _monitored_projects.pop(project_id, None)
+    if removed is not None:
+        _logger.info(
+            "Unregistered project %s (%s/%s) from multi-project monitoring",
+            project_id,
+            removed.owner,
+            removed.repo,
+        )
+        return True
+    return False
+
+
+def get_monitored_projects() -> list[MonitoredProject]:
+    """Return all registered projects (snapshot)."""
+    return list(_monitored_projects.values())
 
 
 # Global polling state
