@@ -6,7 +6,7 @@
  * and tab-visibility awareness.
  */
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { boardApi } from '@/services/api';
 import { STALE_TIME_PROJECTS, STALE_TIME_SHORT } from '@/constants';
@@ -61,6 +61,15 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
 
   // Use the externally managed project ID (from session)
   const selectedProjectId = externalProjectId ?? null;
+
+  // Reset change-detection state when the project changes externally (e.g. on
+  // initial mount with a stored session project) to avoid skewed adaptive
+  // polling caused by comparing hashes across different projects.
+  // Note: lastUpdated is reset by the selectProject callback for user-initiated
+  // switches; on initial mount it is already null.
+  useEffect(() => {
+    previousDataRef.current = null;
+  }, [selectedProjectId]);
 
   // Adaptive polling integration
   const {

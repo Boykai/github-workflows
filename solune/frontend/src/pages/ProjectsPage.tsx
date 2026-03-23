@@ -90,7 +90,7 @@ export function ProjectsPage() {
   // Toast on background refresh failure (initial load errors use the full error banner).
   useEffect(() => {
     if (boardError && boardData) {
-      toast.error('Failed to refresh board');
+      toast.error('Failed to refresh board', { id: 'board-refresh-error' });
     }
   }, [boardError, boardData]);
 
@@ -467,16 +467,18 @@ export function ProjectsPage() {
       {selectedProjectId && transformedBoardData && (
         <div className="relative flex flex-1 flex-col gap-6 overflow-visible">
           {/* Background refetch / placeholder indicator */}
-          {((isFetching && !boardLoading) || isPlaceholderData) && (
-            <span className="absolute right-2 top-0 z-10 text-xs font-medium text-muted-foreground">
-              Updating…
-            </span>
+          {((isFetching && !boardLoading) || isPlaceholderData) &&
+            !(boardError && transformedBoardData) && (
+              <span className="absolute right-2 top-0 z-10 text-xs font-medium text-muted-foreground">
+                Updating…
+              </span>
           )}
 
           <div
             className={cn(
               'flex flex-1 flex-col gap-6 overflow-visible transition-opacity duration-300',
-              (isFetching && !boardLoading) || isPlaceholderData
+              ((isFetching && !boardLoading) || isPlaceholderData) &&
+                !(boardError && transformedBoardData)
                 ? 'opacity-60'
                 : 'opacity-100'
             )}
