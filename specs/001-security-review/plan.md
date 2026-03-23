@@ -5,7 +5,7 @@
 
 ## Summary
 
-Comprehensive security audit covering 21 findings across OWASP Top 10 categories (3 Critical, 8 High, 9 Medium, 2 Low). The audit validates session management, encryption enforcement, container security, authorization controls, HTTP hardening, rate limiting, data privacy, and configuration validation. All findings have been remediated across the backend (FastAPI/Python), frontend (React/TypeScript), nginx reverse proxy, Docker containers, and CI/CD workflows.
+Comprehensive security audit addressing 21 findings across OWASP Top 10 categories (3 Critical, 8 High, 9 Medium, 2 Low). This plan covers session management, encryption enforcement, container security, authorization controls, HTTP hardening, rate limiting, data privacy, and configuration validation. Changes span the backend (FastAPI/Python), frontend (React/TypeScript), nginx reverse proxy, Docker containers, and CI/CD workflows.
 
 ## Technical Context
 
@@ -57,8 +57,8 @@ solune/
 ├── backend/
 │   ├── src/
 │   │   ├── api/
-│   │   │   ├── auth.py          # FR-001/002/012: Secure OAuth, cookie-based sessions, POST dev-login
-│   │   │   ├── agents.py        # FR-006/016: Project access + rate limiting
+│   │   │   ├── auth.py          # FR-001/002/012/017: Secure OAuth, cookie-based sessions, POST dev-login, per-IP rate limit
+│   │   │   ├── agents.py        # FR-006/016/018: Project access + rate limiting (429 on excess)
 │   │   │   ├── chat.py          # FR-016: Rate limiting on chat endpoints
 │   │   │   ├── pipelines.py     # FR-006: Project access verification
 │   │   │   ├── projects.py      # FR-006: Project access verification
