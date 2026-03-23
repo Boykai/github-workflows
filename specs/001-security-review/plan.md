@@ -57,7 +57,7 @@ solune/
 ├── backend/
 │   ├── src/
 │   │   ├── api/
-│   │   │   ├── auth.py          # FR-001/002/012: Secure OAuth, cookie-based sessions, POST dev-login
+│   │   │   ├── auth.py          # FR-001/002/012/017: Secure OAuth, cookie-based sessions, POST dev-login, OAuth rate limit
 │   │   │   ├── agents.py        # FR-006/016: Project access + rate limiting
 │   │   │   ├── chat.py          # FR-016: Rate limiting on chat endpoints
 │   │   │   ├── pipelines.py     # FR-006: Project access verification
