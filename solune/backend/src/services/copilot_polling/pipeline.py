@@ -739,13 +739,22 @@ async def _process_pipeline_completion(
                 if current_agent == "human":
                     remaining = pipeline.agents[pipeline.current_agent_index :]
                     if len(remaining) == 1:
-                        from src.services.database import get_db
-                        from src.services.settings_store import is_auto_merge_enabled
+                        _auto_merge_on = pipeline.auto_merge
+                        if not _auto_merge_on:
+                            try:
+                                from src.services.database import get_db
+                                from src.services.settings_store import is_auto_merge_enabled
 
-                        db = get_db()
-                        _auto_merge_on = pipeline.auto_merge or await is_auto_merge_enabled(
-                            db, project_id
-                        )
+                                db = get_db()
+                                _auto_merge_on = await is_auto_merge_enabled(db, project_id)
+                            except Exception:
+                                logger.warning(
+                                    "Failed to load auto-merge setting during "
+                                    "reconstruction for project %s; falling back "
+                                    "to pipeline.auto_merge flag",
+                                    project_id,
+                                    exc_info=True,
+                                )
                         if _auto_merge_on:
                             logger.info(
                                 "Auto-merge: skipping human agent (last step, reconstruction) "
