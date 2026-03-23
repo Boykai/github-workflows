@@ -5646,15 +5646,17 @@ class TestPollLoop:
 
     @pytest.fixture(autouse=True)
     def _reset_state(self):
-        from src.services.copilot_polling import _polling_state
+        from src.services.copilot_polling import _monitored_projects, _polling_state
 
         _polling_state.is_running = False
         _polling_state.poll_count = 0
         _polling_state.errors_count = 0
         _polling_state.last_error = None
         _polling_state.last_poll_time = None
+        _monitored_projects.clear()
         yield
         _polling_state.is_running = False
+        _monitored_projects.clear()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.recover_stalled_issues", new_callable=AsyncMock)
@@ -5743,15 +5745,17 @@ class TestRateLimitAwarePolling:
 
     @pytest.fixture(autouse=True)
     def _reset_state(self):
-        from src.services.copilot_polling import _polling_state
+        from src.services.copilot_polling import _monitored_projects, _polling_state
 
         _polling_state.is_running = False
         _polling_state.poll_count = 0
         _polling_state.errors_count = 0
         _polling_state.last_error = None
         _polling_state.last_poll_time = None
+        _monitored_projects.clear()
         yield
         _polling_state.is_running = False
+        _monitored_projects.clear()
 
     @pytest.mark.asyncio
     @patch("src.services.copilot_polling.github_projects_service")
