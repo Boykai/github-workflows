@@ -39,7 +39,7 @@ export function SettingsSection({
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
   }, []);
 
@@ -47,7 +47,7 @@ export function SettingsSection({
     if (!onSave) return;
     setSaving(true);
     setSaveStatus('idle');
-    if (timerRef.current) clearTimeout(timerRef.current);
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
     try {
       await onSave();
       setSaveStatus('success');

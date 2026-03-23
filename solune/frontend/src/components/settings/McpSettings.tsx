@@ -286,13 +286,13 @@ export function McpSettings() {
 
   useEffect(() => {
     return () => {
-      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+      if (successTimerRef.current !== null) clearTimeout(successTimerRef.current);
     };
   }, []);
 
   const showSuccess = useCallback((msg: string) => {
     setSuccessMessage(msg);
-    if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    if (successTimerRef.current !== null) clearTimeout(successTimerRef.current);
     successTimerRef.current = setTimeout(() => setSuccessMessage(null), TOAST_SUCCESS_MS);
   }, []);
 

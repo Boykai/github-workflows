@@ -15,7 +15,7 @@ export function CopyButton({ value, className, label = 'Copy' }: CopyButtonProps
 
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
     };
   }, []);
 
@@ -23,7 +23,7 @@ export function CopyButton({ value, className, label = 'Copy' }: CopyButtonProps
     try {
       await navigator.clipboard.writeText(value);
       setCopied(true);
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       // Fallback for older browsers / insecure contexts
@@ -37,7 +37,7 @@ export function CopyButton({ value, className, label = 'Copy' }: CopyButtonProps
         document.execCommand('copy');
         document.body.removeChild(textarea);
         setCopied(true);
-        if (timerRef.current) clearTimeout(timerRef.current);
+        if (timerRef.current !== null) clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => setCopied(false), 2000);
       } catch {
         toast.error('Failed to copy to clipboard');
