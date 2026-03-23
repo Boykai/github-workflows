@@ -48,6 +48,7 @@ This document defines the behavioral contracts for each security finding. Contra
 ### Contract C-003: Non-Root Container Execution (FR-005)
 
 **Precondition**: Docker container image built and started
+**Input**: Dockerfile build context and container runtime configuration
 **Expected behavior**:
 1. Backend container: `USER appuser` directive in Dockerfile
 2. Frontend container: `USER nginx-app` directive in Dockerfile

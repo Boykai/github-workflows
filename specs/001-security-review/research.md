@@ -169,6 +169,10 @@ EXPOSE 8080
 
 **Rationale**: 64 characters (256 bits when hex-encoded) provides sufficient entropy for cryptographic session signing. The check runs at startup, failing fast before any sessions are created.
 
+**Alternatives considered**:
+- No minimum length: Allows weak keys that can be brute-forced. Rejected.
+- Higher minimum (128 characters): Unnecessarily strict; 64 characters already provides 256 bits of entropy. Rejected.
+
 ---
 
 ### Decision 10: Docker Network Binding
@@ -210,6 +214,10 @@ EXPOSE 8080
 
 **Rationale**: Auto-detection from the frontend URL is convenient and correct in most configurations. The explicit override handles edge cases (e.g., TLS termination at load balancer with HTTP internally).
 
+**Alternatives considered**:
+- Manual-only configuration: Requires operators to always set `COOKIE_SECURE=true` explicitly, easy to forget. Rejected.
+- Always enforce Secure regardless of mode: Breaks local HTTP development. Rejected.
+
 ---
 
 ### Decision 13: Webhook Verification Independence from Debug Mode
@@ -219,6 +227,10 @@ EXPOSE 8080
 **Decision**: Webhook signature verification is always required, regardless of debug mode. Developers must configure a local test secret (`GITHUB_WEBHOOK_SECRET`). If no secret is configured, webhooks are rejected.
 
 **Rationale**: Conditional security controls based on debug mode create a risk of accidental production exposure. A locally configured test secret is equally convenient for development.
+
+**Alternatives considered**:
+- Keep debug bypass with warning: Acceptable risk trade-off for developer convenience — rejected because a single misconfiguration in production exposes the endpoint.
+- Allow unsigned webhooks in a separate `ALLOW_UNSIGNED_WEBHOOKS` flag: Adds a dedicated toggle but still creates the same risk. Rejected.
 
 ---
 
@@ -230,6 +242,10 @@ EXPOSE 8080
 
 **Rationale**: Separating docs visibility from debug mode prevents accidental API schema exposure. Developers who need docs explicitly opt in.
 
+**Alternatives considered**:
+- IP-allowlisted docs: More complex to configure; an env var toggle is simpler. Rejected.
+- Authentication-gated docs: Adds overhead for a development tool. Rejected.
+
 ---
 
 ### Decision 15: Database File Permissions
@@ -239,6 +255,10 @@ EXPOSE 8080
 **Decision**: Create database directory with `0o700` (owner only). Set database file permissions to `0o600` (owner read/write). Re-enforce permissions on database recovery.
 
 **Rationale**: Restrictive file permissions are the simplest and most reliable access control mechanism at the filesystem level. The application user is the only process that needs database access.
+
+**Alternatives considered**:
+- SQLite encryption (SQLCipher): Adds a build dependency and performance overhead; filesystem permissions are sufficient for the container threat model. Rejected.
+- Docker volume-level ACLs: Platform-dependent and not portable across all Docker hosts. Rejected.
 
 ---
 
@@ -250,6 +270,10 @@ EXPOSE 8080
 
 **Rationale**: Silent acceptance of malformed CORS origins can lead to unexpected cross-origin behavior. Strict validation at startup catches typos immediately.
 
+**Alternatives considered**:
+- Runtime validation on each CORS request: Adds per-request overhead and allows the application to start with misconfigured CORS. Rejected.
+- Wildcard origin support: Too permissive for a security-focused application. Rejected.
+
 ---
 
 ### Decision 17: Data Volume Mount Location
@@ -259,6 +283,10 @@ EXPOSE 8080
 **Decision**: Mount named Docker volume at `/var/lib/solune/data` (outside the application root). Database path defaults to `/var/lib/solune/data/settings.db`.
 
 **Rationale**: Commingling runtime data with application code increases the attack surface. Separating data into a standard location (`/var/lib/`) follows Linux Filesystem Hierarchy Standard conventions.
+
+**Alternatives considered**:
+- Subdirectory within app root with restricted permissions: Still comingles data with code, making container volume management less clean. Rejected.
+- `/opt/solune/data`: Valid but `/var/lib/` is the conventional Linux location for variable application data. Rejected.
 
 ---
 
@@ -285,6 +313,10 @@ EXPOSE 8080
 
 **Rationale**: Logging full errors server-side preserves debuggability. Returning generic responses to clients prevents leakage of query structure, token scopes, or internal identifiers.
 
+**Alternatives considered**:
+- Error code mapping: Map specific GitHub API errors to user-facing error codes. Adds complexity without sufficient benefit for the current use case. Rejected.
+- Structured error objects with redacted fields: More informative but risks partial information leakage. Rejected.
+
 ---
 
 ## Phase 4 — Low
@@ -296,6 +328,10 @@ EXPOSE 8080
 **Decision**: Set default permissions to `{}` (empty) at the workflow level. Grant only `issues: write` and `contents: read` at the job level with justification comments explaining why each permission is needed.
 
 **Rationale**: Principle of least privilege. Explicit justification comments help future maintainers understand why each permission is granted and evaluate whether it can be narrowed.
+
+**Alternatives considered**:
+- Separate workflow for each permission level: Over-engineers the CI pipeline for a simple linking job. Rejected.
+- Repository-level default permissions: Less granular and affects all workflows. Rejected.
 
 ---
 
