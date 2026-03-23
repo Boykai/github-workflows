@@ -146,15 +146,17 @@ grep -A10 "validateAvatarUrl" solune/frontend/src/components/board/IssueCard.tsx
 
 ## Behavioral Verification Checklist
 
-| # | Check | Method |
-|---|-------|--------|
-| 1 | No credentials in URL after login | Browser inspection |
-| 2 | Backend refuses to start without `ENCRYPTION_KEY` | Startup test |
-| 3 | Frontend container runs as non-root | `docker exec id` |
-| 4 | Unowned `project_id` returns 403 | API test |
-| 5 | Unowned WebSocket rejected before data | WebSocket test |
-| 6 | All secret comparisons use constant-time | Code review |
-| 7 | Security headers present, no server version | `curl -I` |
-| 8 | Rate limit returns 429 | Load test |
-| 9 | No message content in localStorage after logout | Browser devtools |
-| 10 | DB directory 0700, file 0600 | `stat` command |
+| # | Check | SC | Method |
+|---|-------|-----|--------|
+| 1 | No credentials in URL after login | SC-001 | Browser inspection |
+| 2 | Backend refuses to start without `ENCRYPTION_KEY` | SC-002 | Startup test |
+| 3 | Frontend container runs as non-root | SC-003 | `docker exec id` |
+| 4 | Unowned `project_id` returns 403 | SC-004 | API test |
+| 5 | Unowned WebSocket rejected before data | SC-005 | WebSocket test |
+| 6 | All secret comparisons use constant-time | SC-006 | Code review |
+| 7 | Security headers present, no server version | SC-007 | `curl -I` |
+| 8 | Rate limit returns 429 | SC-008 | Load test |
+| 9 | No message content in localStorage after logout | SC-009 | Browser devtools |
+| 10 | DB directory 0700, file 0600 | SC-010 | `stat` command |
+| 11 | Malformed CORS origins rejected at startup | SC-011 | Startup test with invalid origin |
+| 12 | No internal error details in API responses | SC-012 | API test with forced GitHub API error |
