@@ -1762,9 +1762,11 @@ async def _advance_pipeline(
     )
 
     if pipeline.is_complete:
-        # Pipeline complete → transition to next status
-        _cp.remove_pipeline_state(issue_number)
-        return await _transition_after_pipeline_complete(
+        # Pipeline complete → transition to next status.
+        # Note: remove_pipeline_state is called AFTER the transition so
+        # _transition_after_pipeline_complete can still read pipeline-level
+        # settings (e.g. auto_merge) from the state.
+        result = await _transition_after_pipeline_complete(
             access_token=access_token,
             project_id=project_id,
             item_id=item_id,
@@ -1776,6 +1778,8 @@ async def _advance_pipeline(
             to_status=to_status,
             task_title=task_title,
         )
+        _cp.remove_pipeline_state(issue_number)
+        return result
 
     # ── Group-aware: parallel group still has active agents → wait
     if pipeline.groups and pipeline.current_group_index < len(pipeline.groups):
@@ -1888,8 +1892,7 @@ async def _advance_pipeline(
 
                 # Pipeline is now complete — transition
                 if pipeline.is_complete:
-                    _cp.remove_pipeline_state(issue_number)
-                    return await _transition_after_pipeline_complete(
+                    result = await _transition_after_pipeline_complete(
                         access_token=access_token,
                         project_id=project_id,
                         item_id=item_id,
@@ -1901,6 +1904,8 @@ async def _advance_pipeline(
                         to_status=to_status,
                         task_title=task_title,
                     )
+                    _cp.remove_pipeline_state(issue_number)
+                    return result
 
     _cp.set_pipeline_state(issue_number, pipeline)
 
@@ -2110,9 +2115,6 @@ async def _transition_after_pipeline_complete(
             "error": f"Failed to update status to {to_status}",
         }
 
-    # Remove any old pipeline state for this issue
-    _cp.remove_pipeline_state(issue_number)
-
     # Dequeue the next waiting pipeline if queue mode is active.
     # Only release the queue when the pipeline reaches a terminal-ish status
     # ("In Review" or "Done") — intermediate transitions (Backlog→Ready,
@@ -2132,7 +2134,8 @@ async def _transition_after_pipeline_complete(
     if to_status.lower() == "in review":
         from .auto_merge import _attempt_auto_merge
 
-        # Check pipeline-level auto_merge before state is removed
+        # Check pipeline-level auto_merge (state is still available —
+        # callers defer remove_pipeline_state until after this function).
         pipeline_auto_merge = False
         try:
             pipeline_state = _cp.get_pipeline_state(issue_number)

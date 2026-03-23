@@ -77,7 +77,7 @@ class TestTaskEndpointOwnershipCheck:
                 await create_task(request, task_req, session)
 
         # verify_project_access was called with the correct project_id
-        assert mock_verify.called
+        mock_verify.assert_called_once()
         call_args = mock_verify.call_args
         assert call_args[0][1] == "PVT_owned"
 
