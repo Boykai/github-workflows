@@ -285,7 +285,7 @@ EXPOSE 8080
 **Rationale**: Commingling runtime data with application code increases the attack surface. Separating data into a standard location (`/var/lib/`) follows Linux Filesystem Hierarchy Standard conventions.
 
 **Alternatives considered**:
-- Subdirectory within app root with restricted permissions: Still comingles data with code, making container volume management less clean. Rejected.
+- Subdirectory within app root with restricted permissions: Still commingles data with code, making container volume management less clean. Rejected.
 - `/opt/solune/data`: Valid but `/var/lib/` is the conventional Linux location for variable application data. Rejected.
 
 ---
