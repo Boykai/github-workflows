@@ -91,7 +91,6 @@ const mocks = vi.hoisted(() => ({
     },
     boardLoading: false,
     isFetching: false,
-    isPlaceholderData: false,
     boardError: null,
     lastUpdated: new Date('2026-03-10T21:19:34.006Z'),
     selectProject: vi.fn(),
@@ -192,8 +191,8 @@ vi.mock('@/components/common/CelestialCatalogHero', () => ({
   ),
 }));
 
-vi.mock('@/components/board/BoardSkeleton', () => ({
-  BoardSkeleton: () => <div data-testid="board-skeleton">Loading board skeleton</div>,
+vi.mock('@/components/common/CelestialLoader', () => ({
+  CelestialLoader: ({ label }: { label?: string }) => <div>{label ?? 'Loading'}</div>,
 }));
 
 vi.mock('@/components/common/ProjectSelectionEmptyState', () => ({
@@ -235,28 +234,8 @@ describe('ProjectsPage', () => {
     vi.clearAllMocks();
     mocks.boardControls.clearAll = mocks.clearAll;
     mocks.boardControls.hasActiveControls = true;
-    mocks.boardControls.transformedData = {
-      columns: [
-        {
-          status: { option_id: 'todo', name: 'Todo', color: 'GRAY' },
-          items: [],
-          item_count: 0,
-        },
-      ],
-    };
     mocks.projectBoard.boardError = null;
     mocks.projectBoard.boardLoading = false;
-    mocks.projectBoard.isFetching = false;
-    mocks.projectBoard.isPlaceholderData = false;
-    mocks.projectBoard.boardData = {
-      columns: [
-        {
-          status: { option_id: 'todo', name: 'Todo', color: 'GRAY' },
-          items: [],
-          item_count: 0,
-        },
-      ],
-    };
     mocks.projectBoard.projectsError = null;
     mocks.projectBoard.projectsLoading = false;
     mocks.projectBoard.selectedProjectId = 'PVT_1';
@@ -277,8 +256,6 @@ describe('ProjectsPage', () => {
 
   it('uses the scoped retry CTA for board failures', async () => {
     mocks.projectBoard.boardError = new Error('Board request failed');
-    mocks.projectBoard.boardData = null;
-    mocks.boardControls.transformedData = null;
 
     render(<ProjectsPage />);
 
@@ -296,8 +273,6 @@ describe('ProjectsPage', () => {
 
   it('renders the board error banner with role="alert"', () => {
     mocks.projectBoard.boardError = new Error('Network timeout');
-    mocks.projectBoard.boardData = null;
-    mocks.boardControls.transformedData = null;
 
     render(<ProjectsPage />);
 
@@ -339,44 +314,12 @@ describe('ProjectsPage', () => {
     expect(projectsAlert).toHaveTextContent('Token expired');
   });
 
-  it('shows skeleton state when board is loading with no cached data', () => {
+  it('shows loading state when board is loading', () => {
     mocks.projectBoard.boardLoading = true;
-    mocks.projectBoard.boardData = null;
-    mocks.boardControls.transformedData = null;
 
     render(<ProjectsPage />);
 
-    expect(screen.getByTestId('board-skeleton')).toBeInTheDocument();
-  });
-
-  it('shows "Updating…" indicator when board has placeholder data', () => {
-    mocks.projectBoard.boardLoading = false;
-    mocks.projectBoard.isPlaceholderData = true;
-
-    render(<ProjectsPage />);
-
-    expect(screen.getByText('Updating…')).toBeInTheDocument();
-  });
-
-  it('shows "Updating…" indicator when board is refetching in the background', () => {
-    mocks.projectBoard.boardLoading = false;
-    mocks.projectBoard.isPlaceholderData = false;
-    mocks.projectBoard.isFetching = true;
-
-    render(<ProjectsPage />);
-
-    expect(screen.getByText('Updating…')).toBeInTheDocument();
-  });
-
-  it('suppresses "Updating…" indicator when a background board error occurs', () => {
-    mocks.projectBoard.boardLoading = false;
-    mocks.projectBoard.isPlaceholderData = false;
-    mocks.projectBoard.isFetching = true;
-    mocks.projectBoard.boardError = new Error('Background board error');
-
-    render(<ProjectsPage />);
-
-    expect(screen.queryByText('Updating…')).not.toBeInTheDocument();
+    expect(screen.getByText('Loading board…')).toBeInTheDocument();
   });
 
   it('shows empty state when no project is selected', () => {

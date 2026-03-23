@@ -77,8 +77,6 @@ The **Spec Kit** preset ships with these agents, defined in `.github/agents/*.ag
 
 Custom agents can be added to `.github/agents/` and will appear in the pipeline GUI for drag-and-drop composition. See [Custom Agents Best Practices](custom-agents-best-practices.md) for guidance on creating your own.
 
-> **Speckit on Copilot branches:** The helper scripts in `.specify/scripts/bash/` resolve work from a numbered feature directory. When you run Speckit commands from a `copilot/*` or other non-feature branch, set `SPECIFY_FEATURE=<spec-dir>` first so prerequisite checks can resolve the intended spec directory. Example: `SPECIFY_FEATURE=001-my-feature .specify/scripts/bash/check-prerequisites.sh --json --require-tasks --include-tasks`
-
 ## Sub-Issue-Per-Agent Workflow
 
 When an issue is confirmed, the system creates **sub-issues upfront** for every agent in the pipeline:
