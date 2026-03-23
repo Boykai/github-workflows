@@ -12,7 +12,7 @@ const SKELETON_COLUMN_COUNT = 5;
 export function BoardSkeleton() {
   return (
     <div
-      className="flex flex-1 overflow-x-auto overflow-y-visible pb-6"
+      className="celestial-fade-in flex h-full w-full flex-1 overflow-x-auto overflow-y-visible pb-6"
       role="region"
       aria-busy="true"
       aria-label="Loading board"
