@@ -2464,7 +2464,7 @@ class TestReconstructionHumanSkipAutoMerge:
         task.title = "Test"
         task.labels = []
 
-        result = await _process_pipeline_completion(
+        await _process_pipeline_completion(
             access_token="token",
             project_id="PVT_X",
             task=task,
