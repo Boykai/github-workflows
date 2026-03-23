@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { CelestialLoader } from '@/components/common/CelestialLoader';
+import { BoardSkeleton } from '@/components/board/BoardSkeleton';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -52,6 +52,7 @@ export function ProjectsPage() {
     boardData,
     boardLoading,
     isFetching,
+    isPlaceholderData,
     boardError,
     lastUpdated,
     selectProject: selectBoardProject,
@@ -85,6 +86,13 @@ export function ProjectsPage() {
   useEffect(() => {
     resetTimerRef.current = resetTimer;
   }, [resetTimer]);
+
+  // Toast on background refresh failure (initial load errors use the full error banner).
+  useEffect(() => {
+    if (boardError && boardData) {
+      toast.error('Failed to refresh board');
+    }
+  }, [boardError, boardData]);
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
 
@@ -452,48 +460,62 @@ export function ProjectsPage() {
         />
       )}
 
-      {selectedProjectId && boardLoading && (
-        <div className="flex flex-1 flex-col items-center justify-center gap-4">
-          <CelestialLoader size="md" label="Loading board…" />
-        </div>
+      {selectedProjectId && boardLoading && !boardData && (
+        <BoardSkeleton />
       )}
 
-      {selectedProjectId && !boardLoading && transformedBoardData && (
-        <div className="flex flex-1 flex-col gap-6 overflow-visible">
-          <ProjectIssueLaunchPanel
-            projectId={selectedProjectId}
-            projectName={selectedProject?.name}
-            pipelines={savedPipelines?.pipelines ?? []}
-            isLoadingPipelines={savedPipelinesLoading}
-            pipelinesError={
-              savedPipelinesError instanceof Error ? savedPipelinesError.message : null
-            }
-            onRetryPipelines={() => {
-              void refetchSavedPipelines();
-            }}
-            onLaunched={() => {
-              refresh();
-              void queryClient.invalidateQueries({
-                queryKey: ['pipelines', 'assignment', selectedProjectId],
-              });
-            }}
-          />
+      {selectedProjectId && transformedBoardData && (
+        <div className="relative flex flex-1 flex-col gap-6 overflow-visible">
+          {/* Background refetch / placeholder indicator */}
+          {((isFetching && !boardLoading) || isPlaceholderData) && (
+            <span className="absolute right-2 top-0 z-10 text-xs font-medium text-muted-foreground">
+              Updating…
+            </span>
+          )}
 
-          <PipelineStagesSection
-            key={selectedProjectId}
-            columns={transformedBoardData.columns}
-            savedPipelines={savedPipelines?.pipelines ?? []}
-            assignedPipelineId={pipelineAssignment?.pipeline_id}
-            assignPipelineMutation={assignPipelineMutation}
-          />
+          <div
+            className={cn(
+              'flex flex-1 flex-col gap-6 overflow-visible transition-opacity duration-300',
+              (isFetching && !boardLoading) || isPlaceholderData
+                ? 'opacity-60'
+                : 'opacity-100'
+            )}
+          >
+            <ProjectIssueLaunchPanel
+              projectId={selectedProjectId}
+              projectName={selectedProject?.name}
+              pipelines={savedPipelines?.pipelines ?? []}
+              isLoadingPipelines={savedPipelinesLoading}
+              pipelinesError={
+                savedPipelinesError instanceof Error ? savedPipelinesError.message : null
+              }
+              onRetryPipelines={() => {
+                void refetchSavedPipelines();
+              }}
+              onLaunched={() => {
+                refresh();
+                void queryClient.invalidateQueries({
+                  queryKey: ['pipelines', 'assignment', selectedProjectId],
+                });
+              }}
+            />
 
-          <ProjectBoardContent
-            boardData={transformedBoardData}
-            boardControls={boardControls}
-            onCardClick={handleCardClick}
-            availableAgents={availableAgents}
-            onStatusUpdate={handleStatusUpdate}
-          />
+            <PipelineStagesSection
+              key={selectedProjectId}
+              columns={transformedBoardData.columns}
+              savedPipelines={savedPipelines?.pipelines ?? []}
+              assignedPipelineId={pipelineAssignment?.pipeline_id}
+              assignPipelineMutation={assignPipelineMutation}
+            />
+
+            <ProjectBoardContent
+              boardData={transformedBoardData}
+              boardControls={boardControls}
+              onCardClick={handleCardClick}
+              availableAgents={availableAgents}
+              onStatusUpdate={handleStatusUpdate}
+            />
+          </div>
         </div>
       )}
 

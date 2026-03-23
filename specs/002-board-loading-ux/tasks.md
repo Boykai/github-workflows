@@ -24,9 +24,9 @@
 
 **Purpose**: No new project setup needed — feature modifies existing files within `solune/frontend/`. This phase verifies prerequisites and existing components.
 
-- [ ] T001 Verify existing `BoardColumnSkeleton` component dimensions match `ProjectBoard.tsx` grid layout in `solune/frontend/src/components/board/BoardColumnSkeleton.tsx`
-- [ ] T002 [P] Verify existing `IssueCardSkeleton` component renders correctly in `solune/frontend/src/components/board/IssueCardSkeleton.tsx`
-- [ ] T003 [P] Verify `@tanstack/react-query` version supports `keepPreviousData` export (requires `^5.x`) in `solune/frontend/package.json`
+- [x] T001 Verify existing `BoardColumnSkeleton` component dimensions match `ProjectBoard.tsx` grid layout in `solune/frontend/src/components/board/BoardColumnSkeleton.tsx`
+- [x] T002 [P] Verify existing `IssueCardSkeleton` component renders correctly in `solune/frontend/src/components/board/IssueCardSkeleton.tsx`
+- [x] T003 [P] Verify `@tanstack/react-query` version supports `keepPreviousData` export (requires `^5.x`) in `solune/frontend/package.json`
 
 ---
 
@@ -36,10 +36,10 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T004 Import `keepPreviousData` from `@tanstack/react-query` in `solune/frontend/src/hooks/useProjectBoard.ts`
-- [ ] T005 Add `placeholderData: keepPreviousData` to the board data query options in `solune/frontend/src/hooks/useProjectBoard.ts`
-- [ ] T006 Destructure `isPlaceholderData` from the board data query result in `solune/frontend/src/hooks/useProjectBoard.ts`
-- [ ] T007 Add `isPlaceholderData` to the hook's return object and TypeScript return type interface in `solune/frontend/src/hooks/useProjectBoard.ts`
+- [x] T004 Import `keepPreviousData` from `@tanstack/react-query` in `solune/frontend/src/hooks/useProjectBoard.ts`
+- [x] T005 Add `placeholderData: keepPreviousData` to the board data query options in `solune/frontend/src/hooks/useProjectBoard.ts`
+- [x] T006 Destructure `isPlaceholderData` from the board data query result in `solune/frontend/src/hooks/useProjectBoard.ts`
+- [x] T007 Add `isPlaceholderData` to the hook's return object and TypeScript return type interface in `solune/frontend/src/hooks/useProjectBoard.ts`
 
 **Checkpoint**: Foundation ready — `useProjectBoard` hook now exposes `isPlaceholderData` and retains previous data during project switches. User story implementation can now begin.
 
@@ -53,8 +53,8 @@
 
 ### Implementation for User Story 1
 
-- [ ] T008 [US1] Confirm `staleTime` is set to 60s (`STALE_TIME_SHORT`) on the board data query to enable cache-based instant display in `solune/frontend/src/hooks/useProjectBoard.ts`
-- [ ] T009 [US1] Update the board rendering condition in `ProjectsPage.tsx` to show board content immediately when `boardData` is available (even when `isPlaceholderData` is true) in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T008 [US1] Confirm `staleTime` is set to 60s (`STALE_TIME_SHORT`) on the board data query to enable cache-based instant display in `solune/frontend/src/hooks/useProjectBoard.ts`
+- [x] T009 [US1] Update the board rendering condition in `ProjectsPage.tsx` to show board content immediately when `boardData` is available (even when `isPlaceholderData` is true) in `solune/frontend/src/pages/ProjectsPage.tsx`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional — re-visiting a cached project instantly shows the board without a spinner.
 
@@ -68,9 +68,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T010 [P] [US2] Create `BoardSkeleton` component in `solune/frontend/src/components/board/BoardSkeleton.tsx` — render a grid of 5 `BoardColumnSkeleton` columns matching `ProjectBoard.tsx` CSS grid layout (`gridTemplateColumns: repeat(5, minmax(min(16rem, 85vw), 1fr))`, `gap-5`), with `aria-busy="true"` and `role="region"` for accessibility
-- [ ] T011 [US2] Import `BoardSkeleton` in `solune/frontend/src/pages/ProjectsPage.tsx`
-- [ ] T012 [US2] Replace the `CelestialLoader` spinner block (~line 460) with `<BoardSkeleton />` when `boardLoading && !boardData` in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T010 [P] [US2] Create `BoardSkeleton` component in `solune/frontend/src/components/board/BoardSkeleton.tsx` — render a grid of 5 `BoardColumnSkeleton` columns matching `ProjectBoard.tsx` CSS grid layout (`gridTemplateColumns: repeat(5, minmax(min(16rem, 85vw), 1fr))`, `gap-5`), with `aria-busy="true"` and `role="region"` for accessibility
+- [x] T011 [US2] Import `BoardSkeleton` in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T012 [US2] Replace the `CelestialLoader` spinner block (~line 460) with `<BoardSkeleton />` when `boardLoading && !boardData` in `solune/frontend/src/pages/ProjectsPage.tsx`
 
 **Checkpoint**: At this point, User Story 2 should be fully functional — first-time loads show skeleton columns instead of a spinner.
 
@@ -84,10 +84,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Wrap the board rendering block in an opacity transition container (`transition-opacity duration-300`) in `solune/frontend/src/pages/ProjectsPage.tsx` — apply `opacity-60` when `(isFetching && !boardLoading) || isPlaceholderData`, otherwise `opacity-100`
-- [ ] T014 [US3] Add "Updating…" text indicator (positioned top-right of board area, `z-10`, muted foreground color) visible only during the stale/refreshing state in `solune/frontend/src/pages/ProjectsPage.tsx`
-- [ ] T015 [US3] Add `useEffect` watching `boardError` and `boardData` — when `boardError && boardData` (background refresh failure), call `toast.error('Failed to refresh board')` using existing sonner pattern in `solune/frontend/src/pages/ProjectsPage.tsx`
-- [ ] T016 [US3] Ensure initial load errors (`boardError && !boardData`) continue to show the existing full error state (no toast for initial failures) in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T013 [US3] Wrap the board rendering block in an opacity transition container (`transition-opacity duration-300`) in `solune/frontend/src/pages/ProjectsPage.tsx` — apply `opacity-60` when `(isFetching && !boardLoading) || isPlaceholderData`, otherwise `opacity-100`
+- [x] T014 [US3] Add "Updating…" text indicator (positioned top-right of board area, `z-10`, muted foreground color) visible only during the stale/refreshing state in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T015 [US3] Add `useEffect` watching `boardError` and `boardData` — when `boardError && boardData` (background refresh failure), call `toast.error('Failed to refresh board')` using existing sonner pattern in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T016 [US3] Ensure initial load errors (`boardError && !boardData`) continue to show the existing full error state (no toast for initial failures) in `solune/frontend/src/pages/ProjectsPage.tsx`
 
 **Checkpoint**: At this point, User Story 3 should be fully functional — background refreshes show a non-intrusive indicator and failures produce toast notifications.
 
@@ -101,9 +101,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T017 [US4] Verify that `keepPreviousData` in `useProjectBoard.ts` retains Project A's `boardData` while Project B loads (enabled by T005) — confirm `isPlaceholderData` is `true` during the transition in `solune/frontend/src/hooks/useProjectBoard.ts`
-- [ ] T018 [US4] Verify that the opacity/indicator logic from US3 (T013–T014) correctly handles the `isPlaceholderData === true` case during project switching — Project A's board should be dimmed with "Updating…" in `solune/frontend/src/pages/ProjectsPage.tsx`
-- [ ] T019 [US4] Verify that when Project B's data arrives, the board replaces Project A's content at full opacity with the CSS transition in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T017 [US4] Verify that `keepPreviousData` in `useProjectBoard.ts` retains Project A's `boardData` while Project B loads (enabled by T005) — confirm `isPlaceholderData` is `true` during the transition in `solune/frontend/src/hooks/useProjectBoard.ts`
+- [x] T018 [US4] Verify that the opacity/indicator logic from US3 (T013–T014) correctly handles the `isPlaceholderData === true` case during project switching — Project A's board should be dimmed with "Updating…" in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [x] T019 [US4] Verify that when Project B's data arrives, the board replaces Project A's content at full opacity with the CSS transition in `solune/frontend/src/pages/ProjectsPage.tsx`
 
 **Checkpoint**: At this point, all user stories should be independently functional — project switching never shows a blank screen.
 
@@ -113,12 +113,12 @@
 
 **Purpose**: Final verification and cross-cutting quality checks
 
-- [ ] T020 Run `npm run lint` from `solune/frontend/` — verify no linting errors introduced
-- [ ] T021 [P] Run `npx tsc --noEmit` from `solune/frontend/` — verify no TypeScript errors introduced
-- [ ] T022 [P] Run `npm run test` from `solune/frontend/` — verify all existing tests pass (SC-008)
-- [ ] T023 Run `npm run build` from `solune/frontend/` — verify production build succeeds
-- [ ] T024 Verify accessibility: `BoardSkeleton` has `aria-busy="true"` and `role="region"` attributes, skeleton columns have `role="status"`
-- [ ] T025 Verify that rapid project switching (A → B → C) only renders the final project's board — intermediate requests should be cancelled by TanStack Query's automatic query cancellation
+- [x] T020 Run `npm run lint` from `solune/frontend/` — verify no linting errors introduced
+- [x] T021 [P] Run `npx tsc --noEmit` from `solune/frontend/` — verify no TypeScript errors introduced
+- [x] T022 [P] Run `npm run test` from `solune/frontend/` — verify all existing tests pass (SC-008)
+- [x] T023 Run `npm run build` from `solune/frontend/` — verify production build succeeds
+- [x] T024 Verify accessibility: `BoardSkeleton` has `aria-busy="true"` and `role="region"` attributes, skeleton columns have `role="status"`
+- [x] T025 Verify that rapid project switching (A → B → C) only renders the final project's board — intermediate requests should be cancelled by TanStack Query's automatic query cancellation
 
 ---
 

@@ -7,7 +7,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, keepPreviousData } from '@tanstack/react-query';
 import { boardApi } from '@/services/api';
 import { STALE_TIME_PROJECTS, STALE_TIME_SHORT } from '@/constants';
 import type { BoardProject, BoardDataResponse, RateLimitInfo } from '@/types';
@@ -42,6 +42,8 @@ interface UseProjectBoardReturn {
   boardLoading: boolean;
   /** Whether board data is being refetched in background */
   isFetching: boolean;
+  /** Whether the currently displayed board data is placeholder (stale from a different project) */
+  isPlaceholderData: boolean;
   /** Error fetching board data */
   boardError: Error | null;
   /** Last time data was successfully updated */
@@ -86,6 +88,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     data: boardData,
     isLoading: boardLoading,
     isFetching,
+    isPlaceholderData,
     error: boardError,
   } = useQuery({
     queryKey: ['board', 'data', selectedProjectId],
@@ -109,6 +112,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
       }
     },
     enabled: !!selectedProjectId,
+    placeholderData: keepPreviousData,
     staleTime: STALE_TIME_SHORT,
     refetchInterval: getRefetchInterval,
   });
@@ -133,6 +137,7 @@ export function useProjectBoard(options: UseProjectBoardOptions = {}): UseProjec
     boardData: boardData ?? null,
     boardLoading,
     isFetching,
+    isPlaceholderData,
     boardError: boardError as Error | null,
     lastUpdated,
     selectProject,

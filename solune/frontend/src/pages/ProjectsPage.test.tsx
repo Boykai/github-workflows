@@ -91,6 +91,7 @@ const mocks = vi.hoisted(() => ({
     },
     boardLoading: false,
     isFetching: false,
+    isPlaceholderData: false,
     boardError: null,
     lastUpdated: new Date('2026-03-10T21:19:34.006Z'),
     selectProject: vi.fn(),
@@ -195,6 +196,10 @@ vi.mock('@/components/common/CelestialLoader', () => ({
   CelestialLoader: ({ label }: { label?: string }) => <div>{label ?? 'Loading'}</div>,
 }));
 
+vi.mock('@/components/board/BoardSkeleton', () => ({
+  BoardSkeleton: () => <div data-testid="board-skeleton">Loading board skeleton</div>,
+}));
+
 vi.mock('@/components/common/ProjectSelectionEmptyState', () => ({
   ProjectSelectionEmptyState: ({ description }: { description: string }) => (
     <div>{description}</div>
@@ -234,8 +239,28 @@ describe('ProjectsPage', () => {
     vi.clearAllMocks();
     mocks.boardControls.clearAll = mocks.clearAll;
     mocks.boardControls.hasActiveControls = true;
+    mocks.boardControls.transformedData = {
+      columns: [
+        {
+          status: { option_id: 'todo', name: 'Todo', color: 'GRAY' },
+          items: [],
+          item_count: 0,
+        },
+      ],
+    };
     mocks.projectBoard.boardError = null;
     mocks.projectBoard.boardLoading = false;
+    mocks.projectBoard.isFetching = false;
+    mocks.projectBoard.isPlaceholderData = false;
+    mocks.projectBoard.boardData = {
+      columns: [
+        {
+          status: { option_id: 'todo', name: 'Todo', color: 'GRAY' },
+          items: [],
+          item_count: 0,
+        },
+      ],
+    };
     mocks.projectBoard.projectsError = null;
     mocks.projectBoard.projectsLoading = false;
     mocks.projectBoard.selectedProjectId = 'PVT_1';
@@ -314,12 +339,14 @@ describe('ProjectsPage', () => {
     expect(projectsAlert).toHaveTextContent('Token expired');
   });
 
-  it('shows loading state when board is loading', () => {
+  it('shows skeleton state when board is loading with no cached data', () => {
     mocks.projectBoard.boardLoading = true;
+    mocks.projectBoard.boardData = null;
+    mocks.boardControls.transformedData = null;
 
     render(<ProjectsPage />);
 
-    expect(screen.getByText('Loading board…')).toBeInTheDocument();
+    expect(screen.getByTestId('board-skeleton')).toBeInTheDocument();
   });
 
   it('shows empty state when no project is selected', () => {
