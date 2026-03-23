@@ -1,104 +1,103 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Security, Privacy & Vulnerability Audit
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
+**Branch**: `001-security-review` | **Date**: 2026-03-23 | **Spec**: [spec.md](spec.md)
+**Input**: Feature specification from `/specs/001-security-review/spec.md`
 
 **Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Comprehensive security audit addressing 21 findings across OWASP Top 10 categories (3 Critical, 8 High, 9 Medium, 2 Low). The implementation remediates session management vulnerabilities, enforces encryption at rest, hardens container execution, adds authorization controls, strengthens HTTP security headers, implements rate limiting, ensures data privacy, and validates configuration. Changes span the backend (FastAPI/Python), frontend (React/TypeScript), nginx reverse proxy, Docker containers, and CI/CD workflows.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python ≥3.12 (backend), TypeScript ~5.9.0 (frontend)  
+**Primary Dependencies**: FastAPI ≥0.135.0, React 19.2, nginx 1.29, slowapi ≥0.1.9, cryptography ≥46.0.5  
+**Storage**: SQLite via aiosqlite ≥0.22.0 (encrypted at rest with Fernet)  
+**Testing**: pytest (backend unit/integration), vitest (frontend), Playwright (e2e)  
+**Target Platform**: Linux containers (Docker Compose), web browser clients  
+**Project Type**: Web application (backend + frontend)  
+**Performance Goals**: Rate limits — 10 req/min on chat/workflow, 5 req/min on agents, 20 req/min on OAuth callback  
+**Constraints**: All containers non-root, ports bound to 127.0.0.1 only, database dir 0700 / file 0600  
+**Scale/Scope**: 21 security findings across 4 severity phases, ~25 files modified
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First Development | ✅ PASS | `spec.md` contains 10 prioritized user stories (P1–P4) with Given-When-Then acceptance scenarios, clear scope boundaries, and edge cases |
+| II. Template-Driven Workflow | ✅ PASS | All artifacts follow canonical templates from `.specify/templates/` |
+| III. Agent-Orchestrated Execution | ✅ PASS | Work decomposed into speckit agents (specify → plan → tasks → implement) with clear handoffs |
+| IV. Test Optionality with Clarity | ✅ PASS | Security audit mandates verification (behavior-based checks listed in spec); tests are included because the spec explicitly requires them for security validation |
+| V. Simplicity and DRY | ✅ PASS | Changes favor existing patterns (e.g., `verify_project_access` shared dependency, `hmac.compare_digest` reuse). No premature abstractions introduced |
+
+**Post-Design Re-check**: All principles remain satisfied. The `repo` OAuth scope retention is justified with a code comment explaining GitHub API requirements (see research.md Decision 8).
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
+specs/001-security-review/
 ├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
+├── research.md          # Phase 0 output — research decisions for all 21 findings
+├── data-model.md        # Phase 1 output — security-relevant entity model
+├── quickstart.md        # Phase 1 output — implementation guide
+├── contracts/
+│   └── security-contracts.md  # Phase 1 output — behavioral contracts per finding
+├── checklists/
+│   └── requirements.md  # Quality checklist (from /speckit.specify)
 └── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+solune/
+├── backend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── auth.py          # FR-001/002/012: Secure OAuth, cookie-based sessions, POST dev-login
+│   │   │   ├── agents.py        # FR-006/016: Project access + rate limiting
+│   │   │   ├── chat.py          # FR-016: Rate limiting on chat endpoints
+│   │   │   ├── pipelines.py     # FR-006: Project access verification
+│   │   │   ├── projects.py      # FR-006: Project access verification
+│   │   │   ├── settings.py      # FR-006: Project access verification
+│   │   │   ├── signal.py        # FR-008: Constant-time secret comparison
+│   │   │   ├── tasks.py         # FR-006: Project access verification
+│   │   │   ├── webhooks.py      # FR-008/020: Webhook verification, no debug bypass
+│   │   │   └── workflow.py      # FR-006/016: Project access + rate limiting
+│   │   ├── config.py            # FR-003/004/014/019/023: Startup validation suite
+│   │   ├── dependencies.py      # FR-007: Centralized verify_project_access
+│   │   ├── main.py              # FR-021: ENABLE_DOCS gate
+│   │   └── services/
+│   │       ├── database.py      # FR-022: Directory/file permissions 0700/0600
+│   │       ├── github_auth.py   # FR-013: OAuth scope management
+│   │       └── github_projects/ # FR-027: Error sanitization
+│   └── tests/
+├── frontend/
+│   ├── Dockerfile               # FR-005: Non-root nginx-app user
+│   ├── nginx.conf               # FR-009/010/011: Security headers
+│   └── src/
+│       ├── hooks/
+│       │   ├── useAuth.ts       # FR-002: No URL credential reading
+│       │   └── useChatHistory.ts # FR-025/026: Memory-only chat, logout clear
+│       └── components/
+│           └── board/
+│               └── IssueCard.tsx # FR-029: Avatar URL validation
+├── docker-compose.yml           # FR-015/024: Port binding 127.0.0.1, volume at /var/lib/solune/data
+└── .github/workflows/
+    └── branch-issue-link.yml    # FR-028: Minimal workflow permissions
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application (backend + frontend). Security changes modify existing files. The only new logic is a `verify_project_access` function added to the existing `dependencies.py` module for centralized project authorization.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations identified. One scope retention documented below.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| `repo` OAuth scope retained (FR-013) | GitHub API returns misleading 404s for issue/PR creation without `repo` scope | Narrower scopes (`public_repo`, `project`) were tested but do not support the core workflow (creating issues, sub-issues, comments, labels, and PRs) |
