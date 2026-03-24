@@ -104,12 +104,14 @@ class TestSettings:
     def test_default_repo_trailing_slash(self):
         """A value like 'owner/' should return None, not an empty string."""
         s = self._make(default_repository="owner/")
+        assert s.default_repo_owner is None
         assert s.default_repo_name is None
 
     def test_default_repo_leading_slash(self):
         """A value like '/repo' should return None for owner, not an empty string."""
         s = self._make(default_repository="/repo")
         assert s.default_repo_owner is None
+        assert s.default_repo_name is None
 
     def test_default_repo_slash_only(self):
         """A bare '/' should return None for both owner and name."""
