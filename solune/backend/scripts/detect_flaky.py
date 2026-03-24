@@ -12,7 +12,7 @@ def parse_junit_results(path: Path) -> dict[str, bool]:
     A test case is considered *failed* if it contains a ``<failure>`` or
     ``<error>`` child element; otherwise it is considered *passed*.
     """
-    tree = ET.parse(path)  # noqa: S314
+    tree = ET.parse(path)
     root = tree.getroot()
 
     results: dict[str, bool] = {}
