@@ -55,7 +55,10 @@ export function clearChatHistory(storageKey: string = 'chat-message-history'): v
 }
 
 export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryReturn {
-  const maxHistory = options?.maxHistory ?? 100;
+  const maxHistory =
+    typeof options?.maxHistory === 'number' && Number.isFinite(options.maxHistory)
+      ? Math.max(0, Math.floor(options.maxHistory))
+      : 100;
 
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -67,11 +70,8 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
     (message: string) => {
       setHistory((prev) => {
         const next = [...prev, message];
-        // Enforce cap by removing oldest entries
-        while (next.length > maxHistory) {
-          next.shift();
-        }
-        return next;
+        // Enforce cap by keeping only the most recent entries
+        return next.length > maxHistory ? next.slice(next.length - maxHistory) : next;
       });
       setHistoryIndex(-1);
     },

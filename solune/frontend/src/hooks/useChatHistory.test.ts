@@ -78,6 +78,12 @@ describe('useChatHistory', () => {
       act(() => result.current.addToHistory('msg4'));
       expect(result.current.history).toEqual(['msg2', 'msg3', 'msg4']);
     });
+
+    it('should clamp invalid negative maxHistory values to zero', () => {
+      const { result } = renderHook(() => useChatHistory({ maxHistory: -1 }));
+      act(() => result.current.addToHistory('msg1'));
+      expect(result.current.history).toEqual([]);
+    });
   });
 
   describe('navigateUp', () => {

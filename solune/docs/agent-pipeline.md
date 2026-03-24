@@ -70,7 +70,7 @@ The **Spec Kit** preset ships with these agents, defined in `.github/agents/*.ag
 | `speckit.tasks` | Actionable, dependency-ordered task breakdown | `tasks.md` |
 | `speckit.implement` | Code implementation following `tasks.md` | Code files |
 | `speckit.clarify` | Asks clarification questions, updates spec | Updates `spec.md` |
-| `speckit.analyze` | Read-only cross-artifact consistency analysis | Analysis report |
+| `speckit.analyze` | Read-only cross-artifact consistency analysis | Analysis report in the agent response only (no committed files) |
 | `speckit.checklist` | Quality checklists | `checklists/*.md` |
 | `speckit.constitution` | Project constitution management | `.specify/memory/constitution.md` |
 | `speckit.taskstoissues` | Converts `tasks.md` entries into GitHub Issues | GitHub Issues |
@@ -84,7 +84,7 @@ When an issue is confirmed, the system creates **sub-issues upfront** for every 
 - Each sub-issue is titled `[agent-name] Parent Title`
 - Sub-issues are added to the same GitHub Project
 - Copilot is assigned to the sub-issue (not the parent) — **except for `copilot-review`** (see below)
-- Agent `.md` file outputs are posted as comments on the **sub-issue**
+- Agent `.md` file outputs are posted as comments on the **sub-issue**; read-only agents such as `speckit.analyze` return their analysis in the agent response instead and do not commit branch changes
 - The `<agent>: Done!` marker is posted on the **parent issue** to advance the pipeline
 - When an agent completes, its sub-issue is closed as completed (`state=closed`, `state_reason=completed`)
 

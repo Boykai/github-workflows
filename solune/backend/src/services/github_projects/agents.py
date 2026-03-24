@@ -71,6 +71,14 @@ class AgentsMixin:
             source=AgentSource.BUILTIN,
         ),
         AvailableAgent(
+            slug="speckit.analyze",
+            display_name="Spec Kit - Analyze",
+            description="Performs a read-only consistency analysis across spec artifacts",
+            avatar_url=None,
+            icon_name=None,
+            source=AgentSource.BUILTIN,
+        ),
+        AvailableAgent(
             slug="human",
             display_name="Human",
             description="Manual human task — creates a sub-issue assigned to the issue creator",
@@ -154,10 +162,20 @@ class AgentsMixin:
                 "speckit.plan": ["plan.md"],
                 "speckit.tasks": ["tasks.md"],
                 "speckit.implement": [],
+                "speckit.analyze": [],
             }
             files = agent_files.get(agent_name, [])
 
-            if files:
+            if agent_name == "speckit.analyze":
+                parts.append(
+                    "## Output Instructions\n"
+                    "IMPORTANT: This agent is read-only. Do NOT commit files or modify the PR "
+                    "branch.\n\n"
+                    "Produce the analysis report in the agent response only. If remediation is "
+                    "needed, request explicit user approval before any follow-up editing work is "
+                    "started."
+                )
+            elif files:
                 file_list = ", ".join(f"`{f}`" for f in files)
                 branch_note = f" on branch `{existing_pr['head_ref']}`" if existing_pr else ""
                 parts.append(
@@ -207,6 +225,7 @@ class AgentsMixin:
             "speckit.plan": "Create a detailed implementation plan. Break down the specification into actionable steps, identify dependencies, and define the order of execution.",
             "speckit.tasks": "Generate granular implementation tasks from the plan. Each task should be a well-defined unit of work with clear inputs, outputs, and acceptance criteria.",
             "speckit.implement": "Implement the feature based on the specification, plan, and tasks. Write production-quality code with tests.",
+            "speckit.analyze": "Analyze the generated specification artifacts for consistency, coverage, ambiguity, and constitution compliance. This task is strictly read-only and should return an analysis report without modifying files.",
             "copilot": "Implement the requested changes. Write production-quality code with tests.",
             "human": "This is a manual human task. Complete the work described below, then close this issue or comment 'Done!' on the parent issue to continue the pipeline.",
             "copilot-review": (

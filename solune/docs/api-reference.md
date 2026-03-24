@@ -18,7 +18,7 @@ All endpoints are prefixed with `/api/v1`. Unless noted, all endpoints require a
 | GET | `/auth/github/callback` | OAuth callback handler |
 | GET | `/auth/me` | Get current authenticated user |
 | POST | `/auth/logout` | Logout and clear session |
-| POST | `/auth/dev-login` | Dev-only PAT login (`DEBUG=true` only) |
+| POST | `/auth/dev-login` | Dev-only PAT login (`DEBUG=true` only; JSON body requires a non-empty `github_token` up to 255 chars) |
 
 ## Projects
 

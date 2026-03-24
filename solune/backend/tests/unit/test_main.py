@@ -31,8 +31,7 @@ class TestCreateApp:
 
         # Trigger an endpoint that raises AppException (e.g. 404)
         resp = await client.get("/api/v1/projects/NONEXIST")
-        # Depending on cache, this may use the AppException handler
-        assert resp.status_code in (404, 200)
+        assert resp.status_code == 404
 
     async def test_health_check_or_docs_disabled_in_prod(self):
         """When enable_docs=False, docs should be disabled."""

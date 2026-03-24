@@ -160,6 +160,22 @@ class TestDevLoginGating:
         assert resp.status_code == 200
         assert resp.json()["github_username"] == mock_session.github_username
 
+    async def test_dev_login_rejects_oversized_token(self, client):
+        """dev-login must reject tokens exceeding the 255-char limit."""
+        resp = await client.post(
+            "/api/v1/auth/dev-login",
+            json={"github_token": "x" * 256},
+        )
+        assert resp.status_code == 422
+
+    async def test_dev_login_rejects_empty_token(self, client):
+        """dev-login must reject empty token strings."""
+        resp = await client.post(
+            "/api/v1/auth/dev-login",
+            json={"github_token": ""},
+        )
+        assert resp.status_code == 422
+
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
 

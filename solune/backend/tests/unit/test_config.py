@@ -104,12 +104,26 @@ class TestSettings:
     def test_default_repo_trailing_slash(self):
         """A value like 'owner/' should return None, not an empty string."""
         s = self._make(default_repository="owner/")
+        assert s.default_repo_owner is None
         assert s.default_repo_name is None
 
     def test_default_repo_leading_slash(self):
         """A value like '/repo' should return None for owner, not an empty string."""
         s = self._make(default_repository="/repo")
         assert s.default_repo_owner is None
+        assert s.default_repo_name is None
+
+    def test_default_repo_slash_only(self):
+        """A bare '/' should return None for both owner and name."""
+        s = self._make(default_repository="/")
+        assert s.default_repo_owner is None
+        assert s.default_repo_name is None
+
+    def test_default_repo_extra_slashes_ignored(self):
+        """'owner/repo/extra' should split on first slash only, returning 'owner' and 'repo/extra'."""
+        s = self._make(default_repository="owner/repo/extra")
+        assert s.default_repo_owner == "owner"
+        assert s.default_repo_name == "repo/extra"
 
     # -- effective_cookie_secure property ------------------------------------
 
@@ -262,6 +276,7 @@ class TestConstants:
     def test_agent_display_names(self):
         assert "speckit.specify" in AGENT_DISPLAY_NAMES
         assert AGENT_DISPLAY_NAMES["speckit.specify"] == "Spec Kit - Specify"
+        assert AGENT_DISPLAY_NAMES["speckit.analyze"] == "Spec Kit - Analyze"
 
 
 class TestCacheKeyHelpers:

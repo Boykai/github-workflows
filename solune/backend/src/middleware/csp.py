@@ -37,4 +37,5 @@ class CSPMiddleware(BaseHTTPMiddleware):
         response.headers["Permissions-Policy"] = (
             "camera=(), microphone=(), geolocation=(), payment=()"
         )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
