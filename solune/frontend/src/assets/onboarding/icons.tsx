@@ -121,7 +121,7 @@ export function SunMoonToggleIcon({ className }: IconProps) {
   );
 }
 
-/** Activity page — timeline with stars at intervals */
+/** Activity page — timeline with markers at intervals */
 export function TimelineStarsIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
