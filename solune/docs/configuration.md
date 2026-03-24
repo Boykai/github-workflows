@@ -128,43 +128,28 @@ Tune in-memory cache lifetimes for GitHub metadata and other frequently accessed
 
 ## Database Schema
 
-SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `001` through `026`). Migrations are tracked by a `schema_version` table.
+SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via numbered SQL files in `backend/src/migrations/` (currently `023` through `037`). Migrations are tracked by a `schema_version` table.
 
 ### Migration Files
 
 | Migration | Purpose |
 |-----------|---------|
-| `001_initial_schema.sql` | Sessions, project settings, global settings tables |
-| `002_add_workflow_config_column.sql` | `workflow_config` column on `project_settings` |
-| `003_add_admin_column.sql` | `admin_github_user_id` on `global_settings` |
-| `004_add_signal_tables.sql` | Signal connection, messages, banners tables |
-| `005_signal_phone_hash_unique.sql` | Unique constraint on phone hash |
-| `006_add_mcp_configurations.sql` | MCP configurations table |
-| `007_agent_configs.sql` | Agent configuration storage |
-| `008_cleanup_audit_logs.sql` | Cleanup audit log table |
-| `009_housekeeping.sql` | Housekeeping templates and schedules |
-| `010_chores.sql` | Chores system (replaces housekeeping) |
-| `011_metadata_cache.sql` | GitHub metadata cache (labels, branches, milestones) |
-| `012_chat_persistence.sql` | Persistent chat messages, proposals, recommendations |
-| `013_agent_config_lifecycle_status.sql` | Agent lifecycle state for repo/list reconciliation |
-| `013_pipeline_configs.sql` | Pipeline configuration storage (stages + agent assignments) |
-| `014_agent_default_models.sql` | Default model column on agent configs |
-| `014_extend_mcp_tools.sql` | Extended MCP tool descriptions, sync status, project scoping |
-| `015_agent_icon_name.sql` | Icon name column on agent configs |
-| `015_pipeline_mcp_presets.sql` | Pipeline preset identification and project assignment |
-| `016_chores_enhancements.sql` | Chore execution tracking, AI enhance, pipeline assignment |
-| `017_blocking_queue.sql` | _(historical — removed by `021_remove_blocking.sql`)_ Per-repo blocking queue for serial issue activation |
-| `018_pipeline_blocking_override.sql` | _(historical — removed by `021_remove_blocking.sql`)_ Project-level pipeline blocking override |
-| `019_agent_model_setting.sql` | Agent model preference (user_preferences + global_settings fallback) |
-| `020_chore_presets.sql` | Chore preset identification columns and unique index for seeding |
-| `021_remove_blocking.sql` | Drop blocking queue table, blocking columns, and related indexes |
-| `021_pipeline_state.sql` | Pipeline execution state tracking |
-| `022_chat_file_urls.sql` | Chat file URL storage |
-| `022_encrypt_existing_tokens.sql` | Encrypt existing tokens in the database |
-| `023_consolidated_schema.sql` | Consolidated schema baseline |
+| `023_consolidated_schema.sql` | Consolidated schema baseline (replaces 001–022) |
 | `024_apps.sql` | Apps table and scaffolding |
 | `025_fix_apps_fk.sql` | Fix foreign key constraint on apps |
 | `026_performance_indexes.sql` | Indexes on `admin_github_user_id`, `selected_project_id`, and chat session columns |
+| `027_done_items_cache.sql` | Cache for Done-status project items to reduce cold-start GitHub API calls |
+| `028_new_repo_support.sql` | New-repo support columns for apps (GitHub repo/project URLs, project ID) |
+| `029_pipeline_state_persistence.sql` | Durable pipeline run tracking, execution groups, and onboarding tour state |
+| `030_app_parent_issue.sql` | Parent issue tracking columns on apps table |
+| `031_queue_mode.sql` | Per-project pipeline queue mode toggle (`queue_mode` on `project_settings`) |
+| `032_activity_events.sql` | Activity events table for unified audit trail |
+| `033_copilot_review_requests.sql` | Durable storage for Copilot review request timestamps (restart-safe) |
+| `034_auto_merge.sql` | Per-project auto-merge toggle (`auto_merge` on `project_settings`) |
+| `034_phase8_pipeline_states_ext.sql` | Phase 8 — extend `pipeline_states` for concurrent execution tracking |
+| `035_phase8_mcp_version.sql` | Phase 8 — add `version` column to `mcp_configurations` for optimistic concurrency |
+| `036_phase8_collision_events.sql` | Phase 8 — `collision_events` table for MCP collision resolution auditing |
+| `037_phase8_recovery_log.sql` | Phase 8 — `recovery_log` table for label-driven state recovery auditing |
 
 ## Workflow Settings
 

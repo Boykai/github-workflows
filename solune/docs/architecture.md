@@ -87,7 +87,7 @@ The frontend is a single-page React application that provides the visual pipelin
 The backend is the core of Solune — it handles authentication, GitHub API interactions, AI completion, pipeline orchestration, and database management. All endpoints are async, and background tasks run in managed task groups.
 
 - **Framework**: FastAPI with async endpoints, Pydantic v2 models
-- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (SQL migration files `001` through `026`)
+- **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (SQL migration files `023` through `037`)
 - **DI**: Singletons registered on `app.state` during lifespan; `dependencies.py` provides `Depends()` getters
 - **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware; `CSPMiddleware` for Content Security Policy plus companion security headers (including HSTS); `CSRFMiddleware` for double-submit cookie CSRF protection; `RateLimitMiddleware` for request rate limiting
 - **Async Task Safety**: `asyncio.TaskGroup` for background loops (automatic cancellation on shutdown); `TaskRegistry` singleton for fire-and-forget tasks (tracked, drained on shutdown)
@@ -105,7 +105,7 @@ The backend is the core of Solune — it handles authentication, GitHub API inte
 | `services/workflow_orchestrator/` | Pipeline orchestration: `models` (contexts/state), `config` (async load/persist), `transitions`, `orchestrator` |
 | `services/chores/` | Chore templates, scheduler, counter, chat, template builder, service |
 | `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) + Agent MCP Sync (`agent_mcp_sync.py`) — keeps `mcp-servers` and `tools: ["*"]` in sync across all `.agent.md` files |
-| `migrations/` | SQL migration files `001` through `026` |
+| `migrations/` | SQL migration files `023` through `037` |
 | `prompts/` | AI prompt templates for issue and task generation |
 | `middleware/` | `RequestIDMiddleware`, `CSPMiddleware` (Content Security Policy + HTTP security headers such as HSTS), `CSRFMiddleware` (double-submit cookie CSRF protection), `RateLimitMiddleware` (request rate limiting), `AdminGuardMiddleware` |
 | `logging_utils.py` | `RequestIDFilter`, `SanitizingFormatter`, `StructuredJsonFormatter` for structured JSON logging |
