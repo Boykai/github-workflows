@@ -259,6 +259,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
 
 ## Active Technologies
+- Python 3.11 (backend), TypeScript 5.x (frontend) + FastAPI + Pydantic (backend), React 18 + Vite (frontend), Lucide icons (001-help-tour-refresh)
+- SQLite (aiosqlite) with sequential SQL migration files (001-help-tour-refresh)
 
 Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
 
