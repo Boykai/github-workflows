@@ -1,104 +1,85 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Help Page & Tour Guide Full Refresh + Backend Step-Count Bug Fix
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-help-tour-refresh` | **Date**: 2026-03-24 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-help-tour-refresh/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Fix a critical backend bug where the Pydantic validator (`le=10`) and database CHECK constraint (`current_step <= 10`) silently reject tour steps 11–13, despite the frontend already supporting 13 steps. Expand the Spotlight Tour to 14 steps (adding an Activity page step), add Activity to the Help page feature guides (total: 9), add 4 new FAQ entries (total: 16), create a new celestial icon (`TimelineStarsIcon`), and remove the dead `/help: "help-link"` mapping from `Sidebar.tsx`. All changes are validated by updated backend and frontend test suites.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11 (backend), TypeScript 5.x (frontend)
+**Primary Dependencies**: FastAPI + Pydantic (backend), React 18 + Vite (frontend), Lucide icons
+**Storage**: SQLite (aiosqlite) with sequential SQL migration files
+**Testing**: pytest (backend), Vitest + React Testing Library (frontend)
+**Target Platform**: Web application (Linux server backend, browser frontend)
+**Project Type**: Web (separate backend + frontend in `solune/` monorepo)
+**Performance Goals**: N/A — no performance-critical changes; content + validation updates only
+**Constraints**: Zero downtime migration (SQLite CHECK constraint update); backward-compatible API
+**Scale/Scope**: 10 files changed, 1 new migration file, 1 new icon component
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Notes |
+|-----------|--------|-------|
+| I. Specification-First | ✅ PASS | `spec.md` completed with 5 prioritized user stories and Given/When/Then scenarios |
+| II. Template-Driven | ✅ PASS | All artifacts follow canonical templates |
+| III. Agent-Orchestrated | ✅ PASS | Work follows specify → plan → tasks → implement pipeline |
+| IV. Test Optionality | ✅ PASS | Tests are explicitly required by FR-012: backend parametrized tests for step bounds 0–13, frontend `totalSteps` assertion update |
+| V. Simplicity & DRY | ✅ PASS | No new abstractions — extends existing arrays, constants, and validators; single migration file |
+
+**Pre-Phase 0 Gate**: ✅ PASSED — no violations
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-help-tour-refresh/
+├── plan.md              # This file
+├── research.md          # Phase 0 output — codebase research & decisions
+├── data-model.md        # Phase 1 output — entity definitions
+├── quickstart.md        # Phase 1 output — implementation quickstart
+├── contracts/           # Phase 1 output — API contract changes
+│   └── onboarding-api.yaml
+└── tasks.md             # Phase 2 output (NOT created by speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+solune/
+├── backend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── onboarding.py           # FR-001: le=10 → le=13
+│   │   └── migrations/
+│   │       └── 038_onboarding_step_limit.sql  # FR-002: CHECK constraint update
+│   └── tests/
+│       └── unit/
+│           └── test_api_onboarding.py   # FR-012: step boundary tests 0–13
+└── frontend/
+    └── src/
+        ├── assets/
+        │   └── onboarding/
+        │       └── icons.tsx            # FR-006: TimelineStarsIcon
+        ├── components/
+        │   └── onboarding/
+        │       └── SpotlightTour.tsx    # FR-003: 14th tour step (activity-link)
+        ├── hooks/
+        │   ├── useOnboarding.tsx        # FR-005: TOTAL_STEPS 13 → 14
+        │   └── useOnboarding.test.tsx   # FR-012: totalSteps assertion update
+        ├── layout/
+        │   └── Sidebar.tsx              # FR-004: data-tour-step="activity-link" + FR-010: remove /help mapping
+        └── pages/
+            └── HelpPage.tsx             # FR-007: Activity guide + FR-008/009: FAQ audit + 4 new entries
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application (Option 2) — existing `solune/backend/` and `solune/frontend/` directories. All changes are modifications to existing files except the new migration `038_onboarding_step_limit.sql`.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
-
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+> No violations — all changes are direct extensions of existing patterns. No new abstractions, libraries, or architectural decisions required.
