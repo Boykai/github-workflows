@@ -61,7 +61,7 @@ Controls how frequently Solune checks for agent activity on GitHub.
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `DEFAULT_REPOSITORY` | — | Default repo for issue creation (`owner/repo`) |
+| `DEFAULT_REPOSITORY` | — | Default repo for issue creation (`owner/repo`). Values missing either side of the slash are ignored. |
 | `DEFAULT_PROJECT_ID` | — | Default GitHub Project V2 node ID for polling (e.g. `PVT_kwHOAIsXss4BOJmo`). Used as a direct project fallback when no `project_settings` row exists. |
 | `DEFAULT_ASSIGNEE` | `""` | Default assignee for In Progress issues |
 
