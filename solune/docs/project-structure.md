@@ -65,7 +65,11 @@ solune/
 │   │   │   ├── webhooks.py       #   GitHub webhook handler
 │   │   │   └── workflow.py       #   Workflow config, pipeline, polling control
 │   │   ├── middleware/
-│   │   │   └── request_id.py     #   RequestIDMiddleware for tracing
+│   │   │   ├── admin_guard.py    #   AdminGuardMiddleware for @admin/@adminlock file protection
+│   │   │   ├── csp.py            #   CSPMiddleware — Content Security Policy + HTTP security headers
+│   │   │   ├── csrf.py           #   CSRFMiddleware — double-submit cookie CSRF protection
+│   │   │   ├── rate_limit.py     #   RateLimitMiddleware — per-user request rate limiting
+│   │   │   └── request_id.py     #   RequestIDMiddleware for request tracing
 │   │   ├── migrations/           # SQL schema migrations (27 SQL files, 001–022, auto-run)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent

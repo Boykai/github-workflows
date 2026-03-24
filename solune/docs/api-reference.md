@@ -212,6 +212,36 @@ Read and refresh cached GitHub repository metadata (labels, branches, milestones
 | GET | `/metadata/{owner}/{repo}` | Get cached repository metadata context |
 | POST | `/metadata/{owner}/{repo}/refresh` | Force-refresh metadata cache for a repository |
 
+## Onboarding
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/onboarding/state` | Get onboarding tour state for the current user |
+| PUT | `/onboarding/state` | Update onboarding tour progress (step, completed, dismissed) |
+
+## Apps
+
+App lifecycle management for generated applications.
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/apps/owners` | List available repository owners for app creation |
+| GET | `/apps` | List all apps |
+| POST | `/apps` | Create a new app |
+| GET | `/apps/{app_name}` | Get a single app by name |
+| PUT | `/apps/{app_name}` | Update an app |
+| GET | `/apps/{app_name}/assets` | Get asset inventory for an app |
+| DELETE | `/apps/{app_name}` | Delete an app |
+| POST | `/apps/{app_name}/start` | Start an app |
+| POST | `/apps/{app_name}/stop` | Stop an app |
+
+## Activity
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/activity` | Get activity feed (recent events across all entities) |
+| GET | `/activity/{entity_type}/{entity_id}` | Get activity feed for a specific entity |
+
 ## Webhooks
 
 | Method | Path | Description |
