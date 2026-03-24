@@ -55,7 +55,10 @@ export function clearChatHistory(storageKey: string = 'chat-message-history'): v
 }
 
 export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryReturn {
-  const maxHistory = options?.maxHistory ?? 100;
+  const maxHistory =
+    typeof options?.maxHistory === 'number' && Number.isFinite(options.maxHistory)
+      ? Math.max(0, Math.floor(options.maxHistory))
+      : 100;
 
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
