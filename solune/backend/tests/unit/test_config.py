@@ -262,6 +262,7 @@ class TestConstants:
     def test_agent_display_names(self):
         assert "speckit.specify" in AGENT_DISPLAY_NAMES
         assert AGENT_DISPLAY_NAMES["speckit.specify"] == "Spec Kit - Specify"
+        assert AGENT_DISPLAY_NAMES["speckit.analyze"] == "Spec Kit - Analyze"
 
 
 class TestCacheKeyHelpers:

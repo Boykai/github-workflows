@@ -45,8 +45,8 @@ class TestBuiltinAgents:
         assert len(AgentsMixin.BUILTIN_AGENTS) > 0
 
     def test_builtin_agents_count(self):
-        """Should have exactly 7 built-in agents."""
-        assert len(AgentsMixin.BUILTIN_AGENTS) == 7
+        """Should have exactly 8 built-in agents."""
+        assert len(AgentsMixin.BUILTIN_AGENTS) == 8
 
     def test_all_agents_are_available_agent_instances(self):
         """Each entry should be an AvailableAgent."""
@@ -72,6 +72,7 @@ class TestBuiltinAgents:
             "speckit.plan",
             "speckit.tasks",
             "speckit.implement",
+            "speckit.analyze",
             "human",
         }
         actual = {a.slug for a in AgentsMixin.BUILTIN_AGENTS}
@@ -154,6 +155,17 @@ class TestFormatIssueContextAsPrompt:
         assert "## Output Instructions" in result
         assert "commit all changes" in result
 
+    def test_with_agent_name_speckit_analyze(self, service):
+        """speckit.analyze should remain read-only and avoid commit instructions."""
+        issue_data = {"title": "Test", "body": "Test body"}
+        result = service.format_issue_context_as_prompt(issue_data, agent_name="speckit.analyze")
+
+        assert "## Output Instructions" in result
+        assert "read-only" in result
+        assert "Do NOT commit files" in result
+        assert "analysis report" in result
+        assert "commit all changes" not in result
+
     def test_with_existing_pr(self, service):
         """Should include PR context when existing_pr is provided."""
         issue_data = {"title": "Test", "body": "Test body"}
@@ -169,6 +181,24 @@ class TestFormatIssueContextAsPrompt:
         assert "#42" in result
         assert "`feature/caching`" in result
         assert "Draft / Work In Progress" in result
+
+    def test_analyze_with_existing_pr_remains_read_only(self, service):
+        """Existing PR context should not turn speckit.analyze into a write agent."""
+        issue_data = {"title": "Test", "body": "Test body"}
+        existing_pr = {
+            "number": 42,
+            "head_ref": "feature/caching",
+            "url": "https://github.com/octocat/repo/pull/42",
+            "is_draft": True,
+        }
+        result = service.format_issue_context_as_prompt(
+            issue_data, agent_name="speckit.analyze", existing_pr=existing_pr
+        )
+
+        assert "`feature/caching`" in result
+        assert "read-only" in result
+        assert "Do NOT commit files" in result
+        assert "commit all changes" not in result
 
     def test_existing_pr_not_draft(self, service):
         """Non-draft PR should not show draft label."""
@@ -247,6 +277,19 @@ class TestTailorBodyForAgent:
 
         assert "`copilot`" in result
         assert "Implement the requested changes" in result
+
+    def test_speckit_analyze_agent(self, service):
+        """speckit.analyze should describe read-only analysis work."""
+        result = service.tailor_body_for_agent(
+            parent_body="Review the generated artifacts.",
+            agent_name="speckit.analyze",
+            parent_issue_number=21,
+            parent_title="Artifact Review",
+        )
+
+        assert "`speckit.analyze`" in result
+        assert "strictly read-only" in result
+        assert "analysis report" in result
 
     def test_unknown_agent_fallback(self, service):
         """Unknown agents should get a generic fallback description."""
