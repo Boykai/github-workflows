@@ -247,27 +247,29 @@ class Settings(BaseSettings):
             origins.append(origin)
         return origins
 
-    @property
-    def default_repo_owner(self) -> str | None:
-        """Get default repository owner."""
+    def _parse_default_repository(self) -> tuple[str | None, str | None]:
+        """Split ``default_repository`` into (owner, name).
+
+        Returns ``(None, None)`` when the value is unset, missing a ``/``,
+        or either component is empty (e.g. ``"/"``, ``"owner/"``, ``"/repo"``).
+        """
         if self.default_repository and "/" in self.default_repository:
             parts = self.default_repository.split("/", 1)
             owner = parts[0]
             name = parts[1] if len(parts) > 1 else ""
             if owner and name:
-                return owner
-        return None
+                return owner, name
+        return None, None
+
+    @property
+    def default_repo_owner(self) -> str | None:
+        """Get default repository owner."""
+        return self._parse_default_repository()[0]
 
     @property
     def default_repo_name(self) -> str | None:
         """Get default repository name."""
-        if self.default_repository and "/" in self.default_repository:
-            parts = self.default_repository.split("/", 1)
-            owner = parts[0]
-            name = parts[1] if len(parts) > 1 else ""
-            if owner and name:
-                return name
-        return None
+        return self._parse_default_repository()[1]
 
     @property
     def effective_cookie_secure(self) -> bool:
