@@ -2,7 +2,7 @@
  * Chat hook for managing messages and proposals.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME_MEDIUM } from '@/constants';
 import { chatApi } from '@/services/api';
@@ -22,10 +22,6 @@ const makeLocalMsg = (sender: 'user' | 'system', content: string): ChatMessage =
 export function useChat() {
   const queryClient = useQueryClient();
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
-  const localMessagesRef = useRef(localMessages);
-  useEffect(() => {
-    localMessagesRef.current = localMessages;
-  }, [localMessages]);
   const { isCommand, executeCommand } = useCommands();
   const proposals = useChatProposals();
 
@@ -110,7 +106,7 @@ export function useChat() {
 
   const retryMessage = useCallback(
     async (messageId: string) => {
-      const msg = localMessagesRef.current.find(
+      const msg = localMessages.find(
         (m) => m.message_id === messageId && m.status === 'failed',
       );
       if (!msg) return;
@@ -132,7 +128,7 @@ export function useChat() {
         );
       }
     },
-    [sendMutation],
+    [localMessages, sendMutation],
   );
 
   const confirmProposal = useCallback(

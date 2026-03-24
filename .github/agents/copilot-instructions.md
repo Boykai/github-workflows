@@ -259,8 +259,6 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - Consider Code Graph Context for relationship-heavy codebase exploration when simple file/search reads are not enough.
 
 ## Active Technologies
-- Python 3.12+ (backend), TypeScript 5.9 (frontend) + FastAPI, Pydantic v2, aiosqlite, httpx, github-copilot-sdk, cryptography (backend); React 19, TanStack Query v5, Vite 8, Tailwind CSS 4, Zod v4 (frontend) (002-bug-basher)
-- SQLite with WAL mode via aiosqlite (002-bug-basher)
 
 Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
 
