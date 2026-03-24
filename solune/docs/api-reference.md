@@ -73,6 +73,7 @@ Send `#agent <description> #<status-name>` via chat or Signal to create a custom
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/chores/{project_id}/templates` | List available chore templates from `.github/ISSUE_TEMPLATE/` |
+| GET | `/chores/{project_id}/chore-names` | List all chore names for a project (unpaginated) |
 | GET | `/chores/{project_id}` | List all chores for a project |
 | POST | `/chores/{project_id}` | Create a new chore (generates template, commits via PR, creates tracking issue) |
 | PATCH | `/chores/{project_id}/{chore_id}` | Update a chore (schedule, status) |
@@ -234,6 +235,7 @@ App lifecycle management for generated applications.
 | DELETE | `/apps/{app_name}` | Delete an app |
 | POST | `/apps/{app_name}/start` | Start an app |
 | POST | `/apps/{app_name}/stop` | Stop an app |
+| GET | `/apps/{app_name}/status` | Get current runtime status of an app |
 
 ## Activity
 

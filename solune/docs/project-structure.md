@@ -70,7 +70,7 @@ solune/
 │   │   │   ├── csrf.py           #   CSRFMiddleware — double-submit cookie CSRF protection
 │   │   │   ├── rate_limit.py     #   RateLimitMiddleware — per-user request rate limiting
 │   │   │   └── request_id.py     #   RequestIDMiddleware for request tracing
-│   │   ├── migrations/           # SQL schema migrations (27 SQL files, 001–022, auto-run)
+│   │   ├── migrations/           # SQL migration files 023–037 (16 SQL files, auto-run at startup)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── agent_creator.py  #   CreationStep, AgentPreview, AgentCreationState
@@ -148,7 +148,7 @@ solune/
 │   └── tests/
 │       ├── conftest.py           # Shared test fixtures
 │       ├── helpers/              # Test helper utilities
-│       ├── unit/                 # 59 unit test files
+│       ├── unit/                 # 144 unit test files
 │       ├── integration/          # Integration tests
 │       └── test_api_e2e.py       # API end-to-end tests
 │
