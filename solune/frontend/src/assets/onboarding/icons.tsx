@@ -137,6 +137,7 @@ export function TimelineStarsIcon({ className }: IconProps) {
     </svg>
   );
 }
+/** Knowledge base — open book with stars */
 export function BookStarsIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
