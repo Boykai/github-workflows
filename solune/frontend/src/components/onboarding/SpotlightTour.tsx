@@ -1,6 +1,6 @@
 /**
  * SpotlightTour — orchestrator that composes SpotlightOverlay + SpotlightTooltip.
- * Defines the 9-step tour, manages target element detection, rect computation,
+ * Defines the 14-step tour, manages target element detection, rect computation,
  * keyboard shortcuts, sidebar auto-expand, and aria-live announcements.
  */
 
@@ -19,6 +19,7 @@ import {
   CelestialHandIcon,
   SunMoonToggleIcon,
   BookStarsIcon,
+  TimelineStarsIcon,
 } from '@/assets/onboarding/icons';
 
 const TOUR_STEPS: TourStep[] = [
@@ -124,6 +125,14 @@ const TOUR_STEPS: TourStep[] = [
     title: 'Apps',
     description: 'Create and manage applications — spin up new repos, link external ones, and monitor app status.',
     icon: ConstellationGridIcon,
+    placement: 'right',
+  },
+  {
+    id: 14,
+    targetSelector: 'activity-link',
+    title: 'Activity',
+    description: 'Track recent actions, events, and changes across your workspace in a unified timeline.',
+    icon: TimelineStarsIcon,
     placement: 'right',
   },
 ];

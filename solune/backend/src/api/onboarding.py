@@ -29,7 +29,7 @@ class OnboardingState(BaseModel):
 class OnboardingStateUpdate(BaseModel):
     """Request body for updating onboarding state."""
 
-    current_step: int = Field(..., ge=0, le=10)
+    current_step: int = Field(..., ge=0, le=13)
     completed: bool = False
     dismissed: bool = False
 

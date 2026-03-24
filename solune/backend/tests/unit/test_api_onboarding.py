@@ -4,7 +4,7 @@ Covers:
 - GET /api/v1/onboarding/state — returns defaults for new users, stored state for existing
 - PUT /api/v1/onboarding/state — create, update, complete, dismiss flows
 - UPSERT logic — COALESCE preserves existing timestamps
-- Validation — current_step bounds (0-10), required fields
+- Validation — current_step bounds (0-13), required fields
 """
 
 from __future__ import annotations
@@ -185,9 +185,9 @@ class TestOnboardingDismissal:
 
 
 class TestOnboardingValidation:
-    @pytest.mark.parametrize("step", [-1, 11, 100])
+    @pytest.mark.parametrize("step", [-1, 14, 100])
     async def test_invalid_step_rejected(self, client: AsyncClient, step: int):
-        """Steps outside 0-10 range are rejected with 422."""
+        """Steps outside 0-13 range are rejected with 422."""
         resp = await client.put(
             "/api/v1/onboarding/state",
             json={"current_step": step, "completed": False, "dismissed": False},
@@ -202,11 +202,21 @@ class TestOnboardingValidation:
         )
         assert resp.status_code == 422
 
-    @pytest.mark.parametrize("step", [0, 5, 10])
+    @pytest.mark.parametrize("step", [0, 5, 13])
     async def test_valid_step_accepted(self, client: AsyncClient, step: int):
-        """Boundary values 0 and 10 are accepted."""
+        """Boundary values 0 and 13 are accepted."""
         resp = await client.put(
             "/api/v1/onboarding/state",
             json={"current_step": step, "completed": False, "dismissed": False},
         )
         assert resp.status_code == 200
+
+    @pytest.mark.parametrize("step", [11, 12, 13])
+    async def test_step_boundary_11_to_13(self, client: AsyncClient, step: int):
+        """Steps 11-13 are accepted after expanding the validator from le=10 to le=13."""
+        resp = await client.put(
+            "/api/v1/onboarding/state",
+            json={"current_step": step, "completed": False, "dismissed": False},
+        )
+        data = assert_api_success(resp)
+        assert data["current_step"] == step
