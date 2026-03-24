@@ -130,7 +130,7 @@ export function Sidebar({
               '/chores': 'chores-link',
               '/settings': 'settings-link',
               '/apps': 'apps-link',
-              '/help': 'help-link',
+              '/activity': 'activity-link',
             }[route.path] ?? undefined}
             className={({ isActive }) =>
               `flex items-center gap-3 rounded-full px-3 py-2.5 text-sm font-medium transition-all ${

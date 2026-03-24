@@ -29,7 +29,7 @@
 
 **Purpose**: Verify existing code state and confirm migration numbering before making changes.
 
-- [ ] T001 Confirm next migration sequence number is 038 by listing files in solune/backend/src/migrations/ and verifying 037_phase8_recovery_log.sql is the latest
+- [x] T001 Confirm next migration sequence number is 038 by listing files in solune/backend/src/migrations/ and verifying 037_phase8_recovery_log.sql is the latest
 
 ---
 
@@ -39,8 +39,8 @@
 
 **⚠️ CRITICAL**: US1 test verification and US2 frontend tour changes cannot succeed until this phase is complete.
 
-- [ ] T002 [P] Update `OnboardingStateUpdate.current_step` Pydantic validator from `le=10` to `le=13` in solune/backend/src/api/onboarding.py (FR-001)
-- [ ] T003 [P] Create DB migration solune/backend/src/migrations/038_onboarding_step_limit.sql that rebuilds `onboarding_tour_state` table with `CHECK (current_step >= 0 AND current_step <= 13)` using the standard SQLite table-rebuild pattern: create temp table → copy data → drop original → recreate with new constraint → copy data back → drop temp (FR-002)
+- [x] T002 [P] Update `OnboardingStateUpdate.current_step` Pydantic validator from `le=10` to `le=13` in solune/backend/src/api/onboarding.py (FR-001)
+- [x] T003 [P] Create DB migration solune/backend/src/migrations/038_onboarding_step_limit.sql that rebuilds `onboarding_tour_state` table with `CHECK (current_step >= 0 AND current_step <= 13)` using the standard SQLite table-rebuild pattern: create temp table → copy data → drop original → recreate with new constraint → copy data back → drop temp (FR-002)
 
 **Checkpoint**: Backend validation now accepts steps 0–13; database constraint aligned with Pydantic validator
 
@@ -56,10 +56,10 @@
 
 ### Tests for User Story 1
 
-- [ ] T004 [US1] Update `test_valid_step_accepted` parametrization from `[0, 5, 10]` to `[0, 5, 13]` in solune/backend/tests/unit/test_api_onboarding.py
-- [ ] T005 [US1] Update `test_invalid_step_rejected` parametrization from `[-1, 11, 100]` to `[-1, 14, 100]` in solune/backend/tests/unit/test_api_onboarding.py
-- [ ] T006 [US1] Add new parametrized test `test_step_boundary_11_to_13` covering steps 11, 12, 13 specifically to verify the expanded boundary in solune/backend/tests/unit/test_api_onboarding.py
-- [ ] T007 [US1] Run `pytest tests/unit/test_api_onboarding.py -v` from solune/backend/ and verify all step boundary tests pass
+- [x] T004 [US1] Update `test_valid_step_accepted` parametrization from `[0, 5, 10]` to `[0, 5, 13]` in solune/backend/tests/unit/test_api_onboarding.py
+- [x] T005 [US1] Update `test_invalid_step_rejected` parametrization from `[-1, 11, 100]` to `[-1, 14, 100]` in solune/backend/tests/unit/test_api_onboarding.py
+- [x] T006 [US1] Add new parametrized test `test_step_boundary_11_to_13` covering steps 11, 12, 13 specifically to verify the expanded boundary in solune/backend/tests/unit/test_api_onboarding.py
+- [x] T007 [US1] Run `pytest tests/unit/test_api_onboarding.py -v` from solune/backend/ and verify all step boundary tests pass
 
 **Checkpoint**: Backend accepts steps 0–13, rejects step 14+, boundary steps 11–13 have dedicated coverage — all tests green
 
@@ -73,14 +73,14 @@
 
 ### Tests for User Story 2
 
-- [ ] T008 [US2] Update `totalSteps` assertion from `13` to `14` and update completion test loop to iterate through all 14 steps (index 0–13) in solune/frontend/src/hooks/useOnboarding.test.tsx
+- [x] T008 [US2] Update `totalSteps` assertion from `13` to `14` and update completion test loop to iterate through all 14 steps (index 0–13) in solune/frontend/src/hooks/useOnboarding.test.tsx
 
 ### Implementation for User Story 2
 
-- [ ] T009 [P] [US2] Create `TimelineStarsIcon` SVG component (24×24 viewBox, `currentColor` stroke, `strokeWidth={1.5}`, celestial timeline theme with stars at intervals) in solune/frontend/src/assets/onboarding/icons.tsx and export it (FR-006)
-- [ ] T010 [P] [US2] Add `"/activity": "activity-link"` to the Sidebar `data-tour-step` dynamic mapping object in solune/frontend/src/layout/Sidebar.tsx (FR-004)
-- [ ] T011 [US2] Add 14th `TOUR_STEPS` array entry with `{ id: 14, targetSelector: "activity-link", title: "Activity", description: <activity description>, icon: TimelineStarsIcon, placement: "right" }` in solune/frontend/src/components/onboarding/SpotlightTour.tsx — import `TimelineStarsIcon` from icons.tsx (FR-003)
-- [ ] T012 [US2] Update `TOTAL_STEPS` constant from `13` to `14` in solune/frontend/src/hooks/useOnboarding.tsx (FR-005)
+- [x] T009 [P] [US2] Create `TimelineStarsIcon` SVG component (24×24 viewBox, `currentColor` stroke, `strokeWidth={1.5}`, celestial timeline theme with stars at intervals) in solune/frontend/src/assets/onboarding/icons.tsx and export it (FR-006)
+- [x] T010 [P] [US2] Add `"/activity": "activity-link"` to the Sidebar `data-tour-step` dynamic mapping object in solune/frontend/src/layout/Sidebar.tsx (FR-004)
+- [x] T011 [US2] Add 14th `TOUR_STEPS` array entry with `{ id: 14, targetSelector: "activity-link", title: "Activity", description: <activity description>, icon: TimelineStarsIcon, placement: "right" }` in solune/frontend/src/components/onboarding/SpotlightTour.tsx — import `TimelineStarsIcon` from icons.tsx (FR-003)
+- [x] T012 [US2] Update `TOTAL_STEPS` constant from `13` to `14` in solune/frontend/src/hooks/useOnboarding.tsx (FR-005)
 
 **Checkpoint**: Tour includes Activity step at index 13, `totalSteps=14`, sidebar has `data-tour-step="activity-link"`, `useOnboarding.test.tsx` passes
 
@@ -94,8 +94,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T013 [US3] Add Activity entry to `FEATURE_GUIDES` array with `{ title: "Activity", description: <activity description>, icon: Clock, href: "/activity" }` in solune/frontend/src/pages/HelpPage.tsx — import `Clock` from `lucide-react` if not already imported (FR-007)
-- [ ] T014 [US3] Verify `FEATURE_GUIDES` array contains exactly 9 entries by counting entries in solune/frontend/src/pages/HelpPage.tsx
+- [x] T013 [US3] Add Activity entry to `FEATURE_GUIDES` array with `{ title: "Activity", description: <activity description>, icon: Clock, href: "/activity" }` in solune/frontend/src/pages/HelpPage.tsx — import `Clock` from `lucide-react` if not already imported (FR-007)
+- [x] T014 [US3] Verify `FEATURE_GUIDES` array contains exactly 9 entries by counting entries in solune/frontend/src/pages/HelpPage.tsx
 
 **Checkpoint**: Help page renders 9 feature guides including Activity with Clock icon
 
@@ -109,8 +109,8 @@
 
 ### Implementation for User Story 4
 
-- [ ] T015 [US4] Audit all 12 existing FAQ entries against current app behavior and correct any inaccuracies in solune/frontend/src/pages/HelpPage.tsx (FR-008)
-- [ ] T016 [US4] Add 4 new FAQ entries to existing categories in solune/frontend/src/pages/HelpPage.tsx using the `{category}-{number}` ID pattern (FR-009, FR-011):
+- [x] T015 [US4] Audit all 12 existing FAQ entries against current app behavior and correct any inaccuracies in solune/frontend/src/pages/HelpPage.tsx (FR-008)
+- [x] T016 [US4] Add 4 new FAQ entries to existing categories in solune/frontend/src/pages/HelpPage.tsx using the `{category}-{number}` ID pattern (FR-009, FR-011):
   - `"What is the Activity page?"` under `getting-started` category
   - `"How do I create a new app?"` under `settings-integration` category
   - `"What are MCP tools?"` under `settings-integration` category
@@ -128,7 +128,7 @@
 
 ### Implementation for User Story 5
 
-- [ ] T017 [US5] Remove the `"/help": "help-link"` entry from the `data-tour-step` dynamic mapping object in solune/frontend/src/layout/Sidebar.tsx (FR-010)
+- [x] T017 [US5] Remove the `"/help": "help-link"` entry from the `data-tour-step` dynamic mapping object in solune/frontend/src/layout/Sidebar.tsx (FR-010)
 
 **Checkpoint**: Sidebar has no dead `data-tour-step` mappings for routes not in `NAV_ROUTES`
 
@@ -138,11 +138,11 @@
 
 **Purpose**: Full verification suite, lint, typecheck, and manual verification.
 
-- [ ] T018 [P] Run `ruff format --check src/ tests/` and `ruff check src/ tests/` from solune/backend/ — fix any issues (FR-012)
-- [ ] T019 [P] Run `pyright src/` from solune/backend/ — fix any type errors (FR-012)
-- [ ] T020 [P] Run `npx vitest run` from solune/frontend/ — all tests pass including updated useOnboarding.test.tsx (FR-012)
-- [ ] T021 [P] Run `npx tsc --noEmit` from solune/frontend/ — zero type errors (FR-012)
-- [ ] T022 Run quickstart.md manual verification checkpoints: tour replays correctly with Activity step highlighted; Help page renders 9 feature guides and 16 FAQ entries
+- [x] T018 [P] Run `ruff format --check src/ tests/` and `ruff check src/ tests/` from solune/backend/ — fix any issues (FR-012)
+- [x] T019 [P] Run `pyright src/` from solune/backend/ — fix any type errors (FR-012)
+- [x] T020 [P] Run `npx vitest run` from solune/frontend/ — all tests pass including updated useOnboarding.test.tsx (FR-012)
+- [x] T021 [P] Run `npx tsc --noEmit` from solune/frontend/ — zero type errors (FR-012)
+- [x] T022 Run quickstart.md manual verification checkpoints: tour replays correctly with Activity step highlighted; Help page renders 9 feature guides and 16 FAQ entries
 
 ---
 
