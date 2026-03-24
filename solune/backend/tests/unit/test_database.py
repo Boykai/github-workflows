@@ -350,8 +350,14 @@ class TestCheckIntegrity:
         await result.close()
 
     async def test_execute_exception_treated_as_failed(self, raw_db):
-        """If PRAGMA integrity_check itself throws, treat as failure."""
-        with patch.object(raw_db, "execute", side_effect=Exception("disk I/O error")):
+        """If PRAGMA integrity_check throws a DatabaseError, treat as failure."""
+        with patch.object(raw_db, "execute", side_effect=aiosqlite.DatabaseError("disk I/O error")):
             # For in-memory, should still return the db
             result = await _check_integrity(raw_db, ":memory:", is_in_memory=True)
         assert result is raw_db
+
+    async def test_unexpected_exception_propagates(self, raw_db):
+        """Non-database exceptions in integrity check must not be silently caught."""
+        with patch.object(raw_db, "execute", side_effect=TypeError("unexpected type")):
+            with pytest.raises(TypeError, match="unexpected type"):
+                await _check_integrity(raw_db, ":memory:", is_in_memory=True)

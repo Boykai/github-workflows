@@ -187,7 +187,8 @@ class TestGetBoardData:
             assert resp.status_code == 200
 
             # Verify cache.set was called with a data_hash keyword argument
-            assert mock_cache.set.called
+            assert mock_cache.set.called, "cache.set was never called"
+            mock_cache.set.assert_called()
             # Search call_args_list for the board cache set call with data_hash,
             # so the test remains robust if the endpoint adds more cache writes.
             data_hash = None

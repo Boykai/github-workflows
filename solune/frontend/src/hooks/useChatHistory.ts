@@ -67,11 +67,8 @@ export function useChatHistory(options?: UseChatHistoryOptions): UseChatHistoryR
     (message: string) => {
       setHistory((prev) => {
         const next = [...prev, message];
-        // Enforce cap by removing oldest entries
-        while (next.length > maxHistory) {
-          next.shift();
-        }
-        return next;
+        // Enforce cap by keeping only the most recent entries
+        return next.length > maxHistory ? next.slice(next.length - maxHistory) : next;
       });
       setHistoryIndex(-1);
     },

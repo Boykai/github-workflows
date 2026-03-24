@@ -251,16 +251,22 @@ class Settings(BaseSettings):
     def default_repo_owner(self) -> str | None:
         """Get default repository owner."""
         if self.default_repository and "/" in self.default_repository:
-            owner = self.default_repository.split("/")[0]
-            return owner or None
+            parts = self.default_repository.split("/", 1)
+            owner = parts[0]
+            name = parts[1] if len(parts) > 1 else ""
+            if owner and name:
+                return owner
         return None
 
     @property
     def default_repo_name(self) -> str | None:
         """Get default repository name."""
         if self.default_repository and "/" in self.default_repository:
-            name = self.default_repository.split("/")[1]
-            return name or None
+            parts = self.default_repository.split("/", 1)
+            owner = parts[0]
+            name = parts[1] if len(parts) > 1 else ""
+            if owner and name:
+                return name
         return None
 
     @property
