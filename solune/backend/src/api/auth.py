@@ -5,7 +5,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Cookie, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from slowapi.util import get_remote_address
 
 from src.constants import SESSION_COOKIE_NAME
@@ -184,7 +184,7 @@ async def logout(
 class DevLoginRequest(BaseModel):
     """Request body for dev-login endpoint."""
 
-    github_token: str
+    github_token: str = Field(..., min_length=1, max_length=255)
 
 
 @router.post("/dev-login")

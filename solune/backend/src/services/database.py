@@ -99,7 +99,7 @@ async def _check_integrity(
         cursor = await db.execute("PRAGMA integrity_check;")
         result = await cursor.fetchone()
         status = result[0] if result else "unknown"
-    except Exception:
+    except (aiosqlite.DatabaseError, aiosqlite.OperationalError):
         logger.exception("integrity_check query failed for %s", db_path)
         status = "error"
 

@@ -41,3 +41,12 @@ class TestCSPMiddleware:
         assert "base-uri 'self'" in policy
         assert "form-action 'self'" in policy
         assert "connect-src 'self' wss:" in policy
+
+    def test_adds_strict_transport_security_header(self):
+        """Responses must include the HSTS header for HTTPS enforcement."""
+        client = _make_client()
+        response = client.get("/test")
+
+        assert response.status_code == 200
+        assert "Strict-Transport-Security" in response.headers
+        assert "max-age=31536000" in response.headers["Strict-Transport-Security"]

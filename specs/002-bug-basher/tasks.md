@@ -27,9 +27,9 @@
 
 **Purpose**: Establish a clean baseline and a complete repository review inventory before the bug-bash passes begin.
 
-- [ ] T001 Run the backend baseline verification from `specs/002-bug-basher/quickstart.md` in `solune/backend/` (`uv sync --dev`, `uv run pytest tests/ -x --timeout=30`, `uv run ruff check src/ tests/`, `uv run ruff format --check src/ tests/`) and record any pre-existing failures before modifying source files
-- [ ] T002 Run the frontend baseline verification from `specs/002-bug-basher/quickstart.md` in `solune/frontend/` (`npm ci`, `npm run lint`, `npm run type-check`, `npm run test`) and record any pre-existing failures before modifying source files
-- [ ] T003 Inventory the review targets under `solune/backend/src/`, `solune/backend/tests/`, `solune/frontend/src/`, `solune/frontend/src/__tests__/`, `.github/workflows/`, and repository-root config files so every file is assigned to a bug-bash pass
+- [x] T001 Run the backend baseline verification from `specs/002-bug-basher/quickstart.md` in `solune/backend/` (`uv sync --dev`, `uv run pytest tests/ -x --timeout=30`, `uv run ruff check src/ tests/`, `uv run ruff format --check src/ tests/`) and record any pre-existing failures before modifying source files
+- [x] T002 Run the frontend baseline verification from `specs/002-bug-basher/quickstart.md` in `solune/frontend/` (`npm ci`, `npm run lint`, `npm run type-check`, `npm run test`) and record any pre-existing failures before modifying source files
+- [x] T003 Inventory the review targets under `solune/backend/src/`, `solune/backend/tests/`, `solune/frontend/src/`, `solune/frontend/src/__tests__/`, `.github/workflows/`, and repository-root config files so every file is assigned to a bug-bash pass
 
 ---
 
@@ -39,9 +39,9 @@
 
 **⚠️ CRITICAL**: No user-story work should begin until the findings tracker, regression-test placement, and category-first pass plan are defined.
 
-- [ ] T004 Build a working findings tracker from `specs/002-bug-basher/data-model.md` and `specs/002-bug-basher/contracts/bug-report.yaml` so every fix or `TODO(bug-bash)` records file, lines, category, status, commit, and regression-test reference
-- [ ] T005 Define regression-test destinations in matching modules under `solune/backend/tests/` and `solune/frontend/src/__tests__/`; only fall back to `solune/backend/tests/test_regression_bugfixes.py` when no module-specific suite exists
-- [ ] T006 Map the category-first review order from `specs/002-bug-basher/research.md` and `specs/002-bug-basher/plan.md` to concrete sweeps for `solune/backend/src/`, `solune/frontend/src/`, test suites, scripts, and config so later phases can execute without missing files
+- [x] T004 Build a working findings tracker from `specs/002-bug-basher/data-model.md` and `specs/002-bug-basher/contracts/bug-report.yaml` so every fix or `TODO(bug-bash)` records file, lines, category, status, commit, and regression-test reference
+- [x] T005 Define regression-test destinations in matching modules under `solune/backend/tests/` and `solune/frontend/src/__tests__/`; only fall back to `solune/backend/tests/test_regression_bugfixes.py` when no module-specific suite exists
+- [x] T006 Map the category-first review order from `specs/002-bug-basher/research.md` and `specs/002-bug-basher/plan.md` to concrete sweeps for `solune/backend/src/`, `solune/frontend/src/`, test suites, scripts, and config so later phases can execute without missing files
 
 **Checkpoint**: Foundation ready — every future fix has a target area, a regression-test destination, and a reporting slot.
 
@@ -55,16 +55,16 @@
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Add or extend backend security regression tests in matching files under `solune/backend/tests/` for auth, CSRF, secret-handling, and input-validation bugs before patching the corresponding files in `solune/backend/src/`
-- [ ] T008 [P] [US1] Add or extend frontend security regression tests in matching files under `solune/frontend/src/__tests__/` for XSS, unsafe URL handling, and client-side validation bugs before patching the corresponding files in `solune/frontend/src/`
+- [x] T007 [P] [US1] Add or extend backend security regression tests in matching files under `solune/backend/tests/` for auth, CSRF, secret-handling, and input-validation bugs before patching the corresponding files in `solune/backend/src/`
+- [x] T008 [P] [US1] Add or extend frontend security regression tests in matching files under `solune/frontend/src/__tests__/` for XSS, unsafe URL handling, and client-side validation bugs before patching the corresponding files in `solune/frontend/src/`
 
 ### Implementation for User Story 1
 
-- [ ] T009 [P] [US1] Audit and fix authentication and authorization flaws in `solune/backend/src/api/auth.py`, `solune/backend/src/services/github_auth.py`, `solune/backend/src/middleware/admin_guard.py`, and `solune/backend/src/middleware/csrf.py`; add `TODO(bug-bash)` comments for ambiguous cases
-- [ ] T010 [P] [US1] Audit and fix secret, token, encryption, and insecure-default issues in `solune/backend/src/config.py`, `solune/backend/src/services/encryption.py`, `solune/backend/src/services/session_store.py`, `solune/backend/src/main.py`, and related repository-root environment/config files
-- [ ] T011 [P] [US1] Audit and fix backend input-validation and injection risks across route handlers in `solune/backend/src/api/` and request/response models in `solune/backend/src/models/`, including webhook and SQL-adjacent code paths
-- [ ] T012 [P] [US1] Audit and fix frontend XSS, markdown-rendering, and unsafe navigation risks in dynamic UI files under `solune/frontend/src/components/`, `solune/frontend/src/pages/`, and helpers under `solune/frontend/src/lib/`
-- [ ] T013 [US1] Run security validation from `solune/backend/` and `solune/frontend/` (`uv run bandit -r src/ -ll -ii`, `uv run pip-audit`, `npm audit --audit-level=high`, plus affected regression tests) and update the findings tracker with every fixed or flagged security item
+- [x] T009 [P] [US1] Audit and fix authentication and authorization flaws in `solune/backend/src/api/auth.py`, `solune/backend/src/services/github_auth.py`, `solune/backend/src/middleware/admin_guard.py`, and `solune/backend/src/middleware/csrf.py`; add `TODO(bug-bash)` comments for ambiguous cases
+- [x] T010 [P] [US1] Audit and fix secret, token, encryption, and insecure-default issues in `solune/backend/src/config.py`, `solune/backend/src/services/encryption.py`, `solune/backend/src/services/session_store.py`, `solune/backend/src/main.py`, and related repository-root environment/config files
+- [x] T011 [P] [US1] Audit and fix backend input-validation and injection risks across route handlers in `solune/backend/src/api/` and request/response models in `solune/backend/src/models/`, including webhook and SQL-adjacent code paths
+- [x] T012 [P] [US1] Audit and fix frontend XSS, markdown-rendering, and unsafe navigation risks in dynamic UI files under `solune/frontend/src/components/`, `solune/frontend/src/pages/`, and helpers under `solune/frontend/src/lib/`
+- [x] T013 [US1] Run security validation from `solune/backend/` and `solune/frontend/` (`uv run bandit -r src/ -ll -ii`, `uv run pip-audit`, `npm audit --audit-level=high`, plus affected regression tests) and update the findings tracker with every fixed or flagged security item
 
 **Checkpoint**: Security-critical paths are fixed or explicitly flagged, and security validation is clean for all changed files.
 
@@ -78,15 +78,15 @@
 
 ### Tests for User Story 2
 
-- [ ] T014 [P] [US2] Add or extend backend regression tests in matching `solune/backend/tests/` modules for unhandled exceptions, resource leaks, null access, and state-transition bugs before patching the corresponding files in `solune/backend/src/`
-- [ ] T015 [P] [US2] Add or extend frontend regression tests in matching `solune/frontend/src/__tests__/` modules for async state, cleanup, race, and control-flow bugs before patching the corresponding files in `solune/frontend/src/`
+- [x] T014 [P] [US2] Add or extend backend regression tests in matching `solune/backend/tests/` modules for unhandled exceptions, resource leaks, null access, and state-transition bugs before patching the corresponding files in `solune/backend/src/`
+- [x] T015 [P] [US2] Add or extend frontend regression tests in matching `solune/frontend/src/__tests__/` modules for async state, cleanup, race, and control-flow bugs before patching the corresponding files in `solune/frontend/src/`
 
 ### Implementation for User Story 2
 
-- [ ] T016 [P] [US2] Audit and fix exception handling, None/type guards, and resource cleanup in `solune/backend/src/services/`, `solune/backend/src/api/`, `solune/backend/src/services/database.py`, and file-handling utilities such as `solune/backend/src/services/template_files.py`
-- [ ] T017 [P] [US2] Audit and fix backend logic and state-transition bugs in `solune/backend/src/services/workflow_orchestrator/`, `solune/backend/src/services/copilot_polling/`, `solune/backend/src/services/pipelines/`, and adjacent coordinator/service modules
-- [ ] T018 [P] [US2] Audit and fix frontend runtime and logic bugs in `solune/frontend/src/hooks/`, `solune/frontend/src/context/`, `solune/frontend/src/services/`, and stateful pages/components under `solune/frontend/src/pages/` and `solune/frontend/src/components/`
-- [ ] T019 [US2] Run targeted runtime/logic validation from `solune/backend/` and `solune/frontend/` (affected `pytest`/`vitest` suites plus smoke paths from `specs/002-bug-basher/quickstart.md`) and update the findings tracker with every fixed or flagged runtime/logic item
+- [x] T016 [P] [US2] Audit and fix exception handling, None/type guards, and resource cleanup in `solune/backend/src/services/`, `solune/backend/src/api/`, `solune/backend/src/services/database.py`, and file-handling utilities such as `solune/backend/src/services/template_files.py`
+- [x] T017 [P] [US2] Audit and fix backend logic and state-transition bugs in `solune/backend/src/services/workflow_orchestrator/`, `solune/backend/src/services/copilot_polling/`, `solune/backend/src/services/pipelines/`, and adjacent coordinator/service modules
+- [x] T018 [P] [US2] Audit and fix frontend runtime and logic bugs in `solune/frontend/src/hooks/`, `solune/frontend/src/context/`, `solune/frontend/src/services/`, and stateful pages/components under `solune/frontend/src/pages/` and `solune/frontend/src/components/`
+- [x] T019 [US2] Run targeted runtime/logic validation from `solune/backend/` and `solune/frontend/` (affected `pytest`/`vitest` suites plus smoke paths from `specs/002-bug-basher/quickstart.md`) and update the findings tracker with every fixed or flagged runtime/logic item
 
 **Checkpoint**: Runtime crashes, cleanup leaks, and logic defects uncovered in the P2 sweep are fixed or explicitly flagged.
 
@@ -100,14 +100,14 @@
 
 ### Tests for User Story 3
 
-- [ ] T020 [P] [US3] Add focused failing regression tests in affected `solune/backend/tests/` modules for bugs exposed by mock leaks, dead assertions, and untested paths before correcting the existing fixtures or assertions
-- [ ] T021 [P] [US3] Add focused failing regression tests in affected `solune/frontend/src/__tests__/` modules for stale snapshots, missing assertions, and incorrectly passing UI tests before correcting the existing test code
+- [x] T020 [P] [US3] Add focused failing regression tests in affected `solune/backend/tests/` modules for bugs exposed by mock leaks, dead assertions, and untested paths before correcting the existing fixtures or assertions
+- [x] T021 [P] [US3] Add focused failing regression tests in affected `solune/frontend/src/__tests__/` modules for stale snapshots, missing assertions, and incorrectly passing UI tests before correcting the existing test code
 
 ### Implementation for User Story 3
 
-- [ ] T022 [P] [US3] Audit and fix backend test-fixture and helper leaks in `solune/backend/tests/conftest.py`, `solune/backend/tests/unit/`, `solune/backend/tests/integration/`, `solune/backend/tests/property/`, `solune/backend/tests/fuzz/`, `solune/backend/tests/chaos/`, and `solune/backend/tests/concurrency/`
-- [ ] T023 [P] [US3] Audit and fix frontend test-quality issues in `solune/frontend/src/__tests__/` and colocated `solune/frontend/src/**/*.test.ts` or `solune/frontend/src/**/*.test.tsx` files, replacing assertions that pass for the wrong reason and adding missing edge-case checks
-- [ ] T024 [US3] Run coverage-oriented validation from `solune/backend/` and `solune/frontend/` (`uv run pytest tests/unit/ --cov=src --cov-report=term-missing --timeout=30`, `npm run test:coverage`) and update the findings tracker with each test-quality fix
+- [x] T022 [P] [US3] Audit and fix backend test-fixture and helper leaks in `solune/backend/tests/conftest.py`, `solune/backend/tests/unit/`, `solune/backend/tests/integration/`, `solune/backend/tests/property/`, `solune/backend/tests/fuzz/`, `solune/backend/tests/chaos/`, and `solune/backend/tests/concurrency/`
+- [x] T023 [P] [US3] Audit and fix frontend test-quality issues in `solune/frontend/src/__tests__/` and colocated `solune/frontend/src/**/*.test.ts` or `solune/frontend/src/**/*.test.tsx` files, replacing assertions that pass for the wrong reason and adding missing edge-case checks
+- [x] T024 [US3] Run coverage-oriented validation from `solune/backend/` and `solune/frontend/` (`uv run pytest tests/unit/ --cov=src --cov-report=term-missing --timeout=30`, `npm run test:coverage`) and update the findings tracker with each test-quality fix
 
 **Checkpoint**: Every bug fixed so far has a trustworthy regression test, and weak or misleading tests have been corrected.
 
@@ -121,14 +121,14 @@
 
 ### Tests for User Story 4
 
-- [ ] T025 [P] [US4] Add or extend backend regression tests in matching `solune/backend/tests/` modules for dead-code removal, surfaced error handling, and configurable-default fixes before patching the corresponding files in `solune/backend/src/`
-- [ ] T026 [P] [US4] Add or extend frontend regression tests in matching `solune/frontend/src/__tests__/` modules for surfaced error messages, removed unreachable UI branches, and hardcoded-value cleanup before patching the corresponding files in `solune/frontend/src/`
+- [x] T025 [P] [US4] Add or extend backend regression tests in matching `solune/backend/tests/` modules for dead-code removal, surfaced error handling, and configurable-default fixes before patching the corresponding files in `solune/backend/src/`
+- [x] T026 [P] [US4] Add or extend frontend regression tests in matching `solune/frontend/src/__tests__/` modules for surfaced error messages, removed unreachable UI branches, and hardcoded-value cleanup before patching the corresponding files in `solune/frontend/src/`
 
 ### Implementation for User Story 4
 
-- [ ] T027 [P] [US4] Audit and fix backend code-quality issues in `solune/backend/src/`, `solune/backend/tests/`, `.github/workflows/`, and repository-root scripts/config files; only consolidate duplication when it does not change public APIs
-- [ ] T028 [P] [US4] Audit and fix frontend code-quality issues in `solune/frontend/src/`, `solune/frontend/src/__tests__/`, and frontend config/scripts under `solune/frontend/`
-- [ ] T029 [US4] Run code-quality validation from `solune/backend/` and `solune/frontend/` (`uv run ruff check src/ tests/`, `uv run ruff format --check src/ tests/`, `uv run pyright src/`, `npm run lint`, `npm run type-check`) and update the findings tracker with every fixed or flagged code-quality item
+- [x] T027 [P] [US4] Audit and fix backend code-quality issues in `solune/backend/src/`, `solune/backend/tests/`, `.github/workflows/`, and repository-root scripts/config files; only consolidate duplication when it does not change public APIs
+- [x] T028 [P] [US4] Audit and fix frontend code-quality issues in `solune/frontend/src/`, `solune/frontend/src/__tests__/`, and frontend config/scripts under `solune/frontend/`
+- [x] T029 [US4] Run code-quality validation from `solune/backend/` and `solune/frontend/` (`uv run ruff check src/ tests/`, `uv run ruff format --check src/ tests/`, `uv run pyright src/`, `npm run lint`, `npm run type-check`) and update the findings tracker with every fixed or flagged code-quality item
 
 **Checkpoint**: Remaining code-quality findings are resolved or flagged without altering public interfaces or introducing new dependencies.
 
@@ -142,9 +142,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T030 [US5] Compile the final `BugFinding` inventory from all modified files under `solune/backend/`, `solune/frontend/`, `.github/`, and repository-root config paths using the schema in `specs/002-bug-basher/contracts/bug-report.yaml`
-- [ ] T031 [US5] Verify every ✅ Fixed finding links to a regression test in `solune/backend/tests/` or `solune/frontend/src/__tests__/` and every ⚠️ Flagged finding links to a `TODO(bug-bash)` comment in the affected source file
-- [ ] T032 [US5] Produce the final summary table for the PR or issue using the column order and validation rules in `specs/002-bug-basher/contracts/bug-report.yaml` and `specs/002-bug-basher/data-model.md`, omitting files with no bugs
+- [x] T030 [US5] Compile the final `BugFinding` inventory from all modified files under `solune/backend/`, `solune/frontend/`, `.github/`, and repository-root config paths using the schema in `specs/002-bug-basher/contracts/bug-report.yaml`
+- [x] T031 [US5] Verify every ✅ Fixed finding links to a regression test in `solune/backend/tests/` or `solune/frontend/src/__tests__/` and every ⚠️ Flagged finding links to a `TODO(bug-bash)` comment in the affected source file
+- [x] T032 [US5] Produce the final summary table for the PR or issue using the column order and validation rules in `specs/002-bug-basher/contracts/bug-report.yaml` and `specs/002-bug-basher/data-model.md`, omitting files with no bugs
 
 **Checkpoint**: The summary report is complete, schema-aligned, and ready to share with stakeholders.
 
@@ -154,10 +154,10 @@
 
 **Purpose**: Perform the final full-suite validation and scope review across every bug-bash phase.
 
-- [ ] T033 [P] Run the full backend verification suite from `solune/backend/` (`uv run pytest tests/ --timeout=30`, `uv run ruff check src/ tests/`, `uv run ruff format --check src/ tests/`, `uv run pyright src/`, `uv run bandit -r src/ -ll -ii`, `uv run pip-audit`)
-- [ ] T034 [P] Run the full frontend verification suite from `solune/frontend/` (`npm run lint`, `npm run type-check`, `npm run test`, `npm audit --audit-level=high`)
-- [ ] T035 Review the final diff across `solune/backend/`, `solune/frontend/`, `.github/`, and repository-root files to confirm there are no architecture changes, public-API changes, or new dependencies
-- [ ] T036 Run the full verification checklist in `specs/002-bug-basher/quickstart.md` and confirm the findings tracker plus final summary table are complete before handing off the bug-bash results
+- [x] T033 [P] Run the full backend verification suite from `solune/backend/` (`uv run pytest tests/ --timeout=30`, `uv run ruff check src/ tests/`, `uv run ruff format --check src/ tests/`, `uv run pyright src/`, `uv run bandit -r src/ -ll -ii`, `uv run pip-audit`)
+- [x] T034 [P] Run the full frontend verification suite from `solune/frontend/` (`npm run lint`, `npm run type-check`, `npm run test`, `npm audit --audit-level=high`)
+- [x] T035 Review the final diff across `solune/backend/`, `solune/frontend/`, `.github/`, and repository-root files to confirm there are no architecture changes, public-API changes, or new dependencies
+- [x] T036 Run the full verification checklist in `specs/002-bug-basher/quickstart.md` and confirm the findings tracker plus final summary table are complete before handing off the bug-bash results
 
 ---
 
