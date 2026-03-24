@@ -3,7 +3,7 @@
  * Sections: Hero → Getting Started → FAQ → Feature Guides → Slash Commands
  */
 
-import { Play, Kanban, GitBranch, Bot, Wrench, ListChecks, Settings, Boxes, LayoutDashboard } from '@/lib/icons';
+import { Play, Kanban, GitBranch, Bot, Wrench, ListChecks, Settings, Boxes, LayoutDashboard, Clock } from '@/lib/icons';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { FaqAccordion } from '@/components/help/FaqAccordion';
 import { FeatureGuideCard } from '@/components/help/FeatureGuideCard';
@@ -89,6 +89,31 @@ const FAQ_ENTRIES: FaqEntry[] = [
     answer: 'Solune sends in-app notifications for task status changes, agent completions, and new recommendations. Configure which notifications you receive in Settings.',
     category: 'settings-integration',
   },
+  // New FAQ entries
+  {
+    id: 'getting-started-4',
+    question: 'What is the Activity page?',
+    answer: 'The Activity page shows a unified timeline of recent actions, events, and changes across your workspace — including issue updates, pipeline runs, and agent completions.',
+    category: 'getting-started',
+  },
+  {
+    id: 'settings-integration-4',
+    question: 'How do I create a new app?',
+    answer: 'Go to the Apps page and click "Create App." You can spin up a new repository, link an existing one, or configure an app template to get started quickly.',
+    category: 'settings-integration',
+  },
+  {
+    id: 'settings-integration-5',
+    question: 'What are MCP tools?',
+    answer: 'MCP (Model Context Protocol) tools are external capabilities you can attach to your agents. Upload tool configurations on the Tools page to extend what your agents can do — for example, running shell commands or querying APIs.',
+    category: 'settings-integration',
+  },
+  {
+    id: 'agents-pipelines-4',
+    question: 'Can Solune monitor multiple projects?',
+    answer: 'Yes — use the project selector at the bottom of the sidebar to switch between repositories. Each project has its own board, pipelines, and agent configurations.',
+    category: 'agents-pipelines',
+  },
 ];
 
 const FEATURE_GUIDES = [
@@ -100,6 +125,7 @@ const FEATURE_GUIDES = [
   { title: 'Chores', description: 'Recurring tasks and maintenance automation.', icon: ListChecks, href: '/chores' },
   { title: 'Apps', description: 'Explore and manage Solune app extensions.', icon: Boxes, href: '/apps' },
   { title: 'Settings', description: 'Configure AI, display, workflow, and notification preferences.', icon: Settings, href: '/settings' },
+  { title: 'Activity', description: 'Track recent actions, events, and changes across your workspace.', icon: Clock, href: '/activity' },
 ];
 
 export function HelpPage() {

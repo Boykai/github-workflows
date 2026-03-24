@@ -121,7 +121,22 @@ export function SunMoonToggleIcon({ className }: IconProps) {
   );
 }
 
-/** Help link — open book with stars */
+/** Activity page — timeline with stars at intervals */
+export function TimelineStarsIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
+      <line x1={12} y1={2} x2={12} y2={22} />
+      <circle cx={12} cy={5} r={1.25} />
+      <circle cx={12} cy={12} r={1.25} />
+      <circle cx={12} cy={19} r={1.25} />
+      <line x1={12} y1={5} x2={17} y2={5} />
+      <line x1={12} y1={12} x2={7} y2={12} />
+      <line x1={12} y1={19} x2={17} y2={19} />
+      <circle cx={4} cy={8} r={0.75} />
+      <circle cx={20} cy={16} r={0.75} />
+    </svg>
+  );
+}
 export function BookStarsIcon({ className }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" width={24} height={24} fill="none" stroke="currentColor" strokeWidth={1.5} className={className}>
