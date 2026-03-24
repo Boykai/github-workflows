@@ -1,6 +1,6 @@
 /**
  * SpotlightTour — orchestrator that composes SpotlightOverlay + SpotlightTooltip.
- * Defines the 9-step tour, manages target element detection, rect computation,
+ * Defines the 14-step tour, manages target element detection, rect computation,
  * keyboard shortcuts, sidebar auto-expand, and aria-live announcements.
  */
 
