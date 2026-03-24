@@ -89,7 +89,7 @@ The backend is the core of Solune — it handles authentication, GitHub API inte
 - **Framework**: FastAPI with async endpoints, Pydantic v2 models
 - **Database**: SQLite via `aiosqlite` in WAL mode, auto-migrated at startup (SQL migration files `001` through `026`)
 - **DI**: Singletons registered on `app.state` during lifespan; `dependencies.py` provides `Depends()` getters
-- **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware; `CSPMiddleware` for Content Security Policy headers; `CSRFMiddleware` for double-submit cookie CSRF protection; `RateLimitMiddleware` for request rate limiting
+- **Middleware**: `RequestIDMiddleware` for request tracing; CORS middleware; `CSPMiddleware` for Content Security Policy plus companion security headers (including HSTS); `CSRFMiddleware` for double-submit cookie CSRF protection; `RateLimitMiddleware` for request rate limiting
 - **Async Task Safety**: `asyncio.TaskGroup` for background loops (automatic cancellation on shutdown); `TaskRegistry` singleton for fire-and-forget tasks (tracked, drained on shutdown)
 - **Exceptions**: Custom `AppException` hierarchy → `AuthenticationError`, `AuthorizationError`, `NotFoundError`, `ValidationError`, `GitHubAPIError`, `RateLimitError`, `McpValidationError`, `McpLimitExceededError`, `DatabaseError`, `PersistenceError`
 
@@ -107,7 +107,7 @@ The backend is the core of Solune — it handles authentication, GitHub API inte
 | `services/agents/` | Agent configuration CRUD service (SQLite + GitHub repo merge) + Agent MCP Sync (`agent_mcp_sync.py`) — keeps `mcp-servers` and `tools: ["*"]` in sync across all `.agent.md` files |
 | `migrations/` | SQL migration files `001` through `026` |
 | `prompts/` | AI prompt templates for issue and task generation |
-| `middleware/` | `RequestIDMiddleware`, `CSPMiddleware` (Content Security Policy), `CSRFMiddleware` (double-submit cookie CSRF protection), `RateLimitMiddleware` (request rate limiting), `AdminGuardMiddleware` |
+| `middleware/` | `RequestIDMiddleware`, `CSPMiddleware` (Content Security Policy + HTTP security headers such as HSTS), `CSRFMiddleware` (double-submit cookie CSRF protection), `RateLimitMiddleware` (request rate limiting), `AdminGuardMiddleware` |
 | `logging_utils.py` | `RequestIDFilter`, `SanitizingFormatter`, `StructuredJsonFormatter` for structured JSON logging |
 | `config.py` | `pydantic-settings` configuration from `.env` |
 | `constants.py` | Status names, agent mappings, labels, cache keys |
