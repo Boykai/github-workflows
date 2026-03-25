@@ -314,3 +314,34 @@ describe('onAuthExpired', () => {
     consoleErrorSpy.mockRestore();
   });
 });
+
+// ── Malformed JSON response handling ───────────────────────────────────
+
+describe('malformed JSON response handling', () => {
+  it('throws ApiError when success response contains invalid JSON', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: () => Promise.reject(new SyntaxError('Unexpected token')),
+      headers: new Headers(),
+    } as unknown as Response);
+
+    await expect(projectsApi.list()).rejects.toThrow(ApiError);
+    await expect(projectsApi.list.bind(null)).rejects.not.toThrow(SyntaxError);
+  });
+
+  it('throws ApiError with descriptive message for malformed upload response', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      json: () => Promise.reject(new SyntaxError('Unexpected token')),
+      headers: new Headers(),
+    } as unknown as Response);
+
+    await expect(
+      chatApi.uploadFile('session-1', new File(['data'], 'test.txt'))
+    ).rejects.toThrow(ApiError);
+  });
+});
