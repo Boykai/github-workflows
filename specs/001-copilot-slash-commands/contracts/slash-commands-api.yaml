@@ -123,93 +123,69 @@ paths:
                     type: string
                     example: "Chat history cleared"
 
-  # ── Frontend-Only Command Contracts (no API calls) ──────────────────────
-  # These commands execute entirely in the browser and are documented here
-  # for completeness. They do not produce HTTP requests.
-
-  /frontend/commands/feedback:
-    get:
+components:
+  # Frontend-only slash commands documented as non-HTTP interactions.
+  # These commands are executed entirely in the browser and are not exposed
+  # as backend routes under `paths`.
+  x-frontendCommands:
+    feedback:
       operationId: feedbackCommand
       summary: Display feedback link (frontend-only)
       description: |
         Displays a clickable link to the feedback submission form.
         No network requests are made.
-      tags:
-        - Local Commands
-      responses:
-        '200':
-          description: CommandResult with feedback link
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommandResult'
-              example:
-                success: true
-                message: "📝 Share your feedback: https://github.com/Boykai/github-workflows/discussions"
-                clearInput: true
+      result:
+        $ref: '#/components/schemas/CommandResult'
+      example:
+        success: true
+        message: "📝 Share your feedback: https://github.com/Boykai/github-workflows/discussions"
+        clearInput: true
 
-  /frontend/commands/share:
-    get:
+    share:
       operationId: shareCommand
       summary: Export conversation as Markdown (frontend-only)
       description: |
         Generates a Markdown file from the current conversation messages
         and triggers a browser download. No network requests are made.
-      tags:
-        - Local Commands
-      responses:
-        '200':
-          description: CommandResult confirming export
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommandResult'
-              examples:
-                success:
-                  value:
-                    success: true
-                    message: "💾 Chat exported as Markdown."
-                    clearInput: true
-                empty:
-                  value:
-                    success: false
-                    message: "No messages to export."
-                    clearInput: false
+      result:
+        $ref: '#/components/schemas/CommandResult'
+      examples:
+        success:
+          value:
+            success: true
+            message: "💾 Chat exported as Markdown."
+            clearInput: true
+        empty:
+          value:
+            success: false
+            message: "No messages to export."
+            clearInput: false
 
-  /frontend/commands/experimental:
-    get:
+    experimental:
       operationId: experimentalCommand
-      summary: Toggle experimental features (frontend settings)
+      summary: Toggle experimental features (frontend-only)
       description: |
-        Toggles experimental features on/off using the existing user settings API.
-        Follows the same async pattern as /notifications and /view.
-      tags:
-        - Local Commands
-      responses:
-        '200':
-          description: CommandResult confirming toggle
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CommandResult'
-              examples:
-                enabled:
-                  value:
-                    success: true
-                    message: "🧪 Experimental features enabled."
-                    clearInput: true
-                disabled:
-                  value:
-                    success: true
-                    message: "🧪 Experimental features disabled."
-                    clearInput: true
-                status:
-                  value:
-                    success: true
-                    message: "🧪 Experimental features are currently disabled. Use /experimental on to enable."
-                    clearInput: true
+        Stores the experimental toggle locally in the browser and reports the
+        current status to the user. No dedicated backend route is required.
+      result:
+        $ref: '#/components/schemas/CommandResult'
+      examples:
+        enabled:
+          value:
+            success: true
+            message: "Experimental features enabled."
+            clearInput: true
+        disabled:
+          value:
+            success: true
+            message: "Experimental features disabled."
+            clearInput: true
+        status:
+          value:
+            success: true
+            message: "Experimental features are currently off. Usage: /experimental <on|off>"
+            clearInput: true
 
-components:
   schemas:
     ChatMessageRequest:
       type: object

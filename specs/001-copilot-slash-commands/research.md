@@ -50,7 +50,7 @@
 | `/context` | Passthrough | Requires backend session statistics (proposals, pipelines) |
 | `/diff` | Passthrough | Requires backend task/issue change history |
 | `/feedback` | Local | Displays a static feedback link — no backend needed |
-| `/experimental` | Local | Toggles a user preference via existing settings API |
+| `/experimental` | Local | Toggles a browser-local experimental preference without requiring a backend route |
 | `/usage` | Passthrough | Requires backend metrics (token consumption, timestamps) |
 | `/share` | Local | Generates Markdown from frontend message state, triggers browser download |
 | `/mcp` | Passthrough | Requires backend MCP configuration management |
@@ -132,13 +132,13 @@ The `/clear` command handler needs access to this `clearChat` function through t
 
 **Context**: The spec says experimental features should be "persisted" (FR-009, FR-010).
 
-**Decision**: Use the existing `updateSettings` mechanism (same pattern as `/notifications` and `/view` handlers). Store the experimental flag in user preferences under `experimental.enabled`.
+**Decision**: Persist the experimental flag locally in the browser for this feature using frontend-managed storage. The command remains local and does not require a dedicated backend settings schema.
 
-**Rationale**: The existing `useUserSettings` hook and `updateSettings` API already provide a persistence mechanism. `/notifications` handler demonstrates the exact async pattern needed.
+**Rationale**: The current shared settings types and update payloads do not define an `experimental` field, so documenting a backend settings mutation would be misleading for the current scope. Browser-local persistence still satisfies the local-command requirement without introducing unsupported schema changes.
 
 **Alternatives Considered**:
-- localStorage only: Rejected — wouldn't persist across devices.
-- Separate API endpoint: Rejected — existing settings API handles arbitrary user preferences.
+- Persist via existing settings API: Rejected — the current `EffectiveUserSettings` and `UserPreferencesUpdate` schemas do not expose an `experimental` field.
+- Separate API endpoint: Rejected — out of scope for this frontend-first command increment.
 
 ---
 
@@ -188,6 +188,6 @@ The `/clear` command handler needs access to this `clearChat` function through t
 - Standard browser API — no additional dependencies needed
 
 ### Settings Persistence Pattern (for /experimental)
-- Follow the async pattern from `/notifications` handler: `await context.updateSettings({...})`
-- Return success/error based on the promise result
-- Display current state when called without arguments
+- Store the current experimental flag in browser-managed storage
+- Return the current status when called without arguments
+- Treat repeated `on`/`off` calls as successful no-ops with a status message

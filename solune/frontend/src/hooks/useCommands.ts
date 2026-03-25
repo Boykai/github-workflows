@@ -8,6 +8,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useUserSettings } from '@/hooks/useSettings';
 import { parseCommand, getCommand, getAllCommands, filterCommands } from '@/lib/commands/registry';
 import type { CommandContext, CommandResult, CommandDefinition } from '@/lib/commands/types';
+import type { ChatMessage } from '@/types';
 
 export interface UseCommandsReturn {
   /** Check if input is a command. */
@@ -23,7 +24,7 @@ export interface UseCommandsReturn {
 }
 
 export function useCommands(
-  deps: { clearChat?: () => Promise<void>; messages?: import('@/types').ChatMessage[] } = {}
+  deps: { clearChat?: () => Promise<void>; messages?: ChatMessage[] } = {}
 ): UseCommandsReturn {
   const { theme, setTheme } = useTheme();
   const { settings, updateSettings } = useUserSettings();

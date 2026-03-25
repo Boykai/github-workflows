@@ -58,7 +58,7 @@ Current fields plus potential extensions for new commands:
 
 **State Transitions**:
 - `/clear` handler calls `context.clearChat()` → messages cleared, backend state deleted
-- `/experimental` handler calls `context.updateSettings({ experimental: { enabled } })` → setting persisted
+- `/experimental` handler stores the toggle in browser-managed storage → setting persisted locally for the current browser
 - `/share` handler reads `context.messages` → generates Markdown → triggers download
 
 ---
@@ -118,7 +118,7 @@ Current fields plus potential extensions for new commands:
 | `/clear` | `handlers/session.ts` | None | `clearChat` |
 | `/feedback` | `handlers/monitoring.ts` | None | None |
 | `/share` | `handlers/monitoring.ts` | None | `messages` |
-| `/experimental` | `handlers/settings.ts` | `[on\|off]` | `updateSettings`, `currentSettings` |
+| `/experimental` | `handlers/settings.ts` | `[on\|off]` | Browser-managed local persistence |
 
 ### Passthrough Commands (forward to backend)
 
@@ -162,6 +162,6 @@ Backend send_message endpoint
 **No new migrations required.** All new commands operate within existing data structures:
 - `/clear` uses existing `DELETE /api/v1/chat/messages` endpoint and `chat_store.clear_messages()`
 - Passthrough commands use existing `POST /api/v1/chat/messages` endpoint
-- `/experimental` uses existing user settings/preferences storage
+- `/experimental` uses browser-local persistence managed by the frontend
 - `/share` reads messages already in frontend state
 - `/feedback` displays a static link — no persistence

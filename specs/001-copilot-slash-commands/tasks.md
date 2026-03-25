@@ -71,7 +71,7 @@
 ### Implementation for User Story 2
 
 - [x] T011 [P] [US2] Implement modelHandler (passthrough) in solune/frontend/src/lib/commands/handlers/advanced.ts — returns { passthrough: true } to forward /model [MODEL] to backend for model show/switch
-- [x] T012 [P] [US2] Implement experimentalHandler in solune/frontend/src/lib/commands/handlers/settings.ts — toggles experimental features via context.updateSettings({ experimental: { enabled } }), shows status when no args, handles already-enabled/disabled edge case
+- [x] T012 [P] [US2] Implement experimentalHandler in solune/frontend/src/lib/commands/handlers/settings.ts — toggles experimental features locally, shows status when no args, and handles already-enabled/disabled edge case
 - [x] T013 [US2] Register /model and /experimental commands in solune/frontend/src/lib/commands/registry.ts with correct name, description, syntax, handler, and passthrough flag
 
 **Checkpoint**: User Story 2 fully functional — /model forwards to backend for model management, /experimental toggles features locally and persists setting
@@ -114,7 +114,7 @@
 
 ## Phase 7: User Story 5 — Command Discoverability (Priority: P5)
 
-**Goal**: All 20 commands (6 existing + 14 new) are discoverable via /help and HelpPage with zero manual updates
+**Goal**: All 17 in-scope commands (6 existing + 11 new) are discoverable via /help and HelpPage with zero manual updates
 
 **Independent Test**: Type /help and verify all registered commands (6 existing + 11 new = 17 minimum) are listed with correct syntax and descriptions; visit HelpPage and verify same list
 
@@ -123,7 +123,7 @@
 - [x] T022 [US5] Verify /help command output lists all registered commands (6 existing + 11 new) with correct syntax via getAllCommands() in solune/frontend/src/lib/commands/registry.ts
 - [x] T023 [US5] Verify HelpPage displays all registered commands with descriptions and syntax in solune/frontend/src/pages/HelpPage.tsx (auto-updates from registry — no code changes expected)
 
-**Checkpoint**: All 20 commands discoverable — /help and HelpPage automatically reflect the full registry
+**Checkpoint**: All 17 in-scope commands discoverable — /help and HelpPage automatically reflect the full registry
 
 ---
 
@@ -218,7 +218,7 @@ Developer C: Phase 5 (US3) — monitoring.ts + registry.ts registrations
 6. Complete User Story 5 → Verify all commands discoverable via /help and HelpPage
 7. Each story adds value without breaking previous stories
 
-> **Note**: 11 new commands are fully specified (17 total). The spec targets ~14 new (20 total); up to 3 additional commands may be added once the truncated original issue is clarified.
+> **Note**: 11 new commands are fully specified (17 total). Additional slash commands remain out of scope for this feature until they are specified in a follow-up.
 
 ### Parallel Team Strategy
 
@@ -258,7 +258,7 @@ With multiple developers:
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
 - Passthrough handlers are simple stubs: `{ success: true, message: '', clearInput: true, passthrough: true }`
-- Local handlers contain actual logic: /clear calls clearChat, /share generates Markdown, /feedback returns link, /experimental toggles settings
+- Local handlers contain actual logic: /clear calls clearChat, /share generates Markdown, /feedback returns link, /experimental toggles a browser-local preference
 - HelpPage and /help auto-update from registry — no manual documentation needed
 - /theme enhancements deferred to follow-up feature (research.md decision #2)
 - Case-insensitive input already handled by existing parseCommand() (research.md decision #9)
