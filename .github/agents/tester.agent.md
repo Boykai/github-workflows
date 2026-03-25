@@ -4,16 +4,6 @@ description: Analyzes local changes or a related PR and its code changes, adds m
   tests for the changed behavior, fixes scoped quality gaps, and improves DRY/simplification
   where it strengthens correctness or testability.
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp

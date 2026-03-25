@@ -7,7 +7,7 @@
 import { createContext, useContext, useState, useCallback } from 'react';
 
 const STORAGE_KEY = 'solune-onboarding-completed';
-const TOTAL_STEPS = 13;
+const TOTAL_STEPS = 14;
 
 function loadCompleted(): boolean {
   try {

@@ -5,16 +5,6 @@ description: CI failure diagnosis and resolution agent. Reads CI logs, identifie
   checks.
 icon: wrench
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp
