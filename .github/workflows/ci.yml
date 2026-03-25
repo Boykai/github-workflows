@@ -38,7 +38,10 @@ jobs:
           pip install -e ".[dev]"
 
       - name: Dependency audit with pip-audit
-        run: pip-audit
+        # TODO(bug-bash): Remove --ignore-vuln once pygments releases a fix for CVE-2026-4539.
+        # As of 2026-03-25, pygments 2.19.2 is the latest version and no patched release exists.
+        # pygments is a transitive dependency (via jupyterlab-pygments) so we cannot pin a fix.
+        run: pip-audit --ignore-vuln CVE-2026-4539
 
       - name: Lint with ruff
         run: ruff check src tests
