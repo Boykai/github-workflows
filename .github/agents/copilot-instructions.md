@@ -261,6 +261,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 ## Active Technologies
 - Python ≥3.12 (target 3.13, backend), TypeScript ~5.9 (frontend) + FastAPI + Pydantic v2 (backend), React 19.2 + Vite 8 (frontend), Lucide icons (001-help-tour-refresh)
 - SQLite (aiosqlite) with sequential SQL migration files (001-help-tour-refresh)
+- TypeScript ~5.9 (frontend), Python >=3.12 (backend) + React 19, Vite 8, TanStack Query 5, FastAPI, Pydantic 2, github-copilot-sdk (001-copilot-slash-commands)
+- SQLite (aiosqlite) for backend persistence, browser localStorage for client-side settings (001-copilot-slash-commands)
 
 Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
 
