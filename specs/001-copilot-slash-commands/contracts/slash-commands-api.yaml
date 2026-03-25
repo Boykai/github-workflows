@@ -1,0 +1,322 @@
+# Slash Commands API Contract
+# Feature: Add GitHub Copilot Slash Commands to Solune Chat
+# Date: 2026-03-25
+
+openapi: 3.0.3
+info:
+  title: Solune Chat Slash Commands API
+  version: 1.0.0
+  description: |
+    API contracts for slash command execution in Solune Chat.
+    
+    Commands are divided into two categories:
+    - **Local commands**: Handled entirely on the frontend (may include backend side-effects)
+    - **Passthrough commands**: Forwarded to the backend AI service via existing chat endpoint
+
+paths:
+  # ── Existing Endpoints Used by New Commands ─────────────────────────────
+
+  /api/v1/chat/messages:
+    post:
+      operationId: sendMessage
+      summary: Send a chat message (used by passthrough commands)
+      description: |
+        Passthrough commands (/model, /compact, /context, /diff, /usage, /mcp, /plan)
+        send the full command text as message content to this existing endpoint.
+        The backend AI service interprets the slash command and returns an appropriate response.
+      tags:
+        - Chat
+        - Passthrough Commands
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageRequest'
+            examples:
+              model_query:
+                summary: Query current model
+                value:
+                  content: "/model"
+                  ai_enhance: true
+              model_switch:
+                summary: Switch AI model
+                value:
+                  content: "/model gpt-4"
+                  ai_enhance: true
+              compact:
+                summary: Compact conversation
+                value:
+                  content: "/compact"
+                  ai_enhance: true
+              context:
+                summary: Show session context
+                value:
+                  content: "/context"
+                  ai_enhance: true
+              diff:
+                summary: Show session changes
+                value:
+                  content: "/diff"
+                  ai_enhance: true
+              usage:
+                summary: Show usage metrics
+                value:
+                  content: "/usage"
+                  ai_enhance: true
+              mcp_show:
+                summary: List MCP configurations
+                value:
+                  content: "/mcp show"
+                  ai_enhance: true
+              mcp_add:
+                summary: Add MCP configuration
+                value:
+                  content: "/mcp add"
+                  ai_enhance: true
+              mcp_delete:
+                summary: Delete MCP configuration
+                value:
+                  content: "/mcp delete"
+                  ai_enhance: true
+              plan_show:
+                summary: Show execution plan
+                value:
+                  content: "/plan"
+                  ai_enhance: true
+              plan_create:
+                summary: Create execution plan
+                value:
+                  content: "/plan Build a REST API for user management"
+                  ai_enhance: true
+      responses:
+        '200':
+          description: AI response to the command
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+        '422':
+          description: Validation error (e.g., no project selected)
+        '429':
+          description: Rate limited (10 requests/minute)
+
+    delete:
+      operationId: clearMessages
+      summary: Clear all chat messages (used by /clear command)
+      description: |
+        The /clear command calls this existing endpoint to delete all messages
+        for the current session. The frontend also clears local state (proposals,
+        localMessages, query cache).
+      tags:
+        - Chat
+        - Local Commands
+      responses:
+        '200':
+          description: Messages cleared successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Chat history cleared"
+
+  # ── Frontend-Only Command Contracts (no API calls) ──────────────────────
+  # These commands execute entirely in the browser and are documented here
+  # for completeness. They do not produce HTTP requests.
+
+  /frontend/commands/feedback:
+    get:
+      operationId: feedbackCommand
+      summary: Display feedback link (frontend-only)
+      description: |
+        Displays a clickable link to the feedback submission form.
+        No network requests are made.
+      tags:
+        - Local Commands
+      responses:
+        '200':
+          description: CommandResult with feedback link
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+              example:
+                success: true
+                message: "📝 Share your feedback: https://github.com/Boykai/github-workflows/discussions"
+                clearInput: true
+
+  /frontend/commands/share:
+    get:
+      operationId: shareCommand
+      summary: Export conversation as Markdown (frontend-only)
+      description: |
+        Generates a Markdown file from the current conversation messages
+        and triggers a browser download. No network requests are made.
+      tags:
+        - Local Commands
+      responses:
+        '200':
+          description: CommandResult confirming export
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+              examples:
+                success:
+                  value:
+                    success: true
+                    message: "💾 Chat exported as Markdown."
+                    clearInput: true
+                empty:
+                  value:
+                    success: false
+                    message: "No messages to export."
+                    clearInput: false
+
+  /frontend/commands/experimental:
+    get:
+      operationId: experimentalCommand
+      summary: Toggle experimental features (frontend settings)
+      description: |
+        Toggles experimental features on/off using the existing user settings API.
+        Follows the same async pattern as /notifications and /view.
+      tags:
+        - Local Commands
+      responses:
+        '200':
+          description: CommandResult confirming toggle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommandResult'
+              examples:
+                enabled:
+                  value:
+                    success: true
+                    message: "🧪 Experimental features enabled."
+                    clearInput: true
+                disabled:
+                  value:
+                    success: true
+                    message: "🧪 Experimental features disabled."
+                    clearInput: true
+                status:
+                  value:
+                    success: true
+                    message: "🧪 Experimental features are currently disabled. Use /experimental on to enable."
+                    clearInput: true
+
+components:
+  schemas:
+    ChatMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          maxLength: 100000
+          description: Message content (includes /command syntax for passthrough commands)
+        ai_enhance:
+          type: boolean
+          default: true
+          description: Whether to enable AI enhancement
+        file_urls:
+          type: array
+          items:
+            type: string
+          default: []
+          description: URLs of attached files
+        pipeline_id:
+          type: string
+          nullable: true
+          description: Optional pipeline configuration override
+
+    ChatMessage:
+      type: object
+      required:
+        - message_id
+        - session_id
+        - sender_type
+        - content
+        - timestamp
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        sender_type:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+          maxLength: 100000
+        action_type:
+          type: string
+          nullable: true
+          enum: [task_create, status_update, project_select, issue_create]
+        action_data:
+          type: object
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+    CommandResult:
+      type: object
+      required:
+        - success
+        - message
+        - clearInput
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        clearInput:
+          type: boolean
+        passthrough:
+          type: boolean
+          description: When true, the message should be forwarded to the backend
+
+    CommandDefinition:
+      type: object
+      required:
+        - name
+        - description
+        - syntax
+      properties:
+        name:
+          type: string
+          description: Unique command name (lowercase)
+        description:
+          type: string
+          description: Human-readable description
+        syntax:
+          type: string
+          description: Usage syntax (e.g., "/model [MODEL]")
+        passthrough:
+          type: boolean
+          description: Whether the command is handled by the backend
+        parameterSchema:
+          $ref: '#/components/schemas/ParameterSchema'
+
+    ParameterSchema:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [enum, string, boolean]
+        values:
+          type: array
+          items:
+            type: string
+        labels:
+          type: object
+          additionalProperties:
+            type: string
