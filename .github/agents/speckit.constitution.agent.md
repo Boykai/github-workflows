@@ -7,16 +7,6 @@ handoffs:
   prompt: Implement the feature specification based on the updated constitution. I
     want to build...
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp
