@@ -18,7 +18,7 @@ COPY . .
 RUN npm run build
 
 # Production stage
-FROM nginx:1.29-alpine
+FROM nginx:1.29.7-alpine
 
 # Patch OS-level vulnerabilities
 RUN apk update --no-cache && apk upgrade --no-cache
