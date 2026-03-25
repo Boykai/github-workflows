@@ -37,7 +37,7 @@ class TestWebSocketReconnectionUnderLoad:
             project_id = f"PVT_project_{idx}"
             await manager.connect(mock_ws, project_id)
             await asyncio.sleep(0.01)
-            manager.disconnect(mock_ws)
+            await manager.disconnect(mock_ws)
 
         tasks = [_connect_and_disconnect(i) for i in range(num_sessions)]
         await asyncio.gather(*tasks)
@@ -55,7 +55,7 @@ class TestWebSocketReconnectionUnderLoad:
             mock_ws = _make_mock_ws()
             await manager.connect(mock_ws, project_id)
             await asyncio.sleep(0.02)
-            manager.disconnect(mock_ws)
+            await manager.disconnect(mock_ws)
 
         async def _broadcaster():
             errors: list[Exception] = []

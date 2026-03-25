@@ -50,3 +50,11 @@ class TestCSPMiddleware:
         assert response.status_code == 200
         assert "Strict-Transport-Security" in response.headers
         assert "max-age=31536000" in response.headers["Strict-Transport-Security"]
+
+    def test_permissions_policy_allows_microphone_for_self(self):
+        """Microphone must be allowed for same-origin (voice input feature)."""
+        client = _make_client()
+        response = client.get("/test")
+
+        policy = response.headers["Permissions-Policy"]
+        assert "microphone=(self)" in policy

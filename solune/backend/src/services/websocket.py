@@ -52,20 +52,21 @@ class ConnectionManager:
             len(self._connections.get(project_id, set())),
         )
 
-    def disconnect(self, websocket: WebSocket) -> None:
+    async def disconnect(self, websocket: WebSocket) -> None:
         """
         Remove a WebSocket connection.
 
         Args:
             websocket: The WebSocket connection to remove
         """
-        project_id = self._socket_projects.pop(websocket, None)
-        if project_id and project_id in self._connections:
-            self._connections[project_id].discard(websocket)
-            if not self._connections[project_id]:
-                del self._connections[project_id]
+        async with _get_ws_lock():
+            project_id = self._socket_projects.pop(websocket, None)
+            if project_id and project_id in self._connections:
+                self._connections[project_id].discard(websocket)
+                if not self._connections[project_id]:
+                    del self._connections[project_id]
 
-            logger.info("WebSocket disconnected from project %s", project_id)
+                logger.info("WebSocket disconnected from project %s", project_id)
 
     async def broadcast_to_project(self, project_id: str, message: dict) -> None:
         """
@@ -98,7 +99,7 @@ class ConnectionManager:
 
         # Clean up disconnected sockets
         for ws in disconnected:
-            self.disconnect(ws)
+            await self.disconnect(ws)
 
         logger.debug(
             "Broadcast complete to project %s: %d/%d successful",

@@ -214,7 +214,7 @@ async def _discover_and_register_active_projects() -> int:
         if row:
             session_token = row["access_token"]
     except Exception:
-        pass
+        logger.debug("Failed to fetch session token for webhook registration", exc_info=True)
 
     token = session_token or fallback_token
     if not token:
@@ -237,7 +237,7 @@ async def _discover_and_register_active_projects() -> int:
             except (json.JSONDecodeError, TypeError):
                 continue
     except Exception:
-        pass
+        logger.debug("Failed to load project repo map for webhook registration", exc_info=True)
 
     # Fallback: default repo from settings
     default_owner = settings.default_repo_owner or ""

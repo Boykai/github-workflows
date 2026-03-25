@@ -6,7 +6,7 @@
  * Integrates as a SettingsSection in the Settings page.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { SettingsSection } from './SettingsSection';
 import { useMcpSettings } from '@/hooks/useMcpSettings';
 import { authApi, ApiError } from '@/services/api';
@@ -282,10 +282,18 @@ export function McpSettings() {
   } = useMcpSettings();
 
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (successTimerRef.current) clearTimeout(successTimerRef.current);
+    };
+  }, []);
 
   const showSuccess = useCallback((msg: string) => {
+    if (successTimerRef.current) clearTimeout(successTimerRef.current);
     setSuccessMessage(msg);
-    setTimeout(() => setSuccessMessage(null), TOAST_SUCCESS_MS);
+    successTimerRef.current = setTimeout(() => setSuccessMessage(null), TOAST_SUCCESS_MS);
   }, []);
 
   const handleAdd = useCallback(

@@ -5,7 +5,7 @@
  * loading/success/error states.
  */
 
-import { useState, type ReactNode } from 'react';
+import { useState, useRef, useEffect, type ReactNode } from 'react';
 import { TOAST_SUCCESS_MS, TOAST_ERROR_MS } from '@/constants';
 import { cn } from '@/lib/utils';
 
@@ -35,18 +35,26 @@ export function SettingsSection({
   const [collapsed, setCollapsed] = useState(defaultCollapsed);
   const [saving, setSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   const handleSave = async () => {
     if (!onSave) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
     setSaving(true);
     setSaveStatus('idle');
     try {
       await onSave();
       setSaveStatus('success');
-      setTimeout(() => setSaveStatus('idle'), TOAST_SUCCESS_MS);
+      timerRef.current = setTimeout(() => setSaveStatus('idle'), TOAST_SUCCESS_MS);
     } catch {
       setSaveStatus('error');
-      setTimeout(() => setSaveStatus('idle'), TOAST_ERROR_MS);
+      timerRef.current = setTimeout(() => setSaveStatus('idle'), TOAST_ERROR_MS);
     } finally {
       setSaving(false);
     }

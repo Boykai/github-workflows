@@ -1015,6 +1015,11 @@ async def execute_cleanup(
     status = "completed" if not errors else "completed_with_errors"
     details_json = json.dumps({"results": [r.model_dump() for r in results]})
 
+    # TODO(bug-bash): The variables branches_preserved / prs_preserved are computed
+    # from the errors list (items that FAILED to be deleted). This means "preserved"
+    # counts items that survived only because of errors, not items intentionally
+    # protected.  Consider renaming to branches_failed / prs_failed, or separately
+    # tracking intentionally skipped items for clearer audit semantics.
     branches_preserved = len([e for e in errors if e.item_type == "branch"])
     prs_preserved = len([e for e in errors if e.item_type == "pr"])
     # issues_failed tracked in errors list; no separate audit column yet

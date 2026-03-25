@@ -38,14 +38,14 @@ describe('LoginButton', () => {
     render(<LoginButton />);
 
     const button = screen.getByRole('button', { name: /loading/i });
-    expect(button).toBeDefined();
+    expect(button).toBeInTheDocument();
     expect(button.hasAttribute('disabled')).toBe(true);
   });
 
   it('should show login button when not authenticated', () => {
     render(<LoginButton />);
 
-    expect(screen.getByText('Login with GitHub')).toBeDefined();
+    expect(screen.getByText('Login with GitHub')).toBeInTheDocument();
   });
 
   it('should call login when login button is clicked', () => {
@@ -65,8 +65,8 @@ describe('LoginButton', () => {
 
     render(<LoginButton />);
 
-    expect(screen.getByText('testuser')).toBeDefined();
-    expect(screen.getByRole('button', { name: /logout/i })).toBeDefined();
+    expect(screen.getByText('testuser')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument();
   });
 
   it('should call logout when logout button is clicked', () => {
@@ -92,7 +92,7 @@ describe('LoginButton', () => {
     render(<LoginButton />);
 
     const img = screen.getByAltText('testuser');
-    expect(img).toBeDefined();
+    expect(img).toBeInTheDocument();
     expect(img.getAttribute('src')).toBe('https://avatar.example.com/123');
   });
 
@@ -107,6 +107,6 @@ describe('LoginButton', () => {
 
     expect(screen.queryByText('testuser')).toBeNull();
     expect(screen.queryByAltText('testuser')).toBeNull();
-    expect(screen.getByRole('button', { name: /logout/i })).toBeDefined();
+    expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument();
   });
 });
