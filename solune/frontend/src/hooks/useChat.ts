@@ -2,7 +2,7 @@
  * Chat hook for managing messages and proposals.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { STALE_TIME_MEDIUM } from '@/constants';
 import { chatApi } from '@/services/api';
@@ -22,7 +22,6 @@ const makeLocalMsg = (sender: 'user' | 'system', content: string): ChatMessage =
 export function useChat() {
   const queryClient = useQueryClient();
   const [localMessages, setLocalMessages] = useState<ChatMessage[]>([]);
-  const { isCommand, executeCommand } = useCommands();
   const proposals = useChatProposals();
 
   const {
@@ -34,6 +33,26 @@ export function useChat() {
     queryFn: chatApi.getMessages,
     staleTime: STALE_TIME_MEDIUM,
   });
+
+  const clearChatMutation = useMutation({
+    mutationFn: chatApi.clearMessages,
+    onSuccess: () => {
+      proposals.clearProposals();
+      setLocalMessages([]);
+      queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] });
+    },
+  });
+
+  const clearChat = useCallback(async () => {
+    await clearChatMutation.mutateAsync();
+  }, [clearChatMutation]);
+
+  const allMessages = useMemo(
+    () => [...(messagesData?.messages ?? []), ...localMessages],
+    [messagesData, localMessages]
+  );
+
+  const { isCommand, executeCommand } = useCommands({ clearChat, messages: allMessages });
 
   const sendMutation = useMutation({
     mutationFn: chatApi.sendMessage,
@@ -146,21 +165,8 @@ export function useChat() {
     [proposals],
   );
 
-  const clearChatMutation = useMutation({
-    mutationFn: chatApi.clearMessages,
-    onSuccess: () => {
-      proposals.clearProposals();
-      setLocalMessages([]);
-      queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] });
-    },
-  });
-
-  const clearChat = useCallback(async () => {
-    await clearChatMutation.mutateAsync();
-  }, [clearChatMutation]);
-
   return {
-    messages: [...(messagesData?.messages ?? []), ...localMessages],
+    messages: allMessages,
     isLoading,
     isSending: sendMutation.isPending,
     error: error as Error | null,

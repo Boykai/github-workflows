@@ -13,8 +13,12 @@ import {
   languageHandler,
   notificationsHandler,
   viewHandler,
+  experimentalHandler,
 } from './handlers/settings';
 import { agentHandler } from './handlers/agent';
+import { clearHandler, compactHandler, contextHandler } from './handlers/session';
+import { diffHandler, usageHandler, shareHandler, feedbackHandler } from './handlers/monitoring';
+import { modelHandler, mcpHandler, planHandler } from './handlers/advanced';
 
 /** Central command store keyed by lowercase command name. */
 const registry = new Map<string, CommandDefinition>();
@@ -139,5 +143,97 @@ registerCommand({
   description: 'Create a custom agent for your project (admin only)',
   syntax: '/agent <description> [#status-column]',
   handler: agentHandler,
+  passthrough: true,
+});
+
+// ── Session commands ───────────────────────────────────────────────────────
+
+registerCommand({
+  name: 'clear',
+  description: 'Clear all chat messages',
+  syntax: '/clear',
+  handler: clearHandler,
+});
+
+registerCommand({
+  name: 'compact',
+  description: 'Summarize conversation to reduce context',
+  syntax: '/compact',
+  handler: compactHandler,
+  passthrough: true,
+});
+
+registerCommand({
+  name: 'context',
+  description: 'Show session statistics',
+  syntax: '/context',
+  handler: contextHandler,
+  passthrough: true,
+});
+
+// ── Advanced commands ──────────────────────────────────────────────────────
+
+registerCommand({
+  name: 'model',
+  description: 'Show or switch the AI model',
+  syntax: '/model [MODEL]',
+  handler: modelHandler,
+  passthrough: true,
+});
+
+registerCommand({
+  name: 'experimental',
+  description: 'Toggle experimental features on or off',
+  syntax: '/experimental [on|off]',
+  handler: experimentalHandler,
+});
+
+// ── Monitoring commands ────────────────────────────────────────────────────
+
+registerCommand({
+  name: 'diff',
+  description: 'Show recent task/issue changes in session',
+  syntax: '/diff',
+  handler: diffHandler,
+  passthrough: true,
+});
+
+registerCommand({
+  name: 'usage',
+  description: 'Display session metrics',
+  syntax: '/usage',
+  handler: usageHandler,
+  passthrough: true,
+});
+
+registerCommand({
+  name: 'share',
+  description: 'Export chat as Markdown download',
+  syntax: '/share',
+  handler: shareHandler,
+});
+
+registerCommand({
+  name: 'feedback',
+  description: 'Display feedback link',
+  syntax: '/feedback',
+  handler: feedbackHandler,
+});
+
+// ── Power-user commands ────────────────────────────────────────────────────
+
+registerCommand({
+  name: 'mcp',
+  description: 'Manage MCP configurations',
+  syntax: '/mcp [show|add|delete]',
+  handler: mcpHandler,
+  passthrough: true,
+});
+
+registerCommand({
+  name: 'plan',
+  description: 'Create or view an execution plan',
+  syntax: '/plan [description]',
+  handler: planHandler,
   passthrough: true,
 });
