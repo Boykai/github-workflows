@@ -129,7 +129,7 @@ export function createCommandContext(overrides: Partial<CommandContext> = {}): C
     setTheme: () => {},
     updateSettings: async () => {},
     currentSettings: {
-      ai: { provider: 'copilot', model: 'gpt-4o', temperature: 0.7 },
+      ai: { provider: 'copilot', model: 'gpt-4o', temperature: 0.7, agent_model: 'gpt-4o' },
       display: {
         theme: 'dark' as 'light' | 'dark',
         default_view: 'board' as 'chat' | 'board' | 'settings',
@@ -147,6 +147,8 @@ export function createCommandContext(overrides: Partial<CommandContext> = {}): C
       },
     },
     currentTheme: 'dark',
+    clearChat: async () => {},
+    messages: [],
     ...overrides,
   };
 }

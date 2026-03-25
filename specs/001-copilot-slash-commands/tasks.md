@@ -25,10 +25,10 @@
 
 **Purpose**: Extend type definitions and create new handler file stubs for the 3 new command domains
 
-- [ ] T001 Extend CommandContext interface with `clearChat: () => Promise<void>` and `messages: ChatMessage[]` fields in solune/frontend/src/lib/commands/types.ts
-- [ ] T002 [P] Create session command handler file solune/frontend/src/lib/commands/handlers/session.ts with module structure and type imports
-- [ ] T003 [P] Create monitoring command handler file solune/frontend/src/lib/commands/handlers/monitoring.ts with module structure and type imports
-- [ ] T004 [P] Create advanced command handler file solune/frontend/src/lib/commands/handlers/advanced.ts with module structure and type imports
+- [x] T001 Extend CommandContext interface with `clearChat: () => Promise<void>` and `messages: ChatMessage[]` fields in solune/frontend/src/lib/commands/types.ts
+- [x] T002 [P] Create session command handler file solune/frontend/src/lib/commands/handlers/session.ts with module structure and type imports
+- [x] T003 [P] Create monitoring command handler file solune/frontend/src/lib/commands/handlers/monitoring.ts with module structure and type imports
+- [x] T004 [P] Create advanced command handler file solune/frontend/src/lib/commands/handlers/advanced.ts with module structure and type imports
 
 ---
 
@@ -38,8 +38,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T005 Wire clearChat and messages into CommandContext builder in solune/frontend/src/hooks/useCommands.ts so handlers receive them at execution time
-- [ ] T006 Pass clearChat (from clearChatMutation) and messages (from chat state) from useChat hook to useCommands in solune/frontend/src/hooks/useChat.ts
+- [x] T005 Wire clearChat and messages into CommandContext builder in solune/frontend/src/hooks/useCommands.ts so handlers receive them at execution time
+- [x] T006 Pass clearChat (from clearChatMutation) and messages (from chat state) from useChat hook to useCommands in solune/frontend/src/hooks/useChat.ts
 
 **Checkpoint**: Foundation ready — CommandContext provides clearChat and messages to all command handlers
 
@@ -53,10 +53,10 @@
 
 ### Implementation for User Story 1
 
-- [ ] T007 [US1] Implement clearHandler in solune/frontend/src/lib/commands/handlers/session.ts — calls context.clearChat(), handles empty conversation edge case (display "No messages to clear" if already empty)
-- [ ] T008 [US1] Implement compactHandler (passthrough) in solune/frontend/src/lib/commands/handlers/session.ts — returns { passthrough: true } to forward /compact to backend AI for conversation summarization
-- [ ] T009 [US1] Implement contextHandler (passthrough) in solune/frontend/src/lib/commands/handlers/session.ts — returns { passthrough: true } to forward /context to backend for session stats
-- [ ] T010 [US1] Register /clear, /compact, /context commands in solune/frontend/src/lib/commands/registry.ts with correct name, description, syntax, handler, and passthrough flag
+- [x] T007 [US1] Implement clearHandler in solune/frontend/src/lib/commands/handlers/session.ts — calls context.clearChat(), handles empty conversation edge case (display "No messages to clear" if already empty)
+- [x] T008 [US1] Implement compactHandler (passthrough) in solune/frontend/src/lib/commands/handlers/session.ts — returns { passthrough: true } to forward /compact to backend AI for conversation summarization
+- [x] T009 [US1] Implement contextHandler (passthrough) in solune/frontend/src/lib/commands/handlers/session.ts — returns { passthrough: true } to forward /context to backend for session stats
+- [x] T010 [US1] Register /clear, /compact, /context commands in solune/frontend/src/lib/commands/registry.ts with correct name, description, syntax, handler, and passthrough flag
 
 **Checkpoint**: User Story 1 fully functional — /clear deletes all messages (UI + backend), /compact forwards to AI for summarization, /context forwards to backend for session stats
 
@@ -70,9 +70,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T011 [P] [US2] Implement modelHandler (passthrough) in solune/frontend/src/lib/commands/handlers/advanced.ts — returns { passthrough: true } to forward /model [MODEL] to backend for model show/switch
-- [ ] T012 [P] [US2] Implement experimentalHandler in solune/frontend/src/lib/commands/handlers/settings.ts — toggles experimental features via context.updateSettings({ experimental: { enabled } }), shows status when no args, handles already-enabled/disabled edge case
-- [ ] T013 [US2] Register /model and /experimental commands in solune/frontend/src/lib/commands/registry.ts with correct name, description, syntax, handler, and passthrough flag
+- [x] T011 [P] [US2] Implement modelHandler (passthrough) in solune/frontend/src/lib/commands/handlers/advanced.ts — returns { passthrough: true } to forward /model [MODEL] to backend for model show/switch
+- [x] T012 [P] [US2] Implement experimentalHandler in solune/frontend/src/lib/commands/handlers/settings.ts — toggles experimental features via context.updateSettings({ experimental: { enabled } }), shows status when no args, handles already-enabled/disabled edge case
+- [x] T013 [US2] Register /model and /experimental commands in solune/frontend/src/lib/commands/registry.ts with correct name, description, syntax, handler, and passthrough flag
 
 **Checkpoint**: User Story 2 fully functional — /model forwards to backend for model management, /experimental toggles features locally and persists setting
 
@@ -86,11 +86,11 @@
 
 ### Implementation for User Story 3
 
-- [ ] T014 [US3] Implement diffHandler (passthrough) in solune/frontend/src/lib/commands/handlers/monitoring.ts — returns { passthrough: true } to forward /diff to backend for session change summary
-- [ ] T015 [US3] Implement usageHandler (passthrough) in solune/frontend/src/lib/commands/handlers/monitoring.ts — returns { passthrough: true } to forward /usage to backend for session metrics
-- [ ] T016 [US3] Implement shareHandler (local) in solune/frontend/src/lib/commands/handlers/monitoring.ts — reads context.messages, generates Markdown with metadata header (export timestamp, message count, sender/timestamp per message), triggers browser download using Blob + URL.createObjectURL, handles empty conversation edge case
-- [ ] T017 [US3] Implement feedbackHandler (local) in solune/frontend/src/lib/commands/handlers/monitoring.ts — returns static message with clickable feedback link (https://github.com/Boykai/github-workflows/discussions)
-- [ ] T018 [US3] Register /diff, /usage, /share, /feedback commands in solune/frontend/src/lib/commands/registry.ts with correct name, description, syntax, handler, and passthrough flag
+- [x] T014 [US3] Implement diffHandler (passthrough) in solune/frontend/src/lib/commands/handlers/monitoring.ts — returns { passthrough: true } to forward /diff to backend for session change summary
+- [x] T015 [US3] Implement usageHandler (passthrough) in solune/frontend/src/lib/commands/handlers/monitoring.ts — returns { passthrough: true } to forward /usage to backend for session metrics
+- [x] T016 [US3] Implement shareHandler (local) in solune/frontend/src/lib/commands/handlers/monitoring.ts — reads context.messages, generates Markdown with metadata header (export timestamp, message count, sender/timestamp per message), triggers browser download using Blob + URL.createObjectURL, handles empty conversation edge case
+- [x] T017 [US3] Implement feedbackHandler (local) in solune/frontend/src/lib/commands/handlers/monitoring.ts — returns static message with clickable feedback link (https://github.com/Boykai/github-workflows/discussions)
+- [x] T018 [US3] Register /diff, /usage, /share, /feedback commands in solune/frontend/src/lib/commands/registry.ts with correct name, description, syntax, handler, and passthrough flag
 
 **Checkpoint**: User Story 3 fully functional — /diff and /usage forward to backend, /share exports Markdown, /feedback shows link
 
@@ -104,9 +104,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T019 [US4] Implement mcpHandler (passthrough) in solune/frontend/src/lib/commands/handlers/advanced.ts — returns { passthrough: true } to forward /mcp [show|add|delete] to backend for MCP configuration management
-- [ ] T020 [US4] Implement planHandler (passthrough) in solune/frontend/src/lib/commands/handlers/advanced.ts — returns { passthrough: true } to forward /plan [description] to backend for plan creation/display
-- [ ] T021 [US4] Register /mcp and /plan commands in solune/frontend/src/lib/commands/registry.ts with correct name, description, syntax, handler, and passthrough flag
+- [x] T019 [US4] Implement mcpHandler (passthrough) in solune/frontend/src/lib/commands/handlers/advanced.ts — returns { passthrough: true } to forward /mcp [show|add|delete] to backend for MCP configuration management
+- [x] T020 [US4] Implement planHandler (passthrough) in solune/frontend/src/lib/commands/handlers/advanced.ts — returns { passthrough: true } to forward /plan [description] to backend for plan creation/display
+- [x] T021 [US4] Register /mcp and /plan commands in solune/frontend/src/lib/commands/registry.ts with correct name, description, syntax, handler, and passthrough flag
 
 **Checkpoint**: User Story 4 fully functional — /mcp and /plan forward to backend for advanced configuration and planning
 
@@ -120,8 +120,8 @@
 
 ### Implementation for User Story 5
 
-- [ ] T022 [US5] Verify /help command output lists all registered commands (6 existing + 11 new) with correct syntax via getAllCommands() in solune/frontend/src/lib/commands/registry.ts
-- [ ] T023 [US5] Verify HelpPage displays all registered commands with descriptions and syntax in solune/frontend/src/pages/HelpPage.tsx (auto-updates from registry — no code changes expected)
+- [x] T022 [US5] Verify /help command output lists all registered commands (6 existing + 11 new) with correct syntax via getAllCommands() in solune/frontend/src/lib/commands/registry.ts
+- [x] T023 [US5] Verify HelpPage displays all registered commands with descriptions and syntax in solune/frontend/src/pages/HelpPage.tsx (auto-updates from registry — no code changes expected)
 
 **Checkpoint**: All 20 commands discoverable — /help and HelpPage automatically reflect the full registry
 
@@ -131,9 +131,9 @@
 
 **Purpose**: Edge case hardening, documentation, and validation across all user stories
 
-- [ ] T024 [P] Validate edge case handling for /clear on empty conversation and /compact on short conversation in solune/frontend/src/lib/commands/handlers/session.ts
-- [ ] T025 [P] Validate edge case handling for /share on empty conversation and passthrough error display in solune/frontend/src/lib/commands/handlers/monitoring.ts
-- [ ] T026 Run quickstart.md validation per specs/001-copilot-slash-commands/quickstart.md (frontend build, lint, type-check, backend tests)
+- [x] T024 [P] Validate edge case handling for /clear on empty conversation and /compact on short conversation in solune/frontend/src/lib/commands/handlers/session.ts
+- [x] T025 [P] Validate edge case handling for /share on empty conversation and passthrough error display in solune/frontend/src/lib/commands/handlers/monitoring.ts
+- [x] T026 Run quickstart.md validation per specs/001-copilot-slash-commands/quickstart.md (frontend build, lint, type-check, backend tests)
 
 ---
 

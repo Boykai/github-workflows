@@ -1,8 +1,14 @@
 /**
  * Unit tests for settings command handlers.
  */
-import { describe, it, expect, vi } from 'vitest';
-import { themeHandler, languageHandler, notificationsHandler, viewHandler } from './settings';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import {
+  themeHandler,
+  languageHandler,
+  notificationsHandler,
+  viewHandler,
+  experimentalHandler,
+} from './settings';
 import { createCommandContext } from '@/test/factories';
 
 describe('themeHandler', () => {
@@ -217,5 +223,57 @@ describe('concurrent/edge-case settings (US6)', () => {
     expect(setTheme).toHaveBeenNthCalledWith(1, 'light');
     expect(setTheme).toHaveBeenNthCalledWith(2, 'dark');
     expect(setTheme).toHaveBeenNthCalledWith(3, 'system');
+  });
+});
+
+describe('experimentalHandler', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('shows current status when no args given', () => {
+    const context = createCommandContext();
+    const result = experimentalHandler('', context);
+
+    expect(result.success).toBe(true);
+    expect(result.clearInput).toBe(true);
+    expect(result.message).toContain('currently off');
+    expect(result.message).toContain('/experimental');
+  });
+
+  it('enables experimental features with "on"', () => {
+    const context = createCommandContext();
+    const result = experimentalHandler('on', context);
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('enabled');
+  });
+
+  it('disables experimental features with "off"', () => {
+    localStorage.setItem('solune-experimental-features', 'true');
+    const context = createCommandContext();
+    const result = experimentalHandler('off', context);
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('disabled');
+  });
+
+  it('reports already-enabled when toggling to same state', () => {
+    localStorage.setItem('solune-experimental-features', 'true');
+    const context = createCommandContext();
+    const result = experimentalHandler('on', context);
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain('already on');
+  });
+
+  it('invalid value returns error listing valid options', () => {
+    const context = createCommandContext();
+    const result = experimentalHandler('maybe', context);
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain('maybe');
+    expect(result.message).toContain('on');
+    expect(result.message).toContain('off');
   });
 });

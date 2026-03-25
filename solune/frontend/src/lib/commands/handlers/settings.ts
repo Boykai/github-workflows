@@ -135,6 +135,69 @@ export async function notificationsHandler(
   };
 }
 
+// ── /experimental ───────────────────────────────────────────────────────────
+
+const EXPERIMENTAL_STORAGE_KEY = 'solune-experimental-features';
+
+const VALID_EXPERIMENTAL_VALUES = ['on', 'off'] as const;
+
+function getExperimentalEnabled(): boolean {
+  try {
+    return localStorage.getItem(EXPERIMENTAL_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function setExperimentalEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(EXPERIMENTAL_STORAGE_KEY, String(enabled));
+  } catch {
+    // localStorage may not be available in tests or restricted environments
+  }
+}
+
+export function experimentalHandler(args: string, _context: CommandContext): CommandResult {
+  const value = args.trim().toLowerCase();
+
+  // No args: show current status
+  if (!value) {
+    const enabled = getExperimentalEnabled();
+    return {
+      success: true,
+      message: `Experimental features are currently ${enabled ? 'on' : 'off'}. Usage: /experimental <on|off>`,
+      clearInput: true,
+    };
+  }
+
+  if (!VALID_EXPERIMENTAL_VALUES.includes(value as (typeof VALID_EXPERIMENTAL_VALUES)[number])) {
+    return {
+      success: false,
+      message: `Invalid value '${args.trim()}' for experimental. Valid options: on, off`,
+      clearInput: false,
+    };
+  }
+
+  const enabled = value === 'on';
+  const currentEnabled = getExperimentalEnabled();
+
+  if (enabled === currentEnabled) {
+    return {
+      success: true,
+      message: `Experimental features are already ${value}.`,
+      clearInput: true,
+    };
+  }
+
+  setExperimentalEnabled(enabled);
+
+  return {
+    success: true,
+    message: `Experimental features ${enabled ? 'enabled' : 'disabled'}.`,
+    clearInput: true,
+  };
+}
+
 // ── /view ───────────────────────────────────────────────────────────────────
 
 const VALID_VIEWS = ['chat', 'board', 'settings'] as const;
