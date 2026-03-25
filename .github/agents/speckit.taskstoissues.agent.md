@@ -2,16 +2,6 @@
 description: Convert existing tasks into actionable, dependency-ordered GitHub issues
   for the feature based on available design artifacts.
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp
