@@ -198,3 +198,31 @@ class TestBroadcastSetMutation:
         assert manager.get_connection_count("PVT_X") == 0
         ws1.send_json.assert_called_once()
         ws2.send_json.assert_called_once()
+
+
+class TestDisconnectLockConsistency:
+    """Regression test: disconnect must use the same lock as connect
+    to prevent race conditions between concurrent operations."""
+
+    @pytest.fixture
+    def manager(self):
+        return ConnectionManager()
+
+    @pytest.mark.asyncio
+    async def test_concurrent_connect_and_disconnect(self, manager):
+        """Connect and disconnect called concurrently should not corrupt state."""
+        ws1 = MagicMock()
+        ws1.accept = AsyncMock()
+        ws2 = MagicMock()
+        ws2.accept = AsyncMock()
+
+        await manager.connect(ws1, "PVT_A")
+        await manager.connect(ws2, "PVT_A")
+        assert manager.get_connection_count("PVT_A") == 2
+
+        await manager.disconnect(ws1)
+        assert manager.get_connection_count("PVT_A") == 1
+
+        await manager.disconnect(ws2)
+        assert manager.get_connection_count("PVT_A") == 0
+        assert "PVT_A" not in manager._connections

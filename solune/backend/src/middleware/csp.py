@@ -21,6 +21,11 @@ class CSPMiddleware(BaseHTTPMiddleware):
                 "style-src 'self' 'unsafe-inline'",
                 "img-src 'self' data: https:",
                 "font-src 'self'",
+                # TODO(bug-bash): 'wss:' allows WebSocket connections to ANY server,
+                # not just the application's own endpoint. Consider restricting to
+                # 'wss://<deployment-host>' once the deployment domain is known,
+                # to prevent potential data exfiltration via injected WebSocket
+                # connections.
                 "connect-src 'self' wss:",
                 "frame-ancestors 'none'",
                 "base-uri 'self'",
@@ -35,7 +40,7 @@ class CSPMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = (
-            "camera=(), microphone=(), geolocation=(), payment=()"
+            "camera=(), microphone=(self), geolocation=(), payment=()"
         )
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         return response
