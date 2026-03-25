@@ -4,16 +4,6 @@ description: Analyzes local changes or a related PR, updates the affected docume
   and README content to keep docs accurate, current, and aligned with the live codebase,
   and fixes documentation drift based on findings.
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp
