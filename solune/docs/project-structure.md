@@ -70,7 +70,7 @@ solune/
 │   │   │   ├── csrf.py           #   CSRFMiddleware — double-submit cookie CSRF protection
 │   │   │   ├── rate_limit.py     #   RateLimitMiddleware — per-user request rate limiting
 │   │   │   └── request_id.py     #   RequestIDMiddleware for request tracing
-│   │   ├── migrations/           # SQL schema migrations (27 SQL files, 001–022, auto-run)
+│   │   ├── migrations/           # SQL schema migrations (16 SQL files, 023–037, auto-run)
 │   │   ├── models/               # Pydantic v2 data models
 │   │   │   ├── agent.py          #   AgentSource, AgentAssignment, AvailableAgent
 │   │   │   ├── agent_creator.py  #   CreationStep, AgentPreview, AgentCreationState
@@ -207,9 +207,10 @@ solune/
 │   │   │   ├── buildGitHubMcpConfig.ts  # GitHub.com MCP config generator
 │   │   │   ├── pipelineMigration.ts  # Legacy-to-group pipeline format migration
 │   │   │   └── commands/        #   Chat command registry + handlers
-│   │   ├── pages/                # AgentsPage, AgentsPipelinePage, AppPage,
-│   │   │                         # ChoresPage, LoginPage, NotFoundPage,
-│   │   │                         # ProjectsPage, SettingsPage, ToolsPage
+│   │   ├── pages/                # ActivityPage, AgentsPage, AgentsPipelinePage,
+│   │   │                         # AppPage, AppsPage, ChoresPage, HelpPage,
+│   │   │                         # LoginPage, NotFoundPage, ProjectsPage,
+│   │   │                         # SettingsPage, ToolsPage
 │   │   ├── layout/               # App shell layout components
 │   │   │                         # AppLayout, AuthGate, TopBar, Sidebar,
 │   │   │                         # Breadcrumb, ProjectSelector, NotificationBell,

@@ -28,7 +28,7 @@ Click **Code** → **Codespaces** → **Create codespace on main**, or use:
 
 ### 2. Wait for Setup
 
-The dev container currently installs Python 3.13 and Node.js 25 (see `.devcontainer/devcontainer.json` for exact versions), plus the backend virtual environment, all dependencies, and Playwright browsers.
+The dev container currently installs Python 3.13 and Node.js 22 (see `.devcontainer/devcontainer.json` for exact versions), plus the backend virtual environment, all dependencies, and Playwright browsers.
 
 ### 3. Configure Environment
 
