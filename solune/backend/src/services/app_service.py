@@ -8,6 +8,7 @@ and path validation for applications managed by the platform.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import re
 from datetime import UTC, datetime
@@ -425,12 +426,17 @@ async def create_app_with_new_repo(
     )
     logger.info("Created repository %s", repo_data.get("full_name"))
 
-    repo_owner = repo_data["full_name"].split("/")[0]
-    repo_name = repo_data["name"]
+    full_name = repo_data.get("full_name", "")
+    if not full_name or "/" not in full_name:
+        raise ValidationError(
+            f"GitHub API returned an unexpected repository response "
+            f"(missing or malformed 'full_name': {full_name!r})."
+        )
+    repo_owner = full_name.split("/")[0]
+    repo_name = repo_data.get("name") or full_name.split("/", 1)[1]
     default_branch = repo_data.get("default_branch", "main")
 
     # 2. Get HEAD OID for template commit
-    import asyncio
 
     head_oid: str | None = None
     last_poll_exc: Exception | None = None
@@ -470,11 +476,9 @@ async def create_app_with_new_repo(
             message="scaffold: initial template files",
         )
         if commit_oid:
-            logger.info(
-                "Committed %d template files to %s", len(template_files), repo_data["full_name"]
-            )
+            logger.info("Committed %d template files to %s", len(template_files), full_name)
         else:
-            logger.warning("Failed to commit template files to %s", repo_data["full_name"])
+            logger.warning("Failed to commit template files to %s", full_name)
 
     # 3a. Store Azure credentials as GitHub Secrets (best-effort, synchronous).
     # Failure here is non-fatal: the app is still created, but the user must
@@ -684,6 +688,8 @@ async def update_app(db: aiosqlite.Connection, name: str, payload: AppUpdate) ->
     """Update application metadata."""
     app = await get_app(db, name)
 
+    _ALLOWED_UPDATE_COLUMNS = {"display_name", "description", "associated_pipeline_id"}
+
     updates: dict[str, str | None] = {}
     if payload.display_name is not None:
         updates["display_name"] = payload.display_name
@@ -694,6 +700,11 @@ async def update_app(db: aiosqlite.Connection, name: str, payload: AppUpdate) ->
 
     if not updates:
         return app
+
+    # Defense-in-depth: ensure only whitelisted column names enter the SQL
+    for col in updates:
+        if col not in _ALLOWED_UPDATE_COLUMNS:
+            raise ValidationError(f"Column '{col}' is not allowed in app updates.")
 
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     values = list(updates.values())
@@ -864,8 +875,6 @@ async def delete_app(
     When *access_token* and *github_service* are provided and the app has a
     ``parent_issue_number``, the parent issue is closed (best-effort).
     """
-    import asyncio
-
     app = await get_app(db, name)
 
     if app.status == AppStatus.ACTIVE:

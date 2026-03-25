@@ -246,7 +246,9 @@ async def _table_exists(db: aiosqlite.Connection, table_name: str) -> bool:
 
 
 async def _column_exists(db: aiosqlite.Connection, table_name: str, column_name: str) -> bool:
-    if not table_name.replace("_", "").isalnum():
+    # Strict validation: allow only ASCII letters, digits, and underscores;
+    # reject empty strings and bracket characters to prevent PRAGMA injection.
+    if not table_name or not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", table_name):
         return False
     cursor = await db.execute(f"PRAGMA table_info([{table_name}])")
     rows = await cursor.fetchall()

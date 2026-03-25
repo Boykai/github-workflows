@@ -391,3 +391,182 @@ class TestHTTPErrorResponsePatterns:
         assert "admin_blocked" in source or "locked" in source, (
             "Guard service should categorize blocked paths"
         )
+
+
+# ── Bug-bash: _decode_cursor missing input validation ────────────────
+
+
+class TestDecodeCursorValidatesPayload:
+    """Regression: _decode_cursor() in activity.py directly indexed
+    ``parts[0], parts[1]`` on the decoded JSON without checking the
+    array length, raising IndexError on malformed cursors instead of a
+    meaningful ValueError.
+
+    Fix: validate that the decoded JSON is a list with ≥2 elements.
+    """
+
+    def test_valid_cursor_round_trip(self):
+        """A well-formed cursor encodes and decodes correctly."""
+        from src.api.activity import _decode_cursor, _encode_cursor
+
+        ts, eid = "2025-01-01T00:00:00", "abc-123"
+        cursor = _encode_cursor(ts, eid)
+        assert _decode_cursor(cursor) == (ts, eid)
+
+    def test_malformed_cursor_empty_array(self):
+        """An empty JSON array must raise ValueError, not IndexError."""
+        import base64
+        import json
+
+        from src.api.activity import _decode_cursor
+
+        bad = base64.urlsafe_b64encode(json.dumps([]).encode()).decode()
+        with pytest.raises(ValueError, match="Invalid cursor payload"):
+            _decode_cursor(bad)
+
+    def test_malformed_cursor_single_element(self):
+        """A JSON array with only one element must raise ValueError."""
+        import base64
+        import json
+
+        from src.api.activity import _decode_cursor
+
+        bad = base64.urlsafe_b64encode(json.dumps(["only-one"]).encode()).decode()
+        with pytest.raises(ValueError, match="Invalid cursor payload"):
+            _decode_cursor(bad)
+
+    def test_malformed_cursor_non_array(self):
+        """A JSON object (not an array) must raise ValueError."""
+        import base64
+        import json
+
+        from src.api.activity import _decode_cursor
+
+        bad = base64.urlsafe_b64encode(json.dumps({"a": 1}).encode()).decode()
+        with pytest.raises(ValueError, match="Invalid cursor payload"):
+            _decode_cursor(bad)
+
+
+# ── Bug-bash: app_service create_app unsafe full_name key access ─────
+
+
+class TestCreateAppValidatesFullName:
+    """Regression: create_app() in app_service.py used
+    ``repo_data["full_name"].split("/")[0]`` without checking whether
+    ``full_name`` existed in the GitHub API response, causing a raw
+    KeyError that leaks internal details.
+
+    Fix: use ``.get()`` with a validation check that raises a clear
+    ValidationError.
+    """
+
+    def test_source_uses_safe_full_name_access(self):
+        """Verify the source no longer uses repo_data['full_name']."""
+        import pathlib
+
+        app_svc = (
+            pathlib.Path(__file__).parent.parent.parent / "src" / "services" / "app_service.py"
+        )
+        source = app_svc.read_text()
+        # The old pattern should be gone
+        assert 'repo_data["full_name"]' not in source, (
+            "app_service.py should not use direct dict access for full_name"
+        )
+
+    def test_source_validates_full_name_format(self):
+        """Verify the source validates that full_name contains '/'."""
+        import pathlib
+
+        app_svc = (
+            pathlib.Path(__file__).parent.parent.parent / "src" / "services" / "app_service.py"
+        )
+        source = app_svc.read_text()
+        assert '"/" not in full_name' in source or "'/' not in full_name" in source, (
+            "app_service.py should validate that full_name contains '/'"
+        )
+
+
+# ── Bug-bash: app_service import asyncio at module level ─────────────
+
+
+class TestAppServiceAsyncioAtModuleLevel:
+    """Regression: app_service.py had ``import asyncio`` inside
+    create_app() and delete_app() function bodies. Each call re-executed
+    the import lookup, adding unnecessary overhead.
+
+    Fix: move ``import asyncio`` to the module-level import block.
+    """
+
+    def test_no_function_level_asyncio_import(self):
+        """Verify no function-level 'import asyncio' exists."""
+        import pathlib
+
+        app_svc = (
+            pathlib.Path(__file__).parent.parent.parent / "src" / "services" / "app_service.py"
+        )
+        lines = app_svc.read_text().splitlines()
+        for i, line in enumerate(lines, 1):
+            stripped = line.strip()
+            if stripped == "import asyncio" and line[0] == " ":
+                pytest.fail(f"Function-level 'import asyncio' found at line {i} in app_service.py")
+
+
+# ── Bug-bash: update_app column whitelist ────────────────────────────
+
+
+class TestUpdateAppColumnWhitelist:
+    """Regression: update_app() constructed a dynamic SQL SET clause
+    from dictionary keys without validating them against a whitelist.
+    While the keys were derived from controlled code, the missing
+    validation was a defense-in-depth gap.
+
+    Fix: add an explicit whitelist check before building the SET clause.
+    """
+
+    def test_source_has_allowed_columns_set(self):
+        """Verify the source defines an allowed columns whitelist."""
+        import pathlib
+
+        app_svc = (
+            pathlib.Path(__file__).parent.parent.parent / "src" / "services" / "app_service.py"
+        )
+        source = app_svc.read_text()
+        assert "_ALLOWED_UPDATE_COLUMNS" in source, (
+            "update_app should define _ALLOWED_UPDATE_COLUMNS whitelist"
+        )
+
+    def test_source_validates_columns_against_whitelist(self):
+        """Verify the source rejects columns not in the whitelist."""
+        import pathlib
+
+        app_svc = (
+            pathlib.Path(__file__).parent.parent.parent / "src" / "services" / "app_service.py"
+        )
+        source = app_svc.read_text()
+        assert "not in _ALLOWED_UPDATE_COLUMNS" in source, (
+            "update_app should validate column names against whitelist"
+        )
+
+
+# ── Bug-bash: _column_exists table name validation ───────────────────
+
+
+class TestColumnExistsTableNameValidation:
+    """Regression: _column_exists() in database.py validated table names
+    with ``table_name.replace('_', '').isalnum()`` which allowed Unicode
+    letters and digits. The fix uses ``re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', ...)``
+    to restrict to ASCII identifiers only, matching SQLite naming conventions.
+    """
+
+    def test_source_uses_strict_regex_validation(self):
+        """Verify strict regex is used instead of isalnum()."""
+        import pathlib
+
+        db_py = pathlib.Path(__file__).parent.parent.parent / "src" / "services" / "database.py"
+        source = db_py.read_text()
+        assert "re.fullmatch" in source, (
+            "_column_exists should use re.fullmatch for table name validation"
+        )
+        assert "isalnum()" not in source, (
+            "_column_exists should not use isalnum() for table name validation"
+        )
