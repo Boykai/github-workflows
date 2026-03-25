@@ -207,6 +207,19 @@ class TestVerifyProjectAccess:
             with pytest.raises(AuthorizationError, match="Unable to verify project access"):
                 await verify_project_access(_request_with_state(), "PVT_123", _session())
 
+    @pytest.mark.asyncio
+    async def test_verify_project_access_propagates_rate_limit_error(self):
+        """RateLimitError must propagate instead of being swallowed as AuthorizationError."""
+        from src.dependencies import verify_project_access
+        from src.exceptions import RateLimitError
+
+        svc = AsyncMock()
+        svc.list_user_projects.side_effect = RateLimitError("Rate limit exceeded", retry_after=60)
+
+        with patch("src.dependencies.get_github_service", return_value=svc):
+            with pytest.raises(RateLimitError, match="Rate limit exceeded"):
+                await verify_project_access(_request_with_state(), "PVT_123", _session())
+
 
 class TestRequireSelectedProject:
     def test_require_selected_project_returns_selected_value(self):

@@ -77,10 +77,10 @@ class RateLimitTracker:
         rows = await cursor.fetchall()
         return [
             {
-                "timestamp": row[0] if isinstance(row, tuple) else row["timestamp"],
-                "remaining": row[1] if isinstance(row, tuple) else row["remaining"],
-                "limit": row[2] if isinstance(row, tuple) else row["limit"],
-                "reset_at": row[3] if isinstance(row, tuple) else row["reset_at"],
+                "timestamp": row["timestamp"],
+                "remaining": row["remaining"],
+                "limit": row["limit"],
+                "reset_at": row["reset_at"],
             }
             for row in rows
         ]

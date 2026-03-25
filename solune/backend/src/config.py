@@ -86,7 +86,11 @@ class Settings(BaseSettings):
 
     # Cookie
     cookie_secure: bool = False  # Set True in production (HTTPS)
-    cookie_max_age: int = 8 * 60 * 60  # 8 hours in seconds
+
+    @property
+    def cookie_max_age(self) -> int:
+        """Cookie max-age in seconds, derived from session_expire_hours."""
+        return self.session_expire_hours * 60 * 60
 
     # Session cleanup interval in seconds
     session_cleanup_interval: int = 3600

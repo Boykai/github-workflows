@@ -193,6 +193,8 @@ async def verify_project_access(
         projects = await svc.list_user_projects(session.access_token, session.github_username)
         if any(p.project_id == project_id for p in projects):
             return
+    except AppException:
+        raise  # Preserve RateLimitError, GitHubAPIError, etc.
     except Exception as e:
         logger.warning(
             "Failed to verify project access for user=%s project=%s: %s",
