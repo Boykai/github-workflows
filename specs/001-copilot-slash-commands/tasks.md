@@ -116,12 +116,12 @@
 
 **Goal**: All 20 commands (6 existing + 14 new) are discoverable via /help and HelpPage with zero manual updates
 
-**Independent Test**: Type /help and verify all 20 commands listed with correct syntax and descriptions; visit HelpPage and verify same list
+**Independent Test**: Type /help and verify all registered commands (6 existing + 11 new = 17 minimum) are listed with correct syntax and descriptions; visit HelpPage and verify same list
 
 ### Implementation for User Story 5
 
-- [ ] T022 [US5] Verify /help command output lists all 20 commands with correct syntax via getAllCommands() in solune/frontend/src/lib/commands/registry.ts
-- [ ] T023 [US5] Verify HelpPage displays all 20 commands with descriptions and syntax in solune/frontend/src/pages/HelpPage.tsx (auto-updates from registry — no code changes expected)
+- [ ] T022 [US5] Verify /help command output lists all registered commands (6 existing + 11 new) with correct syntax via getAllCommands() in solune/frontend/src/lib/commands/registry.ts
+- [ ] T023 [US5] Verify HelpPage displays all registered commands with descriptions and syntax in solune/frontend/src/pages/HelpPage.tsx (auto-updates from registry — no code changes expected)
 
 **Checkpoint**: All 20 commands discoverable — /help and HelpPage automatically reflect the full registry
 
@@ -214,9 +214,11 @@ Developer C: Phase 5 (US3) — monitoring.ts + registry.ts registrations
 2. Add User Story 1 → Test independently → Deploy/Demo (MVP: +3 commands = 9 total)
 3. Add User Story 2 → Test independently → Deploy/Demo (+2 commands = 11 total)
 4. Add User Story 3 → Test independently → Deploy/Demo (+4 commands = 15 total)
-5. Add User Story 4 → Test independently → Deploy/Demo (+2 commands = 17 total, but spec says 14 new)
-6. Complete User Story 5 → Verify all 20 commands discoverable
+5. Add User Story 4 → Test independently → Deploy/Demo (+2 commands = 17 total)
+6. Complete User Story 5 → Verify all commands discoverable via /help and HelpPage
 7. Each story adds value without breaking previous stories
+
+> **Note**: 11 new commands are fully specified (17 total). The spec targets ~14 new (20 total); up to 3 additional commands may be added once the truncated original issue is clarified.
 
 ### Parallel Team Strategy
 
