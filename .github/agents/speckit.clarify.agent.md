@@ -7,16 +7,6 @@ handoffs:
   agent: speckit.plan
   prompt: Create a plan for the spec. I am building with...
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp
