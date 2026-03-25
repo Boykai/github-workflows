@@ -64,6 +64,16 @@ class TestSettings:
         assert s.session_expire_hours == 8
         assert s.cache_ttl_seconds == 300
 
+    def test_cookie_max_age_derived_from_session_expire_hours(self):
+        """cookie_max_age must stay in sync with session_expire_hours."""
+        s = self._make(session_expire_hours=24)
+        assert s.cookie_max_age == 24 * 60 * 60
+
+    def test_cookie_max_age_default_matches_session_default(self):
+        """Default cookie_max_age must equal default session_expire_hours in seconds."""
+        s = self._make()
+        assert s.cookie_max_age == s.session_expire_hours * 60 * 60
+
     def test_debug_default_is_false(self):
         """The field-level default for debug is False.
 

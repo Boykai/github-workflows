@@ -234,10 +234,10 @@ async def github_webhook(
     if settings.github_webhook_secret:
         if not verify_webhook_signature(body, x_hub_signature_256, settings.github_webhook_secret):
             logger.warning("Invalid webhook signature")
-            raise AuthenticationError("Invalid or missing webhook signature")
+            raise AuthenticationError("Invalid webhook signature")
     else:
         logger.warning("Webhook rejected: GITHUB_WEBHOOK_SECRET is not configured")
-        raise AuthenticationError("Invalid or missing webhook signature")
+        raise AuthenticationError("Webhook secret not configured")
 
     # Deduplicate by delivery ID
     if x_github_delivery:

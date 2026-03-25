@@ -548,6 +548,23 @@ class TestGithubWebhookEndpoint:
                 },
             )
         assert resp.status_code == 401
+        assert "Invalid webhook signature" in resp.json().get(
+            "error", resp.json().get("detail", "")
+        )
+
+    async def test_webhook_missing_secret_returns_distinct_error(self, client):
+        """Missing webhook secret must return a different message than invalid signature."""
+        with patch("src.api.webhooks.get_settings") as mock_s:
+            mock_s.return_value = MagicMock(github_webhook_secret=None)
+            resp = await client.post(
+                "/api/v1/webhooks/github",
+                content=b'{"test": true}',
+                headers={"X-GitHub-Event": "push"},
+            )
+        assert resp.status_code == 401
+        body = resp.json().get("error", resp.json().get("detail", ""))
+        assert "not configured" in body
+        assert body != "Invalid webhook signature"
 
     async def test_webhook_ignores_unhandled_event(self, client, webhook_secret):
         with (

@@ -211,7 +211,9 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     return {} as T;
   }
 
-  return response.json();
+  return response.json().catch(() => {
+    throw new ApiError(response.status, { error: 'Invalid JSON in response' });
+  });
 }
 
 // ============ Auth API ============
@@ -380,7 +382,9 @@ export const chatApi = {
       throw new ApiError(response.status, { error: errorData.error || 'Upload failed' });
     }
 
-    return response.json();
+    return response.json().catch(() => {
+      throw new ApiError(response.status, { error: 'Invalid JSON in upload response' });
+    });
   },
 };
 
