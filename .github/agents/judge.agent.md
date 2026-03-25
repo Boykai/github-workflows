@@ -3,16 +3,6 @@ name: Judge
 description: Triages GitHub PR review comments, decides which recommendations should
   be adopted, and applies only justified follow-up changes.
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp
