@@ -69,7 +69,7 @@ class TestConnectionManager:
         await manager.connect(mock_websocket, "PVT_123")
         assert manager.get_connection_count("PVT_123") == 1
 
-        manager.disconnect(mock_websocket)
+        await manager.disconnect(mock_websocket)
 
         assert manager.get_connection_count("PVT_123") == 0
 
@@ -77,7 +77,7 @@ class TestConnectionManager:
     async def test_disconnect_unknown_websocket(self, manager, mock_websocket):
         """Should handle disconnecting an unknown WebSocket gracefully."""
         # Should not raise
-        manager.disconnect(mock_websocket)
+        await manager.disconnect(mock_websocket)
 
         assert manager.get_total_connections() == 0
 
@@ -85,7 +85,7 @@ class TestConnectionManager:
     async def test_disconnect_removes_project_when_empty(self, manager, mock_websocket):
         """Should clean up empty project entries."""
         await manager.connect(mock_websocket, "PVT_123")
-        manager.disconnect(mock_websocket)
+        await manager.disconnect(mock_websocket)
 
         # Internal state should be clean
         assert "PVT_123" not in manager._connections
@@ -181,10 +181,10 @@ class TestBroadcastSetMutation:
         ws2.accept = AsyncMock()
 
         async def disconnect_first(_message):
-            manager.disconnect(ws1)
+            await manager.disconnect(ws1)
 
         async def disconnect_second(_message):
-            manager.disconnect(ws2)
+            await manager.disconnect(ws2)
 
         ws1.send_json = AsyncMock(side_effect=disconnect_first)
         ws2.send_json = AsyncMock(side_effect=disconnect_second)

@@ -504,7 +504,7 @@ async def websocket_subscribe(
     except Exception as e:
         logger.error("WebSocket error for project %s: %s", project_id, e)
     finally:
-        connection_manager.disconnect(websocket)
+        await connection_manager.disconnect(websocket)
 
 
 @router.get("/{project_id}/events", dependencies=[Depends(verify_project_access)])

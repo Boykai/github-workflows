@@ -35,7 +35,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText('Safe content')).toBeDefined();
+    expect(screen.getByText('Safe content')).toBeInTheDocument();
   });
 
   it('should render default fallback when child throws', () => {
@@ -45,9 +45,9 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByRole('alert')).toBeDefined();
-    expect(screen.getByText('Something went wrong')).toBeDefined();
-    expect(screen.getByText('Test crash')).toBeDefined();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
+    expect(screen.getByText('Test crash')).toBeInTheDocument();
   });
 
   it('should render custom fallback when provided', () => {
@@ -57,7 +57,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText('Custom error UI')).toBeDefined();
+    expect(screen.getByText('Custom error UI')).toBeInTheDocument();
   });
 
   it('should reset state when Try again button is clicked', () => {
@@ -78,7 +78,7 @@ describe('ErrorBoundary', () => {
     );
 
     // Should show error fallback
-    expect(screen.getByText('Something went wrong')).toBeDefined();
+    expect(screen.getByText('Something went wrong')).toBeInTheDocument();
 
     // Fix the component before resetting
     shouldThrow = false;
@@ -96,7 +96,7 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(screen.getByText('Detailed error message')).toBeDefined();
+    expect(screen.getByText('Detailed error message')).toBeInTheDocument();
   });
 
   it('has no accessibility violations', async () => {

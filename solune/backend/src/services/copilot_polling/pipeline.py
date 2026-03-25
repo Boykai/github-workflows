@@ -2123,7 +2123,7 @@ async def _transition_after_pipeline_complete(
         if _pipeline_state is not None:
             _pipeline_auto_merge = bool(getattr(_pipeline_state, "auto_merge", False))
     except Exception:
-        pass
+        logger.debug("Failed to read pipeline auto_merge for issue #%d", issue_number, exc_info=True)
 
     # Remove any old pipeline state for this issue
     _cp.remove_pipeline_state(issue_number)
