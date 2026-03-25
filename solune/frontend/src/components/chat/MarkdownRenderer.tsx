@@ -61,16 +61,20 @@ export function MarkdownRenderer({ content, className }: MarkdownRendererProps) 
             </code>
           );
         },
-        a: ({ href, children }) => (
-          <a
-            href={href}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-primary underline hover:text-primary/80"
-          >
-            {children}
-          </a>
-        ),
+        a: ({ href, children }) => {
+          const safeHref =
+            href && /^https?:\/\//i.test(href) ? href : undefined;
+          return (
+            <a
+              href={safeHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-primary underline hover:text-primary/80"
+            >
+              {children}
+            </a>
+          );
+        },
         table: ({ children }) => (
           <div className="my-2 overflow-x-auto">
             <table className="min-w-full border-collapse border border-border text-sm">

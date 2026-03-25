@@ -1062,3 +1062,43 @@ class TestUploadFilePathTraversal:
             files={"file": ("malware.exe", io.BytesIO(b"\x00"), "application/octet-stream")},
         )
         assert resp.status_code == 415
+
+
+class TestDefaultExpiresAt:
+    """Regression tests for _default_expires_at (bug-bash fix).
+
+    The function computes a fallback expiry when expires_at is NULL in the DB.
+    Previously, if the created_at string could not be parsed, the function
+    returned the raw created_at string instead of a valid future datetime,
+    which caused proposals to be treated as expired immediately.
+    """
+
+    def test_valid_created_at_returns_future(self):
+        """A valid ISO datetime should produce an expiry 10 minutes later."""
+        from src.api.chat import _default_expires_at
+
+        result = _default_expires_at("2025-01-01T12:00:00")
+        assert result == "2025-01-01T12:10:00"
+
+    def test_invalid_created_at_returns_future_datetime(self):
+        """An unparseable created_at must return a valid future datetime, not
+        the unparseable string itself (which would be treated as expired)."""
+        from datetime import UTC, datetime
+
+        from src.api.chat import _default_expires_at
+
+        result = _default_expires_at("not-a-datetime")
+        # The result must be a valid ISO datetime string
+        parsed = datetime.fromisoformat(result)
+        # And it must be in the future (not the past)
+        assert parsed > datetime(2025, 1, 1, tzinfo=UTC)
+
+    def test_none_created_at_returns_future_datetime(self):
+        """None input must return a valid future datetime."""
+        from datetime import UTC, datetime
+
+        from src.api.chat import _default_expires_at
+
+        result = _default_expires_at(None)  # type: ignore[arg-type]
+        parsed = datetime.fromisoformat(result)
+        assert parsed > datetime(2025, 1, 1, tzinfo=UTC)

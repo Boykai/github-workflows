@@ -288,13 +288,15 @@ async def get_recommendation(recommendation_id: str) -> IssueRecommendation | No
 
 def _default_expires_at(created_at_str: str) -> str:
     """Compute a fallback expires_at when the stored value is NULL."""
-    from datetime import datetime, timedelta
+    from datetime import UTC, datetime, timedelta
 
     try:
         created = datetime.fromisoformat(created_at_str)
         return (created + timedelta(minutes=10)).isoformat()
     except (ValueError, TypeError):
-        return created_at_str
+        # Return a future expiry instead of the unparseable created_at string,
+        # which would be misinterpreted as an already-expired timestamp.
+        return (datetime.now(UTC) + timedelta(minutes=10)).isoformat()
 
 
 # ── Command dispatch helpers (extracted from send_message) ───────────────

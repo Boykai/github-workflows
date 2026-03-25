@@ -47,4 +47,32 @@ describe('MarkdownRenderer', () => {
     // Should render the wrapper div without errors
     expect(container.querySelector('.prose')).toBeInTheDocument();
   });
+
+  it('strips javascript: protocol from links to prevent XSS', () => {
+    const { container } = render(
+      <MarkdownRenderer content='[Click me](javascript:alert("xss"))' />,
+    );
+
+    const anchor = container.querySelector('a');
+    expect(anchor).toBeInTheDocument();
+    // href must not contain the javascript: protocol
+    expect(anchor).not.toHaveAttribute('href', expect.stringContaining('javascript:'));
+  });
+
+  it('allows https links in anchor hrefs', () => {
+    render(<MarkdownRenderer content="[Safe](https://safe.example.com)" />);
+
+    const link = screen.getByRole('link', { name: 'Safe' });
+    expect(link).toHaveAttribute('href', 'https://safe.example.com');
+  });
+
+  it('strips data: URIs from links to prevent XSS', () => {
+    const { container } = render(
+      <MarkdownRenderer content='[Bad link](data:text/html,<script>alert(1)</script>)' />,
+    );
+
+    const anchor = container.querySelector('a');
+    expect(anchor).toBeInTheDocument();
+    expect(anchor).not.toHaveAttribute('href', expect.stringContaining('data:'));
+  });
 });
