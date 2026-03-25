@@ -507,7 +507,7 @@ class TestAppServiceAsyncioAtModuleLevel:
         lines = app_svc.read_text().splitlines()
         for i, line in enumerate(lines, 1):
             stripped = line.strip()
-            if stripped == "import asyncio" and line[0] == " ":
+            if stripped == "import asyncio" and line and line[0] == " ":
                 pytest.fail(f"Function-level 'import asyncio' found at line {i} in app_service.py")
 
 
@@ -559,14 +559,23 @@ class TestColumnExistsTableNameValidation:
     """
 
     def test_source_uses_strict_regex_validation(self):
-        """Verify strict regex is used instead of isalnum()."""
+        """Verify strict regex is used instead of isalnum() in _column_exists."""
         import pathlib
+        import re
 
         db_py = pathlib.Path(__file__).parent.parent.parent / "src" / "services" / "database.py"
         source = db_py.read_text()
         assert "re.fullmatch" in source, (
             "_column_exists should use re.fullmatch for table name validation"
         )
-        assert "isalnum()" not in source, (
+        # Narrow check: ensure isalnum() is not used within _column_exists function
+        match = re.search(
+            r"async def _column_exists\(.*?\n(?=\nasync def |\ndef |\Z)",
+            source,
+            re.DOTALL,
+        )
+        assert match is not None, "_column_exists function not found in database.py"
+        fn_body = match.group(0)
+        assert "isalnum()" not in fn_body, (
             "_column_exists should not use isalnum() for table name validation"
         )
