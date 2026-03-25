@@ -139,7 +139,6 @@ class TestCopilotCompletionProvider:
                 "sys.modules",
                 {
                     "copilot": MagicMock(),
-                    "copilot.types": MagicMock(),
                     "copilot.generated": MagicMock(),
                     "copilot.generated.session_events": MagicMock(SessionEventType=mock_event_type),
                 },

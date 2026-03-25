@@ -12,9 +12,11 @@ from src.utils import utcnow
 
 from .state import (
     ASSIGNMENT_GRACE_PERIOD_SECONDS,
+    MAX_MERGE_RETRIES,
     RATE_LIMIT_PAUSE_THRESHOLD,
     RATE_LIMIT_SLOW_THRESHOLD,
     _claimed_child_prs,
+    _merge_failure_counts,
     _pending_agent_assignments,
     _polling_state,
     _processed_issue_prs,
@@ -1593,44 +1595,84 @@ async def _advance_pipeline(
                 completed_agent,
                 issue_number,
             )
+            _merge_failure_counts.pop(issue_number, None)
             await asyncio.sleep(_cp.POST_ACTION_DELAY_SECONDS)
         elif merge_result and merge_result.get("status") == "merge_failed":
-            # A child PR exists but could not be merged.  Block the
-            # pipeline so the next agent does NOT start on a stale base.
-            # The next polling cycle will retry the merge.
-            logger.warning(
-                "Safety-net merge FAILED for agent '%s' on issue #%d "
-                "(child PR #%s) — blocking pipeline advance until "
-                "child PR is merged",
-                completed_agent,
-                issue_number,
-                merge_result.get("pr_number"),
-            )
-            # Roll back the pipeline advance.  Because external side
-            # effects (tracking table, sub-issue close) have NOT been
-            # applied yet, this rollback is fully consistent.
-            pipeline.current_agent_index -= 1
-            if completed_agent in pipeline.completed_agents:
-                pipeline.completed_agents.remove(completed_agent)
-            # Restore group indices/statuses to pre-advance values so
-            # current_agent (derived from group state) stays consistent.
-            pipeline.current_group_index = _pre_group_idx
-            pipeline.current_agent_index_in_group = _pre_agent_in_group
-            if pipeline.groups and _pre_group_idx < len(pipeline.groups):
-                _g = pipeline.groups[_pre_group_idx]
-                if _pre_group_agent_status is None:
-                    _g.agent_statuses.pop(completed_agent, None)
-                else:
-                    _g.agent_statuses[completed_agent] = _pre_group_agent_status
-            _cp.set_pipeline_state(issue_number, pipeline)
-            return {
-                "status": "merge_blocked",
-                "issue_number": issue_number,
-                "task_title": task_title,
-                "action": "merge_blocked",
-                "agent_name": completed_agent,
-                "blocked_pr": merge_result.get("pr_number"),
-            }
+            # A child PR exists but could not be merged.  Track the failure
+            # count so we don't block indefinitely on an unmergeable PR.
+            failure_count = _merge_failure_counts.get(issue_number, 0) + 1
+            _merge_failure_counts[issue_number] = failure_count
+
+            if failure_count >= MAX_MERGE_RETRIES:
+                # Exceeded retry limit — skip the merge and advance.
+                blocked_pr = merge_result.get("pr_number")
+                logger.error(
+                    "Safety-net merge for agent '%s' on issue #%d "
+                    "(child PR #%s) failed %d times — skipping merge "
+                    "and advancing pipeline",
+                    completed_agent,
+                    issue_number,
+                    blocked_pr,
+                    failure_count,
+                )
+                _merge_failure_counts.pop(issue_number, None)
+                # Post a warning comment so users know the merge was skipped.
+                try:
+                    await _cp.github_projects_service.create_issue_comment(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=issue_number,
+                        body=(
+                            f"⚠️ Failed to merge child PR #{blocked_pr} for "
+                            f"agent **{completed_agent}** after "
+                            f"{failure_count} attempts. Advancing pipeline — "
+                            f"please resolve merge conflicts manually."
+                        ),
+                    )
+                except Exception:
+                    logger.warning(
+                        "Could not post merge-skip warning on issue #%d",
+                        issue_number,
+                        exc_info=True,
+                    )
+                # Do NOT roll back — let the pipeline continue below.
+            else:
+                logger.warning(
+                    "Safety-net merge FAILED for agent '%s' on issue #%d "
+                    "(child PR #%s, attempt %d/%d) — blocking pipeline "
+                    "advance until child PR is merged",
+                    completed_agent,
+                    issue_number,
+                    merge_result.get("pr_number"),
+                    failure_count,
+                    MAX_MERGE_RETRIES,
+                )
+                # Roll back the pipeline advance.  Because external side
+                # effects (tracking table, sub-issue close) have NOT been
+                # applied yet, this rollback is fully consistent.
+                pipeline.current_agent_index -= 1
+                if completed_agent in pipeline.completed_agents:
+                    pipeline.completed_agents.remove(completed_agent)
+                # Restore group indices/statuses to pre-advance values so
+                # current_agent (derived from group state) stays consistent.
+                pipeline.current_group_index = _pre_group_idx
+                pipeline.current_agent_index_in_group = _pre_agent_in_group
+                if pipeline.groups and _pre_group_idx < len(pipeline.groups):
+                    _g = pipeline.groups[_pre_group_idx]
+                    if _pre_group_agent_status is None:
+                        _g.agent_statuses.pop(completed_agent, None)
+                    else:
+                        _g.agent_statuses[completed_agent] = _pre_group_agent_status
+                _cp.set_pipeline_state(issue_number, pipeline)
+                return {
+                    "status": "merge_blocked",
+                    "issue_number": issue_number,
+                    "task_title": task_title,
+                    "action": "merge_blocked",
+                    "agent_name": completed_agent,
+                    "blocked_pr": merge_result.get("pr_number"),
+                }
         elif merge_result is None:
             from .completion import _find_open_child_pr
 

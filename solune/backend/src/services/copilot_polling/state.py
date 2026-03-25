@@ -190,6 +190,14 @@ _recovery_last_attempt: BoundedDict[int, datetime] = BoundedDict(
 )  # issue_number -> last attempt time
 RECOVERY_COOLDOWN_SECONDS = 300  # 5 minutes between recovery attempts per issue
 
+# Merge failure counter: tracks consecutive merge failures per issue.
+# When the count exceeds MAX_MERGE_RETRIES the pipeline skips the merge
+# and advances, posting a warning comment on the issue.
+_merge_failure_counts: BoundedDict[int, int] = BoundedDict(
+    maxlen=200
+)  # issue_number -> consecutive failure count
+MAX_MERGE_RETRIES: int = 3
+
 # Delay (seconds) after merging / before status updates to let GitHub sync.
 POST_ACTION_DELAY_SECONDS: float = 2.0
 

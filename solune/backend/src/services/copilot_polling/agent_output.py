@@ -669,12 +669,12 @@ async def _merge_and_claim_child_pr(
             else:
                 logger.warning(
                     "Failed to merge child PR #%d for agent '%s' on issue #%d "
-                    "— skipping Done! marker, will retry next cycle",
+                    "— posting Done! marker anyway; safety-net in "
+                    "_advance_pipeline will retry the merge",
                     pr_number,
                     current_agent,
                     issue_number,
                 )
-                return False
 
     # Mark the child PR as claimed
     if is_child_pr:

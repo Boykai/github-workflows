@@ -832,6 +832,39 @@ async def recover_stalled_issues(
                         )
                     _recovery_last_attempt[issue_number] = now
                     continue
+                elif merged_child:
+                    # Child PR exists and is completed but NOT yet merged.
+                    # The agent DID finish its work — do not re-assign.
+                    # Post the Done! marker; the safety-net merge in
+                    # _advance_pipeline will handle merging the PR.
+                    logger.warning(
+                        "Recovery: issue #%d — agent '%s' has COMPLETED (but "
+                        "unmerged) child PR #%s. Self-healing: posting Done! "
+                        "marker and skipping re-assignment (problems were: %s)",
+                        issue_number,
+                        agent_name,
+                        merged_child["number"],
+                        ", ".join(missing),
+                    )
+                    marker = f"{agent_name}: Done!"
+                    try:
+                        await _cp.github_projects_service.create_issue_comment(
+                            access_token=access_token,
+                            owner=task_owner,
+                            repo=task_repo,
+                            issue_number=issue_number,
+                            body=marker,
+                        )
+                    except Exception as marker_err:
+                        logger.warning(
+                            "Recovery: issue #%d — failed to post Done! marker "
+                            "for '%s': %s (skipping re-assignment anyway)",
+                            issue_number,
+                            agent_name,
+                            marker_err,
+                        )
+                    _recovery_last_attempt[issue_number] = now
+                    continue
 
             logger.warning(
                 "Recovery: issue #%d stalled — agent '%s' (%s), problems: %s. Re-assigning agent.",
