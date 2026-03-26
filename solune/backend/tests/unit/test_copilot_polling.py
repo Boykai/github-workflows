@@ -11689,6 +11689,4 @@ class TestCacheSemanticsForPolling:
 
         # 3. Board cache should remain intact (not deleted)
         board_data = cache.get(board_key)
-        assert board_data is not None, (
-            "board cache must survive a no-change polling cycle"
-        )
+        assert board_data is not None, "board cache must survive a no-change polling cycle"
