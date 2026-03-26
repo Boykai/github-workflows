@@ -21,10 +21,10 @@
 
 **Purpose**: Establish verification baseline and audit framework
 
-- [ ] T001 Document remediation status matrix mapping each of the 21 findings to codebase evidence in `specs/001-security-review/research.md`
-- [ ] T002 [P] Verify existing backend test suite passes: `cd solune/backend && pytest tests/unit/ --timeout=30 -q`
-- [ ] T003 [P] Verify existing frontend test suite passes: `cd solune/frontend && npm run test`
-- [ ] T004 [P] Verify linting passes: `cd solune/backend && ruff check src tests && ruff format --check src tests`
+- [x] T001 Document remediation status matrix mapping each of the 21 findings to codebase evidence in `specs/001-security-review/research.md`
+- [x] T002 [P] Verify existing backend test suite passes: `cd solune/backend && pytest tests/unit/ --timeout=30 -q`
+- [x] T003 [P] Verify existing frontend test suite passes: `cd solune/frontend && npm run test`
+- [x] T004 [P] Verify linting passes: `cd solune/backend && ruff check src tests && ruff format --check src tests`
 
 ---
 
@@ -36,10 +36,10 @@
 
 ### Verification for User Story 1
 
-- [ ] T005 [P] [US1] Verify OAuth callback sets HttpOnly/SameSite=Strict/Secure cookie in `solune/backend/src/api/auth.py` (FR-001) — inspect lines 22–39 for `httponly=True`, `samesite="strict"`, `secure=settings.effective_cookie_secure`
-- [ ] T006 [P] [US1] Verify no credential query parameters in OAuth redirect URL in `solune/backend/src/api/auth.py` (FR-001) — confirm redirect has no `?session_token=` or `?access_token=` params
-- [ ] T007 [P] [US1] Verify frontend does not read credentials from URL params in `solune/frontend/src/hooks/useAuth.ts` (FR-002) — confirm no `window.location.search` token extraction
-- [ ] T008 [P] [US1] Verify dev-login endpoint uses POST body in `solune/backend/src/api/auth.py` (FR-013) — inspect lines 190–218 for POST method with JSON body
+- [x] T005 [P] [US1] Verify OAuth callback sets HttpOnly/SameSite=Strict/Secure cookie in `solune/backend/src/api/auth.py` (FR-001) — inspect lines 22–39 for `httponly=True`, `samesite="strict"`, `secure=settings.effective_cookie_secure`
+- [x] T006 [P] [US1] Verify no credential query parameters in OAuth redirect URL in `solune/backend/src/api/auth.py` (FR-001) — confirm redirect has no `?session_token=` or `?access_token=` params
+- [x] T007 [P] [US1] Verify frontend does not read credentials from URL params in `solune/frontend/src/hooks/useAuth.ts` (FR-002) — confirm no `window.location.search` token extraction
+- [x] T008 [P] [US1] Verify dev-login endpoint uses POST body in `solune/backend/src/api/auth.py` (FR-013) — inspect lines 190–218 for POST method with JSON body
 
 **Checkpoint**: SC-001 validated — no credentials in URLs
 
@@ -53,11 +53,11 @@
 
 ### Verification for User Story 2
 
-- [ ] T009 [P] [US2] Verify ENCRYPTION_KEY enforcement in `solune/backend/src/config.py` `_validate_production_secrets()` (FR-003) — lines 128–227
-- [ ] T010 [P] [US2] Verify GITHUB_WEBHOOK_SECRET enforcement in `solune/backend/src/config.py` (FR-004)
-- [ ] T011 [P] [US2] Verify SESSION_SECRET_KEY ≥64 chars enforcement in `solune/backend/src/config.py` (FR-015)
-- [ ] T012 [P] [US2] Verify cookie_secure enforcement in production in `solune/backend/src/config.py` (FR-019)
-- [ ] T013 [P] [US2] Verify Fernet encryption applied to OAuth tokens in `solune/backend/src/services/encryption.py` (FR-003)
+- [x] T009 [P] [US2] Verify ENCRYPTION_KEY enforcement in `solune/backend/src/config.py` `_validate_production_secrets()` (FR-003) — lines 128–227
+- [x] T010 [P] [US2] Verify GITHUB_WEBHOOK_SECRET enforcement in `solune/backend/src/config.py` (FR-004)
+- [x] T011 [P] [US2] Verify SESSION_SECRET_KEY ≥64 chars enforcement in `solune/backend/src/config.py` (FR-015)
+- [x] T012 [P] [US2] Verify cookie_secure enforcement in production in `solune/backend/src/config.py` (FR-019)
+- [x] T013 [P] [US2] Verify Fernet encryption applied to OAuth tokens in `solune/backend/src/services/encryption.py` (FR-003)
 
 **Checkpoint**: SC-002 validated — startup refuses without mandatory secrets
 
@@ -71,8 +71,8 @@
 
 ### Verification for User Story 3
 
-- [ ] T014 [P] [US3] Verify frontend Dockerfile creates non-root user in `solune/frontend/Dockerfile` (FR-005) — inspect USER directive, lines 26–41
-- [ ] T015 [P] [US3] Verify nginx runs on non-privileged port 8080 in `solune/frontend/Dockerfile` and `solune/frontend/nginx.conf`
+- [x] T014 [P] [US3] Verify frontend Dockerfile creates non-root user in `solune/frontend/Dockerfile` (FR-005) — inspect USER directive, lines 26–41
+- [x] T015 [P] [US3] Verify nginx runs on non-privileged port 8080 in `solune/frontend/Dockerfile` and `solune/frontend/nginx.conf`
 
 **Checkpoint**: SC-003 validated — non-root containers
 
@@ -86,12 +86,12 @@
 
 ### Verification for User Story 4
 
-- [ ] T016 [US4] Verify centralized `verify_project_access()` in `solune/backend/src/dependencies.py` (FR-006, FR-007) — lines 181–206
-- [ ] T017 [P] [US4] Verify tasks endpoint uses `verify_project_access` in `solune/backend/src/api/tasks.py` (FR-006)
-- [ ] T018 [P] [US4] Verify projects endpoint uses `verify_project_access` in `solune/backend/src/api/projects.py` (FR-006)
-- [ ] T019 [P] [US4] Verify settings endpoint uses `verify_project_access` in `solune/backend/src/api/settings.py` (FR-006)
-- [ ] T020 [P] [US4] Verify workflow endpoint uses `verify_project_access` in `solune/backend/src/api/workflow.py` (FR-006)
-- [ ] T021 [US4] Verify WebSocket verifies project ownership before data transmission in `solune/backend/src/api/workflow.py` (FR-008)
+- [x] T016 [US4] Verify centralized `verify_project_access()` in `solune/backend/src/dependencies.py` (FR-006, FR-007) — lines 181–206
+- [x] T017 [P] [US4] Verify tasks endpoint uses `verify_project_access` in `solune/backend/src/api/tasks.py` (FR-006)
+- [x] T018 [P] [US4] Verify projects endpoint uses `verify_project_access` in `solune/backend/src/api/projects.py` (FR-006)
+- [x] T019 [P] [US4] Verify settings endpoint uses `verify_project_access` in `solune/backend/src/api/settings.py` (FR-006)
+- [x] T020 [P] [US4] Verify workflow endpoint uses `verify_project_access` in `solune/backend/src/api/workflow.py` (FR-006)
+- [x] T021 [US4] Verify WebSocket verifies project ownership before data transmission in `solune/backend/src/api/workflow.py` (FR-008)
 
 **Checkpoint**: SC-004, SC-005 validated — project access control enforced
 
@@ -105,11 +105,11 @@
 
 ### Verification for User Story 5
 
-- [ ] T022 [P] [US5] Verify Content-Security-Policy header in `solune/frontend/nginx.conf` (FR-010)
-- [ ] T023 [P] [US5] Verify Strict-Transport-Security header in `solune/frontend/nginx.conf` (FR-010)
-- [ ] T024 [P] [US5] Verify Referrer-Policy, Permissions-Policy, X-Content-Type-Options headers in `solune/frontend/nginx.conf` (FR-010)
-- [ ] T025 [P] [US5] Verify X-XSS-Protection is NOT present in `solune/frontend/nginx.conf` (FR-011)
-- [ ] T026 [P] [US5] Verify `server_tokens off` in `solune/frontend/nginx.conf` (FR-012)
+- [x] T022 [P] [US5] Verify Content-Security-Policy header in `solune/frontend/nginx.conf` (FR-010)
+- [x] T023 [P] [US5] Verify Strict-Transport-Security header in `solune/frontend/nginx.conf` (FR-010)
+- [x] T024 [P] [US5] Verify Referrer-Policy, Permissions-Policy, X-Content-Type-Options headers in `solune/frontend/nginx.conf` (FR-010)
+- [x] T025 [P] [US5] Verify X-XSS-Protection is NOT present in `solune/frontend/nginx.conf` (FR-011)
+- [x] T026 [P] [US5] Verify `server_tokens off` in `solune/frontend/nginx.conf` (FR-012)
 
 **Checkpoint**: SC-007 validated — security headers complete
 
@@ -123,10 +123,10 @@
 
 ### Verification for User Story 6
 
-- [ ] T027 [P] [US6] Verify Signal webhook uses `hmac.compare_digest` in `solune/backend/src/api/signal.py` (FR-009) — lines 273–274
-- [ ] T028 [P] [US6] Verify GitHub webhook uses `hmac.compare_digest` in `solune/backend/src/api/webhooks.py` (FR-009)
-- [ ] T029 [P] [US6] Verify CSRF middleware uses `secrets.compare_digest` in `solune/backend/src/middleware/csrf.py` (FR-009)
-- [ ] T030 [US6] Audit codebase for any remaining non-constant-time secret comparisons: `grep -rn "!=" solune/backend/src/ | grep -i "secret\|token\|key"`
+- [x] T027 [P] [US6] Verify Signal webhook uses `hmac.compare_digest` in `solune/backend/src/api/signal.py` (FR-009) — lines 273–274
+- [x] T028 [P] [US6] Verify GitHub webhook uses `hmac.compare_digest` in `solune/backend/src/api/webhooks.py` (FR-009)
+- [x] T029 [P] [US6] Verify CSRF middleware uses `secrets.compare_digest` in `solune/backend/src/middleware/csrf.py` (FR-009)
+- [x] T030 [US6] Audit codebase for any remaining non-constant-time secret comparisons: `grep -rn "!=" solune/backend/src/ | grep -i "secret\|token\|key"`
 
 **Checkpoint**: SC-006 validated — constant-time comparisons
 
@@ -140,8 +140,8 @@
 
 ### Verification for User Story 7
 
-- [ ] T031 [US7] Verify OAuth scopes configuration and justification comment in `solune/backend/src/services/github_auth.py` (FR-014) — lines 70–74. Note: research.md Finding 8 documents `repo` scope as a justified exception; FR-014 should be interpreted as "document minimum necessary scopes with justification for any broader scope retained"
-- [ ] T032 [US7] Document justified exception for `repo` scope: GitHub returns misleading 404s for issue/PR/comment writes with narrower scopes (per research.md Finding 8)
+- [x] T031 [US7] Verify OAuth scopes configuration and justification comment in `solune/backend/src/services/github_auth.py` (FR-014) — lines 70–74. Note: research.md Finding 8 documents `repo` scope as a justified exception; FR-014 should be interpreted as "document minimum necessary scopes with justification for any broader scope retained"
+- [x] T032 [US7] Document justified exception for `repo` scope: GitHub returns misleading 404s for issue/PR/comment writes with narrower scopes (per research.md Finding 8)
 
 **Checkpoint**: SC-011 validated — scopes documented with justification
 
@@ -155,9 +155,9 @@
 
 ### Verification for User Story 8
 
-- [ ] T033 [P] [US8] Verify backend binds to `127.0.0.1:8000:8000` in `solune/docker-compose.yml` (FR-016)
-- [ ] T034 [P] [US8] Verify frontend binds to `127.0.0.1:5173:8080` in `solune/docker-compose.yml` (FR-016)
-- [ ] T035 [P] [US8] Verify Signal API uses `expose` (internal only) in `solune/docker-compose.yml` (FR-016)
+- [x] T033 [P] [US8] Verify backend binds to `127.0.0.1:8000:8000` in `solune/docker-compose.yml` (FR-016)
+- [x] T034 [P] [US8] Verify frontend binds to `127.0.0.1:5173:8080` in `solune/docker-compose.yml` (FR-016)
+- [x] T035 [P] [US8] Verify Signal API uses `expose` (internal only) in `solune/docker-compose.yml` (FR-016)
 
 **Checkpoint**: No direct 0.0.0.0 bindings
 
@@ -171,11 +171,11 @@
 
 ### Verification for User Story 9
 
-- [ ] T036 [P] [US9] Verify `RateLimitKeyMiddleware` in `solune/backend/src/middleware/rate_limit.py` (FR-017)
-- [ ] T037 [P] [US9] Verify chat endpoint rate limit decorator in `solune/backend/src/api/chat.py` (FR-017) — line 948
-- [ ] T038 [P] [US9] Verify agent endpoint rate limit in `solune/backend/src/api/agents.py` (FR-017)
-- [ ] T039 [P] [US9] Verify workflow endpoint rate limit in `solune/backend/src/api/workflow.py` (FR-017)
-- [ ] T040 [US9] Verify OAuth callback per-IP rate limit in `solune/backend/src/api/auth.py` (FR-018)
+- [x] T036 [P] [US9] Verify `RateLimitKeyMiddleware` in `solune/backend/src/middleware/rate_limit.py` (FR-017)
+- [x] T037 [P] [US9] Verify chat endpoint rate limit decorator in `solune/backend/src/api/chat.py` (FR-017) — line 948
+- [x] T038 [P] [US9] Verify agent endpoint rate limit in `solune/backend/src/api/agents.py` (FR-017)
+- [x] T039 [P] [US9] Verify workflow endpoint rate limit in `solune/backend/src/api/workflow.py` (FR-017)
+- [x] T040 [US9] Verify OAuth callback per-IP rate limit in `solune/backend/src/api/auth.py` (FR-018)
 
 **Checkpoint**: SC-008 validated — rate limiting enforced
 
@@ -189,11 +189,11 @@
 
 ### Verification for User Story 10
 
-- [ ] T041 [P] [US10] Verify memory-only chat storage (`useState`) in `solune/frontend/src/hooks/useChatHistory.ts` (FR-025)
-- [ ] T042 [P] [US10] Verify `clearLegacyStorage()` removes pre-v2 localStorage data in `solune/frontend/src/hooks/useChatHistory.ts` (FR-026)
-- [ ] T043 [US10] Verify `clearHistory()` wipes memory and legacy storage on logout in `solune/frontend/src/hooks/useChatHistory.ts` (FR-026)
-- [ ] T044 [P] [US10] Verify configurable TTL mechanism for locally stored references in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027) — confirm TTL configuration exists (env var or constant), expected default ~24h (1440 min), and auto-removal of expired references
-- [ ] T045 [US10] Verify expired references are automatically removed when TTL elapses in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027) — note: spec underspecifies cleanup trigger (lazy vs scheduled) and precision; verify implementation approach
+- [x] T041 [P] [US10] Verify memory-only chat storage (`useState`) in `solune/frontend/src/hooks/useChatHistory.ts` (FR-025)
+- [x] T042 [P] [US10] Verify `clearLegacyStorage()` removes pre-v2 localStorage data in `solune/frontend/src/hooks/useChatHistory.ts` (FR-026)
+- [x] T043 [US10] Verify `clearHistory()` wipes memory and legacy storage on logout in `solune/frontend/src/hooks/useChatHistory.ts` (FR-026)
+- [x] T044 [P] [US10] Verify configurable TTL mechanism for locally stored references in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027) — confirm TTL configuration exists (env var or constant), expected default ~24h (1440 min), and auto-removal of expired references
+- [x] T045 [US10] Verify expired references are automatically removed when TTL elapses in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027) — note: spec underspecifies cleanup trigger (lazy vs scheduled) and precision; verify implementation approach
 
 **Checkpoint**: SC-009 validated — no message content in localStorage
 
@@ -207,8 +207,8 @@
 
 ### Verification for User Story 11
 
-- [ ] T046 [P] [US11] Verify webhook verification is unconditional in `solune/backend/src/api/webhooks.py` (FR-020) — lines 209–240
-- [ ] T047 [P] [US11] Verify no DEBUG branching in webhook verification path in `solune/backend/src/api/webhooks.py` (FR-020)
+- [x] T046 [P] [US11] Verify webhook verification is unconditional in `solune/backend/src/api/webhooks.py` (FR-020) — lines 209–240
+- [x] T047 [P] [US11] Verify no DEBUG branching in webhook verification path in `solune/backend/src/api/webhooks.py` (FR-020)
 
 **Checkpoint**: Webhook security independent of debug mode
 
@@ -222,8 +222,8 @@
 
 ### Verification for User Story 12
 
-- [ ] T048 [P] [US12] Verify directory `0o700` and file `0o600` permissions in `solune/backend/src/services/database.py` (FR-022) — lines 32–56
-- [ ] T049 [P] [US12] Verify data volume mounted at `/var/lib/solune/data` in `solune/docker-compose.yml` (FR-024)
+- [x] T048 [P] [US12] Verify directory `0o700` and file `0o600` permissions in `solune/backend/src/services/database.py` (FR-022) — lines 32–56
+- [x] T049 [P] [US12] Verify data volume mounted at `/var/lib/solune/data` in `solune/docker-compose.yml` (FR-024)
 
 **Checkpoint**: SC-010 validated — correct permissions and volume location
 
@@ -237,9 +237,9 @@
 
 ### Verification for User Story 13
 
-- [ ] T050 [P] [US13] Verify CORS origins validation with `urlparse()` in `solune/backend/src/config.py` `cors_origins_list` property (FR-023) — lines 230–248
-- [ ] T051 [P] [US13] Verify `ENABLE_DOCS` toggle independent of DEBUG in `solune/backend/src/main.py` (FR-021) — lines 591–592
-- [ ] T052 [P] [US13] Verify `enable_docs` defaults to `False` in `solune/backend/src/config.py` (FR-021) — line 95
+- [x] T050 [P] [US13] Verify CORS origins validation with `urlparse()` in `solune/backend/src/config.py` `cors_origins_list` property (FR-023) — lines 230–248
+- [x] T051 [P] [US13] Verify `ENABLE_DOCS` toggle independent of DEBUG in `solune/backend/src/main.py` (FR-021) — lines 591–592
+- [x] T052 [P] [US13] Verify `enable_docs` defaults to `False` in `solune/backend/src/config.py` (FR-021) — line 95
 
 **Checkpoint**: Configuration validation complete
 
@@ -253,8 +253,8 @@
 
 ### Verification for User Story 14
 
-- [ ] T053 [P] [US14] Verify `handle_service_error()` sanitizes errors in `solune/backend/src/logging_utils.py` (FR-028) — lines 224–267
-- [ ] T054 [US14] Audit service files for consistent use of `handle_service_error()` in `solune/backend/src/services/`
+- [x] T053 [P] [US14] Verify `handle_service_error()` sanitizes errors in `solune/backend/src/logging_utils.py` (FR-028) — lines 224–267
+- [x] T054 [US14] Audit service files for consistent use of `handle_service_error()` in `solune/backend/src/services/`
 
 **Checkpoint**: SC-012 validated — no internal details in error responses
 
@@ -268,9 +268,9 @@
 
 ### Verification for User Story 15
 
-- [ ] T055 [P] [US15] Verify scoped permissions with justification comments in `.github/workflows/branch-issue-link.yml` (FR-029)
-- [ ] T056 [P] [US15] Verify `validateAvatarUrl()` checks HTTPS and hostname allowlist in `solune/frontend/src/components/IssueCard.tsx` (FR-030)
-- [ ] T057 [P] [US15] Verify SVG placeholder fallback for invalid avatar URLs in `solune/frontend/src/components/IssueCard.tsx` (FR-030)
+- [x] T055 [P] [US15] Verify scoped permissions with justification comments in `.github/workflows/branch-issue-link.yml` (FR-029)
+- [x] T056 [P] [US15] Verify `validateAvatarUrl()` checks HTTPS and hostname allowlist in `solune/frontend/src/components/IssueCard.tsx` (FR-030)
+- [x] T057 [P] [US15] Verify SVG placeholder fallback for invalid avatar URLs in `solune/frontend/src/components/IssueCard.tsx` (FR-030)
 
 **Checkpoint**: Low-priority controls verified
 
@@ -280,11 +280,11 @@
 
 **Purpose**: Final verification across all findings
 
-- [ ] T058 Run full backend test suite to confirm no regressions: `cd solune/backend && pytest tests/unit/ --timeout=30 -q`
-- [ ] T059 [P] Run full frontend test suite: `cd solune/frontend && npm run test`
-- [ ] T060 [P] Run backend linting: `cd solune/backend && ruff check src tests && ruff format --check src tests`
-- [ ] T061 Run quickstart.md verification checklist (all 12 verification steps per `specs/001-security-review/quickstart.md`)
-- [ ] T062 Produce final remediation status report confirming all 21 findings addressed
+- [x] T058 Run full backend test suite to confirm no regressions: `cd solune/backend && pytest tests/unit/ --timeout=30 -q`
+- [x] T059 [P] Run full frontend test suite: `cd solune/frontend && npm run test`
+- [x] T060 [P] Run backend linting: `cd solune/backend && ruff check src tests && ruff format --check src tests`
+- [x] T061 Run quickstart.md verification checklist (all 12 verification steps per `specs/001-security-review/quickstart.md`)
+- [x] T062 Produce final remediation status report confirming all 21 findings addressed
 
 ---
 
