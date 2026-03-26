@@ -12,8 +12,8 @@ This guide provides step-by-step verification procedures for all 21 security fin
 
 - Docker and Docker Compose installed
 - Access to the Solune repository
-- Python 3.11+ with virtual environment
-- Node.js 18+ for frontend verification
+- Python 3.12+ with virtual environment
+- Node.js 20+ for frontend verification
 
 ```bash
 cd solune/backend
@@ -60,15 +60,15 @@ ENCRYPTION_KEY="$(python -c 'from cryptography.fernet import Fernet; print(Ferne
   DEBUG=false python -m src.main
 # Expected: Application refuses to start with clear error about GITHUB_WEBHOOK_SECRET
 
-# Test 3: Short SESSION_SECRET_KEY
-SESSION_SECRET_KEY="too-short" python -m src.main
+# Test 3: Short SESSION_SECRET_KEY in non-debug mode
+SESSION_SECRET_KEY="too-short" DEBUG=false python -m src.main
 # Expected: Application refuses to start with error about minimum 64 characters
 
 # Test 4: Unit tests
 pytest tests/unit/test_config.py -v -k "production"
 ```
 
-**Pass Criteria**: Application fails to start for each missing/invalid secret.
+**Pass Criteria**: Application fails to start for each missing/invalid secret in non-debug mode.
 
 ### V3: Non-Root Containers (Finding 3)
 

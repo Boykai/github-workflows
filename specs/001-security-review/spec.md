@@ -4,6 +4,7 @@
 **Created**: 2026-03-26  
 **Status**: Draft  
 **Input**: User description: "Security, Privacy & Vulnerability Audit — 3 Critical · 8 High · 9 Medium · 2 Low findings across OWASP Top 10"
+**Note**: The original audit header above sums to 22 findings, but the audited finding list used by this feature contains 21 findings. This specification follows the 21 documented findings.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -36,7 +37,7 @@ As a system operator deploying the application, I expect that the system refuses
 
 1. **Given** the application is started in non-debug mode, **When** `ENCRYPTION_KEY` is not set, **Then** the application refuses to start and logs a clear error message.
 2. **Given** the application is started in non-debug mode, **When** `GITHUB_WEBHOOK_SECRET` is not set, **Then** the application refuses to start and logs a clear error message.
-3. **Given** the application is started in any mode, **When** `SESSION_SECRET_KEY` is shorter than 64 characters, **Then** the application refuses to start and logs a clear error message.
+3. **Given** the application is started in non-debug mode, **When** `SESSION_SECRET_KEY` is shorter than 64 characters, **Then** the application refuses to start and logs a clear error message.
 4. **Given** the application is started in non-debug mode, **When** `cookie_secure` is not configured as `true`, **Then** the application refuses to start and logs a clear error message.
 
 ---
@@ -111,12 +112,12 @@ As a user authorizing the application via OAuth, I expect the application to req
 
 **Why this priority**: Overly broad scopes (OWASP A01 High) grant the application full read/write access to all private repositories, exceeding the principle of least privilege.
 
-**Independent Test**: Inspect the OAuth authorization URL and verify only the minimum necessary scopes are requested (e.g., `read:org`, `repo:status`, `public_repo` or project-specific scopes instead of full `repo`).
+**Independent Test**: Inspect the OAuth authorization URL and verify only the minimum necessary scopes are requested by default, and that any broader scope retained for core write operations (such as full `repo`) is explicitly justified and documented.
 
 **Acceptance Scenarios**:
 
-1. **Given** a user initiates OAuth authorization, **When** the authorization URL is constructed, **Then** the requested scopes include only the minimum necessary permissions.
-2. **Given** the application operates with narrowed scopes, **When** all project management operations are tested, **Then** all features function correctly.
+1. **Given** a user initiates OAuth authorization, **When** the authorization URL is constructed, **Then** the requested scopes include only the minimum necessary permissions, with any broader retained scope explicitly justified in the security review documentation.
+2. **Given** the application retains a broader scope such as full `repo` for core write operations, **When** the security review documentation and tests are inspected, **Then** the justification and affected capabilities are clearly documented.
 
 ---
 
@@ -280,8 +281,8 @@ As a repository maintainer, I expect CI workflows to request only the minimum pe
 - **FR-011**: The frontend reverse proxy MUST NOT serve the deprecated `X-XSS-Protection` header.
 - **FR-012**: The frontend reverse proxy MUST NOT expose server software version information.
 - **FR-013**: All credential inputs, including dev-only endpoints, MUST arrive in the POST request body (JSON), never in URL query parameters.
-- **FR-014**: The OAuth authorization flow MUST request only the minimum necessary scopes for project management operations.
-- **FR-015**: System MUST reject `SESSION_SECRET_KEY` values shorter than 64 characters at startup.
+- **FR-014**: The OAuth authorization flow MUST request only the minimum necessary scopes for project management operations, and any broader retained scope MUST be explicitly justified and documented.
+- **FR-015**: System MUST reject `SESSION_SECRET_KEY` values shorter than 64 characters in non-debug mode and MUST emit a clear warning in debug mode.
 - **FR-016**: Development services MUST bind to `127.0.0.1` only; production services MUST NOT be directly exposed via container ports.
 
 **Phase 3 — Medium**
@@ -326,7 +327,7 @@ As a repository maintainer, I expect CI workflows to request only the minimum pe
 - **SC-008**: After exceeding rate limit thresholds, expensive endpoints return 429 Too Many Requests — verified by load testing.
 - **SC-009**: After logout, browser localStorage contains no application message content — verified by DevTools inspection.
 - **SC-010**: Database directory permissions are 0700 and file permissions are 0600 — verified by filesystem inspection inside the container.
-- **SC-011**: OAuth authorization requests include only minimum necessary scopes — verified by intercepting the authorization URL during login.
+- **SC-011**: OAuth authorization requests use minimum necessary scopes by default, with any broader retained scope explicitly justified in the review artifacts — verified by intercepting the authorization URL during login and checking the linked rationale.
 - **SC-012**: No user-facing error response contains internal details such as query structures, token scopes, or stack traces — verified by triggering error conditions in integration tests.
 
 ## Assumptions

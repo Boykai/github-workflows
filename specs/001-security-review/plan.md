@@ -5,12 +5,12 @@
 
 ## Summary
 
-Comprehensive security audit addressing 22 findings across OWASP Top 10 categories (3 Critical, 8 High, 9 Medium, 2 Low). Codebase analysis reveals **17 of 21 findings are already remediated** in the current codebase. The remaining work focuses on: narrowing OAuth scopes (or documenting the justified exception), verifying completeness of rate-limiting coverage across all sensitive endpoints, and ensuring end-to-end behavioral verification of all security controls.
+Comprehensive security audit addressing 21 findings across OWASP Top 10 categories (3 Critical, 7 High, 9 Medium, 2 Low). Codebase analysis reveals **17 of 21 findings are already remediated** in the current codebase. The remaining work focuses on: documenting the justified OAuth scope exception, verifying completeness of rate-limiting coverage across all sensitive endpoints, and ensuring end-to-end behavioral verification of all security controls.
 
 ## Technical Context
 
-**Language/Version**: Python 3.11 (backend), TypeScript 5.x (frontend)
-**Primary Dependencies**: FastAPI, slowapi, aiosqlite, cryptography (Fernet), React 18, nginx (Alpine)
+**Language/Version**: Python ≥3.12 (pyright target 3.13) (backend), TypeScript ~5.9 (frontend)
+**Primary Dependencies**: FastAPI, slowapi, aiosqlite, cryptography (Fernet), React 19.2, nginx (Alpine)
 **Storage**: SQLite via aiosqlite with Fernet encryption at rest
 **Testing**: pytest (3575 unit tests), Vitest (frontend), ruff/pyright/bandit (linting)
 **Target Platform**: Linux containers (Docker Compose), nginx reverse proxy

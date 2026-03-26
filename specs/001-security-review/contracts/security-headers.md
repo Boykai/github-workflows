@@ -34,8 +34,9 @@ Set-Cookie: session_id=<UUID>;
 
 ```bash
 # After OAuth login, inspect browser URL — must contain no credentials
-# Inspect Set-Cookie header on callback response
-curl -v POST /api/v1/auth/github/callback 2>&1 | grep -i "set-cookie"
+# Inspect Set-Cookie header on the callback response. Reproducing this
+# accurately usually requires a real OAuth callback or captured response.
+curl -v GET /api/v1/auth/github/callback 2>&1 | grep -i "set-cookie"
 # Expected: HttpOnly; SameSite=Strict; Secure (in production)
 ```
 
@@ -51,7 +52,7 @@ curl -v POST /api/v1/auth/github/callback 2>&1 | grep -i "set-cookie"
 |----------|-----------|-----------------|
 | `ENCRYPTION_KEY` | Non-empty, valid Fernet key | Refuse to start |
 | `GITHUB_WEBHOOK_SECRET` | Non-empty | Refuse to start |
-| `SESSION_SECRET_KEY` | Length ≥ 64 characters | Refuse to start (all modes) |
+| `SESSION_SECRET_KEY` | Length ≥ 64 characters | Fatal in prod; warn in debug |
 | `COOKIE_SECURE` | `true` (or HTTPS `frontend_url`) | Refuse to start |
 | `ADMIN_GITHUB_USER_ID` | Integer > 0 | Refuse to start |
 
@@ -62,8 +63,8 @@ curl -v POST /api/v1/auth/github/callback 2>&1 | grep -i "set-cookie"
 ENCRYPTION_KEY="" DEBUG=false python -m src.main
 # Expected: Exit with error "ENCRYPTION_KEY must be set in production"
 
-# Start with short SESSION_SECRET_KEY
-SESSION_SECRET_KEY="too-short" python -m src.main
+# Start with short SESSION_SECRET_KEY in non-debug mode
+SESSION_SECRET_KEY="too-short" DEBUG=false python -m src.main
 # Expected: Exit with error "SESSION_SECRET_KEY must be at least 64 characters"
 ```
 
