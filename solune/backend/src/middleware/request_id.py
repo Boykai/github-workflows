@@ -18,11 +18,14 @@ Reading the current request ID from anywhere::
 from __future__ import annotations
 
 import contextvars
+import re
 import uuid
 
 from starlette.middleware.base import BaseHTTPMiddleware, RequestResponseEndpoint
 from starlette.requests import Request
 from starlette.responses import Response
+
+_VALID_REQUEST_ID = re.compile(r"^[a-zA-Z0-9\-_\.]{1,128}$")
 
 #: ContextVar holding the current request's correlation ID.
 #: Defaults to ``""`` outside a request context.
@@ -42,7 +45,8 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     """
 
     async def dispatch(self, request: Request, call_next: RequestResponseEndpoint) -> Response:
-        rid = request.headers.get(_HEADER) or uuid.uuid4().hex
+        raw = request.headers.get(_HEADER) or ""
+        rid = raw if _VALID_REQUEST_ID.match(raw) else uuid.uuid4().hex
         token = request_id_var.set(rid)
         try:
             response = await call_next(request)
