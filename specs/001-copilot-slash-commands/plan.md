@@ -7,7 +7,7 @@
 
 ## Summary
 
-Add 14 new slash commands to Solune Chat mirroring applicable GitHub Copilot CLI slash commands. Commands are split into two categories: **Local** commands (`/clear`, `/feedback`, `/share`, `/experimental`) that execute on the frontend with optional backend calls, and **Passthrough** commands (`/model`, `/compact`, `/context`, `/diff`, `/usage`, `/mcp`, `/plan`) that forward to the backend AI service. The existing command registry pattern (registry.ts + handler modules) is extended with new handler files organized by domain. HelpPage and `/help` auto-update since they already read from the command registry.
+Add 11 new slash commands to Solune Chat that are currently in scope for this feature. Commands are split into two categories: **Local** commands (`/clear`, `/feedback`, `/share`, `/experimental`) that execute on the frontend with optional backend calls, and **Passthrough** commands (`/model`, `/compact`, `/context`, `/diff`, `/usage`, `/mcp`, `/plan`) that forward to the backend AI service. The existing command registry pattern (registry.ts + handler modules) is extended with new handler files organized by domain. HelpPage and `/help` auto-update since they already read from the command registry.
 
 ## Technical Context
 
@@ -19,7 +19,7 @@ Add 14 new slash commands to Solune Chat mirroring applicable GitHub Copilot CLI
 **Project Type**: Web (frontend + backend monorepo under `solune/`)
 **Performance Goals**: Local commands <100ms, passthrough commands <5s response (SC-006), /clear <2s for 500 messages (SC-003), /share <3s for 200 messages (SC-005)
 **Constraints**: Rate limit 10 messages/min on backend send_message endpoint, 75% backend test coverage minimum
-**Scale/Scope**: 20 total commands (6 existing + 14 new), 5 user stories (P1–P5), web-only
+**Scale/Scope**: 17 total commands (6 existing + 11 new), 5 user stories (P1–P5), web-only
 
 ## Constitution Check
 
@@ -57,7 +57,7 @@ solune/
 ├── frontend/
 │   └── src/
 │       ├── lib/commands/
-│       │   ├── registry.ts            # Extend with 14 new registerCommand() calls
+│       │   ├── registry.ts            # Extend with 11 new registerCommand() calls
 │       │   ├── types.ts               # Extend CommandContext if needed for new capabilities
 │       │   └── handlers/
 │       │       ├── help.ts            # Existing — no changes needed

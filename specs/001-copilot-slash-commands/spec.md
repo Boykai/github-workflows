@@ -75,22 +75,22 @@ A power user needs to manage MCP (Model Context Protocol) configurations and cre
 1. **Given** a chat session, **When** the user types `/mcp show`, **Then** the system displays a list of all configured MCP endpoints and their status.
 2. **Given** a chat session, **When** the user types `/mcp add`, **Then** the system initiates a flow to register a new MCP configuration.
 3. **Given** existing MCP configurations, **When** the user types `/mcp delete`, **Then** the system allows the user to select and remove an MCP configuration.
-4. **Given** a chat session with task context, **When** the user types `/plan`, **Then** the system creates or displays an execution plan for the current task. [NEEDS CLARIFICATION: The /plan command description was truncated in the original issue — what is the full syntax and expected behavior?]
+4. **Given** a chat session with task context, **When** the user types `/plan`, **Then** the system creates or displays an execution plan for the current task using the syntax and behavior defined in `research.md` section "1. /plan Command — Full Syntax and Behavior".
 
 ---
 
 ### User Story 5 - Command Discoverability (Priority: P5)
 
-A new or returning user wants to discover all available slash commands. They type `/help` or visit the HelpPage and see a complete, up-to-date list of all 20 commands with syntax and descriptions. No manual updates are needed because the HelpPage and /help command read directly from the command registry.
+A new or returning user wants to discover all available slash commands. They type `/help` or visit the HelpPage and see a complete, up-to-date list of all 17 in-scope commands with syntax and descriptions. No manual updates are needed because the HelpPage and /help command read directly from the command registry.
 
 **Why this priority**: Discoverability ensures all other commands deliver value. If users cannot find commands, the commands are effectively useless. Auto-updating from the registry prevents documentation drift.
 
-**Independent Test**: Can be tested by typing `/help` and verifying that all 20 commands appear with correct syntax and descriptions. Separately, visit the HelpPage and verify the same information is displayed.
+**Independent Test**: Can be tested by typing `/help` and verifying that all 17 in-scope commands appear with correct syntax and descriptions. Separately, visit the HelpPage and verify the same information is displayed.
 
 **Acceptance Scenarios**:
 
-1. **Given** all new commands have been registered, **When** the user types `/help`, **Then** the help output lists all 20 commands (6 existing + 14 new) with their syntax and descriptions.
-2. **Given** all new commands have been registered, **When** the user visits the HelpPage, **Then** the page displays all 20 commands with accurate descriptions and syntax.
+1. **Given** all in-scope commands have been registered, **When** the user types `/help`, **Then** the help output lists all 17 commands (6 existing + 11 new) with their syntax and descriptions.
+2. **Given** all in-scope commands have been registered, **When** the user visits the HelpPage, **Then** the page displays all 17 commands with accurate descriptions and syntax.
 3. **Given** a new command is added to the registry, **When** the user types `/help`, **Then** the new command automatically appears without any manual HelpPage or /help updates.
 
 ---
@@ -143,7 +143,7 @@ A new or returning user wants to discover all available slash commands. They typ
 - **FR-016**: `/mcp show` MUST list all currently configured MCP endpoints with their status.
 - **FR-017**: `/mcp add` MUST initiate a guided flow to register a new MCP configuration.
 - **FR-018**: `/mcp delete` MUST allow the user to select and remove an existing MCP configuration.
-- **FR-019**: `/plan` MUST create or display an execution plan for the current task context. [NEEDS CLARIFICATION: The /plan command description was truncated in the original issue — what is the full syntax and expected behavior?]
+- **FR-019**: `/plan` MUST create or display an execution plan for the current task context, following the syntax and behavior defined in `research.md` section "1. /plan Command — Full Syntax and Behavior".
 
 **Command Execution Behavior**
 
@@ -154,7 +154,7 @@ A new or returning user wants to discover all available slash commands. They typ
 
 **Enhancements to Existing Commands**
 
-- **FR-024**: The existing `/theme` command MUST be enhanced with additional capabilities as part of this feature set. [NEEDS CLARIFICATION: What specific enhancements are planned for the /theme command?]
+- **FR-024**: Enhancements to the existing `/theme` command are explicitly OUT OF SCOPE for the `001-copilot-slash-commands` feature and MUST be deferred to a follow-up feature, as decided in `research.md` section "2. /theme Command Enhancements".
 
 ### Key Entities
 
@@ -172,13 +172,13 @@ A new or returning user wants to discover all available slash commands. They typ
 - The /clear command's API call follows existing patterns for session management endpoints.
 - Experimental features are toggled per-user and the settings persistence mechanism already exists.
 - Session metrics for /usage (token count, message count, duration) are already tracked or can be derived from existing data.
-- The 3 commands whose descriptions were truncated in the original issue (/plan and up to 2 others) will be clarified before implementation begins. The ~14 count is approximate and the final command list may be 11-14 depending on clarification.
+- The original issue described "~14" new commands, but the current feature scope is the 11 commands defined in this specification (17 total commands including the 6 existing commands). Any additional commands require a follow-up feature with explicit requirements.
 
 ## Success Criteria *(mandatory)*
 
 ### Measurable Outcomes
 
-- **SC-001**: Users can discover all 20 commands via `/help` or the HelpPage within 5 seconds of the feature being deployed, with zero manual documentation updates required.
+- **SC-001**: Users can discover all 17 in-scope commands via `/help` or the HelpPage within 5 seconds of the feature being deployed, with zero manual documentation updates required.
 - **SC-002**: 90% of users can successfully execute any new slash command on their first attempt using only the syntax shown in `/help`.
 - **SC-003**: The `/clear` command fully resets the conversation (UI and backend) in under 2 seconds for sessions with up to 500 messages.
 - **SC-004**: The `/compact` command reduces conversation context size by at least 50% while retaining the key information needed for continued conversation.

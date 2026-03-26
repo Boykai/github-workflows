@@ -13,7 +13,7 @@
 
 ## Requirement Completeness
 
-- [ ] No [NEEDS CLARIFICATION] markers remain
+- [x] No [NEEDS CLARIFICATION] markers remain
 - [x] Requirements are testable and unambiguous
 - [x] Success criteria are measurable
 - [x] Success criteria are technology-agnostic (no implementation details)
@@ -31,8 +31,6 @@
 
 ## Notes
 
-- Two [NEEDS CLARIFICATION] markers remain in the spec:
-  1. **FR-019 / User Story 4**: The `/plan` command description was truncated in the original issue — full syntax and behavior needed.
-  2. **FR-024**: The `/theme` command enhancements are mentioned but not described.
-- These items require clarification from the feature owner before `/speckit.clarify` or `/speckit.plan` can proceed.
-- All other items pass validation. The specification is otherwise complete and ready for planning once clarifications are resolved.
+- `research.md` resolves the `/plan` syntax/behavior and explicitly defers `/theme` enhancements to a follow-up feature.
+- The spec now reflects the current in-scope command inventory: 11 new commands plus 6 existing commands (17 total).
+- The specification is aligned with the research and plan artifacts and is ready for implementation planning.

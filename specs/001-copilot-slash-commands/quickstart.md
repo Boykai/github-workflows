@@ -173,7 +173,7 @@ pyright src/
 1. **Phase 1**: Extend `CommandContext` with `clearChat` and `messages` (if needed)
 2. **Phase 2**: Create handler files (`session.ts`, `monitoring.ts`, `advanced.ts`)
 3. **Phase 3**: Add `/experimental` handler to existing `settings.ts`
-4. **Phase 4**: Register all 14 new commands in `registry.ts`
+4. **Phase 4**: Register all 11 in-scope new commands in `registry.ts`
 5. **Phase 5**: Add tests for each handler file
-6. **Phase 6**: Verify HelpPage and `/help` display all 20 commands
+6. **Phase 6**: Verify HelpPage and `/help` display all 17 in-scope commands
 7. **Phase 7**: End-to-end verification with dev server
