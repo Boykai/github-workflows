@@ -785,10 +785,47 @@ async def _handle_task_generation(
 
     except Exception as e:
         logger.error("Failed to generate task: %s", e, exc_info=True)
+
+        # Provide a specific, actionable error message based on failure type
+        error_str = str(e)
+        if (
+            "401" in error_str
+            or "Access denied" in error_str
+            or "authentication" in error_str.lower()
+        ):
+            user_hint = (
+                "AI provider authentication failed. Please re-authenticate via "
+                "GitHub OAuth or check your AI provider credentials in Settings."
+            )
+        elif (
+            "404" in error_str
+            or "Resource not found" in error_str
+            or "not found" in error_str.lower()
+        ):
+            user_hint = (
+                "The configured AI model could not be found. Please verify your "
+                "AI provider and model settings (current model may be unavailable)."
+            )
+        elif "timed out" in error_str.lower() or isinstance(e, TimeoutError):
+            user_hint = (
+                "The AI request timed out. The service may be temporarily "
+                "unavailable — please try again in a moment."
+            )
+        elif isinstance(e, (ImportError, ModuleNotFoundError)):
+            user_hint = (
+                "The AI provider SDK is not available or incompatible. "
+                "Please check the server logs and verify the SDK installation."
+            )
+        else:
+            user_hint = (
+                "I couldn't generate a task from your description. "
+                "Please try again with more detail."
+            )
+
         error_message = ChatMessage(
             session_id=session.session_id,
             sender_type=SenderType.ASSISTANT,
-            content="I couldn't generate a task from your description. Please try again with more detail.",
+            content=user_hint,
         )
         await add_message(session.session_id, error_message)
         return error_message
@@ -1022,6 +1059,11 @@ async def send_message(
         return agent_msg
 
     content = chat_request.content
+
+    # Strip slash-command prefixes so the AI prompt receives clean user input
+    import re as _re
+
+    content = _re.sub(r"^/plan\s+", "", content)
 
     # ── Priority 0.5: Transcript upload → issue recommendation ────────
     transcript_msg = await _handle_transcript_upload(
