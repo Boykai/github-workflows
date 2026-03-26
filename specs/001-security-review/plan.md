@@ -1,104 +1,104 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Security, Privacy & Vulnerability Audit
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-security-review` | **Date**: 2026-03-26 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-security-review/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Comprehensive security audit addressing 22 findings across OWASP Top 10 categories (3 Critical, 8 High, 9 Medium, 2 Low). Codebase analysis reveals **17 of 21 findings are already remediated** in the current codebase. The remaining work focuses on: narrowing OAuth scopes (or documenting the justified exception), verifying completeness of rate-limiting coverage across all sensitive endpoints, and ensuring end-to-end behavioral verification of all security controls.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.11 (backend), TypeScript 5.x (frontend)
+**Primary Dependencies**: FastAPI, slowapi, aiosqlite, cryptography (Fernet), React 18, nginx (Alpine)
+**Storage**: SQLite via aiosqlite with Fernet encryption at rest
+**Testing**: pytest (3575 unit tests), Vitest (frontend), ruff/pyright/bandit (linting)
+**Target Platform**: Linux containers (Docker Compose), nginx reverse proxy
+**Project Type**: Web application (backend + frontend)
+**Performance Goals**: Rate limiting at 10 req/min on AI/chat endpoints; sub-200ms p95 on auth flows
+**Constraints**: All containers non-root; mandatory encryption in production; localhost-only port binding
+**Scale/Scope**: ~132 backend source files, ~413 frontend TS/TSX files, 33 services, 21 API routes
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Evidence |
+|-----------|--------|----------|
+| **I. Specification-First** | ✅ PASS | `spec.md` contains 15 prioritized user stories (P1–P4) with Given-When-Then acceptance scenarios |
+| **II. Template-Driven** | ✅ PASS | All artifacts follow canonical templates from `.specify/templates/` |
+| **III. Agent-Orchestrated** | ✅ PASS | Single-responsibility: speckit.specify → speckit.plan → speckit.tasks → speckit.implement |
+| **IV. Test Optionality** | ✅ PASS | Tests not mandated by spec; behavioral verification checklist provided instead (code review + integration inspection) |
+| **V. Simplicity / DRY** | ✅ PASS | Security fixes target existing code patterns; no new abstractions introduced. `verify_project_access` is already centralized as a shared dependency |
+
+**Gate Result**: ✅ ALL PASS — Proceed to Phase 0.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-security-review/
+├── plan.md              # This file
+├── research.md          # Phase 0: Codebase audit findings and remediation status
+├── data-model.md        # Phase 1: Security-relevant entities and state transitions
+├── quickstart.md        # Phase 1: Verification guide for all security controls
+├── contracts/           # Phase 1: Security-hardened API contract amendments
+│   └── security-headers.md
+└── tasks.md             # Phase 2 output (speckit.tasks — NOT created by speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+solune/
+├── backend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── auth.py            # FR-001, FR-002, FR-013: OAuth flow, session cookies, dev-login
+│   │   │   ├── chat.py            # FR-017: Rate-limited AI chat endpoint
+│   │   │   ├── agents.py          # FR-017: Rate-limited agent invocation
+│   │   │   ├── tasks.py           # FR-006: Project-scoped task creation
+│   │   │   ├── projects.py        # FR-006: Project access control
+│   │   │   ├── settings.py        # FR-006: Project-scoped settings
+│   │   │   ├── workflow.py        # FR-006, FR-017: Project-scoped, rate-limited workflows
+│   │   │   ├── signal.py          # FR-009: Constant-time webhook secret comparison
+│   │   │   └── webhooks.py        # FR-009, FR-020: Webhook verification (no debug bypass)
+│   │   ├── services/
+│   │   │   ├── github_auth.py     # FR-014: OAuth scopes configuration
+│   │   │   ├── encryption.py      # FR-003: Fernet encryption with mandatory key
+│   │   │   ├── database.py        # FR-022: Directory/file permissions (0700/0600)
+│   │   │   └── service.py         # FR-028: Error sanitization
+│   │   ├── middleware/
+│   │   │   ├── rate_limit.py      # FR-017, FR-018: slowapi rate limiter
+│   │   │   └── csrf.py            # CSRF double-submit cookie protection
+│   │   ├── config.py              # FR-003, FR-004, FR-015, FR-019, FR-023: Production validation
+│   │   ├── dependencies.py        # FR-006, FR-007: Centralized verify_project_access
+│   │   └── main.py                # FR-021: ENABLE_DOCS independent of DEBUG
+│   └── tests/
+│       ├── unit/                  # 144 unit test files
+│       └── integration/           # 15 integration test files
+├── frontend/
+│   ├── Dockerfile                 # FR-005: Non-root nginx-app user
+│   ├── nginx.conf                 # FR-010, FR-011, FR-012: Security headers
+│   ├── src/
+│   │   ├── hooks/
+│   │   │   ├── useAuth.ts         # FR-002: No credential reading from URL params
+│   │   │   └── useChatHistory.ts  # FR-025, FR-026, FR-027: Memory-only chat, logout cleanup
+│   │   └── components/
+│   │       └── IssueCard.tsx      # FR-030: Avatar URL validation (HTTPS + allowlist)
+│   └── tests/                     # 152 test files
+├── docker-compose.yml             # FR-016, FR-024: Localhost binding, external data volume
+└── .github/workflows/
+    └── branch-issue-link.yml      # FR-029: Scoped permissions with justification
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Existing web application structure (backend + frontend) with changes scoped to existing files. No new directories or architectural changes required.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations detected. All changes target existing code and patterns.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| *None* | — | — |
