@@ -11661,32 +11661,36 @@ class TestCacheSemanticsForPolling:
         assert stale is not None
         assert stale == cached_items
 
-    def test_polling_no_change_preserves_board_cache(self):
-        """A polling cycle that detects no data changes must NOT invalidate
-        the board data cache (FR-006, R-003).  If polling steps find that
-        cached project items are unchanged, the board cache entry should
-        remain intact so the next board request is served from cache."""
+    def test_unchanged_items_hash_preserves_existing_board_cache_entry(self):
+        """Recomputing an unchanged items hash should not disturb an existing
+        board cache entry.
+
+        This is a cache-layer invariant used by the no-change polling path,
+        not an end-to-end polling-loop test.
+        """
+        from uuid import uuid4
+
         from src.services.cache import cache, compute_data_hash, get_project_items_cache_key
 
-        project_id = "PVT_noop"
+        project_id = f"PVT_noop_{uuid4().hex}"
         items_key = get_project_items_cache_key(project_id)
         board_key = f"board_data:{project_id}"
 
-        # Populate both caches
-        items = [{"id": "1", "title": "unchanged task"}]
-        items_hash = compute_data_hash(items)
-        cache.set(items_key, items, data_hash=items_hash)
-        cache.set(board_key, {"columns": []}, ttl_seconds=300)
+        try:
+            # Populate both caches
+            items = [{"id": "1", "title": "unchanged task"}]
+            items_hash = compute_data_hash(items)
+            cache.set(items_key, items, data_hash=items_hash)
+            cache.set(board_key, {"columns": []}, ttl_seconds=300)
 
-        # Simulate a polling cycle that re-fetches the same items:
-        # 1. Items cache is warm → no API call needed
-        cached_items = cache.get(items_key)
-        assert cached_items == items
+            cached_items = cache.get(items_key)
+            assert cached_items == items
 
-        # 2. Hash comparison shows no change → no cache invalidation
-        new_hash = compute_data_hash(cached_items)
-        assert new_hash == items_hash, "unchanged data must produce same hash"
+            new_hash = compute_data_hash(cached_items)
+            assert new_hash == items_hash, "unchanged data must produce same hash"
 
-        # 3. Board cache should remain intact (not deleted)
-        board_data = cache.get(board_key)
-        assert board_data is not None, "board cache must survive a no-change polling cycle"
+            board_data = cache.get(board_key)
+            assert board_data is not None, "unrelated board cache entries should remain intact"
+        finally:
+            cache.delete(items_key)
+            cache.delete(board_key)

@@ -5,7 +5,7 @@
 
 ## Summary
 
-Balanced first-pass performance optimization across backend and frontend. The plan starts with mandatory baseline measurement, then targets the highest-value issues already identified in the codebase: backend GitHub API churn around board refreshes/polling, and frontend board responsiveness problems caused by broad query invalidation, full-list rerenders, and unthrottled event listeners. Research confirmed that the existing codebase already has strong foundations (300s cache TTL, data-hash change detection, WebSocket with polling fallback, adaptive polling) — the work targets remaining gaps and tightens the existing patterns rather than introducing new architecture. Board virtualization, major service decomposition, and new dependencies are explicitly deferred unless first-pass measurements prove them necessary.
+Balanced first-pass performance optimization across backend and frontend. The plan starts with mandatory baseline measurement, then targets the highest-value issues already identified in the codebase: backend GitHub API churn around board refreshes/polling, and frontend board responsiveness problems caused by broad query invalidation, full-list rerenders, and hot interaction handlers. Research confirmed that the existing codebase already has strong foundations (300s cache TTL, data-hash change detection, WebSocket with polling fallback, adaptive polling) — the work focuses on proving current behavior with measurements and tightening only the remaining gaps rather than introducing new architecture. Board virtualization, major service decomposition, and new dependencies are explicitly deferred unless first-pass measurements prove them necessary.
 
 ## Technical Context
 
@@ -83,7 +83,7 @@ solune/
 │   │   │   ├── board/
 │   │   │   │   ├── BoardColumn.tsx       # Column rendering, drag-drop target
 │   │   │   │   ├── IssueCard.tsx         # Card rendering, sub-issue expansion
-│   │   │   │   └── AddAgentPopover.tsx   # Positioning listeners
+│   │   │   │   └── AddAgentPopover.tsx   # Agent popover interactions
 │   │   │   └── chat/
 │   │   │       └── ChatPopup.tsx         # Drag listener, resize handling
 │   │   └── pages/

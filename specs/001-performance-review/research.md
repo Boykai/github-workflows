@@ -23,12 +23,12 @@
 
 **Task**: Determine whether WebSocket subscription change detection is fully operational or has remaining gaps.
 
-**Decision**: WebSocket change detection is implemented but the polling fallback path still has a gap.
+**Decision**: WebSocket change detection and the polling fallback path are both complete and aligned.
 
 **Rationale**: 
 - The WebSocket endpoint in `projects.py` computes data hashes and suppresses `refresh` messages when data is unchanged — this is complete.
 - The frontend `useRealTimeSync.ts` correctly handles `refresh`, `task_update`, `task_created`, and `status_changed` messages, invalidating only `['projects', projectId, 'tasks']` — not the expensive board-level query.
-- **Gap identified**: The fallback polling path (`WS_FALLBACK_POLL_MS = 30s`) in `useRealTimeSync.ts` may still invalidate queries more broadly than necessary when WebSocket is unavailable. The fallback should follow the same selective invalidation pattern as the WebSocket message handlers.
+- The fallback polling path (`WS_FALLBACK_POLL_MS = 30s`) in `useRealTimeSync.ts` already follows the same selective invalidation pattern by invalidating only `['projects', projectId, 'tasks']` when WebSocket is unavailable.
 
 **Alternatives considered**: Removing polling fallback entirely — rejected because WebSocket connections are unreliable in some environments.
 
@@ -78,7 +78,7 @@
 - **React.memo**: Wrap `IssueCard` and `BoardColumn` to skip rerenders when props haven't changed. `BoardColumn` already has some memoization but `IssueCard` likely does not.
 - **useMemo**: Memoize derived data (sorting, grouping, aggregation) in `ProjectsPage.tsx` so it recomputes only when the underlying board data reference changes.
 - **useCallback**: Stabilize callback props passed to card/column components to avoid breaking `React.memo` shallow comparison.
-- **Event listener throttling**: Use `requestAnimationFrame` or a 16ms throttle for drag position and popover positioning listeners in `ChatPopup.tsx` and `AddAgentPopover.tsx`. This limits updates to ~60fps without perceived latency.
+- **Event listener throttling**: Use `requestAnimationFrame` or a 16ms throttle for hot drag/resize listeners such as those in `ChatPopup.tsx`. `AddAgentPopover.tsx` relies on Radix Popover positioning and does not register custom positioning listeners that need throttling.
 - **dnd-kit**: Already handles its own optimization; focus on the event handlers *around* dnd-kit, not inside it.
 
 **Alternatives considered**:
@@ -129,7 +129,7 @@
 - **test_cache.py**: Covers CacheEntry lifecycle, TTL, stale retrieval, hash comparison, and `cached_fetch()` patterns. Strong baseline.
 - **test_api_board.py**: Covers board list/get endpoints, error handling, rate limits, cache invalidation on status update. Needs: assertion that unchanged data doesn't trigger upstream API call.
 - **test_copilot_polling.py**: Covers polling steps, rate-limit handling, stalled recovery. Needs: assertion that polling doesn't trigger board cache invalidation unnecessarily.
-- **useRealTimeSync.test.tsx**: Covers WebSocket lifecycle, message types, reconnection, query invalidation, polling fallback. Needs: assertion that polling fallback uses selective invalidation.
+- **useRealTimeSync.test.tsx**: Covers WebSocket lifecycle, message types, reconnection, query invalidation, and polling fallback selective invalidation. Strong baseline.
 - **useBoardRefresh.test.tsx**: Covers manual refresh, auto-refresh timer, visibility API, debounce, rate limit, WebSocket suppression. Strong baseline.
 
 **Alternatives considered**: Building a new test framework — rejected per spec assumption (extend existing files only).
