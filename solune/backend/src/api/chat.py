@@ -803,6 +803,11 @@ async def _handle_task_generation(
                 "The AI request timed out. The service may be temporarily "
                 "unavailable — please try again in a moment."
             )
+        elif isinstance(e, (ImportError, ModuleNotFoundError)):
+            user_hint = (
+                "The AI provider SDK is not available or incompatible. "
+                "Please check the server logs and verify the SDK installation."
+            )
         else:
             user_hint = (
                 "I couldn't generate a task from your description. "
