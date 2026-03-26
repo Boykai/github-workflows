@@ -166,10 +166,10 @@ class CopilotCompletionProvider(CompletionProvider):
 
         client = await self._pool.get_or_create(github_token)
 
-        from copilot.session import PermissionHandler  # type: ignore[reportMissingImports]
         from copilot.generated.session_events import (  # type: ignore[reportMissingImports]
             SessionEventType,
         )
+        from copilot.session import PermissionHandler  # type: ignore[reportMissingImports]
 
         # Extract system message for session config, user message for prompt
         system_content = ""

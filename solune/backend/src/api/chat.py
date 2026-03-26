@@ -788,12 +788,20 @@ async def _handle_task_generation(
 
         # Provide a specific, actionable error message based on failure type
         error_str = str(e)
-        if "401" in error_str or "Access denied" in error_str or "authentication" in error_str.lower():
+        if (
+            "401" in error_str
+            or "Access denied" in error_str
+            or "authentication" in error_str.lower()
+        ):
             user_hint = (
                 "AI provider authentication failed. Please re-authenticate via "
                 "GitHub OAuth or check your AI provider credentials in Settings."
             )
-        elif "404" in error_str or "Resource not found" in error_str or "not found" in error_str.lower():
+        elif (
+            "404" in error_str
+            or "Resource not found" in error_str
+            or "not found" in error_str.lower()
+        ):
             user_hint = (
                 "The configured AI model could not be found. Please verify your "
                 "AI provider and model settings (current model may be unavailable)."
