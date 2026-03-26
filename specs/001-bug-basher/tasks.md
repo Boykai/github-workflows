@@ -37,7 +37,7 @@ See `specs/001-bug-basher/contracts/process-contracts.md` for the full contract.
 
 **Purpose**: Establish baseline state and prepare for the code review audit
 
-- [ ] T001 Clone repository with full history and verify branch is `copilot/bug-bash-full-codebase-review`
+- [ ] T001 Clone repository with full history and verify branch is `copilot/bug-bash-full-codebase-review` (feature identifier: `001-bug-basher`)
 - [ ] T002 Install backend dependencies via `cd solune/backend && uv sync --dev`
 - [ ] T003 [P] Install frontend dependencies via `cd solune/frontend && npm ci`
 - [ ] T004 Run backend baseline tests via `cd solune/backend && python -m pytest tests/ -v` and save output to `/tmp/baseline-backend-tests.log`
