@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/001-security-review/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: Tests are not explicitly requested in the specification. Verification is behavior-based (code review + inspection per quickstart.md). Existing unit tests (3575 backend, 152 frontend) already cover security controls.
+**Tests**: Tests are not explicitly requested in the specification. Verification is behavior-based (code review + inspection per quickstart.md). Existing unit tests (3575 backend, 152 frontend) provide general regression coverage; security-control-specific checks are called out explicitly where applicable.
 
 **Note**: The original audit header states "3 Critical · 8 High · 9 Medium · 2 Low" (sum: 22), but research.md enumerates exactly 21 findings (Finding 1–21). The discrepancy appears to be a counting error in the audit header. Tasks reference the 21 findings documented in research.md.
 

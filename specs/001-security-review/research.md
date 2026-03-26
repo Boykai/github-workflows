@@ -76,8 +76,8 @@ Each of the 21 original findings was verified against the current codebase (comm
 
 **Status**: ✅ REMEDIATED
 
-- **Decision**: Startup rejects `SESSION_SECRET_KEY` shorter than 64 characters.
-- **Rationale**: `config.py` `_validate_production_secrets()` enforces `len(session_secret_key) >= 64` and fails startup with a clear error message.
+- **Decision**: In non-debug mode, startup rejects `SESSION_SECRET_KEY` values shorter than 64 characters; in debug mode, the same condition produces a warning.
+- **Rationale**: `config.py` `_validate_production_secrets()` enforces `len(session_secret_key) >= 64` as a fatal check only when `debug` is false, while the debug-mode branch logs a warning so local development is not blocked.
 - **Alternatives considered**: Entropy measurement — rejected as overly complex; length ≥64 with random generation guidance is sufficient.
 
 ## Finding 10 — Docker Services Bound to All Network Interfaces (OWASP A05, High)

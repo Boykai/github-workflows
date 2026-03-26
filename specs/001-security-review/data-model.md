@@ -94,7 +94,7 @@ This document describes the security-relevant entities, their relationships, val
   → (malformed CORS origin) → [FATAL: Refuse to start]
   → (all valid) → [Running]
 [Parsing] → (debug mode) → [Debug Validation]
-  → (SESSION_SECRET_KEY < 64 chars) → [FATAL: Refuse to start]
+  → (SESSION_SECRET_KEY < 64 chars) → [Running with warnings]
   → (warnings for missing optional values) → [Running with warnings]
 ```
 
