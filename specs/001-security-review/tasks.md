@@ -190,6 +190,8 @@
 - [ ] T041 [P] [US10] Verify memory-only chat storage (`useState`) in `solune/frontend/src/hooks/useChatHistory.ts` (FR-025)
 - [ ] T042 [P] [US10] Verify `clearLegacyStorage()` removes pre-v2 localStorage data in `solune/frontend/src/hooks/useChatHistory.ts` (FR-026)
 - [ ] T043 [US10] Verify `clearHistory()` wipes memory and legacy storage on logout in `solune/frontend/src/hooks/useChatHistory.ts` (FR-026)
+- [ ] T044 [P] [US10] Verify configurable TTL mechanism for locally stored references in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027) — confirm TTL configuration, default value, and auto-removal of expired references
+- [ ] T045 [US10] Verify expired references are automatically removed when TTL elapses in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027)
 
 **Checkpoint**: SC-009 validated — no message content in localStorage
 
@@ -203,8 +205,8 @@
 
 ### Verification for User Story 11
 
-- [ ] T044 [P] [US11] Verify webhook verification is unconditional in `solune/backend/src/api/webhooks.py` (FR-020) — lines 209–240
-- [ ] T045 [P] [US11] Verify no DEBUG branching in webhook verification path in `solune/backend/src/api/webhooks.py` (FR-020)
+- [ ] T046 [P] [US11] Verify webhook verification is unconditional in `solune/backend/src/api/webhooks.py` (FR-020) — lines 209–240
+- [ ] T047 [P] [US11] Verify no DEBUG branching in webhook verification path in `solune/backend/src/api/webhooks.py` (FR-020)
 
 **Checkpoint**: Webhook security independent of debug mode
 
@@ -218,8 +220,8 @@
 
 ### Verification for User Story 12
 
-- [ ] T046 [P] [US12] Verify directory `0o700` and file `0o600` permissions in `solune/backend/src/services/database.py` (FR-022) — lines 32–56
-- [ ] T047 [P] [US12] Verify data volume mounted at `/var/lib/solune/data` in `solune/docker-compose.yml` (FR-024)
+- [ ] T048 [P] [US12] Verify directory `0o700` and file `0o600` permissions in `solune/backend/src/services/database.py` (FR-022) — lines 32–56
+- [ ] T049 [P] [US12] Verify data volume mounted at `/var/lib/solune/data` in `solune/docker-compose.yml` (FR-024)
 
 **Checkpoint**: SC-010 validated — correct permissions and volume location
 
@@ -233,9 +235,9 @@
 
 ### Verification for User Story 13
 
-- [ ] T048 [P] [US13] Verify CORS origins validation with `urlparse()` in `solune/backend/src/config.py` `cors_origins_list` property (FR-023) — lines 230–248
-- [ ] T049 [P] [US13] Verify `ENABLE_DOCS` toggle independent of DEBUG in `solune/backend/src/main.py` (FR-021) — lines 591–592
-- [ ] T050 [P] [US13] Verify `enable_docs` defaults to `False` in `solune/backend/src/config.py` (FR-021) — line 95
+- [ ] T050 [P] [US13] Verify CORS origins validation with `urlparse()` in `solune/backend/src/config.py` `cors_origins_list` property (FR-023) — lines 230–248
+- [ ] T051 [P] [US13] Verify `ENABLE_DOCS` toggle independent of DEBUG in `solune/backend/src/main.py` (FR-021) — lines 591–592
+- [ ] T052 [P] [US13] Verify `enable_docs` defaults to `False` in `solune/backend/src/config.py` (FR-021) — line 95
 
 **Checkpoint**: Configuration validation complete
 
@@ -249,8 +251,8 @@
 
 ### Verification for User Story 14
 
-- [ ] T051 [P] [US14] Verify `handle_service_error()` sanitizes errors in `solune/backend/src/logging_utils.py` (FR-028) — lines 224–267
-- [ ] T052 [US14] Audit service files for consistent use of `handle_service_error()` in `solune/backend/src/services/`
+- [ ] T053 [P] [US14] Verify `handle_service_error()` sanitizes errors in `solune/backend/src/logging_utils.py` (FR-028) — lines 224–267
+- [ ] T054 [US14] Audit service files for consistent use of `handle_service_error()` in `solune/backend/src/services/`
 
 **Checkpoint**: SC-012 validated — no internal details in error responses
 
@@ -264,9 +266,9 @@
 
 ### Verification for User Story 15
 
-- [ ] T053 [P] [US15] Verify scoped permissions with justification comments in `.github/workflows/branch-issue-link.yml` (FR-029)
-- [ ] T054 [P] [US15] Verify `validateAvatarUrl()` checks HTTPS and hostname allowlist in `solune/frontend/src/components/IssueCard.tsx` (FR-030)
-- [ ] T055 [P] [US15] Verify SVG placeholder fallback for invalid avatar URLs in `solune/frontend/src/components/IssueCard.tsx` (FR-030)
+- [ ] T055 [P] [US15] Verify scoped permissions with justification comments in `.github/workflows/branch-issue-link.yml` (FR-029)
+- [ ] T056 [P] [US15] Verify `validateAvatarUrl()` checks HTTPS and hostname allowlist in `solune/frontend/src/components/IssueCard.tsx` (FR-030)
+- [ ] T057 [P] [US15] Verify SVG placeholder fallback for invalid avatar URLs in `solune/frontend/src/components/IssueCard.tsx` (FR-030)
 
 **Checkpoint**: Low-priority controls verified
 
@@ -276,11 +278,11 @@
 
 **Purpose**: Final verification across all findings
 
-- [ ] T056 Run full backend test suite to confirm no regressions: `cd solune/backend && pytest tests/unit/ --timeout=30 -q`
-- [ ] T057 [P] Run full frontend test suite: `cd solune/frontend && npm run test`
-- [ ] T058 [P] Run backend linting: `cd solune/backend && ruff check src tests && ruff format --check src tests`
-- [ ] T059 Run quickstart.md verification checklist (all 12 verification steps per `specs/001-security-review/quickstart.md`)
-- [ ] T060 Produce final remediation status report confirming all 21 findings addressed
+- [ ] T058 Run full backend test suite to confirm no regressions: `cd solune/backend && pytest tests/unit/ --timeout=30 -q`
+- [ ] T059 [P] Run full frontend test suite: `cd solune/frontend && npm run test`
+- [ ] T060 [P] Run backend linting: `cd solune/backend && ruff check src tests && ruff format --check src tests`
+- [ ] T061 Run quickstart.md verification checklist (all 12 verification steps per `specs/001-security-review/quickstart.md`)
+- [ ] T062 Produce final remediation status report confirming all 21 findings addressed
 
 ---
 
