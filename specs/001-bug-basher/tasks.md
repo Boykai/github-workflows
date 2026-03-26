@@ -423,7 +423,7 @@ From plan.md and verified file inventory:
 |------|-----------|-----------------|
 | Backend source | ~143 .py files | solune/backend/src/ |
 | Frontend source | ~419 .ts/.tsx files | solune/frontend/src/ |
-| Backend tests | ~194 test files | solune/backend/tests/ (144 unit, 15 integration, 8 property, 3 fuzz, 5 chaos, 5 concurrency, 1 arch, 2 helpers) |
+| Backend tests | ~183+ test files | solune/backend/tests/ (144 unit, 15 integration, 8 property, 3 fuzz, 5 chaos, 5 concurrency, 1 arch, 2 helpers; excludes conftest/init files) |
 | Frontend tests | ~155 test files | solune/frontend/src/**/*.test.* |
 | API routes | 21 files | solune/backend/src/api/ |
 | Middleware | 5 files | solune/backend/src/middleware/ |
@@ -431,7 +431,7 @@ From plan.md and verified file inventory:
 | Models | 25 files | solune/backend/src/models/ |
 | Infrastructure | ~5 files | .github/workflows/, solune/scripts/ |
 
-**Total files to audit**: ~560+ source files, ~349+ test files
+**Total files to audit**: ~567 source files (~143 backend + ~419 frontend + ~5 infra), ~338+ test files (~183 backend + ~155 frontend)
 
 ---
 
