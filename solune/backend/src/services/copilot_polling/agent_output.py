@@ -633,8 +633,10 @@ async def _merge_and_claim_child_pr(
 ) -> bool:
     """Merge child PR into main branch and claim it.
 
-    Returns True if processing should continue to post Done!,
-    False if the merge failed and we should skip this issue.
+    Always returns True so the Done! marker is posted regardless of
+    merge outcome.  Merge failures are retried by the safety-net in
+    ``_advance_pipeline``; gating the Done! marker on merge success
+    caused recovery to re-assign agents and create duplicate PRs.
     """
     main_branch_info = _cp.get_issue_main_branch(issue_number)
 
@@ -669,12 +671,12 @@ async def _merge_and_claim_child_pr(
             else:
                 logger.warning(
                     "Failed to merge child PR #%d for agent '%s' on issue #%d "
-                    "— skipping Done! marker, will retry next cycle",
+                    "— posting Done! marker anyway; safety-net in "
+                    "_advance_pipeline will retry the merge",
                     pr_number,
                     current_agent,
                     issue_number,
                 )
-                return False
 
     # Mark the child PR as claimed
     if is_child_pr:
@@ -929,7 +931,7 @@ async def _process_task_agent_completion(
     )
 
     # Merge child PR into main branch before posting Done!
-    should_continue = await _merge_and_claim_child_pr(
+    await _merge_and_claim_child_pr(
         access_token=access_token,
         owner=task_owner,
         repo=task_repo,
@@ -940,8 +942,6 @@ async def _process_task_agent_completion(
         pr_number=pr_number,
         is_child_pr=is_child_pr,
     )
-    if not should_continue:
-        return None
 
     # Post the Done! marker and close sub-issue
     return await _post_done_marker(
