@@ -8,6 +8,7 @@ import { useTheme } from '@/components/ThemeProvider';
 import { useUserSettings } from '@/hooks/useSettings';
 import { parseCommand, getCommand, getAllCommands, filterCommands } from '@/lib/commands/registry';
 import type { CommandContext, CommandResult, CommandDefinition } from '@/lib/commands/types';
+import type { ChatMessage } from '@/types';
 
 export interface UseCommandsReturn {
   /** Check if input is a command. */
@@ -22,9 +23,12 @@ export interface UseCommandsReturn {
   getAllCommands: () => CommandDefinition[];
 }
 
-export function useCommands(): UseCommandsReturn {
+export function useCommands(
+  deps: { clearChat?: () => Promise<void>; messages?: ChatMessage[] } = {}
+): UseCommandsReturn {
   const { theme, setTheme } = useTheme();
   const { settings, updateSettings } = useUserSettings();
+  const { clearChat, messages } = deps;
 
   const buildContext = useCallback(
     (): CommandContext => ({
@@ -32,8 +36,10 @@ export function useCommands(): UseCommandsReturn {
       updateSettings,
       currentSettings: settings,
       currentTheme: theme,
+      clearChat: clearChat ?? (async () => {}),
+      messages: messages ?? [],
     }),
-    [theme, setTheme, settings, updateSettings]
+    [theme, setTheme, settings, updateSettings, clearChat, messages]
   );
 
   const isCommandFn = useCallback((input: string): boolean => {

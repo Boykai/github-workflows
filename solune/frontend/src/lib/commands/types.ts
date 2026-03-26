@@ -2,7 +2,7 @@
  * Type definitions for the chat command system.
  */
 
-import type { EffectiveUserSettings, UserPreferencesUpdate } from '@/types';
+import type { ChatMessage, EffectiveUserSettings, UserPreferencesUpdate } from '@/types';
 
 /** Valid parameter definition for commands that accept arguments. */
 export interface ParameterSchema {
@@ -17,6 +17,8 @@ export interface CommandContext {
   updateSettings: (data: UserPreferencesUpdate) => Promise<unknown>;
   currentSettings: EffectiveUserSettings | undefined;
   currentTheme: string;
+  clearChat: () => Promise<void>;
+  messages: ChatMessage[];
 }
 
 /** Result of executing a command handler. */
