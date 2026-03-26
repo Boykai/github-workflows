@@ -8,6 +8,7 @@ import pytest
 from src.exceptions import ConflictError, NotFoundError, ValidationError
 from src.models.app import AppCreate, AppStatus, AppUpdate, RepoType
 from src.services.app_service import (
+    _APP_UPDATABLE_COLUMNS,
     _build_scaffold_files,
     create_app,
     delete_app,
@@ -190,6 +191,13 @@ class TestAppServiceCrud:
     async def test_get_app_raises_for_missing_record(self, mock_db):
         with pytest.raises(NotFoundError):
             await get_app(mock_db, "missing-app")
+
+    def test_updatable_columns_whitelist_exists(self):
+        """Regression: _APP_UPDATABLE_COLUMNS must guard dynamic SQL SET clauses."""
+        assert isinstance(_APP_UPDATABLE_COLUMNS, frozenset)
+        assert _APP_UPDATABLE_COLUMNS == frozenset(
+            {"display_name", "description", "associated_pipeline_id"}
+        )
 
 
 class TestAppServiceLifecycle:

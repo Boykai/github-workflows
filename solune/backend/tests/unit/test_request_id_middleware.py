@@ -44,3 +44,66 @@ class TestRequestIDMiddlewareEdgeCases:
         assert response.status_code == 500
         assert seen_request_ids == ["fixed-request-id"]
         assert request_id_var.get() == ""
+
+    def test_rejects_header_with_crlf_injection(self, client_factory):
+        """Regression: malicious X-Request-ID with CRLF chars must be replaced."""
+
+        async def handler(_request):
+            return PlainTextResponse(request_id_var.get())
+
+        with client_factory(handler) as client:
+            response = client.get(
+                "/test",
+                headers={"X-Request-ID": "evil\r\nSet-Cookie: admin=true"},
+            )
+
+        rid = response.headers["X-Request-ID"]
+        assert "\r" not in rid
+        assert "\n" not in rid
+        assert len(rid) == 32  # falls back to uuid4().hex
+
+    def test_rejects_header_with_spaces(self, client_factory):
+        """Regression: X-Request-ID with spaces must be replaced."""
+
+        async def handler(_request):
+            return PlainTextResponse(request_id_var.get())
+
+        with client_factory(handler) as client:
+            response = client.get(
+                "/test",
+                headers={"X-Request-ID": "has spaces inside"},
+            )
+
+        rid = response.headers["X-Request-ID"]
+        assert " " not in rid
+        assert len(rid) == 32
+
+    def test_accepts_valid_custom_request_id(self, client_factory):
+        """Valid alphanumeric IDs with hyphens/underscores/dots are propagated."""
+
+        async def handler(_request):
+            return PlainTextResponse(request_id_var.get())
+
+        with client_factory(handler) as client:
+            response = client.get(
+                "/test",
+                headers={"X-Request-ID": "req-abc_123.456"},
+            )
+
+        assert response.headers["X-Request-ID"] == "req-abc_123.456"
+        assert response.text == "req-abc_123.456"
+
+    def test_rejects_oversized_request_id(self, client_factory):
+        """Regression: extremely long X-Request-ID values must be replaced."""
+
+        async def handler(_request):
+            return PlainTextResponse(request_id_var.get())
+
+        with client_factory(handler) as client:
+            response = client.get(
+                "/test",
+                headers={"X-Request-ID": "a" * 200},
+            )
+
+        rid = response.headers["X-Request-ID"]
+        assert len(rid) == 32  # falls back to uuid4().hex
