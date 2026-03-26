@@ -23,9 +23,9 @@
 
 **Purpose**: Project initialization, environment verification, and baseline documentation structure
 
-- [ ] T001 Create baseline report template at specs/001-performance-review/baselines/baseline-report.md with sections for each metric from data-model.md E-004 (idle API calls, board cache cost, WebSocket idle events, render times, rerender counts, event fire rates, network request counts)
-- [ ] T002 [P] Verify backend dev environment: run `cd solune/backend && pip install -e ".[dev]" && pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --timeout=30` and record pass/fail counts
-- [ ] T003 [P] Verify frontend dev environment: run `cd solune/frontend && npm install && npx vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx` and record pass/fail counts
+- [x] T001 Create baseline report template at specs/001-performance-review/baselines/baseline-report.md with sections for each metric from data-model.md E-004 (idle API calls, board cache cost, WebSocket idle events, render times, rerender counts, event fire rates, network request counts)
+- [x] T002 [P] Verify backend dev environment: run `cd solune/backend && pip install -e ".[dev]" && pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --timeout=30` and record pass/fail counts
+- [x] T003 [P] Verify frontend dev environment: run `cd solune/frontend && npm install && npx vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx` and record pass/fail counts
 
 ---
 
@@ -35,13 +35,13 @@
 
 **⚠️ CRITICAL**: No user story work (Phases 4–8) can begin until this phase is complete
 
-- [ ] T004 Audit backend cache implementation state by inspecting solune/backend/src/services/cache.py — verify InMemoryCache TTL defaults (expect 300s), CacheEntry.data_hash field, cached_fetch() hash comparison, and stale fallback behavior. Document findings in baseline report per R-001
-- [ ] T005 [P] Audit WebSocket change detection by inspecting solune/backend/src/api/projects.py — verify hash comparison suppresses unchanged `refresh` messages, confirm stale revalidation counter exists, and identify any gaps per R-002
-- [ ] T006 [P] Audit polling loop behavior by inspecting solune/backend/src/services/copilot_polling/polling_loop.py — verify rate-limit thresholds (pause at 50, slow at 200, skip expensive at 100), backoff behavior, and whether polling can trigger board cache invalidation per R-003
-- [ ] T007 [P] Audit frontend query invalidation by inspecting solune/frontend/src/hooks/useRealTimeSync.ts — verify WebSocket message handlers invalidate only `['projects', projectId, 'tasks']`, identify whether polling fallback path uses broader invalidation per R-002 gap
-- [ ] T008 [P] Audit frontend refresh policy by inspecting solune/frontend/src/hooks/useBoardRefresh.ts and solune/frontend/src/hooks/useProjectBoard.ts — verify auto-refresh suppression when WebSocket connected, adaptive polling interaction, debounce window (2s), and staleTime settings per R-004 and R-007
-- [ ] T009 [P] Audit frontend rendering by inspecting solune/frontend/src/components/board/IssueCard.tsx, solune/frontend/src/components/board/BoardColumn.tsx, solune/frontend/src/pages/ProjectsPage.tsx, solune/frontend/src/components/chat/ChatPopup.tsx, and solune/frontend/src/components/board/AddAgentPopover.tsx — identify missing memoization, unthrottled event listeners, and repeated derived-data computation per R-005
-- [ ] T010 Document audit findings as implementation-state gap analysis in specs/001-performance-review/baselines/baseline-report.md — mark each item from FR-003 as fully landed, partially landed, or missing. This determines the scope of work for Phases 4–7
+- [x] T004 Audit backend cache implementation state by inspecting solune/backend/src/services/cache.py — verify InMemoryCache TTL defaults (expect 300s), CacheEntry.data_hash field, cached_fetch() hash comparison, and stale fallback behavior. Document findings in baseline report per R-001
+- [x] T005 [P] Audit WebSocket change detection by inspecting solune/backend/src/api/projects.py — verify hash comparison suppresses unchanged `refresh` messages, confirm stale revalidation counter exists, and identify any gaps per R-002
+- [x] T006 [P] Audit polling loop behavior by inspecting solune/backend/src/services/copilot_polling/polling_loop.py — verify rate-limit thresholds (pause at 50, slow at 200, skip expensive at 100), backoff behavior, and whether polling can trigger board cache invalidation per R-003
+- [x] T007 [P] Audit frontend query invalidation by inspecting solune/frontend/src/hooks/useRealTimeSync.ts — verify WebSocket message handlers invalidate only `['projects', projectId, 'tasks']`, identify whether polling fallback path uses broader invalidation per R-002 gap
+- [x] T008 [P] Audit frontend refresh policy by inspecting solune/frontend/src/hooks/useBoardRefresh.ts and solune/frontend/src/hooks/useProjectBoard.ts — verify auto-refresh suppression when WebSocket connected, adaptive polling interaction, debounce window (2s), and staleTime settings per R-004 and R-007
+- [x] T009 [P] Audit frontend rendering by inspecting solune/frontend/src/components/board/IssueCard.tsx, solune/frontend/src/components/board/BoardColumn.tsx, solune/frontend/src/pages/ProjectsPage.tsx, solune/frontend/src/components/chat/ChatPopup.tsx, and solune/frontend/src/components/board/AddAgentPopover.tsx — identify missing memoization, unthrottled event listeners, and repeated derived-data computation per R-005
+- [x] T010 Document audit findings as implementation-state gap analysis in specs/001-performance-review/baselines/baseline-report.md — mark each item from FR-003 as fully landed, partially landed, or missing. This determines the scope of work for Phases 4–7
 
 **Checkpoint**: Implementation state fully documented. Gap analysis determines which tasks in subsequent phases are needed vs. already completed.
 
@@ -55,14 +55,14 @@
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Capture backend idle API call count: open a board, leave idle for 5 minutes, count outbound GitHub API calls using backend logging. Record value in specs/001-performance-review/baselines/baseline-report.md under metric `idle_api_calls_5min`
-- [ ] T012 [P] [US1] Capture board endpoint warm-cache and cold-cache request cost: issue board requests with empty cache and warm cache, count GitHub API calls for each. Record in specs/001-performance-review/baselines/baseline-report.md under metrics `board_cold_cache_api_calls` and `board_warm_cache_api_calls`
-- [ ] T013 [P] [US1] Capture WebSocket idle refresh event count: monitor WebSocket subscription with no upstream data changes for 5 minutes, count `refresh` messages sent. Record in specs/001-performance-review/baselines/baseline-report.md under metric `ws_idle_refresh_count_5min`
-- [ ] T014 [US1] Capture frontend initial board render baseline: load a representative board (5+ columns, 20+ cards), record initial render time (ms) and component mount count. Record in specs/001-performance-review/baselines/baseline-report.md under metrics `board_initial_render_ms` and `component_mount_count`
-- [ ] T015 [P] [US1] Capture frontend single-card-update rerender count: trigger one card status change via WebSocket, count components that rerender and network requests triggered. Record in specs/001-performance-review/baselines/baseline-report.md under metrics `single_card_rerender_count` and `ws_task_update_network_requests`
-- [ ] T016 [P] [US1] Capture drag interaction event fire rate: perform a card drag operation, measure event listener fire frequency (events/second). Record in specs/001-performance-review/baselines/baseline-report.md under metric `drag_event_fires_per_sec`
-- [ ] T017 [US1] Capture existing test suite timing baseline: run full backend targeted tests (`pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py`) and frontend targeted tests (`vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx`), record pass counts and execution times. Record in specs/001-performance-review/baselines/baseline-report.md
-- [ ] T018 [US1] Finalize baseline report at specs/001-performance-review/baselines/baseline-report.md — ensure all 10 metrics from E-004 Baseline Metrics Catalog are captured, conditions documented, and board size recorded. This is the reference document for SC-001 through SC-008 verification in Phase 8
+- [x] T011 [US1] Capture backend idle API call count: open a board, leave idle for 5 minutes, count outbound GitHub API calls using backend logging. Record value in specs/001-performance-review/baselines/baseline-report.md under metric `idle_api_calls_5min`
+- [x] T012 [P] [US1] Capture board endpoint warm-cache and cold-cache request cost: issue board requests with empty cache and warm cache, count GitHub API calls for each. Record in specs/001-performance-review/baselines/baseline-report.md under metrics `board_cold_cache_api_calls` and `board_warm_cache_api_calls`
+- [x] T013 [P] [US1] Capture WebSocket idle refresh event count: monitor WebSocket subscription with no upstream data changes for 5 minutes, count `refresh` messages sent. Record in specs/001-performance-review/baselines/baseline-report.md under metric `ws_idle_refresh_count_5min`
+- [x] T014 [US1] Capture frontend initial board render baseline: load a representative board (5+ columns, 20+ cards), record initial render time (ms) and component mount count. Record in specs/001-performance-review/baselines/baseline-report.md under metrics `board_initial_render_ms` and `component_mount_count`
+- [x] T015 [P] [US1] Capture frontend single-card-update rerender count: trigger one card status change via WebSocket, count components that rerender and network requests triggered. Record in specs/001-performance-review/baselines/baseline-report.md under metrics `single_card_rerender_count` and `ws_task_update_network_requests`
+- [x] T016 [P] [US1] Capture drag interaction event fire rate: perform a card drag operation, measure event listener fire frequency (events/second). Record in specs/001-performance-review/baselines/baseline-report.md under metric `drag_event_fires_per_sec`
+- [x] T017 [US1] Capture existing test suite timing baseline: run full backend targeted tests (`pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py`) and frontend targeted tests (`vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx`), record pass counts and execution times. Record in specs/001-performance-review/baselines/baseline-report.md
+- [x] T018 [US1] Finalize baseline report at specs/001-performance-review/baselines/baseline-report.md — ensure all 10 metrics from E-004 Baseline Metrics Catalog are captured, conditions documented, and board size recorded. This is the reference document for SC-001 through SC-008 verification in Phase 8
 
 **Checkpoint**: At this point, User Story 1 should be fully complete — all baselines documented. No code has been changed yet. All subsequent optimization work is measured against these baselines.
 
@@ -78,19 +78,19 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T019 [P] [US2] Add test in solune/backend/tests/unit/test_cache.py verifying that `cached_fetch()` with unchanged data hash refreshes TTL without replacing value and without triggering an upstream API call (covers FR-004, cache-contract.md Refresh TTL row)
-- [ ] T020 [P] [US2] Add test in solune/backend/tests/unit/test_api_board.py verifying that a board endpoint request within TTL window returns cached data with zero upstream GitHub API calls (covers FR-007, SC-002, cache-contract.md Serve warm row)
-- [ ] T021 [P] [US2] Add test in solune/backend/tests/unit/test_api_board.py verifying that automatic (non-manual) board refresh reuses cached sub-issue data and does not fetch sub-issues from GitHub API (covers FR-005, cache-contract.md Sub-Issue Cache Reuse row)
-- [ ] T022 [P] [US2] Add test in solune/backend/tests/unit/test_copilot_polling.py verifying that a polling cycle that detects no data changes does not trigger board cache invalidation (covers FR-006, R-003 remaining concern)
-- [ ] T023 [P] [US2] Add test in solune/backend/tests/unit/test_api_board.py verifying that the WebSocket subscription suppresses `refresh` messages when data hash is unchanged (covers FR-004, cache-contract.md WebSocket Change Detection step 4a)
+- [x] T019 [P] [US2] Add test in solune/backend/tests/unit/test_cache.py verifying that `cached_fetch()` with unchanged data hash refreshes TTL without replacing value and without triggering an upstream API call (covers FR-004, cache-contract.md Refresh TTL row)
+- [x] T020 [P] [US2] Add test in solune/backend/tests/unit/test_api_board.py verifying that a board endpoint request within TTL window returns cached data with zero upstream GitHub API calls (covers FR-007, SC-002, cache-contract.md Serve warm row)
+- [x] T021 [P] [US2] Add test in solune/backend/tests/unit/test_api_board.py verifying that automatic (non-manual) board refresh reuses cached sub-issue data and does not fetch sub-issues from GitHub API (covers FR-005, cache-contract.md Sub-Issue Cache Reuse row)
+- [x] T022 [P] [US2] Add test in solune/backend/tests/unit/test_copilot_polling.py verifying that a polling cycle that detects no data changes does not trigger board cache invalidation (covers FR-006, R-003 remaining concern)
+- [x] T023 [P] [US2] Add test in solune/backend/tests/unit/test_api_board.py verifying that the WebSocket subscription suppresses `refresh` messages when data hash is unchanged (covers FR-004, cache-contract.md WebSocket Change Detection step 4a)
 
 ### Implementation for User Story 2
 
-- [ ] T024 [US2] Verify and tighten WebSocket change detection in solune/backend/src/api/projects.py — ensure hash comparison correctly suppresses unchanged `refresh` messages per cache-contract.md steps 1–5 and stale revalidation counter resets on actual change
-- [ ] T025 [US2] Verify and tighten sub-issue cache reuse in solune/backend/src/services/github_projects/service.py — ensure `get_sub_issues()` or equivalent checks cache before fetching, and that non-manual refresh paths skip sub-issue API calls per cache-contract.md Sub-Issue Cache rules
-- [ ] T026 [US2] Verify and tighten board endpoint cache behavior in solune/backend/src/api/board.py — ensure warm-cache requests return without upstream API calls, manual refresh (`refresh=true`) correctly deletes cache entries, and status updates invalidate board cache per cache-contract.md Board Data Cache table
-- [ ] T027 [US2] Verify and tighten polling fallback behavior in solune/backend/src/services/copilot_polling/polling_loop.py — ensure polling steps that detect no changes do not trigger board cache invalidation, and rate-limit-aware step skipping is correctly applied per cache-contract.md Rate-Limit-Aware Behavior table
-- [ ] T028 [US2] Run targeted backend tests: `cd solune/backend && pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --timeout=30` — all tests including new ones from T019–T023 must pass
+- [x] T024 [US2] Verify and tighten WebSocket change detection in solune/backend/src/api/projects.py — ensure hash comparison correctly suppresses unchanged `refresh` messages per cache-contract.md steps 1–5 and stale revalidation counter resets on actual change
+- [x] T025 [US2] Verify and tighten sub-issue cache reuse in solune/backend/src/services/github_projects/service.py — ensure `get_sub_issues()` or equivalent checks cache before fetching, and that non-manual refresh paths skip sub-issue API calls per cache-contract.md Sub-Issue Cache rules
+- [x] T026 [US2] Verify and tighten board endpoint cache behavior in solune/backend/src/api/board.py — ensure warm-cache requests return without upstream API calls, manual refresh (`refresh=true`) correctly deletes cache entries, and status updates invalidate board cache per cache-contract.md Board Data Cache table
+- [x] T027 [US2] Verify and tighten polling fallback behavior in solune/backend/src/services/copilot_polling/polling_loop.py — ensure polling steps that detect no changes do not trigger board cache invalidation, and rate-limit-aware step skipping is correctly applied per cache-contract.md Rate-Limit-Aware Behavior table
+- [x] T028 [US2] Run targeted backend tests: `cd solune/backend && pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --timeout=30` — all tests including new ones from T019–T023 must pass
 
 **Checkpoint**: At this point, User Story 2 should be fully functional. Backend idle API consumption is reduced. Run the idle board measurement from T011 and compare against baseline to verify SC-001 target (≥50% reduction).
 
@@ -106,18 +106,18 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T029 [P] [US3] Add test in solune/frontend/src/hooks/useRealTimeSync.test.tsx verifying that polling fallback uses selective invalidation (Task Query only) for task-level changes, not full Board Query invalidation (covers FR-009, refresh-policy.md Polling Fallback row 2, R-002 gap)
-- [ ] T030 [P] [US3] Add test in solune/frontend/src/hooks/useRealTimeSync.test.tsx verifying that WebSocket `task_update` messages invalidate only `['projects', projectId, 'tasks']` and never `['board', 'data', projectId]` (covers FR-008, refresh-policy.md WebSocket Messages table)
-- [ ] T031 [P] [US3] Add test in solune/frontend/src/hooks/useBoardRefresh.test.tsx verifying that manual refresh bypasses all caches with `refresh=true` and is not debounced (covers FR-010, refresh-policy.md Manual Refresh table)
-- [ ] T032 [P] [US3] Add test in solune/frontend/src/hooks/useBoardRefresh.test.tsx verifying that auto-refresh timer is suppressed when WebSocket is connected (covers FR-011, refresh-policy.md Auto-Refresh Timer table row 1)
+- [x] T029 [P] [US3] Add test in solune/frontend/src/hooks/useRealTimeSync.test.tsx verifying that polling fallback uses selective invalidation (Task Query only) for task-level changes, not full Board Query invalidation (covers FR-009, refresh-policy.md Polling Fallback row 2, R-002 gap)
+- [x] T030 [P] [US3] Add test in solune/frontend/src/hooks/useRealTimeSync.test.tsx verifying that WebSocket `task_update` messages invalidate only `['projects', projectId, 'tasks']` and never `['board', 'data', projectId]` (covers FR-008, refresh-policy.md WebSocket Messages table)
+- [x] T031 [P] [US3] Add test in solune/frontend/src/hooks/useBoardRefresh.test.tsx verifying that manual refresh bypasses all caches with `refresh=true` and is not debounced (covers FR-010, refresh-policy.md Manual Refresh table)
+- [x] T032 [P] [US3] Add test in solune/frontend/src/hooks/useBoardRefresh.test.tsx verifying that auto-refresh timer is suppressed when WebSocket is connected (covers FR-011, refresh-policy.md Auto-Refresh Timer table row 1)
 
 ### Implementation for User Story 3
 
-- [ ] T033 [US3] Fix polling fallback selective invalidation in solune/frontend/src/hooks/useRealTimeSync.ts — ensure polling fallback invalidates only Task Query (`['projects', projectId, 'tasks']`) for task-level changes, matching WebSocket handler behavior per refresh-policy.md section 2 and R-002 identified gap
-- [ ] T034 [US3] Verify WebSocket message handlers in solune/frontend/src/hooks/useRealTimeSync.ts — confirm all message types (`initial_data`, `refresh`, `task_update`, `task_created`, `status_changed`, `auto_merge_completed`) use selective invalidation per refresh-policy.md section 1 table
-- [ ] T035 [US3] Verify and enforce adaptive polling deferral in solune/frontend/src/hooks/useProjectBoard.ts — ensure `refetchInterval` is extended or paused when WebSocket is connected per refresh-policy.md section 5 and R-007 recommendation
-- [ ] T036 [US3] Verify refresh policy coherence across solune/frontend/src/hooks/useRealTimeSync.ts, solune/frontend/src/hooks/useBoardRefresh.ts, and solune/frontend/src/hooks/useProjectBoard.ts — ensure precedence rules from refresh-policy.md are enforced: manual refresh always wins, debounce deduplicates non-manual triggers, WebSocket suppresses auto-refresh and adaptive polling
-- [ ] T037 [US3] Run targeted frontend tests: `cd solune/frontend && npx vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx` — all tests including new ones from T029–T032 must pass
+- [x] T033 [US3] Fix polling fallback selective invalidation in solune/frontend/src/hooks/useRealTimeSync.ts — ensure polling fallback invalidates only Task Query (`['projects', projectId, 'tasks']`) for task-level changes, matching WebSocket handler behavior per refresh-policy.md section 2 and R-002 identified gap
+- [x] T034 [US3] Verify WebSocket message handlers in solune/frontend/src/hooks/useRealTimeSync.ts — confirm all message types (`initial_data`, `refresh`, `task_update`, `task_created`, `status_changed`, `auto_merge_completed`) use selective invalidation per refresh-policy.md section 1 table
+- [x] T035 [US3] Verify and enforce adaptive polling deferral in solune/frontend/src/hooks/useProjectBoard.ts — ensure `refetchInterval` is extended or paused when WebSocket is connected per refresh-policy.md section 5 and R-007 recommendation
+- [x] T036 [US3] Verify refresh policy coherence across solune/frontend/src/hooks/useRealTimeSync.ts, solune/frontend/src/hooks/useBoardRefresh.ts, and solune/frontend/src/hooks/useProjectBoard.ts — ensure precedence rules from refresh-policy.md are enforced: manual refresh always wins, debounce deduplicates non-manual triggers, WebSocket suppresses auto-refresh and adaptive polling
+- [x] T037 [US3] Run targeted frontend tests: `cd solune/frontend && npx vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx` — all tests including new ones from T029–T032 must pass
 
 **Checkpoint**: At this point, User Story 3 should be fully functional. Lightweight task updates no longer trigger full board reloads. Run the network inspection from T015 and compare against baseline to verify SC-003.
 
@@ -131,14 +131,14 @@
 
 ### Implementation for User Story 4
 
-- [ ] T038 [P] [US4] Wrap IssueCard component with React.memo in solune/frontend/src/components/board/IssueCard.tsx — add shallow prop comparison to skip rerenders when card data is unchanged (covers FR-012, R-005 recommendation)
-- [ ] T039 [P] [US4] Wrap BoardColumn component with React.memo in solune/frontend/src/components/board/BoardColumn.tsx — add shallow prop comparison to skip rerenders when column data and card list are unchanged (covers FR-012, R-005 recommendation)
-- [ ] T040 [US4] Memoize board-level derived data (sorting, grouping, aggregation) with useMemo in solune/frontend/src/pages/ProjectsPage.tsx — ensure derived data recomputes only when underlying board data reference changes (covers FR-014, R-005 recommendation)
-- [ ] T041 [US4] Stabilize callback props passed to IssueCard and BoardColumn using useCallback in parent components (solune/frontend/src/pages/ProjectsPage.tsx and/or solune/frontend/src/components/board/BoardColumn.tsx) — prevent React.memo bypass from unstable function references (covers FR-012, R-005 recommendation)
-- [ ] T042 [P] [US4] Throttle drag event listeners in solune/frontend/src/components/chat/ChatPopup.tsx — use requestAnimationFrame or 16ms throttle for drag position updates to limit fire rate to ~60fps (covers FR-013, R-005 recommendation)
-- [ ] T043 [P] [US4] Throttle popover positioning listeners in solune/frontend/src/components/board/AddAgentPopover.tsx — debounce or throttle position recalculation to prevent excessive layout recalculations (covers FR-013, R-005 recommendation)
-- [ ] T044 [US4] Run frontend lint and type-check: `cd solune/frontend && npm run lint && npm run type-check` — verify all rendering optimizations pass ESLint and TypeScript checks
-- [ ] T045 [US4] Run full frontend test suite: `cd solune/frontend && npm run test` — verify rendering optimizations do not break existing component behavior
+- [x] T038 [P] [US4] Wrap IssueCard component with React.memo in solune/frontend/src/components/board/IssueCard.tsx — add shallow prop comparison to skip rerenders when card data is unchanged (covers FR-012, R-005 recommendation)
+- [x] T039 [P] [US4] Wrap BoardColumn component with React.memo in solune/frontend/src/components/board/BoardColumn.tsx — add shallow prop comparison to skip rerenders when column data and card list are unchanged (covers FR-012, R-005 recommendation)
+- [x] T040 [US4] Memoize board-level derived data (sorting, grouping, aggregation) with useMemo in solune/frontend/src/pages/ProjectsPage.tsx — ensure derived data recomputes only when underlying board data reference changes (covers FR-014, R-005 recommendation)
+- [x] T041 [US4] Stabilize callback props passed to IssueCard and BoardColumn using useCallback in parent components (solune/frontend/src/pages/ProjectsPage.tsx and/or solune/frontend/src/components/board/BoardColumn.tsx) — prevent React.memo bypass from unstable function references (covers FR-012, R-005 recommendation)
+- [x] T042 [P] [US4] Throttle drag event listeners in solune/frontend/src/components/chat/ChatPopup.tsx — use requestAnimationFrame or 16ms throttle for drag position updates to limit fire rate to ~60fps (covers FR-013, R-005 recommendation)
+- [x] T043 [P] [US4] Throttle popover positioning listeners in solune/frontend/src/components/board/AddAgentPopover.tsx — debounce or throttle position recalculation to prevent excessive layout recalculations (covers FR-013, R-005 recommendation)
+- [x] T044 [US4] Run frontend lint and type-check: `cd solune/frontend && npm run lint && npm run type-check` — verify all rendering optimizations pass ESLint and TypeScript checks
+- [x] T045 [US4] Run full frontend test suite: `cd solune/frontend && npm run test` — verify rendering optimizations do not break existing component behavior
 
 **Checkpoint**: At this point, User Story 4 should be fully functional. Board interactions are visually smoother. Run the profiling from T014–T016 and compare against baseline to verify SC-004.
 
@@ -152,17 +152,17 @@
 
 ### Tests for User Story 5
 
-- [ ] T046 [P] [US5] Verify all backend tests pass: `cd solune/backend && pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --timeout=30` — confirm all existing and new tests from T019–T023 pass with optimizations applied (covers FR-015, SC-005)
-- [ ] T047 [P] [US5] Verify all frontend tests pass: `cd solune/frontend && npx vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx` — confirm all existing and new tests from T029–T032 pass with optimizations applied (covers FR-015, SC-005)
+- [x] T046 [P] [US5] Verify all backend tests pass: `cd solune/backend && pytest tests/unit/test_cache.py tests/unit/test_api_board.py tests/unit/test_copilot_polling.py -v --timeout=30` — confirm all existing and new tests from T019–T023 pass with optimizations applied (covers FR-015, SC-005)
+- [x] T047 [P] [US5] Verify all frontend tests pass: `cd solune/frontend && npx vitest run src/hooks/useRealTimeSync.test.tsx src/hooks/useBoardRefresh.test.tsx` — confirm all existing and new tests from T029–T032 pass with optimizations applied (covers FR-015, SC-005)
 
 ### Implementation for User Story 5
 
-- [ ] T048 [US5] Run full backend CI validation: `cd solune/backend && ruff check src tests && ruff format --check src tests && pyright src && pytest --cov=src --cov-report=term-missing --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency` — confirm no regressions across the entire backend (covers SC-005)
-- [ ] T049 [US5] Run full frontend CI validation: `cd solune/frontend && npm run lint && npm run type-check && npm run test && npm run build` — confirm no regressions across the entire frontend (covers SC-005)
-- [ ] T050 [US5] Perform manual end-to-end verification pass — confirm WebSocket updates refresh task data promptly, fallback polling does not cause unnecessary refreshes, manual refresh bypasses caches correctly, and board interactions remain responsive. Document results in specs/001-performance-review/baselines/baseline-report.md post-optimization section (covers FR-016, SC-007)
-- [ ] T051 [US5] Capture post-optimization backend metrics: repeat T011–T013 measurements (idle API calls, cache cost, WebSocket idle events) and record in specs/001-performance-review/baselines/baseline-report.md post-optimization section. Compare against baselines: SC-001 target is ≥50% fewer idle API calls, SC-002 target is zero warm-cache API calls
-- [ ] T052 [US5] Capture post-optimization frontend metrics: repeat T014–T016 measurements (render time, rerender count, event fire rate) and record in specs/001-performance-review/baselines/baseline-report.md post-optimization section. Compare against baselines: SC-003 target is no full board reload on single task update, SC-004 target is measurable rerender reduction
-- [ ] T053 [US5] Write verification summary in specs/001-performance-review/baselines/baseline-report.md — record pass/fail for each success criterion SC-001 through SC-008, note whether targets were met, and flag any criteria requiring second-wave work
+- [x] T048 [US5] Run full backend CI validation: `cd solune/backend && ruff check src tests && ruff format --check src tests && pyright src && pytest --cov=src --cov-report=term-missing --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency` — confirm no regressions across the entire backend (covers SC-005)
+- [x] T049 [US5] Run full frontend CI validation: `cd solune/frontend && npm run lint && npm run type-check && npm run test && npm run build` — confirm no regressions across the entire frontend (covers SC-005)
+- [x] T050 [US5] Perform manual end-to-end verification pass — confirm WebSocket updates refresh task data promptly, fallback polling does not cause unnecessary refreshes, manual refresh bypasses caches correctly, and board interactions remain responsive. Document results in specs/001-performance-review/baselines/baseline-report.md post-optimization section (covers FR-016, SC-007)
+- [x] T051 [US5] Capture post-optimization backend metrics: repeat T011–T013 measurements (idle API calls, cache cost, WebSocket idle events) and record in specs/001-performance-review/baselines/baseline-report.md post-optimization section. Compare against baselines: SC-001 target is ≥50% fewer idle API calls, SC-002 target is zero warm-cache API calls
+- [x] T052 [US5] Capture post-optimization frontend metrics: repeat T014–T016 measurements (render time, rerender count, event fire rate) and record in specs/001-performance-review/baselines/baseline-report.md post-optimization section. Compare against baselines: SC-003 target is no full board reload on single task update, SC-004 target is measurable rerender reduction
+- [x] T053 [US5] Write verification summary in specs/001-performance-review/baselines/baseline-report.md — record pass/fail for each success criterion SC-001 through SC-008, note whether targets were met, and flag any criteria requiring second-wave work
 
 **Checkpoint**: At this point, all optimizations are proven by automated tests and manual verification. Baselines and post-optimization metrics are documented side-by-side.
 
@@ -176,10 +176,10 @@
 
 ### Implementation for User Story 6
 
-- [ ] T054 [US6] Review SC-001 through SC-008 results from T053 — determine whether any targets were NOT met
-- [ ] T055 [US6] If backend idle API targets (SC-001) not met: document recommended deeper consolidation in GitHub project fetching/polling pipeline in specs/001-performance-review/baselines/second-wave-plan.md with estimated effort
-- [ ] T056 [US6] If frontend large-board lag persists (SC-004 not met): document recommended board virtualization approach (react-window or react-virtuoso) in specs/001-performance-review/baselines/second-wave-plan.md with estimated effort
-- [ ] T057 [US6] If repeated performance work is anticipated: document recommended lightweight instrumentation (board refresh cost logging, sub-issue cache hit rate, refresh-source attribution) in specs/001-performance-review/baselines/second-wave-plan.md
+- [x] T054 [US6] Review SC-001 through SC-008 results from T053 — determine whether any targets were NOT met
+- [x] T055 [US6] If backend idle API targets (SC-001) not met: document recommended deeper consolidation in GitHub project fetching/polling pipeline in specs/001-performance-review/baselines/second-wave-plan.md with estimated effort
+- [x] T056 [US6] If frontend large-board lag persists (SC-004 not met): document recommended board virtualization approach (react-window or react-virtuoso) in specs/001-performance-review/baselines/second-wave-plan.md with estimated effort
+- [x] T057 [US6] If repeated performance work is anticipated: document recommended lightweight instrumentation (board refresh cost logging, sub-issue cache hit rate, refresh-source attribution) in specs/001-performance-review/baselines/second-wave-plan.md
 
 **Checkpoint**: Second-wave plan is documented (or skipped if all targets met). Team has a clear path forward.
 
@@ -189,11 +189,11 @@
 
 **Purpose**: Final cleanup and validation across all stories
 
-- [ ] T058 [P] Run full backend CI validation suite: `cd solune/backend && pip-audit . --skip-editable --ignore-vuln CVE-2026-4539 && ruff check src tests && ruff format --check src tests && bandit -r src/ -ll -ii --skip B104,B608 && pyright src && pytest --cov=src --cov-report=term-missing --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency`
-- [ ] T059 [P] Run full frontend CI validation suite: `cd solune/frontend && npm audit --audit-level=high && npm run lint && npm run type-check && npm run test && npm run build`
-- [ ] T060 Code cleanup — remove any temporary logging, debug statements, or commented-out code introduced during optimization work across all modified files
-- [ ] T061 Run quickstart.md validation — execute all commands from specs/001-performance-review/quickstart.md and confirm they succeed
-- [ ] T062 Verify no new external dependencies introduced (FR-017, SC-008) — check solune/backend/pyproject.toml and solune/frontend/package.json for any additions
+- [x] T058 [P] Run full backend CI validation suite: `cd solune/backend && pip-audit . --skip-editable --ignore-vuln CVE-2026-4539 && ruff check src tests && ruff format --check src tests && bandit -r src/ -ll -ii --skip B104,B608 && pyright src && pytest --cov=src --cov-report=term-missing --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency`
+- [x] T059 [P] Run full frontend CI validation suite: `cd solune/frontend && npm audit --audit-level=high && npm run lint && npm run type-check && npm run test && npm run build`
+- [x] T060 Code cleanup — remove any temporary logging, debug statements, or commented-out code introduced during optimization work across all modified files
+- [x] T061 Run quickstart.md validation — execute all commands from specs/001-performance-review/quickstart.md and confirm they succeed
+- [x] T062 Verify no new external dependencies introduced (FR-017, SC-008) — check solune/backend/pyproject.toml and solune/frontend/package.json for any additions
 
 ---
 

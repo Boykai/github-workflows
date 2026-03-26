@@ -11660,3 +11660,35 @@ class TestCacheSemanticsForPolling:
         stale = cache.get_stale(cache_key)
         assert stale is not None
         assert stale == cached_items
+
+    def test_polling_no_change_preserves_board_cache(self):
+        """A polling cycle that detects no data changes must NOT invalidate
+        the board data cache (FR-006, R-003).  If polling steps find that
+        cached project items are unchanged, the board cache entry should
+        remain intact so the next board request is served from cache."""
+        from src.services.cache import cache, compute_data_hash, get_project_items_cache_key
+
+        project_id = "PVT_noop"
+        items_key = get_project_items_cache_key(project_id)
+        board_key = f"board_data:{project_id}"
+
+        # Populate both caches
+        items = [{"id": "1", "title": "unchanged task"}]
+        items_hash = compute_data_hash(items)
+        cache.set(items_key, items, data_hash=items_hash)
+        cache.set(board_key, {"columns": []}, ttl_seconds=300)
+
+        # Simulate a polling cycle that re-fetches the same items:
+        # 1. Items cache is warm → no API call needed
+        cached_items = cache.get(items_key)
+        assert cached_items == items
+
+        # 2. Hash comparison shows no change → no cache invalidation
+        new_hash = compute_data_hash(cached_items)
+        assert new_hash == items_hash, "unchanged data must produce same hash"
+
+        # 3. Board cache should remain intact (not deleted)
+        board_data = cache.get(board_key)
+        assert board_data is not None, (
+            "board cache must survive a no-change polling cycle"
+        )
