@@ -701,7 +701,10 @@ async def update_app(db: aiosqlite.Connection, name: str, payload: AppUpdate) ->
     # Reject unexpected column names (defense-in-depth against SQL injection)
     bad = set(updates) - _APP_UPDATABLE_COLUMNS
     if bad:
-        raise ValueError(f"Invalid update columns: {bad}")
+        raise ValidationError(
+            "Invalid fields in update payload.",
+            details={"invalid_fields": sorted(bad)},
+        )
 
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     values = list(updates.values())

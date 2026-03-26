@@ -199,6 +199,20 @@ class TestAppServiceCrud:
             {"display_name", "description", "associated_pipeline_id"}
         )
 
+    @pytest.mark.asyncio
+    async def test_update_app_raises_validation_error_when_whitelist_rejects_payload(
+        self, mock_db, monkeypatch
+    ):
+        """Regression: whitelist mismatches should surface as API-safe validation errors."""
+        await _insert_app(mock_db)
+        monkeypatch.setattr("src.services.app_service._APP_UPDATABLE_COLUMNS", frozenset())
+
+        with pytest.raises(ValidationError) as exc_info:
+            await update_app(mock_db, "demo-app", AppUpdate(display_name="Renamed Demo"))
+
+        assert exc_info.value.message == "Invalid fields in update payload."
+        assert exc_info.value.details == {"invalid_fields": ["display_name"]}
+
 
 class TestAppServiceLifecycle:
     @pytest.mark.asyncio

@@ -14,7 +14,7 @@ describe('truncateFilename', () => {
     const result = truncateFilename('very-long-filename-here.txt', 20);
     expect(result).toContain('.txt');
     expect(result).toContain('…');
-    expect(result.length).toBeLessThanOrEqual(25); // base + ellipsis + ext
+    expect(result.length).toBeLessThanOrEqual(20);
   });
 
   it('truncates long filenames without extension', () => {
@@ -31,8 +31,8 @@ describe('truncateFilename', () => {
     expect(result.startsWith('f')).toBe(true);
   });
 
-  it('handles extension equal to max length', () => {
-    // Extension ".abcdefghij" is 11 chars, max is 10
+  it('handles extension longer than max length', () => {
+    // Extension ".abcdefghij" is 11 chars while max is 10 (extension > max)
     const result = truncateFilename('x.abcdefghij', 10);
     expect(result).toContain('…');
     expect(result).toContain('.abcdefghij');

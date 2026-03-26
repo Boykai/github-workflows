@@ -47,7 +47,7 @@ specs/001-bug-basher/
 │   └── process-contracts.md
 ├── checklists/
 │   └── requirements.md  # Specification quality checklist (pre-existing)
-└── tasks.md             # Phase 2 output (/speckit.tasks — NOT created here)
+└── tasks.md             # Phase 2 output (/speckit.tasks)
 ```
 
 ### Source Code (repository root)
