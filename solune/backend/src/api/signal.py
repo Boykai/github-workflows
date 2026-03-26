@@ -20,7 +20,7 @@ from src.exceptions import (
     NotFoundError,
     ValidationError,
 )
-from src.logging_utils import get_logger, handle_service_error
+from src.logging_utils import get_logger
 from src.models.signal import (
     SignalBanner,
     SignalBannersResponse,
@@ -111,7 +111,10 @@ async def initiate_signal_link(
         elif isinstance(e, (_httpx.ConnectError, _httpx.TimeoutException)):
             detail = f"Cannot reach Signal service: {type(e).__name__}"
         logger.error("Signal QR code request failed: %s", detail, exc_info=True)
-        raise AppException(detail, status_code=502) from e
+        raise AppException(
+            "Failed to connect to the Signal service. Please try again later.",
+            status_code=502,
+        ) from e
 
     return SignalLinkResponse(
         qr_code_base64=qr_base64,
