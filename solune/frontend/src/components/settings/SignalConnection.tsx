@@ -196,6 +196,7 @@ export function SignalConnection() {
     initiateLink,
     data: linkData,
     isPending: isLinking,
+    error: linkError,
     reset: resetLink,
   } = useInitiateSignalLink();
   const { disconnect, isPending: isDisconnecting } = useDisconnectSignal();
@@ -209,7 +210,11 @@ export function SignalConnection() {
 
   const handleInitiateLink = useCallback(async () => {
     resetLink();
-    await initiateLink(undefined);
+    try {
+      await initiateLink(undefined);
+    } catch {
+      // Error is captured by the mutation's error state and rendered below.
+    }
   }, [initiateLink, resetLink]);
 
   const handleDisconnect = useCallback(async () => {
@@ -260,25 +265,43 @@ export function SignalConnection() {
 
       {/* Connect CTA — only when not connected and not in linking flow */}
       {!isConnected && !isLinkingInProgress && (
-        <button
-          className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md
-            bg-primary text-primary-foreground shadow-sm
-            hover:bg-primary/90 transition-colors
-            disabled:opacity-50 disabled:cursor-not-allowed
-            w-fit"
-          onClick={handleInitiateLink}
-          disabled={isLinking}
-          type="button"
-        >
-          {isLinking ? (
-            <>
-              <span className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-              Generating QR Code…
-            </>
-          ) : (
-            'Connect Signal Account'
+        <>
+          <button
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium rounded-md
+              bg-primary text-primary-foreground shadow-sm
+              hover:bg-primary/90 transition-colors
+              disabled:opacity-50 disabled:cursor-not-allowed
+              w-fit"
+            onClick={handleInitiateLink}
+            disabled={isLinking}
+            type="button"
+          >
+            {isLinking ? (
+              <>
+                <span className="w-3.5 h-3.5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                Generating QR Code…
+              </>
+            ) : (
+              'Connect Signal Account'
+            )}
+          </button>
+
+          {linkError && (
+            <div className="flex flex-col gap-2 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+              <p className="text-sm text-destructive">
+                Failed to connect: {linkError.message || 'Signal service is unavailable. Please try again later.'}
+              </p>
+              <button
+                className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-medium rounded-md
+                  bg-destructive text-destructive-foreground hover:bg-destructive/90 transition-colors w-fit"
+                onClick={handleInitiateLink}
+                type="button"
+              >
+                Try Again
+              </button>
+            </div>
           )}
-        </button>
+        </>
       )}
 
       {/* QR Code display during linking */}
