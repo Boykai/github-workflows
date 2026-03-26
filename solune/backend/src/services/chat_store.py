@@ -20,7 +20,7 @@ from src.logging_utils import get_logger
 logger = get_logger(__name__)
 
 
-def _safe_json_list(raw: str | None) -> list:
+def _safe_json_list(raw: str | None) -> list[str]:
     """Parse a JSON string that should be a list, returning ``[]`` on failure."""
     if not raw:
         return []
