@@ -126,7 +126,7 @@ npm run build
 | `src/components/board/IssueCard.tsx` | Card rendering | Rerender frequency, prop stability |
 | `src/pages/ProjectsPage.tsx` | Board page orchestrator | Derived data computation, sorting/grouping |
 | `src/components/chat/ChatPopup.tsx` | Chat drag/resize | Event listener frequency |
-| `src/components/board/AddAgentPopover.tsx` | Agent popover | Positioning listener frequency |
+| `src/components/board/AddAgentPopover.tsx` | Agent popover | Confirm positioning remains Radix-managed and no custom listeners were added |
 
 ### Test Files
 

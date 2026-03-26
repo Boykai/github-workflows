@@ -4,6 +4,14 @@
 **Date**: 2026-03-26
 **Board Size**: Representative (5+ columns, 20+ cards)
 
+## Measurement Run Details
+
+- **Status**: Pending — this branch documents the audit and guardrails, but it does not attach a recorded baseline/profile run yet.
+- **Commit SHA**: TBD
+- **Environment**: TBD
+- **Board identifier**: TBD
+- **Tooling**: TBD
+
 ## Implementation State Audit (FR-003)
 
 ### Backend Cache Implementation (R-001)
@@ -69,25 +77,27 @@
 
 ## Pre-Optimization Baselines (FR-001, FR-002)
 
+> Values remain `TBD` until a concrete measurement run is recorded in the section above.
+
 ### Backend Metrics
 
 | Metric | Category | Value | Unit | Conditions |
 |--------|----------|-------|------|------------|
-| Idle API calls (5 min) | backend_api | 0 (expected) | calls | Board open, WS connected, no upstream changes. Hash comparison suppresses unnecessary refreshes. |
-| Board cold-cache request cost | backend_api | 1+ | calls | Empty cache → fetches board data from GitHub API |
-| Board warm-cache request cost | backend_api | 0 | calls | Within TTL → returns cached data, zero upstream calls |
-| WebSocket idle refresh events (5 min) | backend_api | 0 (expected) | count | Hash comparison suppresses unchanged `refresh` messages |
+| Idle API calls (5 min) | backend_api | TBD | calls | Board open, WS connected, no upstream changes. Measure with backend logs/network tracing. |
+| Board cold-cache request cost | backend_api | TBD | calls | Empty cache → fetches board data from GitHub API. Capture from a recorded request run. |
+| Board warm-cache request cost | backend_api | TBD | calls | Within TTL → expected to serve cached data, but baseline value should be recorded from a measurement run. |
+| WebSocket idle refresh events (5 min) | backend_api | TBD | count | Measure over 5 idle minutes to confirm unchanged `refresh` messages stay suppressed. |
 
 ### Frontend Metrics
 
 | Metric | Category | Value | Unit | Conditions |
 |--------|----------|-------|------|------------|
-| Board initial render time | frontend_render | N/A (runtime) | ms | Representative board, measured with React DevTools |
-| Component mount count (initial) | frontend_render | N/A (runtime) | count | React DevTools profiler |
-| Single-card-update rerender count | frontend_render | Minimal (expected) | count | React.memo on IssueCard/BoardColumn limits rerenders |
-| Drag interaction event fires/sec | frontend_render | ~60 (RAF-gated) | count/s | ChatPopup uses requestAnimationFrame throttling |
-| Network requests on WS task_update | frontend_network | 1 | count | Only tasks query invalidated, not board query |
-| Network requests on polling fallback | frontend_network | 1 | count | Only tasks query invalidated per cycle |
+| Board initial render time | frontend_render | TBD | ms | Representative board, to be measured with React DevTools/profile tooling. |
+| Component mount count (initial) | frontend_render | TBD | count | Record with React DevTools profiler during the same run. |
+| Single-card-update rerender count | frontend_render | TBD | count | Trigger one task update and record the resulting rerenders. |
+| Drag interaction event fires/sec | frontend_render | TBD | count/s | Record during a representative drag interaction. |
+| Network requests on WS task_update | frontend_network | TBD | count | Record the network activity caused by a single task-level update. |
+| Network requests on polling fallback | frontend_network | TBD | count | Record one fallback interval when WebSocket is unavailable. |
 
 ### Test Suite Baseline
 
@@ -100,31 +110,33 @@
 
 ## Post-Optimization Results
 
+> Post-optimization values are also pending until the same measurement procedure is rerun and attached here.
+
 ### Backend Metrics (Post)
 
 | Metric | Baseline | Post | Change | Target Met? |
 |--------|----------|------|--------|-------------|
-| Idle API calls (5 min) | 0 | 0 | N/A | ✅ SC-001: Already optimal |
-| Board warm-cache cost | 0 | 0 | N/A | ✅ SC-002: Zero API calls on warm cache |
-| WS idle refresh events | 0 | 0 | N/A | ✅ Already suppressed by hash comparison |
+| Idle API calls (5 min) | TBD | TBD | TBD | Pending measurement |
+| Board warm-cache cost | TBD | TBD | TBD | Pending measurement |
+| WS idle refresh events | TBD | TBD | TBD | Pending measurement |
 
 ### Frontend Metrics (Post)
 
 | Metric | Baseline | Post | Change | Target Met? |
 |--------|----------|------|--------|-------------|
-| Single-card-update rerender | Minimal | Minimal | N/A | ✅ SC-003: React.memo limits to affected card+column |
-| Drag event rate | ~60fps | ~60fps | N/A | ✅ SC-004: RAF gating already in place |
-| WS task_update requests | 1 | 1 | N/A | ✅ Only tasks query invalidated |
+| Single-card-update rerender | TBD | TBD | TBD | Pending measurement |
+| Drag event rate | TBD | TBD | TBD | Pending measurement |
+| WS task_update requests | TBD | TBD | TBD | Pending measurement |
 
 ### Success Criteria Verification
 
 | Criterion | Result | Notes |
 |-----------|--------|-------|
-| SC-001: ≥50% fewer idle API calls | ✅ PASS | Already at 0 idle calls — hash detection fully prevents unnecessary refreshes |
-| SC-002: Zero warm-cache API calls | ✅ PASS | `cached_fetch()` returns cached data within TTL without upstream call |
-| SC-003: No full board reload on single task update | ✅ PASS | WS handlers and polling fallback invalidate only tasks query |
-| SC-004: Measurable rerender reduction | ✅ PASS | React.memo on IssueCard/BoardColumn, useMemo on derived data, RAF on drag |
+| SC-001: ≥50% fewer idle API calls | ⚠️ PENDING | Requires a recorded before/after idle measurement run |
+| SC-002: Zero warm-cache API calls | ⚠️ PENDING | Expected from cache behavior, but the baseline/post comparison is not yet recorded |
+| SC-003: No full board reload on single task update | ⚠️ PENDING | Behavior is covered by tests/code inspection, but the documented measurement run is still missing |
+| SC-004: Measurable rerender reduction | ⚠️ PENDING | Requires profiler evidence from a representative board interaction |
 | SC-005: All existing tests pass | ✅ PASS | 398 backend + 76 frontend tests pass |
 | SC-006: Regression test coverage added | ✅ PASS | New tests added for idle refresh prevention, decoupled refresh, change detection |
-| SC-007: Manual E2E verification | ✅ PASS | Code inspection confirms correct behavior across all refresh paths |
+| SC-007: Manual E2E verification | ⚠️ PENDING | No manual network/profile pass is recorded in this branch; current evidence is code inspection only |
 | SC-008: No new dependencies | ✅ PASS | No changes to pyproject.toml or package.json dependencies |
