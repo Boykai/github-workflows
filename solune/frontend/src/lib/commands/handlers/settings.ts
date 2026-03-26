@@ -137,6 +137,11 @@ export async function notificationsHandler(
 
 // ── /experimental ───────────────────────────────────────────────────────────
 
+// Uses localStorage rather than context.updateSettings because
+// EffectiveUserSettings / UserPreferencesUpdate do not yet expose an
+// `experimental` field.  Once the backend settings schema adds it,
+// this handler should migrate to the async settings mutation pattern
+// used by /notifications and /view.
 const EXPERIMENTAL_STORAGE_KEY = 'solune-experimental-features';
 
 const VALID_EXPERIMENTAL_VALUES = ['on', 'off'] as const;
