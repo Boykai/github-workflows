@@ -193,3 +193,55 @@ class TestStatusMapping:
 
     def test_recommendation_status_from_db_rejected(self):
         assert recommendation_status_from_db("rejected") == "rejected"
+
+
+# =============================================================================
+# Regression: malformed JSON in stored columns (bug-bash)
+# =============================================================================
+
+
+class TestMalformedJsonResilience:
+    """Ensure corrupted JSON in file_urls columns does not crash the store."""
+
+    @pytest.mark.anyio
+    async def test_proposal_with_corrupt_file_urls(self, mock_db):
+        """get_proposals gracefully handles invalid JSON in file_urls."""
+        await save_proposal(
+            mock_db,
+            session_id="sess-corrupt",
+            proposal_id="prop-corrupt",
+            original_input="input",
+            proposed_title="Title",
+            proposed_description="Desc",
+        )
+        # Manually corrupt the file_urls column
+        await mock_db.execute(
+            "UPDATE chat_proposals SET file_urls = ? WHERE proposal_id = ?",
+            ("[broken json", "prop-corrupt"),
+        )
+        await mock_db.commit()
+
+        proposals = await get_proposals(mock_db, "sess-corrupt")
+        assert len(proposals) == 1
+        assert proposals[0]["file_urls"] == []
+
+    @pytest.mark.anyio
+    async def test_proposal_by_id_with_corrupt_file_urls(self, mock_db):
+        """get_proposal_by_id gracefully handles invalid JSON in file_urls."""
+        await save_proposal(
+            mock_db,
+            session_id="sess-corrupt2",
+            proposal_id="prop-corrupt2",
+            original_input="input",
+            proposed_title="Title",
+            proposed_description="Desc",
+        )
+        await mock_db.execute(
+            "UPDATE chat_proposals SET file_urls = ? WHERE proposal_id = ?",
+            ("{not-a-list", "prop-corrupt2"),
+        )
+        await mock_db.commit()
+
+        result = await get_proposal_by_id(mock_db, "prop-corrupt2")
+        assert result is not None
+        assert result["file_urls"] == []

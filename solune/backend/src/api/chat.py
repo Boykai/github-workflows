@@ -99,9 +99,7 @@ _PERSIST_BASE_DELAY = 0.1  # 100ms, 200ms, 400ms
 
 def _get_lock(key: str) -> asyncio.Lock:
     """Return a per-key asyncio lock (lazy-created)."""
-    if key not in _locks:
-        _locks[key] = asyncio.Lock()
-    return _locks[key]
+    return _locks.setdefault(key, asyncio.Lock())
 
 
 async def _retry_persist(

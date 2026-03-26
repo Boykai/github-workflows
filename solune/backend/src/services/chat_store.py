@@ -20,6 +20,17 @@ from src.logging_utils import get_logger
 logger = get_logger(__name__)
 
 
+def _safe_json_list(raw: str | None) -> list:
+    """Parse a JSON string that should be a list, returning ``[]`` on failure."""
+    if not raw:
+        return []
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        logger.warning("Malformed JSON in stored column: %.200s", raw)
+        return []
+
+
 @asynccontextmanager
 async def transaction(db: aiosqlite.Connection) -> AsyncGenerator[aiosqlite.Connection]:
     """Context manager for an ``IMMEDIATE`` transaction.
@@ -195,7 +206,7 @@ async def get_proposals(
     for row in rows:
         if isinstance(row, tuple):
             raw_file_urls = row[10]
-            file_urls = json.loads(raw_file_urls) if raw_file_urls else []
+            file_urls = _safe_json_list(raw_file_urls)
             result.append(
                 {
                     "proposal_id": row[0],
@@ -214,7 +225,7 @@ async def get_proposals(
         else:
             d = dict(row)
             raw = d.get("file_urls")
-            d["file_urls"] = json.loads(raw) if raw else []
+            d["file_urls"] = _safe_json_list(raw)
             result.append(d)
     return result
 
@@ -270,12 +281,12 @@ async def get_proposal_by_id(
             "edited_description": row[7],
             "created_at": row[8],
             "expires_at": row[9],
-            "file_urls": json.loads(raw_file_urls) if raw_file_urls else [],
+            "file_urls": _safe_json_list(raw_file_urls),
             "selected_pipeline_id": row[11],
         }
     d = dict(row)
     raw = d.get("file_urls")
-    d["file_urls"] = json.loads(raw) if raw else []
+    d["file_urls"] = _safe_json_list(raw)
     return d
 
 
@@ -322,7 +333,7 @@ async def get_recommendations(
     for row in rows:
         if isinstance(row, tuple):
             raw_file_urls = row[5]
-            file_urls = json.loads(raw_file_urls) if raw_file_urls else []
+            file_urls = _safe_json_list(raw_file_urls)
             result.append(
                 {
                     "recommendation_id": row[0],
@@ -336,7 +347,7 @@ async def get_recommendations(
         else:
             d = dict(row)
             raw = d.get("file_urls")
-            d["file_urls"] = json.loads(raw) if raw else []
+            d["file_urls"] = _safe_json_list(raw)
             result.append(d)
     return result
 
@@ -383,11 +394,11 @@ async def get_recommendation_by_id(
             "data": row[2],
             "status": row[3],
             "created_at": row[4],
-            "file_urls": json.loads(raw_file_urls) if raw_file_urls else [],
+            "file_urls": _safe_json_list(raw_file_urls),
         }
     d = dict(row)
     raw = d.get("file_urls")
-    d["file_urls"] = json.loads(raw) if raw else []
+    d["file_urls"] = _safe_json_list(raw)
     return d
 
 

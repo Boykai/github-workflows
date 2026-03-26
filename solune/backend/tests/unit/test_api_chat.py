@@ -1062,3 +1062,32 @@ class TestUploadFilePathTraversal:
             files={"file": ("malware.exe", io.BytesIO(b"\x00"), "application/octet-stream")},
         )
         assert resp.status_code == 415
+
+
+# =============================================================================
+# Regression: _get_lock must return stable Lock per key (bug-bash)
+# =============================================================================
+
+
+class TestGetLockAtomicity:
+    """Ensure _get_lock returns the same Lock instance for a given key."""
+
+    def test_get_lock_returns_same_instance(self):
+        """_get_lock must return the identical Lock for repeated calls."""
+        from src.api.chat import _get_lock, _locks
+
+        _locks.clear()
+        lock_a = _get_lock("test-key")
+        lock_b = _get_lock("test-key")
+        assert lock_a is lock_b
+        _locks.clear()
+
+    def test_get_lock_different_keys_return_different_locks(self):
+        """Different keys must get distinct Lock instances."""
+        from src.api.chat import _get_lock, _locks
+
+        _locks.clear()
+        lock_a = _get_lock("key-1")
+        lock_b = _get_lock("key-2")
+        assert lock_a is not lock_b
+        _locks.clear()
