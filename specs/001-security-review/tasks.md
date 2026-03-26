@@ -5,6 +5,8 @@
 
 **Tests**: Tests are not explicitly requested in the specification. Verification is behavior-based (code review + inspection per quickstart.md). Existing unit tests (3575 backend, 152 frontend) already cover security controls.
 
+**Note**: The original audit header states "3 Critical · 8 High · 9 Medium · 2 Low" (sum: 22), but research.md enumerates exactly 21 findings (Finding 1–21). The discrepancy appears to be a counting error in the audit header. Tasks reference the 21 findings documented in research.md.
+
 **Organization**: Tasks are grouped by user story to enable independent verification and implementation. Since 17 of 21 findings are already remediated (per research.md), most tasks are verification-focused.
 
 ## Format: `[ID] [P?] [Story] Description`
@@ -138,8 +140,8 @@
 
 ### Verification for User Story 7
 
-- [ ] T031 [US7] Verify OAuth scopes configuration and justification comment in `solune/backend/src/services/github_auth.py` (FR-014) — lines 70–74
-- [ ] T032 [US7] Document justified exception for `repo` scope: GitHub returns misleading 404s for issue/PR/comment writes with narrower scopes
+- [ ] T031 [US7] Verify OAuth scopes configuration and justification comment in `solune/backend/src/services/github_auth.py` (FR-014) — lines 70–74. Note: research.md Finding 8 documents `repo` scope as a justified exception; FR-014 should be interpreted as "document minimum necessary scopes with justification for any broader scope retained"
+- [ ] T032 [US7] Document justified exception for `repo` scope: GitHub returns misleading 404s for issue/PR/comment writes with narrower scopes (per research.md Finding 8)
 
 **Checkpoint**: SC-011 validated — scopes documented with justification
 
@@ -190,8 +192,8 @@
 - [ ] T041 [P] [US10] Verify memory-only chat storage (`useState`) in `solune/frontend/src/hooks/useChatHistory.ts` (FR-025)
 - [ ] T042 [P] [US10] Verify `clearLegacyStorage()` removes pre-v2 localStorage data in `solune/frontend/src/hooks/useChatHistory.ts` (FR-026)
 - [ ] T043 [US10] Verify `clearHistory()` wipes memory and legacy storage on logout in `solune/frontend/src/hooks/useChatHistory.ts` (FR-026)
-- [ ] T044 [P] [US10] Verify configurable TTL mechanism for locally stored references in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027) — confirm TTL configuration, default value, and auto-removal of expired references
-- [ ] T045 [US10] Verify expired references are automatically removed when TTL elapses in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027)
+- [ ] T044 [P] [US10] Verify configurable TTL mechanism for locally stored references in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027) — confirm TTL configuration exists (env var or constant), expected default ~24h (1440 min), and auto-removal of expired references
+- [ ] T045 [US10] Verify expired references are automatically removed when TTL elapses in `solune/frontend/src/hooks/useChatHistory.ts` (FR-027) — note: spec underspecifies cleanup trigger (lazy vs scheduled) and precision; verify implementation approach
 
 **Checkpoint**: SC-009 validated — no message content in localStorage
 
