@@ -125,7 +125,7 @@ This document describes the security-relevant entities, their relationships, val
 **Purpose**: Validates incoming webhook payloads using cryptographic signatures.
 
 | Webhook Source | Verification Method | Comparison Function | Bypass Possible |
-|---------------|---------------------|--------------------|--------------  |
+|---------------|---------------------|---------------------|-----------------|
 | GitHub | HMAC-SHA256 signature (`X-Hub-Signature-256`) | `hmac.compare_digest` | ❌ Never |
 | Signal | Shared secret header (`X-Signal-Webhook-Secret`) | `hmac.compare_digest` | ❌ Never |
 
