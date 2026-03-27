@@ -18,12 +18,14 @@ function formatFileSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-function truncateFilename(name: string, max = 20): string {
+/** @internal Exported for testing. */
+export function truncateFilename(name: string, max = 20): string {
   if (name.length <= max) return name;
   const ext = name.lastIndexOf('.');
   if (ext > 0) {
     const extStr = name.slice(ext);
-    const base = name.slice(0, max - extStr.length - 1);
+    const availableForBase = Math.max(1, max - extStr.length - 1);
+    const base = name.slice(0, availableForBase);
     return `${base}…${extStr}`;
   }
   return `${name.slice(0, max - 1)}…`;

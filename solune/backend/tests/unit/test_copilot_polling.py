@@ -11660,3 +11660,37 @@ class TestCacheSemanticsForPolling:
         stale = cache.get_stale(cache_key)
         assert stale is not None
         assert stale == cached_items
+
+    def test_unchanged_items_hash_preserves_existing_board_cache_entry(self):
+        """Recomputing an unchanged items hash should not disturb an existing
+        board cache entry.
+
+        This is a cache-layer invariant used by the no-change polling path,
+        not an end-to-end polling-loop test.
+        """
+        from uuid import uuid4
+
+        from src.services.cache import cache, compute_data_hash, get_project_items_cache_key
+
+        project_id = f"PVT_noop_{uuid4().hex}"
+        items_key = get_project_items_cache_key(project_id)
+        board_key = f"board_data:{project_id}"
+
+        try:
+            # Populate both caches
+            items = [{"id": "1", "title": "unchanged task"}]
+            items_hash = compute_data_hash(items)
+            cache.set(items_key, items, data_hash=items_hash)
+            cache.set(board_key, {"columns": []}, ttl_seconds=300)
+
+            cached_items = cache.get(items_key)
+            assert cached_items == items
+
+            new_hash = compute_data_hash(cached_items)
+            assert new_hash == items_hash, "unchanged data must produce same hash"
+
+            board_data = cache.get(board_key)
+            assert board_data is not None, "unrelated board cache entries should remain intact"
+        finally:
+            cache.delete(items_key)
+            cache.delete(board_key)
