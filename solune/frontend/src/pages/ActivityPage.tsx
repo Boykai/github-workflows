@@ -127,7 +127,7 @@ export function ActivityPage() {
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <Activity className="h-6 w-6 text-primary" />
+        <Activity className="h-6 w-6 text-primary" aria-hidden="true" />
         <h1 className="text-2xl font-display font-semibold tracking-tight">Activity</h1>
       </div>
 
@@ -140,6 +140,7 @@ export function ActivityPage() {
             <button
               key={cat.label}
               type="button"
+              aria-pressed={active}
               onClick={() => toggleCategory(cat.label)}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
@@ -148,7 +149,7 @@ export function ActivityPage() {
                   : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground',
               )}
             >
-              <Icon className="h-3.5 w-3.5" />
+              <Icon className="h-3.5 w-3.5" aria-hidden="true" />
               {cat.label}
             </button>
           );
@@ -166,7 +167,7 @@ export function ActivityPage() {
 
       {/* Loading state */}
       {isLoading && (
-        <div className="flex items-center justify-center py-20">
+        <div className="flex items-center justify-center py-20" role="status" aria-label="Loading activity">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
           <span className="ml-3 text-sm text-muted-foreground">Loading activity…</span>
         </div>
@@ -175,7 +176,7 @@ export function ActivityPage() {
       {/* Empty state */}
       {!isLoading && events.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 py-20">
-          <Clock className="mb-3 h-10 w-10 text-muted-foreground/40" />
+          <Clock className="mb-3 h-10 w-10 text-muted-foreground/40" aria-hidden="true" />
           <p className="text-sm font-medium text-muted-foreground">
             {selectedCategories.length > 0
               ? `No ${selectedCategories.join(', ').toLowerCase()} events found`
@@ -205,6 +206,7 @@ export function ActivityPage() {
                 <div key={event.id} className="group">
                   <button
                     type="button"
+                    aria-expanded={hasDetail ? expanded : undefined}
                     onClick={() => hasDetail && toggleExpanded(event.id)}
                     className={cn(
                       'flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
@@ -213,7 +215,7 @@ export function ActivityPage() {
                         : 'cursor-default',
                     )}
                   >
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary/70" />
+                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary/70" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-foreground">{event.summary}</p>
                       <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
@@ -224,9 +226,9 @@ export function ActivityPage() {
                     </div>
                     {hasDetail && (
                       expanded ? (
-                        <ChevronDown className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <ChevronDown className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                       ) : (
-                        <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden="true" />
                       )
                     )}
                   </button>
