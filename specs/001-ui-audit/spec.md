@@ -92,7 +92,7 @@ As a developer, I can trust that the codebase for each page is fully type-safe w
 **Acceptance Scenarios**:
 
 1. **Given** any page file and its related components, **When** a developer runs the type checker, **Then** zero type errors are reported.
-2. **Given** any page file and its related components, **When** a developer searches for `any` type annotations, **Then** none are found — all props, state, and responses are explicitly typed.
+2. **Given** any page file and its related components, **When** a developer runs the type checker with strict mode (no implicit `any`), **Then** zero errors are reported and no explicit `any` annotations exist in project-owned code.
 3. **Given** any page that renders a list, **When** a developer inspects the list rendering, **Then** each item uses a stable unique identifier as the key — never the array index.
 4. **Given** any page that performs sorting, filtering, or grouping, **When** a developer inspects the computation, **Then** it is wrapped in a memoization boundary so it does not re-execute on every render.
 
@@ -108,8 +108,8 @@ As a developer, I can verify that each page has meaningful test coverage for hoo
 
 **Acceptance Scenarios**:
 
-1. **Given** a page that uses custom hooks, **When** a developer checks the test directory, **Then** each custom hook has a corresponding test file covering happy path, error, loading, and empty states.
-2. **Given** a page with interactive components, **When** a developer checks the test directory, **Then** key components have test files covering user interactions (clicks, form submissions, dialog confirmations).
+1. **Given** a page that uses custom hooks, **When** a developer checks for co-located test files, **Then** each custom hook has a corresponding test file covering happy path, error, loading, and empty states.
+2. **Given** a page with interactive components, **When** a developer checks for co-located test files, **Then** key components have test files covering user interactions (clicks, form submissions, dialog confirmations).
 3. **Given** a page's test suite, **When** a developer reviews the tests, **Then** edge cases are covered: empty collections, error responses, rate-limit errors, long strings, and null or missing data.
 4. **Given** a page's test suite, **When** a developer reviews test patterns, **Then** tests follow codebase conventions (mocked API calls, render-hook utilities, waitFor assertions, wrapper factories) and use assertion-based validation rather than snapshot comparisons.
 
@@ -161,7 +161,7 @@ As a developer, I can navigate and maintain the codebase easily because each pag
 - **FR-013**: Each audited page MUST display a meaningful empty state with guidance when a data collection is empty.
 - **FR-014**: Each audited page with multiple data sources MUST display independent loading and error states per section — one failing section MUST NOT block the rest of the page.
 - **FR-015**: Each audited page MUST be wrapped in an error boundary (at the route level or within the page).
-- **FR-016**: Each audited page MUST have zero `any` type annotations; all props, state variables, and response types MUST be explicitly typed.
+- **FR-016**: Each audited page MUST have zero `any` type annotations in project-owned code; all props, state variables, and response types MUST be explicitly typed. Third-party `any` types that cannot be eliminated MUST be documented with a justification comment (see Edge Cases).
 - **FR-017**: Each audited page MUST minimize type assertions (`as`); where unavoidable, they MUST be documented with a justification comment.
 - **FR-018**: Each audited page MUST ensure all interactive elements are reachable via Tab and activatable via Enter or Space.
 - **FR-019**: Each audited page MUST ensure dialogs and modals trap focus and return focus to the trigger element on dismissal.
@@ -177,7 +177,7 @@ As a developer, I can navigate and maintain the codebase easily because each pag
 - **FR-029**: Each audited page MUST provide success feedback for completed mutations (toast, inline message, or visible status change).
 - **FR-030**: Each audited page MUST display error messages in the format: "Could not [action]. [Reason, if known]. [Suggested next step]." — no raw error codes or stack traces.
 - **FR-031**: Each audited page MUST truncate overflowing text with an ellipsis and provide the full text in a tooltip.
-- **FR-032**: Each audited page MUST format timestamps consistently: relative time for recent events, absolute date/time for older events.
+- **FR-032**: Each audited page MUST format timestamps consistently: relative time (e.g., "2 hours ago") for events within the last 24 hours, absolute date/time for older events.
 - **FR-033**: Each audited page MUST use utility-class-based styling only — no inline style attributes.
 - **FR-034**: Each audited page MUST render correctly at viewport widths from 768px to 1920px with adaptive grid and flex layouts.
 - **FR-035**: Each audited page MUST support both light and dark themes using theme-aware color variables or theme-variant utility classes — no hard-coded color values.
@@ -195,7 +195,7 @@ As a developer, I can navigate and maintain the codebase easily because each pag
 ### Key Entities
 
 - **Audit Page**: A single page file in the application that is the subject of an audit pass. Key attributes: page name, file path, line count, associated feature component directory, related hooks, audit status (not started, in progress, passed, has findings).
-- **Audit Finding**: A specific issue identified during the audit of a page. Key attributes: page reference, checklist category (architecture, states, accessibility, UX, performance, tests, hygiene), severity (must fix, should fix, not applicable), description, remediation status (open, fixed, waived).
+- **Audit Finding**: A specific issue identified during the audit of a page. Key attributes: page reference, checklist category (architecture, states, accessibility, UX, performance, tests, hygiene), applicability (applicable, not applicable), severity (must fix, should fix — assigned only when applicable), description, remediation status (open, fixed, waived).
 - **Audit Checklist**: The set of quality criteria applied to each page. Key attributes: category, checklist item, pass/fail/not-applicable status per page, notes.
 
 ### Assumptions
@@ -213,7 +213,7 @@ As a developer, I can navigate and maintain the codebase easily because each pag
 
 - **SC-001**: 100% of application pages (12 of 12) have been audited against the full checklist, with each item scored as pass, fail, or not applicable.
 - **SC-002**: All "must fix" findings identified during the audit are remediated before the audit is marked complete for a given page.
-- **SC-003**: Every page that fetches data displays a loading state within 100 milliseconds of navigation — users never see a blank screen while waiting for data.
+- **SC-003**: Every page that fetches data displays a loading state immediately on navigation (within the first render frame) — users never see a blank screen while waiting for data.
 - **SC-004**: Every page that fetches data provides a user-actionable error state with a retry option — users are never stranded on a failed page without recourse.
 - **SC-005**: Every page passes a keyboard-only navigation test: all interactive elements are reachable via Tab and activatable via Enter or Space.
 - **SC-006**: Every page passes a screen-reader label audit: all form fields have labels and all custom controls have ARIA attributes.
