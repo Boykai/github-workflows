@@ -2462,7 +2462,19 @@ async def _transition_after_pipeline_complete(
     # case a previous "retry_later" (during In Progress → In Review) left
     # the PR unmerged.  By the time copilot-review finishes, CI should have
     # completed.
-    if to_status.lower() == "done":
+    # Derive the effective Done status from workflow config so custom status
+    # names still trigger the retry (mirrors the In Review merge path).
+    _done_status_name = "done"
+    try:
+        _done_config = await _cp.get_workflow_config(project_id)
+        if _done_config:
+            _cfg_done = getattr(_done_config, "status_done", None)
+            if isinstance(_cfg_done, str) and _cfg_done.strip():
+                _done_status_name = _cfg_done.strip().lower()
+    except Exception:
+        pass
+
+    if to_status.lower() == _done_status_name:
         _done_auto_merge_active = False
         try:
             from src.services.database import get_db
@@ -2472,6 +2484,8 @@ async def _transition_after_pipeline_complete(
             _done_auto_merge_active = await is_auto_merge_enabled(db, project_id)
         except Exception:
             pass
+        # Also honour pipeline-level auto-merge (captured before state removal).
+        _done_auto_merge_active = _done_auto_merge_active or _pipeline_auto_merge
 
         if _done_auto_merge_active:
             from .auto_merge import _attempt_auto_merge

@@ -91,7 +91,11 @@ test.describe('Project board load performance', () => {
 
     // Project selector visible — select the target project and measure from click.
     const selectStart = Date.now();
-    const option = projectSelector.locator(`[role="option"]`).first();
+    // Prefer deterministic selection via PROJECT_ID, fall back to first option.
+    let option = projectSelector.locator('[role="option"]', { hasText: PROJECT_ID! });
+    if ((await option.count()) === 0) {
+      option = projectSelector.locator('[role="option"]').first();
+    }
     await option.click();
 
     await board.waitFor({ state: 'visible', timeout: MAX_LOAD_MS });
@@ -130,7 +134,11 @@ test.describe('Project board load performance', () => {
     }
 
     // Select a project and time it.
-    const option = projectSelector.locator('[role="option"]').first();
+    // Prefer deterministic selection via PROJECT_ID, fall back to first option.
+    let option = projectSelector.locator('[role="option"]', { hasText: PROJECT_ID! });
+    if ((await option.count()) === 0) {
+      option = projectSelector.locator('[role="option"]').first();
+    }
     const start = Date.now();
     await option.click();
 

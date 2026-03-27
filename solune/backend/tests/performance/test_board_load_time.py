@@ -52,29 +52,22 @@ async def _ensure_backend_running(client: httpx.AsyncClient) -> None:
 
 
 async def _create_session(client: httpx.AsyncClient) -> httpx.AsyncClient:
-    """Authenticate via the backend's token-login flow and return a client with session cookies."""
-    # The backend stores sessions in cookies set during the OAuth callback.
-    # For perf tests we POST to the internal dev-token endpoint if available,
-    # otherwise fall back to injecting the Authorization header directly.
-    resp = await client.get(
-        f"{BACKEND_URL}/api/v1/auth/me",
-        headers={"Authorization": f"Bearer {GITHUB_TOKEN}"},
+    """Authenticate via the backend's dev-login endpoint and return a client with session cookies."""
+    # The backend uses cookie-based sessions (cookie name: "session_id").
+    # POST to /api/v1/auth/dev-login with a GitHub PAT to obtain a real
+    # session cookie.  This endpoint is only available when DEBUG=true.
+    resp = await client.post(
+        f"{BACKEND_URL}/api/v1/auth/dev-login",
+        json={"github_token": GITHUB_TOKEN},
         timeout=10,
     )
     if resp.status_code == 200:
-        return client
-
-    # If Bearer auth isn't supported, try cookie-based session.
-    # We send a request with the token as a cookie value that the backend
-    # might accept via its session middleware.
-    client.cookies.set("session", GITHUB_TOKEN)
-    resp = await client.get(f"{BACKEND_URL}/api/v1/auth/me", timeout=10)
-    if resp.status_code == 200:
+        # The response sets a session_id cookie automatically.
         return client
 
     pytest.skip(
-        f"Could not authenticate against backend (status {resp.status_code}). "
-        "Ensure PERF_GITHUB_TOKEN is a valid session cookie or Bearer token."
+        f"Could not authenticate via dev-login (status {resp.status_code}). "
+        "Ensure the backend is running with DEBUG=true and PERF_GITHUB_TOKEN is a valid GitHub PAT."
     )
     return client  # unreachable, keeps type-checker happy
 

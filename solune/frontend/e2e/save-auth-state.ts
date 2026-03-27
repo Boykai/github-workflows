@@ -11,7 +11,7 @@
  * The .auth/ directory is git-ignored (contains tokens).
  */
 
-import { chromium, type FullConfig } from '@playwright/test';
+import { test } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,12 +21,11 @@ const AUTH_DIR = path.resolve(__dirname, '.auth');
 const AUTH_FILE = path.resolve(AUTH_DIR, 'state.json');
 const BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:5173';
 
-async function saveAuthState(_config?: FullConfig) {
+test('save GitHub OAuth auth state for perf tests', async ({ browser }) => {
   if (!fs.existsSync(AUTH_DIR)) {
     fs.mkdirSync(AUTH_DIR);
   }
 
-  const browser = await chromium.launch({ headless: false });
   const context = await browser.newContext();
   const page = await context.newPage();
 
@@ -51,7 +50,5 @@ async function saveAuthState(_config?: FullConfig) {
   await context.storageState({ path: AUTH_FILE });
   console.log(`✅  Auth state saved to ${AUTH_FILE}`);
 
-  await browser.close();
-}
-
-export default saveAuthState;
+  await context.close();
+});
