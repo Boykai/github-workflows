@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useCallback } from 'react';
-import { CelestialLoader } from '@/components/common/CelestialLoader';
+import { CelestialLoadingProgress } from '@/components/common/CelestialLoadingProgress';
 import { PrimarySettings } from '@/components/settings/PrimarySettings';
 import { AdvancedSettings } from '@/components/settings/AdvancedSettings';
 import { useUserSettings, useGlobalSettings } from '@/hooks/useSettings';
@@ -65,11 +65,16 @@ export function SettingsPage({ projects = [], selectedProjectId }: SettingsPageP
     await updateGlobalSettings(update);
   };
 
-  if (userLoading) {
+  if (userLoading || globalLoading) {
     return (
       <div className="flex h-full w-full max-w-4xl flex-col overflow-y-auto p-8 mx-auto">
         <div className="flex flex-col items-center justify-center flex-1 gap-4">
-          <CelestialLoader size="md" label="Loading settings…" />
+          <CelestialLoadingProgress
+            phases={[
+              { label: 'Loading user settings…', complete: !userLoading },
+              { label: 'Loading global settings…', complete: !globalLoading },
+            ]}
+          />
         </div>
       </div>
     );

@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { CelestialLoader } from '@/components/common/CelestialLoader';
+import { CelestialLoadingProgress } from '@/components/common/CelestialLoadingProgress';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useRateLimitStatus } from '@/context/RateLimitContext';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
@@ -454,7 +454,14 @@ export function ProjectsPage() {
 
       {selectedProjectId && boardLoading && (
         <div className="flex flex-1 flex-col items-center justify-center gap-4">
-          <CelestialLoader size="md" label="Loading board…" />
+          <CelestialLoadingProgress
+            phases={[
+              { label: 'Connecting to GitHub…', complete: !projectsLoading },
+              { label: 'Loading project board…', complete: !boardLoading },
+              { label: 'Loading pipelines…', complete: !savedPipelinesLoading },
+              { label: 'Loading agents…', complete: !!availableAgents?.length },
+            ]}
+          />
         </div>
       )}
 
