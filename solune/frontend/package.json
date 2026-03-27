@@ -19,6 +19,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:report": "playwright show-report e2e-report",
+    "test:perf": "playwright test project-load-performance --headed",
+    "test:perf:save-auth": "playwright test e2e/save-auth-state.ts --headed --project=chromium",
     "audit:theme-colors": "node scripts/audit-theme-colors.mjs",
     "audit:theme-contrast": "node scripts/check-theme-contrast.mjs",
     "test:mutate": "stryker run"

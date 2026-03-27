@@ -1,1 +1,4 @@
 dist/
+
+# Playwright auth state (contains GitHub tokens)
+e2e/.auth/
