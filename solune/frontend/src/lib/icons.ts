@@ -62,6 +62,8 @@ export {
   Loader2,
   LoaderCircle,
   Lock,
+  Minus,
+  SquareCheck,
   MessageSquare,
   Mic,
   MicOff,

@@ -2,6 +2,8 @@
  * CleanUpConfirmModal — displays categorized lists of branches/PRs
  * scheduled for deletion and preservation, with confirm/cancel actions.
  * Items link out to GitHub and can be toggled between delete/preserve.
+ * Type group headers support select-all toggling with indeterminate state.
+ * The 'main' branch is permanently protected from deletion.
  */
 
 import { useEffect, useCallback, useState } from 'react';
@@ -10,11 +12,16 @@ import {
   ExternalLink,
   GitBranch,
   GitPullRequest,
+  Lock,
+  Minus,
   Shield,
   ShieldOff,
+  Square,
+  SquareCheck,
   Trash2,
   X,
 } from '@/lib/icons';
+import { Tooltip } from '@/components/ui/tooltip';
 import type {
   CleanupPreflightResponse,
   CleanupConfirmPayload,
@@ -23,6 +30,13 @@ import type {
   OrphanedIssueInfo,
 } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
+
+/** Branch names that can never be deleted. */
+const PROTECTED_BRANCHES = new Set(['main']);
+
+function isProtectedBranch(name: string): boolean {
+  return PROTECTED_BRANCHES.has(name);
+}
 
 interface CleanUpConfirmModalProps {
   data: CleanupPreflightResponse;
@@ -83,14 +97,131 @@ export function CleanUpConfirmModal({
     });
   };
 
-  // Compute final lists
-  const finalBranchesToDelete = data.branches_to_delete.filter((b) => !preserved.has(b.name));
+  // ── Bulk-toggle helpers (type header select-all) ──
+
+  /** Toggle all eligible (non-protected) branches in the "to delete" section. */
+  const toggleAllDeleteBranches = () => {
+    const eligible = data.branches_to_delete.filter((b) => !isProtectedBranch(b.name));
+    const allSelected = eligible.every((b) => !preserved.has(b.name));
+    setPreserved((prev) => {
+      const next = new Set(prev);
+      for (const b of eligible) {
+        if (allSelected) next.add(b.name);
+        else next.delete(b.name);
+      }
+      return next;
+    });
+  };
+
+  /** Toggle all PRs in the "to close" section. */
+  const toggleAllDeletePrs = () => {
+    const allSelected = data.prs_to_close.every((p) => !preserved.has(`pr:${p.number}`));
+    setPreserved((prev) => {
+      const next = new Set(prev);
+      for (const p of data.prs_to_close) {
+        const key = `pr:${p.number}`;
+        if (allSelected) next.add(key);
+        else next.delete(key);
+      }
+      return next;
+    });
+  };
+
+  /** Toggle all orphaned issues in the "to delete" section. */
+  const toggleAllDeleteIssues = () => {
+    const issues = data.orphaned_issues ?? [];
+    const allSelected = issues.every((i) => !preserved.has(`issue:${i.number}`));
+    setPreserved((prev) => {
+      const next = new Set(prev);
+      for (const i of issues) {
+        const key = `issue:${i.number}`;
+        if (allSelected) next.add(key);
+        else next.delete(key);
+      }
+      return next;
+    });
+  };
+
+  /** Toggle all eligible (non-protected) branches in the "to preserve" section. */
+  const toggleAllPreserveBranches = () => {
+    const eligible = data.branches_to_preserve.filter((b) => !isProtectedBranch(b.name));
+    const allSelected = eligible.every((b) => markedForDeletion.has(b.name));
+    setMarkedForDeletion((prev) => {
+      const next = new Set(prev);
+      for (const b of eligible) {
+        if (allSelected) next.delete(b.name);
+        else next.add(b.name);
+      }
+      return next;
+    });
+  };
+
+  /** Toggle all PRs in the "to preserve" section. */
+  const toggleAllPreservePrs = () => {
+    const allSelected = data.prs_to_preserve.every((p) =>
+      markedForDeletion.has(`pr:${p.number}`)
+    );
+    setMarkedForDeletion((prev) => {
+      const next = new Set(prev);
+      for (const p of data.prs_to_preserve) {
+        const key = `pr:${p.number}`;
+        if (allSelected) next.delete(key);
+        else next.add(key);
+      }
+      return next;
+    });
+  };
+
+  // ── Header checkbox state derivation ──
+
+  const deleteBranchesEligible = data.branches_to_delete.filter(
+    (b) => !isProtectedBranch(b.name)
+  );
+  const deleteBranchesSelected = deleteBranchesEligible.filter(
+    (b) => !preserved.has(b.name)
+  ).length;
+  const deleteBranchesHeaderState = headerState(
+    deleteBranchesSelected,
+    deleteBranchesEligible.length
+  );
+
+  const deletePrsSelected = data.prs_to_close.filter(
+    (p) => !preserved.has(`pr:${p.number}`)
+  ).length;
+  const deletePrsHeaderState = headerState(deletePrsSelected, data.prs_to_close.length);
+
+  const orphanedIssues = data.orphaned_issues ?? [];
+  const deleteIssuesSelected = orphanedIssues.filter(
+    (i) => !preserved.has(`issue:${i.number}`)
+  ).length;
+  const deleteIssuesHeaderState = headerState(deleteIssuesSelected, orphanedIssues.length);
+
+  const preserveBranchesEligible = data.branches_to_preserve.filter(
+    (b) => !isProtectedBranch(b.name)
+  );
+  const preserveBranchesSelected = preserveBranchesEligible.filter((b) =>
+    markedForDeletion.has(b.name)
+  ).length;
+  const preserveBranchesHeaderState = headerState(
+    preserveBranchesSelected,
+    preserveBranchesEligible.length
+  );
+
+  const preservePrsSelected = data.prs_to_preserve.filter((p) =>
+    markedForDeletion.has(`pr:${p.number}`)
+  ).length;
+  const preservePrsHeaderState = headerState(preservePrsSelected, data.prs_to_preserve.length);
+
+  // Compute final lists (protected branches are always excluded from deletion)
+  const finalBranchesToDelete = data.branches_to_delete.filter(
+    (b) => !preserved.has(b.name) && !isProtectedBranch(b.name)
+  );
   const finalPrsToClose = data.prs_to_close.filter((p) => !preserved.has(`pr:${p.number}`));
-  const finalIssuesToClose = (data.orphaned_issues ?? []).filter(
+  const finalIssuesToClose = orphanedIssues.filter(
     (i) => !preserved.has(`issue:${i.number}`)
   );
-  const finalBranchesToDeleteFromPreserve = data.branches_to_preserve.filter((b) =>
-    markedForDeletion.has(b.name)
+  const finalBranchesToDeleteFromPreserve = data.branches_to_preserve.filter(
+    (b) => markedForDeletion.has(b.name) && !isProtectedBranch(b.name)
   );
   const finalPrsToCloseFromPreserve = data.prs_to_preserve.filter((p) =>
     markedForDeletion.has(`pr:${p.number}`)
@@ -155,20 +286,21 @@ export function CleanUpConfirmModal({
         </p>
 
         {/* ─── Orphaned Issues to Delete ─── */}
-        {(data.orphaned_issues ?? []).length > 0 && (
+        {orphanedIssues.length > 0 && (
           <section className="mb-4">
-            <h3 className="text-sm font-medium text-destructive mb-2">
-              <span className="inline-flex items-center gap-2">
-                <Trash2 className="h-4 w-4" />
-                Orphaned Issues to Delete ({data.orphaned_issues.length})
-              </span>
-            </h3>
+            <TypeGroupHeader
+              icon={<Trash2 className="h-4 w-4" />}
+              label={`Orphaned Issues to Delete (${orphanedIssues.length})`}
+              state={deleteIssuesHeaderState}
+              onToggle={toggleAllDeleteIssues}
+              variant="destructive"
+            />
             <p className="text-xs text-muted-foreground mb-2">
               App-created issues no longer attached to the project board. These will be permanently
               deleted from GitHub.
             </p>
             <ul className="space-y-1 text-sm">
-              {data.orphaned_issues.map((issue) => {
+              {orphanedIssues.map((issue) => {
                 const key = `issue:${issue.number}`;
                 const isPreserved = preserved.has(key);
                 return (
@@ -205,22 +337,26 @@ export function CleanUpConfirmModal({
         {/* ─── Branches to Delete ─── */}
         {data.branches_to_delete.length > 0 && (
           <section className="mb-4">
-            <h3 className="text-sm font-medium text-destructive mb-2">
-              <span className="inline-flex items-center gap-2">
-                <Trash2 className="h-4 w-4" />
-                Branches to Delete ({data.branches_to_delete.length})
-              </span>
-            </h3>
+            <TypeGroupHeader
+              icon={<Trash2 className="h-4 w-4" />}
+              label={`Branches to Delete (${data.branches_to_delete.length})`}
+              state={deleteBranchesHeaderState}
+              onToggle={toggleAllDeleteBranches}
+              disabled={deleteBranchesEligible.length === 0}
+              variant="destructive"
+            />
             <ul className="space-y-1 text-sm">
               {data.branches_to_delete.map((branch) => {
+                const branchProtected = isProtectedBranch(branch.name);
                 const isPreserved = preserved.has(branch.name);
                 return (
                   <BranchRow
                     key={branch.name}
                     branch={branch}
                     url={branchUrl(branch.name)}
-                    willDelete={!isPreserved}
+                    willDelete={branchProtected ? false : !isPreserved}
                     onToggle={() => togglePreserve(branch.name)}
+                    isProtected={branchProtected}
                   />
                 );
               })}
@@ -231,12 +367,13 @@ export function CleanUpConfirmModal({
         {/* ─── PRs to Close ─── */}
         {data.prs_to_close.length > 0 && (
           <section className="mb-4">
-            <h3 className="text-sm font-medium text-destructive mb-2">
-              <span className="inline-flex items-center gap-2">
-                <Trash2 className="h-4 w-4" />
-                Pull Requests to Close ({data.prs_to_close.length})
-              </span>
-            </h3>
+            <TypeGroupHeader
+              icon={<Trash2 className="h-4 w-4" />}
+              label={`Pull Requests to Close (${data.prs_to_close.length})`}
+              state={deletePrsHeaderState}
+              onToggle={toggleAllDeletePrs}
+              variant="destructive"
+            />
             <ul className="space-y-1 text-sm">
               {data.prs_to_close.map((pr) => {
                 const key = `pr:${pr.number}`;
@@ -258,15 +395,20 @@ export function CleanUpConfirmModal({
         {/* ─── Branches to Preserve ─── */}
         {data.branches_to_preserve.length > 0 && (
           <section className="mb-4">
-            <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
-              <span className="inline-flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Branches to Preserve ({data.branches_to_preserve.length})
-              </span>
-            </h3>
+            <TypeGroupHeader
+              icon={<Shield className="h-4 w-4" />}
+              label={`Branches to Preserve (${data.branches_to_preserve.length})`}
+              state={preserveBranchesHeaderState}
+              onToggle={toggleAllPreserveBranches}
+              disabled={preserveBranchesEligible.length === 0}
+              variant="preserve"
+            />
             <ul className="space-y-1 text-sm">
               {data.branches_to_preserve.map((branch) => {
-                const willDelete = markedForDeletion.has(branch.name);
+                const branchProtected = isProtectedBranch(branch.name);
+                const willDelete = branchProtected
+                  ? false
+                  : markedForDeletion.has(branch.name);
                 return (
                   <BranchRow
                     key={branch.name}
@@ -275,6 +417,7 @@ export function CleanUpConfirmModal({
                     willDelete={willDelete}
                     onToggle={() => toggleMarkForDeletion(branch.name)}
                     reason={branch.preservation_reason}
+                    isProtected={branchProtected}
                   />
                 );
               })}
@@ -285,12 +428,13 @@ export function CleanUpConfirmModal({
         {/* ─── PRs to Preserve ─── */}
         {data.prs_to_preserve.length > 0 && (
           <section className="mb-4">
-            <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
-              <span className="inline-flex items-center gap-2">
-                <Shield className="h-4 w-4" />
-                Pull Requests to Preserve ({data.prs_to_preserve.length})
-              </span>
-            </h3>
+            <TypeGroupHeader
+              icon={<Shield className="h-4 w-4" />}
+              label={`Pull Requests to Preserve (${data.prs_to_preserve.length})`}
+              state={preservePrsHeaderState}
+              onToggle={toggleAllPreservePrs}
+              variant="preserve"
+            />
             <ul className="space-y-1 text-sm">
               {data.prs_to_preserve.map((pr) => {
                 const key = `pr:${pr.number}`;
@@ -347,6 +491,69 @@ export function CleanUpConfirmModal({
 
 /* ─── Sub-components ─── */
 
+type CheckboxState = 'checked' | 'unchecked' | 'indeterminate';
+
+/** Derive header checkbox state from selection counts. */
+function headerState(selectedCount: number, totalEligible: number): CheckboxState {
+  if (totalEligible === 0 || selectedCount === 0) return 'unchecked';
+  if (selectedCount === totalEligible) return 'checked';
+  return 'indeterminate';
+}
+
+/** Clickable type-group header with a select-all checkbox. */
+function TypeGroupHeader({
+  icon,
+  label,
+  state,
+  onToggle,
+  disabled = false,
+  variant = 'destructive',
+}: {
+  icon: React.ReactNode;
+  label: string;
+  state: CheckboxState;
+  onToggle: () => void;
+  disabled?: boolean;
+  variant?: 'destructive' | 'preserve';
+}) {
+  const ariaChecked = state === 'indeterminate' ? 'mixed' : state === 'checked';
+  const colorClass =
+    variant === 'destructive'
+      ? 'text-destructive'
+      : 'text-green-800 dark:text-green-400';
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (disabled) return;
+    if (e.key === ' ' || e.key === 'Enter') {
+      e.preventDefault();
+      onToggle();
+    }
+  };
+
+  return (
+    <div
+      className={`text-sm font-medium ${colorClass} mb-2 flex items-center gap-2 cursor-pointer select-none rounded px-1 py-0.5 transition-colors hover:bg-primary/5 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+      role="checkbox"
+      aria-checked={ariaChecked}
+      aria-disabled={disabled}
+      aria-label={`Toggle all: ${label}`}
+      tabIndex={disabled ? -1 : 0}
+      onClick={disabled ? undefined : onToggle}
+      onKeyDown={handleKeyDown}
+    >
+      <span className="shrink-0" aria-hidden="true">
+        {state === 'checked' && <SquareCheck className="h-4 w-4" />}
+        {state === 'unchecked' && <Square className="h-4 w-4" />}
+        {state === 'indeterminate' && <Minus className="h-4 w-4" />}
+      </span>
+      <span className="inline-flex items-center gap-2">
+        {icon}
+        {label}
+      </span>
+    </div>
+  );
+}
+
 function ToggleButton({ willDelete, onClick }: { willDelete: boolean; onClick: () => void }) {
   return (
     <button
@@ -370,19 +577,29 @@ function BranchRow({
   willDelete,
   onToggle,
   reason,
+  isProtected = false,
 }: {
   branch: BranchInfo;
   url: string;
   willDelete: boolean;
   onToggle: () => void;
   reason?: string | null;
+  isProtected?: boolean;
 }) {
   return (
     <li
-      className={`flex flex-col gap-0.5 px-2 py-1.5 rounded transition-colors ${willDelete ? 'bg-destructive/10' : 'bg-green-100/80 dark:bg-green-900/30'}`}
+      className={`flex flex-col gap-0.5 px-2 py-1.5 rounded transition-colors ${isProtected ? 'bg-muted/40 opacity-60' : willDelete ? 'bg-destructive/10' : 'bg-green-100/80 dark:bg-green-900/30'}`}
     >
       <div className="flex items-center gap-2">
-        <ToggleButton willDelete={willDelete} onClick={onToggle} />
+        {isProtected ? (
+          <Tooltip content="Protected branch — cannot be deleted">
+            <span className="shrink-0 rounded p-1 cursor-not-allowed" aria-label="Protected branch — cannot be deleted">
+              <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+            </span>
+          </Tooltip>
+        ) : (
+          <ToggleButton willDelete={willDelete} onClick={onToggle} />
+        )}
         <GitBranch className="h-3 w-3 shrink-0 text-muted-foreground" />
         <a
           href={url}
@@ -393,6 +610,9 @@ function BranchRow({
           <span className="font-mono text-xs truncate">{branch.name}</span>
           <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
         </a>
+        {isProtected && (
+          <span className="text-[10px] text-muted-foreground italic shrink-0">protected</span>
+        )}
       </div>
       {(branch.deletion_reason || reason) && (
         <span className="ml-[3.25rem] text-[11px] text-muted-foreground">
