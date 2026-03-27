@@ -263,6 +263,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite (aiosqlite) with sequential SQL migration files (001-help-tour-refresh)
 - TypeScript ~5.9 (frontend), Python >=3.12 (backend) + React 19, Vite 8, TanStack Query 5, FastAPI, Pydantic 2, github-copilot-sdk (001-copilot-slash-commands)
 - SQLite (aiosqlite) for backend persistence, browser localStorage for client-side settings (001-copilot-slash-commands)
+- Python ≥3.12 (backend), TypeScript ~5.9 / React 19.2 (frontend) + FastAPI ≥0.135, Pydantic ≥2.12, aiosqlite ≥0.22, github-copilot-sdk ≥0.1.30, codegraphcontext ≥0.2.9, tenacity ≥9.1, @tanstack/react-query ^5.91 (001-roadmap-engine)
+- SQLite via aiosqlite — existing `project_settings` table (JSON config fields) + new `roadmap_cycles` table (audit/dedup) (001-roadmap-engine)
 
 Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
 

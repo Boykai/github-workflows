@@ -1,0 +1,334 @@
+# Roadmap API Contract
+
+openapi: "3.1.0"
+info:
+  title: Roadmap Engine API
+  version: "1.0.0"
+  description: |
+    REST endpoints for the Self-Evolving Roadmap Engine.
+    All endpoints require authentication via session cookie.
+    Project access is verified via the existing `verify_project_access` dependency.
+
+servers:
+  - url: /api
+    description: Backend API (relative to host)
+
+paths:
+  /roadmap/config:
+    get:
+      operationId: getRoadmapConfig
+      summary: Retrieve roadmap configuration for a project
+      description: |
+        Returns the current roadmap configuration fields from ProjectBoardConfig.
+        Requires project_id query parameter.
+      tags: [Roadmap]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: GitHub project node ID
+      responses:
+        "200":
+          description: Current roadmap configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapConfigResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: No access to project
+
+    put:
+      operationId: updateRoadmapConfig
+      summary: Update roadmap configuration for a project
+      description: |
+        Updates roadmap-specific fields on ProjectBoardConfig.
+        Merges with existing board config (does not overwrite non-roadmap fields).
+      tags: [Roadmap]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RoadmapConfigUpdate"
+      responses:
+        "200":
+          description: Updated configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RoadmapConfigResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: No access to project
+        "422":
+          description: Validation error (batch_size out of range, seed too long, etc.)
+
+  /roadmap/generate:
+    post:
+      operationId: generateRoadmapBatch
+      summary: Manually trigger a roadmap generation cycle
+      description: |
+        Triggers AI-powered generation of a new roadmap batch.
+        Validates that seed vision is non-empty and pipeline is valid.
+        Returns the generated batch with cycle ID.
+      tags: [Roadmap]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Generated batch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GenerateResponse"
+        "400":
+          description: |
+            Generation precondition failed:
+            - Seed vision is empty
+            - Referenced pipeline does not exist or is not active
+        "401":
+          description: Not authenticated
+        "403":
+          description: No access to project
+        "500":
+          description: AI generation failed (response logged, cycle marked as failed)
+
+  /roadmap/history:
+    get:
+      operationId: getRoadmapHistory
+      summary: Retrieve roadmap cycle history for a project
+      description: |
+        Returns paginated list of past generation cycles in reverse chronological order.
+        Each cycle includes batch details, status, and creation timestamp.
+      tags: [Roadmap]
+      parameters:
+        - name: project_id
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+          description: Number of cycles to return
+        - name: offset
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+          description: Pagination offset
+      responses:
+        "200":
+          description: Paginated cycle history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: No access to project
+
+  /roadmap/items/{issue_number}/skip:
+    post:
+      operationId: skipRoadmapItem
+      summary: Veto (skip) a roadmap item
+      description: |
+        Delegates to the existing blocking-queue skip mechanism.
+        Removes the specified issue from the pipeline queue so it is not launched.
+      tags: [Roadmap]
+      parameters:
+        - name: issue_number
+          in: path
+          required: true
+          schema:
+            type: integer
+          description: GitHub issue number of the roadmap item to skip
+        - name: project_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Item successfully skipped
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SkipResponse"
+        "401":
+          description: Not authenticated
+        "403":
+          description: No access to project
+        "404":
+          description: Issue not found in pipeline queue
+
+components:
+  schemas:
+    RoadmapConfigResponse:
+      type: object
+      required:
+        - roadmap_enabled
+        - roadmap_seed
+        - roadmap_batch_size
+        - roadmap_pipeline_id
+        - roadmap_auto_launch
+        - roadmap_grace_minutes
+      properties:
+        roadmap_enabled:
+          type: boolean
+          description: Whether the roadmap engine is enabled
+        roadmap_seed:
+          type: string
+          description: Product vision text guiding AI generation
+        roadmap_batch_size:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: Number of items per generation cycle
+        roadmap_pipeline_id:
+          type: string
+          nullable: true
+          description: Target pipeline ID for launching generated items
+        roadmap_auto_launch:
+          type: boolean
+          description: Whether to auto-generate on idle pipeline
+        roadmap_grace_minutes:
+          type: integer
+          minimum: 0
+          maximum: 1440
+          description: Minutes to hold items before auto-launching
+
+    RoadmapConfigUpdate:
+      type: object
+      properties:
+        roadmap_enabled:
+          type: boolean
+        roadmap_seed:
+          type: string
+          maxLength: 10000
+        roadmap_batch_size:
+          type: integer
+          minimum: 1
+          maximum: 10
+        roadmap_pipeline_id:
+          type: string
+          nullable: true
+        roadmap_auto_launch:
+          type: boolean
+        roadmap_grace_minutes:
+          type: integer
+          minimum: 0
+          maximum: 1440
+
+    RoadmapItem:
+      type: object
+      required: [title, body, rationale, priority, size]
+      properties:
+        title:
+          type: string
+          maxLength: 256
+          description: Feature proposal title
+        body:
+          type: string
+          description: Full issue body text (markdown)
+        rationale:
+          type: string
+          description: Why this feature was suggested
+        priority:
+          type: string
+          enum: [P0, P1, P2, P3]
+        size:
+          type: string
+          enum: [XS, S, M, L, XL]
+
+    RoadmapBatch:
+      type: object
+      required: [items, project_id, user_id, generated_at]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoadmapItem"
+          minItems: 1
+          maxItems: 10
+        project_id:
+          type: string
+        user_id:
+          type: string
+        generated_at:
+          type: string
+          format: date-time
+
+    RoadmapCycleLog:
+      type: object
+      required: [id, project_id, user_id, batch, status, created_at]
+      properties:
+        id:
+          type: integer
+        project_id:
+          type: string
+        user_id:
+          type: string
+        batch:
+          $ref: "#/components/schemas/RoadmapBatch"
+        status:
+          type: string
+          enum: [pending, completed, failed]
+        created_at:
+          type: string
+          format: date-time
+
+    GenerateResponse:
+      type: object
+      required: [cycle_id, batch]
+      properties:
+        cycle_id:
+          type: integer
+          description: Unique identifier for this generation cycle
+        batch:
+          $ref: "#/components/schemas/RoadmapBatch"
+
+    HistoryResponse:
+      type: object
+      required: [cycles, total]
+      properties:
+        cycles:
+          type: array
+          items:
+            $ref: "#/components/schemas/RoadmapCycleLog"
+        total:
+          type: integer
+          description: Total number of cycles (for pagination)
+
+    SkipResponse:
+      type: object
+      required: [issue_number, skipped]
+      properties:
+        issue_number:
+          type: integer
+        skipped:
+          type: boolean
+          description: Whether the item was successfully removed from the queue
