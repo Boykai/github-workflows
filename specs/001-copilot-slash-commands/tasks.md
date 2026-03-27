@@ -139,7 +139,7 @@
 
 **Purpose**: Final validation, cleanup, and quality assurance across all stories
 
-- [ ] T033 [P] Verify excluded commands (/clear, /compact, /fork, /yolo, init, /agents, /create-*) are not affected — spot check in registry and backend dispatcher
+- [ ] T033 [P] Verify explicitly excluded commands (/clear, /compact, /fork, /yolo, init, /agents, /create-*) are NOT registered as Copilot commands — `/clear` and `/compact` remain as existing Solune commands (tagged `category: 'solune'`), and none of the excluded names appear in `COPILOT_COMMANDS` set or `COPILOT_COMMAND_PROMPTS` dict
 - [ ] T034 Run full frontend CI pipeline: `cd solune/frontend && npm run lint && npm run type-check && npm run test:coverage && npm run build` — verify all pass
 - [ ] T035 Run full backend test suite: `cd solune/backend && python -m pytest` — verify zero regressions across all test categories
 - [ ] T036 Code review: verify `_handle_copilot_command()` in chat.py follows error handling pattern (`handle_service_error()` or try/except with safe error messages), no internal details leak to user
