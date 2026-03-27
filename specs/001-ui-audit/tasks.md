@@ -77,6 +77,7 @@
 - [ ] T023 [P] [US1] Audit and fix shared common component usage — replace any reimplemented CelestialLoader, ErrorBoundary, ProjectSelectionEmptyState, ThemedAgentIcon with imports from `solune/frontend/src/components/common/`
 - [ ] T024 [P] [US1] Extract complex state logic (>15 lines) from page files into dedicated hooks in `solune/frontend/src/hooks/`
 - [ ] T025 [P] [US1] Move business logic out of JSX render trees into hooks or helper functions across all pages
+- [ ] T025a [P] [US1] Replace any raw useEffect + fetch patterns with React Query (useQuery/useMutation) across all data-fetching pages
 
 **Checkpoint**: All pages ≤250 lines, shared primitives used, business logic extracted. US1 independently verifiable.
 
@@ -95,6 +96,7 @@
 - [ ] T028 [P] [US2] Add/verify empty state with meaningful guidance for all pages displaying collections: ProjectsPage, AppsPage, AgentsPage, ChoresPage, ActivityPage, ToolsPage
 - [ ] T029 [P] [US2] Add/verify partial loading for pages with multiple data sources — ensure one failed section does not block the rest: ProjectsPage, AgentsPipelinePage, AppsPage
 - [ ] T030 [P] [US2] Verify all pages are wrapped in ErrorBoundary (at route level in App.tsx or within the page)
+- [ ] T030a [P] [US2] Audit and fix mutation error handling — ensure all useMutation calls have onError that surfaces user-visible feedback (toast, inline error, or status message) across all pages
 
 **Checkpoint**: All data-fetching pages have loading, error, empty, and partial-failure states. US2 independently verifiable.
 
@@ -129,6 +131,7 @@
 ### Implementation for User Story 4
 
 - [ ] T038 [P] [US4] Audit and fix all user-visible strings — remove TODO markers, placeholder text, lorem ipsum across all pages
+- [ ] T038a [P] [US4] Audit and fix terminology consistency — ensure all pages use the same terms as the rest of the app (e.g., "pipeline" not "workflow", "chore" not "task") across all pages
 - [ ] T039 [P] [US4] Audit and fix button labels — ensure all action buttons use verb-based phrasing across all pages
 - [ ] T040 [P] [US4] Add ConfirmationDialog to all destructive actions (delete, remove, stop) across all pages
 - [ ] T041 [P] [US4] Add success feedback (toast, inline message, or status change) to all mutations across all pages
