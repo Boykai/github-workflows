@@ -44,6 +44,9 @@ _VALID_TRANSITIONS: dict[AppStatus, set[AppStatus]] = {
     AppStatus.ERROR: {AppStatus.CREATING},
 }
 
+# Allowlist of columns that may appear in dynamic UPDATE SET clauses.
+_APP_UPDATABLE_COLUMNS = frozenset({"display_name", "description", "associated_pipeline_id"})
+
 
 def validate_app_name(name: str) -> None:
     """Validate an application name for safety and uniqueness rules.
@@ -694,6 +697,14 @@ async def update_app(db: aiosqlite.Connection, name: str, payload: AppUpdate) ->
 
     if not updates:
         return app
+
+    # Reject unexpected column names (defense-in-depth against SQL injection)
+    bad = set(updates) - _APP_UPDATABLE_COLUMNS
+    if bad:
+        raise ValidationError(
+            "Invalid fields in update payload.",
+            details={"invalid_fields": sorted(bad)},
+        )
 
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     values = list(updates.values())
