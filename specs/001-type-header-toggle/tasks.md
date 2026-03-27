@@ -3,7 +3,7 @@
 **Input**: Design documents from `/specs/001-type-header-toggle/`
 **Prerequisites**: spec.md (user stories US1–US4, requirements FR-001–FR-014)
 
-**Tests**: Not explicitly requested in the feature specification. Tests are omitted per template rules.
+**Tests**: Not explicitly requested in the feature specification. Test tasks are not included per template rules — add test coverage during implementation if needed or as a follow-up.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -28,7 +28,7 @@
 
 **Purpose**: Define shared types and utility functions needed across all user stories
 
-- [ ] T001 Add `ProtectedBranch` constant and `isProtectedBranch` utility function in solune/frontend/src/utils/branchProtection.ts
+- [ ] T001 Add `PROTECTED_BRANCHES` constant (containing `'main'`) and `isProtectedBranch` utility function in solune/frontend/src/utils/branchProtection.ts
 - [ ] T002 [P] Extend cleanup-related TypeScript interfaces to include selection state tracking (selected set, eligible items) in solune/frontend/src/types/cleanup.ts or existing type file used by CleanUpConfirmModal
 
 ---
@@ -39,7 +39,8 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T003 Refactor CleanUpConfirmModal state from `preserved`/`markedForDeletion` Sets to a unified `selectedForDeletion` Set with eligibility awareness in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T003 Introduce `selectedForDeletion` Set alongside existing `preserved`/`markedForDeletion` state in CleanUpConfirmModal — migrate selection reads to new model in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T003b Remove legacy `preserved`/`markedForDeletion` state and finalize migration to unified `selectedForDeletion` Set in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
 - [ ] T004 Create `useGroupSelection` custom hook encapsulating group-level selection logic (select all eligible, deselect all, compute header state) in solune/frontend/src/hooks/useGroupSelection.ts
 - [ ] T005 [P] Extract `TypeGroupHeader` presentational component skeleton (checkbox + label + count) in solune/frontend/src/components/board/TypeGroupHeader.tsx
 
@@ -55,14 +56,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T006 [US1] Integrate `useGroupSelection` hook into CleanUpConfirmModal to manage per-group selection state for branches in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T007 [US1] Integrate `useGroupSelection` hook into CleanUpConfirmModal to manage per-group selection state for pull requests in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T008 [US1] Integrate `useGroupSelection` hook into CleanUpConfirmModal to manage per-group selection state for orphaned issues in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T009 [US1] Render `TypeGroupHeader` with functional checkbox for "Branches to Delete" section — clicking toggles all branch items in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T010 [US1] Render `TypeGroupHeader` with functional checkbox for "Pull Requests to Close" section — clicking toggles all PR items in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T011 [US1] Render `TypeGroupHeader` with functional checkbox for "Orphaned Issues to Delete" section — clicking toggles all issue items in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T012 [US1] Update `BranchRow` and `PrRow` sub-components to use checkbox selection model instead of shield toggle in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T013 [US1] Wire final deletion payload to derive from `selectedForDeletion` set, ensuring only checked eligible items are submitted in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T006 [US1] Integrate `useGroupSelection` hook into CleanUpConfirmModal to manage per-group selection state for all item types (branches, pull requests, orphaned issues) in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T007 [US1] Render `TypeGroupHeader` with functional checkbox for "Branches to Delete" section — clicking toggles all branch items in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T008 [US1] Render `TypeGroupHeader` with functional checkbox for "Pull Requests to Close" section — clicking toggles all PR items in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T009 [US1] Render `TypeGroupHeader` with functional checkbox for "Orphaned Issues to Delete" section — clicking toggles all issue items in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T010 [US1] Update `BranchRow` and `PrRow` sub-components to use checkbox selection model instead of shield toggle in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T011 [US1] Wire final deletion payload to derive from `selectedForDeletion` set, ensuring only checked eligible items are submitted in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
 
 **Checkpoint**: User Story 1 complete — type header checkboxes toggle all eligible items; individual items use checkbox selection; deletion payload reflects checked items only
 
@@ -76,12 +75,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T014 [US2] Integrate `isProtectedBranch` check into `useGroupSelection` hook to exclude protected branches from eligible item sets in solune/frontend/src/hooks/useGroupSelection.ts
-- [ ] T015 [US2] Render 'main' branch row with permanently disabled checkbox and distinct visual styling (greyed out, non-interactive) in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T016 [US2] Add tooltip or muted label on 'main' branch row explaining "Default branch cannot be deleted" in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T017 [US2] Ensure header checkbox state computation excludes protected branches (e.g., all-checked means all eligible non-protected items checked) in solune/frontend/src/hooks/useGroupSelection.ts
-- [ ] T018 [US2] Add server-side validation to reject 'main' branch from cleanup deletion payload in solune/backend/src/api/cleanup.py or equivalent backend cleanup endpoint
-- [ ] T019 [US2] Verify deletion payload assembly in CleanUpConfirmModal filters out protected branches before API submission in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T012 [US2] Integrate `isProtectedBranch` check into `useGroupSelection` hook to exclude protected branches from eligible item sets in solune/frontend/src/hooks/useGroupSelection.ts
+- [ ] T013 [US2] Render 'main' branch row with permanently disabled checkbox and distinct visual styling (greyed out, non-interactive) in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T014 [US2] Add tooltip or muted label on 'main' branch row explaining "Default branch cannot be deleted" in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T015 [US2] Ensure header checkbox state computation excludes protected branches (e.g., all-checked means all eligible non-protected items checked) in solune/frontend/src/hooks/useGroupSelection.ts
+- [ ] T016 [US2] Add server-side validation to reject 'main' branch from cleanup deletion payload in solune/backend/src/api/cleanup.py or equivalent backend cleanup endpoint
+- [ ] T017 [US2] Verify deletion payload assembly in CleanUpConfirmModal filters out protected branches before API submission in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
 
 **Checkpoint**: User Story 2 complete — 'main' branch permanently protected on both client and server; tooltip explains protection; header toggle skips 'main'
 
@@ -95,10 +94,10 @@
 
 ### Implementation for User Story 3
 
-- [ ] T020 [US3] Add indeterminate state computation to `useGroupSelection` hook (return `checked`, `indeterminate`, `unchecked` based on eligible selection ratio) in solune/frontend/src/hooks/useGroupSelection.ts
-- [ ] T021 [US3] Apply HTML checkbox `indeterminate` property via ref on `TypeGroupHeader` component to render browser-native indeterminate visual in solune/frontend/src/components/board/TypeGroupHeader.tsx
-- [ ] T022 [US3] Implement click-while-indeterminate behavior: clicking header in indeterminate state selects all eligible items (resolves to fully checked) in solune/frontend/src/hooks/useGroupSelection.ts
-- [ ] T023 [US3] Handle edge case: when group contains only protected items, render header checkbox as disabled with no toggle in solune/frontend/src/components/board/TypeGroupHeader.tsx
+- [ ] T018 [US3] Add indeterminate state computation to `useGroupSelection` hook (return `checked`, `indeterminate`, `unchecked` based on eligible selection ratio) in solune/frontend/src/hooks/useGroupSelection.ts
+- [ ] T019 [US3] Apply HTML checkbox `indeterminate` property via ref on `TypeGroupHeader` component to render browser-native indeterminate visual in solune/frontend/src/components/board/TypeGroupHeader.tsx
+- [ ] T020 [US3] Implement click-while-indeterminate behavior: clicking header in indeterminate state selects all eligible items (resolves to fully checked) in solune/frontend/src/hooks/useGroupSelection.ts
+- [ ] T021 [US3] Handle edge case: when group contains only protected items, render header checkbox as disabled with no toggle in solune/frontend/src/components/board/TypeGroupHeader.tsx
 
 **Checkpoint**: User Story 3 complete — header checkbox reflects three visual states; clicking indeterminate resolves to all-selected; protected-only groups show disabled header
 
@@ -112,11 +111,11 @@
 
 ### Implementation for User Story 4
 
-- [ ] T024 [US4] Ensure `TypeGroupHeader` checkbox is natively focusable and included in tab order (use semantic `<input type="checkbox">` or `role="checkbox"` with `tabIndex={0}`) in solune/frontend/src/components/board/TypeGroupHeader.tsx
-- [ ] T025 [US4] Add `aria-checked` attribute with `"true"`, `"false"`, or `"mixed"` values matching header checkbox state in solune/frontend/src/components/board/TypeGroupHeader.tsx
-- [ ] T026 [US4] Add `aria-disabled="true"` and `aria-label` to 'main' branch row checkbox explaining protection reason in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T027 [US4] Add `aria-label` to each `TypeGroupHeader` describing the group and count (e.g., "Select all 5 branches for deletion") in solune/frontend/src/components/board/TypeGroupHeader.tsx
-- [ ] T028 [US4] Verify Space and Enter key events trigger toggle on `TypeGroupHeader` — native checkbox handles this, but confirm if using custom `role="checkbox"` pattern in solune/frontend/src/components/board/TypeGroupHeader.tsx
+- [ ] T022 [US4] Ensure `TypeGroupHeader` checkbox is natively focusable and included in tab order (use semantic `<input type="checkbox">` or `role="checkbox"` with `tabIndex={0}`) in solune/frontend/src/components/board/TypeGroupHeader.tsx
+- [ ] T023 [US4] Add `aria-checked` attribute with `"true"`, `"false"`, or `"mixed"` values matching header checkbox state in solune/frontend/src/components/board/TypeGroupHeader.tsx
+- [ ] T024 [US4] Add `aria-disabled="true"` and `aria-label` to 'main' branch row checkbox explaining protection reason in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T025 [US4] Add `aria-label` to each `TypeGroupHeader` describing the group and count (e.g., "Select all 5 branches for deletion") in solune/frontend/src/components/board/TypeGroupHeader.tsx
+- [ ] T026 [US4] Verify Space and Enter key events trigger toggle on `TypeGroupHeader` — native checkbox handles this, but confirm if using custom `role="checkbox"` pattern in solune/frontend/src/components/board/TypeGroupHeader.tsx
 
 **Checkpoint**: User Story 4 complete — keyboard navigation works; ARIA attributes announce correct states; 'main' row announces disabled reason
 
@@ -126,11 +125,11 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T029 [P] Add visual hover and focus styles to `TypeGroupHeader` for sufficient hit targets and interactive feedback in solune/frontend/src/components/board/TypeGroupHeader.tsx
-- [ ] T030 [P] Handle edge case: empty type groups should not render header or should render disabled header in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T031 [P] Handle edge case: when no items are selected, ensure Clean Up confirm/execute button is disabled or shows appropriate prompt in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T032 Verify end-to-end flow: preflight → confirm modal with headers → individual + bulk selection → execute with correct payload in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
-- [ ] T033 [P] Run existing lint, type-check, and test suites to confirm no regressions (npm run lint, npm run type-check, npm run test:coverage in solune/frontend)
+- [ ] T027 [P] Add visual hover and focus styles to `TypeGroupHeader` for sufficient hit targets and interactive feedback in solune/frontend/src/components/board/TypeGroupHeader.tsx
+- [ ] T028 [P] Handle edge case: empty type groups should not render header or should render disabled header in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T029 [P] Handle edge case: when no items are selected, ensure Clean Up confirm/execute button is disabled or shows appropriate prompt in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T030 Verify end-to-end flow: preflight → confirm modal with headers → individual + bulk selection → execute with correct payload in solune/frontend/src/components/board/CleanUpConfirmModal.tsx
+- [ ] T031 [P] Run existing lint, type-check, and test suites to confirm no regressions (npm run lint, npm run type-check, npm run test:coverage in solune/frontend)
 
 ---
 
@@ -163,12 +162,9 @@
 
 - T001 and T002 can run in parallel (different files)
 - T004 and T005 can run in parallel (different files)
-- T006, T007, T008 share same file — must be sequential
-- T009, T010, T011 share same file — must be sequential
-- T014 and T015 can run in parallel (different files)
-- T020 and T021 can run in parallel (different files)
-- T024, T025, T027, T028 share TypeGroupHeader.tsx — must be sequential
-- T029, T030, T031, T033 are marked [P] in Polish phase — can run in parallel
+- T012 and T013 can run in parallel (different files: hook vs component)
+- T018 and T019 can run in parallel (different files: hook vs component)
+- T027, T028, T029, T031 are marked [P] in Polish phase — can run in parallel
 
 ---
 
@@ -180,10 +176,10 @@ Task T004: "Create useGroupSelection hook in solune/frontend/src/hooks/useGroupS
 Task T005: "Extract TypeGroupHeader component in solune/frontend/src/components/board/TypeGroupHeader.tsx"
 
 # Phase 3 (US1) — sequential within CleanUpConfirmModal.tsx:
-Task T006-T008: Integrate useGroupSelection per group type
-Task T009-T011: Render TypeGroupHeader per group section
-Task T012: Update BranchRow and PrRow sub-components
-Task T013: Wire deletion payload
+Task T006: Integrate useGroupSelection per group type
+Task T007-T009: Render TypeGroupHeader per group section
+Task T010: Update BranchRow and PrRow sub-components
+Task T011: Wire deletion payload
 ```
 
 ---
@@ -192,9 +188,9 @@ Task T013: Wire deletion payload
 
 ```bash
 # These can be worked in parallel (different files):
-Task T014: "Integrate isProtectedBranch into useGroupSelection hook"
-Task T015: "Render 'main' branch with disabled checkbox in CleanUpConfirmModal"
-Task T018: "Add server-side validation in cleanup backend endpoint"
+Task T012: "Integrate isProtectedBranch into useGroupSelection hook"
+Task T013: "Render 'main' branch with disabled checkbox in CleanUpConfirmModal"
+Task T016: "Add server-side validation in cleanup backend endpoint"
 ```
 
 ---
@@ -244,4 +240,4 @@ With multiple developers:
 - Stop at any checkpoint to validate story independently
 - The spec does not request test tasks — add them only if explicitly required during implementation
 - `CleanUpConfirmModal.tsx` is the primary file modified — coordinate sequential edits within the same file
-- Backend validation (T018) is the only server-side task; all other tasks are frontend
+- Backend validation (T016) is the only server-side task; all other tasks are frontend
