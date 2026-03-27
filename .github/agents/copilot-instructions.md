@@ -263,6 +263,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite (aiosqlite) with sequential SQL migration files (001-help-tour-refresh)
 - TypeScript ~5.9 (frontend), Python >=3.12 (backend) + React 19, Vite 8, TanStack Query 5, FastAPI, Pydantic 2, github-copilot-sdk (001-copilot-slash-commands)
 - SQLite (aiosqlite) for backend persistence, browser localStorage for client-side settings (001-copilot-slash-commands)
+- TypeScript ~5.9, React 19.2.0, Node.js 20+ + React Router DOM 7.13.1, TanStack React Query 5.91.0, Tailwind CSS 4.2.0, Radix UI (popover, hover-card, tooltip, slot), Lucide React 0.577.0, React Hook Form 7.71.2, Zod 4.3.6, @dnd-kit (core, modifiers, sortable, utilities), Sonner 2.0.7 (toasts), clsx 2.1.1, tailwind-merge 3.5.0, class-variance-authority 0.7.1 (001-ui-audit)
+- N/A (frontend-only audit; API calls go to FastAPI backend via `/api` proxy) (001-ui-audit)
 
 Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
 

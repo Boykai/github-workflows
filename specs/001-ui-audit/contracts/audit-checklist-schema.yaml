@@ -1,0 +1,230 @@
+# Audit Checklist Contract Schema
+#
+# This schema defines the structure for the UI Audit checklist results.
+# Since this is a frontend-only audit with no new API endpoints,
+# the "contract" is the audit assessment format used across all pages.
+#
+# Format: YAML (human-readable audit tracking)
+# Usage: Each page audit produces a results file following this schema.
+
+openapi: "3.0.3"
+info:
+  title: UI Audit Checklist Schema
+  version: "1.0.0"
+  description: >
+    Defines the structure for page audit results. This is not a REST API —
+    it documents the audit data model used to track findings across all 12 pages.
+
+components:
+  schemas:
+
+    AuditPageResult:
+      type: object
+      required:
+        - pageName
+        - filePath
+        - lineCount
+        - auditDate
+        - auditStatus
+        - categories
+      properties:
+        pageName:
+          type: string
+          description: Human-readable page name
+          example: "ProjectsPage"
+        filePath:
+          type: string
+          description: Path relative to frontend src
+          example: "src/pages/ProjectsPage.tsx"
+        lineCount:
+          type: integer
+          description: Current line count of the page file
+          example: 503
+        featureDir:
+          type: string
+          description: Associated feature component directory
+          example: "src/components/board/"
+        auditDate:
+          type: string
+          format: date
+          example: "2026-03-27"
+        auditStatus:
+          type: string
+          enum: [not-started, in-progress, passed, has-findings]
+        categories:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditCategoryResult"
+
+    AuditCategoryResult:
+      type: object
+      required:
+        - category
+        - checks
+      properties:
+        category:
+          type: string
+          enum:
+            - architecture
+            - data-fetching
+            - states
+            - type-safety
+            - accessibility
+            - ux-polish
+            - styling
+            - performance
+            - testing
+            - hygiene
+        checks:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditCheckResult"
+
+    AuditCheckResult:
+      type: object
+      required:
+        - frReference
+        - description
+        - result
+      properties:
+        frReference:
+          type: string
+          description: Functional requirement ID from spec
+          example: "FR-001"
+        description:
+          type: string
+          description: What the check verifies
+          example: "Page file is 250 lines or fewer"
+        result:
+          type: string
+          enum: [pass, fail, not-applicable]
+        severity:
+          type: string
+          enum: [must-fix, should-fix, not-applicable]
+          description: Only populated when result is "fail"
+        finding:
+          type: string
+          description: Description of the issue found (only when result is "fail")
+          example: "Page is 503 lines; exceeds 250-line limit"
+        remediation:
+          type: string
+          description: Recommended fix (only when result is "fail")
+          example: "Extract board toolbar, pipeline section, and refresh logic into sub-components"
+        remediationStatus:
+          type: string
+          enum: [open, fixed, waived]
+          description: Current fix status (only when result is "fail")
+
+    AuditSummary:
+      type: object
+      description: >
+        Roll-up summary of audit results across all pages.
+        Used to track overall audit progress and identify systemic issues.
+      required:
+        - totalPages
+        - auditedPages
+        - passedPages
+        - findingsCount
+        - categories
+      properties:
+        totalPages:
+          type: integer
+          description: Total number of pages to audit
+          example: 12
+        auditedPages:
+          type: integer
+          description: Number of pages audited so far
+          example: 0
+        passedPages:
+          type: integer
+          description: Number of pages that passed all checks
+          example: 0
+        findingsCount:
+          type: object
+          properties:
+            mustFix:
+              type: integer
+              example: 0
+            shouldFix:
+              type: integer
+              example: 0
+            notApplicable:
+              type: integer
+              example: 0
+        categories:
+          type: array
+          description: Per-category summary across all pages
+          items:
+            type: object
+            properties:
+              category:
+                type: string
+              passRate:
+                type: number
+                format: float
+                description: Percentage of applicable checks that passed
+                example: 0.85
+
+    # Page inventory - the 12 pages to be audited
+    PageInventory:
+      type: object
+      description: Complete list of pages in scope for the audit
+      properties:
+        pages:
+          type: array
+          items:
+            type: object
+            required:
+              - name
+              - path
+              - priority
+            properties:
+              name:
+                type: string
+              path:
+                type: string
+              priority:
+                type: string
+                enum: [high, medium, low]
+                description: >
+                  Audit priority based on complexity and user impact.
+                  High = pages with data fetching and complex state.
+                  Medium = pages with moderate complexity.
+                  Low = simple or static pages.
+          example:
+            - name: "ProjectsPage"
+              path: "src/pages/ProjectsPage.tsx"
+              priority: "high"
+            - name: "AgentsPipelinePage"
+              path: "src/pages/AgentsPipelinePage.tsx"
+              priority: "high"
+            - name: "AppsPage"
+              path: "src/pages/AppsPage.tsx"
+              priority: "high"
+            - name: "ActivityPage"
+              path: "src/pages/ActivityPage.tsx"
+              priority: "medium"
+            - name: "AgentsPage"
+              path: "src/pages/AgentsPage.tsx"
+              priority: "medium"
+            - name: "ChoresPage"
+              path: "src/pages/ChoresPage.tsx"
+              priority: "medium"
+            - name: "ToolsPage"
+              path: "src/pages/ToolsPage.tsx"
+              priority: "medium"
+            - name: "AppPage"
+              path: "src/pages/AppPage.tsx"
+              priority: "medium"
+            - name: "SettingsPage"
+              path: "src/pages/SettingsPage.tsx"
+              priority: "low"
+            - name: "HelpPage"
+              path: "src/pages/HelpPage.tsx"
+              priority: "low"
+            - name: "LoginPage"
+              path: "src/pages/LoginPage.tsx"
+              priority: "low"
+            - name: "NotFoundPage"
+              path: "src/pages/NotFoundPage.tsx"
+              priority: "low"
