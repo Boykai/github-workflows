@@ -12,4 +12,6 @@ export { SavedWorkflowsList } from './SavedWorkflowsList';
 export { UnsavedChangesDialog } from './UnsavedChangesDialog';
 export { PipelineFlowGraph } from './PipelineFlowGraph';
 export { PipelineModelDropdown } from './PipelineModelDropdown';
+export { PipelineEmptyBoard } from './PipelineEmptyBoard';
+export { PipelineNavigationBlocker } from './PipelineNavigationBlocker';
 export { PresetBadge } from './PresetBadge';
