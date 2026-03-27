@@ -16,6 +16,7 @@ import {
   experimentalHandler,
 } from './handlers/settings';
 import { agentHandler } from './handlers/agent';
+import { copilotPassthroughHandler } from './handlers/copilot';
 import { clearHandler, compactHandler, contextHandler } from './handlers/session';
 import { diffHandler, usageHandler, shareHandler, feedbackHandler } from './handlers/monitoring';
 import { modelHandler, mcpHandler, planHandler } from './handlers/advanced';
@@ -104,6 +105,7 @@ registerCommand({
   description: 'Show all available commands',
   syntax: '/help',
   handler: helpHandler,
+  category: 'solune',
 });
 
 registerCommand({
@@ -112,6 +114,7 @@ registerCommand({
   syntax: '/theme <light|dark|system>',
   handler: themeHandler,
   parameterSchema: { type: 'enum', values: ['light', 'dark', 'system'] },
+  category: 'solune',
 });
 
 registerCommand({
@@ -120,6 +123,7 @@ registerCommand({
   syntax: '/language <en|es|fr|de|ja|zh>',
   handler: languageHandler,
   parameterSchema: { type: 'enum', values: ['en', 'es', 'fr', 'de', 'ja', 'zh'] },
+  category: 'solune',
 });
 
 registerCommand({
@@ -128,6 +132,7 @@ registerCommand({
   syntax: '/notifications <on|off>',
   handler: notificationsHandler,
   parameterSchema: { type: 'enum', values: ['on', 'off'] },
+  category: 'solune',
 });
 
 registerCommand({
@@ -136,6 +141,7 @@ registerCommand({
   syntax: '/view <chat|board|settings>',
   handler: viewHandler,
   parameterSchema: { type: 'enum', values: ['chat', 'board', 'settings'] },
+  category: 'solune',
 });
 
 registerCommand({
@@ -144,6 +150,7 @@ registerCommand({
   syntax: '/agent <description> [#status-column]',
   handler: agentHandler,
   passthrough: true,
+  category: 'solune',
 });
 
 // ── Session commands ───────────────────────────────────────────────────────
@@ -153,6 +160,7 @@ registerCommand({
   description: 'Clear all chat messages',
   syntax: '/clear',
   handler: clearHandler,
+  category: 'solune',
 });
 
 registerCommand({
@@ -161,6 +169,7 @@ registerCommand({
   syntax: '/compact',
   handler: compactHandler,
   passthrough: true,
+  category: 'solune',
 });
 
 registerCommand({
@@ -169,6 +178,7 @@ registerCommand({
   syntax: '/context',
   handler: contextHandler,
   passthrough: true,
+  category: 'solune',
 });
 
 // ── Advanced commands ──────────────────────────────────────────────────────
@@ -179,6 +189,7 @@ registerCommand({
   syntax: '/model [MODEL]',
   handler: modelHandler,
   passthrough: true,
+  category: 'solune',
 });
 
 registerCommand({
@@ -186,6 +197,7 @@ registerCommand({
   description: 'Toggle experimental features on or off',
   syntax: '/experimental [on|off]',
   handler: experimentalHandler,
+  category: 'solune',
 });
 
 // ── Monitoring commands ────────────────────────────────────────────────────
@@ -196,6 +208,7 @@ registerCommand({
   syntax: '/diff',
   handler: diffHandler,
   passthrough: true,
+  category: 'solune',
 });
 
 registerCommand({
@@ -204,6 +217,7 @@ registerCommand({
   syntax: '/usage',
   handler: usageHandler,
   passthrough: true,
+  category: 'solune',
 });
 
 registerCommand({
@@ -211,6 +225,7 @@ registerCommand({
   description: 'Export chat as Markdown download',
   syntax: '/share',
   handler: shareHandler,
+  category: 'solune',
 });
 
 registerCommand({
@@ -218,6 +233,7 @@ registerCommand({
   description: 'Display feedback link',
   syntax: '/feedback',
   handler: feedbackHandler,
+  category: 'solune',
 });
 
 // ── Power-user commands ────────────────────────────────────────────────────
@@ -228,6 +244,7 @@ registerCommand({
   syntax: '/mcp [show|add|delete]',
   handler: mcpHandler,
   passthrough: true,
+  category: 'solune',
 });
 
 registerCommand({
@@ -236,4 +253,88 @@ registerCommand({
   syntax: '/plan [description]',
   handler: planHandler,
   passthrough: true,
+  category: 'solune',
+});
+
+// ── GitHub Copilot commands ────────────────────────────────────────────────
+
+registerCommand({
+  name: 'explain',
+  description: 'Explain code or concepts with examples',
+  syntax: '/explain <code or concept>',
+  handler: copilotPassthroughHandler,
+  passthrough: true,
+  category: 'copilot',
+});
+
+registerCommand({
+  name: 'fix',
+  description: 'Identify issues and provide corrected code',
+  syntax: '/fix <code or error>',
+  handler: copilotPassthroughHandler,
+  passthrough: true,
+  category: 'copilot',
+});
+
+registerCommand({
+  name: 'doc',
+  description: 'Generate documentation comments for code',
+  syntax: '/doc <code>',
+  handler: copilotPassthroughHandler,
+  passthrough: true,
+  category: 'copilot',
+});
+
+registerCommand({
+  name: 'tests',
+  description: 'Generate comprehensive unit tests',
+  syntax: '/tests <code or function>',
+  handler: copilotPassthroughHandler,
+  passthrough: true,
+  category: 'copilot',
+});
+
+registerCommand({
+  name: 'setuptests',
+  description: 'Recommend test framework and setup steps',
+  syntax: '/setuptests <project type>',
+  handler: copilotPassthroughHandler,
+  passthrough: true,
+  category: 'copilot',
+});
+
+registerCommand({
+  name: 'new',
+  description: 'Generate a new project scaffold',
+  syntax: '/new <project description>',
+  handler: copilotPassthroughHandler,
+  passthrough: true,
+  category: 'copilot',
+});
+
+registerCommand({
+  name: 'newnotebook',
+  description: 'Generate a Jupyter notebook outline',
+  syntax: '/newnotebook <topic>',
+  handler: copilotPassthroughHandler,
+  passthrough: true,
+  category: 'copilot',
+});
+
+registerCommand({
+  name: 'search',
+  description: 'Generate effective code search queries',
+  syntax: '/search <what to find>',
+  handler: copilotPassthroughHandler,
+  passthrough: true,
+  category: 'copilot',
+});
+
+registerCommand({
+  name: 'startdebugging',
+  description: 'Generate debug launch configuration',
+  syntax: '/startdebugging <project setup>',
+  handler: copilotPassthroughHandler,
+  passthrough: true,
+  category: 'copilot',
 });

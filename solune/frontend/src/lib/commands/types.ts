@@ -47,6 +47,8 @@ export interface CommandDefinition {
    *  #help / autocomplete but forwards the message to the API instead of
    *  executing the handler locally. */
   passthrough?: boolean;
+  /** Category for grouping commands in the autocomplete dropdown. */
+  category?: 'solune' | 'copilot';
 }
 
 /** Result of parsing a user's chat input. */
