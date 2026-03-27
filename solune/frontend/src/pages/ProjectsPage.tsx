@@ -88,7 +88,7 @@ export function ProjectsPage() {
 
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
 
-  const { agents: availableAgents } = useAvailableAgents(selectedProjectId);
+  const { agents: availableAgents, isLoading: agentsLoading } = useAvailableAgents(selectedProjectId);
 
   // Board controls: filter, sort, group-by with localStorage persistence
   const boardControls = useBoardControls(selectedProjectId, boardData ?? undefined);
@@ -459,7 +459,7 @@ export function ProjectsPage() {
               { label: 'Connecting to GitHub…', complete: !projectsLoading },
               { label: 'Loading project board…', complete: !boardLoading },
               { label: 'Loading pipelines…', complete: !savedPipelinesLoading },
-              { label: 'Loading agents…', complete: !!availableAgents?.length },
+              { label: 'Loading agents…', complete: !agentsLoading },
             ]}
           />
         </div>

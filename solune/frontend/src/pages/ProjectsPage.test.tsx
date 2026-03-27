@@ -166,7 +166,7 @@ vi.mock('@/hooks/useRealTimeSync', () => ({
 }));
 
 vi.mock('@/hooks/useAgentConfig', () => ({
-  useAvailableAgents: () => ({ agents: [] }),
+  useAvailableAgents: () => ({ agents: [], isLoading: false }),
 }));
 
 vi.mock('@/hooks/useBoardControls', () => ({

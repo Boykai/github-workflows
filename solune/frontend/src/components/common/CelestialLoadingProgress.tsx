@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { cn } from '@/lib/utils';
 
@@ -25,6 +25,7 @@ const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
  */
 export function CelestialLoadingProgress({ phases, className }: CelestialLoadingProgressProps) {
   const [minProgress, setMinProgress] = useState(0);
+  const gradientId = useId();
 
   // Time-based minimum progress: 0→15% over 3s, then slowly toward 30% cap
   useEffect(() => {
@@ -34,7 +35,13 @@ export function CelestialLoadingProgress({ phases, className }: CelestialLoading
       if (elapsed <= 3000) {
         setMinProgress(Math.min(0.15, (elapsed / 3000) * 0.15));
       } else {
-        setMinProgress((prev) => Math.min(0.3, prev + 0.001));
+        setMinProgress((prev) => {
+          const next = Math.min(0.3, prev + 0.001);
+          if (next >= 0.3) {
+            clearInterval(id);
+          }
+          return next;
+        });
       }
     }, 100);
     return () => clearInterval(id);
@@ -64,7 +71,7 @@ export function CelestialLoadingProgress({ phases, className }: CelestialLoading
           height={120}
         >
           <defs>
-            <linearGradient id="celestial-ring-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
               <stop offset="0%" stopColor="hsl(var(--gold))" />
               <stop offset="100%" stopColor="hsl(var(--primary))" />
             </linearGradient>
@@ -83,7 +90,7 @@ export function CelestialLoadingProgress({ phases, className }: CelestialLoading
             cx="60"
             cy="60"
             r={RADIUS}
-            stroke="url(#celestial-ring-gradient)"
+            stroke={`url(#${gradientId})`}
             strokeWidth="4"
             fill="none"
             strokeDasharray={CIRCUMFERENCE}
