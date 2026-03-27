@@ -2249,6 +2249,45 @@ async def _transition_after_pipeline_complete(
             )
 
             if merge_result.status == "merged":
+                # ── Transition to Done ──
+                # Move board status, close issue, clean up caches.
+                done_status = "Done"
+                try:
+                    _config = await _cp.get_workflow_config(project_id)
+                    if _config:
+                        done_status = getattr(_config, "status_done", None) or "Done"
+                except Exception:
+                    pass
+
+                await _cp.github_projects_service.update_item_status_by_name(
+                    access_token=access_token,
+                    project_id=project_id,
+                    item_id=item_id,
+                    status_name=done_status,
+                )
+
+                # Close the parent issue
+                try:
+                    await _cp.github_projects_service.update_issue_state(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=issue_number,
+                        state="closed",
+                        state_reason="completed",
+                    )
+                except Exception:
+                    logger.warning(
+                        "Auto-merge: failed to close parent issue #%d",
+                        issue_number,
+                        exc_info=True,
+                    )
+
+                # Clean up main branch cache
+                from src.services.workflow_orchestrator.transitions import clear_issue_main_branch
+
+                clear_issue_main_branch(issue_number)
+
                 await _cp.connection_manager.broadcast_to_project(
                     project_id,
                     {
@@ -2258,13 +2297,31 @@ async def _transition_after_pipeline_complete(
                         "merge_commit": merge_result.merge_commit,
                     },
                 )
+                await _cp.connection_manager.broadcast_to_project(
+                    project_id,
+                    {
+                        "type": "status_updated",
+                        "issue_number": issue_number,
+                        "from_status": to_status,
+                        "to_status": done_status,
+                        "title": task_title,
+                        "triggered_by": "auto_merge",
+                    },
+                )
+
+                # Dequeue next pipeline now that this one is fully Done
+                await _dequeue_next_pipeline(
+                    access_token=access_token,
+                    project_id=project_id,
+                    trigger=f"auto_merge_done(issue=#{issue_number})",
+                )
+
                 logger.info(
-                    "Auto-merge completed for issue #%d (PR #%s)",
+                    "Auto-merge completed for issue #%d (PR #%s) → %s",
                     issue_number,
                     merge_result.pr_number,
+                    done_status,
                 )
-                # Short-circuit: PR is already merged, skip draft→ready and
-                # review-request steps which would fail on a closed PR.
                 return {
                     "status": "auto_merged",
                     "issue_number": issue_number,
@@ -2287,6 +2344,7 @@ async def _transition_after_pipeline_complete(
                     issue_number=issue_number,
                     pipeline_metadata=pipeline_metadata,
                     project_id=project_id,
+                    merge_result_context=merge_result.context,
                 )
                 if not dispatched:
                     # Retry cap reached — broadcast failure
@@ -2398,6 +2456,110 @@ async def _transition_after_pipeline_complete(
                 "safety net will retry on next poll cycle",
                 issue_number,
             )
+
+    # ── Auto Merge Retry for Done Transition ──
+    # When transitioning to Done with auto_merge active, attempt a merge in
+    # case a previous "retry_later" (during In Progress → In Review) left
+    # the PR unmerged.  By the time copilot-review finishes, CI should have
+    # completed.
+    # Derive the effective Done status from workflow config so custom status
+    # names still trigger the retry (mirrors the In Review merge path).
+    _done_status_name = "done"
+    try:
+        _done_config = await _cp.get_workflow_config(project_id)
+        if _done_config:
+            _cfg_done = getattr(_done_config, "status_done", None)
+            if isinstance(_cfg_done, str) and _cfg_done.strip():
+                _done_status_name = _cfg_done.strip().lower()
+    except Exception:
+        pass
+
+    if to_status.lower() == _done_status_name:
+        _done_auto_merge_active = False
+        try:
+            from src.services.database import get_db
+            from src.services.settings_store import is_auto_merge_enabled
+
+            db = get_db()
+            _done_auto_merge_active = await is_auto_merge_enabled(db, project_id)
+        except Exception:
+            pass
+        # Also honour pipeline-level auto-merge (captured before state removal).
+        _done_auto_merge_active = _done_auto_merge_active or _pipeline_auto_merge
+
+        if _done_auto_merge_active:
+            from .auto_merge import _attempt_auto_merge
+
+            logger.info(
+                "Auto-merge retry on Done transition for issue #%d",
+                issue_number,
+            )
+            done_merge_result = await _attempt_auto_merge(
+                access_token=access_token,
+                owner=owner,
+                repo=repo,
+                issue_number=issue_number,
+            )
+
+            if done_merge_result.status == "merged":
+                # Close the parent issue
+                try:
+                    await _cp.github_projects_service.update_issue_state(
+                        access_token=access_token,
+                        owner=owner,
+                        repo=repo,
+                        issue_number=issue_number,
+                        state="closed",
+                        state_reason="completed",
+                    )
+                except Exception:
+                    logger.warning(
+                        "Auto-merge (Done): failed to close issue #%d",
+                        issue_number,
+                        exc_info=True,
+                    )
+
+                from src.services.workflow_orchestrator.transitions import clear_issue_main_branch
+
+                clear_issue_main_branch(issue_number)
+
+                await _cp.connection_manager.broadcast_to_project(
+                    project_id,
+                    {
+                        "type": "auto_merge_completed",
+                        "issue_number": issue_number,
+                        "pr_number": done_merge_result.pr_number,
+                        "merge_commit": done_merge_result.merge_commit,
+                    },
+                )
+                logger.info(
+                    "Auto-merge (Done) completed for issue #%d (PR #%s)",
+                    issue_number,
+                    done_merge_result.pr_number,
+                )
+            elif done_merge_result.status == "devops_needed":
+                from .auto_merge import dispatch_devops_agent
+
+                existing_pipeline = _cp.get_pipeline_state(issue_number)
+                done_pipeline_metadata: dict[str, Any] = (
+                    dict(existing_pipeline.__dict__) if existing_pipeline else {}
+                )
+                await dispatch_devops_agent(
+                    access_token=access_token,
+                    owner=owner,
+                    repo=repo,
+                    issue_number=issue_number,
+                    pipeline_metadata=done_pipeline_metadata,
+                    project_id=project_id,
+                    merge_result_context=done_merge_result.context,
+                )
+            elif done_merge_result.status == "merge_failed":
+                logger.warning(
+                    "Auto-merge (Done) failed for issue #%d: %s",
+                    issue_number,
+                    done_merge_result.error,
+                )
+            # retry_later: PR will remain unmerged; user can merge manually
 
     # Send status transition WebSocket notification
     await _cp.connection_manager.broadcast_to_project(

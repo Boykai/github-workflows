@@ -40,6 +40,12 @@ export default tseslint.config(
     },
   },
   {
+    files: ['e2e/**/*.{ts,tsx}'],
+    rules: {
+      'security/detect-non-literal-fs-filename': 'off',
+    },
+  },
+  {
     files: ['src/lib/icons.ts'],
     rules: {
       'no-restricted-imports': 'off',

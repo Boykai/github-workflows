@@ -103,6 +103,7 @@ asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
 markers = [
     "integration: marks tests as integration tests (require external services)",
+    "performance: marks tests as performance tests (require running backend + credentials)",
 ]
 
 [tool.pyright]

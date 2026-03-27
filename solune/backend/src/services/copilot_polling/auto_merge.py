@@ -247,6 +247,48 @@ async def _attempt_auto_merge(
         )
 
 
+def _build_devops_instructions(
+    owner: str,
+    repo: str,
+    issue_number: int,
+    merge_result_context: dict[str, Any] | None = None,
+) -> str:
+    """Build custom instructions for the DevOps agent based on merge failure context."""
+    lines = [
+        f"Fix merge/CI issues for issue #{issue_number} in {owner}/{repo}.",
+        "",
+    ]
+
+    if not merge_result_context:
+        lines.append("The auto-merge attempt failed. Investigate and resolve the issue.")
+        return "\n".join(lines)
+
+    reason = merge_result_context.get("reason", "unknown")
+
+    if reason == "ci_failure":
+        failed_checks = merge_result_context.get("failed_checks", [])
+        lines.append("## CI Failures")
+        for check in failed_checks:
+            name = check.get("name", "unknown")
+            conclusion = check.get("conclusion", "unknown")
+            lines.append(f"- **{name}**: {conclusion}")
+        lines.append("")
+        lines.append("Investigate the CI failures above. Fix the code so all checks pass.")
+    elif reason == "conflicting":
+        lines.append("## Merge Conflicts")
+        lines.append(
+            "The PR has merge conflicts with the base branch. "
+            "Resolve all conflicts and ensure the branch is up to date."
+        )
+    else:
+        lines.append(f"## Issue: {reason}")
+        details = merge_result_context.get("details", "")
+        if details:
+            lines.append(details)
+
+    return "\n".join(lines)
+
+
 async def dispatch_devops_agent(
     access_token: str,
     owner: str,
@@ -254,11 +296,13 @@ async def dispatch_devops_agent(
     issue_number: int,
     pipeline_metadata: dict[str, Any],
     project_id: str,
+    merge_result_context: dict[str, Any] | None = None,
 ) -> bool:
-    """Dispatch the DevOps agent for CI failure recovery.
+    """Dispatch the DevOps agent for CI failure / merge conflict recovery.
 
     Checks deduplication (devops_active) and retry cap (devops_attempts < 2).
-    Dispatches via standard Copilot agent dispatch.
+    Resolves the issue node ID and assigns Copilot with the ``devops`` custom
+    agent via ``assign_copilot_to_issue()``.
 
     Args:
         access_token: GitHub access token
@@ -267,6 +311,7 @@ async def dispatch_devops_agent(
         issue_number: Issue number
         pipeline_metadata: Pipeline metadata dict (mutated in place)
         project_id: Project ID for broadcast
+        merge_result_context: Context from AutoMergeResult (CI failures, conflicts, etc.)
 
     Returns:
         True if agent was dispatched, False if skipped.
@@ -291,12 +336,69 @@ async def dispatch_devops_agent(
         )
         return False
 
-    # Dispatch DevOps agent via standard Copilot dispatch
+    # Resolve issue node ID for Copilot assignment
+    issue_node_id: str | None = None
+    try:
+        issue_node_id, _ = await _cp.github_projects_service.get_issue_node_and_project_item(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_number=issue_number,
+            project_id=project_id,
+        )
+    except Exception:
+        logger.warning(
+            "DevOps dispatch: failed to resolve issue node ID for #%d",
+            issue_number,
+            exc_info=True,
+        )
+
+    if not issue_node_id:
+        logger.error(
+            "DevOps dispatch: cannot resolve issue node ID for #%d — skipping",
+            issue_number,
+        )
+        return False
+
+    # Build context-aware instructions for the DevOps agent
+    instructions = _build_devops_instructions(
+        owner=owner,
+        repo=repo,
+        issue_number=issue_number,
+        merge_result_context=merge_result_context,
+    )
+
+    # Dispatch DevOps agent via Copilot assignment
     logger.info(
         "Dispatching DevOps agent for issue #%d (attempt %d)",
         issue_number,
         devops_attempts + 1,
     )
+
+    try:
+        assigned = await _cp.github_projects_service.assign_copilot_to_issue(
+            access_token=access_token,
+            owner=owner,
+            repo=repo,
+            issue_node_id=issue_node_id,
+            issue_number=issue_number,
+            custom_agent="devops",
+            custom_instructions=instructions,
+        )
+    except Exception:
+        logger.error(
+            "DevOps dispatch: assign_copilot_to_issue failed for #%d",
+            issue_number,
+            exc_info=True,
+        )
+        return False
+
+    if not assigned:
+        logger.error(
+            "DevOps dispatch: Copilot assignment returned False for #%d",
+            issue_number,
+        )
+        return False
 
     pipeline_metadata["devops_active"] = True
     pipeline_metadata["devops_attempts"] = devops_attempts + 1
