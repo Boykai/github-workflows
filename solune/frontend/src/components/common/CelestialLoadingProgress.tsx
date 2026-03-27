@@ -36,15 +36,11 @@ export function CelestialLoadingProgress({ phases, className }: CelestialLoading
         setMinProgress(Math.min(0.15, (elapsed / 3000) * 0.15));
       } else {
         setMinProgress((prev) => {
-          if (prev >= 0.3) {
-            clearInterval(id);
-            return prev;
-          }
-          const next = prev + 0.001;
+          const next = Math.min(0.3, prev + 0.001);
           if (next >= 0.3) {
             clearInterval(id);
           }
-          return Math.min(0.3, next);
+          return next;
         });
       }
     }, 100);
