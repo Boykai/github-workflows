@@ -3,18 +3,17 @@
  * Composes useProjectBoard columns with agent configuration, pipeline board, and saved workflows.
  */
 
-import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import { CelestialLoader } from '@/components/common/CelestialLoader';
-import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
 import { useAgentConfig, useAvailableAgents } from '@/hooks/useAgentConfig';
-import { usePipelineConfig, pipelineKeys } from '@/hooks/usePipelineConfig';
+import { usePipelineConfig } from '@/hooks/usePipelineConfig';
 import { useModels } from '@/hooks/useModels';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { useUnsavedPipelineGuard } from '@/hooks/useUnsavedPipelineGuard';
-import { pipelinesApi } from '@/services/api';
+import { useSeedPresets } from '@/hooks/useSeedPresets';
 
 import { PipelineBoard } from '@/components/pipeline/PipelineBoard';
 import { PipelineToolbar } from '@/components/pipeline/PipelineToolbar';
@@ -23,11 +22,11 @@ import { UnsavedChangesDialog } from '@/components/pipeline/UnsavedChangesDialog
 import { PipelineAnalytics } from '@/components/pipeline/PipelineAnalytics';
 import { PipelineRunHistory } from '@/components/pipeline/PipelineRunHistory';
 import { PipelineStagesOverview } from '@/components/pipeline/PipelineStagesOverview';
+import { PipelineEmptyState } from '@/components/pipeline/PipelineEmptyState';
+import { NavigationBlockerDialog } from '@/components/pipeline/NavigationBlockerDialog';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { CelestialCatalogHero } from '@/components/common/CelestialCatalogHero';
 import { Button } from '@/components/ui/button';
-import { Tooltip } from '@/components/ui/tooltip';
-import { ThemedAgentIcon } from '@/components/common/ThemedAgentIcon';
 
 export function AgentsPipelinePage() {
   const { user } = useAuth();
@@ -38,7 +37,6 @@ export function AgentsPipelinePage() {
     selectProject,
   } = useProjects(user?.selected_project_id);
   const projectId = selectedProject?.project_id ?? null;
-  const queryClient = useQueryClient();
 
   const { boardData, boardLoading } = useProjectBoard({ selectedProjectId: projectId });
   const agentConfig = useAgentConfig(projectId);
@@ -53,53 +51,21 @@ export function AgentsPipelinePage() {
   const { confirm } = useConfirmation();
 
   const columns = useMemo(() => boardData?.columns ?? [], [boardData?.columns]);
-  const alignedColumnCount = Math.max(
-    columns.length,
-    pipelineConfig.pipeline?.stages.length ?? 0,
-    1
-  );
+  const alignedColumnCount = Math.max(columns.length, pipelineConfig.pipeline?.stages.length ?? 0, 1);
   const pipelineEditorRef = useRef<HTMLDivElement | null>(null);
-
   const focusPipelineEditor = useCallback(() => {
     requestAnimationFrame(() => {
       pipelineEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }, []);
 
-  // Seed presets on mount
-  const seededRef = useRef(false);
-  useEffect(() => {
-    if (!projectId || seededRef.current) return;
-    seededRef.current = true;
-    pipelinesApi
-      .seedPresets(projectId)
-      .then(() => {
-        queryClient.invalidateQueries({ queryKey: pipelineKeys.list(projectId) });
-      })
-      .catch((err) => {
-        console.warn('Failed to seed preset pipelines:', err);
-      });
-  }, [projectId, queryClient]);
+  useSeedPresets(projectId);
 
-  // Unsaved changes guard (handles SPA blocker, browser unload, dialog state)
   const {
-    unsavedDialog,
-    blocker,
-    isBlocked,
-    handleWorkflowSelect,
-    handleWorkflowCopy,
-    handleNewPipeline,
-    handleDelete,
-    handleUnsavedSave,
-    handleUnsavedDiscard,
-    handleUnsavedCancel,
-  } = useUnsavedPipelineGuard({
-    pipelineConfig,
-    projectId,
-    confirm,
-    focusPipelineEditor,
-    columns,
-  });
+    unsavedDialog, blocker, isBlocked,
+    handleWorkflowSelect, handleWorkflowCopy, handleNewPipeline, handleDelete,
+    handleUnsavedSave, handleUnsavedDiscard, handleUnsavedCancel,
+  } = useUnsavedPipelineGuard({ pipelineConfig, projectId, confirm, focusPipelineEditor, columns });
 
   return (
     <div className="celestial-fade-in flex h-full flex-col gap-6 overflow-auto rounded-[1.75rem] border border-border/70 bg-background/42 p-6 backdrop-blur-sm dark:border-border/85 dark:bg-[linear-gradient(180deg,hsl(var(--night)/0.96)_0%,hsl(var(--panel)/0.9)_100%)]">
@@ -214,33 +180,7 @@ export function AgentsPipelinePage() {
 
             {/* Empty board state */}
             {pipelineConfig.boardState === 'empty' && (
-              <div className="celestial-panel flex flex-col items-center justify-center gap-3 rounded-[1.2rem] border border-dashed border-border/60 bg-background/24 p-8 text-center">
-                <Tooltip contentKey="pipeline.board.createButton">
-                  <button
-                    type="button"
-                    onClick={handleNewPipeline}
-                    className="group relative mb-2 flex h-24 w-24 items-center justify-center rounded-full transition-transform duration-200 hover:scale-[1.03] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    aria-label="Create new pipeline"
-                  >
-                    <div className="absolute inset-0 rounded-full border border-border/40 bg-[radial-gradient(circle_at_center,hsl(var(--glow)/0.22)_0%,transparent_62%)] transition-colors duration-200 group-hover:border-primary/30 group-hover:bg-[radial-gradient(circle_at_center,hsl(var(--glow)/0.32)_0%,transparent_62%)]" />
-                    <div className="absolute inset-[10px] rounded-full border border-primary/18 transition-colors duration-200 group-hover:border-primary/35" />
-                    <span className="absolute left-1/2 top-1.5 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[hsl(var(--glow))] shadow-[0_0_12px_hsl(var(--glow)/0.8)]" />
-                    <span className="absolute bottom-4 right-2 h-2.5 w-2.5 rounded-full bg-[hsl(var(--gold))] shadow-[0_0_18px_hsl(var(--gold)/0.45)]" />
-                    <span className="absolute left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-[hsl(var(--gold)/0.55)]" />
-                    <ThemedAgentIcon
-                      name="Pipeline constellation"
-                      iconName="constellation"
-                      size="lg"
-                      className="h-14 w-14 border-primary/30 shadow-[0_12px_30px_hsl(var(--night)/0.3)] transition-transform duration-200 group-hover:scale-105"
-                    />
-                  </button>
-                </Tooltip>
-                <h3 className="text-sm font-semibold text-foreground">Create new agent pipeline</h3>
-                <p className="text-xs text-muted-foreground max-w-md">
-                  Build custom agent workflows by creating a pipeline with stages and agents. Click
-                  the constellation to get started.
-                </p>
-              </div>
+              <PipelineEmptyState onCreatePipeline={handleNewPipeline} />
             )}
           </div>
 
@@ -290,23 +230,10 @@ export function AgentsPipelinePage() {
 
       {/* SPA navigation blocker — shown when react-router navigation is blocked */}
       {isBlocked && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/50" role="presentation" />
-          <div className="relative z-10 mx-4 w-full max-w-sm rounded-lg border border-border bg-background p-6 text-center shadow-xl">
-            <h3 className="mb-2 text-lg font-semibold text-foreground">Unsaved Changes</h3>
-            <p className="mb-4 text-sm text-muted-foreground">
-              You have unsaved changes — are you sure you want to leave?
-            </p>
-            <div className="flex justify-center gap-3">
-              <Button variant="outline" onClick={() => blocker.reset?.()}>
-                Stay
-              </Button>
-              <Button variant="destructive" onClick={() => blocker.proceed?.()}>
-                Discard and Leave
-              </Button>
-            </div>
-          </div>
-        </div>
+        <NavigationBlockerDialog
+          onStay={() => blocker.reset?.()}
+          onDiscard={() => blocker.proceed?.()}
+        />
       )}
     </div>
   );
