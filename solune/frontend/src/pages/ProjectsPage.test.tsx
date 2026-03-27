@@ -173,6 +173,11 @@ vi.mock('@/hooks/useBoardControls', () => ({
   useBoardControls: () => mocks.boardControls,
 }));
 
+vi.mock('@/hooks/useConfirmation', () => ({
+  useConfirmation: () => ({ confirm: vi.fn().mockResolvedValue(true) }),
+  ConfirmationDialogProvider: ({ children }: { children: React.ReactNode }) => children,
+}));
+
 vi.mock('@/components/common/CelestialCatalogHero', () => ({
   CelestialCatalogHero: ({
     title,
