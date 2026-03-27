@@ -24,7 +24,7 @@
 
 **Purpose**: Add shared CSS utility class required by the new component
 
-- [ ] T001 Add `.celestial-ring-glow` CSS utility class with gold drop-shadow filter (`filter: drop-shadow(0 0 6px hsl(var(--gold) / 0.4)) drop-shadow(0 0 14px hsl(var(--gold) / 0.15))`) after existing celestial animation classes (~line 1460) in `solune/frontend/src/index.css`
+- [X] T001 Add `.celestial-ring-glow` CSS utility class with gold drop-shadow filter (`filter: drop-shadow(0 0 6px hsl(var(--gold) / 0.4)) drop-shadow(0 0 14px hsl(var(--gold) / 0.15))`) after existing celestial animation classes (~line 1460) in `solune/frontend/src/index.css`
 
 ---
 
@@ -48,13 +48,13 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T002 [P] [US1] Create component test file with test cases: (a) renders initial phase label with zero completions, (b) updates ring progress as phases complete via `aria-valuenow`, (c) exposes `role='progressbar'` with correct `aria-valuenow`, (d) shows last phase label when all phases complete, (e) handles empty phases array gracefully — in `solune/frontend/src/components/common/CelestialLoadingProgress.test.tsx`
+- [X] T002 [P] [US1] Create component test file with test cases: (a) renders initial phase label with zero completions, (b) updates ring progress as phases complete via `aria-valuenow`, (c) exposes `role='progressbar'` with correct `aria-valuenow`, (d) shows last phase label when all phases complete, (e) handles empty phases array gracefully — in `solune/frontend/src/components/common/CelestialLoadingProgress.test.tsx`
 
 ### Implementation for User Story 1 + User Story 4
 
-- [ ] T003 [US1] Create `CelestialLoadingProgress` component implementing: `LoadingPhase` and `CelestialLoadingProgressProps` interfaces, `useEffect`-driven time-based minimum progress (`useState(0)` + `setInterval(100ms)`, 0→15% over 3s, cap at ~30%), progress computation as `max(minProgress, completedPhases/totalPhases)`, SVG circular progress ring (`viewBox="0 0 120 120"`, `r=52`, `stroke-dasharray`/`stroke-dashoffset` with `0.6s ease` CSS transition), `<linearGradient>` with `hsl(var(--gold))` → `hsl(var(--primary))`, embedded `CelestialLoader` centered via absolute positioning inside relative container, phase label `<p key={label}>` with `celestial-fade-in` class, 3–5 twinkling star `<span>` elements with `celestial-twinkle`/`celestial-twinkle-delayed` classes and `aria-hidden="true"`, `celestial-ring-glow` class on SVG, and `role="progressbar"` with `aria-valuenow`/`aria-valuemin={0}`/`aria-valuemax={100}`/`aria-label="Loading progress"` — in `solune/frontend/src/components/common/CelestialLoadingProgress.tsx`
-- [ ] T004 [US1] Replace the `boardLoading && CelestialLoader` block (~line 455) with `CelestialLoadingProgress` wiring four phases: Phase 1 `'Connecting to GitHub…'` (`complete: !projectsLoading`), Phase 2 `'Loading project board…'` (`complete: !boardLoading`), Phase 3 `'Loading pipelines…'` (`complete: !savedPipelinesLoading`), Phase 4 `'Loading agents…'` (`complete: !!agents`) — update import from `CelestialLoader` to `CelestialLoadingProgress` — in `solune/frontend/src/pages/ProjectsPage.tsx`
-- [ ] T005 [US1] Replace `CelestialLoader` mock with `CelestialLoadingProgress` mock (rendering phase label text from the first incomplete phase), update `'shows loading state when board is loading'` test assertion from `'Loading board…'` to the first phase label text `'Connecting to GitHub…'` — in `solune/frontend/src/pages/ProjectsPage.test.tsx`
+- [X] T003 [US1] Create `CelestialLoadingProgress` component implementing: `LoadingPhase` and `CelestialLoadingProgressProps` interfaces, `useEffect`-driven time-based minimum progress (`useState(0)` + `setInterval(100ms)`, 0→15% over 3s, cap at ~30%), progress computation as `max(minProgress, completedPhases/totalPhases)`, SVG circular progress ring (`viewBox="0 0 120 120"`, `r=52`, `stroke-dasharray`/`stroke-dashoffset` with `0.6s ease` CSS transition), `<linearGradient>` with `hsl(var(--gold))` → `hsl(var(--primary))`, embedded `CelestialLoader` centered via absolute positioning inside relative container, phase label `<p key={label}>` with `celestial-fade-in` class, 3–5 twinkling star `<span>` elements with `celestial-twinkle`/`celestial-twinkle-delayed` classes and `aria-hidden="true"`, `celestial-ring-glow` class on SVG, and `role="progressbar"` with `aria-valuenow`/`aria-valuemin={0}`/`aria-valuemax={100}`/`aria-label="Loading progress"` — in `solune/frontend/src/components/common/CelestialLoadingProgress.tsx`
+- [X] T004 [US1] Replace the `boardLoading && CelestialLoader` block (~line 455) with `CelestialLoadingProgress` wiring four phases: Phase 1 `'Connecting to GitHub…'` (`complete: !projectsLoading`), Phase 2 `'Loading project board…'` (`complete: !boardLoading`), Phase 3 `'Loading pipelines…'` (`complete: !savedPipelinesLoading`), Phase 4 `'Loading agents…'` (`complete: !!agents`) — update import from `CelestialLoader` to `CelestialLoadingProgress` — in `solune/frontend/src/pages/ProjectsPage.tsx`
+- [X] T005 [US1] Replace `CelestialLoader` mock with `CelestialLoadingProgress` mock (rendering phase label text from the first incomplete phase), update `'shows loading state when board is loading'` test assertion from `'Loading board…'` to the first phase label text `'Connecting to GitHub…'` — in `solune/frontend/src/pages/ProjectsPage.test.tsx`
 
 **Checkpoint**: `CelestialLoadingProgress` component is fully functional with time-based minimum animation; Project page shows phased progress ring. Component tests and page tests pass. This is a shippable MVP.
 
@@ -68,8 +68,8 @@
 
 ### Implementation for User Story 2
 
-- [ ] T006 [P] [US2] Replace `CelestialLoader` with `CelestialLoadingProgress` wiring three phases: Phase 1 `'Connecting to GitHub…'` (`complete: !projectsLoading`), Phase 2 `'Loading board data…'` (`complete: !boardLoading`), Phase 3 `'Loading agents…'` (`complete: !agentsLoading`) — update import from `CelestialLoader` to `CelestialLoadingProgress` — in `solune/frontend/src/pages/AgentsPipelinePage.tsx` (~line 155)
-- [ ] T007 [P] [US2] Replace `CelestialLoader` loading block with `CelestialLoadingProgress` wiring two phases: Phase 1 `'Loading user settings…'` (`complete: !userLoading`), Phase 2 `'Loading global settings…'` (`complete: !globalLoading`) — update import from `CelestialLoader` to `CelestialLoadingProgress`, update loading condition to `(userLoading || globalLoading)` — in `solune/frontend/src/pages/SettingsPage.tsx` (~line 68)
+- [X] T006 [P] [US2] Replace `CelestialLoader` with `CelestialLoadingProgress` wiring three phases: Phase 1 `'Connecting to GitHub…'` (`complete: !projectsLoading`), Phase 2 `'Loading board data…'` (`complete: !boardLoading`), Phase 3 `'Loading agents…'` (`complete: !agentsLoading`) — update import from `CelestialLoader` to `CelestialLoadingProgress` — in `solune/frontend/src/pages/AgentsPipelinePage.tsx` (~line 155)
+- [X] T007 [P] [US2] Replace `CelestialLoader` loading block with `CelestialLoadingProgress` wiring two phases: Phase 1 `'Loading user settings…'` (`complete: !userLoading`), Phase 2 `'Loading global settings…'` (`complete: !globalLoading`) — update import from `CelestialLoader` to `CelestialLoadingProgress`, update loading condition to `(userLoading || globalLoading)` — in `solune/frontend/src/pages/SettingsPage.tsx` (~line 68)
 
 **Checkpoint**: All three target pages (Project, Agents Pipeline, Settings) show consistent progress ring behavior with page-appropriate phase labels. Each page can be tested independently.
 
@@ -83,8 +83,8 @@
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T008 [US3] Add accessibility-focused test assertions verifying: `aria-valuemin="0"`, `aria-valuemax="100"`, and `aria-label="Loading progress"` are all present on the `role="progressbar"` element — in `solune/frontend/src/components/common/CelestialLoadingProgress.test.tsx`
-- [ ] T009 [US3] Add test assertion verifying twinkling star decorative elements have `aria-hidden="true"` attribute for screen reader exclusion — in `solune/frontend/src/components/common/CelestialLoadingProgress.test.tsx`
+- [X] T008 [US3] Add accessibility-focused test assertions verifying: `aria-valuemin="0"`, `aria-valuemax="100"`, and `aria-label="Loading progress"` are all present on the `role="progressbar"` element — in `solune/frontend/src/components/common/CelestialLoadingProgress.test.tsx`
+- [X] T009 [US3] Add test assertion verifying twinkling star decorative elements have `aria-hidden="true"` attribute for screen reader exclusion — in `solune/frontend/src/components/common/CelestialLoadingProgress.test.tsx`
 
 **Checkpoint**: All accessibility attributes verified by automated tests. Dark mode compatibility ensured via `hsl(var(--gold))` and `hsl(var(--primary))` design tokens (existing tokens already have dark-mode-aware values — verified in research.md).
 
@@ -94,12 +94,12 @@
 
 **Purpose**: Final validation across all stories — ensure zero regressions, clean lint, and production-ready build
 
-- [ ] T010 [P] Run component tests: `npx vitest run src/components/common/CelestialLoadingProgress.test.tsx`
-- [ ] T011 [P] Run page tests: `npx vitest run src/pages/ProjectsPage.test.tsx`
-- [ ] T012 Run full test suite with no regressions: `npm run test`
-- [ ] T013 [P] Lint all modified files: `npx eslint src/components/common/CelestialLoadingProgress.tsx src/pages/ProjectsPage.tsx src/pages/AgentsPipelinePage.tsx src/pages/SettingsPage.tsx`
-- [ ] T014 Run type check: `npm run type-check`
-- [ ] T015 Run production build: `npm run build`
+- [X] T010 [P] Run component tests: `npx vitest run src/components/common/CelestialLoadingProgress.test.tsx`
+- [X] T011 [P] Run page tests: `npx vitest run src/pages/ProjectsPage.test.tsx`
+- [X] T012 Run full test suite with no regressions: `npm run test`
+- [X] T013 [P] Lint all modified files: `npx eslint src/components/common/CelestialLoadingProgress.tsx src/pages/ProjectsPage.tsx src/pages/AgentsPipelinePage.tsx src/pages/SettingsPage.tsx`
+- [X] T014 Run type check: `npm run type-check`
+- [X] T015 Run production build: `npm run build`
 
 ---
 
