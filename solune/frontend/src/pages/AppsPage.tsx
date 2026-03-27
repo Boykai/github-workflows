@@ -6,7 +6,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { GitBranch, Plus, RefreshCw } from '@/lib/icons';
 import {
   useApp,
   useApps,
@@ -21,12 +20,9 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useSelectedPipeline } from '@/hooks/useSelectedPipeline';
-import { AppCard } from '@/components/apps/AppCard';
 import { AppDetailView } from '@/components/apps/AppDetailView';
-import { CreateAppDialog } from '@/components/apps/CreateAppDialog';
-import { Skeleton } from '@/components/ui/skeleton';
+import { AppsListView } from '@/components/apps/AppsListView';
 import { ErrorBoundary } from '@/components/common/ErrorBoundary';
-import { InfiniteScrollContainer } from '@/components/common/InfiniteScrollContainer';
 import { useConfirmation } from '@/hooks/useConfirmation';
 import { isRateLimitApiError } from '@/utils/rateLimit';
 import { appsApi, pipelinesApi } from '@/services/api';
@@ -144,7 +140,7 @@ export function AppsPage() {
 
   const handleDelete = useCallback(
     async (name: string) => {
-      // Step 1: Fetch asset inventory
+      // Fetch asset inventory for confirmation dialog
       let assetSummary = 'This action cannot be undone.';
       try {
         const assets = await appsApi.assets(name);
@@ -161,7 +157,6 @@ export function AppsPage() {
         // If asset fetch fails, proceed with generic confirmation
       }
 
-      // Step 1: Show asset inventory confirmation
       const firstConfirm = await confirm({
         title: 'Delete App & All Assets',
         description: assetSummary,
@@ -170,7 +165,6 @@ export function AppsPage() {
       });
       if (!firstConfirm) return;
 
-      // Step 2: Type-to-confirm
       const secondConfirm = await confirm({
         title: 'Confirm Permanent Deletion',
         description: `You are about to permanently delete "${name}" and all associated GitHub assets. This cannot be reversed.`,
@@ -202,123 +196,37 @@ export function AppsPage() {
   return (
     <ErrorBoundary>
       <div className="mx-auto max-w-5xl px-6 py-8">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">Apps</h1>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              Create, manage, and preview your applications.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              onClick={() => openCreateDialog('new-repo')}
-            >
-              <GitBranch aria-hidden="true" className="h-4 w-4" /> New Repository
-            </button>
-            <button
-              ref={createButtonRef}
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
-              onClick={() => openCreateDialog()}
-            >
-              <Plus aria-hidden="true" className="h-4 w-4" /> Create App
-            </button>
-          </div>
-        </div>
-
-        {/* Loading state */}
-        {isLoading && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-live="polite">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-700">
-                <Skeleton variant="shimmer" className="mb-3 h-5 w-32" />
-                <Skeleton variant="shimmer" className="mb-2 h-4 w-48" />
-                <Skeleton variant="shimmer" className="h-4 w-24" />
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Error state */}
-        {!isLoading && error && (
-          <div
-            className="flex min-h-[30vh] flex-col items-center justify-center"
-            aria-live="polite"
-          >
-            <p className="mb-3 text-sm text-zinc-500 dark:text-zinc-400">
-              {isRateLimited
-                ? 'You have exceeded the API rate limit. Please wait a moment before trying again.'
-                : 'Could not load applications. Please try again.'}
-            </p>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-zinc-300 px-3 py-1.5 text-sm font-medium text-zinc-600 hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:border-zinc-600 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              onClick={() => refetch()}
-            >
-              <RefreshCw aria-hidden="true" className="h-3.5 w-3.5" /> Retry
-            </button>
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!isLoading && !error && displayApps.length === 0 && (
-          <div className="flex min-h-[30vh] flex-col items-center justify-center rounded-xl border border-dashed border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900/50">
-            <p className="mb-2 text-sm text-zinc-500 dark:text-zinc-400">No applications yet.</p>
-            <button
-              type="button"
-              className="text-sm font-medium text-emerald-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:text-emerald-400"
-              onClick={() => openCreateDialog()}
-            >
-              Create your first app →
-            </button>
-          </div>
-        )}
-
-        {/* App grid */}
-        {!isLoading && !error && displayApps.length > 0 && (
-          <InfiniteScrollContainer
-            hasNextPage={appsHasNextPage ?? false}
-            isFetchingNextPage={appsIsFetchingNextPage}
-            fetchNextPage={appsFetchNextPage}
-            isError={appsPaginatedError}
-            onRetry={appsFetchNextPage}
-          >
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {displayApps.map((app) => (
-                <AppCard
-                  key={app.name}
-                  app={app}
-                  onSelect={(name) => navigate(`/apps/${name}`)}
-                  onStart={handleStart}
-                  onStop={handleStop}
-                  onDelete={handleDelete}
-                  isStartPending={startMutation.isPending}
-                  isStopPending={stopMutation.isPending}
-                  isDeletePending={deleteMutation.isPending}
-                />
-              ))}
-            </div>
-          </InfiniteScrollContainer>
-        )}
-
-        {/* Create dialog */}
-        {showCreateDialog && (
-          <CreateAppDialog
-            onClose={closeCreateDialog}
-            onSubmit={handleCreateSubmit}
-            isPending={createMutation.isPending}
-            owners={owners}
-            getErrorMessage={getErrorMessage}
-            initialRepoType={createRepoType}
-            pipelines={pipelines}
-            isLoadingPipelines={pipelinesLoading}
-            defaultPipelineId={defaultPipelineId}
-            projectId={projectId}
-          />
-        )}
+        <AppsListView
+          apps={displayApps}
+          isLoading={isLoading}
+          error={error}
+          isRateLimited={isRateLimited}
+          onRetry={() => refetch()}
+          onSelectApp={(name) => navigate(`/apps/${name}`)}
+          onStart={handleStart}
+          onStop={handleStop}
+          onDelete={handleDelete}
+          isStartPending={startMutation.isPending}
+          isStopPending={stopMutation.isPending}
+          isDeletePending={deleteMutation.isPending}
+          hasNextPage={appsHasNextPage ?? false}
+          isFetchingNextPage={appsIsFetchingNextPage}
+          fetchNextPage={appsFetchNextPage}
+          isPaginatedError={appsPaginatedError}
+          showCreateDialog={showCreateDialog}
+          createButtonRef={createButtonRef}
+          onOpenCreateDialog={openCreateDialog}
+          onCloseCreateDialog={closeCreateDialog}
+          onCreateSubmit={handleCreateSubmit}
+          isCreatePending={createMutation.isPending}
+          owners={owners}
+          getErrorMessage={getErrorMessage}
+          createRepoType={createRepoType}
+          pipelines={pipelines}
+          isLoadingPipelines={pipelinesLoading}
+          defaultPipelineId={defaultPipelineId}
+          projectId={projectId}
+        />
       </div>
     </ErrorBoundary>
   );
