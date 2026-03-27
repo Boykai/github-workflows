@@ -130,6 +130,13 @@ class ProjectBoardConfig(BaseModel):
     show_estimates: bool = False
     queue_mode: bool = False
     auto_merge: bool = False
+    # Roadmap engine fields (FR-001)
+    roadmap_enabled: bool = False
+    roadmap_seed: str = ""
+    roadmap_batch_size: int = Field(default=3, ge=1, le=10)
+    roadmap_pipeline_id: str | None = None
+    roadmap_auto_launch: bool = False
+    roadmap_grace_minutes: int = Field(default=0, ge=0, le=1440)
 
 
 class ProjectAgentMapping(BaseModel):
