@@ -182,7 +182,8 @@ async def generate_roadmap(
     row = await cursor.fetchone()
     cycle_id = row[0] if row else 0
 
-    # Launch items through the pipeline if auto-launch or grace_minutes == 0
+    # Launch items immediately when grace_minutes is 0 (default).
+    # When grace_minutes > 0, items are held for the veto window.
     config = await _load_board_config(project_id)
     if config.roadmap_grace_minutes == 0 and config.roadmap_pipeline_id:
         from src.services.roadmap.launcher import launch_roadmap_batch

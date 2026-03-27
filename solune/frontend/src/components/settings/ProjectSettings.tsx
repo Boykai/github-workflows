@@ -226,11 +226,6 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
 
           <RoadmapSettings
             config={{
-              column_order: [],
-              collapsed_columns: [],
-              show_estimates: false,
-              queue_mode: false,
-              auto_merge: false,
               roadmap_enabled: roadmapEnabled,
               roadmap_seed: roadmapSeed,
               roadmap_batch_size: roadmapBatchSize,

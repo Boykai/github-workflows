@@ -10,12 +10,20 @@
  * - Grace minutes input
  */
 
-import type { ProjectBoardConfig } from '@/types';
+/** Subset of ProjectBoardConfig relevant to roadmap settings. */
+interface RoadmapConfig {
+  roadmap_enabled: boolean;
+  roadmap_seed: string;
+  roadmap_batch_size: number;
+  roadmap_pipeline_id: string | null;
+  roadmap_auto_launch: boolean;
+  roadmap_grace_minutes: number;
+}
 
 interface RoadmapSettingsProps {
-  config: ProjectBoardConfig;
+  config: RoadmapConfig;
   pipelines: Array<{ id: string; name: string }>;
-  onChange: (updates: Partial<ProjectBoardConfig>) => void;
+  onChange: (updates: Partial<RoadmapConfig>) => void;
 }
 
 export function RoadmapSettings({ config, pipelines, onChange }: RoadmapSettingsProps) {

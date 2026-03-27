@@ -143,13 +143,13 @@ async def _maybe_trigger_roadmap(access_token: str, project_id: str) -> None:
         if row is None:
             return
 
-        import json as _json
+        import json
 
         from src.models.settings import ProjectBoardConfig
 
         if not row["board_display_config"]:
             return
-        config = ProjectBoardConfig(**_json.loads(row["board_display_config"]))
+        config = ProjectBoardConfig(**json.loads(row["board_display_config"]))
 
         if not config.roadmap_enabled or not config.roadmap_auto_launch:
             return

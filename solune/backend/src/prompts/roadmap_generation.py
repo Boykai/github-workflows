@@ -17,7 +17,9 @@ Rules:
 3. Features must be concrete, actionable, and independently implementable.
 4. Prioritize features that align most closely with the seed vision.
 5. Consider the codebase context to propose features that fit naturally into the existing architecture.
-6. Output raw JSON ONLY — a JSON array of objects. No markdown code fences, no extra text."""
+6. Output raw JSON ONLY — a JSON array of objects. No markdown code fences, no extra text.
+
+Note: While the prompt requests raw JSON, the parser defensively handles markdown fences as LLMs occasionally wrap output in code blocks despite instructions."""
 
 
 def create_roadmap_generation_prompt(

@@ -337,7 +337,7 @@ async def deliver_roadmap_notification(
         logger.error("Failed to decrypt phone for roadmap notification user %s: %s", user_id, e)
         return
 
-    text = format_roadmap_notification(batch, project_name=project_id)
+    text = format_roadmap_notification(batch, project_name=None)
 
     audit = await create_signal_message(
         connection_id=conn.id,

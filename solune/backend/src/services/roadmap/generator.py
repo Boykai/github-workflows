@@ -111,9 +111,7 @@ async def _load_roadmap_config(db, project_id: str):
     from src.models.settings import ProjectBoardConfig
 
     if row["board_display_config"]:
-        import json as _json
-
-        raw = _json.loads(row["board_display_config"])
+        raw = json.loads(row["board_display_config"])
         return ProjectBoardConfig(**raw)
     return ProjectBoardConfig()
 
