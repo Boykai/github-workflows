@@ -225,7 +225,7 @@ With multiple developers:
 | **US3 tasks** | 2 (T008–T009) |
 | **Setup tasks** | 1 (T001) |
 | **Polish/validation tasks** | 6 (T010–T015) |
-| **Parallel opportunities** | 7 tasks marked [P] |
+| **Parallel opportunities** | 6 tasks marked [P] |
 | **Files created** | 2 (`CelestialLoadingProgress.tsx`, `CelestialLoadingProgress.test.tsx`) |
 | **Files modified** | 5 (`index.css`, `ProjectsPage.tsx`, `ProjectsPage.test.tsx`, `AgentsPipelinePage.tsx`, `SettingsPage.tsx`) |
 | **Suggested MVP scope** | Phase 1 + Phase 3 (US1+US4): 5 tasks |
