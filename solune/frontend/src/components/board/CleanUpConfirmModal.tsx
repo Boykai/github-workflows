@@ -458,6 +458,7 @@ function ToggleButton({
     <button
       type="button"
       onClick={disabled ? undefined : onClick}
+      disabled={disabled}
       className={`shrink-0 rounded p-1 transition-colors ${
         disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'
       }`}
@@ -507,7 +508,7 @@ function BranchRow({
       </div>
       {(branch.deletion_reason || reason) && (
         <span className="ml-[3.25rem] text-[11px] text-muted-foreground">
-          {disabled ? reason : willDelete ? branch.deletion_reason : reason}
+          {disabled ? reason : willDelete ? branch.deletion_reason ?? reason : reason}
         </span>
       )}
     </li>
