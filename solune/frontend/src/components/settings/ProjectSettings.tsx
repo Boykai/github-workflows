@@ -7,6 +7,7 @@
 
 import { useState } from 'react';
 import { SettingsSection } from './SettingsSection';
+import { RoadmapSettings } from './RoadmapSettings';
 import { useProjectSettings } from '@/hooks/useSettings';
 import type { ProjectSettingsUpdate, ProjectBoardConfig, ProjectAgentMapping } from '@/types';
 
@@ -26,6 +27,14 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
   const [collapsedColumns, setCollapsedColumns] = useState('');
   const [showEstimates, setShowEstimates] = useState(false);
 
+  // Roadmap config local state
+  const [roadmapEnabled, setRoadmapEnabled] = useState(false);
+  const [roadmapSeed, setRoadmapSeed] = useState('');
+  const [roadmapBatchSize, setRoadmapBatchSize] = useState(3);
+  const [roadmapPipelineId, setRoadmapPipelineId] = useState<string | null>(null);
+  const [roadmapAutoLaunch, setRoadmapAutoLaunch] = useState(false);
+  const [roadmapGraceMinutes, setRoadmapGraceMinutes] = useState(0);
+
   // Agent mappings as JSON text for simplicity
   const [agentMappingsText, setAgentMappingsText] = useState('');
 
@@ -38,10 +47,22 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
       setColumnOrder(ps.board_display_config.column_order.join(', '));
       setCollapsedColumns(ps.board_display_config.collapsed_columns.join(', '));
       setShowEstimates(ps.board_display_config.show_estimates);
+      setRoadmapEnabled(ps.board_display_config.roadmap_enabled ?? false);
+      setRoadmapSeed(ps.board_display_config.roadmap_seed ?? '');
+      setRoadmapBatchSize(ps.board_display_config.roadmap_batch_size ?? 3);
+      setRoadmapPipelineId(ps.board_display_config.roadmap_pipeline_id ?? null);
+      setRoadmapAutoLaunch(ps.board_display_config.roadmap_auto_launch ?? false);
+      setRoadmapGraceMinutes(ps.board_display_config.roadmap_grace_minutes ?? 0);
     } else {
       setColumnOrder('');
       setCollapsedColumns('');
       setShowEstimates(false);
+      setRoadmapEnabled(false);
+      setRoadmapSeed('');
+      setRoadmapBatchSize(3);
+      setRoadmapPipelineId(null);
+      setRoadmapAutoLaunch(false);
+      setRoadmapGraceMinutes(0);
     }
 
     if (ps?.agent_pipeline_mappings) {
@@ -70,6 +91,12 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
     show_estimates: showEstimates,
     queue_mode: settings?.project?.board_display_config?.queue_mode ?? false,
     auto_merge: settings?.project?.board_display_config?.auto_merge ?? false,
+    roadmap_enabled: roadmapEnabled,
+    roadmap_seed: roadmapSeed,
+    roadmap_batch_size: roadmapBatchSize,
+    roadmap_pipeline_id: roadmapPipelineId,
+    roadmap_auto_launch: roadmapAutoLaunch,
+    roadmap_grace_minutes: roadmapGraceMinutes,
   });
 
   const parseAgentMappings = (): Record<string, ProjectAgentMapping[]> | null => {
@@ -196,6 +223,26 @@ export function ProjectSettings({ projects, selectedProjectId }: ProjectSettings
               placeholder='{"Backlog": [{"slug": "speckit.specify"}]}'
             />
           </div>
+
+          <RoadmapSettings
+            config={{
+              roadmap_enabled: roadmapEnabled,
+              roadmap_seed: roadmapSeed,
+              roadmap_batch_size: roadmapBatchSize,
+              roadmap_pipeline_id: roadmapPipelineId,
+              roadmap_auto_launch: roadmapAutoLaunch,
+              roadmap_grace_minutes: roadmapGraceMinutes,
+            }}
+            pipelines={[]}
+            onChange={(updates) => {
+              if (updates.roadmap_enabled !== undefined) setRoadmapEnabled(updates.roadmap_enabled);
+              if (updates.roadmap_seed !== undefined) setRoadmapSeed(updates.roadmap_seed);
+              if (updates.roadmap_batch_size !== undefined) setRoadmapBatchSize(updates.roadmap_batch_size);
+              if (updates.roadmap_pipeline_id !== undefined) setRoadmapPipelineId(updates.roadmap_pipeline_id);
+              if (updates.roadmap_auto_launch !== undefined) setRoadmapAutoLaunch(updates.roadmap_auto_launch);
+              if (updates.roadmap_grace_minutes !== undefined) setRoadmapGraceMinutes(updates.roadmap_grace_minutes);
+            }}
+          />
         </>
       )}
     </SettingsSection>

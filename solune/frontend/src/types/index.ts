@@ -490,6 +490,13 @@ export interface ProjectBoardConfig {
   show_estimates: boolean;
   queue_mode: boolean;
   auto_merge: boolean;
+  // Roadmap engine fields (FR-001)
+  roadmap_enabled: boolean;
+  roadmap_seed: string;
+  roadmap_batch_size: number;
+  roadmap_pipeline_id: string | null;
+  roadmap_auto_launch: boolean;
+  roadmap_grace_minutes: number;
 }
 
 export interface ProjectAgentMapping {

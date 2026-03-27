@@ -20,6 +20,7 @@ import { RefreshButton } from '@/components/board/RefreshButton';
 import { PipelineStagesSection } from '@/components/board/PipelineStagesSection';
 import { ProjectBoardErrorBanners } from '@/components/board/ProjectBoardErrorBanners';
 import { ProjectBoardContent } from '@/components/board/ProjectBoardContent';
+import { RoadmapBadge } from '@/components/board/RoadmapBadge';
 import { ProjectSelectionEmptyState } from '@/components/common/ProjectSelectionEmptyState';
 import { useAvailableAgents } from '@/hooks/useAgentConfig';
 import { useBoardControls } from '@/hooks/useBoardControls';
@@ -98,6 +99,7 @@ export function ProjectsPage() {
   const { settings: projectSettings, updateSettings, isUpdating: isSettingsUpdating } = useProjectSettings(selectedProjectId ?? undefined);
   const isQueueMode = projectSettings?.project?.board_display_config?.queue_mode ?? false;
   const isAutoMerge = projectSettings?.project?.board_display_config?.auto_merge ?? false;
+  const isRoadmapEnabled = projectSettings?.project?.board_display_config?.roadmap_enabled ?? false;
 
   const handleToggleQueueMode = useCallback(async () => {
     if (!selectedProjectId) return;
@@ -422,6 +424,10 @@ export function ProjectsPage() {
             <GitMerge className="h-3.5 w-3.5" />
             Auto Merge
           </button>
+        )}
+
+        {selectedProjectId && boardData && (
+          <RoadmapBadge enabled={isRoadmapEnabled} />
         )}
       </div>
 

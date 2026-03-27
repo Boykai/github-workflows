@@ -1,7 +1,7 @@
 """Pipeline state management, status checking, and advancement logic."""
 
 import asyncio
-from datetime import datetime
+from datetime import UTC, date, datetime
 from typing import Any
 
 import src.services.copilot_polling as _cp
@@ -63,6 +63,10 @@ async def _dequeue_next_pipeline(
 
             queued = _cp.get_queued_pipelines_for_project(project_id)
             if not queued:
+                # Queue is empty — check if roadmap auto-launch should trigger (FR-006)
+                asyncio.ensure_future(
+                    _maybe_trigger_roadmap(access_token, project_id)
+                )
                 return
 
             next_pipeline = queued[0]
@@ -106,6 +110,128 @@ async def _dequeue_next_pipeline(
             "Failed to dequeue next pipeline for project %s (trigger: %s)",
             project_id,
             trigger,
+            exc_info=True,
+        )
+
+
+# ── Roadmap Auto-Launch (FR-006, FR-007) ────────────────────────────────
+
+# In-memory per-project debounce and daily cap state.
+_roadmap_last_trigger: dict[str, datetime] = {}
+_roadmap_daily_count: dict[str, tuple[date, int]] = {}
+
+_ROADMAP_DEBOUNCE_SECONDS = 300  # 5 minutes
+_ROADMAP_DAILY_CAP = 10
+
+
+async def _maybe_trigger_roadmap(access_token: str, project_id: str) -> None:
+    """Check roadmap auto-launch conditions and trigger a cycle if appropriate.
+
+    Conditions:
+      - roadmap_enabled AND roadmap_auto_launch are true
+      - 5-minute debounce since last trigger for this project
+      - ≤ 10 auto-cycles today (UTC) for this project
+
+    Runs as fire-and-forget to avoid blocking the dequeue path.
+    """
+    try:
+        from src.services.database import get_db
+        from src.services.settings_store import get_project_settings_row
+
+        db = get_db()
+        row = await get_project_settings_row(db, "__workflow__", project_id)
+        if row is None:
+            return
+
+        import json
+
+        from src.models.settings import ProjectBoardConfig
+
+        if not row["board_display_config"]:
+            return
+        config = ProjectBoardConfig(**json.loads(row["board_display_config"]))
+
+        if not config.roadmap_enabled or not config.roadmap_auto_launch:
+            return
+
+        now = datetime.now(UTC)
+
+        # Debounce check (FR-006)
+        last = _roadmap_last_trigger.get(project_id)
+        if last and (now - last).total_seconds() < _ROADMAP_DEBOUNCE_SECONDS:
+            logger.debug(
+                "Roadmap debounce active for project %s (last trigger: %s)",
+                project_id,
+                last.isoformat(),
+            )
+            return
+
+        # Daily cap check (FR-007)
+        today = now.date()
+        day_info = _roadmap_daily_count.get(project_id)
+        if day_info:
+            stored_date, count = day_info
+            if stored_date == today and count >= _ROADMAP_DAILY_CAP:
+                logger.info(
+                    "Roadmap daily cap reached for project %s (%d/%d cycles today)",
+                    project_id,
+                    count,
+                    _ROADMAP_DAILY_CAP,
+                )
+                return
+        else:
+            count = 0
+
+        # All checks passed — trigger the cycle
+        _roadmap_last_trigger[project_id] = now
+        if day_info and day_info[0] == today:
+            _roadmap_daily_count[project_id] = (today, count + 1)
+        else:
+            _roadmap_daily_count[project_id] = (today, 1)
+
+        logger.info(
+            "Auto-launching roadmap cycle for project %s (cycle %d/%d today)",
+            project_id,
+            _roadmap_daily_count[project_id][1],
+            _ROADMAP_DAILY_CAP,
+        )
+
+        from src.services.roadmap.generator import generate_roadmap_batch
+
+        batch = await generate_roadmap_batch(
+            project_id=project_id,
+            user_id="__auto__",
+            access_token=access_token,
+        )
+
+        if config.roadmap_pipeline_id:
+            from src.models.user import UserSession
+
+            auto_session = UserSession(
+                github_user_id="__auto__",
+                github_username="roadmap-engine",
+                access_token=access_token,
+            )
+            from src.services.roadmap.launcher import launch_roadmap_batch
+
+            await launch_roadmap_batch(
+                batch=batch,
+                pipeline_id=config.roadmap_pipeline_id,
+                session=auto_session,
+            )
+
+        # Send notification (FR-009)
+        try:
+            from src.services.signal_delivery import deliver_roadmap_notification
+
+            await deliver_roadmap_notification(batch, project_id, "__auto__")
+        except Exception:
+            logger.warning("Failed to send roadmap auto-launch notification", exc_info=True)
+
+    except Exception:
+        logger.error(
+            "Roadmap auto-launch failed for project %s",
+            project_id,
             exc_info=True,
         )
 

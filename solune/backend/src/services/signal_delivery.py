@@ -281,3 +281,74 @@ async def deliver_chat_message_via_signal(
         _delivery_task(phone, text, audit.id),
         name=f"signal-delivery-{audit.id}",
     )
+
+
+# ── Roadmap Notification (FR-009) ────────────────────────────────────────
+
+
+def format_roadmap_notification(batch, project_name: str | None = None) -> str:
+    """Format a roadmap cycle completion notification for Signal.
+
+    Args:
+        batch: RoadmapBatch with generated items.
+        project_name: Optional project name for context.
+
+    Returns:
+        Formatted notification string per FR-009.
+    """
+    titles = ", ".join(item.title for item in batch.items)
+    count = len(batch.items)
+
+    parts: list[str] = []
+    parts.append(f"🗺️ *Roadmap: {count} items queued* — {titles}.")
+    parts.append("Reply SKIP {number} to veto.")
+
+    if project_name:
+        parts.insert(1, f"_Project: {project_name}_")
+
+    text = "\n".join(parts)
+
+    if len(text) > MAX_SIGNAL_MESSAGE_LENGTH:
+        text = text[: MAX_SIGNAL_MESSAGE_LENGTH - 20] + "\n\n_…message truncated_"
+
+    return text
+
+
+async def deliver_roadmap_notification(
+    batch,
+    project_id: str,
+    user_id: str,
+) -> None:
+    """Send a Signal notification for a completed roadmap cycle.
+
+    Fire-and-forget — does not block the caller. Gracefully degrades
+    if the user has no Signal connection or notifications are disabled.
+    """
+    conn = await get_connection_by_user(user_id)
+    if not conn or conn.status != SignalConnectionStatus.CONNECTED:
+        return
+
+    from src.services.signal_bridge import _get_encryption
+
+    enc = _get_encryption()
+    try:
+        phone = enc.decrypt(conn.signal_phone_encrypted)
+    except Exception as e:
+        logger.error("Failed to decrypt phone for roadmap notification user %s: %s", user_id, e)
+        return
+
+    text = format_roadmap_notification(batch, project_name=None)
+
+    audit = await create_signal_message(
+        connection_id=conn.id,
+        direction=SignalMessageDirection.OUTBOUND,
+        content_preview=text[:200],
+        delivery_status=SignalDeliveryStatus.PENDING,
+    )
+
+    from src.services.task_registry import task_registry
+
+    task_registry.create_task(
+        _delivery_task(phone, text, audit.id),
+        name=f"signal-roadmap-{audit.id}",
+    )
