@@ -1,0 +1,182 @@
+# OpenAPI Fragment: Copilot Slash Command Flow
+#
+# This is NOT a new endpoint — it documents the existing POST /chat/messages
+# endpoint behavior when a Copilot slash command is submitted. The endpoint
+# contract is unchanged; only the backend dispatch logic is extended.
+
+openapi: 3.0.3
+info:
+  title: Solune Chat API — Copilot Command Extension
+  version: 1.0.0
+  description: >
+    Documents the request/response contract for Copilot slash commands
+    flowing through the existing chat message endpoint.
+
+paths:
+  /chat/messages:
+    post:
+      summary: Send a chat message (including Copilot slash commands)
+      description: >
+        Existing endpoint. When the message content starts with a Copilot
+        slash command (e.g., `/explain`, `/fix`), the backend routes it to
+        the Copilot command handler at priority 0.1 instead of the default
+        feature-request or task-generation handlers.
+      operationId: sendMessage
+      tags:
+        - Chat
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageRequest'
+            examples:
+              copilot-explain:
+                summary: Explain command
+                value:
+                  content: "/explain What is a closure in JavaScript?"
+                  pipeline_id: null
+                  ai_enhance: false
+                  file_urls: []
+              copilot-fix:
+                summary: Fix command
+                value:
+                  content: "/fix const x = [1,2,3]; x.map(i => i +)"
+                  pipeline_id: null
+                  ai_enhance: false
+                  file_urls: []
+              copilot-tests:
+                summary: Tests command
+                value:
+                  content: "/tests function add(a, b) { return a + b; }"
+                  pipeline_id: null
+                  ai_enhance: false
+                  file_urls: []
+              copilot-no-args:
+                summary: Command with no arguments
+                value:
+                  content: "/explain"
+                  pipeline_id: null
+                  ai_enhance: false
+                  file_urls: []
+      responses:
+        '200':
+          description: AI-generated response for the Copilot command
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+              examples:
+                copilot-response:
+                  summary: Successful Copilot response
+                  value:
+                    message_id: "550e8400-e29b-41d4-a716-446655440099"
+                    session_id: "550e8400-e29b-41d4-a716-446655440001"
+                    sender_type: "assistant"
+                    content: "A closure is a function that captures variables from its enclosing scope..."
+                    action_type: null
+                    action_data: null
+                    timestamp: "2026-03-27T18:00:00Z"
+                copilot-error:
+                  summary: Copilot provider failure (user-friendly error)
+                  value:
+                    message_id: "550e8400-e29b-41d4-a716-446655440100"
+                    session_id: "550e8400-e29b-41d4-a716-446655440001"
+                    sender_type: "assistant"
+                    content: "**Error:** The Copilot command encountered an unexpected error. Please try again."
+                    action_type: null
+                    action_data: null
+                    timestamp: "2026-03-27T18:00:01Z"
+
+components:
+  schemas:
+    ChatMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: >
+            User message content. When starting with a Copilot slash command
+            prefix (e.g., /explain, /fix), the backend routes to the Copilot
+            handler. Supported commands: /explain, /fix, /doc, /tests,
+            /setupTests, /new, /newNotebook, /search, /startDebugging.
+          examples:
+            - "/explain What is a closure?"
+            - "/fix const x = [1,2,3]; x.map(i => i +)"
+            - "/tests function add(a, b) { return a + b; }"
+        pipeline_id:
+          type: string
+          nullable: true
+          description: Optional pipeline ID (not used by Copilot commands)
+        ai_enhance:
+          type: boolean
+          description: Whether to enhance with AI (not used by Copilot commands)
+        file_urls:
+          type: array
+          items:
+            type: string
+          description: Attached file URLs (not used by Copilot commands)
+
+    ChatMessage:
+      type: object
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        sender_type:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+          maxLength: 100000
+        action_type:
+          type: string
+          nullable: true
+          enum: [task_create, status_update, project_select, issue_create]
+        action_data:
+          type: object
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+
+    # Internal: Copilot command detection result (not exposed via API)
+    CopilotCommandMatch:
+      description: >
+        Internal type returned by is_copilot_command(). Not part of the
+        public API — documented here for contract clarity.
+      type: object
+      properties:
+        command:
+          type: string
+          description: Matched command name (e.g., "explain")
+          enum: [explain, fix, doc, tests, setupTests, new, newNotebook, search, startDebugging]
+        args:
+          type: string
+          description: Everything after the command name, trimmed
+
+    # Internal: Messages sent to CopilotCompletionProvider.complete()
+    CopilotProviderMessages:
+      description: >
+        Internal message list built by execute_copilot_command() and passed
+        to CopilotCompletionProvider.complete(). Not part of the public API.
+      type: array
+      items:
+        type: object
+        required: [role, content]
+        properties:
+          role:
+            type: string
+            enum: [system, user]
+          content:
+            type: string
+      example:
+        - role: system
+          content: "You are a coding assistant. Explain the following code or concept clearly..."
+        - role: user
+          content: "What is a closure in JavaScript?"
