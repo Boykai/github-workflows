@@ -13,14 +13,14 @@ import {
   Trash2,
   ArrowRightLeft,
   Clock,
-  ChevronDown,
-  ChevronRight,
   Activity,
 } from '@/lib/icons';
 import { useActivityFeed } from '@/hooks/useActivityFeed';
 import { InfiniteScrollContainer } from '@/components/common/InfiniteScrollContainer';
+import { CelestialLoader } from '@/components/common/CelestialLoader';
 import { useAuth } from '@/hooks/useAuth';
 import { cn } from '@/lib/utils';
+import { ActivityEventItem } from '@/components/activity/ActivityEventItem';
 
 // ── Event type → category mapping ──
 
@@ -34,54 +34,6 @@ const EVENT_CATEGORIES = [
   { label: 'Cleanup', types: ['cleanup'], icon: Trash2 },
   { label: 'Status', types: ['status_change'], icon: ArrowRightLeft },
 ] as const;
-
-const EVENT_TYPE_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
-  pipeline_run: GitBranch,
-  pipeline_stage: GitBranch,
-  chore_trigger: ListChecks,
-  chore_crud: ListChecks,
-  agent_crud: Bot,
-  agent_execution: Bot,
-  cleanup: Trash2,
-  app_crud: Boxes,
-  tool_crud: Wrench,
-  status_change: ArrowRightLeft,
-  webhook: Webhook,
-};
-
-function formatRelativeTime(isoDate: string): string {
-  const now = Date.now();
-  const then = new Date(isoDate + (isoDate.endsWith('Z') ? '' : 'Z')).getTime();
-  const diff = now - then;
-
-  if (diff < 60_000) return 'just now';
-  if (diff < 3_600_000) {
-    const mins = Math.floor(diff / 60_000);
-    return `${mins}m ago`;
-  }
-  if (diff < 86_400_000) {
-    const hrs = Math.floor(diff / 3_600_000);
-    return `${hrs}h ago`;
-  }
-  const days = Math.floor(diff / 86_400_000);
-  if (days < 30) return `${days}d ago`;
-  return new Date(then).toLocaleDateString();
-}
-
-function DetailView({ detail }: { detail: Record<string, unknown> }) {
-  return (
-    <div className="mt-2 rounded-lg bg-muted/40 px-3 py-2 text-xs">
-      {Object.entries(detail).map(([key, value]) => (
-        <div key={key} className="flex gap-2 py-0.5">
-          <span className="font-medium text-muted-foreground">{key}:</span>
-          <span className="text-foreground">
-            {typeof value === 'object' ? JSON.stringify(value) : String(value)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export function ActivityPage() {
   const { user } = useAuth();
@@ -127,12 +79,12 @@ export function ActivityPage() {
     <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
       {/* Header */}
       <div className="mb-6 flex items-center gap-3">
-        <Activity className="h-6 w-6 text-primary" />
+        <Activity aria-hidden="true" className="h-6 w-6 text-primary" />
         <h1 className="text-2xl font-display font-semibold tracking-tight">Activity</h1>
       </div>
 
       {/* Filter chips */}
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2" role="group" aria-label="Activity type filters">
         {EVENT_CATEGORIES.map((cat) => {
           const Icon = cat.icon;
           const active = selectedCategories.includes(cat.label);
@@ -141,6 +93,7 @@ export function ActivityPage() {
               key={cat.label}
               type="button"
               onClick={() => toggleCategory(cat.label)}
+              aria-pressed={active}
               className={cn(
                 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors',
                 active
@@ -148,7 +101,7 @@ export function ActivityPage() {
                   : 'border-border bg-background text-muted-foreground hover:border-primary/50 hover:text-foreground',
               )}
             >
-              <Icon className="h-3.5 w-3.5" />
+              <Icon aria-hidden="true" className="h-3.5 w-3.5" />
               {cat.label}
             </button>
           );
@@ -167,15 +120,14 @@ export function ActivityPage() {
       {/* Loading state */}
       {isLoading && (
         <div className="flex items-center justify-center py-20">
-          <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary/30 border-t-primary" />
-          <span className="ml-3 text-sm text-muted-foreground">Loading activity…</span>
+          <CelestialLoader size="md" label="Loading activity…" />
         </div>
       )}
 
       {/* Empty state */}
       {!isLoading && events.length === 0 && (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 py-20">
-          <Clock className="mb-3 h-10 w-10 text-muted-foreground/40" />
+          <Clock aria-hidden="true" className="mb-3 h-10 w-10 text-muted-foreground/40" />
           <p className="text-sm font-medium text-muted-foreground">
             {selectedCategories.length > 0
               ? `No ${selectedCategories.join(', ').toLowerCase()} events found`
@@ -196,44 +148,14 @@ export function ActivityPage() {
           isError={isError}
         >
           <div className="space-y-1">
-            {events.map((event) => {
-              const Icon = EVENT_TYPE_ICON_MAP[event.event_type] ?? Clock;
-              const expanded = expandedIds.has(event.id);
-              const hasDetail = event.detail && Object.keys(event.detail).length > 0;
-
-              return (
-                <div key={event.id} className="group">
-                  <button
-                    type="button"
-                    onClick={() => hasDetail && toggleExpanded(event.id)}
-                    className={cn(
-                      'flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
-                      hasDetail
-                        ? 'hover:bg-muted/50 cursor-pointer'
-                        : 'cursor-default',
-                    )}
-                  >
-                    <Icon className="mt-0.5 h-4 w-4 shrink-0 text-primary/70" />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm text-foreground">{event.summary}</p>
-                      <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{formatRelativeTime(event.created_at)}</span>
-                        <span>·</span>
-                        <span>{event.actor}</span>
-                      </div>
-                    </div>
-                    {hasDetail && (
-                      expanded ? (
-                        <ChevronDown className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                      ) : (
-                        <ChevronRight className="mt-1 h-3.5 w-3.5 shrink-0 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-                      )
-                    )}
-                  </button>
-                  {expanded && event.detail && <DetailView detail={event.detail} />}
-                </div>
-              );
-            })}
+            {events.map((event) => (
+              <ActivityEventItem
+                key={event.id}
+                event={event}
+                expanded={expandedIds.has(event.id)}
+                onToggleExpand={toggleExpanded}
+              />
+            ))}
           </div>
 
           {/* End of activity indicator */}

@@ -24,9 +24,9 @@
 
 **Purpose**: Establish the audit framework, capture baseline metrics, and prepare tooling for systematic page-by-page audit.
 
-- [ ] T001 Run baseline lint across all page files: `npx eslint src/pages/*.tsx` from `solune/frontend/` and record current warning count
-- [ ] T002 Run baseline type-check: `npx tsc --noEmit` from `solune/frontend/` and record current error count
-- [ ] T003 Run baseline test suite: `npx vitest run` from `solune/frontend/` and record current pass/fail counts
+- [x] T001 Run baseline lint across all page files: `npx eslint src/pages/*.tsx` from `solune/frontend/` and record current warning count
+- [x] T002 Run baseline type-check: `npx tsc --noEmit` from `solune/frontend/` and record current error count
+- [x] T003 Run baseline test suite: `npx vitest run` from `solune/frontend/` and record current pass/fail counts
 - [ ] T004 [P] Inventory each page's line count, hooks used, API calls, and sub-components — produce findings table per plan.md page inventory
 
 ---
@@ -58,29 +58,29 @@
 ### Implementation for User Story 1
 
 **ProjectsPage (503 lines — OVER LIMIT)**:
-- [ ] T012 [US1] Audit `solune/frontend/src/pages/ProjectsPage.tsx` — identify inline sub-components, business logic in JSX, and prop-drilling paths
-- [ ] T013 [US1] Extract sub-components from ProjectsPage into `solune/frontend/src/components/board/` to bring page under 250 lines (FR-001)
-- [ ] T014 [US1] Extract complex state logic (>15 lines) from ProjectsPage into hooks in `solune/frontend/src/hooks/` (FR-005)
+- [x] T012 [US1] Audit `solune/frontend/src/pages/ProjectsPage.tsx` — identify inline sub-components, business logic in JSX, and prop-drilling paths
+- [x] T013 [US1] Extract sub-components from ProjectsPage into `solune/frontend/src/components/board/` to bring page under 250 lines (FR-001)
+- [x] T014 [US1] Extract complex state logic (>15 lines) from ProjectsPage into hooks in `solune/frontend/src/hooks/` (FR-005)
 - [ ] T015 [US1] Replace any reimplemented UI primitives in ProjectsPage with shared components from `solune/frontend/src/components/ui/` (FR-002)
-- [ ] T016 [US1] Remove business logic from ProjectsPage render tree in `solune/frontend/src/pages/ProjectsPage.tsx` — move to hooks or helper functions (FR-006)
+- [x] T016 [US1] Remove business logic from ProjectsPage render tree in `solune/frontend/src/pages/ProjectsPage.tsx` — move to hooks or helper functions (FR-006)
 
 **AppsPage (325 lines — OVER LIMIT)**:
-- [ ] T017 [P] [US1] Audit `solune/frontend/src/pages/AppsPage.tsx` — identify inline sub-components, business logic in JSX, and prop-drilling paths
-- [ ] T018 [US1] Extract sub-components from AppsPage into `solune/frontend/src/components/apps/` to bring page under 250 lines (FR-001)
+- [x] T017 [P] [US1] Audit `solune/frontend/src/pages/AppsPage.tsx` — identify inline sub-components, business logic in JSX, and prop-drilling paths
+- [x] T018 [US1] Extract sub-components from AppsPage into `solune/frontend/src/components/apps/` to bring page under 250 lines (FR-001)
 - [ ] T019 [US1] Extract complex state logic from AppsPage into hooks in `solune/frontend/src/hooks/` (FR-005)
 - [ ] T020 [US1] Replace any reimplemented UI primitives in AppsPage with shared components from `solune/frontend/src/components/ui/` (FR-002)
 - [ ] T021 [US1] Remove business logic from AppsPage render tree in `solune/frontend/src/pages/AppsPage.tsx` — move to hooks or helper functions (FR-006)
 
 **AgentsPipelinePage (313 lines — OVER LIMIT)**:
-- [ ] T022 [P] [US1] Audit `solune/frontend/src/pages/AgentsPipelinePage.tsx` — identify inline sub-components, business logic in JSX, and prop-drilling paths
-- [ ] T023 [US1] Extract sub-components from AgentsPipelinePage into `solune/frontend/src/components/pipeline/` to bring page under 250 lines (FR-001)
+- [x] T022 [P] [US1] Audit `solune/frontend/src/pages/AgentsPipelinePage.tsx` — identify inline sub-components, business logic in JSX, and prop-drilling paths
+- [x] T023 [US1] Extract sub-components from AgentsPipelinePage into `solune/frontend/src/components/pipeline/` to bring page under 250 lines (FR-001)
 - [ ] T024 [US1] Extract complex state logic from AgentsPipelinePage into hooks in `solune/frontend/src/hooks/` (FR-005)
 - [ ] T025 [US1] Replace any reimplemented UI primitives in AgentsPipelinePage with shared components from `solune/frontend/src/components/ui/` (FR-002)
 - [ ] T026 [US1] Remove business logic from AgentsPipelinePage render tree in `solune/frontend/src/pages/AgentsPipelinePage.tsx` — move to hooks or helper functions (FR-006)
 
 **ActivityPage (251 lines — OVER LIMIT, borderline)**:
-- [ ] T027 [P] [US1] Audit `solune/frontend/src/pages/ActivityPage.tsx` — identify inline sub-components, business logic in JSX, and prop-drilling paths
-- [ ] T028 [US1] Extract sub-components from ActivityPage into `solune/frontend/src/components/activity/` to bring page to 250 lines or under (FR-001)
+- [x] T027 [P] [US1] Audit `solune/frontend/src/pages/ActivityPage.tsx` — identify inline sub-components, business logic in JSX, and prop-drilling paths
+- [x] T028 [US1] Extract sub-components from ActivityPage into `solune/frontend/src/components/activity/` to bring page to 250 lines or under (FR-001)
 - [ ] T029 [US1] Extract complex state logic from ActivityPage into hooks in `solune/frontend/src/hooks/` (FR-005)
 
 **Remaining pages (under 250 lines — audit only)**:

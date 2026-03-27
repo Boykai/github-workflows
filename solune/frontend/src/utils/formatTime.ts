@@ -22,6 +22,35 @@ export function formatTimeAgo(date: Date): string {
  * - `"in X minutes"` for < 60 min
  * - locale time string otherwise
  */
+/**
+ * Format an ISO-8601 date string as a relative time label.
+ *
+ * Returns:
+ * - `"just now"` for < 60 s
+ * - `"Xm ago"` for < 60 min
+ * - `"Xh ago"` for < 24 h
+ * - `"Xd ago"` for < 30 d
+ * - locale date string otherwise
+ */
+export function formatRelativeTime(isoDate: string): string {
+  const now = Date.now();
+  const then = new Date(isoDate + (isoDate.endsWith('Z') ? '' : 'Z')).getTime();
+  const diff = now - then;
+
+  if (diff < 60_000) return 'just now';
+  if (diff < 3_600_000) {
+    const mins = Math.floor(diff / 60_000);
+    return `${mins}m ago`;
+  }
+  if (diff < 86_400_000) {
+    const hrs = Math.floor(diff / 3_600_000);
+    return `${hrs}h ago`;
+  }
+  const days = Math.floor(diff / 86_400_000);
+  if (days < 30) return `${days}d ago`;
+  return new Date(then).toLocaleDateString();
+}
+
 export function formatTimeUntil(date: Date): string {
   const now = new Date();
   const diffSec = Math.floor((date.getTime() - now.getTime()) / 1000);
