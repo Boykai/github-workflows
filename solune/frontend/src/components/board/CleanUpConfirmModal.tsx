@@ -83,14 +83,43 @@ export function CleanUpConfirmModal({
     });
   };
 
+  // Batch toggle helpers
+  const toggleAllInDeleteSection = (keys: string[]) => {
+    setPreserved((prev) => {
+      const next = new Set(prev);
+      const allPreserved = keys.length > 0 && keys.every((k) => next.has(k));
+      if (allPreserved) {
+        keys.forEach((k) => next.delete(k));
+      } else {
+        keys.forEach((k) => next.add(k));
+      }
+      return next;
+    });
+  };
+
+  const toggleAllInPreserveSection = (keys: string[], excludeKeys: string[] = []) => {
+    const excluded = new Set(excludeKeys);
+    const eligible = keys.filter((k) => !excluded.has(k));
+    setMarkedForDeletion((prev) => {
+      const next = new Set(prev);
+      const allMarked = eligible.length > 0 && eligible.every((k) => next.has(k));
+      if (allMarked) {
+        eligible.forEach((k) => next.delete(k));
+      } else {
+        eligible.forEach((k) => next.add(k));
+      }
+      return next;
+    });
+  };
+
   // Compute final lists
   const finalBranchesToDelete = data.branches_to_delete.filter((b) => !preserved.has(b.name));
   const finalPrsToClose = data.prs_to_close.filter((p) => !preserved.has(`pr:${p.number}`));
   const finalIssuesToClose = (data.orphaned_issues ?? []).filter(
     (i) => !preserved.has(`issue:${i.number}`)
   );
-  const finalBranchesToDeleteFromPreserve = data.branches_to_preserve.filter((b) =>
-    markedForDeletion.has(b.name)
+  const finalBranchesToDeleteFromPreserve = data.branches_to_preserve.filter(
+    (b) => markedForDeletion.has(b.name) && b.name !== 'main'
   );
   const finalPrsToCloseFromPreserve = data.prs_to_preserve.filter((p) =>
     markedForDeletion.has(`pr:${p.number}`)
@@ -125,6 +154,25 @@ export function CleanUpConfirmModal({
   const prUrl = (num: number) => `${ghBase}/pull/${num}`;
   const issueUrl = (issue: OrphanedIssueInfo) => issue.html_url || `${ghBase}/issues/${issue.number}`;
 
+  // Section key arrays and derived toggle states
+  const issueKeys = (data.orphaned_issues ?? []).map((i) => `issue:${i.number}`);
+  const branchDeleteKeys = data.branches_to_delete.map((b) => b.name);
+  const prCloseKeys = data.prs_to_close.map((p) => `pr:${p.number}`);
+  const branchPreserveKeys = data.branches_to_preserve.map((b) => b.name);
+  const prPreserveKeys = data.prs_to_preserve.map((p) => `pr:${p.number}`);
+
+  const allIssuesPreserved = issueKeys.length > 0 && issueKeys.every((k) => preserved.has(k));
+  const allBranchesDeletePreserved =
+    branchDeleteKeys.length > 0 && branchDeleteKeys.every((k) => preserved.has(k));
+  const allPrsClosePreserved =
+    prCloseKeys.length > 0 && prCloseKeys.every((k) => preserved.has(k));
+  const branchPreserveEligible = data.branches_to_preserve.filter((b) => b.name !== 'main');
+  const allBranchesPreserveMarked =
+    branchPreserveEligible.length > 0 &&
+    branchPreserveEligible.every((b) => markedForDeletion.has(b.name));
+  const allPrsPreserveMarked =
+    prPreserveKeys.length > 0 && prPreserveKeys.every((k) => markedForDeletion.has(k));
+
   return createPortal(
     <div
       className="fixed inset-0 z-[2000] flex items-center justify-center bg-background/80 backdrop-blur-sm"
@@ -158,10 +206,20 @@ export function CleanUpConfirmModal({
         {(data.orphaned_issues ?? []).length > 0 && (
           <section className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
-              <span className="inline-flex items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 cursor-pointer select-none hover:opacity-80 transition-opacity"
+                onClick={() => toggleAllInDeleteSection(issueKeys)}
+                aria-label="Toggle all orphaned issues"
+              >
                 <Trash2 className="h-4 w-4" />
                 Orphaned Issues to Delete ({data.orphaned_issues.length})
-              </span>
+                {allIssuesPreserved ? (
+                  <Shield className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                ) : (
+                  <ShieldOff className="h-3.5 w-3.5 text-destructive" />
+                )}
+              </button>
             </h3>
             <p className="text-xs text-muted-foreground mb-2">
               App-created issues no longer attached to the project board. These will be permanently
@@ -206,10 +264,20 @@ export function CleanUpConfirmModal({
         {data.branches_to_delete.length > 0 && (
           <section className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
-              <span className="inline-flex items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 cursor-pointer select-none hover:opacity-80 transition-opacity"
+                onClick={() => toggleAllInDeleteSection(branchDeleteKeys)}
+                aria-label="Toggle all branches to delete"
+              >
                 <Trash2 className="h-4 w-4" />
                 Branches to Delete ({data.branches_to_delete.length})
-              </span>
+                {allBranchesDeletePreserved ? (
+                  <Shield className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                ) : (
+                  <ShieldOff className="h-3.5 w-3.5 text-destructive" />
+                )}
+              </button>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_delete.map((branch) => {
@@ -232,10 +300,20 @@ export function CleanUpConfirmModal({
         {data.prs_to_close.length > 0 && (
           <section className="mb-4">
             <h3 className="text-sm font-medium text-destructive mb-2">
-              <span className="inline-flex items-center gap-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 cursor-pointer select-none hover:opacity-80 transition-opacity"
+                onClick={() => toggleAllInDeleteSection(prCloseKeys)}
+                aria-label="Toggle all pull requests to close"
+              >
                 <Trash2 className="h-4 w-4" />
                 Pull Requests to Close ({data.prs_to_close.length})
-              </span>
+                {allPrsClosePreserved ? (
+                  <Shield className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                ) : (
+                  <ShieldOff className="h-3.5 w-3.5 text-destructive" />
+                )}
+              </button>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_close.map((pr) => {
@@ -259,22 +337,33 @@ export function CleanUpConfirmModal({
         {data.branches_to_preserve.length > 0 && (
           <section className="mb-4">
             <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
-              <span className="inline-flex items-center gap-2">
-                <Shield className="h-4 w-4" />
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 cursor-pointer select-none hover:opacity-80 transition-opacity"
+                onClick={() => toggleAllInPreserveSection(branchPreserveKeys, ['main'])}
+                aria-label="Toggle all branches to preserve"
+              >
+                {allBranchesPreserveMarked ? (
+                  <ShieldOff className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Shield className="h-4 w-4" />
+                )}
                 Branches to Preserve ({data.branches_to_preserve.length})
-              </span>
+              </button>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.branches_to_preserve.map((branch) => {
-                const willDelete = markedForDeletion.has(branch.name);
+                const isMain = branch.name === 'main';
+                const willDelete = !isMain && markedForDeletion.has(branch.name);
                 return (
                   <BranchRow
                     key={branch.name}
                     branch={branch}
                     url={branchUrl(branch.name)}
                     willDelete={willDelete}
-                    onToggle={() => toggleMarkForDeletion(branch.name)}
-                    reason={branch.preservation_reason}
+                    onToggle={isMain ? () => {} : () => toggleMarkForDeletion(branch.name)}
+                    reason={isMain ? 'Default branch cannot be deleted' : branch.preservation_reason}
+                    disabled={isMain}
                   />
                 );
               })}
@@ -286,10 +375,19 @@ export function CleanUpConfirmModal({
         {data.prs_to_preserve.length > 0 && (
           <section className="mb-4">
             <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
-              <span className="inline-flex items-center gap-2">
-                <Shield className="h-4 w-4" />
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 cursor-pointer select-none hover:opacity-80 transition-opacity"
+                onClick={() => toggleAllInPreserveSection(prPreserveKeys)}
+                aria-label="Toggle all pull requests to preserve"
+              >
+                {allPrsPreserveMarked ? (
+                  <ShieldOff className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Shield className="h-4 w-4" />
+                )}
                 Pull Requests to Preserve ({data.prs_to_preserve.length})
-              </span>
+              </button>
             </h3>
             <ul className="space-y-1 text-sm">
               {data.prs_to_preserve.map((pr) => {
@@ -347,13 +445,25 @@ export function CleanUpConfirmModal({
 
 /* ─── Sub-components ─── */
 
-function ToggleButton({ willDelete, onClick }: { willDelete: boolean; onClick: () => void }) {
+function ToggleButton({
+  willDelete,
+  onClick,
+  disabled,
+}: {
+  willDelete: boolean;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
   return (
     <button
       type="button"
-      onClick={onClick}
-      className="shrink-0 rounded p-1 transition-colors hover:bg-primary/10"
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled}
+      className={`shrink-0 rounded p-1 transition-colors ${
+        disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-primary/10'
+      }`}
       aria-label={willDelete ? 'Preserve this item' : 'Mark for deletion'}
+      aria-disabled={disabled || undefined}
     >
       {willDelete ? (
         <ShieldOff className="h-3.5 w-3.5 text-destructive" />
@@ -370,19 +480,21 @@ function BranchRow({
   willDelete,
   onToggle,
   reason,
+  disabled,
 }: {
   branch: BranchInfo;
   url: string;
   willDelete: boolean;
   onToggle: () => void;
   reason?: string | null;
+  disabled?: boolean;
 }) {
   return (
     <li
       className={`flex flex-col gap-0.5 px-2 py-1.5 rounded transition-colors ${willDelete ? 'bg-destructive/10' : 'bg-green-100/80 dark:bg-green-900/30'}`}
     >
       <div className="flex items-center gap-2">
-        <ToggleButton willDelete={willDelete} onClick={onToggle} />
+        <ToggleButton willDelete={willDelete} onClick={onToggle} disabled={disabled} />
         <GitBranch className="h-3 w-3 shrink-0 text-muted-foreground" />
         <a
           href={url}
@@ -396,7 +508,7 @@ function BranchRow({
       </div>
       {(branch.deletion_reason || reason) && (
         <span className="ml-[3.25rem] text-[11px] text-muted-foreground">
-          {willDelete ? branch.deletion_reason : reason}
+          {disabled ? reason : willDelete ? branch.deletion_reason ?? reason : reason}
         </span>
       )}
     </li>
