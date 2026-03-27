@@ -103,7 +103,7 @@ As a Solune chat user, I want my existing commands (/help, /agent, /plan, /clear
 - **FR-007**: System MUST provide 9 distinct, intent-specific system prompts: /explain (explain code/concepts with examples), /fix (identify issues and provide corrected code with explanation), /doc (generate idiomatic documentation comments), /tests (generate comprehensive unit tests with edge cases), /setupTests (recommend test framework and provide setup steps/config), /new (generate project scaffold with directory structure), /newNotebook (generate Jupyter notebook outline with cells), /search (generate effective code search queries/patterns), /startDebugging (generate debug launch.json config for the user's setup).
 - **FR-008**: System MUST NOT require changes to the existing Copilot completion provider — the existing provider and its client pool MUST be reused as-is with no new API clients or authentication flows introduced.
 - **FR-009**: System MUST clear the chat input field after a Copilot command is submitted (clearInput: true).
-- **FR-010**: System MUST NOT match partial command names as Copilot commands — only exact command-name matches (followed by a space or end of input) are valid.
+- **FR-010**: System MUST NOT match partial command names as Copilot commands — only exact command-name matches (followed by a space or end of input) are valid. When multiple valid Copilot commands share a common prefix (e.g., `/new` and `/newNotebook`), the system MUST resolve the input using the longest matching command name first (e.g., `/newNotebook` MUST be parsed as `/newNotebook`, not `/new`).
 - **FR-011**: System MUST ensure that commands /clear, /compact, /fork, /yolo, init, /agents, and /create-* are explicitly excluded and not affected by this implementation.
 - **FR-012**: Frontend MUST include tests verifying all 9 commands exist in the registry, that parseCommand works correctly for Copilot commands, and that the handler returns the expected passthrough shape.
 - **FR-013**: Backend MUST include tests verifying the detection function correctly parses all 9 commands, rejects non-Copilot input, and the execution function calls the completion provider with the correct system prompt.
@@ -121,10 +121,10 @@ As a Solune chat user, I want my existing commands (/help, /agent, /plan, /clear
 - **SC-001**: Users can invoke any of the 9 Copilot commands and receive a relevant AI-generated response within the same timeframe as existing agent commands.
 - **SC-002**: All 9 Copilot commands appear in the autocomplete dropdown under a clearly labeled "GitHub Copilot" section header when a user types `/`.
 - **SC-003**: Existing commands (/help, /agent, /plan, /clear) continue to function identically to their pre-change behavior with zero regressions.
-- **SC-004**: All frontend tests pass, including new tests for the 9 Copilot command registrations, parseCommand behavior, and handler return shape.
-- **SC-005**: All backend tests pass, including new tests for command detection, argument extraction, rejection of non-Copilot input, and correct system prompt usage.
-- **SC-006**: The full existing backend test suite passes with no regressions introduced by the Copilot command changes.
-- **SC-007**: The full existing frontend test suite (lint, type-check, coverage, build) passes with no regressions.
+- **SC-004**: All automated frontend checks in the standard CI pipeline pass, including coverage for the 9 Copilot command registrations, parseCommand behavior, and handler return shape.
+- **SC-005**: All automated backend checks in the standard CI pipeline pass, including coverage for command detection, argument extraction, rejection of non-Copilot input, and correct system prompt usage.
+- **SC-006**: No regressions are detected in existing backend automated test suites when the Copilot command functionality is enabled.
+- **SC-007**: No regressions are detected in existing frontend automated test suites and the frontend build pipeline when the Copilot command functionality is enabled.
 - **SC-008**: Each of the 9 commands produces a response that is qualitatively distinct and aligned with its stated intent (e.g., /explain produces explanations, /fix produces corrections).
 - **SC-009**: No new API clients, authentication flows, or changes to the existing Copilot completion provider are required.
 
@@ -136,4 +136,4 @@ As a Solune chat user, I want my existing commands (/help, /agent, /plan, /clear
 - The passthrough pattern (frontend sends raw input → backend builds prompt → calls provider) is the confirmed architecture, matching the existing /agent command pattern.
 - The priority ordering in the chat dispatcher (agent=0.0, copilot=0.1, plan/transcript=0.5) is correct and sufficient to prevent misrouting.
 - Copilot commands with empty arguments are valid — the system passes them through and returns whatever the provider generates.
-- Error handling follows the existing `handle_service_error()` pattern, surfacing user-friendly messages without leaking internal details.
+- Error handling for Copilot commands reuses the existing standard service error-handling approach used elsewhere in the system, surfacing user-friendly messages without leaking internal details.
