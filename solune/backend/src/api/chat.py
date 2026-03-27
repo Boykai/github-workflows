@@ -352,6 +352,43 @@ async def _handle_agent_command(
     return agent_msg
 
 
+async def _handle_copilot_command(
+    session: UserSession,
+    content: str,
+    project_name: str,
+) -> ChatMessage | None:
+    """Priority 0.1: Handle Copilot slash commands (/explain, /fix, etc.).
+
+    Returns an assistant ChatMessage if the command was handled, None otherwise.
+    """
+    from src.services.copilot_commands import execute_copilot_command, is_copilot_command
+
+    parsed = is_copilot_command(content)
+    if not parsed:
+        return None
+
+    command, args = parsed
+    try:
+        response_text = await execute_copilot_command(
+            command, args, github_token=session.access_token
+        )
+    except Exception as exc:
+        logger.error("Copilot /%s command failed: %s", command, exc)
+        response_text = (
+            f"**Error:** The `/{command}` command encountered an unexpected error. "
+            "Please try again."
+        )
+
+    copilot_msg = ChatMessage(
+        session_id=session.session_id,
+        sender_type=SenderType.ASSISTANT,
+        content=response_text,
+    )
+    await add_message(session.session_id, copilot_msg)
+    _trigger_signal_delivery(session, copilot_msg, project_name)
+    return copilot_msg
+
+
 async def _handle_transcript_upload(
     session: UserSession,
     ai_service: AIAgentService,
@@ -1057,6 +1094,15 @@ async def send_message(
     )
     if agent_msg:
         return agent_msg
+
+    # ── Priority 0.1: Copilot slash commands ─────────────────────────
+    copilot_msg = await _handle_copilot_command(
+        session,
+        chat_request.content,
+        project_name,
+    )
+    if copilot_msg:
+        return copilot_msg
 
     content = chat_request.content
 
