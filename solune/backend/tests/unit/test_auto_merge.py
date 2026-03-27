@@ -304,8 +304,12 @@ class TestDispatchDevopsAgent:
     """Tests for dispatch_devops_agent()."""
 
     @pytest.mark.asyncio
-    async def test_dispatch_succeeds(self, mock_ws):
+    async def test_dispatch_succeeds(self, mock_ws, mock_service):
         """First dispatch should succeed."""
+        mock_service.get_issue_node_and_project_item = AsyncMock(
+            return_value=("ISSUE_NODE_ID", "ITEM_ID")
+        )
+        mock_service.assign_copilot_to_issue = AsyncMock(return_value=True)
         metadata: dict = {}
 
         result = await dispatch_devops_agent(
@@ -320,6 +324,9 @@ class TestDispatchDevopsAgent:
         assert result is True
         assert metadata["devops_active"] is True
         assert metadata["devops_attempts"] == 1
+        mock_service.assign_copilot_to_issue.assert_awaited_once()
+        call_kwargs = mock_service.assign_copilot_to_issue.call_args[1]
+        assert call_kwargs["custom_agent"] == "devops"
 
     @pytest.mark.asyncio
     async def test_dedup_skips_when_active(self, mock_ws):
@@ -354,8 +361,12 @@ class TestDispatchDevopsAgent:
         assert result is False
 
     @pytest.mark.asyncio
-    async def test_broadcasts_devops_triggered(self, mock_ws):
+    async def test_broadcasts_devops_triggered(self, mock_ws, mock_service):
         """Should broadcast devops_triggered event."""
+        mock_service.get_issue_node_and_project_item = AsyncMock(
+            return_value=("ISSUE_NODE_ID", "ITEM_ID")
+        )
+        mock_service.assign_copilot_to_issue = AsyncMock(return_value=True)
         metadata: dict = {}
 
         await dispatch_devops_agent(
