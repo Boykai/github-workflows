@@ -207,9 +207,10 @@ solune/
 │   │   │   ├── buildGitHubMcpConfig.ts  # GitHub.com MCP config generator
 │   │   │   ├── pipelineMigration.ts  # Legacy-to-group pipeline format migration
 │   │   │   └── commands/        #   Chat command registry + handlers
-│   │   ├── pages/                # AgentsPage, AgentsPipelinePage, AppPage,
-│   │   │                         # ChoresPage, LoginPage, NotFoundPage,
-│   │   │                         # ProjectsPage, SettingsPage, ToolsPage
+│   │   ├── pages/                # ActivityPage, AgentsPage, AgentsPipelinePage,
+│   │   │                         # AppPage, AppsPage, ChoresPage, HelpPage,
+│   │   │                         # LoginPage, NotFoundPage, ProjectsPage,
+│   │   │                         # SettingsPage, ToolsPage
 │   │   ├── layout/               # App shell layout components
 │   │   │                         # AppLayout, AuthGate, TopBar, Sidebar,
 │   │   │                         # Breadcrumb, ProjectSelector, NotificationBell,
@@ -224,6 +225,10 @@ solune/
 │   └── setup-hooks.sh            # Install git hooks
 │
 └── specs/                        # Feature specifications (Spec Kit output)
+    └── 001-ui-audit/             # UI Audit specification
+        ├── spec.md               # Feature spec: user stories, requirements, success criteria
+        └── checklists/
+            └── requirements.md   # Specification quality checklist
 ```
 
 ---

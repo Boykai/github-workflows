@@ -8,6 +8,10 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) co
 
 ## [Unreleased]
 
+### Added
+
+- UI Audit specification (001-ui-audit) — comprehensive quality audit covering 12 frontend pages across 10 categories: architecture, data fetching, states, type safety, accessibility, UX polish, styling, performance, tests, and code hygiene
+
 ## [0.1.0] — 2026-03-17
 
 ### Security
