@@ -870,7 +870,7 @@ async def preflight(
         if issue_number in open_issue_numbers:
             reason = "Active on project board"
         elif any(lbl in APP_CREATED_LABELS for lbl in issue_labels):
-            reason = "App-created issue on project board"
+            reason = "App-created issue (not on project board)"
         else:
             reason = "Not recognized as a Solune-generated asset"
         issues_to_preserve.append(

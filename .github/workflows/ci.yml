@@ -33,7 +33,7 @@ jobs:
           version: "0.10.9"
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --locked --extra dev
 
       - name: Dependency audit with pip-audit
         # CVE-2026-4539 currently has no patched Pygments release on PyPI.
@@ -87,7 +87,7 @@ jobs:
           version: "0.10.9"
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --locked --extra dev
 
       - name: Run property-based tests
         run: uv run pytest tests/property/ --timeout=120 -v
@@ -250,7 +250,7 @@ jobs:
           version: "0.10.9"
 
       - name: Install backend dependencies
-        run: uv sync --extra dev
+        run: uv sync --locked --extra dev
         working-directory: solune/backend
 
       - name: Set up Node.js

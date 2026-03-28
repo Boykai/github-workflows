@@ -35,5 +35,3 @@ The timeline loads more events automatically as you scroll down. There is no nee
 - Use filters to focus on what matters. For example, toggle on only "Pipeline" and "Agent" to see how your automation is performing.
 - Timestamps are relative (e.g., "2h ago") so you can quickly gauge recency without checking dates.
 - If the timeline is empty with filters active, try clicking "Clear all filters" to confirm there is activity to display.
-- `frontend/src/hooks/useActivityFeed.ts` — activity feed data hook
-- `frontend/src/components/common/InfiniteScrollContainer.tsx` — infinite scroll wrapper
