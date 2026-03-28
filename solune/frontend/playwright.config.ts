@@ -6,6 +6,8 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './e2e',
+  /* Exclude the manual auth-save helper from default test discovery */
+  testIgnore: ['**/save-auth-state.ts'],
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code */
@@ -41,7 +43,24 @@ export default defineConfig({
       // Ignore visual regression snapshots for Firefox — Chromium is the baseline
       ignoreSnapshots: true,
     },
-  ],
+    /* Auth setup — only active when AUTH_SETUP=1, saves browser state for perf tests */
+    {
+      name: 'auth-setup',
+      testMatch: /save-auth-state\.ts/,
+      testIgnore: [],
+      use: { ...devices['Desktop Chrome'] },
+    },
+    /* Performance tests depend on auth-setup to provide storageState */
+    {
+      name: 'perf',
+      testMatch: /project-load-performance\.spec\.ts/,
+      dependencies: ['auth-setup'],
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ].filter((p) =>
+    // Include auth-setup and perf projects only when AUTH_SETUP=1
+    !['auth-setup', 'perf'].includes(p.name) || process.env.AUTH_SETUP === '1',
+  ),
 
   /* Run your local dev server before starting the tests */
   webServer: process.env.E2E_BASE_URL ? undefined : {

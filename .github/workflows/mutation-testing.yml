@@ -13,6 +13,7 @@ jobs:
     name: Backend Mutation Testing
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    continue-on-error: true
     permissions:
       contents: read
     strategy:
@@ -40,11 +41,10 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Run mutmut
-        continue-on-error: true
         run: python scripts/run_mutmut_shard.py --shard "${{ matrix.shard }}" --max-children 1
 
       - name: Generate mutmut report
-        continue-on-error: true
+        if: always()
         run: python -m mutmut results > "mutmut-report-${{ matrix.shard }}.txt" 2>&1
 
       - name: Upload mutation report
@@ -53,13 +53,14 @@ jobs:
         with:
           name: backend-mutation-report-${{ matrix.shard }}
           path: solune/backend/mutmut-report-${{ matrix.shard }}.txt
-          retention-days: 14
+          retention-days: 30
           if-no-files-found: warn
 
   frontend-mutation:
     name: Frontend Mutation Testing
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    continue-on-error: true
     permissions:
       contents: read
     defaults:
@@ -72,7 +73,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: "20"
+          node-version: "22"
           cache: "npm"
           cache-dependency-path: solune/frontend/package-lock.json
 
@@ -80,7 +81,6 @@ jobs:
         run: npm ci
 
       - name: Run Stryker
-        continue-on-error: true
         run: npx stryker run
 
       - name: Upload mutation report
@@ -89,5 +89,5 @@ jobs:
         with:
           name: frontend-mutation-report
           path: solune/frontend/reports/mutation/
-          retention-days: 14
+          retention-days: 30
           if-no-files-found: warn
