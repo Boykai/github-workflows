@@ -4,7 +4,7 @@
 Usage:
     python3 solune/scripts/export-openapi.py [--output path]
 
-Requires the backend to be importable (pip install -e solune/backend).
+Requires the backend to be importable (uv sync in solune/backend).
 """
 
 import argparse

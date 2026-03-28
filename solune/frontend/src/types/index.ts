@@ -822,6 +822,15 @@ export interface OrphanedIssueInfo {
   node_id: string | null;
 }
 
+export interface IssueInfo {
+  number: number;
+  title: string;
+  labels: string[];
+  html_url: string | null;
+  node_id: string | null;
+  preservation_reason: string | null;
+}
+
 export interface IssueToDelete {
   number: number;
   node_id: string;
@@ -833,6 +842,7 @@ export interface CleanupPreflightResponse {
   prs_to_close: PullRequestInfo[];
   prs_to_preserve: PullRequestInfo[];
   orphaned_issues: OrphanedIssueInfo[];
+  issues_to_preserve: IssueInfo[];
   open_issues_on_board: number;
   has_permission: boolean;
   permission_error: string | null;

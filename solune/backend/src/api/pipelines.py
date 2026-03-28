@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING, Annotated
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from src.api.auth import get_session_dep
 from src.config import get_settings
@@ -13,6 +13,7 @@ from src.constants import GITHUB_ISSUE_BODY_MAX_LENGTH, build_pipeline_label
 from src.dependencies import verify_project_access
 from src.exceptions import AppException, AuthorizationError, NotFoundError, ValidationError
 from src.logging_utils import get_logger
+from src.middleware.rate_limit import limiter
 from src.models.pipeline import (
     PipelineConfig,
     PipelineConfigCreate,
@@ -233,7 +234,9 @@ async def set_assignment(
     response_model=WorkflowResult,
     dependencies=[Depends(verify_project_access)],
 )
+@limiter.limit("10/minute")
 async def launch_pipeline_issue(
+    request: Request,
     project_id: str,
     body: PipelineIssueLaunchRequest,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -668,7 +671,9 @@ def _get_run_service() -> PipelineRunService:
 
 
 @router.post("/{pipeline_id}/runs", status_code=201)
+@limiter.limit("10/minute")
 async def create_pipeline_run(
+    request: Request,
     pipeline_id: str,
     body: PipelineRunCreate,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -753,7 +758,9 @@ async def get_pipeline_run(
 
 
 @router.post("/{pipeline_id}/runs/{run_id}/cancel")
+@limiter.limit("10/minute")
 async def cancel_pipeline_run(
+    request: Request,
     pipeline_id: str,
     run_id: int,
     session: Annotated[UserSession, Depends(get_session_dep)],
@@ -795,7 +802,9 @@ async def cancel_pipeline_run(
 
 
 @router.post("/{pipeline_id}/runs/{run_id}/recover")
+@limiter.limit("10/minute")
 async def recover_pipeline_run(
+    request: Request,
     pipeline_id: str,
     run_id: int,
     session: Annotated[UserSession, Depends(get_session_dep)],

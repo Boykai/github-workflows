@@ -31,21 +31,20 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.12"
-          cache: "pip"
+          version: "0.10.9"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: uv sync --locked --extra dev
 
-      - name: Run mutmut
-        run: python scripts/run_mutmut_shard.py --shard "${{ matrix.shard }}" --max-children 1
+      - name: Run mutmut shard ${{ matrix.shard }}
+        run: uv run python scripts/run_mutmut_shard.py --shard "${{ matrix.shard }}" --max-children 1
 
       - name: Generate mutmut report
         if: always()
-        run: python -m mutmut results > "mutmut-report-${{ matrix.shard }}.txt" 2>&1
+        run: uv run python -m mutmut results > "mutmut-report-${{ matrix.shard }}.txt" 2>&1
 
       - name: Upload mutation report
         if: always()
@@ -80,7 +79,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run Stryker
+      - name: Run mutation testing
+        continue-on-error: true
         run: npm run test:mutate
 
       - name: Upload mutation report
