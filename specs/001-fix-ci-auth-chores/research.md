@@ -51,7 +51,7 @@ Stryker (frontend) and mutmut (backend) exit with code 1 when surviving mutants 
 Update `stryker.config.mjs` to `concurrency: 4` and add `timeoutFactor: 2.5`.
 
 ### Rationale
-CI runners have 2–4 vCPUs; `concurrency: 4` maximises parallelism without oversubscription. The default `timeoutFactor` of 1.5 causes false timeouts on CI due to resource contention; 2.5 provides headroom while still catching genuinely hanging mutants. The explicit `timeoutMS: 30000` is retained as a baseline.
+CI runners have 2–4 vCPUs; `concurrency: 4` maximizes parallelism without oversubscription. The default `timeoutFactor` of 1.5 causes false timeouts on CI due to resource contention; 2.5 provides headroom while still catching genuinely hanging mutants. The explicit `timeoutMS: 30000` is retained as a baseline.
 
 ### Alternatives Considered
 - **Concurrency 8**: Rejected because CI runners typically have 2 vCPUs; 8 would cause context-switching overhead.
