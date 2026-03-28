@@ -33,7 +33,6 @@ vi.mock('@/constants', () => ({
 
 import * as api from '@/services/api';
 import {
-  useChoresList,
   useChoresListPaginated,
   useChoreTemplates,
   useCreateChore,
@@ -72,37 +71,6 @@ const mockChore = {
   schedule: '0 9 * * *',
   status: 'active',
 };
-
-describe('useChoresList', () => {
-  beforeEach(() => vi.clearAllMocks());
-
-  it('returns chores list on success', async () => {
-    mockChoresApi.list.mockResolvedValue([mockChore]);
-
-    const { result } = renderHook(() => useChoresList('proj-1'), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toEqual([mockChore]);
-    expect(mockChoresApi.list).toHaveBeenCalledWith('proj-1');
-  });
-
-  it('does not fetch when projectId is null', () => {
-    renderHook(() => useChoresList(null), { wrapper: createWrapper() });
-    expect(mockChoresApi.list).not.toHaveBeenCalled();
-  });
-
-  it('handles error', async () => {
-    mockChoresApi.list.mockRejectedValue(new Error('Failed'));
-
-    const { result } = renderHook(() => useChoresList('proj-1'), {
-      wrapper: createWrapper(),
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-  });
-});
 
 describe('useChoreTemplates', () => {
   beforeEach(() => vi.clearAllMocks());

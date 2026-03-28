@@ -121,7 +121,7 @@ export function useCommandPalette({
   const agentsQuery = useAgentsList(isOpen ? projectId : null);
   const pipelineConfig = usePipelineConfig(isOpen ? projectId ?? null : null);
   const toolsData = useToolsList(isOpen ? projectId : null);
-  const choresQuery = useChoresListPaginated(isOpen ? projectId ?? null : null);
+  const choresQuery = useChoresListPaginated(isOpen ? projectId : null);
   const appsQuery = useApps();
 
   // ---- Build all items ----
