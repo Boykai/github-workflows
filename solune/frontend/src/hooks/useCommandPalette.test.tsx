@@ -45,7 +45,7 @@ vi.mock('@/hooks/useTools', () => ({
 }));
 
 vi.mock('@/hooks/useChores', () => ({
-  useChoresList: vi.fn(),
+  useChoresListPaginated: vi.fn(),
 }));
 
 vi.mock('@/hooks/useApps', () => ({
@@ -60,13 +60,13 @@ import { useCommandPalette } from './useCommandPalette';
 import { useAgentsList } from '@/hooks/useAgents';
 import { usePipelineConfig } from '@/hooks/usePipelineConfig';
 import { useToolsList } from '@/hooks/useTools';
-import { useChoresList } from '@/hooks/useChores';
+import { useChoresListPaginated } from '@/hooks/useChores';
 import { useApps } from '@/hooks/useApps';
 
 const mockUseAgentsList = useAgentsList as ReturnType<typeof vi.fn>;
 const mockUsePipelineConfig = usePipelineConfig as ReturnType<typeof vi.fn>;
 const mockUseToolsList = useToolsList as ReturnType<typeof vi.fn>;
-const mockUseChoresList = useChoresList as ReturnType<typeof vi.fn>;
+const mockUseChoresListPaginated = useChoresListPaginated as ReturnType<typeof vi.fn>;
 const mockUseApps = useApps as ReturnType<typeof vi.fn>;
 
 function setupDefaultMocks({
@@ -80,7 +80,7 @@ function setupDefaultMocks({
   mockUseAgentsList.mockReturnValue({ data: agentsData, isLoading });
   mockUsePipelineConfig.mockReturnValue({ pipelines: pipelinesData, pipelinesLoading: isLoading });
   mockUseToolsList.mockReturnValue({ tools: toolsData, isLoading });
-  mockUseChoresList.mockReturnValue({ data: choresData, isLoading });
+  mockUseChoresListPaginated.mockReturnValue({ allItems: choresData ?? [], isLoading });
   mockUseApps.mockReturnValue({ data: appsData, isLoading });
 }
 
