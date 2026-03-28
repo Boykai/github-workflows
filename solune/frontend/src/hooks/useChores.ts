@@ -36,21 +36,6 @@ export const choreKeys = {
   templates: (projectId: string) => [...choreKeys.all, 'templates', projectId] as const,
 };
 
-// ── List Hook ──
-
-/**
- * @deprecated Use `useChoresListPaginated` instead for paginated, server-side
- * filtered/sorted results. Retained for legacy callers (e.g. useCommandPalette).
- */
-export function useChoresList(projectId: string | null | undefined) {
-  return useQuery<Chore[]>({
-    queryKey: choreKeys.list(projectId ?? ''),
-    queryFn: () => choresApi.list(projectId!),
-    staleTime: STALE_TIME_LONG,
-    enabled: !!projectId,
-  });
-}
-
 // ── Filter Params Interface ──
 
 export interface ChoresFilterParams {
