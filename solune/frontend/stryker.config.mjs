@@ -17,5 +17,6 @@ export default {
     break: null,
   },
   timeoutMS: 30000,
-  concurrency: 2,
+  timeoutFactor: 2.5,
+  concurrency: 4,
 };

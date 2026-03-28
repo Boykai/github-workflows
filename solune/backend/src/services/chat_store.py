@@ -30,7 +30,7 @@ async def transaction(db: aiosqlite.Connection) -> AsyncGenerator[aiosqlite.Conn
     try:
         yield db
         await db.execute("COMMIT")
-    except BaseException:
+    except Exception:
         await db.execute("ROLLBACK")
         raise
 

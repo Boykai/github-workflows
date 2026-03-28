@@ -23,6 +23,7 @@ from src.models.cleanup import (
     CleanupItemResult,
     CleanupPreflightRequest,
     CleanupPreflightResponse,
+    IssueInfo,
     OrphanedIssueInfo,
     PullRequestInfo,
 )
@@ -427,6 +428,53 @@ async def fetch_app_created_open_issues(
     return unique
 
 
+async def fetch_all_open_issues(
+    github_service,
+    access_token: str,
+    owner: str,
+    repo: str,
+) -> list[dict]:
+    """Fetch all open issues in the repository via REST API with pagination.
+
+    Returns full issue dicts (excluding pull requests which the REST endpoint
+    also returns).  Used to surface *every* open issue in the cleanup modal
+    so users have full visibility.
+    """
+    issues: list[dict] = []
+    page = 1
+    per_page = 100
+
+    while True:
+        response = await github_service._rest_response(
+            access_token,
+            "GET",
+            f"/repos/{owner}/{repo}/issues",
+            params={"state": "open", "per_page": per_page, "page": page},
+        )
+        if response.status_code != 200:
+            logger.warning(
+                "Failed to fetch all open issues page %d: HTTP %d",
+                page,
+                response.status_code,
+            )
+            # Non-fatal: the preserve list is informational; orphaned list
+            # and branch/PR lists remain authoritative.
+            break
+
+        page_items = response.json()
+        if not page_items:
+            break
+
+        # REST /issues also returns PRs — filter them out
+        issues.extend(item for item in page_items if "pull_request" not in item)
+
+        if len(page_items) < per_page:
+            break
+        page += 1
+
+    return issues
+
+
 async def fetch_parent_issue_states(
     github_service,
     access_token: str,
@@ -694,11 +742,12 @@ async def preflight(
         )
 
     # 2. Fetch all data concurrently
-    branches_data, prs_data, board_issues, app_issues = await asyncio.gather(
+    branches_data, prs_data, board_issues, app_issues, all_open_issues = await asyncio.gather(
         fetch_all_branches(github_service, access_token, owner, repo),
         fetch_open_prs(github_service, access_token, owner, repo),
         fetch_open_issues_on_board(github_service, access_token, request.project_id),
         fetch_app_created_open_issues(github_service, access_token, owner, repo),
+        fetch_all_open_issues(github_service, access_token, owner, repo),
     )
 
     # 3. Build set of open issue numbers on the project board
@@ -787,6 +836,7 @@ async def preflight(
 
     # 6. Identify orphaned app-created issues (open, labelled by app, not on board)
     orphaned_issues: list[OrphanedIssueInfo] = []
+    orphaned_issue_numbers: set[int] = set()
     for issue in app_issues:
         issue_number = issue.get("number")
         if issue_number is not None and issue_number not in open_issue_numbers:
@@ -803,6 +853,36 @@ async def preflight(
                     node_id=issue.get("node_id"),
                 )
             )
+            orphaned_issue_numbers.add(issue_number)
+
+    # 7. Build issues_to_preserve — all open issues NOT already in the orphaned list.
+    #    This ensures every open issue surfaces in the cleanup modal (defaulting to
+    #    "don't delete") so users have full visibility.
+    issues_to_preserve: list[IssueInfo] = []
+    for issue in all_open_issues:
+        issue_number = issue.get("number")
+        if issue_number is None or issue_number in orphaned_issue_numbers:
+            continue
+        issue_labels = [
+            lbl.get("name", "") if isinstance(lbl, dict) else str(lbl)
+            for lbl in issue.get("labels", [])
+        ]
+        if issue_number in open_issue_numbers:
+            reason = "Active on project board"
+        elif any(lbl in APP_CREATED_LABELS for lbl in issue_labels):
+            reason = "App-created issue on project board"
+        else:
+            reason = "Not recognized as a Solune-generated asset"
+        issues_to_preserve.append(
+            IssueInfo(
+                number=issue_number,
+                title=issue.get("title", ""),
+                labels=issue_labels,
+                html_url=issue.get("html_url"),
+                node_id=issue.get("node_id"),
+                preservation_reason=reason,
+            )
+        )
 
     return CleanupPreflightResponse(
         branches_to_delete=branches_to_delete,
@@ -810,6 +890,7 @@ async def preflight(
         prs_to_close=prs_to_close,
         prs_to_preserve=prs_to_preserve,
         orphaned_issues=orphaned_issues,
+        issues_to_preserve=issues_to_preserve,
         open_issues_on_board=len(open_issue_numbers),
         has_permission=True,
         permission_error=None,

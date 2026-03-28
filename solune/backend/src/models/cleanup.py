@@ -73,6 +73,17 @@ class OrphanedIssueInfo(BaseModel):
     node_id: str | None = None
 
 
+class IssueInfo(BaseModel):
+    """An open issue surfaced in the cleanup modal (preserve section)."""
+
+    number: int
+    title: str
+    labels: list[str] = []
+    html_url: str | None = None
+    node_id: str | None = None
+    preservation_reason: str | None = None
+
+
 class CleanupPreflightResponse(BaseModel):
     """Response from preflight endpoint."""
 
@@ -81,6 +92,7 @@ class CleanupPreflightResponse(BaseModel):
     prs_to_close: list[PullRequestInfo]
     prs_to_preserve: list[PullRequestInfo]
     orphaned_issues: list[OrphanedIssueInfo] = []
+    issues_to_preserve: list[IssueInfo] = []
     open_issues_on_board: int
     has_permission: bool
     permission_error: str | None = None

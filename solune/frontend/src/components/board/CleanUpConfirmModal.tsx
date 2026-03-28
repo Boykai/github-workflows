@@ -21,6 +21,7 @@ import type {
   BranchInfo,
   PullRequestInfo,
   OrphanedIssueInfo,
+  IssueInfo,
 } from '@/types';
 import { useScrollLock } from '@/hooks/useScrollLock';
 
@@ -124,13 +125,17 @@ export function CleanUpConfirmModal({
   const finalPrsToCloseFromPreserve = data.prs_to_preserve.filter((p) =>
     markedForDeletion.has(`pr:${p.number}`)
   );
+  const finalIssuesToDeleteFromPreserve = (data.issues_to_preserve ?? []).filter(
+    (i) => markedForDeletion.has(`issue:${i.number}`)
+  );
 
   const hasItemsToDelete =
     finalBranchesToDelete.length > 0 ||
     finalPrsToClose.length > 0 ||
     finalIssuesToClose.length > 0 ||
     finalBranchesToDeleteFromPreserve.length > 0 ||
-    finalPrsToCloseFromPreserve.length > 0;
+    finalPrsToCloseFromPreserve.length > 0 ||
+    finalIssuesToDeleteFromPreserve.length > 0;
 
   const handleConfirm = () => {
     onConfirm({
@@ -142,9 +147,14 @@ export function CleanUpConfirmModal({
         ...finalPrsToClose.map((p) => p.number),
         ...finalPrsToCloseFromPreserve.map((p) => p.number),
       ],
-      issues_to_delete: finalIssuesToClose
-        .filter((i) => i.node_id != null)
-        .map((i) => ({ number: i.number, node_id: i.node_id! })),
+      issues_to_delete: [
+        ...finalIssuesToClose
+          .filter((i) => i.node_id != null)
+          .map((i) => ({ number: i.number, node_id: i.node_id! })),
+        ...finalIssuesToDeleteFromPreserve
+          .filter((i) => i.node_id != null)
+          .map((i) => ({ number: i.number, node_id: i.node_id! })),
+      ],
     });
   };
 
@@ -152,7 +162,7 @@ export function CleanUpConfirmModal({
   const ghBase = `https://github.com/${owner}/${repo}`;
   const branchUrl = (name: string) => `${ghBase}/tree/${encodeURIComponent(name)}`;
   const prUrl = (num: number) => `${ghBase}/pull/${num}`;
-  const issueUrl = (issue: OrphanedIssueInfo) => issue.html_url || `${ghBase}/issues/${issue.number}`;
+  const issueUrl = (issue: OrphanedIssueInfo | IssueInfo) => issue.html_url || `${ghBase}/issues/${issue.number}`;
 
   // Section key arrays and derived toggle states
   const issueKeys = (data.orphaned_issues ?? []).map((i) => `issue:${i.number}`);
@@ -160,6 +170,7 @@ export function CleanUpConfirmModal({
   const prCloseKeys = data.prs_to_close.map((p) => `pr:${p.number}`);
   const branchPreserveKeys = data.branches_to_preserve.map((b) => b.name);
   const prPreserveKeys = data.prs_to_preserve.map((p) => `pr:${p.number}`);
+  const issuePreserveKeys = (data.issues_to_preserve ?? []).map((i) => `issue:${i.number}`);
 
   const allIssuesPreserved = issueKeys.length > 0 && issueKeys.every((k) => preserved.has(k));
   const allBranchesDeletePreserved =
@@ -172,6 +183,8 @@ export function CleanUpConfirmModal({
     branchPreserveEligible.every((b) => markedForDeletion.has(b.name));
   const allPrsPreserveMarked =
     prPreserveKeys.length > 0 && prPreserveKeys.every((k) => markedForDeletion.has(k));
+  const allIssuesPreserveMarked =
+    issuePreserveKeys.length > 0 && issuePreserveKeys.every((k) => markedForDeletion.has(k));
 
   return createPortal(
     <div
@@ -402,6 +415,66 @@ export function CleanUpConfirmModal({
                     onToggle={() => toggleMarkForDeletion(key)}
                     reason={pr.preservation_reason}
                   />
+                );
+              })}
+            </ul>
+          </section>
+        )}
+
+        {/* ─── Issues to Preserve ─── */}
+        {(data.issues_to_preserve ?? []).length > 0 && (
+          <section className="mb-4">
+            <h3 className="text-sm font-medium text-green-800 dark:text-green-400 mb-2">
+              <button
+                type="button"
+                className="inline-flex items-center gap-2 cursor-pointer select-none hover:opacity-80 transition-opacity"
+                onClick={() => toggleAllInPreserveSection(issuePreserveKeys)}
+                aria-label="Toggle all issues to preserve"
+              >
+                {allIssuesPreserveMarked ? (
+                  <ShieldOff className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Shield className="h-4 w-4" />
+                )}
+                Issues to Preserve ({data.issues_to_preserve.length})
+              </button>
+            </h3>
+            <ul className="space-y-1 text-sm">
+              {data.issues_to_preserve.map((issue) => {
+                const key = `issue:${issue.number}`;
+                const willDelete = markedForDeletion.has(key);
+                return (
+                  <li
+                    key={issue.number}
+                    className={`flex flex-col gap-0.5 px-2 py-1.5 rounded transition-colors ${willDelete ? 'bg-destructive/10' : 'bg-green-100/80 dark:bg-green-900/30'}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <ToggleButton
+                        willDelete={willDelete}
+                        onClick={() => toggleMarkForDeletion(key)}
+                      />
+                      <a
+                        href={issueUrl(issue)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 min-w-0 flex-1 hover:underline"
+                      >
+                        <span className="font-medium shrink-0">#{issue.number}</span>
+                        <span className="text-muted-foreground truncate">{issue.title}</span>
+                        {issue.labels.length > 0 && (
+                          <span className="text-xs text-muted-foreground shrink-0">
+                            [{issue.labels.join(', ')}]
+                          </span>
+                        )}
+                        <ExternalLink className="h-3 w-3 shrink-0 text-muted-foreground" />
+                      </a>
+                    </div>
+                    {issue.preservation_reason && (
+                      <span className="ml-[3.25rem] text-[11px] text-muted-foreground">
+                        {issue.preservation_reason}
+                      </span>
+                    )}
+                  </li>
                 );
               })}
             </ul>

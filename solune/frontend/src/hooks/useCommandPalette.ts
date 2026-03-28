@@ -26,7 +26,7 @@ import { NAV_ROUTES } from '@/constants';
 import { useAgentsList } from '@/hooks/useAgents';
 import { usePipelineConfig } from '@/hooks/usePipelineConfig';
 import { useToolsList } from '@/hooks/useTools';
-import { useChoresList } from '@/hooks/useChores';
+import { useChoresListPaginated } from '@/hooks/useChores';
 import { useApps } from '@/hooks/useApps';
 import { useAppTheme } from '@/hooks/useAppTheme';
 
@@ -121,7 +121,7 @@ export function useCommandPalette({
   const agentsQuery = useAgentsList(isOpen ? projectId : null);
   const pipelineConfig = usePipelineConfig(isOpen ? projectId ?? null : null);
   const toolsData = useToolsList(isOpen ? projectId : null);
-  const choresQuery = useChoresList(isOpen ? projectId : null);
+  const choresQuery = useChoresListPaginated(isOpen ? projectId ?? null : null);
   const appsQuery = useApps();
 
   // ---- Build all items ----
@@ -183,8 +183,8 @@ export function useCommandPalette({
     }
 
     // Chores
-    if (choresQuery.data) {
-      for (const chore of choresQuery.data) {
+    if (choresQuery.allItems) {
+      for (const chore of choresQuery.allItems) {
         items.push({
           id: `chore-${chore.name}`,
           label: chore.name,
@@ -246,7 +246,7 @@ export function useCommandPalette({
     agentsQuery.data,
     pipelineConfig.pipelines,
     toolsData.tools,
-    choresQuery.data,
+    choresQuery.allItems,
     appsQuery.data,
   ]);
 

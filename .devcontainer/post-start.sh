@@ -7,7 +7,7 @@ set -e
 echo "🔄 Starting development services..."
 
 # Activate virtual environment
-source /workspace/.venv/bin/activate 2>/dev/null || true
+source /workspace/solune/backend/.venv/bin/activate 2>/dev/null || true
 
 # Update GitHub OAuth callback URL for Codespaces
 if [ -n "$CODESPACE_NAME" ]; then
