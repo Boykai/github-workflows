@@ -61,6 +61,12 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.uv]
+# Allow prereleases for azure-ai-inference (1.0.0b9) and
+# opentelemetry-instrumentation-* (0.54b0) preview packages.
+prerelease = "allow"
+required-version = ">=0.10.9"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src"]
 

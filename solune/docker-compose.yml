@@ -69,7 +69,7 @@ services:
       - solune-network
 
   signal-api:
-    image: bbernhard/signal-cli-rest-api:0.83
+    image: bbernhard/signal-cli-rest-api:0.98
     container_name: solune-signal-api
     restart: unless-stopped
     environment:

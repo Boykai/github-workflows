@@ -16,13 +16,12 @@ if [ ! -f solune/.env ]; then
     echo "⚠️  Please update solune/.env with your credentials"
 fi
 
-# Setup Python virtual environment
+# Setup Python environment with uv
 echo "🐍 Setting up Python environment..."
+curl -LsSf https://astral.sh/uv/install.sh | sh
+export PATH="$HOME/.local/bin:$PATH"
 cd /workspace/solune/backend
-python -m venv /workspace/.venv
-source /workspace/.venv/bin/activate
-pip install --upgrade pip
-pip install -e ".[dev]"
+uv sync --extra dev
 
 # Install frontend dependencies
 echo "📦 Installing frontend dependencies..."
@@ -36,7 +35,7 @@ npx playwright install --with-deps chromium
 echo "✅ Development environment setup complete!"
 echo ""
 echo "🎯 Quick Start:"
-echo "  - Backend:  cd solune/backend && source ../../.venv/bin/activate && uvicorn src.main:app --reload"
+echo "  - Backend:  cd solune/backend && source .venv/bin/activate && uvicorn src.main:app --reload"
 echo "  - Frontend: cd solune/frontend && npm run dev"
 echo "  - Docker:   docker compose up --build"
 echo ""

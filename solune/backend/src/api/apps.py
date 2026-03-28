@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, Query, Request, Response
 from src.api.auth import get_session_dep
 from src.dependencies import get_github_service
 from src.logging_utils import get_logger
+from src.middleware.rate_limit import limiter
 from src.models.app import (
     App,
     AppAssetInventory,
@@ -79,6 +80,7 @@ async def list_apps_endpoint(
 
 
 @router.post("", response_model=App, status_code=201)
+@limiter.limit("10/minute")
 async def create_app_endpoint(
     request: Request,
     payload: AppCreate,
@@ -226,6 +228,7 @@ async def get_app_assets_endpoint(
 
 
 @router.delete("/{app_name}")
+@limiter.limit("10/minute")
 async def delete_app_endpoint(
     request: Request,
     app_name: str,
@@ -266,7 +269,9 @@ async def delete_app_endpoint(
 
 
 @router.post("/{app_name}/start", response_model=AppStatusResponse)
+@limiter.limit("10/minute")
 async def start_app_endpoint(
+    request: Request,
     app_name: str,
     _session: _SessionDep,
 ) -> AppStatusResponse:
@@ -276,7 +281,9 @@ async def start_app_endpoint(
 
 
 @router.post("/{app_name}/stop", response_model=AppStatusResponse)
+@limiter.limit("10/minute")
 async def stop_app_endpoint(
+    request: Request,
     app_name: str,
     _session: _SessionDep,
 ) -> AppStatusResponse:

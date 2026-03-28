@@ -61,7 +61,7 @@ class CopilotClientPool:
 
             from copilot import (  # type: ignore[reportMissingImports]
                 CopilotClient,
-                SubprocessConfig,
+                SubprocessConfig,  # pyright: ignore[reportAttributeAccessIssue]
             )
 
             config = SubprocessConfig(github_token=github_token)
@@ -143,7 +143,7 @@ class CopilotCompletionProvider(CompletionProvider):
     model fetcher service.
 
     Requires:
-        pip install github-copilot-sdk
+        uv add github-copilot-sdk
     """
 
     def __init__(self, model: str = "gpt-4o", pool: CopilotClientPool | None = None):

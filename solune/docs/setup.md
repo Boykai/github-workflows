@@ -124,9 +124,7 @@ docker ps
 
 ```bash
 cd backend
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+uv sync --extra dev
 uvicorn src.main:app --reload --port 8000
 ```
 

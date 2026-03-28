@@ -27,34 +27,32 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.12"
-          cache: "pip"
+          version: "0.10.9"
 
       - name: Install dependencies
-        run: |
-          pip install -e ".[dev]"
+        run: uv sync --extra dev
 
       - name: Dependency audit with pip-audit
         # CVE-2026-4539 currently has no patched Pygments release on PyPI.
-        run: pip-audit . --skip-editable --ignore-vuln CVE-2026-4539
+        run: uv run pip-audit . --ignore-vuln CVE-2026-4539
 
       - name: Lint with ruff
-        run: ruff check src tests
+        run: uv run ruff check src tests
 
       - name: Format check with ruff
-        run: ruff format --check src tests
+        run: uv run ruff format --check src tests
 
       - name: Security scan with bandit
-        run: bandit -r src/ -ll -ii --skip B104,B608
+        run: uv run bandit -r src/ -ll -ii --skip B104,B608
 
       - name: Type check with pyright
-        run: pyright src
+        run: uv run pyright src
 
       - name: Run tests with coverage enforcement
-        run: pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --durations=20 --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency
+        run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --durations=20 --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency
 
       - name: Upload backend coverage report
         if: always()
@@ -83,28 +81,27 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.12"
-          cache: "pip"
+          version: "0.10.9"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: uv sync --extra dev
 
       - name: Run property-based tests
-        run: pytest tests/property/ --timeout=120 -v
+        run: uv run pytest tests/property/ --timeout=120 -v
         env:
           HYPOTHESIS_PROFILE: ci
 
       - name: Run fuzz tests
-        run: pytest tests/fuzz/ --timeout=120 -v
+        run: uv run pytest tests/fuzz/ --timeout=120 -v
 
       - name: Run chaos tests
-        run: pytest tests/chaos/ --timeout=120 -v
+        run: uv run pytest tests/chaos/ --timeout=120 -v
 
       - name: Run concurrency tests
-        run: pytest tests/concurrency/ --timeout=120 -v
+        run: uv run pytest tests/concurrency/ --timeout=120 -v
 
   # Frontend tests run directly on the runner
   frontend:
@@ -247,14 +244,13 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.12"
-          cache: "pip"
+          version: "0.10.9"
 
       - name: Install backend dependencies
-        run: pip install -e ".[dev]"
+        run: uv sync --extra dev
         working-directory: solune/backend
 
       - name: Set up Node.js

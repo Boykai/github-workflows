@@ -1,39 +1,35 @@
 # syntax=docker/dockerfile:1
-# Backend Dockerfile — multi-stage build
+# Backend Dockerfile — multi-stage build with uv
 
-# ── Builder stage: install system deps + Python packages ──
+# ── Builder stage: install dependencies with uv ──
 FROM python:3.14-slim AS builder
+
+# Copy uv binary from official image
+COPY --from=ghcr.io/astral-sh/uv:0.10.9 /uv /uvx /bin/
+
+# Compile bytecode for faster cold starts; copy mode required in Docker
+ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
 
 WORKDIR /app
 
-# Install build-time system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    git \
-    && rm -rf /var/lib/apt/lists/*
+# Install dependencies first (cached layer) — lockfile ensures reproducibility
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-install-project --no-editable
 
-# Copy dependency files
-COPY pyproject.toml ./
-
-# Install Python dependencies with BuildKit cache
-# Use --pre flag for agent-framework preview packages
-RUN --mount=type=cache,target=/root/.cache/pip \
-    pip install --pre -e .
-
-# Ensure the Copilot CLI binary is executable (bundled in github-copilot-sdk wheel)
-RUN find /usr/local/lib/python3.14 -name "copilot" -type f -executable 2>/dev/null || true
+# Copy application source and sync the project itself
+COPY src/ ./src/
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --locked --no-editable
 
 # ── Runtime stage: slim image without build tools ──
 FROM python:3.14-slim AS runtime
 
 WORKDIR /app
 
-# Copy installed Python packages and binaries from builder
-COPY --from=builder /usr/local/lib/python3.14 /usr/local/lib/python3.14
-COPY --from=builder /usr/local/bin /usr/local/bin
-
-# Copy application code
-COPY src/ ./src/
+# Copy the virtual environment from the builder
+COPY --from=builder /app/.venv /app/.venv
+ENV PATH="/app/.venv/bin:$PATH"
 
 # Copy template files for new repository scaffolding
 COPY templates/ /app/templates/

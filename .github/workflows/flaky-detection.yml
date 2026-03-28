@@ -20,26 +20,25 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
-      - name: Set up Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v7
         with:
-          python-version: "3.12"
-          cache: "pip"
+          version: "0.10.9"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: uv sync --extra dev
 
       - name: Run backend suite three times
         run: |
           mkdir -p flaky-reports/backend
           for run in 1 2 3; do
-            python -m pytest --timeout=60 -q --junit-xml="flaky-reports/backend/run-${run}.xml" || true
+            uv run python -m pytest --timeout=60 -q --junit-xml="flaky-reports/backend/run-${run}.xml" || true
           done
 
       - name: Analyze backend flakiness
         id: analyze-backend
         run: |
-          python - <<'PY'
+          uv run python - <<'PY'
           from pathlib import Path
           import os
           import xml.etree.ElementTree as ET

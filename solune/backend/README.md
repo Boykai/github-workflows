@@ -5,9 +5,7 @@ FastAPI backend that powers Solune and its **customizable Agent Pipelines**. Thi
 ## Setup
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[dev]"
+uv sync --extra dev
 ```
 
 ## Run

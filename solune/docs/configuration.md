@@ -145,8 +145,7 @@ SQLite in WAL mode at `DATABASE_PATH`. Schema is auto-migrated at startup via nu
 | `031_queue_mode.sql` | Per-project pipeline queue mode toggle (`queue_mode` on `project_settings`) |
 | `032_activity_events.sql` | Activity events table for unified audit trail |
 | `033_copilot_review_requests.sql` | Durable storage for Copilot review request timestamps (restart-safe) |
-| `034_auto_merge.sql` | Per-project auto-merge toggle (`auto_merge` on `project_settings`) |
-| `034_phase8_pipeline_states_ext.sql` | Phase 8 — extend `pipeline_states` for concurrent execution tracking |
+| `034_auto_merge_and_pipeline_states.sql` | Per-project auto-merge toggle + Phase 8 concurrent execution tracking |
 | `035_phase8_mcp_version.sql` | Phase 8 — add `version` column to `mcp_configurations` for optimistic concurrency |
 | `036_phase8_collision_events.sql` | Phase 8 — `collision_events` table for MCP collision resolution auditing |
 | `037_phase8_recovery_log.sql` | Phase 8 — `recovery_log` table for label-driven state recovery auditing |
