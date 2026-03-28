@@ -32,7 +32,7 @@ vi.mock('@/hooks/useProjectBoard', () => ({
 }));
 
 vi.mock('@/hooks/useChores', () => ({
-  useChoresList: () => ({ data: undefined }),
+  useChoresListPaginated: () => ({ allItems: [], isLoading: false }),
   useEvaluateChoresTriggers: vi.fn(),
   choreKeys: { list: () => ['chores'] },
 }));

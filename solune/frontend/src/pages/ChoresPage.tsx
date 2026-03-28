@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useProjectBoard } from '@/hooks/useProjectBoard';
-import { useChoresList, useEvaluateChoresTriggers, choreKeys } from '@/hooks/useChores';
+import { useChoresListPaginated, useEvaluateChoresTriggers, choreKeys } from '@/hooks/useChores';
 import { useUnsavedChanges } from '@/hooks/useUnsavedChanges';
 import { ChoresPanel } from '@/components/chores/ChoresPanel';
 import { FeaturedRitualsPanel } from '@/components/chores/FeaturedRitualsPanel';
@@ -48,7 +48,7 @@ export function ChoresPage() {
   }, [projectId, queryClient]);
 
   const { boardData } = useProjectBoard({ selectedProjectId: projectId });
-  const { data: chores, isLoading: choresLoading } = useChoresList(projectId);
+  const { allItems: chores, isLoading: choresLoading } = useChoresListPaginated(projectId);
   const [isAnyDirty, setIsAnyDirty] = useState(false);
 
   const parentIssueCount = useMemo(() => countParentIssues(boardData), [boardData]);
