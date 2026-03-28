@@ -1487,6 +1487,12 @@
     animation: var(--animate-shimmer);
   }
 
+  /* Gold drop-shadow glow for the progress ring SVG */
+  .celestial-ring-glow {
+    filter: drop-shadow(0 0 6px hsl(var(--gold) / 0.4))
+            drop-shadow(0 0 14px hsl(var(--gold) / 0.15));
+  }
+
   /* ── Enhanced starfield with twinkling ── */
   .starfield::after {
     content: '';

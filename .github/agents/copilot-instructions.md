@@ -265,6 +265,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite (aiosqlite) for backend persistence, browser localStorage for client-side settings (001-copilot-slash-commands)
 - Python ≥3.12 (backend), TypeScript/React 19 (frontend) + FastAPI ≥0.135, TanStack React Query 5.91, dnd-kit, Radix UI, websockets ≥16.0 (001-performance-review)
 - SQLite via aiosqlite (sessions, settings, done-items fallback) (001-performance-review)
+- TypeScript 5.x / React 18.x + React, TanStack React Query, Vitest, React Testing Library (002-celestial-progress-ring)
+- N/A (client-side only; progress derived from hook states) (002-celestial-progress-ring)
 
 Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
 
