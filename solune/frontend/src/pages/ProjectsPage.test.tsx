@@ -166,7 +166,7 @@ vi.mock('@/hooks/useRealTimeSync', () => ({
 }));
 
 vi.mock('@/hooks/useAgentConfig', () => ({
-  useAvailableAgents: () => ({ agents: [] }),
+  useAvailableAgents: () => ({ agents: [], isLoading: false }),
 }));
 
 vi.mock('@/hooks/useBoardControls', () => ({
@@ -191,8 +191,11 @@ vi.mock('@/components/common/CelestialCatalogHero', () => ({
   ),
 }));
 
-vi.mock('@/components/common/CelestialLoader', () => ({
-  CelestialLoader: ({ label }: { label?: string }) => <div>{label ?? 'Loading'}</div>,
+vi.mock('@/components/common/CelestialLoadingProgress', () => ({
+  CelestialLoadingProgress: ({ phases }: { phases: { label: string; complete: boolean }[] }) => {
+    const currentLabel = phases.find((p: { complete: boolean }) => !p.complete)?.label ?? phases[phases.length - 1]?.label ?? '';
+    return <div role="progressbar">{currentLabel}</div>;
+  },
 }));
 
 vi.mock('@/components/common/ProjectSelectionEmptyState', () => ({
@@ -319,7 +322,7 @@ describe('ProjectsPage', () => {
 
     render(<ProjectsPage />);
 
-    expect(screen.getByText('Loading board…')).toBeInTheDocument();
+    expect(screen.getByText('Loading project board…')).toBeInTheDocument();
   });
 
   it('shows empty state when no project is selected', () => {
