@@ -10,16 +10,6 @@ handoffs:
   agent: speckit.checklist
   prompt: Create a checklist for the following domain...
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp
