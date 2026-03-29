@@ -1,0 +1,141 @@
+name: Dev Container
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".devcontainer/**"
+      - "solune/backend/pyproject.toml"
+      - "solune/backend/uv.lock"
+      - "solune/frontend/package.json"
+      - "solune/frontend/package-lock.json"
+      - "solune/.env.example"
+      - ".github/workflows/devcontainer.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - ".devcontainer/**"
+      - "solune/backend/pyproject.toml"
+      - "solune/backend/uv.lock"
+      - "solune/frontend/package.json"
+      - "solune/frontend/package-lock.json"
+      - "solune/.env.example"
+      - ".github/workflows/devcontainer.yml"
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & Validate
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Validate devcontainer.json syntax
+        run: |
+          echo "Validating devcontainer.json is valid JSON..."
+          python3 -c "
+          import json, sys
+          with open('.devcontainer/devcontainer.json') as f:
+              config = json.load(f)
+          required = ['dockerComposeFile', 'service', 'workspaceFolder',
+                      'postCreateCommand', 'postStartCommand']
+          missing = [k for k in required if k not in config]
+          if missing:
+              print(f'Missing required keys: {missing}', file=sys.stderr)
+              sys.exit(1)
+          print(f'Valid devcontainer.json — service: {config[\"service\"]}, '
+                f'workspace: {config[\"workspaceFolder\"]}')
+          print(f'Features: {list(config.get(\"features\", {}).keys())}')
+          print(f'Forwarded ports: {config.get(\"forwardPorts\", [])}')
+          "
+
+      - name: Validate docker-compose.devcontainer.yml
+        run: |
+          echo "Checking compose file syntax..."
+          docker compose -f .devcontainer/docker-compose.devcontainer.yml config --quiet
+          echo "Compose file is valid"
+
+      - name: Validate shell scripts are executable-ready
+        run: |
+          echo "Checking post-create.sh..."
+          bash -n .devcontainer/post-create.sh
+          echo "  ✓ post-create.sh syntax OK"
+
+          echo "Checking post-start.sh..."
+          bash -n .devcontainer/post-start.sh
+          echo "  ✓ post-start.sh syntax OK"
+
+      - name: Build dev container image
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: echo "Dev container built successfully"
+          push: never
+
+      - name: Verify backend setup
+        uses: devcontainers/ci@v0.3
+        with:
+          runCmd: |
+            set -e
+            echo "=== Verifying Python + uv ==="
+            python3 --version
+            export PATH="$HOME/.local/bin:$PATH"
+
+            # Install uv (mirrors post-create.sh)
+            curl -LsSf https://astral.sh/uv/install.sh | sh
+
+            echo "=== Installing backend dependencies ==="
+            cd /workspace/solune/backend
+            uv sync --locked --extra dev
+
+            echo "=== Verifying key packages ==="
+            uv run python -c "import fastapi; print(f'FastAPI {fastapi.__version__}')"
+            uv run python -c "import pydantic; print(f'Pydantic {pydantic.__version__}')"
+            uv run python -c "import pytest; print(f'pytest {pytest.__version__}')"
+
+            echo "=== Running backend unit tests (smoke) ==="
+            uv run pytest tests/unit/ -x -q --tb=short --timeout=60 2>&1 | tail -5
+
+            echo "=== Installing frontend dependencies ==="
+            cd /workspace/solune/frontend
+            node --version
+            npm --version
+            npm install
+
+            echo "=== Verifying frontend build ==="
+            npm run build
+
+            echo "=== Running frontend unit tests (smoke) ==="
+            npx vitest run --reporter=verbose 2>&1 | tail -10
+
+            echo "✅ Dev container environment fully verified"
+          push: never
+
+      - name: Verify env example is complete
+        run: |
+          echo "Checking .env.example has all expected variables..."
+          python3 -c "
+          import sys
+          required_vars = [
+              'GITHUB_CLIENT_ID',
+              'GITHUB_CLIENT_SECRET',
+              'SESSION_SECRET_KEY',
+          ]
+          with open('solune/.env.example') as f:
+              content = f.read()
+          missing = [v for v in required_vars if v not in content]
+          if missing:
+              print(f'Missing env vars in .env.example: {missing}', file=sys.stderr)
+              sys.exit(1)
+          found = [line.split('=')[0] for line in content.strip().splitlines()
+                   if '=' in line and not line.startswith('#')]
+          print(f'Found {len(found)} variables: {found}')
+          print('All required variables present')
+          "
