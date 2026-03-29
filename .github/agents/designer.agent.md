@@ -4,16 +4,6 @@ description: Analyzes local changes or a related PR and its changed product surf
   creates or refines change-scoped creative and design assets, and applies themed
   visual improvements that strengthen quality without drifting beyond the active scope.
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp
