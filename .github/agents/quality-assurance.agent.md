@@ -4,16 +4,6 @@ description: Analyzes a related PR and its changed code paths, applies scoped qu
   improvements, verifies requirements and standards, and fixes PR-local defects, test
   gaps, or drift that could impact production quality.
 mcp-servers:
-  Azure:
-    type: local
-    command: npx
-    args:
-    - -y
-    - '@azure/mcp@latest'
-    - server
-    - start
-    tools:
-    - '*'
   context7:
     type: http
     url: https://mcp.context7.com/mcp
