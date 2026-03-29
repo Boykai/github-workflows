@@ -5,7 +5,14 @@
 [![Flaky Detection](https://github.com/Boykai/github-workflows/actions/workflows/flaky-detection.yml/badge.svg)](https://github.com/Boykai/github-workflows/actions/workflows/flaky-detection.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-3776ab?logo=python&logoColor=white)](https://www.python.org/)
 [![TypeScript](https://img.shields.io/badge/typescript-5.9-3178c6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![React 19](https://img.shields.io/badge/react-19-61dafb?logo=react&logoColor=white)](https://react.dev/)
+[![FastAPI](https://img.shields.io/badge/fastapi-0.115-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Vite](https://img.shields.io/badge/vite-8-646cff?logo=vite&logoColor=white)](https://vite.dev/)
+[![Docker](https://img.shields.io/badge/docker-compose-2496ed?logo=docker&logoColor=white)](https://docs.docker.com/compose/)
+[![GitHub Copilot](https://img.shields.io/badge/copilot-powered-000?logo=githubcopilot&logoColor=white)](https://github.com/features/copilot)
 [![License: MIT](https://img.shields.io/github/license/Boykai/github-workflows?color=0f766e)](https://github.com/Boykai/github-workflows/blob/main/LICENSE)
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/Boykai/github-workflows?quickstart=1)
 
 > Build software with AI agents — from idea to pull request.
 
@@ -77,6 +84,10 @@ cp solune/.env.example solune/.env
 # Edit solune/.env — set GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, SESSION_SECRET_KEY
 docker compose up --build -d
 ```
+
+> **Need OAuth credentials?** Create a GitHub OAuth App by following the official guide:
+> [Creating an OAuth app](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/creating-an-oauth-app).
+> Set the **Homepage URL** to `http://localhost:5173` and the **Authorization callback URL** to `http://localhost:8000/api/v1/auth/github/callback`.
 
 Open **<http://localhost:5173>**.
 
