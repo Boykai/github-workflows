@@ -59,13 +59,11 @@ class CopilotClientPool:
             if key in self._clients:
                 return self._clients[key]
 
-            from copilot import (  # type: ignore[reportMissingImports]
-                CopilotClient,
-                SubprocessConfig,  # pyright: ignore[reportAttributeAccessIssue]
-            )
+            from copilot import CopilotClient  # type: ignore[reportMissingImports]
+            from copilot.types import CopilotClientOptions
 
-            config = SubprocessConfig(github_token=github_token)
-            client = CopilotClient(config=config, auto_start=False)  # pyright: ignore[reportCallIssue]
+            options = CopilotClientOptions(github_token=github_token, auto_start=False)
+            client = CopilotClient(options=options)
             await client.start()
             self._clients[key] = client
             logger.info(
