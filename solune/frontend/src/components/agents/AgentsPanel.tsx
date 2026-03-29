@@ -249,7 +249,6 @@ export function AgentsPanel({
           <Button
             onClick={handleOpenAddModal}
             size="lg"
-            className="!bg-primary !text-primary-foreground !border-primary/60 hover:!bg-primary/90"
           >
             + Add Agent
           </Button>
