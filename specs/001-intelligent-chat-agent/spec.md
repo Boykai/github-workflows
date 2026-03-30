@@ -120,7 +120,7 @@ An administrator configures the system to use either GitHub Copilot or Azure Ope
 
 ---
 
-### User Story 8 — Observability and Security Middleware (Priority: P3)
+### User Story 8 — Observability and Security (Priority: P3)
 
 An operator reviews logs to see timing, token usage, and tool invocation details for each agent interaction. The system detects and blocks prompt-injection attempts before they reach the agent, and validates all tool arguments before execution.
 
