@@ -1,7 +1,7 @@
 # Feature Specification: Intelligent Chat Agent (Microsoft Agent Framework)
 
 **Feature Branch**: `001-intelligent-chat-agent`  
-**Created**: 2026-03-29  
+**Created**: 2026-03-30  
 **Status**: Draft  
 **Input**: User description: "Replace the current completion-based AIAgentService (raw LLM calls + manual JSON parsing) with a Microsoft Agent Framework Agent that uses function tools to take actions, sessions for multi-turn memory, and middleware for logging/security. The priority-dispatch cascade in chat.py becomes the agent's natural reasoning — instead of hardcoded if/elif priority tiers, the agent decides which tool to call based on its instructions. The REST API contract stays the same so the frontend needs minimal changes."
 
@@ -124,7 +124,7 @@ An operator or developer can observe agent behavior through structured logs that
 - **FR-005**: System MUST maintain conversational memory within a session so that the agent can reference earlier messages when responding to subsequent ones.
 - **FR-006**: System MUST isolate sessions so that one user's conversation context is never accessible to another user.
 - **FR-007**: System MUST preserve the existing REST API contract — the ChatMessage schema and existing endpoints must remain unchanged for backwards compatibility.
-- **FR-008**: System MUST provide a streaming endpoint that delivers response tokens progressively via server-sent events.
+- **FR-008**: System MUST provide a streaming endpoint that delivers response tokens progressively so users see partial responses as they are generated.
 - **FR-009**: The frontend MUST support streaming responses with progressive rendering and fall back to the non-streaming endpoint if streaming fails.
 - **FR-010**: System MUST process messages received via the Signal integration using the same agent capabilities (non-streaming).
 - **FR-011**: The agent MUST ask 2–3 clarifying questions before taking action when the user's intent is ambiguous.
@@ -134,8 +134,9 @@ An operator or developer can observe agent behavior through structured logs that
 - **FR-015**: System MUST consolidate multiple prompt templates (task generation, issue generation, transcript analysis) into a single comprehensive agent instruction set.
 - **FR-016**: System MUST deprecate (not delete) the existing AIAgentService, completion providers, and old prompt modules with deprecation warnings, to be removed in a future version.
 - **FR-017**: The proposal confirm/reject flow MUST continue to work — tools return structured data that is converted into confirmable action proposals.
-- **FR-018**: System MUST manage context window limits for long conversations by summarizing older messages rather than hard-truncating.
-- **FR-019**: Tool registration design MUST accommodate future extensibility for additional tool types.
+- **FR-018**: File and transcript uploads MUST continue to work alongside agent-based interactions, with uploaded content available as context for the agent's reasoning.
+- **FR-019**: System MUST manage context window limits for long conversations by summarizing older messages rather than hard-truncating.
+- **FR-020**: Tool registration design MUST accommodate future extensibility for additional tool types.
 
 ### Key Entities
 
@@ -159,15 +160,15 @@ An operator or developer can observe agent behavior through structured logs that
 - **SC-006**: All existing automated tests pass after migration, plus new tests covering agent tools, session management, and response conversion achieve at least 80% coverage of new code.
 - **SC-007**: The system handles at least 50 concurrent chat sessions without session cross-contamination or performance degradation.
 - **SC-008**: Prompt injection attempts from a standard test suite are detected and blocked with zero false negatives and less than 5% false positives.
-- **SC-009**: The complete system (agent, tools, streaming, Signal integration) starts and operates correctly via Docker Compose with no manual configuration beyond environment variables.
+- **SC-009**: The complete system (agent, tools, streaming, Signal integration) starts and operates correctly via the standard container-based deployment with no manual configuration beyond environment variables.
 - **SC-010**: Deprecation warnings are emitted when any code path references the old AIAgentService, completion providers, or legacy prompt modules, providing clear migration guidance.
 
 ## Assumptions
 
-- The Microsoft Agent Framework packages (`agent-framework-core`, `agent-framework-github-copilot`, `agent-framework-azure-ai`) are stable and support the required features (function tools, sessions, middleware, streaming).
-- The existing Solune SQLite database remains the source of truth for conversation history; the agent session state supplements but does not replace it.
-- The GitHub Copilot provider supports per-request token passing or an equivalent mechanism for per-user authentication. If not supported, a bounded ephemeral agent pool (similar to the current CopilotClientPool) will be used.
+- The Microsoft Agent Framework packages are stable and support the required features (function tools, sessions, middleware, streaming).
+- The existing Solune database remains the source of truth for conversation history; the agent session state supplements but does not replace it.
+- The GitHub Copilot provider supports per-request token passing or an equivalent mechanism for per-user authentication. If not supported, a bounded ephemeral agent pool (similar to the current connection pooling strategy) will be used.
 - The `/agent` meta-command handling and proposal confirm/reject endpoints remain outside the agent's scope — they are handled directly by the API layer.
 - MCP tool integration is explicitly out of scope for this version (deferred to v0.4.0), but the tool registration design should not preclude it.
-- The frontend streaming implementation uses standard browser APIs (ReadableStream/EventSource) and does not require additional dependencies.
+- The frontend streaming implementation uses standard browser APIs and does not require additional dependencies.
 - Performance baselines are based on standard web application expectations unless specific targets are provided.
