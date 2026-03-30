@@ -1,7 +1,7 @@
 # Specification Quality Checklist: Intelligent Chat Agent (Microsoft Agent Framework)
 
 **Purpose**: Validate specification completeness and quality before proceeding to planning
-**Created**: 2026-03-29
+**Created**: 2026-03-30
 **Feature**: [spec.md](../spec.md)
 
 ## Content Quality
@@ -34,6 +34,8 @@
 - All checklist items pass validation
 - Spec is ready for `/speckit.clarify` or `/speckit.plan`
 - Assumptions section documents reasonable defaults for areas not explicitly specified
-- 19 functional requirements cover all described capabilities
+- 20 functional requirements cover all described capabilities including file/transcript upload continuity
 - 10 measurable success criteria with specific, verifiable targets
 - 8 edge cases identified covering failure modes, concurrency, and configuration errors
+- Technology references (GitHub Copilot, Azure OpenAI, Signal) are retained as they represent business-level provider/channel names, not implementation details
+- Removed protocol-level references (SSE, Docker Compose, SQLite, ReadableStream) from requirements and success criteria
