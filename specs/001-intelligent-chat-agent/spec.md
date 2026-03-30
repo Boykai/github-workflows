@@ -120,7 +120,7 @@ An administrator configures the system to use either GitHub Copilot or Azure Ope
 
 ---
 
-### User Story 8 — Observability and Security Middleware (Priority: P3)
+### User Story 8 — Observability and Security (Priority: P3)
 
 An operator reviews logs to see timing, token usage, and tool invocation details for each agent interaction. The system detects and blocks prompt-injection attempts before they reach the agent, and validates all tool arguments before execution.
 
@@ -132,7 +132,7 @@ An operator reviews logs to see timing, token usage, and tool invocation details
 
 1. **Given** a user sends a chat message, **When** the agent processes it, **Then** a structured log entry is created containing response time, token count, and tool(s) invoked.
 2. **Given** a message contains a known prompt-injection pattern, **When** the system processes it, **Then** the injection is detected and the message is rejected with a safe user-facing explanation.
-3. **Given** a tool receives arguments that violate its expected schema, **When** the middleware validates them, **Then** the invocation is blocked and an error is logged.
+3. **Given** a tool receives arguments that violate its expected schema, **When** the system validates them, **Then** the invocation is blocked and an error is logged.
 
 ---
 
@@ -166,29 +166,29 @@ An operator reviews logs to see timing, token usage, and tool invocation details
 - **FR-004**: System MUST map each user session to an agent session, ensuring conversation isolation between different users and sessions.
 - **FR-005**: System MUST support both GitHub Copilot and Azure OpenAI as interchangeable AI provider backends, selectable via configuration.
 - **FR-006**: System MUST preserve the existing REST API contract so the frontend requires only additive changes (streaming endpoint).
-- **FR-007**: System MUST expose a streaming endpoint that delivers agent responses progressively via server-sent events.
+- **FR-007**: System MUST deliver agent responses progressively to the web interface, providing immediate visual feedback as the response is generated.
 - **FR-008**: System MUST continue to support the Signal chat integration using the same agent logic in non-streaming mode.
 - **FR-009**: System MUST ask 2–3 clarifying questions before taking action on task creation and issue recommendation requests, unless the user's message provides sufficient detail.
 - **FR-010**: System MUST support the confirm/reject flow for proposals — the agent generates a proposal, the user confirms or rejects, and only confirmed proposals result in external actions (task creation, issue creation, status change).
-- **FR-011**: System MUST log each agent interaction with timing, token count, and tool invocation details via middleware.
-- **FR-012**: System MUST detect and block prompt-injection attempts via security middleware before they reach the agent.
+- **FR-011**: System MUST log each agent interaction with timing, token count, and tool invocation details.
+- **FR-012**: System MUST detect and block prompt-injection attempts before they reach the agent.
 - **FR-013**: System MUST validate tool arguments against their expected schemas before execution.
 - **FR-014**: System MUST bypass the agent and use simple title-only generation when the `ai_enhance=False` configuration flag is set.
-- **FR-015**: System MUST inject runtime context (project identifier, authentication token, session identifier) into tool invocations without exposing this context to the language model's schema.
+- **FR-015**: System MUST provide tools with the necessary operational context (active project, user identity, session) automatically, without requiring users to supply this information in their messages.
 - **FR-016**: System MUST handle AI provider failures (timeouts, rate limits, outages) gracefully by returning user-friendly error messages without corrupting session state.
 - **FR-017**: System MUST deprecate the existing AIAgentService, completion providers, and per-action prompt modules with deprecation warnings, retaining them for backward compatibility until v0.3.0.
 - **FR-018**: System MUST support the existing `/agent` meta-command handling, file upload processing, and proposal confirm/reject endpoints without modification.
 - **FR-019**: System MUST support the frontend displaying streaming responses progressively, with a fallback to the non-streaming endpoint if streaming fails.
-- **FR-020**: System MUST keep the existing conversation history storage as the source of truth and synchronise summaries into agent session state rather than replacing the storage layer.
+- **FR-020**: System MUST keep the existing conversation history storage as the source of truth, synchronising relevant context into agent sessions rather than replacing the storage layer.
 
 ### Key Entities
 
 - **Agent Session**: Represents a multi-turn conversation context bound to a specific user session. Contains conversation history summaries, active tool state, and provider-agnostic configuration. Maps one-to-one with the existing application session.
 - **Agent Tool**: A discrete capability the agent can invoke (e.g., create task proposal, analyse transcript). Each tool has a defined input schema, runtime context requirements, and a structured output format.
-- **Tool Invocation Context**: Runtime data (project identifier, authentication token, session identifier) passed to tools at execution time. Invisible to the language model — only available to tool implementation code.
-- **Agent Provider**: An abstraction over the underlying AI service (GitHub Copilot or Azure OpenAI). Responsible for model communication and token management. Interchangeable via configuration.
+- **Operational Context**: The set of runtime information (active project, user identity, session) that tools need to act on behalf of the user. Provided automatically so users never need to supply it manually.
+- **Agent Provider**: The underlying AI service (GitHub Copilot or Azure OpenAI) that powers the agent's reasoning. Interchangeable via configuration without affecting the user experience.
 - **Proposal**: A structured action recommendation (task, issue, or status change) generated by the agent and awaiting user confirmation or rejection before execution.
-- **Agent Middleware**: A processing layer that intercepts agent interactions for cross-cutting concerns: logging (timing, token usage), security (prompt-injection detection), and validation (tool argument schema checking).
+- **Interaction Safeguards**: The set of cross-cutting protections applied to every agent interaction: logging (timing, token usage), security (prompt-injection detection), and validation (tool argument checking).
 
 ## Success Criteria *(mandatory)*
 
@@ -200,18 +200,18 @@ An operator reviews logs to see timing, token usage, and tool invocation details
 - **SC-004**: Switching between AI providers produces functionally equivalent responses — the same set of test interactions yields the same tool selections and proposal structures with both providers.
 - **SC-005**: Streaming responses begin arriving at the frontend within 2 seconds of the user sending a message.
 - **SC-006**: All existing chat interactions (task creation, issue recommendation, status change, transcript analysis) continue to work without regression after the migration.
-- **SC-007**: 100% of existing unit tests pass after the migration, and new tests cover all agent tools, session management, and response conversion logic.
-- **SC-008**: Known prompt-injection patterns are blocked by the security middleware with zero successful injections reaching the agent in testing.
+- **SC-007**: All existing automated tests pass after the migration, and new tests cover every agent capability and session behaviour.
+- **SC-008**: Known prompt-injection patterns are blocked with zero successful injections reaching the agent in testing.
 - **SC-009**: Every agent interaction produces a structured log entry containing response time, token count, and tool invocation details.
-- **SC-010**: The system operates correctly when deployed via Docker (`docker compose up --build`) with both AI provider configurations, completing an end-to-end chat flow without errors.
+- **SC-010**: The complete system can be built and deployed from source, completing an end-to-end chat flow without errors using both supported AI provider configurations.
 - **SC-011**: The Signal integration delivers agent responses to text messages with the same quality as the web chat interface.
 
 ## Assumptions
 
-- The Microsoft Agent Framework packages (`agent-framework-core`, `agent-framework-github-copilot`, `agent-framework-azure-ai`) are stable and support the required features (function tools, sessions, middleware, streaming).
-- The existing ChatMessage schema is sufficient to carry agent responses — no schema changes are needed for the core flow; streaming is additive.
-- The existing SQLite-based conversation history storage is adequate for v0.2.0 and does not need to be replaced.
-- The `identify_target_task()` utility from the current service layer is reusable by the new `update_task_status` tool without modification.
+- The Microsoft Agent Framework packages are stable and support the required features (function tools, sessions, middleware, streaming).
+- The existing chat message schema is sufficient to carry agent responses — no schema changes are needed for the core flow; streaming is additive.
+- The existing conversation history storage is adequate for v0.2.0 and does not need to be replaced.
+- The task-identification utility from the current service layer is reusable by the new task status update capability without modification.
 - Per-user authentication with the GitHub Copilot provider can be handled through per-run token passing or a bounded ephemeral agent pool if the framework does not support per-run tokens natively.
 - MCP tool integration is explicitly out of scope for v0.2.0 and deferred to v0.4.0, but the tool registration design should accommodate future MCP tools.
 - The deprecation of old service layers (AIAgentService, completion providers, per-action prompts) means adding deprecation warnings only — actual removal is deferred to v0.3.0.
