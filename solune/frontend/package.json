@@ -54,7 +54,7 @@
     "@axe-core/playwright": "^4.10.1",
     "@eslint/js": "^10.0.1",
     "@fast-check/vitest": "^0.3.0",
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.59.1",
     "@stryker-mutator/core": "^9.6.0",
     "@stryker-mutator/vitest-runner": "^9.6.0",
     "@tailwindcss/vite": "^4.2.2",
