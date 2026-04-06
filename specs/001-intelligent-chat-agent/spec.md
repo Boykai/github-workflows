@@ -166,7 +166,7 @@ An operator reviews logs to see timing, token usage, and tool invocation details
 - **FR-004**: System MUST map each user session to an agent session, ensuring conversation isolation between different users and sessions.
 - **FR-005**: System MUST support both GitHub Copilot and Azure OpenAI as interchangeable AI provider backends, selectable via configuration.
 - **FR-006**: System MUST preserve the existing REST API contract so the frontend requires only additive changes (streaming endpoint).
-- **FR-007**: System MUST expose a streaming endpoint that delivers agent responses progressively via server-sent events.
+- **FR-007**: System MUST expose a streaming endpoint that delivers agent responses progressively in real time.
 - **FR-008**: System MUST continue to support the Signal chat integration using the same agent logic in non-streaming mode.
 - **FR-009**: System MUST ask 2–3 clarifying questions before taking action on task creation and issue recommendation requests, unless the user's message provides sufficient detail.
 - **FR-010**: System MUST support the confirm/reject flow for proposals — the agent generates a proposal, the user confirms or rejects, and only confirmed proposals result in external actions (task creation, issue creation, status change).
@@ -176,7 +176,7 @@ An operator reviews logs to see timing, token usage, and tool invocation details
 - **FR-014**: System MUST bypass the agent and use simple title-only generation when the `ai_enhance=False` configuration flag is set.
 - **FR-015**: System MUST inject runtime context (project identifier, authentication token, session identifier) into tool invocations without exposing this context to the language model's schema.
 - **FR-016**: System MUST handle AI provider failures (timeouts, rate limits, outages) gracefully by returning user-friendly error messages without corrupting session state.
-- **FR-017**: System MUST deprecate the existing AIAgentService, completion providers, and per-action prompt modules with deprecation warnings, retaining them for backward compatibility until v0.3.0.
+- **FR-017**: System MUST deprecate the existing completion-based service, provider abstractions, and per-action prompt modules with deprecation warnings, retaining them for backward compatibility until v0.3.0.
 - **FR-018**: System MUST support the existing `/agent` meta-command handling, file upload processing, and proposal confirm/reject endpoints without modification.
 - **FR-019**: System MUST support the frontend displaying streaming responses progressively, with a fallback to the non-streaming endpoint if streaming fails.
 - **FR-020**: System MUST keep the existing conversation history storage as the source of truth and synchronise summaries into agent session state rather than replacing the storage layer.
@@ -200,19 +200,41 @@ An operator reviews logs to see timing, token usage, and tool invocation details
 - **SC-004**: Switching between AI providers produces functionally equivalent responses — the same set of test interactions yields the same tool selections and proposal structures with both providers.
 - **SC-005**: Streaming responses begin arriving at the frontend within 2 seconds of the user sending a message.
 - **SC-006**: All existing chat interactions (task creation, issue recommendation, status change, transcript analysis) continue to work without regression after the migration.
-- **SC-007**: 100% of existing unit tests pass after the migration, and new tests cover all agent tools, session management, and response conversion logic.
+- **SC-007**: 100% of existing automated tests pass after the migration, and new tests cover all agent tools, session management, and response conversion logic.
 - **SC-008**: Known prompt-injection patterns are blocked by the security middleware with zero successful injections reaching the agent in testing.
 - **SC-009**: Every agent interaction produces a structured log entry containing response time, token count, and tool invocation details.
-- **SC-010**: The system operates correctly when deployed via Docker (`docker compose up --build`) with both AI provider configurations, completing an end-to-end chat flow without errors.
+- **SC-010**: The system operates correctly in a containerized deployment with both AI provider configurations, completing an end-to-end chat flow without errors.
 - **SC-011**: The Signal integration delivers agent responses to text messages with the same quality as the web chat interface.
+
+## Scope Boundaries
+
+### In Scope
+
+- Replacing the completion-based service with an agent that reasons about which tool to call
+- All existing chat actions (task creation, issue recommendation, status change, transcript analysis)
+- Multi-turn conversation memory within sessions
+- Support for both GitHub Copilot and Azure OpenAI providers
+- Real-time streaming responses for the web chat interface
+- Signal chat integration (non-streaming)
+- Observability logging and security middleware
+- Deprecation warnings on the old service layer (no removal)
+
+### Out of Scope
+
+- MCP tool integration (deferred to v0.4.0)
+- Removal of deprecated service layers (deferred to v0.3.0)
+- Changes to the existing conversation history storage layer
+- Changes to the existing message schema (streaming is additive only)
+- New chat capabilities beyond the current feature set
+- Mobile application support
 
 ## Assumptions
 
-- The Microsoft Agent Framework packages (`agent-framework-core`, `agent-framework-github-copilot`, `agent-framework-azure-ai`) are stable and support the required features (function tools, sessions, middleware, streaming).
-- The existing ChatMessage schema is sufficient to carry agent responses — no schema changes are needed for the core flow; streaming is additive.
-- The existing SQLite-based conversation history storage is adequate for v0.2.0 and does not need to be replaced.
-- The `identify_target_task()` utility from the current service layer is reusable by the new `update_task_status` tool without modification.
-- Per-user authentication with the GitHub Copilot provider can be handled through per-run token passing or a bounded ephemeral agent pool if the framework does not support per-run tokens natively.
-- MCP tool integration is explicitly out of scope for v0.2.0 and deferred to v0.4.0, but the tool registration design should accommodate future MCP tools.
-- The deprecation of old service layers (AIAgentService, completion providers, per-action prompts) means adding deprecation warnings only — actual removal is deferred to v0.3.0.
+- The underlying agent framework packages are stable and support the required features (function tools, sessions, middleware, streaming).
+- The existing message schema is sufficient to carry agent responses — no schema changes are needed for the core flow; streaming is additive.
+- The existing conversation history storage is adequate for v0.2.0 and does not need to be replaced.
+- The task-identification utility from the current service layer is reusable by the task status update tool without modification.
+- Per-user authentication with the Copilot provider can be handled through per-run token passing or a bounded ephemeral agent pool if the framework does not support per-run tokens natively.
+- The tool registration design should accommodate future extensibility (e.g., MCP tools in v0.4.0).
+- The deprecation of old service layers means adding deprecation warnings only — actual removal is deferred to v0.3.0.
 - Performance targets (2-second streaming start, sub-2-minute task creation) are based on standard web application expectations and current system behaviour.
