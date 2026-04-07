@@ -58,15 +58,15 @@ An administrator configures Solune to use either GitHub Copilot or Azure OpenAI 
 
 ### User Story 4 - Real-Time Streaming Responses (Priority: P3)
 
-A user sends a message and sees the agent's response appear progressively (token by token) in the chat interface, rather than waiting for the entire response to be generated before anything appears. This provides immediate feedback and a more responsive experience.
+A user sends a message and sees the agent's response appear progressively (word by word) in the chat interface, rather than waiting for the entire response to be generated before anything appears. This provides immediate feedback and a more responsive experience.
 
 **Why this priority**: Streaming improves perceived performance and user experience but is additive — the system works fully without it. It can be delivered independently after core agent functionality is stable.
 
-**Independent Test**: Can be tested by sending a message to the streaming endpoint and verifying that partial tokens arrive before the full response is complete, with the final assembled response matching what the non-streaming endpoint would return.
+**Independent Test**: Can be tested by sending a message to the streaming endpoint and verifying that partial text arrives before the full response is complete, with the final assembled response matching what the non-streaming endpoint would return.
 
 **Acceptance Scenarios**:
 
-1. **Given** a user sends a message via the streaming-enabled chat interface, **When** the agent begins generating a response, **Then** tokens appear progressively in the chat bubble within 500ms of the first token being generated.
+1. **Given** a user sends a message via the streaming-enabled chat interface, **When** the agent begins generating a response, **Then** text appears progressively in the chat bubble within 500ms of the first content being generated.
 2. **Given** the streaming endpoint is unavailable or errors, **When** the frontend detects the failure, **Then** it falls back to the non-streaming endpoint and displays the complete response after generation finishes.
 
 ---
@@ -119,19 +119,19 @@ An operator or developer can observe agent behavior through structured logs that
 
 - **FR-001**: System MUST route user messages to an intelligent agent that reasons about intent and selects the appropriate action, replacing the existing hardcoded priority-dispatch cascade.
 - **FR-002**: System MUST expose the following agent tools: task proposal creation, issue recommendation creation, task status update, transcript analysis, clarifying question, project context retrieval, and pipeline list retrieval.
-- **FR-003**: Each agent tool MUST receive runtime context (project identifier, authentication token, session identifier) without exposing that context to the language model's input schema.
+- **FR-003**: Each agent tool MUST receive runtime context (project identifier, authentication token, session identifier) securely, without exposing that context to user-visible parameters or the agent's decision inputs.
 - **FR-004**: System MUST support at least two AI provider backends (GitHub Copilot and Azure OpenAI) that are interchangeable via configuration without code changes.
 - **FR-005**: System MUST maintain conversational memory within a session so that the agent can reference earlier messages when responding to subsequent ones.
 - **FR-006**: System MUST isolate sessions so that one user's conversation context is never accessible to another user.
 - **FR-007**: System MUST preserve the existing REST API contract — the ChatMessage schema and existing endpoints must remain unchanged for backwards compatibility.
-- **FR-008**: System MUST provide a streaming endpoint that delivers response tokens progressively via server-sent events.
+- **FR-008**: System MUST provide a streaming endpoint that delivers response content progressively in real time as it is generated.
 - **FR-009**: The frontend MUST support streaming responses with progressive rendering and fall back to the non-streaming endpoint if streaming fails.
 - **FR-010**: System MUST process messages received via the Signal integration using the same agent capabilities (non-streaming).
 - **FR-011**: The agent MUST ask 2–3 clarifying questions before taking action when the user's intent is ambiguous.
 - **FR-012**: System MUST support a bypass mode (`ai_enhance=False`) that skips the agent and uses simple title-only generation, preserving current behavior for users who opt out.
 - **FR-013**: System MUST emit structured logs for each agent interaction containing response timing, token usage, and tool invocation details.
 - **FR-014**: System MUST include security middleware that detects prompt injection attempts and validates tool arguments before execution.
-- **FR-015**: System MUST consolidate multiple prompt templates (task generation, issue generation, transcript analysis) into a single comprehensive agent instruction set.
+- **FR-015**: System MUST consolidate multiple separate behavior instruction sets (task generation, issue generation, transcript analysis) into a single comprehensive agent instruction set.
 - **FR-016**: System MUST deprecate (not delete) the existing AIAgentService, completion providers, and old prompt modules with deprecation warnings, to be removed in a future version.
 - **FR-017**: The proposal confirm/reject flow MUST continue to work — tools return structured data that is converted into confirmable action proposals.
 - **FR-018**: System MUST manage context window limits for long conversations by summarizing older messages rather than hard-truncating.
@@ -141,11 +141,11 @@ An operator or developer can observe agent behavior through structured logs that
 
 - **Agent**: The central reasoning component that receives user messages, decides which tool to invoke based on its instructions and conversation context, and returns structured responses. Configured with a provider backend and a set of available tools.
 - **Agent Session**: A stateful conversation container that maps to a Solune user session. Stores conversation history and accumulated context. Isolated per user.
-- **Agent Tool**: A discrete, named function that the agent can invoke to perform an action (e.g., create a task, update status). Each tool has a defined input schema (visible to the agent) and receives runtime context (invisible to the agent).
+- **Agent Tool**: A discrete, named capability that the agent can invoke to perform an action (e.g., create a task, update status). Each tool has a defined set of user-facing parameters and receives runtime context securely and separately.
 - **Agent Provider**: An abstraction over the underlying AI model service (GitHub Copilot or Azure OpenAI). Created via a factory based on configuration. Interchangeable without affecting agent behavior.
 - **Agent Middleware**: A processing layer that wraps agent execution to provide cross-cutting concerns: logging (timing, tokens) and security (injection detection, argument validation).
 - **Chat Message**: The existing message data structure exchanged between frontend and backend. Includes optional `action_type` and `action_data` fields for confirmable proposals. Schema remains unchanged.
-- **System Instructions**: A comprehensive prompt document that guides agent behavior including clarifying-question policy, difficulty assessment rules, tool usage guidance, and dynamic project context.
+- **System Instructions**: A comprehensive behavioral guide that directs agent behavior including clarifying-question policy, difficulty assessment rules, tool usage guidance, and dynamic project context.
 
 ## Success Criteria *(mandatory)*
 
@@ -155,12 +155,12 @@ An operator or developer can observe agent behavior through structured logs that
 - **SC-002**: Users can complete a multi-turn conversation where the agent correctly references context from at least 5 prior messages in the same session.
 - **SC-003**: The agent correctly selects the appropriate tool for at least 95% of unambiguous user requests (measured against a test suite of representative messages).
 - **SC-004**: Switching between AI providers produces equivalent responses for the same input — no provider-specific behavioral differences visible to users.
-- **SC-005**: Streaming responses deliver the first visible token to the user within 2 seconds of sending a message, with progressive rendering completing within the total generation time.
-- **SC-006**: All existing automated tests pass after migration, plus new tests covering agent tools, session management, and response conversion achieve at least 80% coverage of new code.
+- **SC-005**: Streaming responses deliver the first visible text to the user within 2 seconds of sending a message, with progressive rendering completing within the total generation time.
+- **SC-006**: All existing automated tests pass after migration, plus new tests covering agent tools, session management, and response conversion comprehensively validate all new functionality.
 - **SC-007**: The system handles at least 50 concurrent chat sessions without session cross-contamination or performance degradation.
 - **SC-008**: Prompt injection attempts from a standard test suite are detected and blocked with zero false negatives and less than 5% false positives.
 - **SC-009**: The complete system (agent, tools, streaming, Signal integration) starts and operates correctly via Docker Compose with no manual configuration beyond environment variables.
-- **SC-010**: Deprecation warnings are emitted when any code path references the old AIAgentService, completion providers, or legacy prompt modules, providing clear migration guidance.
+- **SC-010**: Deprecation warnings are emitted when any code path references the previous service layer, completion providers, or legacy instruction modules, providing clear migration guidance.
 
 ## Assumptions
 
