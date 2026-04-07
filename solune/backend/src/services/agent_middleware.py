@@ -23,11 +23,15 @@ logger = get_logger(__name__)
 _INJECTION_PATTERNS: list[re.Pattern[str]] = [
     re.compile(r"ignore\s+(all\s+)?previous\s+instructions", re.IGNORECASE),
     re.compile(r"you\s+are\s+now\s+(?:a\s+)?(?:DAN|evil|jailbreak)", re.IGNORECASE),
-    re.compile(r"disregard\s+(?:all\s+)?(?:your\s+)?(?:previous\s+)?(?:instructions|rules)", re.IGNORECASE),
+    re.compile(
+        r"disregard\s+(?:all\s+)?(?:your\s+)?(?:previous\s+)?(?:instructions|rules)", re.IGNORECASE
+    ),
     re.compile(r"system\s*:\s*you\s+are", re.IGNORECASE),
     re.compile(r"<\|(?:im_start|system)\|>", re.IGNORECASE),
     re.compile(r"reveal\s+(?:your\s+)?(?:system\s+)?(?:prompt|instructions)", re.IGNORECASE),
-    re.compile(r"(?:print|show|output)\s+(?:your\s+)?(?:system\s+)?(?:prompt|instructions)", re.IGNORECASE),
+    re.compile(
+        r"(?:print|show|output)\s+(?:your\s+)?(?:system\s+)?(?:prompt|instructions)", re.IGNORECASE
+    ),
 ]
 
 
@@ -117,8 +121,7 @@ class LoggingAgentMiddleware:
         """Called after the agent completes a request."""
         elapsed = time.monotonic() - getattr(self, "_start_time", time.monotonic())
         logger.info(
-            "Agent request end — session=%s, elapsed=%.3fs, "
-            "response_length=%d, tools=%s",
+            "Agent request end — session=%s, elapsed=%.3fs, response_length=%d, tools=%s",
             context.get("session_id", "unknown"),
             elapsed,
             len(response_text),

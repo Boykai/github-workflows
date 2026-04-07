@@ -1138,14 +1138,18 @@ async def send_message(
                     title=agent_response.action_data.get("proposed_title", ""),
                     user_story=agent_response.action_data.get("user_story", ""),
                     ui_ux_description=agent_response.action_data.get("ui_ux_description", ""),
-                    functional_requirements=agent_response.action_data.get("functional_requirements", []),
+                    functional_requirements=agent_response.action_data.get(
+                        "functional_requirements", []
+                    ),
                     technical_notes=agent_response.action_data.get("technical_notes", ""),
                     status=RecStatus.PENDING,
                     selected_pipeline_id=chat_request.pipeline_id or None,
                     file_urls=chat_request.file_urls or [],
                 )
                 await store_recommendation(recommendation)
-                agent_response.action_data["recommendation_id"] = str(recommendation.recommendation_id)
+                agent_response.action_data["recommendation_id"] = str(
+                    recommendation.recommendation_id
+                )
                 agent_response.action_data["status"] = RecStatus.PENDING.value
             else:
                 # Recommendation already persisted (from fallback path _recommendation key)
@@ -1174,7 +1178,9 @@ async def send_message(
         return agent_response
 
     except Exception as exc:
-        logger.error("ChatAgentService failed, falling back to legacy dispatch: %s", exc, exc_info=True)
+        logger.error(
+            "ChatAgentService failed, falling back to legacy dispatch: %s", exc, exc_info=True
+        )
         # Fall back to legacy dispatch if agent service fails entirely
         transcript_msg = await _handle_transcript_upload(
             session, ai_service, project_name, chat_request.pipeline_id, chat_request.file_urls
@@ -1183,22 +1189,37 @@ async def send_message(
             return transcript_msg
 
         feature_msg = await _handle_feature_request(
-            session, content, ai_service, project_name,
-            chat_request.pipeline_id, chat_request.ai_enhance, chat_request.file_urls
+            session,
+            content,
+            ai_service,
+            project_name,
+            chat_request.pipeline_id,
+            chat_request.ai_enhance,
+            chat_request.file_urls,
         )
         if feature_msg:
             return feature_msg
 
         status_msg = await _handle_status_change(
-            session, content, ai_service, current_tasks, project_columns,
-            cached_projects, selected_project_id, project_name
+            session,
+            content,
+            ai_service,
+            current_tasks,
+            project_columns,
+            cached_projects,
+            selected_project_id,
+            project_name,
         )
         if status_msg:
             return status_msg
 
         return await _handle_task_generation(
-            session, content, ai_service, project_name,
-            chat_request.ai_enhance, chat_request.pipeline_id
+            session,
+            content,
+            ai_service,
+            project_name,
+            chat_request.ai_enhance,
+            chat_request.pipeline_id,
         )
 
 

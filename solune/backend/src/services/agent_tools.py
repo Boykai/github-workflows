@@ -135,8 +135,7 @@ async def create_issue_recommendation(
     tech_preview = ""
     if tech_notes:
         tech_preview = (
-            f"\n\n**Technical Notes:**\n"
-            f"{tech_notes[:300]}{'...' if len(tech_notes) > 300 else ''}"
+            f"\n\n**Technical Notes:**\n{tech_notes[:300]}{'...' if len(tech_notes) > 300 else ''}"
         )
 
     return _tool_result(
@@ -180,7 +179,6 @@ async def update_task_status(
     """
     ctx = tool_context or {}
     current_tasks = ctx.get("current_tasks", [])
-    project_columns = ctx.get("project_columns", [])
     cached_projects = ctx.get("cached_projects")
     selected_project_id = ctx.get("project_id", "")
 
@@ -362,12 +360,13 @@ async def get_project_context(
     project_columns = ctx.get("project_columns", [])
     current_tasks = ctx.get("current_tasks", [])
 
-    task_summaries = []
-    for task in current_tasks[:20]:
-        task_summaries.append({
+    task_summaries = [
+        {
             "title": getattr(task, "title", str(task)),
             "status": getattr(task, "status", "unknown"),
-        })
+        }
+        for task in current_tasks[:20]
+    ]
 
     context_info = {
         "project_name": project_name,

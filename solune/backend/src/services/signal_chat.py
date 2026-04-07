@@ -18,7 +18,6 @@ from __future__ import annotations
 import json
 from uuid import NAMESPACE_URL, UUID, uuid5
 
-from src.constants import DEFAULT_STATUS_COLUMNS
 from src.logging_utils import get_logger
 from src.models.chat import ActionType, ChatMessage, SenderType
 from src.models.signal import (
@@ -736,7 +735,9 @@ async def _run_ai_pipeline(
                     title=agent_response.action_data.get("proposed_title", ""),
                     user_story=agent_response.action_data.get("user_story", ""),
                     ui_ux_description=agent_response.action_data.get("ui_ux_description", ""),
-                    functional_requirements=agent_response.action_data.get("functional_requirements", []),
+                    functional_requirements=agent_response.action_data.get(
+                        "functional_requirements", []
+                    ),
                     technical_notes=agent_response.action_data.get("technical_notes", ""),
                     status=RecommendationStatus.PENDING,
                 )

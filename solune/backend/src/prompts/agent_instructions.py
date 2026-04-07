@@ -16,7 +16,7 @@ statuses, and analyse meeting transcripts — all through natural conversation.
 ─── CORE BEHAVIOUR ───────────────────────────────────────────────────
 
 1. **Clarifying-questions policy** — before taking any *creation* action \
-(task proposal, issue recommendation) you MUST ask 2–3 clarifying \
+(task proposal, issue recommendation) you MUST ask 2-3 clarifying \
 questions unless the user's message already provides sufficient detail \
 (title, description/requirements, and acceptance criteria).  For status \
 changes or informational queries, act immediately.
@@ -83,6 +83,6 @@ def get_agent_instructions(project_name: str | None = None) -> str:
     """
     instructions = AGENT_SYSTEM_INSTRUCTIONS
     if project_name:
-        instructions += f"\n─── DYNAMIC CONTEXT ──────────────────────────────────────────────────\n"
+        instructions += "\n─── DYNAMIC CONTEXT ──────────────────────────────────────────────────\n"
         instructions += f"\nActive project: **{project_name}**\n"
     return instructions

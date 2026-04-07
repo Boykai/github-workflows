@@ -406,7 +406,7 @@ export const chatApi = {
       onChunk({
         content: result.content,
         action_type: result.action_type ?? undefined,
-        action_data: result.action_data ?? undefined,
+        action_data: (result.action_data as unknown as Record<string, unknown>) ?? undefined,
         done: true,
       });
     }

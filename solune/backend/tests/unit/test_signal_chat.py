@@ -488,6 +488,9 @@ class TestRunAiPipeline:
                 title="Improve coverage dashboard",
                 user_story="As a maintainer, I want clearer coverage reporting.",
                 functional_requirements=["Show totals", "Highlight regressions"],
+                original_context="we need a better dashboard",
+                ui_ux_description="Dashboard improvements",
+                technical_notes="",
             )
         )
         cache = Mock()
@@ -690,6 +693,7 @@ class TestRunAiPipeline:
         cache.get.side_effect = [[self._project()], []]
         add_message = AsyncMock()
         reply = AsyncMock()
+        reply_with_audit = AsyncMock()
 
         monkeypatch.setattr(
             signal_chat, "_get_user_access_token", AsyncMock(return_value="token-1")
@@ -700,12 +704,14 @@ class TestRunAiPipeline:
         monkeypatch.setattr("src.services.cache.cache", cache)
         monkeypatch.setattr("src.api.chat.add_message", add_message)
         monkeypatch.setattr(signal_chat, "_reply", reply)
+        monkeypatch.setattr(signal_chat, "_reply_with_audit", reply_with_audit)
 
         await signal_chat._run_ai_pipeline(conn, "write more tests", "project-1", "+15551234567")
 
+        # ChatAgentService returns an error message as a conversational response,
+        # which signal_chat delivers via _reply_with_audit.
         add_message.assert_awaited_once()
-        reply.assert_awaited_once()
-        assert "couldn't process your message" in reply.await_args.args[1]
+        reply_with_audit.assert_awaited_once()
 
 
 class TestRunWorkflowOrchestration:

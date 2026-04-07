@@ -14,16 +14,14 @@ Key responsibilities:
 
 from __future__ import annotations
 
-import asyncio
 import json
-from typing import Any, AsyncIterator
+from collections.abc import AsyncIterator
+from typing import Any
 from uuid import UUID
 
 from src.logging_utils import get_logger
 from src.models.chat import ActionType, ChatMessage, SenderType
 from src.models.recommendation import (
-    AITaskProposal,
-    IssueRecommendation,
     ProposalStatus,
     RecommendationStatus,
 )
@@ -32,11 +30,7 @@ from src.services.agent_middleware import LoggingAgentMiddleware, SecurityMiddle
 from src.services.agent_tools import (
     AGENT_TOOLS,
     analyze_transcript,
-    ask_clarifying_question,
-    create_issue_recommendation,
     create_task_proposal,
-    get_pipeline_list,
-    get_project_context,
     update_task_status,
 )
 
@@ -140,9 +134,7 @@ class ChatAgentService:
                 )
             else:
                 # Fallback: keyword-based tool dispatch
-                result = await self._run_with_fallback(
-                    message, tool_context, tools_invoked
-                )
+                result = await self._run_with_fallback(message, tool_context, tools_invoked)
         except Exception as exc:
             logger.error("Agent run failed: %s", exc, exc_info=True)
             result = _error_tool_result(
@@ -203,13 +195,15 @@ class ChatAgentService:
         # Yield the content progressively (simulated streaming)
         content = result.content
         # Yield the full content in one chunk for now
-        yield json.dumps({
-            "type": "content",
-            "content": content,
-            "action_type": result.action_type.value if result.action_type else None,
-            "action_data": result.action_data,
-            "done": True,
-        })
+        yield json.dumps(
+            {
+                "type": "content",
+                "content": content,
+                "action_type": result.action_type.value if result.action_type else None,
+                "action_data": result.action_data,
+                "done": True,
+            }
+        )
 
     # ── Agent Framework integration ──────────────────────────────────
 
@@ -222,9 +216,7 @@ class ChatAgentService:
                 self._agent_framework_available = True
             except ImportError:
                 self._agent_framework_available = False
-                logger.info(
-                    "agent-framework-core not available — using fallback tool dispatch"
-                )
+                logger.info("agent-framework-core not available — using fallback tool dispatch")
         return self._agent_framework_available
 
     async def _run_with_agent_framework(
@@ -236,7 +228,7 @@ class ChatAgentService:
     ) -> dict[str, Any]:
         """Run the message through the Microsoft Agent Framework agent."""
         try:
-            from agent_framework import Agent, AgentSession, FunctionTool
+            from agent_framework import Agent, AgentSession
 
             from src.services.agent_provider import create_agent_client
 
@@ -248,13 +240,9 @@ class ChatAgentService:
             framework_tools = []
             for tool_func in AGENT_TOOLS:
                 # Wrap each tool to inject tool_context
-                async def _wrapped(
-                    _fn=tool_func, _ctx=tool_context, **kwargs: Any
-                ) -> Any:
+                async def _wrapped(_fn=tool_func, _ctx=tool_context, **kwargs: Any) -> Any:
                     self._logging_mw.on_tool_call(_fn.__name__, kwargs)
-                    validation_error = self._security_mw.check_tool_call(
-                        _fn.__name__, kwargs
-                    )
+                    validation_error = self._security_mw.check_tool_call(_fn.__name__, kwargs)
                     if validation_error:
                         return {"message": validation_error, "action_type": "", "action_data": {}}
                     tools_invoked.append(_fn.__name__)
@@ -275,7 +263,6 @@ class ChatAgentService:
             )
 
             # Use or create session
-            session_key = str(session_id)
             async with AgentSession(agent=agent) as session:
                 result = await session.run(message)
 
@@ -312,7 +299,6 @@ class ChatAgentService:
         """
         ai_service = tool_context.get("ai_service")
         github_token = tool_context.get("github_token")
-        message_lower = message.lower().strip()
 
         # ── 1. Transcript analysis (if file_urls present) ────────────
         file_urls = tool_context.get("file_urls", [])
@@ -320,7 +306,9 @@ class ChatAgentService:
             transcript_content = await self._extract_transcript(file_urls)
             if transcript_content:
                 tools_invoked.append("analyze_transcript")
-                self._logging_mw.on_tool_call("analyze_transcript", {"content_length": len(transcript_content)})
+                self._logging_mw.on_tool_call(
+                    "analyze_transcript", {"content_length": len(transcript_content)}
+                )
                 return await analyze_transcript(
                     transcript_content=transcript_content,
                     tool_context=tool_context,
@@ -364,6 +352,7 @@ class ChatAgentService:
                             "technical_notes": recommendation.technical_notes,
                             "pipeline_id": tool_context.get("pipeline_id"),
                             "file_urls": file_urls,
+                            "_recommendation": recommendation,
                         },
                         "message": (
                             f"I've generated a GitHub issue recommendation:\n\n"
@@ -372,7 +361,6 @@ class ChatAgentService:
                             "Click **Confirm** to create this issue in GitHub, "
                             "or **Reject** to discard."
                         ),
-                        "_recommendation": recommendation,
                     }
                 except Exception as exc:
                     logger.error("Issue recommendation failed: %s", exc, exc_info=True)
@@ -399,7 +387,10 @@ class ChatAgentService:
                     tools_invoked.append("update_task_status")
                     self._logging_mw.on_tool_call(
                         "update_task_status",
-                        {"task_reference": status_change.task_reference, "target_status": status_change.target_status},
+                        {
+                            "task_reference": status_change.task_reference,
+                            "target_status": status_change.target_status,
+                        },
                     )
                     return await update_task_status(
                         task_reference=status_change.task_reference,
@@ -431,9 +422,7 @@ class ChatAgentService:
                     "Please try again with more detail."
                 )
 
-        return _error_tool_result(
-            "AI features are not configured. Please set up your AI provider."
-        )
+        return _error_tool_result("AI features are not configured. Please set up your AI provider.")
 
     async def _extract_transcript(self, file_urls: list[str]) -> str | None:
         """Try to extract transcript content from uploaded files."""
@@ -447,11 +436,11 @@ class ChatAgentService:
 
         for file_url in file_urls:
             raw_name = file_url.rsplit("/", 1)[-1] if "/" in file_url else file_url
-            filename = os.path.basename(raw_name)
+            filename = os.path.basename(raw_name)  # noqa: PTH119 — CodeQL sanitizer
             if not filename:
                 continue
 
-            candidate = os.path.normpath(os.path.join(str(upload_dir), filename))
+            candidate = os.path.normpath(os.path.join(str(upload_dir), filename))  # noqa: PTH118
             safe_prefix = os.path.normpath(str(upload_dir)) + os.sep
             if not candidate.startswith(safe_prefix):
                 continue
@@ -505,7 +494,7 @@ class ChatAgentService:
             sender_type=SenderType.ASSISTANT,
             content=message_text,
             action_type=action_type,
-            action_data=action_data if action_data else None,
+            action_data=action_data or None,
         )
 
 

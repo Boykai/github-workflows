@@ -68,9 +68,8 @@ def _create_copilot_client(github_token: str | None, settings: Any) -> Any:
     except ImportError:
         # Fallback: if agent-framework is not installed, raise clearly
         raise ValueError(
-            "agent-framework-core is not installed. "
-            "Run: pip install agent-framework-core"
-        )
+            "agent-framework-core is not installed. Run: pip install agent-framework-core"
+        ) from None
 
     model_id = getattr(settings, "copilot_model", "gpt-4o")
 
@@ -110,9 +109,8 @@ def _create_azure_client(settings: Any) -> Any:
             )
         except ImportError:
             raise ValueError(
-                "agent-framework-core is not installed. "
-                "Run: pip install agent-framework-core"
-            )
+                "agent-framework-core is not installed. Run: pip install agent-framework-core"
+            ) from None
 
     return AzureOpenAIChatClient(
         endpoint=endpoint,
