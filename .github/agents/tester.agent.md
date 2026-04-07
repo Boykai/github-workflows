@@ -12,17 +12,6 @@ mcp-servers:
     - get-library-docs
     headers:
       CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
-  CodeGraphContext:
-    type: local
-    command: uvx
-    args:
-    - --from
-    - codegraphcontext
-    - cgc
-    - mcp
-    - start
-    tools:
-    - '*'
 ---
 
 You are a **Testing and Quality Engineer** specializing in change-scoped defect prevention, meaningful regression testing, and small corrective fixes that improve confidence in changed behavior.
