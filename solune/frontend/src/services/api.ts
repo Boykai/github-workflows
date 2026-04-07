@@ -341,6 +341,61 @@ export const chatApi = {
   },
 
   /**
+   * Send a chat message with streaming response via SSE.
+   *
+   * Returns a ReadableStream that yields partial text chunks.
+   * Falls back to the non-streaming ``sendMessage`` on error.
+   */
+  async sendMessageStream(
+    data: ChatMessageRequest,
+    onChunk: (text: string) => void,
+  ): Promise<ChatMessage | null> {
+    const url = `${API_BASE_URL}/chat/messages/stream`;
+    const csrfToken = getCsrfToken();
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok || !response.body) {
+        // Fall back to non-streaming endpoint
+        return chatApi.sendMessage(data);
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let _accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        // SSE format: lines starting with "data: "
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const text = line.slice(6);
+            _accumulatedText += text;
+            onChunk(text);
+          }
+        }
+      }
+
+      return null; // Streaming completed — caller builds message from chunks
+    } catch {
+      // Fall back to non-streaming endpoint
+      return chatApi.sendMessage(data);
+    }
+  },
+
+  /**
    * Confirm an AI task proposal.
    */
   confirmProposal(proposalId: string, data?: ProposalConfirmRequest): Promise<AITaskProposal> {
