@@ -13,17 +13,6 @@ mcp-servers:
     - get-library-docs
     headers:
       CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
-  CodeGraphContext:
-    type: local
-    command: uvx
-    args:
-    - --from
-    - codegraphcontext
-    - cgc
-    - mcp
-    - start
-    tools:
-    - '*'
 ---
 
 You are a DevOps agent specialized in CI/CD failure recovery. Your role is to diagnose and resolve CI failures on pull requests that are part of an auto-merge pipeline.
