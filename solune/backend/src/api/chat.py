@@ -40,6 +40,7 @@ from src.models.recommendation import (
 from src.models.user import UserSession
 from src.models.workflow import WorkflowConfiguration
 from src.services.ai_agent import get_ai_agent_service
+from src.services.chat_agent import get_chat_agent_service
 
 if TYPE_CHECKING:
     from src.services.ai_agent import AIAgentService
@@ -1065,53 +1066,229 @@ async def send_message(
 
     content = _re.sub(r"^/plan\s+", "", content)
 
-    # ── Priority 0.5: Transcript upload → issue recommendation ────────
-    transcript_msg = await _handle_transcript_upload(
-        session,
-        ai_service,
-        project_name,
-        chat_request.pipeline_id,
-        chat_request.file_urls,
-    )
-    if transcript_msg:
-        return transcript_msg
+    # ── ai_enhance=False bypass: simple title-only generation ────────
+    if not chat_request.ai_enhance:
+        return await _handle_task_generation(
+            session,
+            content,
+            ai_service,
+            project_name,
+            chat_request.ai_enhance,
+            chat_request.pipeline_id,
+        )
 
-    # ── Priority 1: Feature request → issue recommendation ───────────
-    feature_msg = await _handle_feature_request(
-        session,
-        content,
-        ai_service,
-        project_name,
-        chat_request.pipeline_id,
-        chat_request.ai_enhance,
-        chat_request.file_urls,
-    )
-    if feature_msg:
-        return feature_msg
+    # ── Agent-based dispatch (replaces priority cascade) ─────────────
+    #
+    # The ChatAgentService decides which tool to invoke based on the
+    # agent's reasoning — no hardcoded priority tiers.
+    try:
+        # Fetch metadata context for prompt enrichment
+        metadata_context: dict | None = None
+        try:
+            owner, repo = await _resolve_repository(session)
+            from src.services.github_projects import github_projects_service
+            from src.services.metadata_service import MetadataService
 
-    # ── Priority 2: Status change request ────────────────────────────
-    status_msg = await _handle_status_change(
-        session,
-        content,
-        ai_service,
-        current_tasks,
-        project_columns,
-        cached_projects,
-        selected_project_id,
-        project_name,
-    )
-    if status_msg:
-        return status_msg
+            metadata_svc = MetadataService(github_service=github_projects_service)
+            ctx = await metadata_svc.get_or_fetch(session.access_token, owner, repo)
+            metadata_context = ctx.model_dump()
+        except Exception as md_err:
+            logger.warning("Metadata fetch for agent context failed: %s", md_err)
 
-    # ── Priority 3: Task generation (metadata-only or full AI) ───────
-    return await _handle_task_generation(
-        session,
-        content,
-        ai_service,
-        project_name,
-        chat_request.ai_enhance,
-        chat_request.pipeline_id,
+        chat_agent = get_chat_agent_service()
+        agent_response = await chat_agent.run(
+            message=content,
+            session_id=session.session_id,
+            project_name=project_name,
+            github_token=session.access_token,
+            project_id=selected_project_id,
+            current_tasks=current_tasks,
+            project_columns=project_columns,
+            cached_projects=cached_projects,
+            pipeline_id=chat_request.pipeline_id,
+            file_urls=chat_request.file_urls,
+            ai_service=ai_service,
+            metadata_context=metadata_context,
+        )
+
+        # Persist proposals / recommendations based on action_type
+        if agent_response.action_type == ActionType.TASK_CREATE and agent_response.action_data:
+            proposal = AITaskProposal(
+                session_id=session.session_id,
+                original_input=content,
+                proposed_title=agent_response.action_data.get("proposed_title", ""),
+                proposed_description=agent_response.action_data.get("proposed_description", ""),
+                selected_pipeline_id=chat_request.pipeline_id or None,
+            )
+            await store_proposal(proposal)
+            agent_response.action_data["proposal_id"] = str(proposal.proposal_id)
+            agent_response.action_data["status"] = ProposalStatus.PENDING.value
+
+        elif agent_response.action_type == ActionType.ISSUE_CREATE and agent_response.action_data:
+            # Check if a recommendation was already persisted by the tool
+            rec_id = agent_response.action_data.get("recommendation_id")
+            if not rec_id:
+                # Build and persist recommendation from tool output
+                from src.models.recommendation import RecommendationStatus as RecStatus
+
+                recommendation = IssueRecommendation(
+                    session_id=session.session_id,
+                    original_input=content,
+                    original_context=content,
+                    title=agent_response.action_data.get("proposed_title", ""),
+                    user_story=agent_response.action_data.get("user_story", ""),
+                    ui_ux_description=agent_response.action_data.get("ui_ux_description", ""),
+                    functional_requirements=agent_response.action_data.get("functional_requirements", []),
+                    technical_notes=agent_response.action_data.get("technical_notes", ""),
+                    status=RecStatus.PENDING,
+                    selected_pipeline_id=chat_request.pipeline_id or None,
+                    file_urls=chat_request.file_urls or [],
+                )
+                await store_recommendation(recommendation)
+                agent_response.action_data["recommendation_id"] = str(recommendation.recommendation_id)
+                agent_response.action_data["status"] = RecStatus.PENDING.value
+            else:
+                # Recommendation already persisted (from fallback path _recommendation key)
+                rec_obj = agent_response.action_data.pop("_recommendation", None)
+                if rec_obj and isinstance(rec_obj, IssueRecommendation):
+                    rec_obj.selected_pipeline_id = chat_request.pipeline_id or None
+                    rec_obj.file_urls = chat_request.file_urls or []
+                    await store_recommendation(rec_obj)
+
+        elif agent_response.action_type == ActionType.STATUS_UPDATE and agent_response.action_data:
+            proposal = AITaskProposal(
+                session_id=session.session_id,
+                original_input=content,
+                proposed_title=agent_response.action_data.get("task_title", ""),
+                proposed_description=(
+                    f"Move from '{agent_response.action_data.get('current_status', '')}' "
+                    f"to '{agent_response.action_data.get('target_status', '')}'"
+                ),
+            )
+            await store_proposal(proposal)
+            agent_response.action_data["proposal_id"] = str(proposal.proposal_id)
+            agent_response.action_data["status"] = ProposalStatus.PENDING.value
+
+        await add_message(session.session_id, agent_response)
+        _trigger_signal_delivery(session, agent_response, project_name)
+        return agent_response
+
+    except Exception as exc:
+        logger.error("ChatAgentService failed, falling back to legacy dispatch: %s", exc, exc_info=True)
+        # Fall back to legacy dispatch if agent service fails entirely
+        transcript_msg = await _handle_transcript_upload(
+            session, ai_service, project_name, chat_request.pipeline_id, chat_request.file_urls
+        )
+        if transcript_msg:
+            return transcript_msg
+
+        feature_msg = await _handle_feature_request(
+            session, content, ai_service, project_name,
+            chat_request.pipeline_id, chat_request.ai_enhance, chat_request.file_urls
+        )
+        if feature_msg:
+            return feature_msg
+
+        status_msg = await _handle_status_change(
+            session, content, ai_service, current_tasks, project_columns,
+            cached_projects, selected_project_id, project_name
+        )
+        if status_msg:
+            return status_msg
+
+        return await _handle_task_generation(
+            session, content, ai_service, project_name,
+            chat_request.ai_enhance, chat_request.pipeline_id
+        )
+
+
+@router.post("/messages/stream")
+@limiter.limit("10/minute")
+async def send_message_stream(
+    request: Request,
+    chat_request: ChatMessageRequest,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+):
+    """Stream a chat message response via Server-Sent Events.
+
+    Progressive token delivery using EventSourceResponse.
+    Falls back to the non-streaming endpoint if streaming fails.
+    """
+    from sse_starlette.sse import EventSourceResponse
+
+    selected_project_id = require_selected_project(session)
+
+    # Validate pipeline_id if provided
+    if chat_request.pipeline_id:
+        from src.services.database import get_db
+        from src.services.pipelines.service import PipelineService
+
+        try:
+            db = get_db()
+            pipeline_svc = PipelineService(db)
+            pipeline = await pipeline_svc.get_pipeline(
+                selected_project_id, chat_request.pipeline_id
+            )
+            if pipeline is None:
+                raise ValidationError(f"Pipeline not found: {chat_request.pipeline_id}")
+        except ValidationError:
+            raise
+        except Exception as exc:
+            handle_service_error(exc, "validate pipeline")
+
+    # Try to get AI service (optional)
+    try:
+        ai_service = get_ai_agent_service()
+    except ValueError:
+        ai_service = None
+
+    # Create user message
+    user_message = ChatMessage(
+        session_id=session.session_id,
+        sender_type=SenderType.USER,
+        content=chat_request.content,
     )
+    await add_message(session.session_id, user_message)
+
+    # Gather project context
+    project_name = "Unknown Project"
+    project_columns = []
+    cached_projects = cache.get(get_user_projects_cache_key(session.github_user_id))
+    if cached_projects:
+        for p in cached_projects:
+            if p.project_id == selected_project_id:
+                project_name = p.name
+                project_columns = [col.name for col in p.status_columns]
+                break
+
+    current_tasks = cache.get(get_project_items_cache_key(selected_project_id)) or []
+
+    async def _event_generator():
+        """Generate SSE events from the agent stream."""
+        try:
+            chat_agent = get_chat_agent_service()
+            async for chunk in chat_agent.run_stream(
+                message=chat_request.content,
+                session_id=session.session_id,
+                project_name=project_name,
+                github_token=session.access_token,
+                project_id=selected_project_id,
+                current_tasks=current_tasks,
+                project_columns=project_columns,
+                cached_projects=cached_projects,
+                pipeline_id=chat_request.pipeline_id,
+                file_urls=chat_request.file_urls,
+                ai_service=ai_service,
+            ):
+                yield {"event": "message", "data": chunk}
+        except Exception as exc:
+            logger.error("Streaming failed: %s", exc, exc_info=True)
+            yield {
+                "event": "error",
+                "data": json.dumps({"error": str(exc)}),
+            }
+
+    return EventSourceResponse(_event_generator())
 
 
 @router.post("/proposals/{proposal_id}/confirm", response_model=AITaskProposal)

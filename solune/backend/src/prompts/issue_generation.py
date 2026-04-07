@@ -1,4 +1,10 @@
-"""Prompt templates for AI-assisted GitHub issue generation."""
+"""Prompt templates for AI-assisted GitHub issue generation.
+
+.. deprecated:: 0.2.0
+    This module is deprecated in favor of :mod:`src.prompts.agent_instructions`
+    which provides unified instructions for the Microsoft Agent Framework.
+    Removal planned for v0.3.0.
+"""
 
 from datetime import timedelta
 

@@ -673,6 +673,7 @@ async def _run_ai_pipeline(
         get_project_items_cache_key,
         get_user_projects_cache_key,
     )
+    from src.services.chat_agent import get_chat_agent_service
 
     signal_sid = _signal_session_id(conn.github_user_id)
 
@@ -707,177 +708,146 @@ async def _run_ai_pipeline(
     current_tasks = cache.get(get_project_items_cache_key(project_id)) or []
 
     try:
-        # ── 1. Feature-request detection ──
-        is_feature = False
-        try:
-            is_feature = await ai_service.detect_feature_request_intent(
-                message_text, github_token=token
-            )
-        except Exception as e:
-            logger.debug("Suppressed error: %s", e)
+        # ── Agent-based dispatch (replaces 3-stage cascade) ──────────
+        chat_agent = get_chat_agent_service()
+        agent_response = await chat_agent.run(
+            message=message_text,
+            session_id=signal_sid,
+            project_name=project_name,
+            github_token=token,
+            project_id=project_id,
+            current_tasks=current_tasks,
+            project_columns=project_columns,
+            cached_projects=cached_projects,
+            ai_service=ai_service,
+        )
 
-        if is_feature:
-            rec = await ai_service.generate_issue_recommendation(
-                user_input=message_text,
-                project_name=project_name,
-                session_id=str(signal_sid),
-                github_token=token,
-            )
-            await store_recommendation(rec)
+        # Persist and format based on action_type
+        if agent_response.action_type == ActionType.ISSUE_CREATE and agent_response.action_data:
+            # Issue recommendation
+            rec_id = agent_response.action_data.get("recommendation_id")
+            if not rec_id:
+                from src.models.recommendation import IssueRecommendation
+
+                rec = IssueRecommendation(
+                    session_id=signal_sid,
+                    original_input=message_text,
+                    original_context=message_text,
+                    title=agent_response.action_data.get("proposed_title", ""),
+                    user_story=agent_response.action_data.get("user_story", ""),
+                    ui_ux_description=agent_response.action_data.get("ui_ux_description", ""),
+                    functional_requirements=agent_response.action_data.get("functional_requirements", []),
+                    technical_notes=agent_response.action_data.get("technical_notes", ""),
+                    status=RecommendationStatus.PENDING,
+                )
+                await store_recommendation(rec)
+                rec_id = str(rec.recommendation_id)
+                agent_response.action_data["recommendation_id"] = rec_id
+            else:
+                rec_obj = agent_response.action_data.pop("_recommendation", None)
+                if rec_obj:
+                    await store_recommendation(rec_obj)
+
             _signal_pending[conn.github_user_id] = {
                 "type": "issue_create",
-                "recommendation_id": str(rec.recommendation_id),
+                "recommendation_id": rec_id,
                 "project_id": project_id,
             }
 
-            requirements = "\n".join(f"• {r}" for r in rec.functional_requirements[:6])
-            ai_msg = ChatMessage(
-                session_id=signal_sid,
-                sender_type=SenderType.ASSISTANT,
-                content=(
-                    f"Issue Recommendation: {rec.title}\n\n"
-                    f"{rec.user_story}\n\nRequirements:\n"
-                    + "\n".join(f"- {r}" for r in rec.functional_requirements)
-                ),
-                action_type=ActionType.ISSUE_CREATE,
-                action_data={
-                    "recommendation_id": str(rec.recommendation_id),
-                    "proposed_title": rec.title,
-                    "status": RecommendationStatus.PENDING.value,
-                },
-            )
-            await add_message(signal_sid, ai_msg)
+            title = agent_response.action_data.get("proposed_title", "Issue")
+            user_story = agent_response.action_data.get("user_story", "")
+            requirements = agent_response.action_data.get("functional_requirements", [])
+            requirements_text = "\n".join(f"• {r}" for r in requirements[:6])
+
+            await add_message(signal_sid, agent_response)
             await _reply_with_audit(
                 conn,
                 source_phone,
                 f"📋 *Issue Recommendation*\n"
                 f"_Project: {project_name}_\n\n"
-                f"*{rec.title}*\n\n"
-                f"{rec.user_story[:300]}\n\n"
-                f"*Requirements:*\n{requirements}\n\n"
+                f"*{title}*\n\n"
+                f"{user_story[:300]}\n\n"
+                f"*Requirements:*\n{requirements_text}\n\n"
                 f"Reply *CONFIRM* to create or *REJECT* to cancel.",
-                ai_msg,
-            )
-            return
-
-        # ── 2. Status-change detection ──
-        status_change = await ai_service.parse_status_change_request(
-            user_input=message_text,
-            available_tasks=[t.title for t in current_tasks],
-            available_statuses=project_columns or DEFAULT_STATUS_COLUMNS,
-            github_token=token,
-        )
-
-        if status_change:
-            target_task = ai_service.identify_target_task(
-                task_reference=status_change.task_reference,
-                available_tasks=current_tasks,
+                agent_response,
             )
 
-            if target_task:
-                proposal = AITaskProposal(
-                    session_id=signal_sid,
-                    original_input=message_text,
-                    proposed_title=target_task.title,
-                    proposed_description=(
-                        f"Move from '{target_task.status}' to '{status_change.target_status}'"
-                    ),
-                )
-                await store_proposal(proposal)
-                _signal_pending[conn.github_user_id] = {
-                    "type": "status_update",
-                    "proposal_id": str(proposal.proposal_id),
-                    "project_id": project_id,
-                    "task_id": target_task.github_item_id,
-                    "task_title": target_task.title,
-                    "target_status": status_change.target_status,
-                }
-
-                ai_msg = ChatMessage(
-                    session_id=signal_sid,
-                    sender_type=SenderType.ASSISTANT,
-                    content=(f"Status Update: {target_task.title} → {status_change.target_status}"),
-                    action_type=ActionType.STATUS_UPDATE,
-                    action_data={
-                        "proposal_id": str(proposal.proposal_id),
-                        "task_title": target_task.title,
-                        "target_status": status_change.target_status,
-                        "status": ProposalStatus.PENDING.value,
-                    },
-                )
-                await add_message(signal_sid, ai_msg)
-                await _reply_with_audit(
-                    conn,
-                    source_phone,
-                    f"📋 *Status Change Proposal*\n"
-                    f"_Project: {project_name}_\n\n"
-                    f"*{target_task.title}*\n"
-                    f"_{target_task.status}_ → "
-                    f"_{status_change.target_status}_\n\n"
-                    f"Reply *CONFIRM* to apply or *REJECT* to cancel.",
-                    ai_msg,
-                )
-                return
-
-            # Task not found
-            ai_msg = ChatMessage(
+        elif agent_response.action_type == ActionType.STATUS_UPDATE and agent_response.action_data:
+            # Status change proposal
+            proposal = AITaskProposal(
                 session_id=signal_sid,
-                sender_type=SenderType.ASSISTANT,
-                content=(f"Could not find a task matching '{status_change.task_reference}'."),
+                original_input=message_text,
+                proposed_title=agent_response.action_data.get("task_title", ""),
+                proposed_description=(
+                    f"Move from '{agent_response.action_data.get('current_status', '')}' "
+                    f"to '{agent_response.action_data.get('target_status', '')}'"
+                ),
             )
-            await add_message(signal_sid, ai_msg)
+            await store_proposal(proposal)
+            agent_response.action_data["proposal_id"] = str(proposal.proposal_id)
+            agent_response.action_data["status"] = ProposalStatus.PENDING.value
+
+            _signal_pending[conn.github_user_id] = {
+                "type": "status_update",
+                "proposal_id": str(proposal.proposal_id),
+                "project_id": project_id,
+                "task_id": agent_response.action_data.get("task_id", ""),
+                "task_title": agent_response.action_data.get("task_title", ""),
+                "target_status": agent_response.action_data.get("target_status", ""),
+            }
+
+            await add_message(signal_sid, agent_response)
             await _reply_with_audit(
                 conn,
                 source_phone,
-                f"⚠️ Couldn't find a task matching "
-                f"_{status_change.task_reference}_. "
-                f"Try a more specific name.",
-                ai_msg,
+                f"📋 *Status Change Proposal*\n"
+                f"_Project: {project_name}_\n\n"
+                f"*{agent_response.action_data.get('task_title', '')}*\n"
+                f"_{agent_response.action_data.get('current_status', '')}_ → "
+                f"_{agent_response.action_data.get('target_status', '')}_\n\n"
+                f"Reply *CONFIRM* to apply or *REJECT* to cancel.",
+                agent_response,
             )
-            return
 
-        # ── 3. Task generation (default) ──
-        generated = await ai_service.generate_task_from_description(
-            user_input=message_text,
-            project_name=project_name,
-            github_token=token,
-        )
+        elif agent_response.action_type == ActionType.TASK_CREATE and agent_response.action_data:
+            # Task proposal
+            proposal = AITaskProposal(
+                session_id=signal_sid,
+                original_input=message_text,
+                proposed_title=agent_response.action_data.get("proposed_title", ""),
+                proposed_description=agent_response.action_data.get("proposed_description", ""),
+            )
+            await store_proposal(proposal)
+            agent_response.action_data["proposal_id"] = str(proposal.proposal_id)
+            agent_response.action_data["status"] = ProposalStatus.PENDING.value
 
-        proposal = AITaskProposal(
-            session_id=signal_sid,
-            original_input=message_text,
-            proposed_title=generated.title,
-            proposed_description=generated.description,
-        )
-        await store_proposal(proposal)
-        _signal_pending[conn.github_user_id] = {
-            "type": "task_create",
-            "proposal_id": str(proposal.proposal_id),
-            "project_id": project_id,
-        }
-
-        ai_msg = ChatMessage(
-            session_id=signal_sid,
-            sender_type=SenderType.ASSISTANT,
-            content=(f"Task Proposal: {generated.title}\n\n{generated.description[:500]}"),
-            action_type=ActionType.TASK_CREATE,
-            action_data={
+            _signal_pending[conn.github_user_id] = {
+                "type": "task_create",
                 "proposal_id": str(proposal.proposal_id),
-                "proposed_title": generated.title,
-                "status": ProposalStatus.PENDING.value,
-            },
-        )
-        await add_message(signal_sid, ai_msg)
-        await _reply_with_audit(
-            conn,
-            source_phone,
-            f"📋 *Task Proposal*\n"
-            f"_Project: {project_name}_\n\n"
-            f"*{generated.title}*\n\n"
-            f"{generated.description[:500]}\n\n"
-            f"Reply *CONFIRM* to create or *REJECT* to cancel.",
-            ai_msg,
-        )
+                "project_id": project_id,
+            }
+
+            await add_message(signal_sid, agent_response)
+            await _reply_with_audit(
+                conn,
+                source_phone,
+                f"📋 *Task Proposal*\n"
+                f"_Project: {project_name}_\n\n"
+                f"*{agent_response.action_data.get('proposed_title', '')}*\n\n"
+                f"{agent_response.action_data.get('proposed_description', '')[:500]}\n\n"
+                f"Reply *CONFIRM* to create or *REJECT* to cancel.",
+                agent_response,
+            )
+
+        else:
+            # Conversational response (no action)
+            await add_message(signal_sid, agent_response)
+            await _reply_with_audit(
+                conn,
+                source_phone,
+                agent_response.content[:1000],
+                agent_response,
+            )
 
     except Exception as e:
         logger.error(

@@ -1,5 +1,10 @@
 """Prompt templates for AI-assisted transcript analysis.
 
+.. deprecated:: 0.2.0
+    This module is deprecated in favor of :mod:`src.prompts.agent_instructions`
+    which provides unified instructions for the Microsoft Agent Framework.
+    Removal planned for v0.3.0.
+
 Follows the same pattern as ``issue_generation.py`` — a system prompt constant
 plus a factory function that returns a ``list[dict]`` of chat messages.
 """
