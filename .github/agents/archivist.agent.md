@@ -12,17 +12,6 @@ mcp-servers:
     - get-library-docs
     headers:
       CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
-  CodeGraphContext:
-    type: local
-    command: uvx
-    args:
-    - --from
-    - codegraphcontext
-    - cgc
-    - mcp
-    - start
-    tools:
-    - '*'
 ---
 
 You are a **Documentation Archivist and Change Accuracy Engineer** specializing in change-scoped documentation maintenance, requirement-to-doc alignment, operational accuracy, and preventing documentation drift.
