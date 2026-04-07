@@ -13,6 +13,7 @@ from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from pydantic import ValidationError as PydanticValidationError
 
 from src.api.auth import get_session_dep
 from src.constants import (
@@ -1112,18 +1113,31 @@ async def send_message(
             ):
                 data = agent_response.action_data
                 rec_data = data.get("recommendation")
-                if rec_data and isinstance(rec_data, dict):
-                    rec = IssueRecommendation(**rec_data)
-                else:
+                try:
+                    if rec_data and isinstance(rec_data, dict):
+                        rec = IssueRecommendation(**rec_data)
+                    else:
+                        rec = IssueRecommendation(
+                            session_id=session.session_id,
+                            original_input=content[:500],
+                            original_context=content,
+                            title=data.get("title", content[:100]),
+                            user_story=data.get("user_story", ""),
+                            ui_ux_description=data.get("ui_ux_description", ""),
+                            functional_requirements=data.get("functional_requirements", [content]),
+                            technical_notes=data.get("technical_notes", ""),
+                        )
+                except (TypeError, PydanticValidationError) as e:
+                    logger.warning("Failed to parse issue recommendation from agent: %s", e)
                     rec = IssueRecommendation(
                         session_id=session.session_id,
                         original_input=content[:500],
                         original_context=content,
                         title=data.get("title", content[:100]),
                         user_story=data.get("user_story", ""),
-                        ui_ux_description=data.get("ui_ux_description", ""),
-                        functional_requirements=data.get("functional_requirements", [content]),
-                        technical_notes=data.get("technical_notes", ""),
+                        ui_ux_description="",
+                        functional_requirements=[content],
+                        technical_notes="",
                     )
                 rec.selected_pipeline_id = chat_request.pipeline_id or None
                 await store_recommendation(rec)

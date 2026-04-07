@@ -60,7 +60,7 @@ _INJECTION_PATTERNS: list[re.Pattern[str]] = [
 
 
 class SecurityMiddleware(AgentMiddleware):
-    """Block prompt injection attempts and validate tool arguments."""
+    """Detect prompt injection attempts and validate tool arguments."""
 
     async def process(
         self,
@@ -70,4 +70,15 @@ class SecurityMiddleware(AgentMiddleware):
         # Injection detection is best-effort — log warnings but do not block
         # the agent outright, since false positives are possible.
         # The agent's own instruction set is the primary defense layer.
+        user_input = getattr(context, "user_message", None) or ""
+        if user_input:
+            for pattern in _INJECTION_PATTERNS:
+                if pattern.search(user_input):
+                    logger.warning(
+                        "Potential prompt injection detected: pattern=%s input=%.100s",
+                        pattern.pattern,
+                        user_input,
+                    )
+                    break
+
         await call_next()

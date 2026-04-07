@@ -14,15 +14,12 @@ The factory returns a fully configured ``Agent`` (or subclass) ready for
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from agent_framework import Agent, AgentMiddleware
 
 from src.config import get_settings
 from src.logging_utils import get_logger
-
-if TYPE_CHECKING:
-    pass
 
 logger = get_logger(__name__)
 

@@ -370,7 +370,6 @@ export const chatApi = {
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
-      let _accumulatedText = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -382,7 +381,6 @@ export const chatApi = {
         for (const line of lines) {
           if (line.startsWith('data: ')) {
             const text = line.slice(6);
-            _accumulatedText += text;
             onChunk(text);
           }
         }

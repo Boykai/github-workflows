@@ -7,7 +7,6 @@ Mocks the ``Agent`` returned by ``create_agent`` and verifies:
 """
 
 from unittest.mock import AsyncMock, MagicMock, patch
-from uuid import UUID
 
 import pytest
 
@@ -238,6 +237,43 @@ class TestChatAgentServiceConvertResponse:
         assert result.action_type is None
         assert result.action_data is None
 
+    def test_nested_json_action_extracted(self):
+        """Verify that action data with nested objects (e.g. issue recommendations) is parsed."""
+        service = ChatAgentService()
+        nested_json = (
+            '{"action_type": "issue_create", '
+            '"recommendation": {"title": "Add dark mode", "priority": "P1"}}'
+        )
+        response = _make_agent_response(f"Here is the result: {nested_json}")
+        result = service._convert_response(response, "00000000-0000-0000-0000-000000000001")
+
+        assert result.action_type == ActionType.ISSUE_CREATE
+        assert result.action_data is not None
+        assert result.action_data["recommendation"]["title"] == "Add dark mode"
+
+    def test_fenced_nested_json_extracted(self):
+        """Verify that fenced code blocks with nested JSON are parsed correctly."""
+        service = ChatAgentService()
+        response = _make_agent_response(
+            'I recommend:\n'
+            '```json\n'
+            '{"action_type": "issue_create", '
+            '"recommendation": {"title": "Feature X", "metadata": {"size": "M"}}}\n'
+            '```'
+        )
+        result = service._convert_response(response, "00000000-0000-0000-0000-000000000001")
+
+        assert result.action_type == ActionType.ISSUE_CREATE
+        assert result.action_data["recommendation"]["title"] == "Feature X"
+
+    def test_clean_tool_output_removes_action_json(self):
+        """Verify _clean_tool_output removes JSON action blocks from display text."""
+        service = ChatAgentService()
+        text = 'Here is the result: {"action_type": "task_create", "proposed_title": "Test"}'
+        cleaned = service._clean_tool_output(text)
+        assert "action_type" not in cleaned
+        assert "Here is the result" in cleaned
+
 
 class TestChatAgentServiceSingleton:
     def test_reset_clears_singleton(self):
@@ -247,3 +283,52 @@ class TestChatAgentServiceSingleton:
         reset_chat_agent_service()
         svc2 = get_chat_agent_service()
         assert svc1 is not svc2
+
+
+class TestChatAgentServiceStream:
+    @patch("src.services.chat_agent.create_agent")
+    async def test_run_stream_yields_chunks(self, mock_create_agent):
+        mock_agent = MagicMock()
+        mock_agent.create_session.return_value = MagicMock(session_id="00000000-0000-0000-0000-000000000001")
+
+        # Simulate async iterator for streaming
+        async def _fake_stream(*args, **kwargs):
+            for text in ["Hello ", "world!"]:
+                update = MagicMock()
+                update.text = text
+                yield update
+
+        mock_agent.run.return_value = _fake_stream()
+        mock_create_agent.return_value = mock_agent
+
+        service = ChatAgentService()
+        chunks = [
+            chunk
+            async for chunk in service.run_stream(
+                user_message="Hi",
+                session_id="00000000-0000-0000-0000-000000000001",
+                project_name="Test",
+            )
+        ]
+
+        assert "Hello " in chunks
+        assert "world!" in chunks
+
+    @patch("src.services.chat_agent.create_agent")
+    async def test_run_stream_handles_error(self, mock_create_agent):
+        mock_agent = MagicMock()
+        mock_agent.create_session.return_value = MagicMock(session_id="00000000-0000-0000-0000-000000000001")
+        mock_agent.run.side_effect = RuntimeError("Stream failed")
+        mock_create_agent.return_value = mock_agent
+
+        service = ChatAgentService()
+        chunks = [
+            chunk
+            async for chunk in service.run_stream(
+                user_message="Hi",
+                session_id="00000000-0000-0000-0000-000000000001",
+            )
+        ]
+
+        assert len(chunks) == 1
+        assert "error" in chunks[0].lower()

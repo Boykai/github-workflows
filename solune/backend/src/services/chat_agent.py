@@ -243,30 +243,59 @@ class ChatAgentService:
         if not text:
             return None
 
-        # Look for JSON blocks in the text
-        json_patterns = [
-            r"```json\s*(.*?)```",
-            r"\{[^{}]*\"action_type\"[^{}]*\}",
-        ]
+        # Strategy 1: fenced code blocks (```json ... ```)
+        for match in re.finditer(r"```json\s*(.*?)```", text, re.DOTALL):
+            try:
+                data = json.loads(match.group(1))
+                if isinstance(data, dict) and "action_type" in data:
+                    return data
+            except (json.JSONDecodeError, TypeError):
+                continue
 
-        for pattern in json_patterns:
-            matches = re.findall(pattern, text, re.DOTALL)
-            for match in matches:
-                try:
-                    data = json.loads(match)
-                    if isinstance(data, dict) and "action_type" in data:
-                        return data
-                except (json.JSONDecodeError, TypeError):
-                    continue
+        # Strategy 2: brute-force scan for top-level JSON objects containing
+        # "action_type".  This handles nested braces (e.g. recommendation dicts)
+        # by iterating from each '{' and counting brace depth.
+        for start_idx in range(len(text)):
+            if text[start_idx] != "{":
+                continue
+            depth = 0
+            for end_idx in range(start_idx, len(text)):
+                if text[end_idx] == "{":
+                    depth += 1
+                elif text[end_idx] == "}":
+                    depth -= 1
+                if depth == 0:
+                    candidate = text[start_idx : end_idx + 1]
+                    if '"action_type"' in candidate:
+                        try:
+                            data = json.loads(candidate)
+                            if isinstance(data, dict) and "action_type" in data:
+                                return data
+                        except (json.JSONDecodeError, TypeError):
+                            pass
+                    break
 
         return None
 
     def _clean_tool_output(self, text: str) -> str:
         """Remove JSON tool output blocks from display text."""
-        # Remove ```json ... ``` blocks
-        text = re.sub(r"```json\s*\{[^}]*\"action_type\"[^}]*\}\s*```", "", text)
-        # Remove bare JSON blocks with action_type
-        text = re.sub(r"\{[^{}]*\"action_type\"[^{}]*\}", "", text)
+        # Remove ```json ... ``` blocks containing action_type
+        text = re.sub(
+            r"```json\s*\{.*?\"action_type\".*?\}\s*```",
+            "",
+            text,
+            flags=re.DOTALL,
+        )
+        # Remove bare JSON objects with action_type using the same depth-aware
+        # approach: find the outermost {...} containing "action_type" and remove.
+        action_data = self._extract_action_data(text)
+        if action_data:
+            # Re-serialize and remove the exact JSON string if present
+            try:
+                json_str = json.dumps(action_data)
+                text = text.replace(json_str, "")
+            except (TypeError, ValueError):
+                pass
         return text.strip()
 
 

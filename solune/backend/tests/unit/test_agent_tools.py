@@ -5,8 +5,6 @@ Each tool is tested with mocked runtime context via ``set_runtime_context``.
 
 import json
 
-import pytest
-
 from src.services.agent_tools import (
     ALL_TOOLS,
     analyze_transcript,
@@ -18,7 +16,6 @@ from src.services.agent_tools import (
     set_runtime_context,
     update_task_status,
 )
-
 
 # ── Runtime context helpers ────────────────────────────────────────────────
 
