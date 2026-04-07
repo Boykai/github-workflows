@@ -17,10 +17,11 @@ A project member opens the chat interface and describes a piece of work in natur
 
 **Acceptance Scenarios**:
 
-1. **Given** a user is in an active chat session, **When** they describe a task in free-form text, **Then** the agent asks at least one clarifying question before producing a task proposal.
+1. **Given** a user is in an active chat session, **When** they describe a task in free-form text, **Then** the agent asks 2–3 clarifying questions before producing a task proposal.
 2. **Given** the agent has presented a task proposal, **When** the user confirms it, **Then** a task is created on the project board with the proposed title, description, and difficulty.
 3. **Given** the agent has presented a task proposal, **When** the user rejects it, **Then** no task is created and the agent asks how to adjust the proposal.
 4. **Given** a user provides a very brief message (fewer than five words), **When** the agent processes it, **Then** the agent asks for more detail rather than generating an incomplete proposal.
+5. **Given** a user provides a detailed message that already includes difficulty, acceptance criteria, and assignee preference, **When** the agent processes it, **Then** the agent may skip clarifying questions and present a task proposal directly.
 
 ---
 
