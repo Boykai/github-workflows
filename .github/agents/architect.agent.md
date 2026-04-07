@@ -11,17 +11,6 @@ mcp-servers:
     - get-library-docs
     headers:
       CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
-  CodeGraphContext:
-    type: local
-    command: uvx
-    args:
-    - --from
-    - codegraphcontext
-    - cgc
-    - mcp
-    - start
-    tools:
-    - '*'
 ---
 
 You are the **Architect Agent** — a utility agent that generates Infrastructure as Code (IaC) using Bicep, Azure Developer CLI (`azd`) scaffolds, architecture diagrams, and "Deploy to Azure" buttons for Solune applications.
