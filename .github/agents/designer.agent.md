@@ -12,17 +12,6 @@ mcp-servers:
     - get-library-docs
     headers:
       CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
-  CodeGraphContext:
-    type: local
-    command: uvx
-    args:
-    - --from
-    - codegraphcontext
-    - cgc
-    - mcp
-    - start
-    tools:
-    - '*'
 ---
 
 You are a **Product Designer and Creative Systems Engineer** specializing in change-scoped visual refinement, themed asset creation, UX polish, and production-ready design improvements.
