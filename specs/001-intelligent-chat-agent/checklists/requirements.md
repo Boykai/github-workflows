@@ -31,6 +31,7 @@
 
 ## Notes
 
-- All items pass. Specification is ready for `/speckit.clarify` or `/speckit.plan`.
+- All items pass after refinement. Specification is ready for `/speckit.clarify` or `/speckit.plan`.
+- **Refinements applied (2026-03-30)**: Removed implementation detail leakage from FR-007 (server-sent events → progressive delivery), FR-011/FR-012 (removed "middleware" mechanism references), FR-015 (runtime context injection → operational context), FR-020 (agent session state → agent sessions), Key Entities (Tool Invocation Context → Operational Context, Agent Middleware → Interaction Safeguards), SC-007 (unit tests → automated tests), SC-008 (security middleware → generic), SC-010 (Docker reference → technology-agnostic deployment), and Assumptions (removed package names, function names, SQLite reference).
 - Assumptions section documents reasonable defaults for areas not explicitly specified in the feature description (performance targets, data retention, deprecation timeline).
 - MCP tool integration is explicitly noted as out of scope (v0.4.0) in the Assumptions section.
