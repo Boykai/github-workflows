@@ -664,6 +664,7 @@ async def _run_ai_pipeline(
     )
     from src.models.recommendation import (
         AITaskProposal,
+        IssueRecommendation,
         ProposalStatus,
         RecommendationStatus,
     )
@@ -673,6 +674,7 @@ async def _run_ai_pipeline(
         get_project_items_cache_key,
         get_user_projects_cache_key,
     )
+    from src.services.chat_agent import get_chat_agent_service
 
     signal_sid = _signal_session_id(conn.github_user_id)
 
@@ -707,6 +709,99 @@ async def _run_ai_pipeline(
     current_tasks = cache.get(get_project_items_cache_key(project_id)) or []
 
     try:
+        # ── Agent-based routing (preferred) ──
+        # Try the Agent Framework first; fall back to legacy dispatch on failure.
+        try:
+            chat_agent = get_chat_agent_service()
+            agent_response = await chat_agent.run(
+                user_message=message_text,
+                session_id=str(signal_sid),
+                project_name=project_name,
+                project_id=project_id,
+                github_token=token,
+            )
+
+            # Store proposals/recommendations based on action type
+            if agent_response.action_type == ActionType.TASK_CREATE and agent_response.action_data:
+                data = agent_response.action_data
+                proposal = AITaskProposal(
+                    session_id=signal_sid,
+                    original_input=message_text,
+                    proposed_title=data.get("proposed_title", message_text[:100]),
+                    proposed_description=data.get("proposed_description", message_text),
+                )
+                await store_proposal(proposal)
+                _signal_pending[conn.github_user_id] = {
+                    "type": "task_create",
+                    "proposal_id": str(proposal.proposal_id),
+                    "project_id": project_id,
+                }
+                await add_message(signal_sid, agent_response)
+                await _reply_with_audit(
+                    conn,
+                    source_phone,
+                    f"📋 *Task Proposal*\n"
+                    f"_Project: {project_name}_\n\n"
+                    f"*{data.get('proposed_title', '')}*\n\n"
+                    f"{data.get('proposed_description', '')[:500]}\n\n"
+                    f"Reply *CONFIRM* to create or *REJECT* to cancel.",
+                    agent_response,
+                )
+                return
+
+            elif (
+                agent_response.action_type == ActionType.ISSUE_CREATE and agent_response.action_data
+            ):
+                data = agent_response.action_data
+                rec_data = data.get("recommendation")
+                if rec_data and isinstance(rec_data, dict):
+                    rec = IssueRecommendation(**rec_data)
+                else:
+                    rec = IssueRecommendation(
+                        session_id=signal_sid,
+                        original_input=message_text[:500],
+                        original_context=message_text,
+                        title=data.get("title", message_text[:100]),
+                        user_story=data.get("user_story", ""),
+                        ui_ux_description="",
+                        functional_requirements=[message_text],
+                        technical_notes="",
+                    )
+                await store_recommendation(rec)
+                _signal_pending[conn.github_user_id] = {
+                    "type": "issue_create",
+                    "recommendation_id": str(rec.recommendation_id),
+                    "project_id": project_id,
+                }
+                await add_message(signal_sid, agent_response)
+                requirements = "\n".join(f"• {r}" for r in rec.functional_requirements[:6])
+                await _reply_with_audit(
+                    conn,
+                    source_phone,
+                    f"📋 *Issue Recommendation*\n"
+                    f"_Project: {project_name}_\n\n"
+                    f"*{rec.title}*\n\n"
+                    f"{rec.user_story[:300]}\n\n"
+                    f"*Requirements:*\n{requirements}\n\n"
+                    f"Reply *CONFIRM* to create or *REJECT* to cancel.",
+                    agent_response,
+                )
+                return
+
+            # Conversational or other response — just deliver
+            await add_message(signal_sid, agent_response)
+            await _reply_with_audit(
+                conn,
+                source_phone,
+                agent_response.content[:1000],
+                agent_response,
+            )
+            return
+
+        except Exception as e:
+            logger.warning("Agent-based Signal routing failed, using legacy: %s", e)
+            # Fall through to legacy dispatch below
+
         # ── 1. Feature-request detection ──
         is_feature = False
         try:

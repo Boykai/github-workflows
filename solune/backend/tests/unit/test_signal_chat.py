@@ -418,8 +418,13 @@ class TestHandleConfirm:
 
 class TestRunAiPipeline:
     @pytest.fixture(autouse=True)
-    def _clear_pending(self) -> None:
+    def _clear_pending(self, monkeypatch: pytest.MonkeyPatch) -> None:
         signal_chat._signal_pending.clear()
+        # Make agent-based routing fail so tests exercise legacy dispatch paths
+        monkeypatch.setattr(
+            "src.services.chat_agent.get_chat_agent_service",
+            Mock(side_effect=ValueError("Agent not configured in tests")),
+        )
         yield
         signal_chat._signal_pending.clear()
 

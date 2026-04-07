@@ -40,6 +40,7 @@ from src.models.recommendation import (
 from src.models.user import UserSession
 from src.models.workflow import WorkflowConfiguration
 from src.services.ai_agent import get_ai_agent_service
+from src.services.chat_agent import get_chat_agent_service
 
 if TYPE_CHECKING:
     from src.services.ai_agent import AIAgentService
@@ -1076,6 +1077,84 @@ async def send_message(
     if transcript_msg:
         return transcript_msg
 
+    # ── Priority 1-3: Agent-based routing ───────────────────────────
+    # The Agent Framework agent replaces the hardcoded priority dispatch.
+    # It decides which tool to call based on its instructions and the
+    # user's message.  Falls back to legacy handlers on agent init failure.
+    if chat_request.ai_enhance:
+        try:
+            chat_agent = get_chat_agent_service()
+            agent_response = await chat_agent.run(
+                user_message=content,
+                session_id=str(session.session_id),
+                project_name=project_name,
+                project_id=selected_project_id,
+                github_token=session.access_token,
+                file_urls=chat_request.file_urls or None,
+            )
+
+            # If the agent returned action data, create proposals/recommendations
+            if agent_response.action_type == ActionType.TASK_CREATE and agent_response.action_data:
+                data = agent_response.action_data
+                proposal = AITaskProposal(
+                    session_id=session.session_id,
+                    original_input=content,
+                    proposed_title=data.get("proposed_title", content[:100]),
+                    proposed_description=data.get("proposed_description", content),
+                    selected_pipeline_id=chat_request.pipeline_id or None,
+                )
+                await store_proposal(proposal)
+                agent_response.action_data["proposal_id"] = str(proposal.proposal_id)
+                agent_response.action_data["status"] = ProposalStatus.PENDING.value
+
+            elif (
+                agent_response.action_type == ActionType.ISSUE_CREATE and agent_response.action_data
+            ):
+                data = agent_response.action_data
+                rec_data = data.get("recommendation")
+                if rec_data and isinstance(rec_data, dict):
+                    rec = IssueRecommendation(**rec_data)
+                else:
+                    rec = IssueRecommendation(
+                        session_id=session.session_id,
+                        original_input=content[:500],
+                        original_context=content,
+                        title=data.get("title", content[:100]),
+                        user_story=data.get("user_story", ""),
+                        ui_ux_description=data.get("ui_ux_description", ""),
+                        functional_requirements=data.get("functional_requirements", [content]),
+                        technical_notes=data.get("technical_notes", ""),
+                    )
+                rec.selected_pipeline_id = chat_request.pipeline_id or None
+                await store_recommendation(rec)
+                agent_response.action_data = {
+                    "recommendation_id": str(rec.recommendation_id),
+                    "title": rec.title,
+                    "user_story": rec.user_story,
+                    "status": RecommendationStatus.PENDING.value,
+                }
+
+            elif (
+                agent_response.action_type == ActionType.STATUS_UPDATE
+                and agent_response.action_data
+            ):
+                data = agent_response.action_data
+                task_ref = data.get("task_reference", "")
+                # Use legacy identify_target_task for fuzzy matching
+                matched_task = ai_service.identify_target_task(task_ref, current_tasks)
+                if matched_task:
+                    agent_response.action_data["task_id"] = str(getattr(matched_task, "id", ""))
+
+            await add_message(session.session_id, agent_response)
+            _trigger_signal_delivery(session, agent_response, project_name)
+            return agent_response
+
+        except Exception as e:
+            logger.warning("Agent-based routing failed, falling back to legacy dispatch: %s", e)
+            # Fall through to legacy dispatch below
+
+    # ── Legacy dispatch (fallback or ai_enhance=False) ───────────────
+
     # ── Priority 1: Feature request → issue recommendation ───────────
     feature_msg = await _handle_feature_request(
         session,
@@ -1112,6 +1191,70 @@ async def send_message(
         chat_request.ai_enhance,
         chat_request.pipeline_id,
     )
+
+
+# ── POST /chat/messages/stream — SSE streaming endpoint ──────────────────
+
+
+@router.post("/messages/stream")
+@limiter.limit("10/minute")
+async def send_message_stream(
+    request: Request,
+    chat_request: ChatMessageRequest,
+    session: Annotated[UserSession, Depends(get_session_dep)],
+) -> JSONResponse:
+    """Stream a chat response via Server-Sent Events.
+
+    Returns an SSE stream where each event contains a partial text chunk.
+    The final event may include action metadata.  Falls back to the
+    non-streaming endpoint on error.
+    """
+    from sse_starlette.sse import EventSourceResponse
+
+    selected_project_id = require_selected_project(session)
+
+    # Resolve project name from cache
+    project_name = "Unknown Project"
+    cache_key = get_user_projects_cache_key(session.github_user_id)
+    cached_projects = cache.get(cache_key)
+    if cached_projects:
+        for p in cached_projects:
+            if p.project_id == selected_project_id:
+                project_name = p.name
+                break
+
+    # Create user message
+    user_message = ChatMessage(
+        session_id=session.session_id,
+        sender_type=SenderType.USER,
+        content=chat_request.content,
+    )
+    await add_message(session.session_id, user_message)
+
+    try:
+        chat_agent = get_chat_agent_service()
+    except Exception:
+        return JSONResponse(
+            status_code=503,
+            content={"detail": "Agent service unavailable, use non-streaming endpoint"},
+        )
+
+    async def event_generator():
+        try:
+            async for chunk in chat_agent.run_stream(
+                user_message=chat_request.content,
+                session_id=str(session.session_id),
+                project_name=project_name,
+                project_id=selected_project_id,
+                github_token=session.access_token,
+                file_urls=chat_request.file_urls or None,
+            ):
+                yield {"data": chunk}
+        except Exception as e:
+            logger.error("Streaming failed: %s", e, exc_info=True)
+            yield {"data": "[ERROR] Streaming failed. Please use the standard endpoint."}
+
+    return EventSourceResponse(event_generator())
 
 
 @router.post("/proposals/{proposal_id}/confirm", response_model=AITaskProposal)
