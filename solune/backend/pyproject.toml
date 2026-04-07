@@ -12,7 +12,13 @@ dependencies = [
     "pydantic-settings>=2.13.0,<3",
     "python-multipart>=0.0.22,<1",
     "pyyaml>=6.0.3,<7",
-    # GitHub Copilot SDK (default AI provider)
+    # Microsoft Agent Framework (v0.2.0 — replaces raw completion calls)
+    "agent-framework-core>=1.0.0,<2",
+    "agent-framework-github-copilot>=1.0.0b260402,<2",
+    "agent-framework-openai>=1.0.0,<2",
+    # SSE streaming for agent responses
+    "sse-starlette>=2.3.0,<3",
+    # GitHub Copilot SDK (legacy — now wrapped by agent-framework-github-copilot)
     "github-copilot-sdk>=0.1.30,<1",
     # Azure OpenAI (optional fallback provider)
     "openai>=2.26.0,<3",

@@ -1,5 +1,9 @@
 """LLM completion providers for AI agent operations.
 
+.. deprecated:: 0.2.0
+    This module is superseded by :mod:`src.services.agent_provider` which uses
+    the Microsoft Agent Framework.  These providers will be removed in v0.3.0.
+
 Provides a unified interface for different AI backends:
 - CopilotCompletionProvider: Default. Uses GitHub Copilot SDK with user's OAuth token.
 - AzureOpenAICompletionProvider: Optional. Uses Azure OpenAI with static API keys.
@@ -7,6 +11,7 @@ Provides a unified interface for different AI backends:
 
 import asyncio
 import hashlib
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -333,6 +338,9 @@ class AzureOpenAICompletionProvider(CompletionProvider):
 def create_completion_provider() -> CompletionProvider:
     """Factory: create the configured completion provider.
 
+    .. deprecated:: 0.2.0
+        Use :func:`src.services.agent_provider.create_agent` instead.
+
     Reads AI_PROVIDER from settings:
       - "copilot" (default): GitHub Copilot via user's OAuth token
       - "azure_openai": Azure OpenAI with static API keys
@@ -340,6 +348,12 @@ def create_completion_provider() -> CompletionProvider:
     Returns:
         Configured CompletionProvider instance
     """
+    warnings.warn(
+        "create_completion_provider is deprecated since v0.2.0. "
+        "Use create_agent from src.services.agent_provider instead.",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     settings = get_settings()
     provider_name = settings.ai_provider
 

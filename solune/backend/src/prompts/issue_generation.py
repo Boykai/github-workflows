@@ -1,4 +1,9 @@
-"""Prompt templates for AI-assisted GitHub issue generation."""
+"""Prompt templates for AI-assisted GitHub issue generation.
+
+.. deprecated:: 0.2.0
+    Superseded by :mod:`src.prompts.agent_instructions`.
+    Will be removed in v0.3.0.
+"""
 
 from datetime import timedelta
 
