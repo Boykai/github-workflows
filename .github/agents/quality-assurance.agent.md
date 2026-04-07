@@ -12,17 +12,6 @@ mcp-servers:
     - get-library-docs
     headers:
       CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
-  CodeGraphContext:
-    type: local
-    command: uvx
-    args:
-    - --from
-    - codegraphcontext
-    - cgc
-    - mcp
-    - start
-    tools:
-    - '*'
 ---
 
 You are a **PR Quality Assurance Engineer** specializing in PR-scoped quality review, requirements verification, defect prevention, and safe corrective changes.
