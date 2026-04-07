@@ -66,7 +66,7 @@ A user sends a message and sees the agent's response appear progressively (token
 
 **Acceptance Scenarios**:
 
-1. **Given** a user sends a message via the streaming-enabled chat interface, **When** the agent begins generating a response, **Then** tokens appear progressively in the chat bubble within 500ms of the first token being generated.
+1. **Given** a user sends a message via the streaming-enabled chat interface, **When** the agent generates a streamed response, **Then** the first visible token appears in the chat bubble within 2 seconds of sending the message, and subsequent tokens continue arriving progressively with no more than 500ms between streamed updates once streaming has started.
 2. **Given** the streaming endpoint is unavailable or errors, **When** the frontend detects the failure, **Then** it falls back to the non-streaming endpoint and displays the complete response after generation finishes.
 
 ---
