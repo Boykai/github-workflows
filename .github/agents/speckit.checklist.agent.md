@@ -9,17 +9,6 @@ mcp-servers:
     - get-library-docs
     headers:
       CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
-  CodeGraphContext:
-    type: local
-    command: uvx
-    args:
-    - --from
-    - codegraphcontext
-    - cgc
-    - mcp
-    - start
-    tools:
-    - '*'
 ---
 
 ## Checklist Purpose: "Unit Tests for English"
