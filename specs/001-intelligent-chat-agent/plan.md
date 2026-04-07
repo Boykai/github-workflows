@@ -1,104 +1,102 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Intelligent Chat Agent (Microsoft Agent Framework)
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-intelligent-chat-agent` | **Date**: 2026-04-07 | **Spec**: [spec.md](./spec.md)
+**Input**: Feature specification from `/specs/001-intelligent-chat-agent/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Replace the existing completion-based `AIAgentService` (raw LLM calls + manual JSON parsing) with a **Microsoft Agent Framework** `Agent` that uses function tools to take actions, `AgentSession` for multi-turn memory, and middleware for logging/security. The hardcoded priority-dispatch cascade in `chat.py` (`_handle_transcript_upload` → `_handle_feature_request` → `_handle_status_change` → `_handle_task_generation`) becomes the agent's natural reasoning — instead of `if/elif` tiers, the agent decides which tool to call based on its instructions. The REST API contract (`ChatMessage` schema, existing endpoints) stays the same so the frontend needs minimal changes. A new SSE streaming endpoint is additive.
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.12+ (backend), TypeScript ~6.0.2 / React ^19.2.0 (frontend)
+**Primary Dependencies**: FastAPI (backend HTTP), Microsoft Agent Framework (`agent-framework-core`, `agent-framework-github-copilot`, `agent-framework-azure-ai`), Pydantic v2 (models), aiosqlite (storage)
+**Storage**: SQLite via aiosqlite (existing `database.py` — chat messages, sessions, proposals, recommendations); `AgentSession.state` supplements but does not replace SQLite
+**Testing**: pytest + pytest-asyncio (backend), Vitest + @testing-library/react (frontend)
+**Target Platform**: Linux server (Docker container), browser SPA (Vite-built React)
+**Project Type**: Web application (backend + frontend monorepo under `solune/`)
+**Performance Goals**: First streaming token within 2 seconds; 50 concurrent sessions without cross-contamination or degradation
+**Constraints**: API contract backwards-compatible (ChatMessage schema unchanged); deprecate-not-delete old layers; `ai_enhance=False` bypass preserved
+**Scale/Scope**: Single-instance deployment (SQLite), ~12 frontend pages, ~1000-line AI service module replaced
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+| Principle | Status | Evidence |
+|-----------|--------|----------|
+| **I. Specification-First Development** | ✅ PASS | `spec.md` contains 6 prioritized user stories (P1–P3) with Given-When-Then acceptance scenarios, edge cases, and 20 functional requirements |
+| **II. Template-Driven Workflow** | ✅ PASS | All artifacts follow canonical templates from `.specify/templates/` — plan.md, research.md, data-model.md, contracts/, quickstart.md |
+| **III. Agent-Orchestrated Execution** | ✅ PASS | This plan is produced by the `speckit.plan` agent with well-defined inputs (spec.md) and outputs (Phase 0–1 artifacts) |
+| **IV. Test Optionality with Clarity** | ✅ PASS | Tests are included per spec (FR-006 session isolation, SC-006 80% coverage of new code). New `test_agent_tools.py`, `test_chat_agent.py`; updated `test_api_chat.py` |
+| **V. Simplicity and DRY** | ✅ PASS | Single agent replaces 4 separate dispatch handlers and 3 prompt modules. No new abstractions beyond what Agent Framework provides. Deprecate-not-delete avoids premature removal |
+
+**Gate result**: PASS — all principles satisfied. No complexity violations.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-intelligent-chat-agent/
+├── plan.md              # This file
+├── research.md          # Phase 0 output — technology decisions
+├── data-model.md        # Phase 1 output — entity definitions
+├── quickstart.md        # Phase 1 output — developer getting-started
+├── contracts/           # Phase 1 output — API contracts
+│   ├── streaming-sse.md # SSE streaming endpoint contract
+│   └── agent-tools.md   # Agent tool schemas
+└── checklists/
+    └── requirements.md  # Requirements traceability
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
+solune/backend/
+├── pyproject.toml                          # MODIFY: add agent-framework-* deps
 ├── src/
+│   ├── config.py                           # MODIFY: no new settings needed (reuse ai_provider, azure_openai_*, copilot_model)
+│   ├── api/
+│   │   └── chat.py                         # MODIFY: replace priority dispatch with agent_service.run()
 │   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
+│   │   └── chat.py                         # UNCHANGED: ChatMessage schema preserved
+│   ├── prompts/
+│   │   ├── agent_instructions.py           # CREATE: unified agent system prompt
+│   │   ├── task_generation.py              # DEPRECATE: add warnings
+│   │   ├── issue_generation.py             # DEPRECATE: add warnings
+│   │   └── transcript_analysis.py          # DEPRECATE: add warnings
 │   └── services/
+│       ├── agent_tools.py                  # CREATE: @tool-decorated functions
+│       ├── agent_provider.py               # CREATE: factory for Copilot / Azure agents
+│       ├── chat_agent.py                   # CREATE: ChatAgentService (session mgmt, response conversion)
+│       ├── agent_middleware.py             # CREATE: logging + security middleware
+│       ├── ai_agent.py                     # DEPRECATE: add warnings
+│       ├── completion_providers.py         # DEPRECATE: add warnings
+│       └── signal_chat.py                  # MODIFY: use ChatAgentService.run()
 └── tests/
+    └── unit/
+        ├── test_agent_tools.py             # CREATE: tool tests with mocked context
+        ├── test_chat_agent.py              # CREATE: session/response conversion tests
+        └── test_api_chat.py                # MODIFY: mock ChatAgentService instead of ai_service
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+solune/frontend/
+├── src/
+│   ├── services/
+│   │   └── api.ts                          # MODIFY: add streaming sendMessage variant
+│   └── components/
+│       └── chat/
+│           ├── ChatInterface.tsx           # MODIFY: use streaming when available
+│           └── MessageBubble.tsx           # MODIFY: progressive token rendering
+└── (no new test files required — existing chat tests cover integration)
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure — the project already uses `solune/backend/` and `solune/frontend/` as established roots. All new files are placed within the existing directory hierarchy. No new top-level directories.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations. No complexity justifications needed.
 
 | Violation | Why Needed | Simpler Alternative Rejected Because |
 |-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| *(none)* | — | — |
