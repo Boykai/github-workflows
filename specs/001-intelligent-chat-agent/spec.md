@@ -9,18 +9,19 @@
 
 ### User Story 1 — Chat-Driven Task Creation (Priority: P1)
 
-A project member opens the chat interface and describes a piece of work in natural language (e.g., "Add a dark-mode toggle to the settings page"). The agent asks 2–3 clarifying questions (difficulty, acceptance criteria, assignee preference) before presenting a structured task proposal. The user reviews the proposal and confirms or rejects it. On confirmation the task is created in the project board.
+A project member opens the chat interface and describes a piece of work in natural language (e.g., "Add a dark-mode toggle to the settings page"). If the initial request does not contain enough detail to create a complete task proposal, the agent asks 2–3 clarifying questions (such as difficulty, acceptance criteria, or assignee preference) before presenting a structured task proposal. If the initial request already contains sufficient detail, the agent may proceed directly to a structured task proposal without asking clarifying questions. The user reviews the proposal and confirms or rejects it. On confirmation the task is created in the project board.
 
 **Why this priority**: Task creation from chat is the most frequently used action today. Replacing the current rigid prompt-and-parse flow with an agent that reasons about which tool to call is the core value of v0.2.0 — it proves the new architecture end-to-end.
 
-**Independent Test**: Can be fully tested by sending a chat message describing work, answering the agent's follow-up questions, confirming the proposal, and verifying the task appears on the project board.
+**Independent Test**: Can be fully tested by sending a chat message describing work, verifying that the agent either asks 2–3 follow-up questions when needed or proceeds directly when sufficient detail is already present, confirming the proposal, and verifying the task appears on the project board.
 
 **Acceptance Scenarios**:
 
-1. **Given** a user is in an active chat session, **When** they describe a task in free-form text, **Then** the agent asks at least one clarifying question before producing a task proposal.
-2. **Given** the agent has presented a task proposal, **When** the user confirms it, **Then** a task is created on the project board with the proposed title, description, and difficulty.
-3. **Given** the agent has presented a task proposal, **When** the user rejects it, **Then** no task is created and the agent asks how to adjust the proposal.
-4. **Given** a user provides a very brief message (fewer than five words), **When** the agent processes it, **Then** the agent asks for more detail rather than generating an incomplete proposal.
+1. **Given** a user is in an active chat session and their initial task description lacks sufficient detail to create a complete proposal, **When** they describe the task in free-form text, **Then** the agent asks 2–3 clarifying questions before producing a task proposal.
+2. **Given** a user is in an active chat session and their initial task description already contains sufficient detail to create a complete proposal, **When** they describe the task in free-form text, **Then** the agent may produce the task proposal without asking clarifying questions.
+3. **Given** the agent has presented a task proposal, **When** the user confirms it, **Then** a task is created on the project board with the proposed title, description, and difficulty.
+4. **Given** the agent has presented a task proposal, **When** the user rejects it, **Then** no task is created and the agent asks how to adjust the proposal.
+5. **Given** a user provides a very brief message (fewer than five words), **When** the agent processes it, **Then** the agent asks for more detail rather than generating an incomplete proposal.
 
 ---
 
@@ -106,16 +107,16 @@ A user sends a message in the chat interface and sees the agent's response appea
 
 ### User Story 7 — Provider-Agnostic AI Backend (Priority: P2)
 
-An administrator configures the system to use either GitHub Copilot or Azure OpenAI as the underlying AI provider. The chat experience is identical regardless of which provider is active — the same tools, instructions, and conversation behaviour apply.
+An administrator configures the system to use either GitHub Copilot or Azure OpenAI as the underlying AI provider. The chat experience is functionally equivalent regardless of which provider is active — the same tools, instructions, action schemas, and conversation behaviour apply, with no loss of required fields or core capabilities.
 
 **Why this priority**: Provider flexibility is a deployment requirement. Some environments mandate Azure-hosted models for compliance reasons while others prefer the Copilot integration.
 
-**Independent Test**: Can be tested by switching the AI provider configuration and verifying that the same chat interactions produce equivalent results with both providers.
+**Independent Test**: Can be tested by switching the AI provider configuration and verifying that the same chat interactions yield functionally equivalent results with both providers, including the same tool availability, compatible action payloads, preservation of required fields, and similar intent/tool selection for the same inputs.
 
 **Acceptance Scenarios**:
 
 1. **Given** the system is configured with the Copilot provider, **When** a user chats, **Then** the agent responds correctly using all available tools.
-2. **Given** the system is configured with the Azure OpenAI provider, **When** a user chats, **Then** the agent responds identically to the Copilot provider experience.
+2. **Given** the system is configured with the Azure OpenAI provider, **When** a user chats, **Then** the agent provides a functionally equivalent experience to the Copilot provider, including the same tool availability, the same action schema, no loss of required fields, and similar intent and tool selection for the same user input.
 3. **Given** an administrator switches providers, **When** existing sessions continue, **Then** conversation history is preserved and the agent continues seamlessly.
 
 ---
@@ -208,11 +209,11 @@ An operator reviews logs to see timing, token usage, and tool invocation details
 
 ## Assumptions
 
-- The Microsoft Agent Framework packages are stable and support the required features (function tools, sessions, middleware, streaming).
+- The chosen agent framework packages are stable and support the required features (function tools, sessions, middleware, streaming).
 - The existing chat message schema is sufficient to carry agent responses — no schema changes are needed for the core flow; streaming is additive.
 - The existing conversation history storage is adequate for v0.2.0 and does not need to be replaced.
 - The task-identification utility from the current service layer is reusable by the new task status update capability without modification.
-- Per-user authentication with the GitHub Copilot provider can be handled through per-run token passing or a bounded ephemeral agent pool if the framework does not support per-run tokens natively.
-- MCP tool integration is explicitly out of scope for v0.2.0 and deferred to v0.4.0, but the tool registration design should accommodate future MCP tools.
-- The deprecation of old service layers (AIAgentService, completion providers, per-action prompts) means adding deprecation warnings only — actual removal is deferred to v0.3.0.
+- Per-user authentication with each AI provider can be handled through per-run token passing or a bounded ephemeral pool if the framework does not support per-run tokens natively.
+- External tool-protocol integration is explicitly out of scope for v0.2.0 but the tool registration design should accommodate future extensibility.
+- The migration can be delivered incrementally while preserving existing chat capabilities during the transition. Old service layers receive deprecation warnings only — actual removal is deferred to a future release.
 - Performance targets (2-second streaming start, sub-2-minute task creation) are based on standard web application expectations and current system behaviour.
