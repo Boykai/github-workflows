@@ -1,5 +1,9 @@
 """AI agent service for task generation and intent detection.
 
+.. deprecated:: 0.2.0
+    This module is deprecated in favor of :mod:`src.services.chat_agent`
+    which uses the Microsoft Agent Framework.  Removal planned for v0.3.0.
+
 Supports multiple LLM providers:
 - GitHub Copilot (default): Uses Copilot SDK with user's OAuth token
 - Azure OpenAI (optional): Uses Azure OpenAI with static API keys
@@ -60,6 +64,11 @@ class StatusChangeIntent:
 
 class AIAgentService:
     """Service for AI-powered task generation and intent detection.
+
+    .. deprecated:: 0.2.0
+        Use :class:`src.services.chat_agent.ChatAgentService` instead.
+        This class is kept for backward compatibility and will be removed
+        in v0.3.0.
 
     Uses a pluggable CompletionProvider for LLM calls:
     - CopilotCompletionProvider (default): GitHub Copilot via user's OAuth token

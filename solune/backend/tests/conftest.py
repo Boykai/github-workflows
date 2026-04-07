@@ -264,6 +264,30 @@ def _clear_test_caches():
 # =============================================================================
 
 
+def _make_chat_agent_service_mock(mock_session: UserSession) -> MagicMock:
+    """Create a mock ChatAgentService whose ``run()`` returns a ChatMessage.
+
+    The default return value is a task-create proposal.  Individual tests
+    can reconfigure ``mock.run.return_value`` as needed.
+    """
+    from src.models.chat import ActionType, ChatMessage, SenderType
+
+    default_response = ChatMessage(
+        session_id=mock_session.session_id,
+        sender_type=SenderType.ASSISTANT,
+        content="I've created a task proposal:\n\n**Generated Task**\n\nGenerated description\n\nClick confirm to create this task.",
+        action_type=ActionType.TASK_CREATE,
+        action_data={
+            "proposed_title": "Generated Task",
+            "proposed_description": "Generated description",
+            "status": "pending",
+        },
+    )
+    mock = MagicMock(name="ChatAgentService")
+    mock.run = AsyncMock(return_value=default_response)
+    return mock
+
+
 @pytest.fixture
 async def client(
     mock_session: UserSession,
@@ -315,6 +339,12 @@ async def client(
         patch("src.api.projects.github_auth_service", mock_github_auth_service),
         # AI agent service
         patch("src.api.chat.get_ai_agent_service", return_value=mock_ai_agent_service),
+        # Chat agent service — mock the new agent-framework-based service.
+        # Individual tests configure the mock's .run() return value as needed.
+        patch(
+            "src.api.chat.get_chat_agent_service",
+            return_value=_make_chat_agent_service_mock(mock_session),
+        ),
         # connection_manager — patched in every API module that broadcasts
         patch("src.api.projects.connection_manager", mock_websocket_manager),
         patch("src.api.tasks.connection_manager", mock_websocket_manager),

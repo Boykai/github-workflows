@@ -341,6 +341,78 @@ export const chatApi = {
   },
 
   /**
+   * Send a chat message with streaming response via SSE.
+   *
+   * Falls back to non-streaming sendMessage if streaming fails.
+   */
+  async sendMessageStream(
+    data: ChatMessageRequest,
+    onChunk: (chunk: { content: string; action_type?: string; action_data?: Record<string, unknown>; done: boolean }) => void,
+  ): Promise<void> {
+    const url = `${API_BASE_URL}/chat/messages/stream`;
+    const csrfToken = getCsrfToken();
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'include',
+        headers,
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Stream request failed: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('ReadableStream not supported');
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const jsonStr = line.slice(6).trim();
+            if (jsonStr) {
+              try {
+                const chunk = JSON.parse(jsonStr);
+                onChunk(chunk);
+              } catch {
+                // Skip malformed JSON chunks
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Fallback to non-streaming endpoint
+      const result = await this.sendMessage(data);
+      onChunk({
+        content: result.content,
+        action_type: result.action_type ?? undefined,
+        action_data: (result.action_data as unknown as Record<string, unknown>) ?? undefined,
+        done: true,
+      });
+    }
+  },
+
+  /**
    * Confirm an AI task proposal.
    */
   confirmProposal(proposalId: string, data?: ProposalConfirmRequest): Promise<AITaskProposal> {

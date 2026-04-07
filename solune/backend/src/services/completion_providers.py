@@ -1,5 +1,9 @@
 """LLM completion providers for AI agent operations.
 
+.. deprecated:: 0.2.0
+    This module is deprecated in favor of :mod:`src.services.agent_provider`
+    which uses the Microsoft Agent Framework.  Removal planned for v0.3.0.
+
 Provides a unified interface for different AI backends:
 - CopilotCompletionProvider: Default. Uses GitHub Copilot SDK with user's OAuth token.
 - AzureOpenAICompletionProvider: Optional. Uses Azure OpenAI with static API keys.
