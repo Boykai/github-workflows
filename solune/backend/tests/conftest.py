@@ -327,6 +327,8 @@ async def client(
         patch("src.api.mcp.get_db", return_value=mock_db),
         patch("src.api.tools.get_db", return_value=mock_db),
         patch("src.api.onboarding.get_db", return_value=mock_db),
+        # Copilot polling — prevent real GitHub API calls in unit tests
+        patch("src.services.copilot_polling.ensure_polling_started", new_callable=AsyncMock),
     ]
 
     with contextlib.ExitStack() as stack:
