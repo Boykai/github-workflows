@@ -267,6 +267,8 @@ The Tools page exposes a **Preset Library** of built-in MCP server configuration
 - SQLite via aiosqlite (sessions, settings, done-items fallback) (001-performance-review)
 - TypeScript 5.x / React 18.x + React, TanStack React Query, Vitest, React Testing Library (002-celestial-progress-ring)
 - N/A (client-side only; progress derived from hook states) (002-celestial-progress-ring)
+- Python 3.12+ + FastAPI 0.135+, agent-framework-core ≥ 1.0, agent-framework-github-copilot ≥ 1.0, agent-framework-azure-ai ≥ 1.0, sse-starlette (for SSE streaming) (001-intelligent-chat-agent)
+- SQLite via aiosqlite (existing — no changes to storage layer) (001-intelligent-chat-agent)
 
 Canonical versions live in `solune/backend/pyproject.toml` and `solune/frontend/package.json`. See **Current Stack** above for the full dependency list.
 

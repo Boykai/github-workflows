@@ -1,104 +1,141 @@
-# Implementation Plan: [FEATURE]
+# Implementation Plan: Intelligent Chat Agent (Microsoft Agent Framework)
 
-**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
-**Input**: Feature specification from `/specs/[###-feature-name]/spec.md`
-
-**Note**: This template is filled in by the `/speckit.plan` command. See `.specify/templates/commands/plan.md` for the execution workflow.
+**Branch**: `001-intelligent-chat-agent` | **Date**: 2026-04-07 | **Spec**: [spec.md](spec.md)  
+**Input**: Feature specification from `/specs/001-intelligent-chat-agent/spec.md`
 
 ## Summary
 
-[Extract from feature spec: primary requirement + technical approach from research]
+Replace the current completion-based `AIAgentService` (raw LLM calls + manual JSON parsing) with a Microsoft Agent Framework `Agent` that uses `@tool`-decorated functions, `AgentSession` for multi-turn memory, and `FunctionMiddleware` for logging and security. The priority-dispatch cascade in `chat.py` becomes the agent's natural reasoning — the agent decides which tool to call based on its instructions rather than hardcoded `if/elif` tiers. The REST API contract stays the same; the frontend adds only an SSE streaming endpoint. Technical approach validated through research into the Agent Framework 1.0 Python SDK (see [research.md](research.md)).
 
 ## Technical Context
 
-<!--
-  ACTION REQUIRED: Replace the content in this section with the technical details
-  for the project. The structure here is presented in advisory capacity to guide
-  the iteration process.
--->
-
-**Language/Version**: [e.g., Python 3.11, Swift 5.9, Rust 1.75 or NEEDS CLARIFICATION]  
-**Primary Dependencies**: [e.g., FastAPI, UIKit, LLVM or NEEDS CLARIFICATION]  
-**Storage**: [if applicable, e.g., PostgreSQL, CoreData, files or N/A]  
-**Testing**: [e.g., pytest, XCTest, cargo test or NEEDS CLARIFICATION]  
-**Target Platform**: [e.g., Linux server, iOS 15+, WASM or NEEDS CLARIFICATION]
-**Project Type**: [single/web/mobile - determines source structure]  
-**Performance Goals**: [domain-specific, e.g., 1000 req/s, 10k lines/sec, 60 fps or NEEDS CLARIFICATION]  
-**Constraints**: [domain-specific, e.g., <200ms p95, <100MB memory, offline-capable or NEEDS CLARIFICATION]  
-**Scale/Scope**: [domain-specific, e.g., 10k users, 1M LOC, 50 screens or NEEDS CLARIFICATION]
+**Language/Version**: Python 3.12+  
+**Primary Dependencies**: FastAPI 0.135+, agent-framework-core ≥ 1.0, agent-framework-github-copilot ≥ 1.0, agent-framework-azure-ai ≥ 1.0, sse-starlette (for SSE streaming)  
+**Storage**: SQLite via aiosqlite (existing — no changes to storage layer)  
+**Testing**: pytest + pytest-asyncio (existing test infrastructure)  
+**Target Platform**: Linux server (Docker), web browser (React frontend)  
+**Project Type**: Web application (backend + frontend)  
+**Performance Goals**: Streaming response start within 2 seconds; task-creation flow under 2 minutes active interaction  
+**Constraints**: Existing ChatMessage schema unchanged; REST API contract stable; deprecate old layers with warnings only (removal in v0.3.0)  
+**Scale/Scope**: Single-tenant deployment; ~50 active sessions; 7 agent tools; 2 AI provider backends
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+### Pre-Design Gate (Phase 0)
+
+#### I. Specification-First Development — ✅ PASS
+
+Feature specification exists at `specs/001-intelligent-chat-agent/spec.md` with 8 prioritised user stories (P1–P3), Given-When-Then acceptance scenarios for each, clear scope boundaries (MCP deferred to v0.4.0), and a validated requirements checklist.
+
+#### II. Template-Driven Workflow — ✅ PASS
+
+All artifacts follow canonical templates from `.specify/templates/`. This plan uses `plan-template.md`. Research, data model, contracts, and quickstart follow prescribed output formats.
+
+#### III. Agent-Orchestrated Execution — ✅ PASS
+
+This plan was produced by the `speckit.plan` agent with single-responsibility scope (planning only). Implementation will be handed off to `speckit.tasks` → `speckit.implement`.
+
+#### IV. Test Optionality with Clarity — ✅ PASS
+
+Tests are explicitly required by the specification (FR, SC-007). New test files: `test_agent_tools.py`, `test_chat_agent.py`. Updated: `test_api_chat.py`. Tests precede implementation in phase ordering.
+
+#### V. Simplicity and DRY — ✅ PASS
+
+The migration simplifies the architecture: one agent replaces a 5-tier dispatch cascade. Tools are thin wrappers around existing service methods. No premature abstraction — MCP tool registration is deferred to v0.4.0. See Complexity Tracking for justified complexity.
+
+### Post-Design Re-Check (Phase 1)
+
+#### I. Specification-First Development — ✅ PASS (unchanged)
+
+All design decisions in `research.md` trace back to spec requirements (FR-001 through FR-020). Data model preserves existing entities; new entities (`AgentSessionMapping`, `ToolResult`) are service-layer only with no schema changes.
+
+#### II. Template-Driven Workflow — ✅ PASS (unchanged)
+
+All Phase 1 artifacts generated: `data-model.md`, `contracts/chat-api.yaml`, `contracts/agent-tools.yaml`, `quickstart.md`. Each follows the prescribed output structure.
+
+#### III. Agent-Orchestrated Execution — ✅ PASS (unchanged)
+
+Phase 1 outputs are self-contained. `tasks.md` (Phase 2) is NOT created by this command — it will be generated by `speckit.tasks`.
+
+#### IV. Test Optionality with Clarity — ✅ PASS (unchanged)
+
+Test plan confirmed: 2 new test files + 1 updated test file. Tests cover tool functions, session management, response conversion, and API endpoint behaviour.
+
+#### V. Simplicity and DRY — ✅ PASS (unchanged)
+
+Design review confirms:
+- 7 tools replace 5 service methods + 2 intent-detection methods — net simplification
+- Single unified prompt replaces 3 separate prompt modules
+- No new database tables or migrations required
+- Existing `identify_target_task()` reused without modification
+- Complexity items documented in tracking table below
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-intelligent-chat-agent/
+├── plan.md              # This file
+├── research.md          # Phase 0: technology decisions and alternatives
+├── data-model.md        # Phase 1: entities, relationships, state transitions
+├── quickstart.md        # Phase 1: developer getting-started guide
+├── contracts/           # Phase 1: API contract definitions
+│   ├── chat-api.yaml    #   OpenAPI spec for chat endpoints (existing + streaming)
+│   └── agent-tools.yaml #   Tool input/output schemas
+└── tasks.md             # Phase 2 output (NOT created by /speckit.plan)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
-backend/
-├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
-
-frontend/
-├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
-
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+solune/
+├── backend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   └── chat.py                    # MODIFY: replace dispatch with agent.run()
+│   │   ├── models/
+│   │   │   └── chat.py                    # KEEP: ChatMessage, ActionType unchanged
+│   │   ├── prompts/
+│   │   │   ├── agent_instructions.py      # CREATE: unified system instructions
+│   │   │   ├── task_generation.py         # DEPRECATE: replaced by agent instructions
+│   │   │   ├── issue_generation.py        # DEPRECATE: replaced by agent instructions
+│   │   │   └── transcript_analysis.py     # DEPRECATE: replaced by agent instructions
+│   │   ├── services/
+│   │   │   ├── agent_tools.py             # CREATE: @tool-decorated functions
+│   │   │   ├── agent_provider.py          # CREATE: provider factory
+│   │   │   ├── chat_agent.py              # CREATE: ChatAgentService wrapper
+│   │   │   ├── agent_middleware.py         # CREATE: logging + security middleware
+│   │   │   ├── ai_agent.py                # DEPRECATE: replaced by ChatAgentService
+│   │   │   ├── completion_providers.py    # DEPRECATE: replaced by agent_provider.py
+│   │   │   └── signal_chat.py             # MODIFY: use ChatAgentService.run()
+│   │   └── config.py                      # MODIFY: add agent framework settings
+│   ├── tests/
+│   │   └── unit/
+│   │       ├── test_agent_tools.py        # CREATE: tool unit tests
+│   │       ├── test_chat_agent.py         # CREATE: agent service tests
+│   │       └── test_api_chat.py           # MODIFY: update mock targets
+│   └── pyproject.toml                     # MODIFY: add agent-framework packages
+└── frontend/
+    └── src/
+        ├── services/
+        │   └── api.ts                     # MODIFY: add streaming endpoint
+        └── components/
+            └── chat/
+                └── ChatInterface.tsx       # MODIFY: progressive rendering
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application structure (Option 2). The existing `solune/backend/` and `solune/frontend/` layout is preserved. New files are created within the existing directory hierarchy. No new top-level directories.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations detected. The following design decisions add justified complexity:
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| Decision | Why Needed | Simpler Alternative Rejected Because |
+|----------|------------|-------------------------------------|
+| Singleton Agent + session pool | Agent Framework requires a long-lived Agent instance; sessions map 1:1 with Solune sessions | Creating a new Agent per request wastes model initialisation cost and loses session state |
+| Dual-provider factory | FR-005 requires both Copilot and Azure OpenAI backends | Single-provider would violate the specification |
+| SSE streaming endpoint | FR-007 requires progressive delivery; existing REST endpoint stays for backward compat | WebSocket would break the existing non-streaming contract |
+| Deprecation warnings (not deletion) | Constitution V (simplicity) + spec FR-017 mandate gradual transition | Immediate deletion risks breaking any external integrations or forks |

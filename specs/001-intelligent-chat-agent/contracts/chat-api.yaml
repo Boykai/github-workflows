@@ -1,0 +1,358 @@
+# Chat API Contract — v0.2.0 Intelligent Chat Agent
+#
+# This OpenAPI specification documents the chat endpoints including the new
+# streaming endpoint. Existing endpoints are UNCHANGED; the streaming endpoint
+# is ADDITIVE.
+
+openapi: "3.1.0"
+info:
+  title: Solune Chat API
+  version: "0.2.0"
+  description: |
+    Chat endpoints for the Solune project management assistant.
+    v0.2.0 adds SSE streaming responses via the new /messages/stream endpoint.
+    All existing endpoints remain backward-compatible.
+
+servers:
+  - url: /api/v1
+    description: Default API prefix
+
+paths:
+  /chat/messages:
+    get:
+      operationId: getMessages
+      summary: Get paginated chat history
+      description: Returns chat messages for the current session, ordered by timestamp descending.
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        "200":
+          description: Paginated message list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessagesResponse"
+
+    post:
+      operationId: sendMessage
+      summary: Send a chat message (non-streaming)
+      description: |
+        Send a message to the agent. The agent processes the message, optionally
+        invokes tools, and returns a complete response. The response may include
+        an action_type and action_data if the agent generated a proposal or
+        recommendation.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "200":
+          description: Agent response message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+        "400":
+          description: Invalid request
+        "401":
+          description: Not authenticated
+
+    delete:
+      operationId: clearMessages
+      summary: Clear chat history
+      description: Deletes all messages for the current session.
+      responses:
+        "200":
+          description: Messages cleared
+
+  /chat/messages/stream:
+    post:
+      operationId: sendMessageStream
+      summary: Send a chat message (streaming)
+      description: |
+        Send a message to the agent and receive the response as a Server-Sent
+        Events (SSE) stream. Each event contains a partial response chunk.
+        The final event contains the complete ChatMessage with action_type and
+        action_data if applicable. Falls back to non-streaming on error.
+
+        **NEW in v0.2.0** — this endpoint is additive.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendMessageRequest"
+      responses:
+        "200":
+          description: SSE stream of response chunks
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: |
+                  Stream of SSE events:
+                  - `event: token` / `data: {"text": "partial..."}` — incremental text
+                  - `event: tool_call` / `data: {"tool": "name", "status": "started|completed"}` — tool invocation
+                  - `event: complete` / `data: <ChatMessage JSON>` — final complete message
+                  - `event: error` / `data: {"message": "..."}` — error (stream ends)
+        "400":
+          description: Invalid request
+        "401":
+          description: Not authenticated
+
+  /chat/proposals/{proposal_id}/confirm:
+    post:
+      operationId: confirmProposal
+      summary: Confirm a task proposal
+      description: |
+        Confirm a pending task or status-change proposal. On confirmation,
+        the system creates the task or applies the status change.
+      parameters:
+        - name: proposal_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmProposalRequest"
+      responses:
+        "200":
+          description: Proposal confirmed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AITaskProposal"
+        "404":
+          description: Proposal not found
+        "409":
+          description: Proposal already confirmed/cancelled
+
+  /chat/proposals/{proposal_id}:
+    delete:
+      operationId: cancelProposal
+      summary: Cancel/reject a task proposal
+      parameters:
+        - name: proposal_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Proposal cancelled
+        "404":
+          description: Proposal not found
+
+  /chat/upload:
+    post:
+      operationId: uploadFile
+      summary: Upload a file for attachment
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        "200":
+          description: File uploaded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FileUploadResponse"
+
+components:
+  schemas:
+    SendMessageRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          maxLength: 100000
+          description: Message text content
+        ai_enhance:
+          type: boolean
+          default: true
+          description: |
+            When false, bypasses the agent and uses simple title-only generation.
+        file_urls:
+          type: array
+          items:
+            type: string
+          description: URLs of previously uploaded files
+        pipeline_id:
+          type: string
+          nullable: true
+          description: Target pipeline for task creation
+
+    ChatMessage:
+      type: object
+      required:
+        - message_id
+        - session_id
+        - sender_type
+        - content
+        - timestamp
+      properties:
+        message_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        sender_type:
+          type: string
+          enum: [user, assistant, system]
+        content:
+          type: string
+          maxLength: 100000
+        action_type:
+          type: string
+          enum: [task_create, status_update, issue_create, project_select]
+          nullable: true
+        action_data:
+          type: object
+          nullable: true
+          description: |
+            Action-specific payload. Structure depends on action_type:
+            - task_create: AITaskProposal fields
+            - issue_create: IssueRecommendation fields
+            - status_update: task reference + new status
+            - project_select: project metadata
+        timestamp:
+          type: string
+          format: date-time
+
+    ChatMessagesResponse:
+      type: object
+      properties:
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/ChatMessage"
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+
+    AITaskProposal:
+      type: object
+      properties:
+        proposal_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        original_input:
+          type: string
+        proposed_title:
+          type: string
+        proposed_description:
+          type: string
+        status:
+          type: string
+          enum: [pending, confirmed, edited, cancelled]
+        edited_title:
+          type: string
+          nullable: true
+        edited_description:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        selected_pipeline_id:
+          type: string
+          nullable: true
+        file_urls:
+          type: array
+          items:
+            type: string
+
+    ConfirmProposalRequest:
+      type: object
+      properties:
+        edited_title:
+          type: string
+          nullable: true
+          description: Optional edited title (overrides proposed_title)
+        edited_description:
+          type: string
+          nullable: true
+          description: Optional edited description (overrides proposed_description)
+        pipeline_id:
+          type: string
+          nullable: true
+          description: Override pipeline selection
+
+    FileUploadResponse:
+      type: object
+      properties:
+        filename:
+          type: string
+        file_url:
+          type: string
+        file_size:
+          type: integer
+        content_type:
+          type: string
+
+    StreamEvent:
+      type: object
+      description: Individual SSE event payload (NEW in v0.2.0)
+      properties:
+        event:
+          type: string
+          enum: [token, tool_call, complete, error]
+        data:
+          oneOf:
+            - type: object
+              properties:
+                text:
+                  type: string
+              description: Token event — partial response text
+            - type: object
+              properties:
+                tool:
+                  type: string
+                status:
+                  type: string
+                  enum: [started, completed]
+              description: Tool call event — tool invocation progress
+            - $ref: "#/components/schemas/ChatMessage"
+            - type: object
+              properties:
+                message:
+                  type: string
+              description: Error event

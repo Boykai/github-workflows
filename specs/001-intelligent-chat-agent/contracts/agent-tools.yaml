@@ -1,0 +1,327 @@
+# Agent Tools Contract — v0.2.0 Intelligent Chat Agent
+#
+# Defines the input/output schemas for each @tool-decorated function.
+# These schemas describe what the LLM sees (input) and what the tool returns
+# (output). Runtime context injected via FunctionInvocationContext is NOT
+# included here as it is invisible to the LLM.
+
+openapi: "3.1.0"
+info:
+  title: Solune Agent Tools Schema
+  version: "0.2.0"
+  description: |
+    Schema definitions for the agent's function tools. Each tool is registered
+    with the Microsoft Agent Framework via the @tool decorator. The framework
+    auto-generates JSON schemas from Python type hints; this document serves as
+    the canonical reference for expected inputs and outputs.
+
+components:
+  schemas:
+    # ─── Tool Inputs (LLM-visible) ─────────────────────────────────────
+
+    CreateTaskProposalInput:
+      type: object
+      required:
+        - title
+        - description
+      properties:
+        title:
+          type: string
+          description: Short, action-oriented task title (max 256 chars)
+          maxLength: 256
+        description:
+          type: string
+          description: |
+            Detailed task description in markdown. Should include:
+            - Overview of the task
+            - Acceptance criteria
+            - Implementation hints if relevant
+
+    CreateIssueRecommendationInput:
+      type: object
+      required:
+        - title
+        - user_story
+        - functional_requirements
+      properties:
+        title:
+          type: string
+          description: Issue title (max 256 chars)
+          maxLength: 256
+        user_story:
+          type: string
+          description: "As a [user], I want [goal] so that [benefit]"
+        ui_ux_description:
+          type: string
+          description: Design and interaction guidance (optional)
+          default: ""
+        functional_requirements:
+          type: array
+          items:
+            type: string
+          description: List of MUST/SHOULD requirements
+          minItems: 1
+        technical_notes:
+          type: string
+          description: Implementation hints (optional)
+          default: ""
+        priority:
+          type: string
+          enum: [P0, P1, P2, P3]
+          description: Issue priority
+          default: P2
+        size:
+          type: string
+          enum: [XS, S, M, L, XL]
+          description: Estimated issue size
+          default: M
+
+    UpdateTaskStatusInput:
+      type: object
+      required:
+        - task_reference
+        - target_status
+      properties:
+        task_reference:
+          type: string
+          description: |
+            Task title, partial title, or description fragment to identify the
+            target task. The system uses fuzzy matching to find the best match.
+        target_status:
+          type: string
+          description: |
+            Target status column name (e.g., "In Progress", "In Review", "Done").
+            Must be a valid status for the task's current workflow.
+
+    AnalyzeTranscriptInput:
+      type: object
+      required:
+        - transcript_content
+      properties:
+        transcript_content:
+          type: string
+          description: |
+            Full meeting transcript text. May contain speaker labels, timestamps,
+            and multiple topics. The tool extracts action items, decisions, and
+            follow-ups.
+
+    AskClarifyingQuestionInput:
+      type: object
+      required:
+        - question
+      properties:
+        question:
+          type: string
+          description: |
+            The clarifying question to present to the user before taking action.
+            Should be specific and actionable (e.g., "What difficulty level
+            should this task be? Easy, Medium, or Hard?").
+
+    # get_project_context and get_pipeline_list have NO LLM-visible inputs
+
+    # ─── Tool Outputs ──────────────────────────────────────────────────
+
+    ToolResult:
+      type: object
+      description: |
+        Standard return type for all tools. The ChatAgentService converts this
+        into a ChatMessage with appropriate action_type and action_data.
+      required:
+        - message
+      properties:
+        action_type:
+          type: string
+          enum: [task_create, status_update, issue_create]
+          nullable: true
+          description: |
+            Action classification for the frontend confirm/reject UI.
+            Null for informational responses (clarifying questions, context).
+        action_data:
+          type: object
+          nullable: true
+          description: |
+            Structured payload consumed by the frontend. Shape depends on
+            action_type. See ChatMessage.action_data in chat-api.yaml.
+        message:
+          type: string
+          description: |
+            Human-readable response text to display in the chat. For proposals,
+            this is a summary of what was generated. For questions, this is the
+            question text.
+
+    TaskProposalResult:
+      allOf:
+        - $ref: "#/components/schemas/ToolResult"
+        - type: object
+          properties:
+            action_type:
+              const: task_create
+            action_data:
+              type: object
+              properties:
+                proposal_id:
+                  type: string
+                  format: uuid
+                proposed_title:
+                  type: string
+                proposed_description:
+                  type: string
+                status:
+                  const: pending
+                expires_at:
+                  type: string
+                  format: date-time
+
+    IssueRecommendationResult:
+      allOf:
+        - $ref: "#/components/schemas/ToolResult"
+        - type: object
+          properties:
+            action_type:
+              const: issue_create
+            action_data:
+              type: object
+              properties:
+                recommendation_id:
+                  type: string
+                  format: uuid
+                title:
+                  type: string
+                user_story:
+                  type: string
+                functional_requirements:
+                  type: array
+                  items:
+                    type: string
+                status:
+                  const: pending
+
+    StatusUpdateResult:
+      allOf:
+        - $ref: "#/components/schemas/ToolResult"
+        - type: object
+          properties:
+            action_type:
+              const: status_update
+            action_data:
+              type: object
+              properties:
+                proposal_id:
+                  type: string
+                  format: uuid
+                task_title:
+                  type: string
+                current_status:
+                  type: string
+                target_status:
+                  type: string
+                status:
+                  const: pending
+
+    ClarifyingQuestionResult:
+      allOf:
+        - $ref: "#/components/schemas/ToolResult"
+        - type: object
+          properties:
+            action_type:
+              const: null
+            action_data:
+              const: null
+            message:
+              type: string
+              description: The clarifying question text
+
+    ProjectContextResult:
+      allOf:
+        - $ref: "#/components/schemas/ToolResult"
+        - type: object
+          properties:
+            action_type:
+              const: null
+            action_data:
+              type: object
+              properties:
+                project_name:
+                  type: string
+                labels:
+                  type: array
+                  items:
+                    type: string
+                branches:
+                  type: array
+                  items:
+                    type: string
+                milestones:
+                  type: array
+                  items:
+                    type: string
+                collaborators:
+                  type: array
+                  items:
+                    type: string
+
+    PipelineListResult:
+      allOf:
+        - $ref: "#/components/schemas/ToolResult"
+        - type: object
+          properties:
+            action_type:
+              const: null
+            action_data:
+              type: object
+              properties:
+                pipelines:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      name:
+                        type: string
+                      status:
+                        type: string
+
+    # ─── Runtime Context (NOT LLM-visible) ─────────────────────────────
+
+    FunctionInvocationKwargs:
+      type: object
+      description: |
+        Runtime context injected via FunctionInvocationContext.kwargs.
+        These values are NEVER exposed to the LLM schema. They are set by
+        ChatAgentService before each agent.run() call.
+      properties:
+        project_id:
+          type: string
+          description: Active Solune project ID
+        session_id:
+          type: string
+          format: uuid
+          description: Current Solune session ID
+        github_token:
+          type: string
+          description: User's GitHub OAuth token for API calls
+        pipeline_id:
+          type: string
+          nullable: true
+          description: Selected pipeline ID (if any)
+        file_urls:
+          type: array
+          items:
+            type: string
+          description: URLs of uploaded files
+        metadata_context:
+          type: object
+          description: |
+            Repository metadata (labels, branches, milestones, collaborators)
+            fetched from the metadata service.
+        available_tasks:
+          type: array
+          items:
+            type: object
+          description: List of tasks in the project (for status update matching)
+        available_statuses:
+          type: array
+          items:
+            type: string
+          description: Valid status column names for the project
