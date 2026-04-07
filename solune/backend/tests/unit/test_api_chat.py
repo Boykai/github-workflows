@@ -744,7 +744,9 @@ class TestConfirmProposalEdgeCases:
         mock_ai_agent_service.detect_feature_request_intent.return_value = True
         mock_ai_agent_service.generate_issue_recommendation.side_effect = RuntimeError("AI down")
 
-        resp = await client.post("/api/v1/chat/messages", json={"content": "add dark mode"})
+        with patch("src.api.chat.get_chat_agent_service") as mock_cas:
+            mock_cas.return_value.run = AsyncMock(side_effect=RuntimeError("agent down"))
+            resp = await client.post("/api/v1/chat/messages", json={"content": "add dark mode"})
         assert resp.status_code == 200
         assert "couldn't generate" in resp.json()["content"].lower()
 
