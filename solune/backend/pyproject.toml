@@ -29,7 +29,7 @@ dependencies = [
     # Code graph analysis (MCP server + CLI)
     "codegraphcontext>=0.2.9,<1",
     # GitHub Secrets API encryption (libsodium sealed box)
-    "pynacl>=1.5.0,<2",
+    "pynacl>=1.6.2,<2",
     # OpenTelemetry — opt-in distributed tracing and metrics (Phase 5)
     "opentelemetry-api>=1.33.0,<2",
     "opentelemetry-sdk>=1.33.0,<2",
