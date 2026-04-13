@@ -18,7 +18,7 @@ dependencies = [
     "openai>=2.26.0,<3",
     "azure-ai-inference>=1.0.0b9,<2",
     # SQLite async (durable settings/session storage)
-    "aiosqlite>=0.22.0,<1",
+    "aiosqlite>=0.22.1,<1",
     # Encryption for session tokens
     "cryptography>=46.0.5,<47",
     # Signal messaging integration
