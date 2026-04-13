@@ -36,7 +36,7 @@ dependencies = [
     "opentelemetry-instrumentation-fastapi>=0.54b0,<1",
     "opentelemetry-instrumentation-httpx>=0.54b0,<1",
     "opentelemetry-instrumentation-sqlite3>=0.54b0,<1",
-    "opentelemetry-exporter-otlp>=1.33.0,<2",
+    "opentelemetry-exporter-otlp>=1.41.0,<2",
     # Sentry — opt-in error tracking (Phase 5)
     "sentry-sdk[fastapi]>=2.22.0,<3",
 ]
