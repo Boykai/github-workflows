@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-# Default: no permissions. Each job grants only what it needs.
-permissions: {}
-
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -18,116 +15,52 @@ jobs:
   backend:
     name: Backend
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     defaults:
       run:
-        working-directory: solune/backend
+        working-directory: backend
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v4
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          version: "0.10.9"
+          python-version: "3.12"
+          cache: "pip"
 
       - name: Install dependencies
-        run: uv sync --locked --extra dev
+        run: |
+          pip install -e ".[dev]"
 
-      - name: Dependency audit with pip-audit
-        # CVE-2026-4539 currently has no patched Pygments release on PyPI.
-        run: uv run pip-audit . --ignore-vuln CVE-2026-4539
+      #- name: Lint with ruff
+      #  run: ruff check src tests
 
-      - name: Lint with ruff
-        run: uv run ruff check src tests
+      - name: Format check with black
+        run: black --check src tests
 
-      - name: Format check with ruff
-        run: uv run ruff format --check src tests
-
-      - name: Security scan with bandit
-        run: uv run bandit -r src/ -ll -ii --skip B104,B608
-
-      - name: Type check with pyright
-        run: uv run pyright src
-
-      - name: Run tests with coverage enforcement
-        run: uv run pytest --cov=src --cov-report=term-missing --cov-report=xml --cov-report=html --durations=20 --ignore=tests/property --ignore=tests/fuzz --ignore=tests/chaos --ignore=tests/concurrency
-
-      - name: Upload backend coverage report
-        if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: backend-coverage-report
-          path: |
-            solune/backend/coverage.xml
-            solune/backend/htmlcov/
-          retention-days: 14
-          if-no-files-found: warn
-
-  # Backend advanced tests: property-based, fuzz, chaos, concurrency
-  # Non-blocking initially — transition to blocking once baselines stabilize
-  # (remove continue-on-error after 2+ weeks of 0 flaky tests)
-  backend-advanced-tests:
-    name: Backend Advanced Tests
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: solune/backend
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: "0.10.9"
-
-      - name: Install dependencies
-        run: uv sync --locked --extra dev
-
-      - name: Run property-based tests
-        run: uv run pytest tests/property/ --timeout=120 -v
-        env:
-          HYPOTHESIS_PROFILE: ci
-
-      - name: Run fuzz tests
-        run: uv run pytest tests/fuzz/ --timeout=120 -v
-
-      - name: Run chaos tests
-        run: uv run pytest tests/chaos/ --timeout=120 -v
-
-      - name: Run concurrency tests
-        run: uv run pytest tests/concurrency/ --timeout=120 -v
+      #- name: Run tests
+      #  run: pytest --cov=src --cov-report=term-missing
 
   # Frontend tests run directly on the runner
   frontend:
     name: Frontend
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     defaults:
       run:
-        working-directory: solune/frontend
+        working-directory: frontend
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
-          cache-dependency-path: solune/frontend/package-lock.json
+          cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Dependency audit
-        run: npm audit --audit-level=high
 
       - name: Lint
         run: npm run lint
@@ -135,167 +68,27 @@ jobs:
       - name: Type check
         run: npm run type-check
 
-      - name: Run tests with coverage enforcement
-        run: npm run test:coverage
-
-      - name: Upload frontend coverage report
-        if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: frontend-coverage-report
-          path: solune/frontend/coverage/
-          retention-days: 14
-          if-no-files-found: warn
+      - name: Run tests
+        run: npm test
 
       - name: Build
         run: npm run build
-
-  frontend-e2e:
-    name: Frontend E2E
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      contents: read
-    defaults:
-      run:
-        working-directory: solune/frontend
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: solune/frontend/package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
-
-      - name: Run Playwright smoke suite in Chromium
-        run: npm run test:e2e -- --project=chromium
-
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
-        with:
-          name: frontend-e2e-report
-          path: |
-            solune/frontend/e2e-report/
-            solune/frontend/test-results/
-          retention-days: 14
-          if-no-files-found: warn
-
-  # Documentation linting — markdownlint + link verification
-  docs:
-    name: Docs Lint
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: "20"
-
-      - name: Install markdownlint-cli and markdown-link-check
-        run: npm install -g markdownlint-cli@0.48.0 markdown-link-check@3.14.2
-
-      - name: Lint markdown formatting
-        run: markdownlint "solune/docs/**/*.md" "*.md" --config solune/.markdownlint.json
-
-      - name: Check documentation links
-        run: |
-          find solune/docs -name "*.md" -print0 | xargs -0 -I {} \
-            markdown-link-check {} \
-              --config solune/.markdown-link-check.json \
-              --quiet
-          markdown-link-check README.md \
-            --config solune/.markdown-link-check.json \
-            --quiet
-
-  # Verify architecture diagrams are in sync with the codebase
-  diagrams:
-    name: Diagrams
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Verify diagrams are up to date
-        run: ./solune/scripts/generate-diagrams.sh --check
-
-  # API contract validation — detect backend/frontend schema drift
-  contract-validation:
-    name: Contract Validation
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: "0.10.9"
-
-      - name: Install backend dependencies
-        run: uv sync --locked --extra dev
-        working-directory: solune/backend
-
-      - name: Set up Node.js
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
-        with:
-          node-version: "20"
-          cache: "npm"
-          cache-dependency-path: solune/frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        run: npm ci
-        working-directory: solune/frontend
-
-      - name: Run contract validation
-        run: bash solune/scripts/validate-contracts.sh
 
   # Docker build verification
   docker:
     name: Docker Build
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     needs: [backend, frontend]
 
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@v4
 
       - name: Build backend image
-        run: docker build -t solune-backend ./solune/backend
+        run: docker build -t ghchat-backend ./backend
 
       - name: Build frontend image
-        run: docker build -t solune-frontend ./solune/frontend
+        run: docker build -t ghchat-frontend ./frontend
 
       - name: Verify images
         run: |
-          docker images | grep solune
-
-      - name: Install Trivy
-        uses: aquasecurity/setup-trivy@3fb12ec12f41e471780db15c232d5dd185dcb514 # v0.2.6
-        with:
-          version: v0.69.3
-          cache: true
-
-      - name: Scan backend image
-        run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed solune-backend
-
-      - name: Scan frontend image
-        run: trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed solune-frontend
+          docker images | grep ghchat

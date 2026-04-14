@@ -7,7 +7,7 @@ set -e
 echo "🔄 Starting development services..."
 
 # Activate virtual environment
-source /workspace/solune/backend/.venv/bin/activate 2>/dev/null || true
+source /workspace/.venv/bin/activate 2>/dev/null || true
 
 # Update GitHub OAuth callback URL for Codespaces
 if [ -n "$CODESPACE_NAME" ]; then
@@ -25,9 +25,9 @@ if [ -n "$CODESPACE_NAME" ]; then
     echo ""
     
     # Update .env if it exists
-    if [ -f /workspace/solune/.env ]; then
-        sed -i "s|GITHUB_REDIRECT_URI=.*|GITHUB_REDIRECT_URI=$CALLBACK_URL|g" /workspace/solune/.env
-        sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=$FRONTEND_URL|g" /workspace/solune/.env
+    if [ -f /workspace/.env ]; then
+        sed -i "s|GITHUB_REDIRECT_URI=.*|GITHUB_REDIRECT_URI=$CALLBACK_URL|g" /workspace/.env
+        sed -i "s|FRONTEND_URL=.*|FRONTEND_URL=$FRONTEND_URL|g" /workspace/.env
         echo "✅ Updated .env with Codespaces URLs"
     fi
 fi

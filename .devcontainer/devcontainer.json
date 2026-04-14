@@ -1,16 +1,16 @@
 {
-  "name": "Solune",
+  "name": "GitHub Projects Chat",
   "dockerComposeFile": "docker-compose.devcontainer.yml",
   "service": "devcontainer",
   "workspaceFolder": "/workspace",
 
   "features": {
     "ghcr.io/devcontainers/features/python:1": {
-      "version": "3.13",
+      "version": "3.12",
       "installTools": true
     },
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "22"
+      "version": "20"
     },
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "version": "latest",
@@ -22,7 +22,7 @@
   "customizations": {
     "vscode": {
       "settings": {
-        "python.defaultInterpreterPath": "/workspace/solune/backend/.venv/bin/python",
+        "python.defaultInterpreterPath": "/workspace/.venv/bin/python",
         "python.terminal.activateEnvironment": true,
         "python.analysis.typeCheckingMode": "basic",
         "editor.formatOnSave": true,

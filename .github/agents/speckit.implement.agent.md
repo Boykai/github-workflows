@@ -1,15 +1,5 @@
 ---
-description: Execute the implementation plan by processing and executing all tasks
-  defined in tasks.md
-mcp-servers:
-  context7:
-    type: http
-    url: https://mcp.context7.com/mcp
-    tools:
-    - resolve-library-id
-    - get-library-docs
-    headers:
-      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+description: Execute the implementation plan by processing and executing all tasks defined in tasks.md
 ---
 
 ## User Input

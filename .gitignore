@@ -10,8 +10,8 @@ dist/
 downloads/
 eggs/
 .eggs/
-/lib/
-/lib64/
+lib/
+lib64/
 parts/
 sdist/
 var/
@@ -32,14 +32,9 @@ pnpm-debug.log*
 .pnpm-store/
 
 # Build outputs
-solune/backend/dist/
-solune/frontend/dist/
+backend/dist/
+frontend/dist/
 *.log
-*.tsbuildinfo
-
-# Vite config compiled artifacts (vite.config.ts is the source of truth)
-solune/frontend/vite.config.js
-solune/frontend/vite.config.d.ts
 
 # Environment
 .env
@@ -53,48 +48,16 @@ solune/frontend/vite.config.d.ts
 *.swo
 *~
 
-# MCP (machine-local auto-generated configs)
-/mcp.json
-/.copilot/
-
 # OS
 .DS_Store
 Thumbs.db
 
 # Testing
 .coverage
-coverage.xml
 htmlcov/
 .pytest_cache/
 .mypy_cache/
 coverage/
-test-results/
-e2e-report/
-frontend/test-results/
-frontend/e2e-report/
-frontend/coverage/
-solune/frontend/test-results/
-solune/frontend/e2e-report/
-solune/frontend/coverage/
-solune/frontend/reports/
-solune/frontend/run-*.json
-
-# Mutation testing artifacts
-.mutmut-cache
-mutants/
-stryker-tmp/
-
-# Hypothesis database (property test caches)
-.hypothesis/
-
-# OpenAPI generated artifacts
-openapi.json
-openapi-generated.d.ts
-
-# SQLite database files
-*.db
-*.db-wal
-*.db-shm
 
 # Misc
 *.tmp
