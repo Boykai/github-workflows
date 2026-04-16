@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isDarkMode, toggleTheme } = useAppTheme();
+  const { isDarkMode, isPrideMonth, toggleTheme } = useAppTheme();
   const {
     projects,
     selectedProject,
@@ -82,7 +82,10 @@ function AppContent() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>Welcome to Tech Connect 2026!</h1>
+        <h1>
+          Welcome to Tech Connect 2026!
+          {isPrideMonth && <span className="pride-badge">🏳️‍🌈 Pride Month</span>}
+        </h1>
         <div className="header-actions">
           <button 
             className="theme-toggle-btn"

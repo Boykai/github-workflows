@@ -1,5 +1,13 @@
 /* App styles */
 
+/* Smooth theme transitions */
+.app-header,
+.app-main,
+button,
+.theme-toggle-btn {
+  transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
 .app-loading {
   display: flex;
   flex-direction: column;
@@ -56,6 +64,29 @@
   padding: 12px 24px;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
+}
+
+/* Pride Month rainbow header */
+html.pride-mode-active .app-header {
+  background: var(--pride-gradient-soft);
+  border-bottom: 3px solid transparent;
+  border-image: var(--pride-gradient) 1;
+}
+
+/* Pride Month badge shown next to the app title */
+.pride-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 12px;
+  background: var(--pride-gradient);
+  color: #ffffff;
+  margin-left: 10px;
+  vertical-align: middle;
+  letter-spacing: 0.01em;
 }
 
 .app-header h1 {
