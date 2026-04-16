@@ -1,6 +1,6 @@
 /* Base styles */
 :root {
-  --color-primary: #0969da;
+  --color-primary: #7c3aed;
   --color-secondary: #6e7781;
   --color-success: #1a7f37;
   --color-warning: #9a6700;
@@ -12,11 +12,14 @@
   --color-text-secondary: #57606a;
   --radius: 6px;
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  /* Pride Month rainbow gradient */
+  --rainbow-gradient: linear-gradient(90deg, #e40303 0%, #ff8c00 17%, #ffed00 34%, #008026 51%, #004dff 68%, #750787 100%);
+  --rainbow-gradient-vertical: linear-gradient(180deg, #e40303 0%, #ff8c00 20%, #ffed00 40%, #008026 60%, #004dff 80%, #750787 100%);
 }
 
 /* Dark theme overrides */
 html.dark-mode-active {
-  --color-primary: #539bf5;
+  --color-primary: #a78bfa;
   --color-secondary: #8b949e;
   --color-success: #3fb950;
   --color-warning: #d29922;
