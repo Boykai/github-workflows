@@ -7,6 +7,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { chatApi, tasksApi } from '@/services/api';
 import type { AITaskProposal, ChatMessage, ProposalConfirmRequest, IssueCreateActionData } from '@/types';
 
+/** Invalidate only the tasks for the currently selected project, not the entire projects list. */
+function invalidateProjectTasks(queryClient: ReturnType<typeof useQueryClient>) {
+  queryClient.invalidateQueries({ queryKey: ['projects'], exact: false, predicate: (query) => {
+    // Only invalidate task-level queries, not the top-level project list
+    return query.queryKey.length >= 3 && query.queryKey[2] === 'tasks';
+  }});
+}
+
 // Extended proposal type for status changes
 interface StatusChangeProposal {
   proposal_id: string;
@@ -49,7 +57,7 @@ export function useChat(): UseChatReturn {
   } = useQuery({
     queryKey: ['chat', 'messages'],
     queryFn: chatApi.getMessages,
-    staleTime: 10 * 1000, // 10 seconds
+    staleTime: 60 * 1000, // 60 seconds
   });
 
   // Send message mutation
@@ -124,8 +132,8 @@ export function useChat(): UseChatReturn {
         return next;
       });
       queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] });
-      // Also refresh tasks
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      // Refresh only task-level queries, not the full project list
+      invalidateProjectTasks(queryClient);
     },
   });
 
@@ -147,8 +155,8 @@ export function useChat(): UseChatReturn {
         return next;
       });
       queryClient.invalidateQueries({ queryKey: ['chat', 'messages'] });
-      // Refresh tasks to show updated status
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      // Refresh only task-level queries, not the full project list
+      invalidateProjectTasks(queryClient);
     },
   });
 

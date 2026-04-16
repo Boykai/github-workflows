@@ -1,5 +1,10 @@
 /**
  * Real-time sync hook for WebSocket updates with polling fallback.
+ *
+ * Optimized to reduce GitHub API requests:
+ * - Polling is stopped when WebSocket is connected (no dual-sync)
+ * - Polling fallback interval increased from 5s to 30s
+ * - WebSocket message invalidations are debounced (2s window)
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react';
@@ -12,6 +17,12 @@ interface UseRealTimeSyncReturn {
   lastUpdate: Date | null;
 }
 
+/** Polling fallback interval in ms (only used when WebSocket is unavailable). */
+const POLLING_INTERVAL_MS = 30_000;
+
+/** Debounce window for WebSocket-triggered cache invalidations. */
+const INVALIDATION_DEBOUNCE_MS = 2_000;
+
 export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn {
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<SyncStatus>('disconnected');
@@ -21,6 +32,19 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
   const reconnectTimeoutRef = useRef<number | null>(null);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 3;
+  const debounceTimerRef = useRef<number | null>(null);
+
+  /** Debounced query invalidation — collapses rapid WebSocket messages. */
+  const debouncedInvalidate = useCallback(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+    debounceTimerRef.current = window.setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
+      setLastUpdate(new Date());
+      debounceTimerRef.current = null;
+    }, INVALIDATION_DEBOUNCE_MS);
+  }, [projectId, queryClient]);
 
   const handleMessage = useCallback(
     (event: MessageEvent) => {
@@ -29,23 +53,19 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
 
         // Handle initial data with all tasks
         if (data.type === 'initial_data' || data.type === 'refresh') {
-          // Force refresh to get the updated data
-          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
-          setLastUpdate(new Date());
+          debouncedInvalidate();
           return;
         }
 
         // Handle real-time updates
         if (data.type === 'task_update' || data.type === 'task_created' || data.type === 'status_changed') {
-          // Invalidate tasks query to refetch
-          queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
-          setLastUpdate(new Date());
+          debouncedInvalidate();
         }
       } catch (e) {
         console.error('Failed to parse WebSocket message:', e);
       }
     },
-    [projectId, queryClient]
+    [debouncedInvalidate]
   );
 
   const startPolling = useCallback(() => {
@@ -57,7 +77,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
     pollingIntervalRef.current = window.setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['projects', projectId, 'tasks'] });
       setLastUpdate(new Date());
-    }, 5000); // Poll every 5 seconds
+    }, POLLING_INTERVAL_MS);
   }, [projectId, queryClient]);
 
   const stopPolling = useCallback(() => {
@@ -99,7 +119,8 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
         clearTimeout(connectionTimeout);
         setStatus('connected');
         setLastUpdate(new Date());
-        // Keep polling as backup even with WebSocket
+        // Stop polling — WebSocket provides real-time updates
+        stopPolling();
         reconnectAttempts.current = 0;
       };
 
@@ -115,6 +136,9 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
         clearTimeout(connectionTimeout);
         wsRef.current = null;
 
+        // Resume polling as fallback while attempting reconnect
+        startPolling();
+
         // Only attempt reconnect a few times before giving up
         if (reconnectAttempts.current < maxReconnectAttempts) {
           reconnectAttempts.current++;
@@ -123,9 +147,6 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
               connect();
             }
           }, 5000);
-        } else {
-          // After max attempts, stay in polling mode
-          startPolling();
         }
       };
 
@@ -134,7 +155,7 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
       // WebSocket not supported or blocked, use polling
       startPolling();
     }
-  }, [projectId, handleMessage, startPolling]);
+  }, [projectId, handleMessage, startPolling, stopPolling]);
 
   // Connect when project changes
   useEffect(() => {
@@ -157,6 +178,9 @@ export function useRealTimeSync(projectId: string | null): UseRealTimeSyncReturn
       stopPolling();
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
       }
     };
   }, [projectId, connect, startPolling, stopPolling]);

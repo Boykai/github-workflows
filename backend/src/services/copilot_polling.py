@@ -46,6 +46,7 @@ async def check_in_progress_issues(
     project_id: str,
     owner: str,
     repo: str,
+    cached_tasks: list | None = None,
 ) -> list[dict[str, Any]]:
     """
     Check all issues in "In Progress" status for completed Copilot PRs.
@@ -55,6 +56,7 @@ async def check_in_progress_issues(
         project_id: GitHub Project V2 node ID
         owner: Repository owner (fallback if not in task)
         repo: Repository name (fallback if not in task)
+        cached_tasks: Pre-fetched project items to avoid duplicate API call
 
     Returns:
         List of results for each processed issue
@@ -62,8 +64,10 @@ async def check_in_progress_issues(
     results = []
 
     try:
-        # Get all project items
-        tasks = await github_projects_service.get_project_items(access_token, project_id)
+        # Use cached tasks if provided, otherwise fetch
+        tasks = cached_tasks if cached_tasks is not None else (
+            await github_projects_service.get_project_items(access_token, project_id)
+        )
 
         # Filter to "In Progress" items with issue numbers
         in_progress_tasks = [
@@ -117,6 +121,7 @@ async def check_in_review_issues_for_copilot_review(
     project_id: str,
     owner: str,
     repo: str,
+    cached_tasks: list | None = None,
 ) -> list[dict[str, Any]]:
     """
     Check all issues in "In Review" status to ensure Copilot has reviewed their PRs.
@@ -128,6 +133,7 @@ async def check_in_review_issues_for_copilot_review(
         project_id: GitHub Project V2 node ID
         owner: Repository owner
         repo: Repository name
+        cached_tasks: Pre-fetched project items to avoid duplicate API call
 
     Returns:
         List of results for each processed issue
@@ -135,8 +141,10 @@ async def check_in_review_issues_for_copilot_review(
     results = []
 
     try:
-        # Get all project items
-        tasks = await github_projects_service.get_project_items(access_token, project_id)
+        # Use cached tasks if provided, otherwise fetch
+        tasks = cached_tasks if cached_tasks is not None else (
+            await github_projects_service.get_project_items(access_token, project_id)
+        )
 
         # Filter to "In Review" items with issue numbers
         in_review_tasks = [
@@ -492,12 +500,16 @@ async def poll_for_copilot_completion(
 
             logger.debug("Polling for Copilot PR completions (poll #%d)", _polling_state.poll_count)
 
+            # Fetch project items once per cycle to avoid duplicate API calls
+            all_tasks = await github_projects_service.get_project_items(access_token, project_id)
+
             # Step 1: Check "In Progress" issues for completed Copilot PRs
             results = await check_in_progress_issues(
                 access_token=access_token,
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
+                cached_tasks=all_tasks,
             )
 
             if results:
@@ -513,6 +525,7 @@ async def poll_for_copilot_completion(
                 project_id=project_id,
                 owner=owner,
                 repo=repo,
+                cached_tasks=all_tasks,
             )
 
             if review_results:

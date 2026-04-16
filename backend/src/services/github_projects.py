@@ -2,7 +2,7 @@
 
 import asyncio
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import httpx
 
@@ -534,8 +534,15 @@ mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $text: String!) {
 class GitHubProjectsService:
     """Service for interacting with GitHub Projects V2 API."""
 
+    # TTL for cached project field metadata (seconds).
+    _FIELD_CACHE_TTL = 300  # 5 minutes
+
     def __init__(self):
         self._client = httpx.AsyncClient(timeout=30.0)
+        # Cache for project fields: {project_id: (fields_dict, expiry_datetime)}
+        self._fields_cache: dict[str, tuple[dict[str, dict], datetime]] = {}
+        # Cache for single Status field lookups: {project_id: (field_data, expiry_datetime)}
+        self._status_field_cache: dict[str, tuple[dict, datetime]] = {}
 
     async def close(self):
         """Close HTTP client."""
@@ -1450,6 +1457,9 @@ class GitHubProjectsService:
         """
         Update an item's status by status name (helper method).
 
+        Uses a 5-minute in-memory cache for the Status field metadata to avoid
+        redundant GraphQL lookups on every status transition.
+
         Args:
             access_token: GitHub OAuth access token
             project_id: GitHub Project V2 node ID
@@ -1459,14 +1469,31 @@ class GitHubProjectsService:
         Returns:
             True if update succeeded
         """
-        # Get project field info
-        data = await self._graphql(
-            access_token,
-            GET_PROJECT_FIELD_QUERY,
-            {"projectId": project_id},
-        )
+        # Check in-memory cache for Status field data
+        cached = self._status_field_cache.get(project_id)
+        if cached:
+            field_data, expires_at = cached
+            if datetime.utcnow() < expires_at:
+                logger.debug("Status field cache hit for project %s", project_id)
+            else:
+                field_data = None
+        else:
+            field_data = None
 
-        field_data = data.get("node", {}).get("field", {})
+        if field_data is None:
+            # Fetch from API and cache
+            data = await self._graphql(
+                access_token,
+                GET_PROJECT_FIELD_QUERY,
+                {"projectId": project_id},
+            )
+            field_data = data.get("node", {}).get("field", {})
+            if field_data.get("id"):
+                self._status_field_cache[project_id] = (
+                    field_data,
+                    datetime.utcnow() + timedelta(seconds=self._FIELD_CACHE_TTL),
+                )
+
         field_id = field_data.get("id")
         options = field_data.get("options", [])
 
@@ -1508,7 +1535,7 @@ class GitHubProjectsService:
         project_id: str,
     ) -> dict[str, dict]:
         """
-        Get all fields from a project.
+        Get all fields from a project (cached for 5 minutes).
 
         Args:
             access_token: GitHub OAuth access token
@@ -1517,6 +1544,14 @@ class GitHubProjectsService:
         Returns:
             Dict mapping field names to field info (id, dataType, options if applicable)
         """
+        # Check in-memory cache first
+        cached = self._fields_cache.get(project_id)
+        if cached:
+            fields_data, expires_at = cached
+            if datetime.utcnow() < expires_at:
+                logger.debug("Project fields cache hit for %s", project_id)
+                return fields_data
+
         try:
             data = await self._graphql(
                 access_token,
@@ -1539,6 +1574,11 @@ class GitHubProjectsService:
                     }
 
             logger.debug("Found %d project fields: %s", len(fields), list(fields.keys()))
+            # Store in cache
+            self._fields_cache[project_id] = (
+                fields,
+                datetime.utcnow() + timedelta(seconds=self._FIELD_CACHE_TTL),
+            )
             return fields
 
         except Exception as e:
