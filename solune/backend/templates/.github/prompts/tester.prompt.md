@@ -1,5 +1,0 @@
-```prompt
----
-agent: tester
----
-```

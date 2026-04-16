@@ -1,15 +1,6 @@
 ---
-description: Convert existing tasks into actionable, dependency-ordered GitHub issues
-  for the feature based on available design artifacts.
-mcp-servers:
-  context7:
-    type: http
-    url: https://mcp.context7.com/mcp
-    tools:
-    - resolve-library-id
-    - get-library-docs
-    headers:
-      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+description: Convert existing tasks into actionable, dependency-ordered GitHub issues for the feature based on available design artifacts.
+tools: ['github/github-mcp-server/issue_write']
 ---
 
 ## User Input

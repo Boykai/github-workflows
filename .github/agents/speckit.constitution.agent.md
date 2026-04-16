@@ -1,20 +1,9 @@
 ---
-description: Create or update the project constitution from interactive or provided
-  principle inputs, ensuring all dependent templates stay in sync.
-handoffs:
-- label: Build Specification
-  agent: speckit.specify
-  prompt: Implement the feature specification based on the updated constitution. I
-    want to build...
-mcp-servers:
-  context7:
-    type: http
-    url: https://mcp.context7.com/mcp
-    tools:
-    - resolve-library-id
-    - get-library-docs
-    headers:
-      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+description: Create or update the project constitution from interactive or provided principle inputs, ensuring all dependent templates stay in sync.
+handoffs: 
+  - label: Build Specification
+    agent: speckit.specify
+    prompt: Implement the feature specification based on the updated constitution. I want to build...
 ---
 
 ## User Input

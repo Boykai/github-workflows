@@ -1,14 +1,5 @@
 ---
 description: Generate a custom checklist for the current feature based on user requirements.
-mcp-servers:
-  context7:
-    type: http
-    url: https://mcp.context7.com/mcp
-    tools:
-    - resolve-library-id
-    - get-library-docs
-    headers:
-      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
 ---
 
 ## Checklist Purpose: "Unit Tests for English"

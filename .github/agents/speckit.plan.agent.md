@@ -1,23 +1,13 @@
 ---
-description: Execute the implementation planning workflow using the plan template
-  to generate design artifacts.
-handoffs:
-- label: Create Tasks
-  agent: speckit.tasks
-  prompt: Break the plan into tasks
-  send: true
-- label: Create Checklist
-  agent: speckit.checklist
-  prompt: Create a checklist for the following domain...
-mcp-servers:
-  context7:
-    type: http
-    url: https://mcp.context7.com/mcp
-    tools:
-    - resolve-library-id
-    - get-library-docs
-    headers:
-      CONTEXT7_API_KEY: $COPILOT_MCP_CONTEXT7_API_KEY
+description: Execute the implementation planning workflow using the plan template to generate design artifacts.
+handoffs: 
+  - label: Create Tasks
+    agent: speckit.tasks
+    prompt: Break the plan into tasks
+    send: true
+  - label: Create Checklist
+    agent: speckit.checklist
+    prompt: Create a checklist for the following domain...
 ---
 
 ## User Input
