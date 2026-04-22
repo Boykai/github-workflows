@@ -98,7 +98,9 @@ function AppContent() {
               'Switch to light mode'
             }
           >
-            {theme === 'light' ? '🌙' : theme === 'dark' ? '🪟' : '☀️'}
+            <span aria-hidden="true">
+              {theme === 'light' ? '🌙' : theme === 'dark' ? '🪟' : '☀️'}
+            </span>
           </button>
           <LoginButton />
         </div>
