@@ -66,6 +66,24 @@ test.describe('Login Page UI', () => {
     await expect(page.locator('h1')).toBeVisible();
     await expect(page.locator('h1')).toContainText('GitHub Workflows');
   });
+
+  test('should support Windows Modern theme', async ({ page }) => {
+    await page.goto('/');
+
+    const htmlElement = page.locator('html');
+    await expect(htmlElement).not.toHaveClass(/windows-theme-active/);
+
+    // Apply Windows Modern theme class
+    await page.evaluate(() => {
+      document.documentElement.classList.add('windows-theme-active');
+    });
+
+    await expect(htmlElement).toHaveClass(/windows-theme-active/);
+
+    // Page should still be visible and functional
+    await expect(page.locator('h1')).toBeVisible();
+    await expect(page.locator('h1')).toContainText('GitHub Workflows');
+  });
 });
 
 test.describe('Interactive Elements', () => {

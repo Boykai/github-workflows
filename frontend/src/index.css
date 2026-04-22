@@ -29,6 +29,33 @@ html.dark-mode-active {
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* Windows Modern theme */
+html.windows-theme-active {
+  --color-primary: #0067c0;
+  --color-secondary: #616161;
+  --color-success: #107c10;
+  --color-warning: #ca5010;
+  --color-danger: #c42b1c;
+  --color-bg: #f3f3f3;
+  --color-bg-secondary: #ffffff;
+  --color-border: #e0e0e0;
+  --color-text: #1a1a1a;
+  --color-text-secondary: #616161;
+  --radius: 4px;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.14), 0 0 2px rgba(0, 0, 0, 0.12);
+}
+
+/* Smooth theme transitions */
+html.theme-transitioning *,
+html.theme-transitioning *::before,
+html.theme-transitioning *::after {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease !important;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
