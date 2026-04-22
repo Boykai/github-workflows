@@ -29,6 +29,21 @@ html.dark-mode-active {
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* Halloween theme overrides */
+html.halloween-mode-active {
+  --color-primary: #ff6a00;
+  --color-secondary: #9b30c8;
+  --color-success: #3fb950;
+  --color-warning: #ff8c00;
+  --color-danger: #ff4444;
+  --color-bg: #12001e;
+  --color-bg-secondary: #1e0030;
+  --color-border: #4a1a6b;
+  --color-text: #f5e6ff;
+  --color-text-secondary: #c9a0dc;
+  --shadow: 0 1px 6px rgba(155, 48, 200, 0.3);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;

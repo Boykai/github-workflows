@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isDarkMode, toggleTheme } = useAppTheme();
+  const { isDarkMode, isHalloweenMode, toggleTheme, toggleHalloweenMode } = useAppTheme();
   const {
     projects,
     selectedProject,
@@ -84,6 +84,14 @@ function AppContent() {
       <header className="app-header">
         <h1>GitHub Workflows</h1>
         <div className="header-actions">
+          <button
+            className="theme-toggle-btn"
+            onClick={toggleHalloweenMode}
+            aria-label={isHalloweenMode ? 'Disable Halloween theme' : 'Enable Halloween theme'}
+            title={isHalloweenMode ? 'Disable Halloween theme' : 'Enable Halloween theme'}
+          >
+            🎃
+          </button>
           <button 
             className="theme-toggle-btn"
             onClick={toggleTheme}
