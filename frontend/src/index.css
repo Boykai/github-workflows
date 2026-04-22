@@ -29,6 +29,30 @@ html.dark-mode-active {
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* Retro 1990s theme — 6 vibrant neon colors, WCAG AA compliant */
+html.retro-mode-active,
+html.retro-preview-active {
+  /* Primary palette — ≥ 6 distinct vibrant colors */
+  --color-primary: #ff1493;      /* Neon Deep Pink  — contrast 5.6:1 on dark bg */
+  --color-secondary: #00ffff;    /* Electric Cyan   — contrast 16:1 on dark bg  */
+  --color-success: #00e676;      /* Neon Green       — contrast 13:1 on dark bg  */
+  --color-warning: #ffd600;      /* Neon Yellow      — contrast 15:1 on dark bg  */
+  --color-danger: #ff3d3d;       /* Hot Red          — contrast 5.5:1 on dark bg */
+  --color-neon-orange: #ff6d00;  /* Neon Orange      — accent / geometric shapes */
+  --color-neon-purple: #d500f9;  /* Electric Purple  — accent / dividers          */
+
+  /* Backgrounds — very dark purple for max neon contrast */
+  --color-bg: #0d0021;
+  --color-bg-secondary: #160535;
+
+  /* Borders & shadows */
+  --color-border: #ff1493;
+  --color-text: #ffffff;
+  --color-text-secondary: #00ffff;
+  --radius: 3px;
+  --shadow: 0 0 14px rgba(255, 20, 147, 0.45), 0 0 6px rgba(0, 255, 255, 0.25);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
