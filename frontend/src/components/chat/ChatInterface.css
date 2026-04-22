@@ -187,7 +187,7 @@
 }
 
 .confirm-button:hover {
-  background: #15652d;
+  background: #0a5c0a;
 }
 
 /* Chat header with New Chat button */
@@ -310,7 +310,7 @@
 }
 
 .send-button:hover:not(:disabled) {
-  background: #0860ca;
+  background: var(--color-primary-hover);
 }
 
 .send-button:disabled {
@@ -329,13 +329,13 @@
 }
 
 .issue-recommendation-preview.success {
-  border-color: #22c55e;
-  background: rgba(34, 197, 94, 0.1);
+  border-color: var(--color-success);
+  background: rgba(16, 124, 16, 0.1);
 }
 
 .issue-recommendation-preview.rejected {
-  border-color: #ef4444;
-  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--color-danger);
+  background: rgba(164, 38, 44, 0.1);
   opacity: 0.7;
 }
 
@@ -438,17 +438,17 @@
 }
 
 .priority-p0 {
-  color: #ef4444;
+  color: var(--color-danger);
   font-weight: 700;
 }
 
 .priority-p1 {
-  color: #f97316;
+  color: var(--color-warning);
   font-weight: 600;
 }
 
 .priority-p2 {
-  color: #3b82f6;
+  color: var(--color-primary);
 }
 
 .priority-p3 {
@@ -476,8 +476,8 @@
 .label-badge {
   display: inline-block;
   padding: 2px 8px;
-  background: rgba(59, 130, 246, 0.1);
-  color: #3b82f6;
+  background: rgba(0, 120, 212, 0.1);
+  color: var(--color-primary);
   border-radius: 12px;
   font-size: 11px;
   font-weight: 500;
@@ -503,23 +503,23 @@
 }
 
 .confirm-button {
-  background: #22c55e;
+  background: var(--color-success);
   color: white;
   border: none;
 }
 
 .confirm-button:hover:not(:disabled) {
-  background: #16a34a;
+  background: #0a5c0a;
 }
 
 .reject-button {
   background: transparent;
-  color: #ef4444;
-  border: 1px solid #ef4444;
+  color: var(--color-danger);
+  border: 1px solid var(--color-danger);
 }
 
 .reject-button:hover:not(:disabled) {
-  background: rgba(239, 68, 68, 0.1);
+  background: rgba(164, 38, 44, 0.1);
 }
 
 .confirm-button:disabled,
@@ -529,8 +529,8 @@
 }
 
 .error-message {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
+  background: rgba(164, 38, 44, 0.1);
+  color: var(--color-danger);
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 13px;
@@ -550,12 +550,12 @@
 
 .success-icon {
   font-size: 20px;
-  color: #22c55e;
+  color: var(--color-success);
 }
 
 .rejected-icon {
   font-size: 20px;
-  color: #ef4444;
+  color: var(--color-danger);
 }
 
 .result-details p {
