@@ -29,6 +29,22 @@ html.dark-mode-active {
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* Rainbow theme overrides */
+html.rainbow-mode-active {
+  --color-primary: #7c3aed;
+  --color-secondary: #db2777;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-bg: #fdf4ff;
+  --color-bg-secondary: #f5e6ff;
+  --color-border: #e9d5ff;
+  --color-text: #1e1b4b;
+  --color-text-secondary: #5b21b6;
+  --shadow: 0 1px 3px rgba(124, 58, 237, 0.2);
+  --rainbow-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 25%, #f64f59 50%, #c471ed 75%, #12c2e9 100%);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -41,6 +57,7 @@ body {
   line-height: 1.5;
   color: var(--color-text);
   background: var(--color-bg-secondary);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 button {
