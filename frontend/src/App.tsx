@@ -26,7 +26,7 @@ function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
   const { theme, toggleTheme } = useAppTheme();
 
-  const themeIcon = theme === 'dark' ? '☀️' : theme === 'rainbow' ? '🌙' : '🌈';
+  const themeIcon = theme === 'light' ? '🌙' : theme === 'dark' ? '🌈' : '☀️';
   const themeLabel =
     theme === 'dark'
       ? 'Switch to rainbow mode'
