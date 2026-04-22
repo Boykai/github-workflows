@@ -1,32 +1,53 @@
-/* Base styles */
+/* Base styles - Microsoft Windows color theme */
 :root {
-  --color-primary: #0969da;
-  --color-secondary: #6e7781;
-  --color-success: #1a7f37;
-  --color-warning: #9a6700;
-  --color-danger: #cf222e;
-  --color-bg: #ffffff;
-  --color-bg-secondary: #f6f8fa;
-  --color-border: #d0d7de;
-  --color-text: #24292f;
-  --color-text-secondary: #57606a;
-  --radius: 6px;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  /* 4 core Microsoft Windows colors */
+  --win-blue: #0078D4;
+  --win-white: #FFFFFF;
+  --win-gray: #F3F3F3;
+  --win-black: #1A1A1A;
+
+  /* Primary palette */
+  --color-primary: #0078D4;          /* Windows accent blue */
+  --color-primary-hover: #106EBE;    /* Darker blue for hover state */
+  --color-primary-active: #005A9E;   /* Deepest blue for active/pressed state */
+  --color-secondary: #605E5C;        /* Windows medium gray */
+  --color-success: #107C10;          /* Windows green */
+  --color-warning: #D83B01;          /* Windows orange */
+  --color-danger: #A4262C;           /* Windows red */
+  --color-danger-hover: #7A191E;     /* Darker red for hover state */
+
+  /* Backgrounds */
+  --color-bg: #FFFFFF;               /* Windows white */
+  --color-bg-secondary: #F3F3F3;     /* Windows light gray */
+
+  /* Borders & shadows */
+  --color-border: #E1E1E1;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.14), 0 0px 2px rgba(0, 0, 0, 0.12);
+
+  /* Text */
+  --color-text: #1A1A1A;             /* Windows near-black */
+  --color-text-secondary: #605E5C;   /* Windows gray text */
+
+  /* Shape */
+  --radius: 4px;                     /* Windows uses more angular corners */
 }
 
-/* Dark theme overrides */
+/* Dark theme overrides - Windows dark mode */
 html.dark-mode-active {
-  --color-primary: #539bf5;
-  --color-secondary: #8b949e;
-  --color-success: #3fb950;
-  --color-warning: #d29922;
-  --color-danger: #f85149;
-  --color-bg: #0d1117;
-  --color-bg-secondary: #161b22;
-  --color-border: #30363d;
-  --color-text: #e6edf3;
-  --color-text-secondary: #8b949e;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --color-primary: #0078D4;          /* Windows blue stays consistent */
+  --color-primary-hover: #1A86D9;    /* Slightly lighter hover for dark bg */
+  --color-primary-active: #2490DC;
+  --color-secondary: #9D9D9D;
+  --color-success: #54B054;
+  --color-warning: #FCE100;
+  --color-danger: #F1707B;
+  --color-danger-hover: #E05560;     /* Slightly darker danger for hover in dark mode */
+  --color-bg: #202020;               /* Windows dark background */
+  --color-bg-secondary: #2C2C2C;     /* Slightly lighter dark surface */
+  --color-border: #404040;
+  --color-text: #FFFFFF;
+  --color-text-secondary: #9D9D9D;
+  --shadow: 0 2px 4px rgba(0, 0, 0, 0.36), 0 0px 2px rgba(0, 0, 0, 0.28);
 }
 
 * {
@@ -36,7 +57,7 @@ html.dark-mode-active {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Noto Sans', Helvetica, Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   color: var(--color-text);
