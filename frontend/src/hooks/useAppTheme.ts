@@ -6,32 +6,39 @@ import { useState, useEffect } from 'react';
 
 const STORAGE_KEY = 'tech-connect-theme-mode';
 const DARK_MODE_CLASS = 'dark-mode-active';
+const RAINBOW_MODE_CLASS = 'rainbow-mode-active';
+
+export type ThemeMode = 'light' | 'dark' | 'rainbow';
+
+const THEME_CYCLE: ThemeMode[] = ['light', 'dark', 'rainbow'];
 
 export function useAppTheme() {
-  const [isDarkMode, setIsDarkMode] = useState(() => {
+  const [theme, setTheme] = useState<ThemeMode>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored === 'dark';
+    if (stored === 'dark' || stored === 'rainbow') return stored;
+    return 'light';
   });
 
   useEffect(() => {
     const rootElement = document.documentElement;
-    if (isDarkMode) {
-      rootElement.classList.add(DARK_MODE_CLASS);
-    } else {
-      rootElement.classList.remove(DARK_MODE_CLASS);
-    }
-  }, [isDarkMode]);
+    rootElement.classList.toggle(DARK_MODE_CLASS, theme === 'dark');
+    rootElement.classList.toggle(RAINBOW_MODE_CLASS, theme === 'rainbow');
+  }, [theme]);
 
-  const toggleTheme = () => {
-    setIsDarkMode((current) => {
-      const newMode = !current;
-      localStorage.setItem(STORAGE_KEY, newMode ? 'dark' : 'light');
-      return newMode;
+  const cycleTheme = () => {
+    setTheme((current) => {
+      const currentIndex = THEME_CYCLE.indexOf(current);
+      const next = THEME_CYCLE[(currentIndex + 1) % THEME_CYCLE.length];
+      localStorage.setItem(STORAGE_KEY, next);
+      return next;
     });
   };
 
   return {
-    isDarkMode,
-    toggleTheme,
+    theme,
+    isDarkMode: theme === 'dark',
+    isRainbowMode: theme === 'rainbow',
+    cycleTheme,
+    toggleTheme: cycleTheme,
   };
 }

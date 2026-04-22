@@ -82,6 +82,28 @@
   transform: scale(1.05);
 }
 
+/* Rainbow theme header */
+html.rainbow-mode-active .app-header {
+  background: var(--rainbow-gradient);
+  border-bottom: none;
+  transition: background 0.3s ease;
+}
+
+html.rainbow-mode-active .app-header h1 {
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+html.rainbow-mode-active .theme-toggle-btn--rainbow {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+}
+
+html.rainbow-mode-active .theme-toggle-btn--rainbow:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
 .app-main {
   display: flex;
   flex: 1;

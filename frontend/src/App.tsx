@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isDarkMode, toggleTheme } = useAppTheme();
+  const { theme, cycleTheme } = useAppTheme();
   const {
     projects,
     selectedProject,
@@ -85,11 +85,15 @@ function AppContent() {
         <h1>GitHub Workflows</h1>
         <div className="header-actions">
           <button 
-            className="theme-toggle-btn"
-            onClick={toggleTheme}
-            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            className={`theme-toggle-btn${theme === 'rainbow' ? ' theme-toggle-btn--rainbow' : ''}`}
+            onClick={cycleTheme}
+            aria-label={
+              theme === 'light' ? 'Switch to dark mode' :
+              theme === 'dark' ? 'Switch to rainbow mode' :
+              'Switch to light mode'
+            }
           >
-            {isDarkMode ? '☀️' : '🌙'}
+            {theme === 'light' ? '🌙' : theme === 'dark' ? '🌈' : '☀️'}
           </button>
           <LoginButton />
         </div>
