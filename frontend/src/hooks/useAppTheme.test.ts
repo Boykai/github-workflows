@@ -133,4 +133,3 @@ describe('useAppTheme', () => {
     expect(result.current.theme).toBe('dark');
   });
 });
-
