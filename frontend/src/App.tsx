@@ -22,9 +22,16 @@ const queryClient = new QueryClient({
   },
 });
 
+const THEME_ICON: Record<string, string> = { light: '🌙', dark: '👻', 'spooky-ghost': '☀️' };
+const THEME_LABEL: Record<string, string> = {
+  light: 'Switch to dark mode',
+  dark: 'Switch to Spooky Ghost mode',
+  'spooky-ghost': 'Switch to light mode',
+};
+
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isDarkMode, toggleTheme } = useAppTheme();
+  const { theme, toggleTheme } = useAppTheme();
   const {
     projects,
     selectedProject,
@@ -87,9 +94,9 @@ function AppContent() {
           <button 
             className="theme-toggle-btn"
             onClick={toggleTheme}
-            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={THEME_LABEL[theme]}
           >
-            {isDarkMode ? '☀️' : '🌙'}
+            {THEME_ICON[theme]}
           </button>
           <LoginButton />
         </div>

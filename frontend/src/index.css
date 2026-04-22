@@ -29,6 +29,48 @@ html.dark-mode-active {
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* Spooky Ghost theme overrides */
+html.spooky-ghost-active {
+  --color-primary: #b57bee;
+  --color-secondary: #9370db;
+  --color-success: #7ec8a0;
+  --color-warning: #d4a843;
+  --color-danger: #e05c5c;
+  --color-bg: #0f0a1a;
+  --color-bg-secondary: #1a1030;
+  --color-border: #3d2f5e;
+  --color-text: #e8e0f0;
+  --color-text-secondary: #a89bc4;
+  --radius: 8px;
+  --shadow: 0 2px 8px rgba(181, 123, 238, 0.2);
+}
+
+/* Ghost float animation */
+@keyframes ghost-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+/* Spooky Ghost theme – ghost-float on toggle button */
+html.spooky-ghost-active .theme-toggle-btn {
+  animation: ghost-float 3s ease-in-out infinite;
+  background: rgba(61, 47, 94, 0.6);
+  border-color: #b57bee;
+  color: #e8e0f0;
+}
+
+/* Spooky Ghost theme – ghostly fade transition on all interactive elements */
+html.spooky-ghost-active button,
+html.spooky-ghost-active input,
+html.spooky-ghost-active select,
+html.spooky-ghost-active textarea {
+  transition: background 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+html.spooky-ghost-active button:hover {
+  box-shadow: 0 0 12px rgba(181, 123, 238, 0.5);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
