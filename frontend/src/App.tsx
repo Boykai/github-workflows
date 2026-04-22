@@ -11,6 +11,7 @@ import { useAppTheme } from '@/hooks/useAppTheme';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
+import { HalloweenDecorations } from '@/components/common/HalloweenDecorations';
 import './App.css';
 
 const queryClient = new QueryClient({
@@ -24,7 +25,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isDarkMode, toggleTheme } = useAppTheme();
+  const { isDarkMode, isHalloweenMode, toggleTheme, toggleHalloween } = useAppTheme();
   const {
     projects,
     selectedProject,
@@ -81,9 +82,22 @@ function AppContent() {
 
   return (
     <div className="app-container">
+      {isHalloweenMode && <HalloweenDecorations />}
       <header className="app-header">
-        <h1>GitHub Workflows</h1>
+        <h1>
+          {isHalloweenMode && <span className="halloween-pumpkin" aria-hidden="true">🎃 </span>}
+          GitHub Workflows
+          {isHalloweenMode && <span className="halloween-pumpkin" aria-hidden="true"> 🎃</span>}
+        </h1>
         <div className="header-actions">
+          <button
+            className="halloween-toggle-btn"
+            onClick={toggleHalloween}
+            aria-label={isHalloweenMode ? 'Disable Halloween theme' : 'Enable Halloween theme'}
+            aria-pressed={isHalloweenMode}
+          >
+            🎃
+          </button>
           <button 
             className="theme-toggle-btn"
             onClick={toggleTheme}

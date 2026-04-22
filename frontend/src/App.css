@@ -524,3 +524,175 @@
   font-weight: 500;
 }
 
+/* Halloween Theme Styles */
+
+/* Smooth theme transition */
+html {
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+html.halloween-mode-active .app-header {
+  background: linear-gradient(135deg, #0d0010 0%, #1a0025 100%);
+  border-bottom: 1px solid #ff8c00;
+  box-shadow: 0 2px 16px rgba(255, 140, 0, 0.3);
+}
+
+html.halloween-mode-active .app-header h1 {
+  color: #ff8c00;
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+html.halloween-mode-active .app-container {
+  background: #0d0010;
+}
+
+html.halloween-mode-active .project-sidebar {
+  background: #0d0010;
+  border-right: 1px solid #5a1a8a;
+}
+
+html.halloween-mode-active .status-column {
+  background: #1a0025;
+  border: 1px solid #5a1a8a;
+}
+
+html.halloween-mode-active .task-card {
+  background: #0d0010;
+  border: 1px solid #5a1a8a;
+}
+
+html.halloween-mode-active .task-card:hover {
+  border-color: #ff8c00;
+  box-shadow: 0 0 12px rgba(255, 140, 0, 0.4);
+}
+
+html.halloween-mode-active .chat-section {
+  background: #0d0010;
+}
+
+html.halloween-mode-active .project-select {
+  background: #1a0025;
+  color: #f5e6d3;
+  border-color: #5a1a8a;
+}
+
+/* Halloween toggle button */
+.halloween-toggle-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  padding: 6px 12px;
+  font-size: 18px;
+  transition: all 0.2s ease;
+}
+
+.halloween-toggle-btn:hover {
+  background: var(--color-border);
+  transform: scale(1.05);
+}
+
+html.halloween-mode-active .halloween-toggle-btn {
+  background: rgba(255, 140, 0, 0.15);
+  border-color: #ff8c00;
+  box-shadow: 0 0 8px rgba(255, 140, 0, 0.5);
+}
+
+html.halloween-mode-active .halloween-toggle-btn:hover {
+  background: rgba(255, 140, 0, 0.3);
+  transform: scale(1.1);
+}
+
+/* Flickering pumpkin animation */
+@keyframes flicker {
+  0%, 100% { opacity: 1; filter: brightness(1) drop-shadow(0 0 6px rgba(255, 140, 0, 0.8)); }
+  10%       { opacity: 0.9; filter: brightness(1.1) drop-shadow(0 0 10px rgba(255, 140, 0, 1)); }
+  20%       { opacity: 1; filter: brightness(1) drop-shadow(0 0 6px rgba(255, 140, 0, 0.8)); }
+  30%       { opacity: 0.85; filter: brightness(0.95) drop-shadow(0 0 4px rgba(255, 140, 0, 0.6)); }
+  40%       { opacity: 1; filter: brightness(1.05) drop-shadow(0 0 8px rgba(255, 140, 0, 0.9)); }
+  50%       { opacity: 0.92; filter: brightness(1) drop-shadow(0 0 7px rgba(255, 140, 0, 0.85)); }
+  60%       { opacity: 0.95; filter: brightness(1) drop-shadow(0 0 6px rgba(255, 140, 0, 0.8)); }
+  80%       { opacity: 0.9; filter: brightness(1.1) drop-shadow(0 0 10px rgba(255, 140, 0, 1)); }
+}
+
+.halloween-pumpkin {
+  display: inline-block;
+  font-size: 20px;
+  animation: flicker 3s ease-in-out infinite;
+}
+
+/* Floating bats */
+.halloween-decorations {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.bat {
+  position: absolute;
+  font-size: 20px;
+  opacity: 0;
+  animation: float-bat linear infinite;
+  user-select: none;
+}
+
+@keyframes float-bat {
+  0% {
+    opacity: 0;
+    transform: translateY(0) translateX(0) scaleX(1);
+  }
+  5% {
+    opacity: 0.85;
+  }
+  45% {
+    transform: translateY(-40px) translateX(50px) scaleX(1);
+  }
+  50% {
+    transform: translateY(-80px) translateX(100px) scaleX(-1);
+  }
+  55% {
+    transform: translateY(-40px) translateX(150px) scaleX(-1);
+  }
+  95% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(0) translateX(calc(100vw + 40px)) scaleX(1);
+  }
+}
+
+/* Rate limit fill in halloween mode */
+html.halloween-mode-active .rate-limit-fill {
+  background: #ff8c00;
+}
+
+/* Status badges in halloween mode */
+html.halloween-mode-active .status-badge.status-todo {
+  background: rgba(155, 89, 182, 0.2);
+  color: #c9a0dc;
+}
+
+html.halloween-mode-active .status-badge.status-in-progress {
+  background: rgba(255, 140, 0, 0.2);
+  color: #ff8c00;
+}
+
+html.halloween-mode-active .status-badge.status-done {
+  background: rgba(57, 211, 83, 0.15);
+  color: #39d353;
+}
+
+/* App loading / login screens in halloween mode */
+html.halloween-mode-active .app-login h1 {
+  color: #ff8c00;
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.7);
+}
+
+html.halloween-mode-active .spinner {
+  border-color: #5a1a8a;
+  border-top-color: #ff8c00;
+}
