@@ -29,6 +29,73 @@ html.dark-mode-active {
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* Rainbow theme overrides */
+html.rainbow-mode-active {
+  --color-primary: #7c3aed;
+  --color-secondary: #6b7280;
+  --color-success: #059669;
+  --color-warning: #d97706;
+  --color-danger: #dc2626;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #faf5ff;
+  --color-border: #e9d5ff;
+  --color-text: #1a1a2e;
+  --color-text-secondary: #4b5563;
+  --shadow: 0 1px 3px rgba(124, 58, 237, 0.15);
+}
+
+/* Rainbow animation keyframes */
+@keyframes rainbow-shift {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Rainbow gradient applied to primary UI elements */
+html.rainbow-mode-active .app-header {
+  background: linear-gradient(270deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff);
+  background-size: 300% 300%;
+  animation: rainbow-shift 8s ease infinite;
+  border-bottom-color: transparent;
+}
+
+html.rainbow-mode-active .app-header h1,
+html.rainbow-mode-active .app-header .header-actions {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+html.rainbow-mode-active .sidebar-header {
+  background: linear-gradient(270deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff);
+  background-size: 300% 300%;
+  animation: rainbow-shift 8s ease infinite;
+  border-bottom-color: transparent;
+}
+
+html.rainbow-mode-active .sidebar-header h2 {
+  color: #ffffff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+html.rainbow-mode-active .theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+}
+
+html.rainbow-mode-active .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+html.rainbow-mode-active button.primary-action,
+html.rainbow-mode-active .send-button {
+  background: linear-gradient(135deg, #ff6b6b, #ffd93d, #6bcb77, #4d96ff, #c77dff);
+  background-size: 300% 300%;
+  animation: rainbow-shift 6s ease infinite;
+  color: #ffffff;
+  border: none;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
