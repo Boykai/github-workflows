@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isDarkMode, toggleTheme } = useAppTheme();
+  const { isDarkMode, isHalloweenMode, toggleTheme } = useAppTheme();
   const {
     projects,
     selectedProject,
@@ -79,17 +79,38 @@ function AppContent() {
     refreshTasks();
   };
 
+  const getThemeToggleLabel = () => {
+    if (isDarkMode) return 'Switch to Halloween mode';
+    if (isHalloweenMode) return 'Switch to light mode';
+    return 'Switch to dark mode';
+  };
+
+  const getThemeToggleIcon = () => {
+    if (isDarkMode) return '🎃';
+    if (isHalloweenMode) return '☀️';
+    return '🌙';
+  };
+
   return (
     <div className="app-container">
+      {isHalloweenMode && (
+        <div aria-hidden="true">
+          <span className="halloween-bat">🦇</span>
+          <span className="halloween-bat">🦇</span>
+          <span className="halloween-bat">🦇</span>
+          <span className="halloween-bat">🦇</span>
+          <span className="halloween-bat">🦇</span>
+        </div>
+      )}
       <header className="app-header">
         <h1>Welcome to Tech Connect 2026!</h1>
         <div className="header-actions">
           <button 
             className="theme-toggle-btn"
             onClick={toggleTheme}
-            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={getThemeToggleLabel()}
           >
-            {isDarkMode ? '☀️' : '🌙'}
+            {getThemeToggleIcon()}
           </button>
           <LoginButton />
         </div>

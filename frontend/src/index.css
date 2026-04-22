@@ -29,6 +29,97 @@ html.dark-mode-active {
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* Halloween theme overrides */
+html.halloween-mode-active {
+  --color-primary: #ff6b00;
+  --color-secondary: #8b5cf6;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #dc2626;
+  --color-bg: #1a0a00;
+  --color-bg-secondary: #2d1400;
+  --color-border: #7c3400;
+  --color-text: #ffd580;
+  --color-text-secondary: #c97a2a;
+  --shadow: 0 2px 8px rgba(255, 107, 0, 0.3);
+}
+
+/* Floating bats animation */
+@keyframes float-bat {
+  0% {
+    transform: translateY(0) translateX(0) scaleX(1);
+    opacity: 0.8;
+  }
+  25% {
+    transform: translateY(-30px) translateX(20px) scaleX(-1);
+  }
+  50% {
+    transform: translateY(-10px) translateX(40px) scaleX(1);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-40px) translateX(20px) scaleX(-1);
+  }
+  100% {
+    transform: translateY(0) translateX(0) scaleX(1);
+    opacity: 0.8;
+  }
+}
+
+.halloween-bat {
+  position: fixed;
+  font-size: 24px;
+  pointer-events: none;
+  z-index: 9999;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .halloween-bat {
+    animation: float-bat linear infinite;
+  }
+}
+
+.halloween-bat:nth-child(1) {
+  top: 10%;
+  left: 5%;
+  animation-duration: 7s;
+  animation-delay: 0s;
+  font-size: 20px;
+}
+
+.halloween-bat:nth-child(2) {
+  top: 20%;
+  right: 8%;
+  animation-duration: 9s;
+  animation-delay: -2s;
+  font-size: 28px;
+}
+
+.halloween-bat:nth-child(3) {
+  top: 60%;
+  left: 3%;
+  animation-duration: 8s;
+  animation-delay: -4s;
+  font-size: 18px;
+}
+
+.halloween-bat:nth-child(4) {
+  top: 75%;
+  right: 5%;
+  animation-duration: 10s;
+  animation-delay: -1s;
+  font-size: 22px;
+}
+
+.halloween-bat:nth-child(5) {
+  top: 40%;
+  left: 48%;
+  animation-duration: 11s;
+  animation-delay: -6s;
+  font-size: 16px;
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
