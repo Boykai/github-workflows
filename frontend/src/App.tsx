@@ -2,12 +2,13 @@
  * Main application component.
  */
 
+import { useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useAuth } from '@/hooks/useAuth';
 import { useProjects } from '@/hooks/useProjects';
 import { useChat } from '@/hooks/useChat';
 import { useWorkflow } from '@/hooks/useWorkflow';
-import { useAppTheme } from '@/hooks/useAppTheme';
+import { useAppTheme, type ThemeMode } from '@/hooks/useAppTheme';
 import { LoginButton } from '@/components/auth/LoginButton';
 import { ProjectSidebar } from '@/components/sidebar/ProjectSidebar';
 import { ChatInterface } from '@/components/chat/ChatInterface';
@@ -24,7 +25,16 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isDarkMode, toggleTheme } = useAppTheme();
+  const {
+    isRetroMode,
+    themeMode,
+    isPreviewingRetro,
+    toggleTheme,
+    setTheme,
+    previewRetroTheme,
+    cancelRetroPreview,
+  } = useAppTheme();
+  const [showThemeSettings, setShowThemeSettings] = useState(false);
   const {
     projects,
     selectedProject,
@@ -84,13 +94,99 @@ function AppContent() {
       <header className="app-header">
         <h1>Welcome to Tech Connect 2026!</h1>
         <div className="header-actions">
-          <button 
+          <button
             className="theme-toggle-btn"
             onClick={toggleTheme}
-            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            aria-label={
+              themeMode === 'light'
+                ? 'Switch to dark mode'
+                : themeMode === 'dark'
+                  ? 'Switch to retro mode'
+                  : 'Switch to light mode'
+            }
+            title={
+              themeMode === 'light'
+                ? 'Dark mode'
+                : themeMode === 'dark'
+                  ? 'Retro mode'
+                  : 'Light mode'
+            }
           >
-            {isDarkMode ? '☀️' : '🌙'}
+            {themeMode === 'light' ? '🌙' : themeMode === 'dark' ? '🕹️' : '☀️'}
           </button>
+          <div className="theme-settings-wrapper">
+            <button
+              className="theme-settings-btn"
+              onClick={() => {
+                setShowThemeSettings((v) => !v);
+                if (isPreviewingRetro) cancelRetroPreview();
+              }}
+              aria-label="Theme settings"
+              aria-expanded={showThemeSettings}
+            >
+              ⚙️
+            </button>
+            {showThemeSettings && (
+              <div className="theme-settings-panel" role="dialog" aria-label="Theme settings">
+                <div className="theme-settings-header">
+                  <span className="theme-settings-title">Theme Settings</span>
+                  <button
+                    className="theme-settings-close"
+                    onClick={() => {
+                      setShowThemeSettings(false);
+                      cancelRetroPreview();
+                    }}
+                    aria-label="Close theme settings"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="theme-options">
+                  {(['light', 'dark', 'retro'] as ThemeMode[]).map((mode) => (
+                    <div key={mode} className="theme-option">
+                      <button
+                        className={`theme-option-btn${themeMode === mode ? ' active' : ''}`}
+                        onClick={() => {
+                          setTheme(mode);
+                          setShowThemeSettings(false);
+                        }}
+                        aria-pressed={themeMode === mode}
+                      >
+                        <span className="theme-option-icon">
+                          {mode === 'light' ? '☀️' : mode === 'dark' ? '🌙' : '🕹️'}
+                        </span>
+                        <span className="theme-option-label">
+                          {mode === 'light' ? 'Light' : mode === 'dark' ? 'Dark' : 'Retro 90s'}
+                        </span>
+                        {themeMode === mode && (
+                          <span className="theme-option-active-badge">Active</span>
+                        )}
+                      </button>
+                      {mode === 'retro' && themeMode !== 'retro' && (
+                        <button
+                          className={`theme-preview-btn${isPreviewingRetro ? ' previewing' : ''}`}
+                          onMouseEnter={previewRetroTheme}
+                          onMouseLeave={cancelRetroPreview}
+                          onClick={() => {
+                            setTheme('retro');
+                            setShowThemeSettings(false);
+                          }}
+                          aria-label="Preview retro theme"
+                        >
+                          {isPreviewingRetro ? 'Apply' : 'Preview'}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                {isRetroMode && (
+                  <p className="theme-settings-note">
+                    🕹️ Retro 90s theme active! Totally radical.
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
           <LoginButton />
         </div>
       </header>

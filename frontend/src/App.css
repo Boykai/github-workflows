@@ -524,3 +524,339 @@
   font-weight: 500;
 }
 
+/* ============================================================
+   Retro 1990s theme — component & geometric accent overrides
+   (applied when html.retro-mode-active or html.retro-preview-active)
+   ============================================================ */
+
+html.retro-mode-active body,
+html.retro-preview-active body {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+/* Neon glowing header */
+html.retro-mode-active .app-header,
+html.retro-preview-active .app-header {
+  background: linear-gradient(90deg, #0d0021 0%, #1a0035 50%, #0d0021 100%);
+  border-bottom: 3px solid var(--color-primary);
+  box-shadow: 0 0 16px rgba(255, 20, 147, 0.6), inset 0 -1px 0 rgba(0, 255, 255, 0.3);
+}
+
+html.retro-mode-active .app-header h1,
+html.retro-preview-active .app-header h1 {
+  background: linear-gradient(90deg, #ff1493, #00ffff, #ffd600, #ff6d00);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+  font-family: 'Courier New', Courier, monospace;
+  letter-spacing: 2px;
+}
+
+/* Geometric accent: rainbow stripe divider on sidebar border */
+html.retro-mode-active .project-sidebar,
+html.retro-preview-active .project-sidebar {
+  border-right: 3px solid;
+  border-image: linear-gradient(180deg, #ff1493, #d500f9, #00ffff, #00e676, #ffd600, #ff6d00) 1;
+  background: var(--color-bg);
+  position: relative;
+}
+
+/* Geometric background pattern on sidebar */
+html.retro-mode-active .board-container,
+html.retro-preview-active .board-container {
+  background-image:
+    linear-gradient(45deg, rgba(255, 20, 147, 0.05) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(0, 255, 255, 0.05) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(213, 0, 249, 0.05) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 109, 0, 0.05) 75%);
+  background-size: 20px 20px;
+}
+
+/* Geometric zigzag divider between status columns */
+html.retro-mode-active .status-column,
+html.retro-preview-active .status-column {
+  border: 2px solid var(--color-border);
+  box-shadow: 0 0 8px rgba(255, 20, 147, 0.3);
+  background: var(--color-bg-secondary);
+}
+
+html.retro-mode-active .status-column + .status-column,
+html.retro-preview-active .status-column + .status-column {
+  border-top: 4px solid transparent;
+  border-image: repeating-linear-gradient(
+    90deg,
+    #ff1493 0px, #ff1493 10px,
+    #d500f9 10px, #d500f9 20px,
+    #00ffff 20px, #00ffff 30px,
+    #00e676 30px, #00e676 40px,
+    #ffd600 40px, #ffd600 50px,
+    #ff6d00 50px, #ff6d00 60px
+  ) 1;
+}
+
+/* Neon task cards */
+html.retro-mode-active .task-card,
+html.retro-preview-active .task-card {
+  border: 1px solid rgba(255, 20, 147, 0.4);
+  background: rgba(22, 5, 53, 0.9);
+}
+
+html.retro-mode-active .task-card:hover,
+html.retro-preview-active .task-card:hover {
+  box-shadow: 0 0 12px rgba(255, 20, 147, 0.6), 0 0 6px rgba(0, 255, 255, 0.3);
+  border-color: var(--color-primary);
+}
+
+/* Neon buttons */
+html.retro-mode-active button,
+html.retro-preview-active button {
+  color: #000000;
+}
+
+html.retro-mode-active .login-button,
+html.retro-preview-active .login-button {
+  background: linear-gradient(135deg, #ff1493, #d500f9);
+  color: #ffffff;
+  border: 1px solid #ff1493;
+  box-shadow: 0 0 8px rgba(255, 20, 147, 0.5);
+}
+
+html.retro-mode-active .login-button:hover,
+html.retro-preview-active .login-button:hover {
+  background: linear-gradient(135deg, #ff4db8, #e040fb);
+  box-shadow: 0 0 16px rgba(255, 20, 147, 0.8);
+}
+
+html.retro-mode-active .logout-button,
+html.retro-preview-active .logout-button {
+  background: rgba(0, 255, 255, 0.1);
+  color: var(--color-secondary);
+  border: 1px solid var(--color-secondary);
+}
+
+html.retro-mode-active .logout-button:hover,
+html.retro-preview-active .logout-button:hover {
+  background: rgba(0, 255, 255, 0.25);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.5);
+}
+
+html.retro-mode-active .theme-toggle-btn,
+html.retro-preview-active .theme-toggle-btn {
+  background: rgba(213, 0, 249, 0.15);
+  border: 1px solid var(--color-neon-purple, #d500f9);
+  color: var(--color-neon-purple, #d500f9);
+}
+
+html.retro-mode-active .theme-toggle-btn:hover,
+html.retro-preview-active .theme-toggle-btn:hover {
+  background: rgba(213, 0, 249, 0.3);
+  box-shadow: 0 0 10px rgba(213, 0, 249, 0.6);
+}
+
+html.retro-mode-active .collapse-button,
+html.retro-preview-active .collapse-button {
+  color: var(--color-secondary);
+}
+
+html.retro-mode-active .project-select,
+html.retro-preview-active .project-select {
+  background: var(--color-bg);
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+/* Chat background with faint geometric grid */
+html.retro-mode-active .chat-section,
+html.retro-preview-active .chat-section {
+  background: var(--color-bg);
+  background-image:
+    linear-gradient(rgba(0, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Status badges — neon colours */
+html.retro-mode-active .status-badge.status-todo,
+html.retro-preview-active .status-badge.status-todo {
+  background: rgba(255, 20, 147, 0.15);
+  color: #ff1493;
+}
+
+html.retro-mode-active .status-badge.status-in-progress,
+html.retro-preview-active .status-badge.status-in-progress {
+  background: rgba(255, 214, 0, 0.15);
+  color: #ffd600;
+}
+
+html.retro-mode-active .status-badge.status-done,
+html.retro-preview-active .status-badge.status-done {
+  background: rgba(0, 230, 118, 0.15);
+  color: #00e676;
+}
+
+/* ---- Theme Settings Panel ---- */
+.theme-settings-wrapper {
+  position: relative;
+}
+
+.theme-settings-btn {
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  padding: 6px 10px;
+  font-size: 16px;
+  transition: all 0.2s ease;
+}
+
+.theme-settings-btn:hover {
+  background: var(--color-border);
+  transform: scale(1.05);
+}
+
+.theme-settings-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 240px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 200;
+  padding: 12px;
+}
+
+.theme-settings-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.theme-settings-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.theme-settings-close {
+  background: transparent;
+  color: var(--color-text-secondary);
+  padding: 2px 6px;
+  font-size: 14px;
+}
+
+.theme-settings-close:hover {
+  color: var(--color-text);
+  background: var(--color-bg-secondary);
+}
+
+.theme-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.theme-option-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  font-size: 13px;
+  color: var(--color-text);
+  text-align: left;
+  transition: all 0.15s ease;
+}
+
+.theme-option-btn:hover {
+  background: var(--color-border);
+}
+
+.theme-option-btn.active {
+  border-color: var(--color-primary);
+  background: rgba(9, 105, 218, 0.08);
+}
+
+html.dark-mode-active .theme-option-btn.active {
+  background: rgba(83, 155, 245, 0.12);
+}
+
+html.retro-mode-active .theme-option-btn.active,
+html.retro-preview-active .theme-option-btn.active {
+  border-color: var(--color-primary);
+  background: rgba(255, 20, 147, 0.15);
+  color: var(--color-text);
+}
+
+.theme-option-icon {
+  font-size: 16px;
+}
+
+.theme-option-label {
+  flex: 1;
+}
+
+.theme-option-active-badge {
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+html.retro-mode-active .theme-option-active-badge,
+html.retro-preview-active .theme-option-active-badge {
+  color: #000000;
+}
+
+.theme-preview-btn {
+  padding: 6px 10px;
+  font-size: 12px;
+  background: rgba(213, 0, 249, 0.1);
+  border: 1px solid #d500f9;
+  color: #d500f9;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.theme-preview-btn:hover,
+.theme-preview-btn.previewing {
+  background: rgba(213, 0, 249, 0.2);
+  box-shadow: 0 0 8px rgba(213, 0, 249, 0.4);
+}
+
+.theme-settings-note {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  text-align: center;
+  padding: 6px;
+  border-top: 1px solid var(--color-border);
+}
+
+/* Retro neon glow on settings panel */
+html.retro-mode-active .theme-settings-panel,
+html.retro-preview-active .theme-settings-panel {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 16px rgba(255, 20, 147, 0.4);
+}
+
+html.retro-mode-active .theme-settings-btn,
+html.retro-preview-active .theme-settings-btn {
+  background: rgba(213, 0, 249, 0.15);
+  border-color: #d500f9;
+  color: #d500f9;
+}
+
+
