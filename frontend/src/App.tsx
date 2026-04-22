@@ -66,7 +66,7 @@ function AppContent() {
   if (!isAuthenticated) {
     return (
       <div className="app-login">
-        <h1>Welcome to Tech Connect 2026!</h1>
+        <h1>GitHub Workflows</h1>
         <p>Manage your GitHub Projects with natural language</p>
         <LoginButton />
       </div>
@@ -82,7 +82,7 @@ function AppContent() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1>Welcome to Tech Connect 2026!</h1>
+        <h1>GitHub Workflows</h1>
         <div className="header-actions">
           <button 
             className="theme-toggle-btn"
