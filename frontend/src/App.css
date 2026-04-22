@@ -608,6 +608,7 @@ html.halloween-mode-active .halloween-toggle-btn:hover {
   20%       { opacity: 1; filter: brightness(1) drop-shadow(0 0 6px rgba(255, 140, 0, 0.8)); }
   30%       { opacity: 0.85; filter: brightness(0.95) drop-shadow(0 0 4px rgba(255, 140, 0, 0.6)); }
   40%       { opacity: 1; filter: brightness(1.05) drop-shadow(0 0 8px rgba(255, 140, 0, 0.9)); }
+  50%       { opacity: 0.92; filter: brightness(1) drop-shadow(0 0 7px rgba(255, 140, 0, 0.85)); }
   60%       { opacity: 0.95; filter: brightness(1) drop-shadow(0 0 6px rgba(255, 140, 0, 0.8)); }
   80%       { opacity: 0.9; filter: brightness(1.1) drop-shadow(0 0 10px rgba(255, 140, 0, 1)); }
 }
