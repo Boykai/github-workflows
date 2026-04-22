@@ -29,6 +29,137 @@ html.dark-mode-active {
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
 }
 
+/* Rainbow theme overrides */
+html.rainbow-mode-active {
+  --color-primary: #8b5cf6;
+  --color-secondary: #ec4899;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-bg: #fdf4ff;
+  --color-bg-secondary: #f3e8ff;
+  --color-border: #d8b4fe;
+  --color-text: #1e1b4b;
+  --color-text-secondary: #6d28d9;
+  --shadow: 0 1px 6px rgba(139, 92, 246, 0.2);
+  --rainbow-gradient: linear-gradient(135deg, #f97316, #eab308, #22c55e, #3b82f6, #8b5cf6, #ec4899);
+  --rainbow-gradient-subtle: linear-gradient(135deg, rgba(249,115,22,0.15), rgba(234,179,8,0.15), rgba(34,197,94,0.15), rgba(59,130,246,0.15), rgba(139,92,246,0.15), rgba(236,72,153,0.15));
+}
+
+/* Rainbow theme component styles */
+html.rainbow-mode-active body {
+  background: var(--color-bg-secondary);
+  transition: background 0.3s ease, color 0.3s ease;
+}
+
+html.rainbow-mode-active button {
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+html.rainbow-mode-active .app-header {
+  background: var(--rainbow-gradient);
+  border-bottom-color: transparent;
+}
+
+html.rainbow-mode-active .app-header h1 {
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+html.rainbow-mode-active .theme-toggle-btn {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+}
+
+html.rainbow-mode-active .theme-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.4);
+  transform: scale(1.08);
+}
+
+html.rainbow-mode-active .login-button {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+html.rainbow-mode-active .login-button:hover {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+html.rainbow-mode-active .logout-button {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #ffffff;
+}
+
+html.rainbow-mode-active .logout-button:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+html.rainbow-mode-active .project-sidebar {
+  background: var(--color-bg);
+  border-right-color: var(--color-border);
+}
+
+html.rainbow-mode-active .sidebar-header {
+  background: var(--rainbow-gradient-subtle);
+  border-bottom-color: var(--color-border);
+}
+
+html.rainbow-mode-active .status-column {
+  background: var(--rainbow-gradient-subtle);
+  border: 1px solid var(--color-border);
+}
+
+html.rainbow-mode-active .task-card {
+  border-left: 3px solid transparent;
+  border-image: var(--rainbow-gradient) 1;
+  transition: box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+html.rainbow-mode-active .task-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2);
+}
+
+html.rainbow-mode-active .status-badge.status-todo {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+}
+
+html.rainbow-mode-active .status-badge.status-in-progress {
+  background: rgba(245, 158, 11, 0.15);
+  color: #d97706;
+}
+
+html.rainbow-mode-active .status-badge.status-done {
+  background: rgba(16, 185, 129, 0.15);
+  color: #059669;
+}
+
+html.rainbow-mode-active .send-button {
+  background: var(--rainbow-gradient);
+  border: none;
+}
+
+html.rainbow-mode-active .send-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+  transform: scale(1.05);
+}
+
+html.rainbow-mode-active .confirm-button {
+  background: linear-gradient(135deg, #10b981, #3b82f6);
+}
+
+html.rainbow-mode-active .confirm-button:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+html.rainbow-mode-active .collapse-button:hover {
+  background: var(--color-bg-secondary);
+}
+
 * {
   box-sizing: border-box;
   margin: 0;
@@ -41,6 +172,7 @@ body {
   line-height: 1.5;
   color: var(--color-text);
   background: var(--color-bg-secondary);
+  transition: background 0.3s ease, color 0.3s ease;
 }
 
 button {

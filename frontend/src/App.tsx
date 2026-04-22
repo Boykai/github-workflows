@@ -24,7 +24,7 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isDarkMode, toggleTheme } = useAppTheme();
+  const { themeMode, cycleTheme } = useAppTheme();
   const {
     projects,
     selectedProject,
@@ -86,10 +86,14 @@ function AppContent() {
         <div className="header-actions">
           <button 
             className="theme-toggle-btn"
-            onClick={toggleTheme}
-            aria-label={isDarkMode ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={cycleTheme}
+            aria-label={
+              themeMode === 'light' ? 'Switch to dark mode' :
+              themeMode === 'dark' ? 'Switch to rainbow mode' :
+              'Switch to light mode'
+            }
           >
-            {isDarkMode ? '☀️' : '🌙'}
+            {themeMode === 'light' ? '🌙' : themeMode === 'dark' ? '🌈' : '☀️'}
           </button>
           <LoginButton />
         </div>
